@@ -1,0 +1,69 @@
+# Memory – iTour Transport & Traffic
+
+This file tracks **all user instructions, decisions, and session progress** throughout the development journey.
+
+---
+
+## Session 1 – 2026-01-29
+
+### Instructions Received
+1. Read all spec files before starting development.
+2. Create `memory.md` to track instructions and session progress.
+3. Create `progress.md` to track project progress per completed function.
+4. Utilize Claude agents/cowork for parallel development.
+5. Start development following the mandated build order from CLAUDE.md.
+
+### Decisions Made
+- Project starts from scratch (no existing code, only spec .md files).
+- Build order follows CLAUDE.md: Prisma schema -> NestJS modules -> Dispatch API -> Dispatch UI -> Finance & Odoo -> Reporting.
+- Using parallel agents for independent tasks (e.g., frontend + backend scaffolding).
+
+### Standing Instructions (from CLAUDE.md & user)
+- Login form: compact, glass effect, black abstract background with 10% blur.
+- No MVP shortcuts. Production-grade code only.
+- Tech stack is locked. No substitutions.
+- Zones are the pricing unit. Location tree is strict hierarchy.
+- Assignment order: Vehicle -> Driver -> Rep.
+- Pax must never exceed vehicle capacity.
+- Financial records immutable after posting.
+- All exports must be Odoo-ready (no Odoo customization).
+- If conflicts in specs appear, ask before changing.
+
+---
+
+---
+
+## Session 2 – 2026-02-06
+
+### Phase 10 Refactor – Design Decisions
+User chose the following for the Traffic Assign redesign:
+
+1. **ServiceType CITY → EXCURSION**: Rename enum value (remove CITY entirely)
+2. **Origin/Destination storage**: 6 separate FK columns (originAirportId, originZoneId, originHotelId, destinationAirportId, destinationZoneId, destinationHotelId)
+3. **hotelId field**: Keep deprecated (nullable FK preserved)
+4. **Customer invoicing**: Reuse AgentInvoice (nullable agentId + customerId)
+5. **Notes field**: Keep on both Online and B2B tabs
+
+### Work Completed
+- Updated Prisma schema: removed CITY enum, added 6 origin/dest FKs, made AgentInvoice.agentId nullable, added customerId, removed CustomerInvoice/CustomerInvoiceLine/CustomerPayment models
+- Synced DB via `prisma db push` + baseline migration
+- Updated all backend services: traffic-jobs, dispatch, finance, export, reports, customers DTOs
+- Updated all frontend: types, traffic-jobs page (12 service types, separate FK form fields), dispatch page, finance page, rep portal pages
+- Zero TypeScript errors in both frontend and backend
+
+### Remaining Phase 10 Work
+- Rep flight-aware validation (3-hour gap, same-flight sharing)
+- Driver time-aware validation (3-hour gap rule)
+- Available drivers/reps rewrite with jobId param
+- Block rep assignment on Excursion jobs
+- Add "customers" to role permission seeds
+
+---
+
+## Change Log
+
+| Date | Change | Requested By |
+|------|--------|-------------|
+| 2026-01-29 | Project initialized, memory.md and progress.md created | User |
+| 2026-02-06 | Phase 10 schema refactor: CITY→EXCURSION, 6 FK columns, AgentInvoice consolidation | User |
+| 2026-02-06 | Phase 10 backend+frontend updates for refactored schema | User |

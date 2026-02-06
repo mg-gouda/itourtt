@@ -1,0 +1,882 @@
+// iTour Transport & Traffic – Prisma Schema
+// Source of truth: 01-database-schema.md + CLAUDE.md
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  DISPATCHER
+  ACCOUNTANT
+  AGENT_MANAGER
+  VIEWER
+  REP
+}
+
+enum ServiceType {
+  ARR
+  DEP
+  EXCURSION
+  ROUND_TRIP
+  ONE_WAY_GOING
+  ONE_WAY_RETURN
+  OVER_DAY
+  TRANSFER
+  CITY_TOUR
+  COLLECTING_ONE_WAY
+  COLLECTING_ROUND_TRIP
+  EXPRESS_SHOPPING
+}
+
+enum JobStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum NotificationType {
+  JOB_ASSIGNED
+  JOB_UPDATED
+  GENERAL
+}
+
+enum VehicleOwnership {
+  OWNED
+  RENTED
+  CONTRACTED
+}
+
+enum Currency {
+  EGP
+  USD
+  EUR
+  GBP
+  SAR
+}
+
+enum InvoiceStatus {
+  DRAFT
+  POSTED
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHECK
+}
+
+enum DocumentType {
+  TAX_CARD
+  COMMERCIAL_REGISTER
+  ID_COPY
+  CONTRACT
+  OTHER
+}
+
+enum InvoiceCycleType {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum JournalType {
+  SALE
+  PURCHASE
+  CASH
+  BANK
+  GENERAL
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum LocationType {
+  AIRPORT
+  ZONE
+  HOTEL
+}
+
+enum BookingChannel {
+  ONLINE
+  B2B
+}
+
+enum InvoiceType {
+  TRANSFER
+  DRIVER_TIP
+}
+
+// ─────────────────────────────────────────────
+// USERS & AUTH
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String
+  role          UserRole  @default(VIEWER)
+  isActive      Boolean   @default(true) @map("is_active")
+  refreshToken  String?   @map("refresh_token")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+
+  createdJobs       TrafficJob[]        @relation("JobCreatedBy")
+  assignments       TrafficAssignment[] @relation("AssignedBy")
+  rep               Rep?
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// LOCATION TREE: Country → Airport → City → Zone → Hotel
+// ─────────────────────────────────────────────
+
+model Country {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  code      String    @unique @db.VarChar(3)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  airports  Airport[]
+
+  @@map("countries")
+}
+
+model Airport {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  code      String    @unique @db.VarChar(10)
+  countryId String    @map("country_id") @db.Uuid
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  country   Country   @relation(fields: [countryId], references: [id])
+  cities    City[]
+
+  jobsOrigin       TrafficJob[] @relation("JobOriginAirport")
+  jobsDestination  TrafficJob[] @relation("JobDestAirport")
+
+  @@map("airports")
+}
+
+model City {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  airportId String    @map("airport_id") @db.Uuid
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  airport   Airport   @relation(fields: [airportId], references: [id])
+  zones     Zone[]
+
+  @@map("cities")
+}
+
+model Zone {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  cityId    String    @map("city_id") @db.Uuid
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  city      City      @relation(fields: [cityId], references: [id])
+  hotels    Hotel[]
+  repZones  RepZone[]
+
+  supplierPricesFrom   SupplierTripPrice[]   @relation("FromZone")
+  supplierPricesTo     SupplierTripPrice[]   @relation("ToZone")
+  jobsFrom             TrafficJob[]          @relation("JobFromZone")
+  jobsTo               TrafficJob[]          @relation("JobToZone")
+  jobsOrigin           TrafficJob[]          @relation("JobOriginZone")
+  jobsDestination      TrafficJob[]          @relation("JobDestZone")
+  driverFeesFrom       DriverTripFee[]       @relation("FeeFromZone")
+  driverFeesTo         DriverTripFee[]       @relation("FeeToZone")
+  customerPricesFrom   CustomerPriceItem[]   @relation("CustomerPriceFromZone")
+  customerPricesTo     CustomerPriceItem[]   @relation("CustomerPriceToZone")
+
+  @@map("zones")
+}
+
+model Hotel {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  zoneId    String    @map("zone_id") @db.Uuid
+  address   String?
+  stars     Int?      @db.SmallInt
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  zone      Zone      @relation(fields: [zoneId], references: [id])
+
+  jobsOrigin       TrafficJob[] @relation("JobOriginHotel")
+  jobsDestination  TrafficJob[] @relation("JobDestHotel")
+
+  @@map("hotels")
+}
+
+// ─────────────────────────────────────────────
+// VEHICLES & OPERATIONS
+// ─────────────────────────────────────────────
+
+model VehicleType {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @unique
+  seatCapacity Int       @map("seat_capacity")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  vehicles          Vehicle[]
+  supplierPrices    SupplierTripPrice[]
+  customerPrices    CustomerPriceItem[]
+
+  @@map("vehicle_types")
+}
+
+model Vehicle {
+  id            String           @id @default(uuid()) @db.Uuid
+  plateNumber   String           @unique @map("plate_number")
+  vehicleTypeId String           @map("vehicle_type_id") @db.Uuid
+  ownership     VehicleOwnership @default(OWNED)
+  isActive      Boolean          @default(true) @map("is_active")
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime?        @map("deleted_at") @db.Timestamptz
+
+  vehicleType    VehicleType       @relation(fields: [vehicleTypeId], references: [id])
+  driverVehicles DriverVehicle[]
+  assignments    TrafficAssignment[]
+
+  @@map("vehicles")
+}
+
+model Driver {
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String
+  mobileNumber      String    @map("mobile_number")
+  licenseNumber     String?   @map("license_number")
+  attachmentUrl     String?   @map("attachment_url")
+  licenseExpiryDate DateTime? @map("license_expiry_date") @db.Date
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
+
+  driverVehicles DriverVehicle[]
+  assignments    TrafficAssignment[]
+  tripFees       DriverTripFee[]
+
+  @@map("drivers")
+}
+
+model DriverVehicle {
+  id           String    @id @default(uuid()) @db.Uuid
+  driverId     String    @map("driver_id") @db.Uuid
+  vehicleId    String    @map("vehicle_id") @db.Uuid
+  isPrimary    Boolean   @default(false) @map("is_primary")
+  assignedAt   DateTime  @default(now()) @map("assigned_at") @db.Timestamptz
+  unassignedAt DateTime? @map("unassigned_at") @db.Timestamptz
+
+  driver       Driver    @relation(fields: [driverId], references: [id])
+  vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
+
+  @@unique([driverId, vehicleId])
+  @@map("driver_vehicles")
+}
+
+model Rep {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  mobileNumber  String    @map("mobile_number")
+  attachmentUrl String?   @map("attachment_url")
+  feePerFlight  Decimal   @default(0) @map("fee_per_flight") @db.Decimal(15, 2)
+  userId        String?   @unique @map("user_id") @db.Uuid
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+
+  user          User?     @relation(fields: [userId], references: [id])
+  repZones      RepZone[]
+  assignments   TrafficAssignment[]
+  repFees       RepFee[]
+  notifications RepNotification[]
+
+  @@map("reps")
+}
+
+model RepZone {
+  id     String @id @default(uuid()) @db.Uuid
+  repId  String @map("rep_id") @db.Uuid
+  zoneId String @map("zone_id") @db.Uuid
+
+  rep    Rep    @relation(fields: [repId], references: [id])
+  zone   Zone   @relation(fields: [zoneId], references: [id])
+
+  @@unique([repId, zoneId])
+  @@map("rep_zones")
+}
+
+// ─────────────────────────────────────────────
+// AGENTS
+// ─────────────────────────────────────────────
+
+model Agent {
+  id          String    @id @default(uuid()) @db.Uuid
+  legalName   String    @map("legal_name")
+  tradeName   String?   @map("trade_name")
+  taxId       String?   @map("tax_id")
+  address     String?
+  city        String?
+  country     String?
+  phone       String?
+  email       String?
+  currency    Currency  @default(EGP)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  documents     AgentDocument[]
+  creditTerms   AgentCreditTerms?
+  invoiceCycle  AgentInvoiceCycle?
+  trafficJobs   TrafficJob[]
+  invoices      AgentInvoice[]
+
+  @@map("agents")
+}
+
+model AgentDocument {
+  id           String       @id @default(uuid()) @db.Uuid
+  agentId      String       @map("agent_id") @db.Uuid
+  documentType DocumentType @map("document_type")
+  fileUrl      String       @map("file_url")
+  fileName     String       @map("file_name")
+  expiresAt    DateTime?    @map("expires_at") @db.Timestamptz
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  agent        Agent        @relation(fields: [agentId], references: [id])
+
+  @@map("agent_documents")
+}
+
+model AgentCreditTerms {
+  id          String   @id @default(uuid()) @db.Uuid
+  agentId     String   @unique @map("agent_id") @db.Uuid
+  creditLimit Decimal  @map("credit_limit") @db.Decimal(15, 2)
+  creditDays  Int      @map("credit_days")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  agent       Agent    @relation(fields: [agentId], references: [id])
+
+  @@map("agent_credit_terms")
+}
+
+model AgentInvoiceCycle {
+  id          String           @id @default(uuid()) @db.Uuid
+  agentId     String           @unique @map("agent_id") @db.Uuid
+  cycleType   InvoiceCycleType @map("cycle_type")
+  dayOfWeek   Int?             @map("day_of_week") @db.SmallInt
+  dayOfMonth  Int?             @map("day_of_month") @db.SmallInt
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  agent       Agent            @relation(fields: [agentId], references: [id])
+
+  @@map("agent_invoice_cycles")
+}
+
+// ─────────────────────────────────────────────
+// CUSTOMERS (B2B Travel Agencies)
+// ─────────────────────────────────────────────
+
+model Customer {
+  id            String    @id @default(uuid()) @db.Uuid
+  legalName     String    @map("legal_name")
+  tradeName     String?   @map("trade_name")
+  taxId         String?   @map("tax_id")
+  address       String?
+  city          String?
+  country       String?
+  phone         String?
+  email         String?
+  contactPerson String?   @map("contact_person")
+  currency      Currency  @default(EGP)
+  creditLimit   Decimal?  @map("credit_limit") @db.Decimal(15, 2)
+  creditDays    Int?      @map("credit_days")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+
+  trafficJobs       TrafficJob[]
+  invoices          AgentInvoice[]
+  priceItems        CustomerPriceItem[]
+
+  @@map("customers")
+}
+
+model CustomerPriceItem {
+  id            String      @id @default(uuid()) @db.Uuid
+  customerId    String      @map("customer_id") @db.Uuid
+  serviceType   ServiceType @default(ARR) @map("service_type")
+  fromZoneId    String      @map("from_zone_id") @db.Uuid
+  toZoneId      String      @map("to_zone_id") @db.Uuid
+  vehicleTypeId String      @map("vehicle_type_id") @db.Uuid
+  transferPrice Decimal     @map("transfer_price") @db.Decimal(15, 2)
+  driverTip     Decimal     @default(0) @map("driver_tip") @db.Decimal(15, 2)
+  currency      Currency    @default(EGP)
+  effectiveFrom DateTime?   @map("effective_from") @db.Date
+  effectiveTo   DateTime?   @map("effective_to") @db.Date
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  fromZone      Zone        @relation("CustomerPriceFromZone", fields: [fromZoneId], references: [id])
+  toZone        Zone        @relation("CustomerPriceToZone", fields: [toZoneId], references: [id])
+  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id])
+
+  @@unique([customerId, serviceType, fromZoneId, toZoneId, vehicleTypeId])
+  @@index([customerId])
+  @@map("customer_price_items")
+}
+
+// ─────────────────────────────────────────────
+// SUPPLIERS
+// ─────────────────────────────────────────────
+
+model Supplier {
+  id         String    @id @default(uuid()) @db.Uuid
+  legalName  String    @map("legal_name")
+  tradeName  String?   @map("trade_name")
+  taxId      String?   @map("tax_id")
+  address    String?
+  city       String?
+  country    String?
+  phone      String?
+  email      String?
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
+
+  tripPrices    SupplierTripPrice[]
+  supplierCosts SupplierCost[]
+
+  @@map("suppliers")
+}
+
+model SupplierTripPrice {
+  id            String    @id @default(uuid()) @db.Uuid
+  supplierId    String    @map("supplier_id") @db.Uuid
+  fromZoneId    String    @map("from_zone_id") @db.Uuid
+  toZoneId      String    @map("to_zone_id") @db.Uuid
+  vehicleTypeId String    @map("vehicle_type_id") @db.Uuid
+  price         Decimal   @db.Decimal(15, 2)
+  currency      Currency  @default(EGP)
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  supplier      Supplier    @relation(fields: [supplierId], references: [id])
+  fromZone      Zone        @relation("FromZone", fields: [fromZoneId], references: [id])
+  toZone        Zone        @relation("ToZone", fields: [toZoneId], references: [id])
+  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id])
+
+  @@map("supplier_trip_prices")
+}
+
+// ─────────────────────────────────────────────
+// TRAFFIC JOBS
+// ─────────────────────────────────────────────
+
+model TrafficJob {
+  id              String         @id @default(uuid()) @db.Uuid
+  internalRef     String         @unique @map("internal_ref")
+  bookingChannel  BookingChannel @default(ONLINE) @map("booking_channel")
+  agentId         String?        @map("agent_id") @db.Uuid
+  agentRef        String?        @map("agent_ref")
+  customerId      String?        @map("customer_id") @db.Uuid
+  serviceType     ServiceType    @map("service_type")
+  jobDate         DateTime       @map("job_date") @db.Date
+  status          JobStatus      @default(PENDING)
+  adultCount      Int            @map("adult_count") @db.SmallInt
+  childCount      Int            @default(0) @map("child_count") @db.SmallInt
+  paxCount        Int            @map("pax_count") @db.SmallInt
+
+  // Origin – exactly one must be set (validated in service layer)
+  originAirportId      String?  @map("origin_airport_id") @db.Uuid
+  originZoneId         String?  @map("origin_zone_id") @db.Uuid
+  originHotelId        String?  @map("origin_hotel_id") @db.Uuid
+
+  // Destination – exactly one must be set (validated in service layer)
+  destinationAirportId String?  @map("destination_airport_id") @db.Uuid
+  destinationZoneId    String?  @map("destination_zone_id") @db.Uuid
+  destinationHotelId   String?  @map("destination_hotel_id") @db.Uuid
+
+  // Resolved zones for pricing (auto-computed from origin/destination)
+  fromZoneId      String?        @map("from_zone_id") @db.Uuid
+  toZoneId        String?        @map("to_zone_id") @db.Uuid
+
+  // Deprecated – kept for backward compatibility
+  hotelId         String?        @map("hotel_id") @db.Uuid
+
+  clientName      String?        @map("client_name")
+  boosterSeat     Boolean        @default(false) @map("booster_seat")
+  babySeat        Boolean        @default(false) @map("baby_seat")
+  wheelChair      Boolean        @default(false) @map("wheel_chair")
+  pickUpTime      DateTime?      @map("pick_up_time") @db.Timestamptz
+  notes           String?
+  createdById     String         @map("created_by_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt       DateTime?      @map("deleted_at") @db.Timestamptz
+
+  agent              Agent?    @relation(fields: [agentId], references: [id])
+  customer           Customer? @relation(fields: [customerId], references: [id])
+  originAirport      Airport?  @relation("JobOriginAirport", fields: [originAirportId], references: [id])
+  originZone         Zone?     @relation("JobOriginZone", fields: [originZoneId], references: [id])
+  originHotel        Hotel?    @relation("JobOriginHotel", fields: [originHotelId], references: [id])
+  destinationAirport Airport?  @relation("JobDestAirport", fields: [destinationAirportId], references: [id])
+  destinationZone    Zone?     @relation("JobDestZone", fields: [destinationZoneId], references: [id])
+  destinationHotel   Hotel?    @relation("JobDestHotel", fields: [destinationHotelId], references: [id])
+  fromZone           Zone?     @relation("JobFromZone", fields: [fromZoneId], references: [id])
+  toZone             Zone?     @relation("JobToZone", fields: [toZoneId], references: [id])
+  createdBy          User      @relation("JobCreatedBy", fields: [createdById], references: [id])
+
+  flight                TrafficFlight?
+  assignment            TrafficAssignment?
+  driverFees            DriverTripFee[]
+  repFees               RepFee[]
+  supplierCosts         SupplierCost[]
+  invoiceLines          InvoiceLine[]
+  repNotifications      RepNotification[]
+
+  @@index([jobDate])
+  @@index([agentId])
+  @@index([customerId])
+  @@index([status])
+  @@index([bookingChannel])
+  @@map("traffic_jobs")
+}
+
+model TrafficFlight {
+  id            String    @id @default(uuid()) @db.Uuid
+  trafficJobId  String    @unique @map("traffic_job_id") @db.Uuid
+  flightNo      String    @map("flight_no")
+  carrier       String?
+  terminal      String?
+  arrivalTime   DateTime? @map("arrival_time") @db.Timestamptz
+  departureTime DateTime? @map("departure_time") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  trafficJob    TrafficJob @relation(fields: [trafficJobId], references: [id])
+
+  @@map("traffic_flights")
+}
+
+model TrafficAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  trafficJobId String    @unique @map("traffic_job_id") @db.Uuid
+  vehicleId    String    @map("vehicle_id") @db.Uuid
+  driverId     String?   @map("driver_id") @db.Uuid
+  repId        String?   @map("rep_id") @db.Uuid
+  assignedById String    @map("assigned_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
+  vehicle      Vehicle    @relation(fields: [vehicleId], references: [id])
+  driver       Driver?    @relation(fields: [driverId], references: [id])
+  rep          Rep?       @relation(fields: [repId], references: [id])
+  assignedBy   User       @relation("AssignedBy", fields: [assignedById], references: [id])
+
+  @@map("traffic_assignments")
+}
+
+// ─────────────────────────────────────────────
+// FINANCE
+// ─────────────────────────────────────────────
+
+model DriverTripFee {
+  id           String   @id @default(uuid()) @db.Uuid
+  driverId     String   @map("driver_id") @db.Uuid
+  trafficJobId String   @map("traffic_job_id") @db.Uuid
+  fromZoneId   String   @map("from_zone_id") @db.Uuid
+  toZoneId     String   @map("to_zone_id") @db.Uuid
+  amount       Decimal  @db.Decimal(15, 2)
+  currency     Currency @default(EGP)
+  isPosted     Boolean  @default(false) @map("is_posted")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  driver       Driver     @relation(fields: [driverId], references: [id])
+  trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
+  fromZone     Zone       @relation("FeeFromZone", fields: [fromZoneId], references: [id])
+  toZone       Zone       @relation("FeeToZone", fields: [toZoneId], references: [id])
+
+  @@map("driver_trip_fees")
+}
+
+model RepFee {
+  id           String   @id @default(uuid()) @db.Uuid
+  repId        String   @map("rep_id") @db.Uuid
+  trafficJobId String   @map("traffic_job_id") @db.Uuid
+  amount       Decimal  @db.Decimal(15, 2)
+  currency     Currency @default(EGP)
+  isPosted     Boolean  @default(false) @map("is_posted")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  rep          Rep        @relation(fields: [repId], references: [id])
+  trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
+
+  @@map("rep_fees")
+}
+
+model SupplierCost {
+  id           String   @id @default(uuid()) @db.Uuid
+  supplierId   String   @map("supplier_id") @db.Uuid
+  trafficJobId String   @map("traffic_job_id") @db.Uuid
+  amount       Decimal  @db.Decimal(15, 2)
+  currency     Currency @default(EGP)
+  isPosted     Boolean  @default(false) @map("is_posted")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  supplier     Supplier   @relation(fields: [supplierId], references: [id])
+  trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
+
+  @@map("supplier_costs")
+}
+
+model AgentInvoice {
+  id            String        @id @default(uuid()) @db.Uuid
+  agentId       String?       @map("agent_id") @db.Uuid
+  customerId    String?       @map("customer_id") @db.Uuid
+  invoiceNumber String        @unique @map("invoice_number")
+  invoiceType   InvoiceType?  @map("invoice_type")
+  invoiceDate   DateTime      @map("invoice_date") @db.Date
+  dueDate       DateTime      @map("due_date") @db.Date
+  currency      Currency      @default(EGP)
+  subtotal      Decimal       @db.Decimal(15, 2)
+  taxAmount     Decimal       @map("tax_amount") @db.Decimal(15, 2)
+  total         Decimal       @db.Decimal(15, 2)
+  exchangeRate  Decimal       @default(1) @map("exchange_rate") @db.Decimal(10, 4)
+  status        InvoiceStatus @default(DRAFT)
+  postedAt      DateTime?     @map("posted_at") @db.Timestamptz
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  agent         Agent?        @relation(fields: [agentId], references: [id])
+  customer      Customer?     @relation(fields: [customerId], references: [id])
+  lines         InvoiceLine[]
+  payments      Payment[]
+
+  @@index([agentId])
+  @@index([customerId])
+  @@index([status])
+  @@map("agent_invoices")
+}
+
+model InvoiceLine {
+  id           String     @id @default(uuid()) @db.Uuid
+  invoiceId    String     @map("invoice_id") @db.Uuid
+  trafficJobId String?    @map("traffic_job_id") @db.Uuid
+  description  String
+  quantity     Int        @default(1)
+  unitPrice    Decimal    @map("unit_price") @db.Decimal(15, 2)
+  taxRate      Decimal    @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount    Decimal    @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  lineTotal    Decimal    @map("line_total") @db.Decimal(15, 2)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  invoice      AgentInvoice @relation(fields: [invoiceId], references: [id])
+  trafficJob   TrafficJob?  @relation(fields: [trafficJobId], references: [id])
+
+  @@map("invoice_lines")
+}
+
+model Payment {
+  id              String        @id @default(uuid()) @db.Uuid
+  agentInvoiceId  String        @map("agent_invoice_id") @db.Uuid
+  amount          Decimal       @db.Decimal(15, 2)
+  currency        Currency      @default(EGP)
+  exchangeRate    Decimal       @default(1) @map("exchange_rate") @db.Decimal(10, 4)
+  paymentMethod   PaymentMethod @map("payment_method")
+  paymentDate     DateTime      @map("payment_date") @db.Date
+  reference       String?
+  isPosted        Boolean       @default(false) @map("is_posted")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  agentInvoice    AgentInvoice  @relation(fields: [agentInvoiceId], references: [id])
+
+  @@map("payments")
+}
+
+
+// ─────────────────────────────────────────────
+// ACCOUNTING (ODOO READY)
+// ─────────────────────────────────────────────
+
+model Account {
+  id          String      @id @default(uuid()) @db.Uuid
+  code        String      @unique
+  name        String
+  accountType AccountType @map("account_type")
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  journalLines JournalLine[]
+
+  @@map("accounts")
+}
+
+model JournalEntry {
+  id          String      @id @default(uuid()) @db.Uuid
+  entryNumber String      @unique @map("entry_number")
+  entryDate   DateTime    @map("entry_date") @db.Date
+  journalType JournalType @map("journal_type")
+  description String?
+  isPosted    Boolean     @default(false) @map("is_posted")
+  postedAt    DateTime?   @map("posted_at") @db.Timestamptz
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  lines       JournalLine[]
+
+  @@index([entryDate])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id             String       @id @default(uuid()) @db.Uuid
+  journalEntryId String       @map("journal_entry_id") @db.Uuid
+  accountId      String       @map("account_id") @db.Uuid
+  debit          Decimal      @default(0) @db.Decimal(15, 2)
+  credit         Decimal      @default(0) @db.Decimal(15, 2)
+  currency       Currency     @default(EGP)
+  exchangeRate   Decimal      @default(1) @map("exchange_rate") @db.Decimal(10, 4)
+  partnerType    String?      @map("partner_type")
+  partnerId      String?      @map("partner_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id])
+  account        Account      @relation(fields: [accountId], references: [id])
+
+  @@map("journal_lines")
+}
+
+// ─────────────────────────────────────────────
+// SYSTEM SETTINGS (singleton)
+// ─────────────────────────────────────────────
+
+model SystemSettings {
+  id           String   @id @default(uuid()) @db.Uuid
+  theme        String   @default("dark")
+  primaryColor String   @default("#3b82f6") @map("primary_color")
+  accentColor  String   @default("#8b5cf6") @map("accent_color")
+  fontFamily   String   @default("Geist") @map("font_family")
+  language     String   @default("en")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("system_settings")
+}
+
+// ─────────────────────────────────────────────
+// COMPANY SETTINGS (singleton)
+// ─────────────────────────────────────────────
+
+model CompanySettings {
+  id               String   @id @default(uuid()) @db.Uuid
+  companyName      String   @default("iTour TT") @map("company_name")
+  logoUrl          String?  @map("logo_url")
+  faviconUrl       String?  @map("favicon_url")
+  reportHeaderHtml String?  @map("report_header_html") @db.Text
+  reportFooterHtml String?  @map("report_footer_html") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("company_settings")
+}
+
+// ─────────────────────────────────────────────
+// ROLE PERMISSIONS
+// ─────────────────────────────────────────────
+
+model RolePermission {
+  id        String   @id @default(uuid()) @db.Uuid
+  role      UserRole
+  module    String
+  canView   Boolean  @default(false) @map("can_view")
+  canCreate Boolean  @default(false) @map("can_create")
+  canEdit   Boolean  @default(false) @map("can_edit")
+  canDelete Boolean  @default(false) @map("can_delete")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([role, module])
+  @@map("role_permissions")
+}
+
+// ─────────────────────────────────────────────
+// REP NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model RepNotification {
+  id            String           @id @default(uuid()) @db.Uuid
+  repId         String           @map("rep_id") @db.Uuid
+  title         String
+  message       String
+  type          NotificationType @default(GENERAL)
+  isRead        Boolean          @default(false) @map("is_read")
+  trafficJobId  String?          @map("traffic_job_id") @db.Uuid
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  rep           Rep              @relation(fields: [repId], references: [id])
+  trafficJob    TrafficJob?      @relation(fields: [trafficJobId], references: [id])
+
+  @@map("rep_notifications")
+}
