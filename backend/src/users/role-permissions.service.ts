@@ -15,6 +15,7 @@ const ALL_MODULES = [
   'reps',
   'agents',
   'suppliers',
+  'customers',
 ] as const;
 
 /** Helper to build a permission row with all flags set to a single value. */
@@ -119,9 +120,9 @@ export class RolePermissionsService {
         return viewOnly(UserRole.ACCOUNTANT, m);
       }),
 
-      // ── AGENT_MANAGER: full on agents & traffic-jobs, view on others ──
+      // ── AGENT_MANAGER: full on agents, customers & traffic-jobs, view on others ──
       ...ALL_MODULES.map((m) => {
-        if (m === 'agents' || m === 'traffic-jobs') {
+        if (m === 'agents' || m === 'customers' || m === 'traffic-jobs') {
           return fullAccess(UserRole.AGENT_MANAGER, m);
         }
         return viewOnly(UserRole.AGENT_MANAGER, m);

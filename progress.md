@@ -806,15 +806,15 @@ A reusable searchable combobox that:
 - [x] Update TrafficJobsService.create() for dual-channel + zone resolution from separate FKs
 - [x] Update TrafficJobsService.findAll/findOne includes (6 origin/dest relations)
 - [x] Update DispatchService includes for new fields (origin/dest + customer)
-- [ ] Implement rep flight-aware validation in assignJob()
-- [ ] Implement rep flight-aware validation in reassignJob()
-- [ ] Rewrite getAvailableReps() with flight-aware filtering + jobId param
-- [ ] Update GET /dispatch/available-reps endpoint to accept jobId query param
-- [ ] Block rep assignment on Excursion jobs (backend reject + frontend hide rep cell)
-- [ ] Implement driver time-aware validation in assignJob() (3-hour gap rule)
-- [ ] Implement driver time-aware validation in reassignJob()
-- [ ] Rewrite getAvailableDrivers() with time-aware filtering + jobId param
-- [ ] Update GET /dispatch/available-drivers endpoint to accept jobId query param
+- [x] Implement rep flight-aware validation in assignJob()
+- [x] Implement rep flight-aware validation in reassignJob()
+- [x] Rewrite getAvailableReps() with flight-aware filtering + jobId param
+- [x] Update GET /dispatch/available-reps endpoint to accept jobId query param
+- [x] Block rep assignment on Excursion jobs (backend reject + frontend hide rep cell)
+- [x] Implement driver time-aware validation in assignJob() (3-hour gap rule)
+- [x] Implement driver time-aware validation in reassignJob()
+- [x] Rewrite getAvailableDrivers() with time-aware filtering + jobId param
+- [x] Update GET /dispatch/available-drivers endpoint to accept jobId query param
 - [x] Create LocationCombobox frontend component
 - [x] Redesign traffic job modal with Online/B2B tabs (separate FK fields, all 12 service types)
 - [x] Create /dashboard/customers page (CRUD + price list management + Excel template)
@@ -823,7 +823,7 @@ A reusable searchable combobox that:
 - [x] Update finance module for Customer invoicing (AgentInvoice reused with nullable agentId + customerId)
 - [x] Update reports for Online/B2B breakdown (nullable agent, customer fallback)
 - [x] Update Odoo exports for Customer data (nullable agent, customer fallback in partner name)
-- [ ] Add "customers" to role permission seeds
+- [x] Add "customers" to role permission seeds
 - [x] Rename ServiceType CITY → EXCURSION across entire codebase (schema, backend, frontend)
 - [x] Update frontend types (ServiceType, TrafficJob, AgentInvoice, DispatchDayView)
 - [x] Update rep portal pages (CITY → EXCURSION in service type colors)
