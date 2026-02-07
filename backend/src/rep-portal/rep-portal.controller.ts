@@ -1,13 +1,21 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Param,
   Body,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as path from 'path';
+import * as fs from 'fs';
 import { RepPortalService } from './rep-portal.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -16,9 +24,24 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsString, IsIn, IsOptional } from 'class-validator';
 
+const uploadsDir = path.join(process.cwd(), 'uploads', 'no-show');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const noShowStorage = diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  },
+});
+
 class UpdateJobStatusDto {
   @IsString()
-  @IsIn(['COMPLETED', 'CANCELLED', 'NO_SHOW'])
+  @IsIn(['COMPLETED', 'CANCELLED'])
   status!: string;
 }
 
@@ -46,9 +69,11 @@ export class RepPortalController {
   @Get('jobs/history')
   async getJobHistory(
     @CurrentUser('id') userId: string,
-    @Query('date') date: string,
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
   ) {
-    const result = await this.repPortalService.getJobHistory(userId, date || new Date().toISOString().split('T')[0]);
+    const today = new Date().toISOString().split('T')[0];
+    const result = await this.repPortalService.getJobHistory(userId, dateFrom || today, dateTo || today);
     return new ApiResponse(result);
   }
 
@@ -64,6 +89,42 @@ export class RepPortalController {
       dto.status as any,
     );
     return new ApiResponse(result, 'Job status updated');
+  }
+
+  @Post('jobs/:jobId/no-show')
+  @UseInterceptors(FilesInterceptor('images', 2, { storage: noShowStorage }))
+  async submitNoShow(
+    @CurrentUser('id') userId: string,
+    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { latitude: string; longitude: string },
+  ) {
+    if (!files || files.length < 2) {
+      throw new BadRequestException(
+        'Two images are required for no-show evidence',
+      );
+    }
+
+    const imageUrl1 = '/uploads/no-show/' + files[0].filename;
+    const imageUrl2 = '/uploads/no-show/' + files[1].filename;
+    const latitude = parseFloat(body.latitude);
+    const longitude = parseFloat(body.longitude);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      throw new BadRequestException(
+        'Valid GPS coordinates are required',
+      );
+    }
+
+    const result = await this.repPortalService.submitNoShow(
+      userId,
+      jobId,
+      imageUrl1,
+      imageUrl2,
+      latitude,
+      longitude,
+    );
+    return new ApiResponse(result, 'No-show evidence submitted');
   }
 
   @Get('notifications')

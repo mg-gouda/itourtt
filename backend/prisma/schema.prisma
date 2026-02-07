@@ -21,6 +21,7 @@ enum UserRole {
   AGENT_MANAGER
   VIEWER
   REP
+  DRIVER
 }
 
 enum ServiceType {
@@ -145,6 +146,7 @@ model User {
   createdJobs       TrafficJob[]        @relation("JobCreatedBy")
   assignments       TrafficAssignment[] @relation("AssignedBy")
   rep               Rep?
+  driver            Driver?
 
   @@map("users")
 }
@@ -267,14 +269,19 @@ model VehicleType {
 }
 
 model Vehicle {
-  id            String           @id @default(uuid()) @db.Uuid
-  plateNumber   String           @unique @map("plate_number")
-  vehicleTypeId String           @map("vehicle_type_id") @db.Uuid
-  ownership     VehicleOwnership @default(OWNED)
-  isActive      Boolean          @default(true) @map("is_active")
-  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt     DateTime?        @map("deleted_at") @db.Timestamptz
+  id              String           @id @default(uuid()) @db.Uuid
+  plateNumber     String           @unique @map("plate_number")
+  vehicleTypeId   String           @map("vehicle_type_id") @db.Uuid
+  ownership       VehicleOwnership @default(OWNED)
+  color           String?
+  carBrand        String?          @map("car_brand")
+  carModel        String?          @map("car_model")
+  makeYear        Int?             @map("make_year")
+  luggageCapacity Int?             @map("luggage_capacity")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz
 
   vehicleType    VehicleType       @relation(fields: [vehicleTypeId], references: [id])
   driverVehicles DriverVehicle[]
@@ -290,14 +297,17 @@ model Driver {
   licenseNumber     String?   @map("license_number")
   attachmentUrl     String?   @map("attachment_url")
   licenseExpiryDate DateTime? @map("license_expiry_date") @db.Date
+  userId            String?   @unique @map("user_id") @db.Uuid
   isActive          Boolean   @default(true) @map("is_active")
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
 
+  user           User?             @relation(fields: [userId], references: [id])
   driverVehicles DriverVehicle[]
   assignments    TrafficAssignment[]
   tripFees       DriverTripFee[]
+  notifications  DriverNotification[]
 
   @@map("drivers")
 }
@@ -365,6 +375,8 @@ model Agent {
   phone       String?
   email       String?
   currency    Currency  @default(EGP)
+  refPattern  String?   @map("ref_pattern")
+  refExample  String?   @map("ref_example")
   isActive    Boolean   @default(true) @map("is_active")
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -558,9 +570,14 @@ model TrafficJob {
   hotelId         String?        @map("hotel_id") @db.Uuid
 
   clientName      String?        @map("client_name")
+  clientMobile    String?        @map("client_mobile")
   boosterSeat     Boolean        @default(false) @map("booster_seat")
+  boosterSeatQty  Int            @default(0) @map("booster_seat_qty") @db.SmallInt
   babySeat        Boolean        @default(false) @map("baby_seat")
+  babySeatQty     Int            @default(0) @map("baby_seat_qty") @db.SmallInt
   wheelChair      Boolean        @default(false) @map("wheel_chair")
+  wheelChairQty   Int            @default(0) @map("wheel_chair_qty") @db.SmallInt
+  printSign       Boolean        @default(false) @map("print_sign")
   pickUpTime      DateTime?      @map("pick_up_time") @db.Timestamptz
   notes           String?
   createdById     String         @map("created_by_id") @db.Uuid
@@ -587,6 +604,8 @@ model TrafficJob {
   supplierCosts         SupplierCost[]
   invoiceLines          InvoiceLine[]
   repNotifications      RepNotification[]
+  driverNotifications   DriverNotification[]
+  noShowEvidence        NoShowEvidence?
 
   @@index([jobDate])
   @@index([agentId])
@@ -879,4 +898,45 @@ model RepNotification {
   trafficJob    TrafficJob?      @relation(fields: [trafficJobId], references: [id])
 
   @@map("rep_notifications")
+}
+
+// ─────────────────────────────────────────────
+// DRIVER NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model DriverNotification {
+  id            String           @id @default(uuid()) @db.Uuid
+  driverId      String           @map("driver_id") @db.Uuid
+  title         String
+  message       String
+  type          NotificationType @default(GENERAL)
+  isRead        Boolean          @default(false) @map("is_read")
+  trafficJobId  String?          @map("traffic_job_id") @db.Uuid
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  driver        Driver           @relation(fields: [driverId], references: [id])
+  trafficJob    TrafficJob?      @relation(fields: [trafficJobId], references: [id])
+
+  @@map("driver_notifications")
+}
+
+// ─────────────────────────────────────────────
+// NO-SHOW EVIDENCE
+// ─────────────────────────────────────────────
+
+model NoShowEvidence {
+  id             String   @id @default(uuid()) @db.Uuid
+  trafficJobId   String   @unique @map("traffic_job_id") @db.Uuid
+  imageUrl1      String   @map("image_url_1")
+  imageUrl2      String   @map("image_url_2")
+  gpsLatitude    Decimal  @map("gps_latitude") @db.Decimal(10, 7)
+  gpsLongitude   Decimal  @map("gps_longitude") @db.Decimal(10, 7)
+  gpsMapLink     String   @map("gps_map_link")
+  submittedBy    String   @map("submitted_by")
+  submittedById  String   @map("submitted_by_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  trafficJob     TrafficJob @relation(fields: [trafficJobId], references: [id])
+
+  @@map("no_show_evidence")
 }

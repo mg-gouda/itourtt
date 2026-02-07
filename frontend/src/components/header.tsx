@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, User } from "lucide-react";
+import Link from "next/link";
+import { LogOut, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,17 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
-
-const roleLabels: Record<string, string> = {
-  ADMIN: "Admin",
-  DISPATCHER: "Dispatcher",
-  ACCOUNTANT: "Accountant",
-  AGENT_MANAGER: "Agent Manager",
-  VIEWER: "Viewer",
-};
+import { useT } from "@/lib/i18n";
 
 export function Header() {
   const { user, logout } = useAuthStore();
+  const t = useT();
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-background px-6">
@@ -29,7 +24,7 @@ export function Header() {
       <div className="flex items-center gap-3">
         {user && (
           <Badge variant="outline" className="border-border text-muted-foreground">
-            {roleLabels[user.role] || user.role}
+            {t(`role.${user.role}`)}
           </Badge>
         )}
         <DropdownMenu>
@@ -51,12 +46,19 @@ export function Header() {
               {user?.email}
             </div>
             <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuItem asChild className="cursor-pointer focus:bg-accent">
+              <Link href="/dashboard/profile">
+                <Settings className="mr-2 h-4 w-4" />
+                {t("header.profileSettings")}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={logout}
               className="cursor-pointer text-red-400 focus:bg-accent focus:text-red-400"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign out
+              {t("header.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

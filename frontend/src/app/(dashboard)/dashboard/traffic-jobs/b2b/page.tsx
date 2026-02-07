@@ -1,0 +1,592 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  Briefcase,
+  Loader2,
+  Search,
+  Filter,
+  ArrowLeft,
+  Save,
+} from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { LocationCombobox } from "@/components/location-combobox";
+import api from "@/lib/api";
+import { useT, useLocaleId } from "@/lib/i18n";
+import { formatDate } from "@/lib/utils";
+
+/* ─────────── types ─────────── */
+
+interface Customer {
+  id: string;
+  legalName: string;
+  tradeName: string | null;
+}
+
+interface TrafficJob {
+  id: string;
+  internalRef: string;
+  agentRef: string | null;
+  bookingChannel: "ONLINE" | "B2B";
+  serviceType: string;
+  jobDate: string;
+  status: string;
+  adultCount: number;
+  childCount: number;
+  paxCount: number;
+  clientName: string | null;
+  pickUpTime: string | null;
+  notes: string | null;
+  customer?: { legalName: string } | null;
+  originAirport?: { name: string; code: string } | null;
+  originZone?: { name: string } | null;
+  originHotel?: { name: string } | null;
+  destinationAirport?: { name: string; code: string } | null;
+  destinationZone?: { name: string } | null;
+  destinationHotel?: { name: string } | null;
+  fromZone?: { name: string } | null;
+  toZone?: { name: string } | null;
+  flight?: { flightNo: string } | null;
+  assignment?: {
+    vehicle?: { plateNumber: string };
+    driver?: { name: string };
+    rep?: { name: string };
+  } | null;
+}
+
+const statusColors: Record<string, string> = {
+  PENDING: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30",
+  ASSIGNED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
+  IN_PROGRESS: "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30",
+  COMPLETED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
+  NO_SHOW: "bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30",
+};
+
+/* ─────────── form state ─────────── */
+
+interface FormState {
+  customerId: string;
+  serviceType: string;
+  jobDate: string;
+  adultCount: string;
+  childCount: string;
+  originAirportId: string;
+  originZoneId: string;
+  originHotelId: string;
+  destinationAirportId: string;
+  destinationZoneId: string;
+  destinationHotelId: string;
+  originSelectedId: string;
+  destinationSelectedId: string;
+  pickUpTime: string;
+  notes: string;
+  flightNo: string;
+  terminal: string;
+  arrivalTime: string;
+  departureTime: string;
+}
+
+const defaultForm: FormState = {
+  customerId: "",
+  serviceType: "ARR",
+  jobDate: new Date().toISOString().split("T")[0],
+  adultCount: "1",
+  childCount: "0",
+  originAirportId: "",
+  originZoneId: "",
+  originHotelId: "",
+  destinationAirportId: "",
+  destinationZoneId: "",
+  destinationHotelId: "",
+  originSelectedId: "",
+  destinationSelectedId: "",
+  pickUpTime: "",
+  notes: "",
+  flightNo: "",
+  terminal: "",
+  arrivalTime: "",
+  departureTime: "",
+};
+
+/* ─────────── component ─────────── */
+
+export default function B2BJobPage() {
+  const t = useT();
+  const locale = useLocaleId();
+  const router = useRouter();
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [jobs, setJobs] = useState<TrafficJob[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [search, setSearch] = useState("");
+  const [form, setForm] = useState<FormState>({ ...defaultForm });
+
+  const serviceTypeLabels: Record<string, string> = {
+    ARR: t("serviceType.ARR"),
+    DEP: t("serviceType.DEP"),
+    EXCURSION: t("serviceType.EXCURSION"),
+    ROUND_TRIP: t("serviceType.ROUND_TRIP"),
+    ONE_WAY_GOING: t("serviceType.ONE_WAY_GOING"),
+    ONE_WAY_RETURN: t("serviceType.ONE_WAY_RETURN"),
+    OVER_DAY: t("serviceType.OVER_DAY"),
+    TRANSFER: t("serviceType.TRANSFER"),
+    CITY_TOUR: t("serviceType.CITY_TOUR"),
+    COLLECTING_ONE_WAY: t("serviceType.COLLECTING_ONE_WAY"),
+    COLLECTING_ROUND_TRIP: t("serviceType.COLLECTING_ROUND_TRIP"),
+    EXPRESS_SHOPPING: t("serviceType.EXPRESS_SHOPPING"),
+  };
+
+  const updateForm = useCallback((updates: Partial<FormState>) => {
+    setForm((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  /* ── Fetch customers ── */
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        const { data } = await api.get("/customers");
+        setCustomers(Array.isArray(data) ? data : data.data || []);
+      } catch {
+        /* non-critical */
+      }
+    }
+    fetchCustomers();
+  }, []);
+
+  /* ── Fetch B2B jobs ── */
+  const fetchJobs = useCallback(async () => {
+    try {
+      const params: Record<string, string> = { bookingChannel: "B2B" };
+      if (filterStatus !== "ALL") params.status = filterStatus;
+      const { data } = await api.get("/traffic-jobs", { params });
+      setJobs(Array.isArray(data) ? data : data.data || []);
+    } catch {
+      toast.error(t("jobs.failedLoad"));
+    } finally {
+      setLoading(false);
+    }
+  }, [filterStatus]);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
+  /* ── Create job ── */
+  const handleCreate = async () => {
+    if (!form.customerId) {
+      toast.error(t("jobs.customerRequired"));
+      return;
+    }
+
+    const hasOrigin = form.originAirportId || form.originZoneId || form.originHotelId;
+    const hasDest = form.destinationAirportId || form.destinationZoneId || form.destinationHotelId;
+    if (!hasOrigin || !hasDest) {
+      toast.error(t("jobs.originDestRequired"));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        bookingChannel: "B2B",
+        customerId: form.customerId,
+        serviceType: form.serviceType,
+        jobDate: form.jobDate,
+        adultCount: parseInt(form.adultCount) || 1,
+        childCount: parseInt(form.childCount) || 0,
+      };
+
+      if (form.originAirportId) payload.originAirportId = form.originAirportId;
+      if (form.originZoneId) payload.originZoneId = form.originZoneId;
+      if (form.originHotelId) payload.originHotelId = form.originHotelId;
+      if (form.destinationAirportId) payload.destinationAirportId = form.destinationAirportId;
+      if (form.destinationZoneId) payload.destinationZoneId = form.destinationZoneId;
+      if (form.destinationHotelId) payload.destinationHotelId = form.destinationHotelId;
+
+      if (form.pickUpTime) payload.pickUpTime = `${form.jobDate}T${form.pickUpTime}`;
+      if (form.notes.trim()) payload.notes = form.notes.trim();
+
+      const showFlight = form.serviceType === "ARR" || form.serviceType === "DEP";
+      if (showFlight && (form.flightNo || form.terminal || form.arrivalTime || form.departureTime)) {
+        payload.flight = {
+          flightNo: form.flightNo || "TBD",
+          ...(form.terminal && { terminal: form.terminal }),
+          ...(form.arrivalTime && { arrivalTime: `${form.jobDate}T${form.arrivalTime}` }),
+          ...(form.departureTime && { departureTime: `${form.jobDate}T${form.departureTime}` }),
+        };
+      }
+
+      await api.post("/traffic-jobs", payload);
+      toast.success(t("jobs.created"));
+      setForm({ ...defaultForm });
+      fetchJobs();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || t("jobs.failedCreate")
+          : t("jobs.failedCreate");
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filtered = jobs.filter((j) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      j.internalRef?.toLowerCase().includes(q) ||
+      j.customer?.legalName?.toLowerCase().includes(q) ||
+      j.clientName?.toLowerCase().includes(q)
+    );
+  });
+
+  const showFlightFields = form.serviceType === "ARR" || form.serviceType === "DEP";
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push("/dashboard/traffic-jobs")}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{t("jobs.newB2BJob")}</h1>
+          <p className="text-sm text-muted-foreground">{t("jobs.b2bDescription")}</p>
+        </div>
+      </div>
+
+      {/* ─── Inline Form ─── */}
+      <Card className="border-border bg-card p-4">
+        <div className="space-y-4">
+          {/* Row 1: Customer + Service Type + Date + Pickup */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.customer")} *</Label>
+              <Select value={form.customerId} onValueChange={(v) => updateForm({ customerId: v })}>
+                <SelectTrigger className="border-border bg-card text-foreground h-9">
+                  <SelectValue placeholder={t("jobs.selectCustomer")} />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover text-foreground">
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.legalName}
+                      {c.tradeName && <span className="ml-1 text-muted-foreground">({c.tradeName})</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>
+              <Select value={form.serviceType} onValueChange={(v) => updateForm({ serviceType: v })}>
+                <SelectTrigger className="border-border bg-card text-foreground h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover text-foreground">
+                  {Object.entries(serviceTypeLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.serviceDate")}</Label>
+              <Input
+                type="date"
+                value={form.jobDate}
+                onChange={(e) => updateForm({ jobDate: e.target.value })}
+                className="border-border bg-card text-foreground h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.pickUpTime")}</Label>
+              <Input
+                value={form.pickUpTime}
+                onChange={(e) => {
+                  let v = e.target.value.replace(/[^0-9:]/g, "");
+                  if (v.length === 2 && !v.includes(":") && form.pickUpTime.length < v.length) v += ":";
+                  if (v.length > 5) v = v.slice(0, 5);
+                  updateForm({ pickUpTime: v });
+                }}
+                placeholder="HH:MM"
+                maxLength={5}
+                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Adults + Children */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.adults")}</Label>
+              <Input
+                type="number"
+                min="1"
+                value={form.adultCount}
+                onChange={(e) => updateForm({ adultCount: e.target.value })}
+                className="border-border bg-card text-foreground h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.children")}</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.childCount}
+                onChange={(e) => updateForm({ childCount: e.target.value })}
+                className="border-border bg-card text-foreground h-9"
+              />
+            </div>
+            <div className="col-span-2" />
+          </div>
+
+          {/* Row 3: Origin + Destination */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.origin")}</Label>
+              <LocationCombobox
+                value={form.originSelectedId}
+                onChange={(id, type) => {
+                  const clear = { originAirportId: "", originZoneId: "", originHotelId: "", originSelectedId: id };
+                  if (type === "AIRPORT") updateForm({ ...clear, originAirportId: id });
+                  else if (type === "ZONE") updateForm({ ...clear, originZoneId: id });
+                  else if (type === "HOTEL") updateForm({ ...clear, originHotelId: id });
+                }}
+                placeholder={t("jobs.searchOrigin")}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.destination")}</Label>
+              <LocationCombobox
+                value={form.destinationSelectedId}
+                onChange={(id, type) => {
+                  const clear = { destinationAirportId: "", destinationZoneId: "", destinationHotelId: "", destinationSelectedId: id };
+                  if (type === "AIRPORT") updateForm({ ...clear, destinationAirportId: id });
+                  else if (type === "ZONE") updateForm({ ...clear, destinationZoneId: id });
+                  else if (type === "HOTEL") updateForm({ ...clear, destinationHotelId: id });
+                }}
+                placeholder={t("jobs.searchDestination")}
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
+            <Input
+              value={form.notes}
+              onChange={(e) => updateForm({ notes: e.target.value })}
+              placeholder={t("jobs.optionalNotes")}
+              className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+            />
+          </div>
+
+          {/* Flight Info (ARR/DEP only) */}
+          {showFlightFields && (
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <Label className="text-muted-foreground text-xs font-medium">{t("jobs.flightInfo")}</Label>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("jobs.flightNo")}</Label>
+                  <Input
+                    value={form.flightNo}
+                    onChange={(e) => updateForm({ flightNo: e.target.value })}
+                    placeholder="e.g. MS800"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("jobs.terminal")}</Label>
+                  <Input
+                    value={form.terminal}
+                    onChange={(e) => updateForm({ terminal: e.target.value })}
+                    placeholder="e.g. T2"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+                  />
+                </div>
+                {form.serviceType === "ARR" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">{t("jobs.arrivalTime")}</Label>
+                    <Input
+                      value={form.arrivalTime}
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/[^0-9:]/g, "");
+                        if (v.length === 2 && !v.includes(":") && form.arrivalTime.length < v.length) v += ":";
+                        if (v.length > 5) v = v.slice(0, 5);
+                        updateForm({ arrivalTime: v });
+                      }}
+                      placeholder="HH:MM"
+                      maxLength={5}
+                      className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
+                    />
+                  </div>
+                )}
+                {form.serviceType === "DEP" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">{t("jobs.departureTime")}</Label>
+                    <Input
+                      value={form.departureTime}
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/[^0-9:]/g, "");
+                        if (v.length === 2 && !v.includes(":") && form.departureTime.length < v.length) v += ":";
+                        if (v.length > 5) v = v.slice(0, 5);
+                        updateForm({ departureTime: v });
+                      }}
+                      placeholder="HH:MM"
+                      maxLength={5}
+                      className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Submit */}
+          <div className="flex justify-end">
+            <Button
+              onClick={handleCreate}
+              disabled={saving}
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {t("jobs.createJob")}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* ─── Jobs Grid ─── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+            <Input
+              placeholder={t("jobs.searchPlaceholder")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border-border bg-card pl-9 text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-36 border-border bg-card text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover text-foreground">
+                <SelectItem value="ALL">{t("jobs.allStatus")}</SelectItem>
+                <SelectItem value="PENDING">{t("jobs.pending")}</SelectItem>
+                <SelectItem value="ASSIGNED">{t("jobs.assigned")}</SelectItem>
+                <SelectItem value="IN_PROGRESS">{t("jobs.inProgress")}</SelectItem>
+                <SelectItem value="COMPLETED">{t("jobs.completed")}</SelectItem>
+                <SelectItem value="CANCELLED">{t("jobs.cancelled")}</SelectItem>
+                <SelectItem value="NO_SHOW">{t("jobs.noShow")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Briefcase className="mb-2 h-8 w-8" />
+              <p>{t("jobs.noJobs")}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                  <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("jobs.customer")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("dispatch.pax")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((job, idx) => (
+                  <TableRow key={job.id} className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}>
+                    <TableCell className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-border text-muted-foreground text-xs">
+                        {serviceTypeLabels[job.serviceType] || job.serviceType}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {formatDate(job.jobDate)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{job.customer?.legalName || "\u2014"}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {job.paxCount}
+                      <span className="ml-1 text-muted-foreground/60">
+                        ({job.adultCount}A{job.childCount > 0 && `+${job.childCount}C`})
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-xs ${statusColors[job.status] || ""}`}>
+                        {job.status.replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {job.assignment ? (
+                        <span>
+                          {job.assignment.vehicle?.plateNumber || "\u2014"}
+                          {job.assignment.driver && ` / ${job.assignment.driver.name}`}
+                        </span>
+                      ) : (
+                        t("dispatch.unassigned")
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

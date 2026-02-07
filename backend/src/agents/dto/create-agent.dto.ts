@@ -37,4 +37,12 @@ export class CreateAgentDto {
   @IsEnum(Currency)
   @IsOptional()
   currency?: string;
+
+  @IsString()
+  @IsOptional()
+  refPattern?: string;
+
+  @IsString()
+  @IsOptional()
+  refExample?: string;
 }

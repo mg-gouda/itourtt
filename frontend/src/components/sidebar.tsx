@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -32,10 +32,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useT } from "@/lib/i18n";
 
 interface NavLink {
   type: "link";
-  name: string;
+  nameKey: string;
   href: string;
   icon: React.ElementType;
 }
@@ -46,7 +47,7 @@ interface NavSeparator {
 
 interface NavGroup {
   type: "group";
-  name: string;
+  nameKey: string;
   icon: React.ElementType;
   children: NavLink[];
 }
@@ -54,28 +55,28 @@ interface NavGroup {
 type NavItem = NavLink | NavSeparator | NavGroup;
 
 const navigation: NavItem[] = [
-  { type: "link", name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { type: "link", name: "Dispatch", href: "/dashboard/dispatch", icon: CalendarClock },
-  { type: "link", name: "Traffic Jobs", href: "/dashboard/traffic-jobs", icon: Briefcase },
+  { type: "link", nameKey: "sidebar.dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { type: "link", nameKey: "sidebar.dispatch", href: "/dashboard/dispatch", icon: CalendarClock },
+  { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase },
   { type: "separator" },
-  { type: "link", name: "Finance", href: "/dashboard/finance", icon: DollarSign },
-  { type: "link", name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+  { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign },
+  { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3 },
   { type: "separator" },
   {
     type: "group",
-    name: "System Parameters",
+    nameKey: "sidebar.systemParams",
     icon: Settings2,
     children: [
-      { type: "link", name: "Locations", href: "/dashboard/locations", icon: MapPin },
-      { type: "link", name: "Vehicles", href: "/dashboard/vehicles", icon: Car },
-      { type: "link", name: "Drivers", href: "/dashboard/drivers", icon: Users },
-      { type: "link", name: "Reps", href: "/dashboard/reps", icon: UserCheck },
-      { type: "link", name: "Agents", href: "/dashboard/agents", icon: Building2 },
-      { type: "link", name: "Customers", href: "/dashboard/customers", icon: Users },
-      { type: "link", name: "Suppliers", href: "/dashboard/suppliers", icon: Truck },
-      { type: "link", name: "Styling", href: "/dashboard/styling", icon: Palette },
-      { type: "link", name: "Company", href: "/dashboard/company", icon: Building },
-      { type: "link", name: "Users", href: "/dashboard/users", icon: ShieldCheck },
+      { type: "link", nameKey: "sidebar.locations", href: "/dashboard/locations", icon: MapPin },
+      { type: "link", nameKey: "sidebar.vehicles", href: "/dashboard/vehicles", icon: Car },
+      { type: "link", nameKey: "sidebar.drivers", href: "/dashboard/drivers", icon: Users },
+      { type: "link", nameKey: "sidebar.reps", href: "/dashboard/reps", icon: UserCheck },
+      { type: "link", nameKey: "sidebar.agents", href: "/dashboard/agents", icon: Building2 },
+      { type: "link", nameKey: "sidebar.customers", href: "/dashboard/customers", icon: Users },
+      { type: "link", nameKey: "sidebar.suppliers", href: "/dashboard/suppliers", icon: Truck },
+      { type: "link", nameKey: "sidebar.styling", href: "/dashboard/styling", icon: Palette },
+      { type: "link", nameKey: "sidebar.company", href: "/dashboard/company", icon: Building },
+      { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck },
     ],
   },
 ];
@@ -84,6 +85,7 @@ const STORAGE_KEY = "sidebar-collapsed";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const t = useT();
   const [collapsed, setCollapsed] = useState(false);
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -92,7 +94,7 @@ export function Sidebar() {
         const childActive = item.children.some((c) =>
           pathname.startsWith(c.href)
         );
-        if (childActive) initial[item.name] = true;
+        if (childActive) initial[item.nameKey] = true;
       }
     }
     return initial;
@@ -111,15 +113,14 @@ export function Sidebar() {
     });
   };
 
-  const toggleGroup = (name: string) => {
+  const toggleGroup = (key: string) => {
     if (collapsed) {
-      // Expand sidebar first, then open the group
       setCollapsed(false);
       localStorage.setItem(STORAGE_KEY, "false");
-      setGroupOpen((prev) => ({ ...prev, [name]: true }));
+      setGroupOpen((prev) => ({ ...prev, [key]: true }));
       return;
     }
-    setGroupOpen((prev) => ({ ...prev, [name]: !prev[name] }));
+    setGroupOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
@@ -137,7 +138,7 @@ export function Sidebar() {
           </div>
           {!collapsed && (
             <span className="text-sm font-semibold text-sidebar-foreground whitespace-nowrap overflow-hidden">
-              iTour TT
+              {t("sidebar.brand")}
             </span>
           )}
         </div>
@@ -151,18 +152,19 @@ export function Sidebar() {
             }
 
             if (item.type === "group") {
-              const isOpen = !!groupOpen[item.name] && !collapsed;
+              const isOpen = !!groupOpen[item.nameKey] && !collapsed;
               const Icon = item.icon;
               const hasActiveChild = item.children.some((c) =>
                 pathname.startsWith(c.href)
               );
+              const label = t(item.nameKey);
 
               return (
-                <div key={item.name}>
+                <div key={item.nameKey}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        onClick={() => toggleGroup(item.name)}
+                        onClick={() => toggleGroup(item.nameKey)}
                         className={cn(
                           "flex w-full items-center rounded-lg text-sm font-medium transition-colors",
                           collapsed
@@ -176,7 +178,7 @@ export function Sidebar() {
                         <Icon className="h-4 w-4 shrink-0" />
                         {!collapsed && (
                           <>
-                            <span className="flex-1 text-left whitespace-nowrap overflow-hidden">{item.name}</span>
+                            <span className="flex-1 text-left whitespace-nowrap overflow-hidden">{label}</span>
                             <ChevronRight
                               className={cn(
                                 "h-3.5 w-3.5 text-sidebar-foreground/40 transition-transform duration-150",
@@ -189,7 +191,7 @@ export function Sidebar() {
                     </TooltipTrigger>
                     {collapsed && (
                       <TooltipContent side="right" sideOffset={8}>
-                        {item.name}
+                        {label}
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -211,7 +213,7 @@ export function Sidebar() {
                             )}
                           >
                             <ChildIcon className="h-3.5 w-3.5 shrink-0" />
-                            {child.name}
+                            {t(child.nameKey)}
                           </Link>
                         );
                       })}
@@ -227,6 +229,7 @@ export function Sidebar() {
                 ? pathname === "/dashboard"
                 : pathname.startsWith(item.href);
             const Icon = item.icon;
+            const label = t(item.nameKey);
             return (
               <Tooltip key={item.href}>
                 <TooltipTrigger asChild>
@@ -244,13 +247,13 @@ export function Sidebar() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     {!collapsed && (
-                      <span className="whitespace-nowrap overflow-hidden">{item.name}</span>
+                      <span className="whitespace-nowrap overflow-hidden">{label}</span>
                     )}
                   </Link>
                 </TooltipTrigger>
                 {collapsed && (
                   <TooltipContent side="right" sideOffset={8}>
-                    {item.name}
+                    {label}
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -275,7 +278,7 @@ export function Sidebar() {
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={8}>
-              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              {collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
             </TooltipContent>
           </Tooltip>
         </div>

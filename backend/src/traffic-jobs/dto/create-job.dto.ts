@@ -92,16 +92,39 @@ export class CreateJobDto {
   clientName?: string;
 
   @IsOptional()
+  @IsString()
+  clientMobile?: string;
+
+  @IsOptional()
   @IsBoolean()
   boosterSeat?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  boosterSeatQty?: number;
 
   @IsOptional()
   @IsBoolean()
   babySeat?: boolean;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  babySeatQty?: number;
+
+  @IsOptional()
   @IsBoolean()
   wheelChair?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  wheelChairQty?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  printSign?: boolean;
 
   @IsOptional()
   @IsDateString()

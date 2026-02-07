@@ -43,6 +43,16 @@ export class AuthService {
       repId = rep?.id;
     }
 
+    // If user is a DRIVER, resolve their driverId
+    let driverId: string | undefined;
+    if (user.role === 'DRIVER') {
+      const driver = await this.prisma.driver.findFirst({
+        where: { userId: user.id, deletedAt: null },
+        select: { id: true },
+      });
+      driverId = driver?.id;
+    }
+
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -52,6 +62,7 @@ export class AuthService {
         name: user.name,
         role: user.role,
         ...(repId && { repId }),
+        ...(driverId && { driverId }),
       },
     };
   }

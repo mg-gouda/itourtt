@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -24,6 +25,8 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useT, useLocaleId } from "@/lib/i18n";
+import { formatDate } from "@/lib/utils";
 
 interface HistoryJob {
   id: string;
@@ -35,6 +38,12 @@ interface HistoryJob {
   feeEarned: number | null;
   fromZone?: { name: string };
   toZone?: { name: string };
+  originAirport?: { name: string; code: string } | null;
+  originZone?: { name: string } | null;
+  originHotel?: { name: string } | null;
+  destinationAirport?: { name: string; code: string } | null;
+  destinationZone?: { name: string } | null;
+  destinationHotel?: { name: string } | null;
   flight?: {
     flightNo: string;
     carrier: string;
@@ -63,29 +72,37 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function RepHistoryPage() {
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const t = useT();
+  const locale = useLocaleId();
+  const today = new Date().toISOString().split("T")[0];
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
   const [jobs, setJobs] = useState<HistoryJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
   const fetchHistory = useCallback(async () => {
+    if (dateFrom > dateTo) {
+      toast.error(t("portal.invalidDateRange"));
+      return;
+    }
     setLoading(true);
     setSearched(true);
     try {
       const { data } = await api.get("/rep-portal/jobs/history", {
-        params: { date },
+        params: { dateFrom, dateTo },
       });
       setJobs(data.data?.jobs ?? []);
     } catch {
-      toast.error("Failed to load job history");
+      toast.error(t("portal.failedHistory"));
     } finally {
       setLoading(false);
     }
-  }, [date]);
+  }, [dateFrom, dateTo]);
 
   const formatTime = (isoString: string | null) => {
-    if (!isoString) return "—";
-    return new Date(isoString).toLocaleTimeString("en-US", {
+    if (!isoString) return "\u2014";
+    return new Date(isoString).toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
@@ -100,23 +117,38 @@ export default function RepHistoryPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">
           <History className="mr-2 inline h-6 w-6" />
-          Job History
+          {t("portal.jobHistory")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          View past completed and closed jobs
+          {t("portal.jobHistoryDesc")}
         </p>
       </div>
 
-      {/* Date picker & search */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-48 pl-9"
-          />
+      {/* Date range picker & search */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">{t("common.from")}</Label>
+          <div className="relative">
+            <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-44 pl-9"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">{t("common.to")}</Label>
+          <div className="relative">
+            <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-44 pl-9"
+            />
+          </div>
         </div>
         <Button onClick={fetchHistory} disabled={loading}>
           {loading ? (
@@ -124,7 +156,7 @@ export default function RepHistoryPage() {
           ) : (
             <Search className="mr-1.5 h-4 w-4" />
           )}
-          Search
+          {t("portal.search")}
         </Button>
       </div>
 
@@ -134,7 +166,7 @@ export default function RepHistoryPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <History className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
-              Select a date and click Search to view history
+              {t("portal.selectDateRange")}
             </p>
           </CardContent>
         </Card>
@@ -147,7 +179,7 @@ export default function RepHistoryPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <History className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
-              No completed jobs found for this date
+              {t("portal.noCompletedJobs")}
             </p>
           </CardContent>
         </Card>
@@ -155,25 +187,28 @@ export default function RepHistoryPage() {
         <>
           {/* Desktop table */}
           <div className="hidden md:block">
-            <Card>
-              <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Ref</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Flight</TableHead>
-                      <TableHead>Route</TableHead>
-                      <TableHead className="text-center">Pax</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Fee (EGP)</TableHead>
+                    <TableRow className="bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("dispatch.flight")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
+                      <TableHead className="text-center text-white text-xs">{t("dispatch.pax")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                      <TableHead className="text-right text-white text-xs">{t("portal.feeEgp")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {jobs.map((job) => (
-                      <TableRow key={job.id}>
+                    {jobs.map((job, idx) => (
+                      <TableRow key={job.id} className={`${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
                         <TableCell className="font-mono text-xs">
                           {job.internalRef}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDate(job.jobDate)}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -195,14 +230,14 @@ export default function RepHistoryPage() {
                               </span>
                             </span>
                           ) : (
-                            "—"
+                            "\u2014"
                           )}
                         </TableCell>
                         <TableCell className="text-sm">
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                            {job.fromZone?.name ?? "—"} &rarr;{" "}
-                            {job.toZone?.name ?? "—"}
+                            {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr;{" "}
+                            {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
@@ -221,24 +256,23 @@ export default function RepHistoryPage() {
                         </TableCell>
                         <TableCell className="text-right font-mono">
                           {job.feeEarned != null
-                            ? job.feeEarned.toLocaleString()
-                            : "—"}
+                            ? job.feeEarned.toLocaleString(locale)
+                            : "\u2014"}
                         </TableCell>
                       </TableRow>
                     ))}
                     {/* Total row */}
                     <TableRow className="border-t-2 font-semibold">
-                      <TableCell colSpan={6} className="text-right">
-                        Total
+                      <TableCell colSpan={7} className="text-right">
+                        {t("common.total")}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {totalFees.toLocaleString()} EGP
+                        {totalFees.toLocaleString(locale)} EGP
                       </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
-              </div>
-            </Card>
+            </div>
           </div>
 
           {/* Mobile cards */}
@@ -265,6 +299,9 @@ export default function RepHistoryPage() {
                       </Badge>
                     </div>
                   </div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatDate(job.jobDate)}
+                  </div>
                   {job.flight && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Plane className="h-3.5 w-3.5" />
@@ -273,16 +310,16 @@ export default function RepHistoryPage() {
                   )}
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-3.5 w-3.5" />
-                    {job.fromZone?.name ?? "—"} &rarr; {job.toZone?.name ?? "—"}
+                    {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <Users className="h-3.5 w-3.5" />
-                      {job.paxCount} pax
+                      {job.paxCount} {t("portal.pax")}
                     </span>
                     {job.feeEarned != null && (
                       <span className="font-mono font-semibold text-green-400">
-                        {job.feeEarned.toLocaleString()} EGP
+                        {job.feeEarned.toLocaleString(locale)} EGP
                       </span>
                     )}
                   </div>
@@ -293,9 +330,9 @@ export default function RepHistoryPage() {
             {/* Mobile total */}
             <Card className="border-primary/30">
               <CardContent className="flex items-center justify-between p-4">
-                <span className="font-semibold text-foreground">Total Fees</span>
+                <span className="font-semibold text-foreground">{t("portal.totalFees")}</span>
                 <span className="font-mono text-lg font-bold text-green-400">
-                  {totalFees.toLocaleString()} EGP
+                  {totalFees.toLocaleString(locale)} EGP
                 </span>
               </CardContent>
             </Card>

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import api from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 interface DashboardStats {
   todayJobs: number;
@@ -52,6 +53,7 @@ function StatCard({
 }
 
 export default function DashboardPage() {
+  const t = useT();
   const [stats, setStats] = useState<DashboardStats>({
     todayJobs: 0,
     pendingAssignments: 0,
@@ -110,9 +112,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{t("dashHome.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Overview of today&apos;s operations
+          {t("dashHome.overview")}
         </p>
       </div>
 
@@ -128,22 +130,22 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            label="Today's Jobs"
+            label={t("dashHome.todayJobs")}
             value={stats.todayJobs}
             icon={Briefcase}
           />
           <StatCard
-            label="Pending Assignments"
+            label={t("dashHome.pendingAssignments")}
             value={stats.pendingAssignments}
             icon={AlertTriangle}
           />
           <StatCard
-            label="Vehicle Types"
+            label={t("dashHome.vehicleTypes")}
             value={stats.activeVehicles}
             icon={Car}
           />
           <StatCard
-            label="Active Agents"
+            label={t("dashHome.activeAgents")}
             value={stats.activeAgents}
             icon={Building2}
           />
@@ -152,7 +154,7 @@ export default function DashboardPage() {
 
       {/* Quick actions */}
       <div>
-        <h2 className="mb-3 text-lg font-medium text-foreground">Quick Actions</h2>
+        <h2 className="mb-3 text-lg font-medium text-foreground">{t("dashHome.quickActions")}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <a href="/dashboard/dispatch">
             <Card className="cursor-pointer border-border bg-card p-4 transition-colors hover:bg-accent">
@@ -160,10 +162,10 @@ export default function DashboardPage() {
                 <CalendarClock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Dispatch Console
+                    {t("dashHome.dispatchConsole")}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Manage today&apos;s assignments
+                    {t("dashHome.manageAssignments")}
                   </p>
                 </div>
               </div>
@@ -175,10 +177,10 @@ export default function DashboardPage() {
                 <Briefcase className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Traffic Jobs
+                    {t("sidebar.trafficJobs")}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Create and manage bookings
+                    {t("dashHome.createManageBookings")}
                   </p>
                 </div>
               </div>
@@ -190,10 +192,10 @@ export default function DashboardPage() {
                 <Building2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Finance
+                    {t("sidebar.finance")}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Invoices, payments & exports
+                    {t("dashHome.invoicesPayments")}
                   </p>
                 </div>
               </div>

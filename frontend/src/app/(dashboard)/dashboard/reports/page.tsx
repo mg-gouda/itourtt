@@ -42,6 +42,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import api from "@/lib/api";
+import { useT, useLocaleId } from "@/lib/i18n";
+import { formatDate } from "@/lib/utils";
 
 // ────────────────────────────────────────────
 // Types
@@ -161,6 +163,12 @@ interface RepFeeReport {
         status: string;
         fromZone: { name: string } | null;
         toZone: { name: string } | null;
+        originAirport?: { name: string; code: string } | null;
+        originZone?: { name: string } | null;
+        originHotel?: { name: string } | null;
+        destinationAirport?: { name: string; code: string } | null;
+        destinationZone?: { name: string } | null;
+        destinationHotel?: { name: string } | null;
         hotel: { name: string } | null;
         flight: {
           flightNo: string;
@@ -196,8 +204,8 @@ const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
   .toISOString()
   .split("T")[0];
 
-const fmt = (n: number) =>
-  n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (n: number, locale = "en-US") =>
+  n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
@@ -239,6 +247,9 @@ function StatCard({
 // ────────────────────────────────────────────
 
 export default function ReportsPage() {
+  const t = useT();
+  const locale = useLocaleId();
+
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
   const [dispatchData, setDispatchData] = useState<DispatchSummary | null>(null);
@@ -293,7 +304,7 @@ export default function ReportsPage() {
       );
       setDispatchData(data.data || data);
     } catch {
-      toast.error("Failed to load dispatch summary");
+      toast.error(t("reports.failedDispatch"));
     } finally {
       setDispatchLoading(false);
     }
@@ -307,7 +318,7 @@ export default function ReportsPage() {
       );
       setDriverData(data.data || data);
     } catch {
-      toast.error("Failed to load driver trip report");
+      toast.error(t("reports.failedDriverTrips"));
     } finally {
       setDriverLoading(false);
     }
@@ -315,7 +326,7 @@ export default function ReportsPage() {
 
   const fetchAgentStatement = async () => {
     if (!selectedAgentId) {
-      toast.error("Please select an agent");
+      toast.error(t("reports.selectAgentRequired"));
       return;
     }
     setAgentLoading(true);
@@ -325,7 +336,7 @@ export default function ReportsPage() {
       );
       setAgentData(data.data || data);
     } catch {
-      toast.error("Failed to load agent statement");
+      toast.error(t("reports.failedAgentStatement"));
     } finally {
       setAgentLoading(false);
     }
@@ -339,7 +350,7 @@ export default function ReportsPage() {
       );
       setRevenueData(data.data || data);
     } catch {
-      toast.error("Failed to load revenue report");
+      toast.error(t("reports.failedRevenue"));
     } finally {
       setRevenueLoading(false);
     }
@@ -353,7 +364,7 @@ export default function ReportsPage() {
       );
       setRepFeeData(data.data || data);
     } catch {
-      toast.error("Failed to load rep fees report");
+      toast.error(t("reports.failedRepFees"));
     } finally {
       setRepFeeLoading(false);
     }
@@ -374,7 +385,7 @@ export default function ReportsPage() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      toast.error("Failed to export Excel");
+      toast.error(t("reports.failedExcel"));
     }
   };
 
@@ -382,7 +393,7 @@ export default function ReportsPage() {
     if (!printRef.current) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      toast.error("Please allow popups for PDF export");
+      toast.error(t("reports.allowPopups"));
       return;
     }
     printWindow.document.write(`
@@ -430,8 +441,8 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Reports"
-        description="Generate and view operational reports"
+        title={t("reports.title")}
+        description={t("reports.description")}
       />
 
       <Tabs defaultValue="dispatch" className="space-y-4">
@@ -441,35 +452,35 @@ export default function ReportsPage() {
             className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
           >
             <CalendarDays className="h-3.5 w-3.5" />
-            Daily Dispatch
+            {t("reports.dailyDispatch")}
           </TabsTrigger>
           <TabsTrigger
             value="drivers"
             className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
           >
             <Car className="h-3.5 w-3.5" />
-            Driver Trips
+            {t("reports.driverTrips")}
           </TabsTrigger>
           <TabsTrigger
             value="agent"
             className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
           >
             <Building2 className="h-3.5 w-3.5" />
-            Agent Statement
+            {t("reports.agentStatement")}
           </TabsTrigger>
           <TabsTrigger
             value="rep-fees"
             className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
           >
             <UserCheck className="h-3.5 w-3.5" />
-            Rep Fees
+            {t("reports.repFees")}
           </TabsTrigger>
           <TabsTrigger
             value="revenue"
             className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
           >
             <DollarSign className="h-3.5 w-3.5" />
-            Revenue
+            {t("reports.revenue")}
           </TabsTrigger>
         </TabsList>
 
@@ -478,7 +489,7 @@ export default function ReportsPage() {
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3">
               <div>
-                <Label className="text-muted-foreground text-xs">Date</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.date")}</Label>
                 <Input
                   type="date"
                   value={dispatchDate}
@@ -496,7 +507,7 @@ export default function ReportsPage() {
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
-                Generate
+                {t("reports.generate")}
               </Button>
             </div>
           </Card>
@@ -505,22 +516,22 @@ export default function ReportsPage() {
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <StatCard
-                  label="Total Jobs"
+                  label={t("reports.totalJobs")}
                   value={dispatchData.totalJobs}
                 />
                 <StatCard
-                  label="Assigned"
+                  label={t("reports.assigned")}
                   value={dispatchData.assignedCount}
-                  sub={`${dispatchData.assignmentRate}% rate`}
+                  sub={`${dispatchData.assignmentRate}% ${t("reports.rateLabel")}`}
                   color="text-blue-600 dark:text-blue-400"
                 />
                 <StatCard
-                  label="Unassigned"
+                  label={t("reports.unassigned")}
                   value={dispatchData.unassignedCount}
                   color="text-amber-600 dark:text-amber-400"
                 />
                 <StatCard
-                  label="Completion Rate"
+                  label={t("reports.completionRate")}
                   value={`${dispatchData.completionRate}%`}
                   color="text-emerald-600 dark:text-emerald-400"
                 />
@@ -547,24 +558,24 @@ export default function ReportsPage() {
                 ))}
               </div>
 
-              <Card className="border-border bg-card">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Ref</TableHead>
-                      <TableHead className="text-muted-foreground">Type</TableHead>
-                      <TableHead className="text-muted-foreground">Agent</TableHead>
-                      <TableHead className="text-muted-foreground">Pax</TableHead>
-                      <TableHead className="text-muted-foreground">Vehicle</TableHead>
-                      <TableHead className="text-muted-foreground">Driver</TableHead>
-                      <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("dispatch.pax")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("dispatch.vehicle")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("dispatch.driver")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {dispatchData.jobs.map((job) => (
+                    {dispatchData.jobs.map((job, idx) => (
                       <TableRow
                         key={job.id}
-                        className="border-border hover:bg-accent"
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
                       >
                         <TableCell className="text-foreground font-mono text-xs">
                           {job.internalRef}
@@ -573,16 +584,16 @@ export default function ReportsPage() {
                           {job.serviceType}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {job.agent?.legalName || job.customer?.legalName || "—"}
+                          {job.agent?.legalName || job.customer?.legalName || "\u2014"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {job.paxCount}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {job.assignment?.vehicle.plateNumber || "—"}
+                          {job.assignment?.vehicle.plateNumber || "\u2014"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {job.assignment?.driver?.name || "—"}
+                          {job.assignment?.driver?.name || "\u2014"}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -596,7 +607,7 @@ export default function ReportsPage() {
                     ))}
                   </TableBody>
                 </Table>
-              </Card>
+              </div>
             </>
           )}
         </TabsContent>
@@ -606,7 +617,7 @@ export default function ReportsPage() {
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3">
               <div>
-                <Label className="text-muted-foreground text-xs">From</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
                 <Input
                   type="date"
                   value={driverFrom}
@@ -615,7 +626,7 @@ export default function ReportsPage() {
                 />
               </div>
               <div>
-                <Label className="text-muted-foreground text-xs">To</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
                 <Input
                   type="date"
                   value={driverTo}
@@ -633,7 +644,7 @@ export default function ReportsPage() {
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
-                Generate
+                {t("reports.generate")}
               </Button>
             </div>
           </Card>
@@ -641,14 +652,14 @@ export default function ReportsPage() {
           {driverData && (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <StatCard label="Drivers" value={driverData.totalDrivers} />
+                <StatCard label={t("reports.drivers")} value={driverData.totalDrivers} />
                 <StatCard
-                  label="Total Trips"
+                  label={t("reports.totalTrips")}
                   value={driverData.totalTrips}
                   color="text-blue-600 dark:text-blue-400"
                 />
                 <StatCard
-                  label="Avg Trips/Driver"
+                  label={t("reports.avgTripsDriver")}
                   value={
                     driverData.totalDrivers > 0
                       ? (
@@ -660,25 +671,25 @@ export default function ReportsPage() {
                 />
               </div>
 
-              <Card className="border-border bg-card">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Driver</TableHead>
-                      <TableHead className="text-muted-foreground">Mobile</TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Trips
+                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableHead className="text-white text-xs">{t("dispatch.driver")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("drivers.mobile")}</TableHead>
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reports.trips")}
                       </TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Total Fees
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reports.totalFees")}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {driverData.drivers.map((d) => (
+                    {driverData.drivers.map((d, idx) => (
                       <TableRow
                         key={d.driver.id}
-                        className="border-border hover:bg-accent"
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
                       >
                         <TableCell className="text-foreground text-sm font-medium">
                           {d.driver.name}
@@ -690,7 +701,7 @@ export default function ReportsPage() {
                           {d.tripCount}
                         </TableCell>
                         <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(d.totalFees)}
+                          {fmt(d.totalFees, locale)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -700,13 +711,13 @@ export default function ReportsPage() {
                           colSpan={4}
                           className="text-center text-muted-foreground py-8"
                         >
-                          No driver trips found in this period
+                          {t("reports.noDriverTrips")}
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
-              </Card>
+              </div>
             </>
           )}
         </TabsContent>
@@ -716,13 +727,13 @@ export default function ReportsPage() {
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3 flex-wrap">
               <div className="min-w-48">
-                <Label className="text-muted-foreground text-xs">Agent</Label>
+                <Label className="text-muted-foreground text-xs">{t("dispatch.agent")}</Label>
                 <Select
                   value={selectedAgentId}
                   onValueChange={setSelectedAgentId}
                 >
                   <SelectTrigger className="mt-1 border-border bg-card text-foreground">
-                    <SelectValue placeholder="Select agent..." />
+                    <SelectValue placeholder={t("reports.selectAgent")} />
                   </SelectTrigger>
                   <SelectContent>
                     {agents.map((a) => (
@@ -734,7 +745,7 @@ export default function ReportsPage() {
                 </Select>
               </div>
               <div>
-                <Label className="text-muted-foreground text-xs">From</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
                 <Input
                   type="date"
                   value={agentFrom}
@@ -743,7 +754,7 @@ export default function ReportsPage() {
                 />
               </div>
               <div>
-                <Label className="text-muted-foreground text-xs">To</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
                 <Input
                   type="date"
                   value={agentTo}
@@ -761,7 +772,7 @@ export default function ReportsPage() {
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
-                Generate
+                {t("reports.generate")}
               </Button>
             </div>
           </Card>
@@ -783,16 +794,16 @@ export default function ReportsPage() {
                   <div className="text-right">
                     {agentData.agent.creditLimit !== null && (
                       <p className="text-xs text-muted-foreground">
-                        Credit Limit:{" "}
+                        {t("reports.creditLimit")}{" "}
                         <span className="text-foreground">
-                          {fmt(agentData.agent.creditLimit)}{" "}
+                          {fmt(agentData.agent.creditLimit, locale)}{" "}
                           {agentData.agent.currency}
                         </span>
                       </p>
                     )}
                     {agentData.agent.creditDays !== null && (
                       <p className="text-xs text-muted-foreground">
-                        Credit Days:{" "}
+                        {t("reports.creditDays")}{" "}
                         <span className="text-foreground">
                           {agentData.agent.creditDays}
                         </span>
@@ -803,20 +814,20 @@ export default function ReportsPage() {
               </Card>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <StatCard label="Jobs" value={agentData.jobCount} />
+                <StatCard label={t("reports.jobs")} value={agentData.jobCount} />
                 <StatCard
-                  label="Total Invoiced"
-                  value={fmt(agentData.totalInvoiced)}
+                  label={t("reports.totalInvoiced")}
+                  value={fmt(agentData.totalInvoiced, locale)}
                   color="text-blue-600 dark:text-blue-400"
                 />
                 <StatCard
-                  label="Total Paid"
-                  value={fmt(agentData.totalPaid)}
+                  label={t("reports.totalPaid")}
+                  value={fmt(agentData.totalPaid, locale)}
                   color="text-emerald-600 dark:text-emerald-400"
                 />
                 <StatCard
-                  label="Outstanding"
-                  value={fmt(agentData.outstandingBalance)}
+                  label={t("reports.outstanding")}
+                  value={fmt(agentData.outstandingBalance, locale)}
                   color={
                     agentData.outstandingBalance > 0
                       ? "text-amber-600 dark:text-amber-400"
@@ -825,48 +836,48 @@ export default function ReportsPage() {
                 />
               </div>
 
-              <Card className="border-border bg-card">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Invoice #</TableHead>
-                      <TableHead className="text-muted-foreground">Date</TableHead>
-                      <TableHead className="text-muted-foreground">Due Date</TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Total
+                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableHead className="text-white text-xs">{t("finance.invoiceNo")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("finance.dueDate")}</TableHead>
+                      <TableHead className="text-white text-xs text-right">
+                        {t("common.total")}
                       </TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Paid
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reports.paid")}
                       </TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Balance
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reports.balance")}
                       </TableHead>
-                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {agentData.invoices.map((inv) => (
+                    {agentData.invoices.map((inv, idx) => (
                       <TableRow
                         key={inv.invoiceNumber}
-                        className="border-border hover:bg-accent"
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
                       >
                         <TableCell className="text-foreground font-mono text-xs">
                           {inv.invoiceNumber}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {new Date(inv.invoiceDate).toLocaleDateString()}
+                          {formatDate(inv.invoiceDate)}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {new Date(inv.dueDate).toLocaleDateString()}
+                          {formatDate(inv.dueDate)}
                         </TableCell>
                         <TableCell className="text-right text-foreground font-mono">
-                          {fmt(inv.total)}
+                          {fmt(inv.total, locale)}
                         </TableCell>
                         <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(inv.paid)}
+                          {fmt(inv.paid, locale)}
                         </TableCell>
                         <TableCell className="text-right text-amber-600 dark:text-amber-400 font-mono">
-                          {fmt(inv.balance)}
+                          {fmt(inv.balance, locale)}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -884,13 +895,13 @@ export default function ReportsPage() {
                           colSpan={7}
                           className="text-center text-muted-foreground py-8"
                         >
-                          No invoices found for this agent in this period
+                          {t("reports.noInvoices")}
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
-              </Card>
+              </div>
             </>
           )}
         </TabsContent>
@@ -900,7 +911,7 @@ export default function ReportsPage() {
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3 flex-wrap">
               <div>
-                <Label className="text-muted-foreground text-xs">Date</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.date")}</Label>
                 <Input
                   type="date"
                   value={repFeeDate}
@@ -918,7 +929,7 @@ export default function ReportsPage() {
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
-                Generate
+                {t("reports.generate")}
               </Button>
               {repFeeData && (
                 <>
@@ -928,7 +939,7 @@ export default function ReportsPage() {
                     className="gap-1.5 border-border text-foreground hover:bg-accent"
                   >
                     <FileSpreadsheet className="h-4 w-4" />
-                    Excel
+                    {t("reports.excel")}
                   </Button>
                   <Button
                     variant="outline"
@@ -936,7 +947,7 @@ export default function ReportsPage() {
                     className="gap-1.5 border-border text-foreground hover:bg-accent"
                   >
                     <Printer className="h-4 w-4" />
-                    PDF
+                    {t("reports.pdf")}
                   </Button>
                 </>
               )}
@@ -947,42 +958,42 @@ export default function ReportsPage() {
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <StatCard
-                  label="Total Reps"
+                  label={t("reports.totalReps")}
                   value={repFeeData.reps.length}
                 />
                 <StatCard
-                  label="Total Flights"
+                  label={t("reports.totalFlights")}
                   value={repFeeData.totalFlights}
                   color="text-blue-600 dark:text-blue-400"
                 />
                 <StatCard
-                  label="Grand Total"
-                  value={`${fmt(repFeeData.grandTotal)} EGP`}
+                  label={t("reports.grandTotal")}
+                  value={`${fmt(repFeeData.grandTotal, locale)} EGP`}
                   color="text-emerald-600 dark:text-emerald-400"
                 />
               </div>
 
-              <Card className="border-border bg-card">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Rep Name</TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Fee/Flight
+                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableHead className="text-white text-xs">{t("reports.repName")}</TableHead>
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reps.feePerFlight")}
                       </TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Flights
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reports.flights")}
                       </TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Total
+                      <TableHead className="text-white text-xs text-right">
+                        {t("common.total")}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {repFeeData.reps.map((rep) => (
+                    {repFeeData.reps.map((rep, idx) => (
                       <TableRow
                         key={rep.repId}
-                        className="border-border hover:bg-accent"
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
                       >
                         <TableCell>
                           <button
@@ -997,13 +1008,13 @@ export default function ReportsPage() {
                           </button>
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground font-mono">
-                          {fmt(rep.feePerFlight)}
+                          {fmt(rep.feePerFlight, locale)}
                         </TableCell>
                         <TableCell className="text-right text-foreground font-mono">
                           {rep.flightCount}
                         </TableCell>
                         <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(rep.totalAmount)}
+                          {fmt(rep.totalAmount, locale)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1013,25 +1024,25 @@ export default function ReportsPage() {
                           colSpan={4}
                           className="text-center text-muted-foreground py-8"
                         >
-                          No rep fees found for this date
+                          {t("reports.noRepFees")}
                         </TableCell>
                       </TableRow>
                     )}
                     {repFeeData.reps.length > 0 && (
                       <TableRow className="border-border bg-muted/50 font-semibold">
-                        <TableCell className="text-foreground">Grand Total</TableCell>
+                        <TableCell className="text-foreground">{t("reports.grandTotal")}</TableCell>
                         <TableCell />
                         <TableCell className="text-right text-foreground font-mono">
                           {repFeeData.totalFlights}
                         </TableCell>
                         <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(repFeeData.grandTotal)}
+                          {fmt(repFeeData.grandTotal, locale)}
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
-              </Card>
+              </div>
             </>
           )}
         </TabsContent>
@@ -1041,7 +1052,7 @@ export default function ReportsPage() {
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3">
               <div>
-                <Label className="text-muted-foreground text-xs">From</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
                 <Input
                   type="date"
                   value={revenueFrom}
@@ -1050,7 +1061,7 @@ export default function ReportsPage() {
                 />
               </div>
               <div>
-                <Label className="text-muted-foreground text-xs">To</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
                 <Input
                   type="date"
                   value={revenueTo}
@@ -1068,7 +1079,7 @@ export default function ReportsPage() {
                 ) : (
                   <Search className="h-4 w-4" />
                 )}
-                Generate
+                {t("reports.generate")}
               </Button>
             </div>
           </Card>
@@ -1077,18 +1088,18 @@ export default function ReportsPage() {
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <StatCard
-                  label="Total Revenue"
-                  value={fmt(revenueData.totalRevenue)}
+                  label={t("reports.totalRevenue")}
+                  value={fmt(revenueData.totalRevenue, locale)}
                   color="text-emerald-600 dark:text-emerald-400"
                 />
                 <StatCard
-                  label="Total Costs"
-                  value={fmt(revenueData.totalCosts)}
+                  label={t("reports.totalCosts")}
+                  value={fmt(revenueData.totalCosts, locale)}
                   color="text-red-600 dark:text-red-400"
                 />
                 <StatCard
-                  label="Gross Profit"
-                  value={fmt(revenueData.grossProfit)}
+                  label={t("reports.grossProfit")}
+                  value={fmt(revenueData.grossProfit, locale)}
                   color={
                     revenueData.grossProfit >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
@@ -1096,7 +1107,7 @@ export default function ReportsPage() {
                   }
                 />
                 <StatCard
-                  label="Profit Margin"
+                  label={t("reports.profitMargin")}
                   value={`${revenueData.profitMargin}%`}
                   color={
                     revenueData.profitMargin >= 0
@@ -1109,27 +1120,27 @@ export default function ReportsPage() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Card className="border-border bg-card p-4">
                   <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                    Cost Breakdown
+                    {t("reports.costBreakdown")}
                   </h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Driver Fees</span>
+                      <span className="text-sm text-muted-foreground">{t("reports.driverFees")}</span>
                       <span className="text-sm font-mono text-foreground">
-                        {fmt(revenueData.costBreakdown.driverFees)}
+                        {fmt(revenueData.costBreakdown.driverFees, locale)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Rep Fees</span>
+                      <span className="text-sm text-muted-foreground">{t("reports.repFeesLabel")}</span>
                       <span className="text-sm font-mono text-foreground">
-                        {fmt(revenueData.costBreakdown.repFees)}
+                        {fmt(revenueData.costBreakdown.repFees, locale)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">
-                        Supplier Costs
+                        {t("reports.supplierCosts")}
                       </span>
                       <span className="text-sm font-mono text-foreground">
-                        {fmt(revenueData.costBreakdown.supplierCosts)}
+                        {fmt(revenueData.costBreakdown.supplierCosts, locale)}
                       </span>
                     </div>
                   </div>
@@ -1137,7 +1148,7 @@ export default function ReportsPage() {
 
                 <Card className="border-border bg-card p-4">
                   <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                    Revenue by Service Type
+                    {t("reports.revenueByServiceType")}
                   </h4>
                   <div className="space-y-2">
                     {Object.entries(revenueData.byServiceType).map(
@@ -1145,45 +1156,45 @@ export default function ReportsPage() {
                         <div key={type} className="flex justify-between">
                           <span className="text-sm text-muted-foreground">{type}</span>
                           <span className="text-sm font-mono text-foreground">
-                            {fmt(amount)}
+                            {fmt(amount, locale)}
                           </span>
                         </div>
                       )
                     )}
                     {Object.keys(revenueData.byServiceType).length === 0 && (
-                      <p className="text-xs text-muted-foreground">No data</p>
+                      <p className="text-xs text-muted-foreground">{t("reports.noData")}</p>
                     )}
                   </div>
                 </Card>
               </div>
 
-              <Card className="border-border bg-card">
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground">Agent</TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Revenue
+                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reports.revenueLabel")}
                       </TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Invoices
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reports.invoices")}
                       </TableHead>
-                      <TableHead className="text-muted-foreground text-right">
-                        Jobs
+                      <TableHead className="text-white text-xs text-right">
+                        {t("reports.jobs")}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {revenueData.byAgent.map((a) => (
+                    {revenueData.byAgent.map((a, idx) => (
                       <TableRow
                         key={a.agentId}
-                        className="border-border hover:bg-accent"
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
                       >
                         <TableCell className="text-foreground text-sm font-medium">
                           {a.name}
                         </TableCell>
                         <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(a.revenue)}
+                          {fmt(a.revenue, locale)}
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground font-mono">
                           {a.invoiceCount}
@@ -1199,13 +1210,13 @@ export default function ReportsPage() {
                           colSpan={4}
                           className="text-center text-muted-foreground py-8"
                         >
-                          No revenue data found for this period
+                          {t("reports.noRevenue")}
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
-              </Card>
+              </div>
             </>
           )}
         </TabsContent>
@@ -1245,25 +1256,25 @@ export default function ReportsPage() {
                   </div>
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-muted-foreground">Job Ref</TableHead>
-                        <TableHead className="text-muted-foreground">Type</TableHead>
-                        <TableHead className="text-muted-foreground text-right">
-                          Pax
+                      <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                        <TableHead className="text-white text-xs">{t("reports.jobRef")}</TableHead>
+                        <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
+                        <TableHead className="text-white text-xs text-right">
+                          {t("dispatch.pax")}
                         </TableHead>
-                        <TableHead className="text-muted-foreground">Route</TableHead>
-                        <TableHead className="text-muted-foreground">Hotel</TableHead>
-                        <TableHead className="text-muted-foreground">Status</TableHead>
-                        <TableHead className="text-muted-foreground text-right">
-                          Fee
+                        <TableHead className="text-white text-xs">Route</TableHead>
+                        <TableHead className="text-white text-xs">{t("locations.hotel")}</TableHead>
+                        <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                        <TableHead className="text-white text-xs text-right">
+                          {t("reports.fee")}
                         </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {group.jobs.map((fee) => (
+                      {group.jobs.map((fee, idx) => (
                         <TableRow
                           key={fee.id}
-                          className="border-border hover:bg-accent"
+                          className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
                         >
                           <TableCell className="text-foreground font-mono text-xs">
                             {fee.trafficJob.internalRef}
@@ -1284,9 +1295,7 @@ export default function ReportsPage() {
                             {fee.trafficJob.paxCount}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
-                            {fee.trafficJob.fromZone && fee.trafficJob.toZone
-                              ? `${fee.trafficJob.fromZone.name} \u2192 ${fee.trafficJob.toZone.name}`
-                              : "\u2014"}
+                            {(fee.trafficJob.originAirport?.code || fee.trafficJob.fromZone?.name || fee.trafficJob.originZone?.name || fee.trafficJob.originHotel?.name || "\u2014")}{" \u2192 "}{(fee.trafficJob.destinationAirport?.code || fee.trafficJob.toZone?.name || fee.trafficJob.destinationZone?.name || fee.trafficJob.destinationHotel?.name || "\u2014")}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {fee.trafficJob.hotel?.name || "\u2014"}
@@ -1300,7 +1309,7 @@ export default function ReportsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right text-foreground font-mono">
-                            {Number(fee.amount) > 0 ? fmt(Number(fee.amount)) : "\u2014"}
+                            {Number(fee.amount) > 0 ? fmt(Number(fee.amount), locale) : "\u2014"}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1311,10 +1320,10 @@ export default function ReportsPage() {
 
               <div className="flex justify-between items-center border-t border-border pt-3 px-1">
                 <span className="text-sm font-semibold text-foreground">
-                  Total ({selectedRep.flightCount} flights)
+                  {t("common.total")} ({selectedRep.flightCount} {t("reports.flightsCount")})
                 </span>
                 <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                  {fmt(selectedRep.totalAmount)} EGP
+                  {fmt(selectedRep.totalAmount, locale)} EGP
                 </span>
               </div>
             </div>
@@ -1340,16 +1349,16 @@ export default function ReportsPage() {
               {repFeeData.reps.map((rep) => (
                 <tr key={rep.repId}>
                   <td>{rep.repName}</td>
-                  <td className="text-right">{fmt(rep.feePerFlight)}</td>
+                  <td className="text-right">{fmt(rep.feePerFlight, locale)}</td>
                   <td className="text-right">{rep.flightCount}</td>
-                  <td className="text-right">{fmt(rep.totalAmount)}</td>
+                  <td className="text-right">{fmt(rep.totalAmount, locale)}</td>
                 </tr>
               ))}
               <tr className="total-row">
                 <td>Grand Total</td>
                 <td />
                 <td className="text-right">{repFeeData.totalFlights}</td>
-                <td className="text-right">{fmt(repFeeData.grandTotal)}</td>
+                <td className="text-right">{fmt(repFeeData.grandTotal, locale)}</td>
               </tr>
             </tbody>
           </table>
@@ -1377,17 +1386,15 @@ export default function ReportsPage() {
                       <td>{fee.trafficJob.internalRef}</td>
                       <td className="text-right">{fee.trafficJob.paxCount}</td>
                       <td>
-                        {fee.trafficJob.fromZone && fee.trafficJob.toZone
-                          ? `${fee.trafficJob.fromZone.name} \u2192 ${fee.trafficJob.toZone.name}`
-                          : "\u2014"}
+                        {(fee.trafficJob.originAirport?.code || fee.trafficJob.fromZone?.name || fee.trafficJob.originZone?.name || fee.trafficJob.originHotel?.name || "\u2014")}{" \u2192 "}{(fee.trafficJob.destinationAirport?.code || fee.trafficJob.toZone?.name || fee.trafficJob.destinationZone?.name || fee.trafficJob.destinationHotel?.name || "\u2014")}
                       </td>
                       <td>{fee.trafficJob.hotel?.name || "\u2014"}</td>
-                      <td className="text-right">{fmt(Number(fee.amount))}</td>
+                      <td className="text-right">{fmt(Number(fee.amount), locale)}</td>
                     </tr>
                   ))}
                   <tr className="total-row">
                     <td colSpan={6}>Subtotal</td>
-                    <td className="text-right">{fmt(rep.totalAmount)}</td>
+                    <td className="text-right">{fmt(rep.totalAmount, locale)}</td>
                   </tr>
                 </tbody>
               </table>

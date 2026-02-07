@@ -1,5 +1,5 @@
 // ─── Enums ──────────────────────────────────────────────────────
-export type UserRole = 'ADMIN' | 'DISPATCHER' | 'ACCOUNTANT' | 'AGENT_MANAGER' | 'VIEWER' | 'REP';
+export type UserRole = 'ADMIN' | 'DISPATCHER' | 'ACCOUNTANT' | 'AGENT_MANAGER' | 'VIEWER' | 'REP' | 'DRIVER';
 export type ServiceType = 'ARR' | 'DEP' | 'EXCURSION' | 'ROUND_TRIP' | 'ONE_WAY_GOING' | 'ONE_WAY_RETURN' | 'OVER_DAY' | 'TRANSFER' | 'CITY_TOUR' | 'COLLECTING_ONE_WAY' | 'COLLECTING_ROUND_TRIP' | 'EXPRESS_SHOPPING';
 export type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type VehicleOwnership = 'OWNED' | 'RENTED' | 'CONTRACTED';
@@ -16,6 +16,7 @@ export interface AuthUser {
   name: string;
   role: UserRole;
   repId?: string;
+  driverId?: string;
 }
 
 export interface AuthResponse {

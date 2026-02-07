@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Param,
   Body,
   Query,
@@ -61,6 +62,13 @@ export class AgentsController {
   ) {
     const agent = await this.agentsService.update(id, dto);
     return new ApiResponse(agent, 'Agent updated successfully');
+  }
+
+  @Patch(':id/status')
+  @Roles('ADMIN')
+  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+    const result = await this.agentsService.toggleStatus(id);
+    return new ApiResponse(result, 'Agent status updated successfully');
   }
 
   @Put(':id/credit')

@@ -36,6 +36,7 @@ export class TrafficJobsService {
     fromZone: true,
     toZone: true,
     flight: true,
+    createdBy: { select: { id: true, name: true } },
     assignment: {
       include: {
         vehicle: true,
@@ -46,7 +47,7 @@ export class TrafficJobsService {
   };
 
   async findAll(filter: JobFilterDto) {
-    const { page = 1, limit = 20, date, status, agentId, serviceType } = filter;
+    const { page = 1, limit = 20, date, status, agentId, serviceType, bookingChannel } = filter;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = { deletedAt: null };
@@ -62,6 +63,9 @@ export class TrafficJobsService {
     }
     if (serviceType) {
       where.serviceType = serviceType;
+    }
+    if (bookingChannel) {
+      where.bookingChannel = bookingChannel;
     }
 
     const [data, total] = await Promise.all([
@@ -96,6 +100,23 @@ export class TrafficJobsService {
     if (dto.bookingChannel === 'ONLINE') {
       if (!dto.agentId) throw new BadRequestException('Agent is required for Online bookings');
       if (!dto.agentRef) throw new BadRequestException('Agent Ref is required for Online bookings');
+
+      // Validate agentRef against agent's refPattern
+      const agent = await this.prisma.agent.findUnique({
+        where: { id: dto.agentId },
+        select: { refPattern: true, refExample: true },
+      });
+      if (agent?.refPattern) {
+        try {
+          const regex = new RegExp(agent.refPattern);
+          if (!regex.test(dto.agentRef)) {
+            const hint = agent.refExample ? ` (expected: ${agent.refExample})` : '';
+            throw new BadRequestException(`Agent reference format invalid${hint}`);
+          }
+        } catch (e) {
+          if (e instanceof BadRequestException) throw e;
+        }
+      }
     } else {
       if (!dto.customerId) throw new BadRequestException('Customer is required for B2B bookings');
     }
@@ -119,7 +140,7 @@ export class TrafficJobsService {
     const fromZoneId = await this.resolveZoneFromFKs(dto.originAirportId, dto.originZoneId, dto.originHotelId);
     const toZoneId = await this.resolveZoneFromFKs(dto.destinationAirportId, dto.destinationZoneId, dto.destinationHotelId);
 
-    const internalRef = await this.generateInternalRef(dto.jobDate);
+    const internalRef = await this.generateInternalRef();
 
     return this.prisma.$transaction(async (tx) => {
       const job = await tx.trafficJob.create({
@@ -143,9 +164,14 @@ export class TrafficJobsService {
           fromZoneId,
           toZoneId,
           clientName: dto.clientName,
+          clientMobile: dto.clientMobile,
           boosterSeat: dto.boosterSeat ?? false,
+          boosterSeatQty: dto.boosterSeatQty ?? 0,
           babySeat: dto.babySeat ?? false,
+          babySeatQty: dto.babySeatQty ?? 0,
           wheelChair: dto.wheelChair ?? false,
+          wheelChairQty: dto.wheelChairQty ?? 0,
+          printSign: dto.printSign ?? false,
           pickUpTime: dto.pickUpTime ? new Date(dto.pickUpTime) : null,
           notes: dto.notes,
           createdById: userId,
@@ -240,27 +266,23 @@ export class TrafficJobsService {
     });
   }
 
-  private async generateInternalRef(jobDate: string): Promise<string> {
-    const date = new Date(jobDate);
-    const yy = String(date.getFullYear()).slice(2);
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    const datePrefix = `ITT-${yy}${mm}${dd}`;
+  private async generateInternalRef(): Promise<string> {
+    const prefix = 'ITT';
 
-    // Count existing jobs for this date to determine the sequence number
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Find all refs matching the new format ITT-NNNN (exactly one dash + digits)
+    const jobs = await this.prisma.$queryRawUnsafe<{ internal_ref: string }[]>(
+      `SELECT internal_ref FROM traffic_jobs WHERE internal_ref ~ '^ITT-[0-9]+$' ORDER BY internal_ref DESC LIMIT 1`,
+    );
 
-    const count = await this.prisma.trafficJob.count({
-      where: {
-        internalRef: { startsWith: datePrefix },
-      },
-    });
+    let nextSeq = 1;
+    if (jobs.length > 0) {
+      const parts = jobs[0].internal_ref.split('-');
+      const lastSeq = parseInt(parts[1], 10);
+      if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
+    }
 
-    const seq = String(count + 1).padStart(4, '0');
-    return `${datePrefix}-${seq}`;
+    const seq = String(nextSeq).padStart(4, '0');
+    return `${prefix}-${seq}`;
   }
 
   private async resolveZoneFromFKs(

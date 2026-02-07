@@ -27,6 +27,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 
 // ─── Types ──────────────────────────────────────────────────────
 interface HotelNode {
@@ -83,42 +84,42 @@ const LEVEL_CONFIG: Record<
   }
 > = {
   country: {
-    label: "Country",
+    label: "locations.country",
     icon: Globe,
     hasCode: true,
     endpoint: "/locations/countries",
     childLevel: "airport",
-    childLabel: "Airport",
+    childLabel: "locations.airport",
   },
   airport: {
-    label: "Airport",
+    label: "locations.airport",
     icon: Building,
     hasCode: true,
     endpoint: "/locations/airports",
     parentKey: "countryId",
     childLevel: "city",
-    childLabel: "City",
+    childLabel: "locations.city",
   },
   city: {
-    label: "City",
+    label: "locations.city",
     icon: Map,
     hasCode: false,
     endpoint: "/locations/cities",
     parentKey: "airportId",
     childLevel: "zone",
-    childLabel: "Zone",
+    childLabel: "locations.zone",
   },
   zone: {
-    label: "Zone",
+    label: "locations.zone",
     icon: MapPin,
     hasCode: false,
     endpoint: "/locations/zones",
     parentKey: "cityId",
     childLevel: "hotel",
-    childLabel: "Hotel",
+    childLabel: "locations.hotel",
   },
   hotel: {
-    label: "Hotel",
+    label: "locations.hotel",
     icon: HotelIcon,
     hasCode: false,
     endpoint: "/locations/hotels",
@@ -180,7 +181,7 @@ function TreeRow({
             e.stopPropagation();
             onAddChild();
           }}
-          title={`Add ${childLabel}`}
+          title={childLabel}
           className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -194,7 +195,7 @@ function TreeRow({
             e.stopPropagation();
             onDelete();
           }}
-          title="Delete"
+          title={childLabel}
           className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -222,6 +223,7 @@ function TreeRow({
 
 // ─── Main page ──────────────────────────────────────────────────
 export default function LocationsPage() {
+  const t = useT();
   const [countries, setCountries] = useState<CountryNode[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -255,7 +257,7 @@ export default function LocationsPage() {
       const tree = Array.isArray(data) ? data : data.data ?? data.countries ?? [];
       setCountries(tree);
     } catch {
-      toast.error("Failed to load location tree");
+      toast.error(t("locations.failedLoad"));
     } finally {
       setLoading(false);
     }
@@ -281,11 +283,11 @@ export default function LocationsPage() {
   async function handleSubmit() {
     const config = LEVEL_CONFIG[dialog.level];
     if (!formName.trim()) {
-      toast.error("Name is required");
+      toast.error(t("locations.nameRequired"));
       return;
     }
     if (config.hasCode && !formCode.trim()) {
-      toast.error("Code is required");
+      toast.error(t("locations.codeRequired"));
       return;
     }
 
@@ -300,13 +302,13 @@ export default function LocationsPage() {
       }
 
       await api.post(config.endpoint, payload);
-      toast.success(`${config.label} created successfully`);
+      toast.success(`${t(config.label)} ${t("locations.createdSuccess")}`);
       setDialog((prev) => ({ ...prev, open: false }));
       await fetchTree();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || `Failed to create ${config.label.toLowerCase()}`;
+          ?.message || `${t("locations.failedCreate")} ${t(config.label).toLowerCase()}`;
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -324,13 +326,13 @@ export default function LocationsPage() {
     setDeleting(true);
     try {
       await api.delete(endpoint);
-      toast.success(`${LEVEL_CONFIG[level].label} deleted successfully`);
+      toast.success(`${t(LEVEL_CONFIG[level].label)} ${t("locations.deletedSuccess")}`);
       setDeleteDialog((prev) => ({ ...prev, open: false }));
       await fetchTree();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || `Failed to delete ${LEVEL_CONFIG[level].label.toLowerCase()}`;
+          ?.message || `${t("locations.failedDelete")} ${t(LEVEL_CONFIG[level].label).toLowerCase()}`;
       toast.error(message);
     } finally {
       setDeleting(false);
@@ -343,10 +345,10 @@ export default function LocationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Locations"
-        description="Manage the location tree: Country, Airport, City, Zone, Hotel"
+        title={t("locations.title")}
+        description={`${t("locations.description")}: ${t("locations.locationTree")}`}
         action={{
-          label: "Add Country",
+          label: t("locations.addCountry"),
           onClick: () => openAdd("country", "", ""),
         }}
       />
@@ -359,9 +361,9 @@ export default function LocationsPage() {
         ) : countries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <Globe className="mb-3 h-10 w-10" />
-            <p className="text-sm">No locations yet</p>
+            <p className="text-sm">{t("locations.noLocations")}</p>
             <p className="mt-1 text-xs text-muted-foreground/60">
-              Add a country to get started
+              {t("locations.addCountryToStart")}
             </p>
           </div>
         ) : (
@@ -384,7 +386,7 @@ export default function LocationsPage() {
                     onAddChild={() =>
                       openAdd("airport", country.id, country.name)
                     }
-                    childLabel="Airport"
+                    childLabel={t("locations.airport")}
                     onDelete={() =>
                       confirmDelete("country", country.id, country.name)
                     }
@@ -409,7 +411,7 @@ export default function LocationsPage() {
                             onAddChild={() =>
                               openAdd("city", airport.id, airport.name)
                             }
-                            childLabel="City"
+                            childLabel={t("locations.city")}
                             onDelete={() =>
                               confirmDelete("airport", airport.id, airport.name)
                             }
@@ -433,7 +435,7 @@ export default function LocationsPage() {
                                     onAddChild={() =>
                                       openAdd("zone", city.id, city.name)
                                     }
-                                    childLabel="Zone"
+                                    childLabel={t("locations.zone")}
                                     onDelete={() =>
                                       confirmDelete("city", city.id, city.name)
                                     }
@@ -463,7 +465,7 @@ export default function LocationsPage() {
                                                 zone.name
                                               )
                                             }
-                                            childLabel="Hotel"
+                                            childLabel={t("locations.hotel")}
                                             onDelete={() =>
                                               confirmDelete(
                                                 "zone",
@@ -517,10 +519,10 @@ export default function LocationsPage() {
         <DialogContent className="border-border bg-popover text-foreground sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Add {currentConfig.label}
+              {t("common.add")} {t(currentConfig.label)}
               {dialog.parentLabel && (
                 <span className="ml-1 text-sm font-normal text-muted-foreground">
-                  in {dialog.parentLabel}
+                  {t("locations.in")} {dialog.parentLabel}
                 </span>
               )}
             </DialogTitle>
@@ -529,9 +531,9 @@ export default function LocationsPage() {
           <div className="space-y-4 py-2">
             {/* Name field */}
             <div className="space-y-2">
-              <Label className="text-muted-foreground">Name</Label>
+              <Label className="text-muted-foreground">{t("common.name")}</Label>
               <Input
-                placeholder={`${currentConfig.label} name`}
+                placeholder={`${t(currentConfig.label)} ${t("locations.namePlaceholder")}`}
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
@@ -544,7 +546,7 @@ export default function LocationsPage() {
             {/* Code field (only for country and airport) */}
             {currentConfig.hasCode && (
               <div className="space-y-2">
-                <Label className="text-muted-foreground">Code</Label>
+                <Label className="text-muted-foreground">{t("locations.code")}</Label>
                 <Input
                   placeholder={
                     dialog.level === "country" ? "e.g. EG" : "e.g. CAI"
@@ -567,7 +569,7 @@ export default function LocationsPage() {
               onClick={() => setDialog((prev) => ({ ...prev, open: false }))}
               className="border-border text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -575,7 +577,7 @@ export default function LocationsPage() {
               className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create
+              {t("common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -591,13 +593,13 @@ export default function LocationsPage() {
         <DialogContent className="border-border bg-popover text-foreground sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Delete {LEVEL_CONFIG[deleteDialog.level].label}
+              {t("common.delete")} {t(LEVEL_CONFIG[deleteDialog.level].label)}
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete{" "}
+            {t("locations.deleteConfirmMessage")}{" "}
             <strong className="text-foreground">{deleteDialog.name}</strong>?
-            This action cannot be undone.
+            {" "}{t("locations.deleteWarning")}
           </p>
           <DialogFooter>
             <Button
@@ -607,7 +609,7 @@ export default function LocationsPage() {
               }
               className="border-border text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -616,7 +618,7 @@ export default function LocationsPage() {
               className="gap-1.5"
             >
               {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Delete
+              {t("common.delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

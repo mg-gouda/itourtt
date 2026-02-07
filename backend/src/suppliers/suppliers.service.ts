@@ -101,6 +101,15 @@ export class SuppliersService {
     });
   }
 
+  async toggleStatus(id: string) {
+    const supplier = await this.findOne(id);
+
+    return this.prisma.supplier.update({
+      where: { id },
+      data: { isActive: !supplier.isActive },
+    });
+  }
+
   // ─── Trip Prices ────────────────────────────────────────────
 
   async findTripPrices(supplierId: string) {

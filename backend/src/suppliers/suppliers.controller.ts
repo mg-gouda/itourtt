@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Body,
   Param,
   Query,
@@ -17,6 +18,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { ApiResponse } from '../common/dto/api-response.dto.js';
 
 @Controller('suppliers')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -53,6 +55,13 @@ export class SuppliersController {
     @Body() dto: UpdateSupplierDto,
   ) {
     return this.suppliersService.update(id, dto);
+  }
+
+  @Patch(':id/status')
+  @Roles('ADMIN')
+  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+    const result = await this.suppliersService.toggleStatus(id);
+    return new ApiResponse(result, 'Supplier status updated successfully');
   }
 
   @Post(':id/trip-prices')

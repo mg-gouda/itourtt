@@ -1,4 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
+import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateDriverDto } from './dto/create-driver.dto.js';
 import { UpdateDriverDto } from './dto/update-driver.dto.js';
@@ -26,6 +29,7 @@ export class DriversService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
+          user: { select: { id: true, email: true, name: true, role: true, isActive: true } },
           driverVehicles: {
             where: { unassignedAt: null },
             include: { vehicle: { include: { vehicleType: true } } },
@@ -42,6 +46,7 @@ export class DriversService {
     const driver = await this.prisma.driver.findFirst({
       where: { id, deletedAt: null },
       include: {
+        user: { select: { id: true, email: true, name: true, role: true, isActive: true } },
         driverVehicles: {
           where: { unassignedAt: null },
           include: { vehicle: { include: { vehicleType: true } } },
@@ -153,5 +158,338 @@ export class DriversService {
       where: { id: assignment.id },
       data: { unassignedAt: new Date() },
     });
+  }
+
+  async createUserAccount(driverId: string, dto: { email: string; password: string }) {
+    const driver = await this.findOne(driverId);
+
+    if (driver.userId) {
+      throw new ConflictException('This driver already has a user account');
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing) {
+      throw new ConflictException('A user with this email already exists');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: dto.email,
+          passwordHash,
+          name: driver.name,
+          role: 'DRIVER',
+        },
+      });
+
+      await tx.driver.update({
+        where: { id: driverId },
+        data: { userId: user.id },
+      });
+
+      return {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      };
+    });
+  }
+
+  async toggleStatus(id: string) {
+    const driver = await this.findOne(id);
+    const newStatus = !driver.isActive;
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.driver.update({
+        where: { id },
+        data: { isActive: newStatus },
+      });
+
+      if (driver.userId) {
+        await tx.user.update({
+          where: { id: driver.userId },
+          data: { isActive: newStatus },
+        });
+      }
+
+      return updated;
+    });
+  }
+
+  async softDelete(id: string) {
+    const driver = await this.findOne(id);
+
+    // Deactivate linked user account if exists
+    if (driver.userId) {
+      await this.prisma.user.update({
+        where: { id: driver.userId },
+        data: { isActive: false, refreshToken: null },
+      });
+    }
+
+    return this.prisma.driver.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+  }
+
+  async resetPassword(driverId: string, newPassword: string) {
+    const driver = await this.findOne(driverId);
+
+    if (!driver.userId) {
+      throw new BadRequestException('This driver does not have a user account');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await this.prisma.user.update({
+      where: { id: driver.userId },
+      data: { passwordHash, refreshToken: null },
+    });
+
+    return { success: true };
+  }
+
+  // ──────────────────────────────────────────────
+  // EXPORT – all drivers to Excel
+  // ──────────────────────────────────────────────
+
+  async exportToExcel(): Promise<Buffer> {
+    const drivers = await this.prisma.driver.findMany({
+      where: { deletedAt: null },
+      orderBy: { name: 'asc' },
+    });
+
+    const rows = drivers.map((d) => ({
+      Name: d.name,
+      'Mobile Number': d.mobileNumber,
+      'License Number': d.licenseNumber || '',
+      'License Expiry Date': d.licenseExpiryDate
+        ? new Date(d.licenseExpiryDate).toISOString().split('T')[0]
+        : '',
+      Status: d.isActive ? 'Active' : 'Inactive',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Auto-size columns
+    const colWidths = Object.keys(rows[0] || {}).map((key) => {
+      const maxLen = Math.max(
+        key.length,
+        ...rows.map((r) => String((r as any)[key] || '').length),
+      );
+      return { wch: Math.min(maxLen + 2, 40) };
+    });
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Drivers');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    return Buffer.from(buf);
+  }
+
+  // ──────────────────────────────────────────────
+  // IMPORT TEMPLATE – generate Excel template
+  // ──────────────────────────────────────────────
+
+  async generateImportTemplate(): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'iTour Transport';
+    workbook.created = new Date();
+
+    // Instructions sheet
+    const instructionsSheet = workbook.addWorksheet('Instructions');
+    instructionsSheet.columns = [{ width: 80 }];
+    instructionsSheet.addRow(['Driver Bulk Import Template']);
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Instructions:']);
+    instructionsSheet.addRow(['1. Fill in driver data in the "Drivers" sheet']);
+    instructionsSheet.addRow(['2. Name and Mobile Number are required fields']);
+    instructionsSheet.addRow(['3. License Number is optional']);
+    instructionsSheet.addRow(['4. License Expiry Date format: YYYY-MM-DD (e.g., 2026-12-31)']);
+    instructionsSheet.addRow(['5. Do not modify column headers']);
+    instructionsSheet.addRow(['6. Save the file and upload it via the import button']);
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Notes:']);
+    instructionsSheet.addRow(['- Duplicate mobile numbers will be skipped with an error']);
+    instructionsSheet.addRow(['- All imported drivers will be set to Active status']);
+    instructionsSheet.addRow(['- Maximum 500 drivers per import']);
+    instructionsSheet.getRow(1).font = { bold: true, size: 14 };
+    instructionsSheet.getRow(3).font = { bold: true };
+    instructionsSheet.getRow(11).font = { bold: true };
+
+    // Drivers data sheet
+    const driversSheet = workbook.addWorksheet('Drivers');
+    driversSheet.columns = [
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Mobile Number', key: 'mobileNumber', width: 20 },
+      { header: 'License Number', key: 'licenseNumber', width: 20 },
+      { header: 'License Expiry Date', key: 'licenseExpiryDate', width: 20 },
+    ];
+
+    // Style header row
+    const headerRow = driversSheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add 3 sample rows for guidance
+    driversSheet.addRow({
+      name: 'Ahmed Hassan',
+      mobileNumber: '+20 100 123 4567',
+      licenseNumber: 'DL-12345',
+      licenseExpiryDate: '2027-06-15',
+    });
+    driversSheet.addRow({
+      name: 'Mohamed Ali',
+      mobileNumber: '+20 111 987 6543',
+      licenseNumber: 'DL-67890',
+      licenseExpiryDate: '2026-12-31',
+    });
+    driversSheet.addRow({
+      name: 'Ibrahim Saeed',
+      mobileNumber: '+20 122 555 1234',
+      licenseNumber: '',
+      licenseExpiryDate: '',
+    });
+
+    // Style sample rows in italic gray
+    for (let i = 2; i <= 4; i++) {
+      const row = driversSheet.getRow(i);
+      row.font = { italic: true, color: { argb: 'FF999999' } };
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
+
+  // ──────────────────────────────────────────────
+  // BULK IMPORT – parse Excel and create drivers
+  // ──────────────────────────────────────────────
+
+  async importFromExcel(fileBuffer: Buffer): Promise<{ imported: number; errors: string[] }> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as unknown as ExcelJS.Buffer);
+
+    const driversSheet = workbook.getWorksheet('Drivers');
+    if (!driversSheet) {
+      throw new BadRequestException('Invalid template: "Drivers" sheet not found');
+    }
+
+    const items: { name: string; mobileNumber: string; licenseNumber?: string; licenseExpiryDate?: Date }[] = [];
+    const errors: string[] = [];
+
+    driversSheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header
+
+      const name = String(row.getCell(1).value || '').trim();
+      const mobileNumber = String(row.getCell(2).value || '').trim();
+      const licenseNumber = String(row.getCell(3).value || '').trim();
+      const licenseExpiryStr = String(row.getCell(4).value || '').trim();
+
+      // Skip empty rows
+      if (!name && !mobileNumber) return;
+
+      // Skip sample rows (italic gray placeholder text)
+      if (name === 'Ahmed Hassan' || name === 'Mohamed Ali' || name === 'Ibrahim Saeed') {
+        // Only skip if they look like the template samples
+        if (mobileNumber.startsWith('+20 1')) return;
+      }
+
+      // Validate required fields
+      if (!name) {
+        errors.push(`Row ${rowNumber}: Name is required`);
+        return;
+      }
+      if (!mobileNumber) {
+        errors.push(`Row ${rowNumber}: Mobile Number is required`);
+        return;
+      }
+
+      // Parse date if provided
+      let licenseExpiryDate: Date | undefined;
+      if (licenseExpiryStr) {
+        const parsed = new Date(licenseExpiryStr);
+        if (isNaN(parsed.getTime())) {
+          errors.push(`Row ${rowNumber}: Invalid date format "${licenseExpiryStr}" (use YYYY-MM-DD)`);
+          return;
+        }
+        licenseExpiryDate = parsed;
+      }
+
+      items.push({
+        name,
+        mobileNumber,
+        ...(licenseNumber && { licenseNumber }),
+        ...(licenseExpiryDate && { licenseExpiryDate }),
+      });
+    });
+
+    if (items.length === 0 && errors.length === 0) {
+      throw new BadRequestException('No data found in the Drivers sheet');
+    }
+
+    if (items.length > 500) {
+      throw new BadRequestException('Maximum 500 drivers per import. Please split into multiple files.');
+    }
+
+    // Check for duplicates within the import batch
+    const mobilesSeen = new Set<string>();
+    const deduped: typeof items = [];
+    for (const item of items) {
+      if (mobilesSeen.has(item.mobileNumber)) {
+        errors.push(`Duplicate mobile "${item.mobileNumber}" in import file — skipped "${item.name}"`);
+        continue;
+      }
+      mobilesSeen.add(item.mobileNumber);
+      deduped.push(item);
+    }
+
+    // Check for existing mobile numbers in database
+    const existingDrivers = await this.prisma.driver.findMany({
+      where: {
+        mobileNumber: { in: deduped.map((d) => d.mobileNumber) },
+        deletedAt: null,
+      },
+      select: { mobileNumber: true, name: true },
+    });
+
+    const existingMobiles = new Set(existingDrivers.map((d) => d.mobileNumber));
+    const toCreate: typeof deduped = [];
+
+    for (const item of deduped) {
+      if (existingMobiles.has(item.mobileNumber)) {
+        errors.push(`Mobile "${item.mobileNumber}" already exists — skipped "${item.name}"`);
+        continue;
+      }
+      toCreate.push(item);
+    }
+
+    // Bulk create in a transaction
+    if (toCreate.length > 0) {
+      await this.prisma.$transaction(
+        toCreate.map((d) =>
+          this.prisma.driver.create({
+            data: {
+              name: d.name,
+              mobileNumber: d.mobileNumber,
+              licenseNumber: d.licenseNumber,
+              licenseExpiryDate: d.licenseExpiryDate,
+            },
+          }),
+        ),
+      );
+    }
+
+    return { imported: toCreate.length, errors };
   }
 }

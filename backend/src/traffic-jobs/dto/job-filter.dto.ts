@@ -1,4 +1,4 @@
-import { IsOptional, IsDateString, IsUUID, IsIn } from 'class-validator';
+import { IsOptional, IsDateString, IsUUID, IsIn, IsString } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto.js';
 
 export class JobFilterDto extends PaginationDto {
@@ -17,4 +17,8 @@ export class JobFilterDto extends PaginationDto {
   @IsOptional()
   @IsIn(['ARR', 'DEP', 'EXCURSION', 'ROUND_TRIP', 'ONE_WAY_GOING', 'ONE_WAY_RETURN', 'OVER_DAY', 'TRANSFER', 'CITY_TOUR', 'COLLECTING_ONE_WAY', 'COLLECTING_ROUND_TRIP', 'EXPRESS_SHOPPING'])
   serviceType?: string;
+
+  @IsOptional()
+  @IsIn(['ONLINE', 'B2B'])
+  bookingChannel?: 'ONLINE' | 'B2B';
 }

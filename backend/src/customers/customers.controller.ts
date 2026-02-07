@@ -66,6 +66,13 @@ export class CustomersController {
     return new ApiResponse(customer, 'Customer updated successfully');
   }
 
+  @Patch(':id/status')
+  @Roles('ADMIN')
+  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+    const result = await this.customersService.toggleStatus(id);
+    return new ApiResponse(result, 'Customer status updated successfully');
+  }
+
   @Delete(':id')
   @Roles('ADMIN')
   async remove(@Param('id', ParseUUIDPipe) id: string) {

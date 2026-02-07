@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-type RepJobStatus = 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+type RepJobStatus = 'COMPLETED' | 'CANCELLED';
 
-const REP_ALLOWED_STATUSES: RepJobStatus[] = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
+const REP_ALLOWED_STATUSES: RepJobStatus[] = ['COMPLETED', 'CANCELLED'];
 const TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
 @Injectable()
@@ -70,15 +70,16 @@ export class RepPortalService {
     };
   }
 
-  async getJobHistory(userId: string, date: string) {
+  async getJobHistory(userId: string, dateFrom: string, dateTo: string) {
     const repId = await this.resolveRepId(userId);
-    const jobDate = new Date(date);
+    const from = new Date(dateFrom);
+    const to = new Date(dateTo);
 
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         repId,
         trafficJob: {
-          jobDate,
+          jobDate: { gte: from, lte: to },
           deletedAt: null,
           status: { in: TERMINAL_STATUSES as any },
         },
@@ -98,7 +99,8 @@ export class RepPortalService {
     });
 
     return {
-      date,
+      dateFrom,
+      dateTo,
       repId,
       jobs: assignments.map((a) => ({
         ...a.trafficJob,
@@ -178,6 +180,69 @@ export class RepPortalService {
           });
         }
       }
+
+      return updatedJob;
+    });
+  }
+
+  async submitNoShow(
+    userId: string,
+    jobId: string,
+    imageUrl1: string,
+    imageUrl2: string,
+    latitude: number,
+    longitude: number,
+  ) {
+    const repId = await this.resolveRepId(userId);
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: {
+        repId,
+        trafficJobId: jobId,
+      },
+      include: {
+        trafficJob: true,
+      },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Job not found or not assigned to you');
+    }
+
+    const currentStatus = assignment.trafficJob.status;
+    if (TERMINAL_STATUSES.includes(currentStatus)) {
+      throw new BadRequestException(
+        `Job is already in terminal status "${currentStatus}"`,
+      );
+    }
+
+    if (currentStatus !== 'ASSIGNED' && currentStatus !== 'IN_PROGRESS') {
+      throw new BadRequestException(
+        `Cannot change status from "${currentStatus}"`,
+      );
+    }
+
+    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedJob = await tx.trafficJob.update({
+        where: { id: jobId },
+        data: { status: 'NO_SHOW' },
+        include: this.jobInclude,
+      });
+
+      await tx.noShowEvidence.create({
+        data: {
+          trafficJobId: jobId,
+          imageUrl1,
+          imageUrl2,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+          submittedBy: 'REP',
+          submittedById: repId,
+        },
+      });
 
       return updatedJob;
     });

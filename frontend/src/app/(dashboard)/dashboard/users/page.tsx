@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState, useCallback } from "react";
+import { Fragment, useEffect, useState, useCallback, useMemo } from "react";
 import {
   Shield,
   CalendarClock,
@@ -42,7 +42,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSortable } from "@/hooks/use-sortable";
+import { SortableHeader } from "@/components/sortable-header";
+import { TableFilterBar } from "@/components/table-filter-bar";
 import api from "@/lib/api";
+import { useT, useLocaleId } from "@/lib/i18n";
+import { formatDate } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────
 type UserRole = "ADMIN" | "DISPATCHER" | "ACCOUNTANT" | "AGENT_MANAGER" | "VIEWER";
@@ -69,14 +74,6 @@ interface RolePermission {
 // ─── Constants ──────────────────────────────────────────────────
 const ROLES: UserRole[] = ["ADMIN", "DISPATCHER", "ACCOUNTANT", "AGENT_MANAGER", "VIEWER"];
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: "Admin",
-  DISPATCHER: "Dispatcher",
-  ACCOUNTANT: "Accountant",
-  AGENT_MANAGER: "Agent Mgr",
-  VIEWER: "Viewer",
-};
-
 const MODULES = [
   "dashboard",
   "dispatch",
@@ -90,20 +87,6 @@ const MODULES = [
   "agents",
   "suppliers",
 ];
-
-const MODULE_LABELS: Record<string, string> = {
-  dashboard: "Dashboard",
-  dispatch: "Dispatch",
-  "traffic-jobs": "Traffic Jobs",
-  finance: "Finance",
-  reports: "Reports",
-  locations: "Locations",
-  vehicles: "Vehicles",
-  drivers: "Drivers",
-  reps: "Reps",
-  agents: "Agents",
-  suppliers: "Suppliers",
-};
 
 const ROLE_DESCRIPTIONS: Record<UserRole, { icon: React.ElementType; description: string }> = {
   ADMIN: {
@@ -135,11 +118,34 @@ const ROLE_DESCRIPTIONS: Record<UserRole, { icon: React.ElementType; description
 
 // ─── Main Page ──────────────────────────────────────────────────
 export default function UsersPage() {
+  const t = useT();
+  const locale = useLocaleId();
   const [activeTab, setActiveTab] = useState("users");
 
   // ─── Users tab state ──────────────────────────────────────────
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+
+  const filtered = useMemo(() => {
+    let result = users;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q)
+      );
+    }
+    if (roleFilter !== "ALL") {
+      result = result.filter((u) => u.role === roleFilter);
+    }
+    return result;
+  }, [users, search, roleFilter]);
+
+  const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -161,7 +167,7 @@ export default function UsersPage() {
       const { data } = await api.get("/users?limit=100");
       setUsers(Array.isArray(data.data) ? data.data : []);
     } catch {
-      toast.error("Failed to load users");
+      toast.error(t("users.failedLoadUsers"));
     } finally {
       setUsersLoading(false);
     }
@@ -194,7 +200,7 @@ export default function UsersPage() {
   // ─── Create user ──────────────────────────────────────────────
   async function handleCreate() {
     if (!formName.trim() || !formEmail.trim() || !formPassword.trim()) {
-      toast.error("All fields are required");
+      toast.error(t("users.allFieldsRequired"));
       return;
     }
     setSubmitting(true);
@@ -205,14 +211,14 @@ export default function UsersPage() {
         password: formPassword.trim(),
         role: formRole,
       });
-      toast.success("User created");
+      toast.success(t("users.userCreated"));
       setAddDialogOpen(false);
       resetForm();
       fetchUsers();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to create user";
+          ?.message || t("users.failedCreateUser");
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -241,14 +247,14 @@ export default function UsersPage() {
       if (formRole !== editingUser.role) {
         await api.patch(`/users/${editingUser.id}/role`, { role: formRole });
       }
-      toast.success("User updated");
+      toast.success(t("users.userUpdated"));
       setEditDialogOpen(false);
       resetForm();
       fetchUsers();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to update user";
+          ?.message || t("users.failedUpdateUser");
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -259,10 +265,10 @@ export default function UsersPage() {
   async function handleDeactivate(id: string) {
     try {
       await api.delete(`/users/${id}`);
-      toast.success("User deactivated");
+      toast.success(t("users.userDeactivated"));
       fetchUsers();
     } catch {
-      toast.error("Failed to deactivate user");
+      toast.error(t("users.failedDeactivateUser"));
     }
   }
 
@@ -318,9 +324,9 @@ export default function UsersPage() {
         }
       }
       await api.put("/users/permissions", { permissions: matrix });
-      toast.success("Permissions saved");
+      toast.success(t("users.permissionsSaved"));
     } catch {
-      toast.error("Failed to save permissions");
+      toast.error(t("users.failedSavePermissions"));
     } finally {
       setPermsSaving(false);
     }
@@ -329,10 +335,10 @@ export default function UsersPage() {
   async function handleSeedDefaults() {
     try {
       await api.get("/users/permissions/seed");
-      toast.success("Default permissions seeded");
+      toast.success(t("users.defaultsSeeded"));
       fetchPermissions();
     } catch {
-      toast.error("Failed to seed defaults");
+      toast.error(t("users.failedSeedDefaults"));
     }
   }
 
@@ -344,26 +350,31 @@ export default function UsersPage() {
     setEditingUser(null);
   }
 
+  // ─── Helper: get module label via sidebar i18n keys ───────────
+  function getModuleLabel(mod: string): string {
+    return t(`sidebar.${mod === "traffic-jobs" ? "trafficJobs" : mod}`);
+  }
+
   // ─── Render ───────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Users"
-        description="Manage users, roles, and access permissions"
+        title={t("users.title")}
+        description={t("users.description")}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="border-border bg-muted">
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="permissions">Permission Matrix</TabsTrigger>
-          <TabsTrigger value="roles">User Roles</TabsTrigger>
+          <TabsTrigger value="users">{t("users.usersTab")}</TabsTrigger>
+          <TabsTrigger value="permissions">{t("users.permissionMatrix")}</TabsTrigger>
+          <TabsTrigger value="roles">{t("users.userRoles")}</TabsTrigger>
         </TabsList>
 
         {/* ─── Tab 1: Users ─────────────────────────────────────── */}
         <TabsContent value="users" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              System users and their assigned roles.
+              {t("users.usersDescription")}
             </p>
             <Button
               size="sm"
@@ -374,100 +385,118 @@ export default function UsersPage() {
               }}
             >
               <UserPlus className="h-4 w-4" />
-              Add User
+              {t("users.addUser")}
             </Button>
           </div>
 
-          <Card className="border-border bg-card">
-            {usersLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : users.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Users className="mb-2 h-8 w-8" />
-                <p className="text-sm">No users found</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground">Name</TableHead>
-                    <TableHead className="text-muted-foreground">Email</TableHead>
-                    <TableHead className="text-muted-foreground">Role</TableHead>
-                    <TableHead className="text-muted-foreground">Status</TableHead>
-                    <TableHead className="text-muted-foreground">Created</TableHead>
-                    <TableHead className="text-right text-muted-foreground">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow
-                      key={user.id}
-                      className="border-border hover:bg-muted/50"
-                    >
-                      <TableCell className="font-medium text-foreground">
-                        {user.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {user.email}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                        >
-                          {ROLE_LABELS[user.role]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.isActive ? (
-                          <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                            Active
+          {usersLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : users.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Users className="mb-2 h-8 w-8" />
+              <p className="text-sm">{t("users.noUsers")}</p>
+            </div>
+          ) : (
+            <>
+              <TableFilterBar
+                search={search}
+                onSearchChange={setSearch}
+                placeholder={t("common.search") + "..."}
+                statusOptions={[
+                  { value: "ALL", label: t("common.all") },
+                  { value: "ADMIN", label: "Admin" },
+                  { value: "MANAGER", label: "Manager" },
+                  { value: "DISPATCHER", label: "Dispatcher" },
+                  { value: "ACCOUNTANT", label: "Accountant" },
+                  { value: "VIEWER", label: "Viewer" },
+                ]}
+                statusValue={roleFilter}
+                onStatusChange={setRoleFilter}
+                statusPlaceholder={t("common.all")}
+              />
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <SortableHeader label={t("common.name")} sortKey="name" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <SortableHeader label={t("common.email")} sortKey="email" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <SortableHeader label={t("common.role")} sortKey="role" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                      <TableHead className="text-white text-xs">{t("users.created")}</TableHead>
+                      <TableHead className="text-right text-white text-xs">
+                        {t("common.actions")}
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedData.map((user, idx) => (
+                      <TableRow
+                        key={user.id}
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                      >
+                        <TableCell className="font-medium text-foreground">
+                          {user.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {user.email}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                          >
+                            {t(`role.${user.role}`)}
                           </Badge>
-                        ) : (
-                          <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">
-                            Inactive
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={() => openEdit(user)}
-                        >
-                          Edit
-                        </Button>
-                        {user.isActive && (
+                        </TableCell>
+                        <TableCell>
+                          {user.isActive ? (
+                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                              {t("common.active")}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">
+                              {t("common.inactive")}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(user.createdAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-500/70 hover:text-red-500"
-                            onClick={() => handleDeactivate(user.id)}
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => openEdit(user)}
                           >
-                            Deactivate
+                            {t("common.edit")}
                           </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
+                          {user.isActive && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500/70 hover:text-red-500"
+                              onClick={() => handleDeactivate(user.id)}
+                            >
+                              {t("users.deactivate")}
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* ─── Tab 2: Permission Matrix ─────────────────────────── */}
         <TabsContent value="permissions" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Configure what each role can access across modules.
+              {t("users.permissionsDescription")}
             </p>
             <div className="flex gap-2">
               <Button
@@ -475,7 +504,7 @@ export default function UsersPage() {
                 size="sm"
                 onClick={handleSeedDefaults}
               >
-                Seed Defaults
+                {t("users.seedDefaults")}
               </Button>
               <Button
                 size="sm"
@@ -484,7 +513,7 @@ export default function UsersPage() {
                 className="gap-1.5"
               >
                 {permsSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                Save Permissions
+                {t("users.savePermissions")}
               </Button>
             </div>
           </div>
@@ -500,7 +529,7 @@ export default function UsersPage() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="sticky left-0 z-10 bg-card px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                        Module
+                        {t("users.module")}
                       </th>
                       {ROLES.map((role) => (
                         <th
@@ -508,7 +537,7 @@ export default function UsersPage() {
                           colSpan={4}
                           className="border-l border-border px-2 py-3 text-center text-xs font-medium text-muted-foreground"
                         >
-                          {ROLE_LABELS[role]}
+                          {t(`role.${role}`)}
                         </th>
                       ))}
                     </tr>
@@ -535,7 +564,7 @@ export default function UsersPage() {
                         className="border-b border-border/50 hover:bg-muted/50"
                       >
                         <td className="sticky left-0 z-10 bg-card px-4 py-2 text-foreground/70">
-                          {MODULE_LABELS[mod]}
+                          {getModuleLabel(mod)}
                         </td>
                         {ROLES.map((role) => {
                           const perm = getPermission(role, mod);
@@ -580,7 +609,7 @@ export default function UsersPage() {
         {/* ─── Tab 3: User Roles ────────────────────────────────── */}
         <TabsContent value="roles" className="mt-4">
           <p className="mb-4 text-sm text-muted-foreground">
-            Reference guide for the five system roles and their access levels.
+            {t("users.rolesDescription")}
           </p>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {ROLES.map((role) => {
@@ -596,7 +625,7 @@ export default function UsersPage() {
                     </div>
                     <div>
                       <h4 className="text-sm font-medium text-foreground">
-                        {ROLE_LABELS[role]}
+                        {t(`role.${role}`)}
                       </h4>
                       <Badge
                         variant="secondary"
@@ -626,11 +655,11 @@ export default function UsersPage() {
       >
         <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
+            <DialogTitle>{t("users.addUser")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label className="text-foreground/70">Name</Label>
+              <Label className="text-foreground/70">{t("common.name")}</Label>
               <Input
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
@@ -639,7 +668,7 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/70">Email</Label>
+              <Label className="text-foreground/70">{t("common.email")}</Label>
               <Input
                 type="email"
                 value={formEmail}
@@ -649,7 +678,7 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/70">Password</Label>
+              <Label className="text-foreground/70">{t("common.password")}</Label>
               <Input
                 type="password"
                 value={formPassword}
@@ -659,7 +688,7 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/70">Role</Label>
+              <Label className="text-foreground/70">{t("common.role")}</Label>
               <Select
                 value={formRole}
                 onValueChange={(v) => setFormRole(v as UserRole)}
@@ -674,7 +703,7 @@ export default function UsersPage() {
                       value={r}
                       className="focus:bg-accent focus:text-accent-foreground"
                     >
-                      {ROLE_LABELS[r]}
+                      {t(`role.${r}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -686,7 +715,7 @@ export default function UsersPage() {
               variant="ghost"
               onClick={() => setAddDialogOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleCreate}
@@ -694,7 +723,7 @@ export default function UsersPage() {
               className="gap-1.5"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create
+              {t("common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -710,11 +739,11 @@ export default function UsersPage() {
       >
         <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>{t("users.editUser")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label className="text-foreground/70">Name</Label>
+              <Label className="text-foreground/70">{t("common.name")}</Label>
               <Input
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
@@ -722,7 +751,7 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/70">Email</Label>
+              <Label className="text-foreground/70">{t("common.email")}</Label>
               <Input
                 type="email"
                 value={formEmail}
@@ -731,7 +760,7 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-foreground/70">Role</Label>
+              <Label className="text-foreground/70">{t("common.role")}</Label>
               <Select
                 value={formRole}
                 onValueChange={(v) => setFormRole(v as UserRole)}
@@ -746,7 +775,7 @@ export default function UsersPage() {
                       value={r}
                       className="focus:bg-accent focus:text-accent-foreground"
                     >
-                      {ROLE_LABELS[r]}
+                      {t(`role.${r}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -758,7 +787,7 @@ export default function UsersPage() {
               variant="ghost"
               onClick={() => setEditDialogOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleEdit}
@@ -766,7 +795,7 @@ export default function UsersPage() {
               className="gap-1.5"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save
+              {t("common.save")}
             </Button>
           </DialogFooter>
         </DialogContent>

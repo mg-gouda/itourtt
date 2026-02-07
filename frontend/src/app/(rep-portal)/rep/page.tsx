@@ -29,6 +29,9 @@ import {
   Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
+import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
+import { useT, useLocaleId } from "@/lib/i18n";
+import { formatDate } from "@/lib/utils";
 
 interface RepJob {
   id: string;
@@ -41,6 +44,12 @@ interface RepJob {
   notes: string | null;
   fromZone?: { name: string };
   toZone?: { name: string };
+  originAirport?: { name: string; code: string } | null;
+  originZone?: { name: string } | null;
+  originHotel?: { name: string } | null;
+  destinationAirport?: { name: string; code: string } | null;
+  destinationZone?: { name: string } | null;
+  destinationHotel?: { name: string } | null;
   flight?: {
     flightNo: string;
     carrier: string;
@@ -88,6 +97,8 @@ const STATUS_COLORS: Record<string, string> = {
 const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "NO_SHOW"];
 
 export default function RepDashboardPage() {
+  const t = useT();
+  const locale = useLocaleId();
   const [jobs, setJobs] = useState<RepJob[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -99,6 +110,11 @@ export default function RepDashboardPage() {
     status: string;
   }>({ open: false, jobId: "", jobRef: "", status: "" });
   const [updating, setUpdating] = useState(false);
+  const [noShowDialog, setNoShowDialog] = useState<{
+    open: boolean;
+    jobId: string;
+    jobRef: string;
+  }>({ open: false, jobId: "", jobRef: "" });
   const [today] = useState(() => new Date().toISOString().split("T")[0]);
 
   const fetchJobs = useCallback(async () => {
@@ -108,7 +124,7 @@ export default function RepDashboardPage() {
       });
       setJobs(data.data?.jobs ?? []);
     } catch {
-      toast.error("Failed to load jobs");
+      toast.error(t("portal.failedLoadJobs"));
     }
   }, [today]);
 
@@ -133,6 +149,10 @@ export default function RepDashboardPage() {
   }, [fetchAll]);
 
   const handleStatusChange = (jobId: string, jobRef: string, status: string) => {
+    if (status === "NO_SHOW") {
+      setNoShowDialog({ open: true, jobId, jobRef });
+      return;
+    }
     setConfirmDialog({ open: true, jobId, jobRef, status });
   };
 
@@ -148,7 +168,7 @@ export default function RepDashboardPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to update job status";
+          ?.message || t("portal.failedUpdateStatus");
       toast.error(message);
     } finally {
       setUpdating(false);
@@ -179,7 +199,7 @@ export default function RepDashboardPage() {
 
   const formatTime = (isoString: string | null) => {
     if (!isoString) return null;
-    return new Date(isoString).toLocaleTimeString("en-US", {
+    return new Date(isoString).toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
@@ -202,21 +222,16 @@ export default function RepDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Jobs</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("portal.myJobs")}</h1>
           <p className="text-sm text-muted-foreground">
             <CalendarDays className="mr-1 inline h-4 w-4" />
-            Today &mdash;{" "}
-            {new Date(today).toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+            {t("portal.today")} &mdash;{" "}
+            {formatDate(today)}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchAll}>
           <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-          Refresh
+          {t("portal.refresh")}
         </Button>
       </div>
 
@@ -226,7 +241,7 @@ export default function RepDashboardPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Briefcase className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
-              No jobs assigned for today
+              {t("portal.noJobs")}
             </p>
           </CardContent>
         </Card>
@@ -235,7 +250,7 @@ export default function RepDashboardPage() {
           {activeJobs.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Active ({activeJobs.length})
+                {t("portal.active")} ({activeJobs.length})
               </h2>
               <div className="grid gap-3">
                 {activeJobs.map((job) => (
@@ -253,7 +268,7 @@ export default function RepDashboardPage() {
           {completedJobs.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Completed / Closed ({completedJobs.length})
+                {t("portal.completedClosed")} ({completedJobs.length})
               </h2>
               <div className="grid gap-3">
                 {completedJobs.map((job) => (
@@ -275,7 +290,7 @@ export default function RepDashboardPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
             <Bell className="mr-1 inline h-4 w-4" />
-            Notifications
+            {t("portal.notifications")}
             {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-2 text-xs">
                 {unreadCount}
@@ -284,7 +299,7 @@ export default function RepDashboardPage() {
           </h2>
           {unreadCount > 0 && (
             <Button variant="ghost" size="sm" onClick={markAllRead}>
-              Mark all read
+              {t("portal.markAllRead")}
             </Button>
           )}
         </div>
@@ -292,7 +307,7 @@ export default function RepDashboardPage() {
         {notifications.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No notifications
+              {t("portal.noNotifications")}
             </CardContent>
           </Card>
         ) : (
@@ -315,7 +330,7 @@ export default function RepDashboardPage() {
                     </p>
                     <p className="text-xs text-muted-foreground">{n.message}</p>
                     <p className="mt-1 text-xs text-muted-foreground/60">
-                      {new Date(n.createdAt).toLocaleString()}
+                      {new Date(n.createdAt).toLocaleString(locale)}
                     </p>
                   </div>
                   {!n.isRead && (
@@ -337,14 +352,14 @@ export default function RepDashboardPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Status Change</DialogTitle>
+            <DialogTitle>{t("portal.confirmStatusChange")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to mark job{" "}
-              <span className="font-semibold">{confirmDialog.jobRef}</span> as{" "}
+              {t("portal.confirmStatusMsg")}{" "}
+              <span className="font-semibold">{confirmDialog.jobRef}</span> {t("portal.as")}{" "}
               <span className="font-semibold">
                 {confirmDialog.status.replace("_", " ")}
               </span>
-              ? This action cannot be undone.
+              {t("portal.cannotBeUndone")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -355,7 +370,7 @@ export default function RepDashboardPage() {
               }
               disabled={updating}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={confirmStatusChange}
@@ -363,11 +378,23 @@ export default function RepDashboardPage() {
               variant={confirmDialog.status === "COMPLETED" ? "default" : "destructive"}
             >
               {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirm
+              {t("portal.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* No Show Evidence Dialog */}
+      <NoShowEvidenceDialog
+        open={noShowDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setNoShowDialog({ open: false, jobId: "", jobRef: "" });
+        }}
+        jobId={noShowDialog.jobId}
+        jobRef={noShowDialog.jobRef}
+        portalApiBase="/rep-portal"
+        onSuccess={fetchJobs}
+      />
     </div>
   );
 }
@@ -381,6 +408,7 @@ function JobCard({
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
   formatTime: (iso: string | null) => string | null;
 }) {
+  const t = useT();
   const isTerminal = TERMINAL_STATUSES.includes(job.status);
   const flightTime =
     job.serviceType === "ARR"
@@ -435,7 +463,7 @@ function JobCard({
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" />
-            {job.fromZone?.name ?? "—"} &rarr; {job.toZone?.name ?? "—"}
+            {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "—"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "—"}
           </span>
         </div>
 
@@ -443,7 +471,7 @@ function JobCard({
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <Users className="h-3.5 w-3.5" />
-            {job.paxCount} pax
+            {job.paxCount} {t("portal.pax")}
           </span>
           {job.assignment?.vehicle && (
             <span className="flex items-center gap-1">
@@ -458,7 +486,7 @@ function JobCard({
           )}
           {job.assignment?.driver && (
             <span className="text-xs">
-              Driver: {job.assignment.driver.name} ({job.assignment.driver.mobileNumber})
+              {t("portal.driverLabel")} {job.assignment.driver.name} ({job.assignment.driver.mobileNumber})
             </span>
           )}
         </div>
@@ -480,7 +508,7 @@ function JobCard({
               onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Complete
+              {t("portal.complete")}
             </Button>
             <Button
               size="sm"
@@ -489,7 +517,7 @@ function JobCard({
               onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
             >
               <UserX className="h-3.5 w-3.5" />
-              No Show
+              {t("portal.noShow")}
             </Button>
             <Button
               size="sm"
@@ -498,7 +526,7 @@ function JobCard({
               onClick={() => onStatusChange(job.id, job.internalRef, "CANCELLED")}
             >
               <XCircle className="h-3.5 w-3.5" />
-              Cancel
+              {t("portal.cancelJob")}
             </Button>
           </div>
         )}

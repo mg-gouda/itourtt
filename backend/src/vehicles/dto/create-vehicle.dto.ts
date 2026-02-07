@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID, IsOptional, IsIn } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsOptional, IsIn, IsInt, Min, Max } from 'class-validator';
 
 export class CreateVehicleDto {
   @IsNotEmpty()
@@ -12,4 +12,27 @@ export class CreateVehicleDto {
   @IsOptional()
   @IsIn(['OWNED', 'RENTED', 'CONTRACTED'])
   ownership?: 'OWNED' | 'RENTED' | 'CONTRACTED';
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  @IsString()
+  carBrand?: string;
+
+  @IsOptional()
+  @IsString()
+  carModel?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1900)
+  @Max(2100)
+  makeYear?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  luggageCapacity?: number;
 }

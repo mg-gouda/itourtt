@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/stores/auth-store";
+import { useT } from "@/lib/i18n";
 
 const loginSchema = z.object({
   email: z.email("Invalid email address"),
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading, error, isAuthenticated, hydrate } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const t = useT();
 
   const {
     register,
@@ -40,7 +42,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (mounted && isAuthenticated) {
       const user = useAuthStore.getState().user;
-      router.replace(user?.role === 'REP' ? '/rep' : '/dashboard');
+      router.replace(user?.role === 'REP' ? '/rep' : user?.role === 'DRIVER' ? '/driver' : '/dashboard');
     }
   }, [mounted, isAuthenticated, router]);
 
@@ -48,7 +50,7 @@ export default function LoginPage() {
     try {
       await login(data);
       const user = useAuthStore.getState().user;
-      router.replace(user?.role === 'REP' ? '/rep' : '/dashboard');
+      router.replace(user?.role === 'REP' ? '/rep' : user?.role === 'DRIVER' ? '/driver' : '/dashboard');
     } catch {
       // error is already set in the store
     }
@@ -69,7 +71,6 @@ export default function LoginPage() {
         }}
       />
 
-
       {/* Login card – glass effect */}
       <div className="relative z-10 w-full max-w-sm px-4">
         <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-2xl backdrop-blur-xl">
@@ -78,15 +79,15 @@ export default function LoginPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
               <Plane className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-xl font-semibold text-white">iTour TT</h1>
-            <p className="text-sm text-white/50">Transport & Traffic System</p>
+            <h1 className="text-xl font-semibold text-white">{t("sidebar.brand")}</h1>
+            <p className="text-sm text-white/50">{t("login.system")}</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm text-white/70">
-                Email
+                {t("login.email")}
               </Label>
               <Input
                 id="email"
@@ -103,7 +104,7 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="password" className="text-sm text-white/70">
-                Password
+                {t("login.password")}
               </Label>
               <Input
                 id="password"
@@ -132,17 +133,17 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  {t("login.signingIn")}
                 </>
               ) : (
-                "Sign in"
+                t("login.signIn")
               )}
             </Button>
           </form>
         </div>
 
         <p className="mt-4 text-center text-xs text-white/30">
-          iTour Transport & Traffic v1.0
+          {t("login.version")}
         </p>
       </div>
     </div>

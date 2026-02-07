@@ -827,3 +827,60 @@ A reusable searchable combobox that:
 - [x] Rename ServiceType CITY → EXCURSION across entire codebase (schema, backend, frontend)
 - [x] Update frontend types (ServiceType, TrafficJob, AgentInvoice, DispatchDayView)
 - [x] Update rep portal pages (CITY → EXCURSION in service type colors)
+
+## Phase 11: Driver Extranet + No Show Evidence
+
+### 11.1 Schema Changes
+- [x] Add DRIVER to UserRole enum
+- [x] Add userId (optional, unique FK → User) to Driver model
+- [x] Add driver relation on User model
+- [x] Create DriverNotification model (mirrors RepNotification)
+- [x] Create NoShowEvidence model (trafficJobId, 2 image URLs, GPS lat/lng, Google Maps link, submittedBy)
+- [x] Add reverse relations on TrafficJob (driverNotifications, noShowEvidence)
+- [x] Run prisma db push + regenerate client
+
+### 11.2 Backend – Auth + Driver Account Management
+- [x] Update auth service: resolve driverId on DRIVER login
+- [x] Add createUserAccount() to drivers service (mirrors reps pattern)
+- [x] Add resetPassword() to drivers service
+- [x] Add POST /drivers/:id/account endpoint
+- [x] Add PATCH /drivers/:id/account/password endpoint
+- [x] Include user relation in drivers findOne
+
+### 11.3 Backend – Driver Portal Module (NEW)
+- [x] Create driver-portal.module.ts
+- [x] Create driver-portal.service.ts (resolveDriverId, getMyJobs, getJobHistory, updateJobStatus, submitNoShow, notifications CRUD, getProfile)
+- [x] Create driver-portal.controller.ts (8 endpoints: jobs, history, status, no-show, notifications x3, profile)
+- [x] Register DriverPortalModule in app.module.ts
+- [x] File upload support for no-show images (Multer, /uploads/no-show/)
+
+### 11.4 Backend – No Show Evidence on Rep Portal
+- [x] Add submitNoShow() to rep-portal.service.ts
+- [x] Add POST /rep-portal/jobs/:jobId/no-show endpoint with FilesInterceptor
+- [x] Remove NO_SHOW from simple status update (force evidence endpoint)
+- [x] Add file upload support to rep-portal controller
+
+### 11.5 Frontend – Types & Login
+- [x] Add DRIVER to UserRole type
+- [x] Add driverId to AuthUser interface
+- [x] Update login page redirect: DRIVER → /driver
+
+### 11.6 Frontend – NoShowEvidenceDialog (shared component)
+- [x] Create no-show-evidence-dialog.tsx
+- [x] Two file inputs with camera capture (accept="image/*" capture="environment")
+- [x] Image preview thumbnails
+- [x] GPS capture via navigator.geolocation.getCurrentPosition on dialog open
+- [x] Google Maps link display
+- [x] Permission denied / timeout error handling
+- [x] Submit as FormData to portal-specific endpoint
+
+### 11.7 Frontend – Driver Portal Pages (NEW)
+- [x] Create (driver-portal)/layout.tsx (auth guard for DRIVER role, nav, notifications polling)
+- [x] Create (driver-portal)/driver/page.tsx (today's jobs, active/completed sections, Complete/No Show/Cancel actions, notifications panel)
+- [x] Create (driver-portal)/driver/history/page.tsx (date picker, trip fee history, total fees)
+- [x] No Show button opens NoShowEvidenceDialog (not simple confirm)
+
+### 11.8 Frontend – Rep Portal Modification
+- [x] Import and use NoShowEvidenceDialog in rep/page.tsx
+- [x] No Show button now opens evidence dialog instead of simple confirmation
+- [x] Complete and Cancel still use simple confirmation dialog

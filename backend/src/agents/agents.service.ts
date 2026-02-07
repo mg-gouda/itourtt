@@ -70,6 +70,8 @@ export class AgentsService {
         phone: dto.phone,
         email: dto.email,
         ...(dto.currency && { currency: dto.currency as Currency }),
+        refPattern: dto.refPattern ?? null,
+        refExample: dto.refExample ?? null,
       },
       include: {
         creditTerms: true,
@@ -93,12 +95,23 @@ export class AgentsService {
         ...(dto.phone !== undefined && { phone: dto.phone }),
         ...(dto.email !== undefined && { email: dto.email }),
         ...(dto.currency !== undefined && { currency: dto.currency as Currency }),
+        ...(dto.refPattern !== undefined && { refPattern: dto.refPattern }),
+        ...(dto.refExample !== undefined && { refExample: dto.refExample }),
       },
       include: {
         creditTerms: true,
         invoiceCycle: true,
         documents: true,
       },
+    });
+  }
+
+  async toggleStatus(id: string) {
+    const agent = await this.findOne(id);
+
+    return this.prisma.agent.update({
+      where: { id },
+      data: { isActive: !agent.isActive },
     });
   }
 

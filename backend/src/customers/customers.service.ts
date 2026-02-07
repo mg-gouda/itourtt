@@ -113,6 +113,15 @@ export class CustomersService {
     });
   }
 
+  async toggleStatus(id: string) {
+    const customer = await this.findOne(id);
+
+    return this.prisma.customer.update({
+      where: { id },
+      data: { isActive: !customer.isActive },
+    });
+  }
+
   async remove(id: string) {
     await this.findOne(id);
 

@@ -123,3 +123,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* iOS safe area for bottom tab bars */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

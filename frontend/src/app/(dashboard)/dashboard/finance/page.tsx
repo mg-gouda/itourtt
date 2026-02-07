@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   DollarSign,
@@ -22,6 +22,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import api from "@/lib/api";
+import { useT, useLocaleId } from "@/lib/i18n";
+import { formatDate } from "@/lib/utils";
+import { useSortable } from "@/hooks/use-sortable";
+import { SortableHeader } from "@/components/sortable-header";
+import { TableFilterBar } from "@/components/table-filter-bar";
 
 interface Invoice {
   id: string;
@@ -45,8 +50,31 @@ const statusColors: Record<string, string> = {
 };
 
 export default function FinancePage() {
+  const t = useT();
+  const locale = useLocaleId();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  const filtered = useMemo(() => {
+    let result = invoices;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (inv) =>
+          inv.invoiceNumber.toLowerCase().includes(q) ||
+          (inv.agent?.legalName && inv.agent.legalName.toLowerCase().includes(q)) ||
+          (inv.customer?.legalName && inv.customer.legalName.toLowerCase().includes(q))
+      );
+    }
+    if (statusFilter !== "ALL") {
+      result = result.filter((inv) => inv.status === statusFilter);
+    }
+    return result;
+  }, [invoices, search, statusFilter]);
+
+  const { sortedData, sortKey, sortDir, onSort } = useSortable<Invoice>(filtered);
 
   useEffect(() => {
     async function fetch() {
@@ -73,17 +101,17 @@ export default function FinancePage() {
       a.download = `odoo-${type}-${new Date().toISOString().split("T")[0]}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`${type} export downloaded`);
+      toast.success(`${type} ${t("finance.exportDownloaded")}`);
     } catch {
-      toast.error(`Export not available yet`);
+      toast.error(t("finance.exportNotAvailable"));
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Finance"
-        description="Invoices, payments, and Odoo exports"
+        title={t("finance.title")}
+        description={t("finance.description")}
       />
 
       <Tabs defaultValue="invoices" className="space-y-4">
@@ -92,50 +120,64 @@ export default function FinancePage() {
             value="invoices"
             className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
           >
-            Invoices
+            {t("finance.invoices")}
           </TabsTrigger>
           <TabsTrigger
             value="exports"
             className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
           >
-            Odoo Exports
+            {t("finance.odooExports")}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="invoices">
-          <Card className="border-border bg-card">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : invoices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <DollarSign className="mb-2 h-8 w-8" />
-                <p>No invoices yet</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  Invoices are generated from completed traffic jobs
-                </p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground">Invoice #</TableHead>
-                    <TableHead className="text-muted-foreground">Agent / Customer</TableHead>
-                    <TableHead className="text-muted-foreground">Date</TableHead>
-                    <TableHead className="text-muted-foreground">Due Date</TableHead>
-                    <TableHead className="text-muted-foreground">Currency</TableHead>
-                    <TableHead className="text-muted-foreground text-right">
-                      Total
-                    </TableHead>
-                    <TableHead className="text-muted-foreground">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((inv) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : invoices.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <DollarSign className="mb-2 h-8 w-8" />
+              <p>{t("finance.noInvoices")}</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                {t("finance.invoicesGenerated")}
+              </p>
+            </div>
+          ) : (
+            <>
+              <TableFilterBar
+                search={search}
+                onSearchChange={setSearch}
+                placeholder={t("common.search") + "..."}
+                statusOptions={[
+                  { value: "ALL", label: t("common.all") },
+                  { value: "DRAFT", label: "Draft" },
+                  { value: "POSTED", label: "Posted" },
+                  { value: "PAID", label: "Paid" },
+                  { value: "CANCELLED", label: "Cancelled" },
+                ]}
+                statusValue={statusFilter}
+                onStatusChange={setStatusFilter}
+                statusPlaceholder={t("common.all")}
+              />
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <SortableHeader label={t("finance.invoiceNo")} sortKey="invoiceNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <TableHead className="text-white text-xs">{t("jobs.agentCustomer")}</TableHead>
+                      <SortableHeader label={t("common.date")} sortKey="invoiceDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <SortableHeader label={t("finance.dueDate")} sortKey="dueDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <TableHead className="text-white text-xs">{t("finance.currency")}</TableHead>
+                      <SortableHeader label={t("common.total")} sortKey="total" currentKey={sortKey} currentDir={sortDir} onSort={onSort} className="text-right" />
+                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedData.map((inv, idx) => (
                     <TableRow
                       key={inv.id}
-                      className="border-border hover:bg-accent"
+                      className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
                     >
                       <TableCell className="text-foreground font-mono text-xs">
                         {inv.invoiceNumber}
@@ -144,16 +186,16 @@ export default function FinancePage() {
                         {inv.agent?.legalName || inv.customer?.legalName || "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {new Date(inv.invoiceDate).toLocaleDateString()}
+                        {formatDate(inv.invoiceDate)}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {new Date(inv.dueDate).toLocaleDateString()}
+                        {formatDate(inv.dueDate)}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {inv.currency}
                       </TableCell>
                       <TableCell className="text-right text-foreground font-mono">
-                        {inv.total.toLocaleString(undefined, {
+                        {inv.total.toLocaleString(locale, {
                           minimumFractionDigits: 2,
                         })}
                       </TableCell>
@@ -167,21 +209,22 @@ export default function FinancePage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="exports">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { key: "customers", label: "Customers (res.partner)" },
-              { key: "suppliers", label: "Suppliers (res.partner)" },
-              { key: "invoices", label: "Customer Invoices (account.move)" },
-              { key: "vendor-bills", label: "Vendor Bills (account.move)" },
-              { key: "payments", label: "Payments (account.payment)" },
-              { key: "journals", label: "Journal Entries" },
+              { key: "customers", label: t("finance.exportCustomers") },
+              { key: "suppliers", label: t("finance.exportSuppliers") },
+              { key: "invoices", label: t("finance.exportInvoices") },
+              { key: "vendor-bills", label: t("finance.exportVendorBills") },
+              { key: "payments", label: t("finance.exportPayments") },
+              { key: "journals", label: t("finance.exportJournals") },
             ].map((exp) => (
               <Card
                 key={exp.key}
@@ -193,7 +236,7 @@ export default function FinancePage() {
                     <p className="text-sm font-medium text-foreground">
                       {exp.label}
                     </p>
-                    <p className="text-xs text-muted-foreground">XLSX format</p>
+                    <p className="text-xs text-muted-foreground">{t("finance.xlsxFormat")}</p>
                   </div>
                 </div>
                 <Button
@@ -203,7 +246,7 @@ export default function FinancePage() {
                   className="gap-1 text-muted-foreground hover:bg-accent hover:text-foreground"
                 >
                   <Download className="h-4 w-4" />
-                  Export
+                  {t("common.export")}
                 </Button>
               </Card>
             ))}

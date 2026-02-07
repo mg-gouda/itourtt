@@ -41,6 +41,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
+import { useT, useLocaleId } from "@/lib/i18n";
+import { formatDate } from "@/lib/utils";
 
 // ────────────────────────────────────────────
 // Types
@@ -59,6 +61,12 @@ interface Job {
   clientName: string | null;
   agent?: { legalName: string } | null;
   customer?: { legalName: string } | null;
+  originAirport?: { name: string; code: string } | null;
+  originZone?: { name: string } | null;
+  originHotel?: { name: string } | null;
+  destinationAirport?: { name: string; code: string } | null;
+  destinationZone?: { name: string } | null;
+  destinationHotel?: { name: string } | null;
   fromZone?: { name: string } | null;
   toZone?: { name: string } | null;
   flight?: {
@@ -115,10 +123,10 @@ function fmtDate(d: Date) {
   return d.toISOString().split("T")[0];
 }
 
-function fmtTime(iso: string | undefined) {
+function fmtTime(iso: string | undefined, locale = "en-US") {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
 // ────────────────────────────────────────────
@@ -142,6 +150,7 @@ function EditableVehicleCell({
   onCancel: () => void;
   cellRef: (el: HTMLTableCellElement | null) => void;
 }) {
+  const t = useT();
   const current = job.assignment?.vehicle;
 
   if (isEditing) {
@@ -156,7 +165,7 @@ function EditableVehicleCell({
           }}
         >
           <SelectTrigger className="h-7 w-full border-border bg-secondary text-foreground text-xs">
-            <SelectValue placeholder="Select..." />
+            <SelectValue placeholder={t("dispatch.select")} />
           </SelectTrigger>
           <SelectContent className="border-border bg-popover text-foreground max-h-60">
             {vehicles.map((v) => (
@@ -192,7 +201,7 @@ function EditableVehicleCell({
           {current.plateNumber}
         </Badge>
       ) : (
-        <span className="text-red-600 dark:text-red-400 text-xs">— click to assign</span>
+        <span className="text-red-600 dark:text-red-400 text-xs">{t("dispatch.clickToAssign")}</span>
       )}
     </TableCell>
   );
@@ -217,6 +226,7 @@ function EditablePersonCell({
   onCancel: () => void;
   cellRef: (el: HTMLTableCellElement | null) => void;
 }) {
+  const t = useT();
   const currentId =
     field === "driver" ? job.assignment?.driverId : job.assignment?.repId;
   const currentName =
@@ -237,11 +247,11 @@ function EditablePersonCell({
           }}
         >
           <SelectTrigger className="h-7 w-full border-border bg-secondary text-foreground text-xs">
-            <SelectValue placeholder="Select..." />
+            <SelectValue placeholder={t("dispatch.select")} />
           </SelectTrigger>
           <SelectContent className="border-border bg-popover text-foreground max-h-60">
             <SelectItem value="__none__" className="text-xs text-muted-foreground">
-              None
+              {t("dispatch.none")}
             </SelectItem>
             {resources.map((r) => (
               <SelectItem key={r.id} value={r.id} className="text-xs">
@@ -297,6 +307,7 @@ function SummaryFooter({
   departures: Job[];
   cityTransfers: Job[];
 }) {
+  const t = useT();
   const all = [...arrivals, ...departures, ...cityTransfers];
   const total = all.length;
   const assigned = all.filter((j) => j.assignment).length;
@@ -309,47 +320,47 @@ function SummaryFooter({
       <div className="flex items-center justify-between text-sm">
         <div className="flex gap-6 text-muted-foreground">
           <span>
-            Total:{" "}
+            {t("dispatch.total")}{" "}
             <span className="font-medium text-foreground">{total}</span>
           </span>
           <span>
-            ARR:{" "}
+            {t("dispatch.arr")}{" "}
             <span className="font-medium text-foreground">{arrivals.length}</span>
           </span>
           <span>
-            DEP:{" "}
+            {t("dispatch.dep")}{" "}
             <span className="font-medium text-foreground">
               {departures.length}
             </span>
           </span>
           <span>
-            Excursion:{" "}
+            {t("dispatch.excursionLabel")}{" "}
             <span className="font-medium text-foreground">
               {cityTransfers.length}
             </span>
           </span>
           <span className="border-l border-border pl-6">
-            Pax:{" "}
+            {t("dispatch.paxLabel")}{" "}
             <span className="font-medium text-foreground">{totalPax}</span>
           </span>
         </div>
         <div className="flex gap-6 text-muted-foreground">
           <span>
-            Assigned:{" "}
+            {t("dispatch.assignedLabel")}{" "}
             <span className="font-medium text-emerald-600 dark:text-emerald-400">
               {assigned}/{total}
             </span>
           </span>
           <span>
-            Pending:{" "}
+            {t("dispatch.pendingLabel")}{" "}
             <span className="font-medium text-amber-600 dark:text-amber-400">{pending}</span>
           </span>
           <span>
-            Completed:{" "}
+            {t("dispatch.completedLabel")}{" "}
             <span className="font-medium text-blue-600 dark:text-blue-400">{completed}</span>
           </span>
           <span className="border-l border-border pl-6">
-            Rate:{" "}
+            {t("dispatch.rate")}{" "}
             <span className="font-medium text-foreground">
               {total > 0 ? Math.round((assigned / total) * 100) : 0}%
             </span>
@@ -393,6 +404,8 @@ function JobGrid({
   ) => void;
   onDialogAssign: (job: Job) => void;
 }) {
+  const t = useT();
+  const locale = useLocaleId();
   const cellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
 
   const setCellRef = useCallback(
@@ -447,41 +460,42 @@ function JobGrid({
       <Card className="border-border bg-card p-6">
         <div className="flex flex-col items-center justify-center py-8 text-muted-foreground/60">
           <Icon className="mb-2 h-8 w-8" />
-          <p className="text-sm">No {title.toLowerCase()} jobs</p>
+          <p className="text-sm">{t(`dispatch.no${title}Jobs`)}</p>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="border-border bg-card">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="text-muted-foreground w-28">Ref</TableHead>
-            <TableHead className="text-muted-foreground">Agent</TableHead>
-            <TableHead className="text-muted-foreground">Route</TableHead>
-            <TableHead className="text-muted-foreground w-14">Pax</TableHead>
-            <TableHead className="text-muted-foreground">Flight</TableHead>
-            <TableHead className="text-muted-foreground w-40">Vehicle</TableHead>
-            <TableHead className="text-muted-foreground w-32">Driver</TableHead>
-            <TableHead className="text-muted-foreground w-32">Rep</TableHead>
+          <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+            <TableHead className="text-white text-xs w-28">{t("dispatch.ref")}</TableHead>
+            <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
+            <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
+            <TableHead className="text-white text-xs w-14">{t("dispatch.pax")}</TableHead>
+            <TableHead className="text-white text-xs">{t("dispatch.flight")}</TableHead>
+            <TableHead className="text-white text-xs w-40">{t("dispatch.vehicle")}</TableHead>
+            <TableHead className="text-white text-xs w-32">{t("dispatch.driver")}</TableHead>
+            <TableHead className="text-white text-xs w-32">{t("dispatch.rep")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jobs.map((job) => {
+          {jobs.map((job, idx) => {
             const isEditable =
               job.status === "PENDING" || job.status === "ASSIGNED";
+            const stripe = idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50";
 
             return (
               <TableRow
                 key={job.id}
-                className={`border-border hover:bg-accent ${statusRowClass[job.status] || ""}`}
+                className={`border-border hover:bg-accent ${statusRowClass[job.status] || stripe}`}
               >
                 <TableCell
                   className="text-foreground font-mono text-xs cursor-pointer"
                   onClick={() => isEditable && onDialogAssign(job)}
-                  title="Click to open full assignment dialog"
+                  title={t("dispatch.fullAssignTitle")}
                 >
                   {job.internalRef}
                 </TableCell>
@@ -491,14 +505,14 @@ function JobGrid({
                     : job.customer?.legalName || "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
-                  {job.fromZone?.name} → {job.toZone?.name}
+                  {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} → {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-center">
                   {job.paxCount}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
                   {job.flight
-                    ? `${job.flight.flightNo} ${fmtTime(job.flight.arrivalTime || job.flight.departureTime)}`
+                    ? `${job.flight.flightNo} ${fmtTime(job.flight.arrivalTime || job.flight.departureTime, locale)}`
                     : "—"}
                 </TableCell>
 
@@ -576,7 +590,7 @@ function JobGrid({
           })}
         </TableBody>
       </Table>
-    </Card>
+    </div>
   );
 }
 
@@ -585,6 +599,8 @@ function JobGrid({
 // ────────────────────────────────────────────
 
 export default function DispatchPage() {
+  const t = useT();
+  const locale = useLocaleId();
   const [date, setDate] = useState(new Date());
   const [arrivals, setArrivals] = useState<Job[]>([]);
   const [departures, setDepartures] = useState<Job[]>([]);
@@ -645,7 +661,7 @@ export default function DispatchPage() {
         setReps(Array.isArray(r) ? r : []);
       }
     } catch {
-      toast.error("Failed to load dispatch data");
+      toast.error(t("dispatch.failedLoad"));
     } finally {
       setLoading(false);
     }
@@ -752,13 +768,13 @@ export default function DispatchPage() {
           trafficJobId: job.id,
           vehicleId: actualValue,
         });
-        toast.success("Vehicle assigned");
+        toast.success(t("dispatch.vehicleAssigned"));
         fetchDay(); // refresh to get full assignment data
       } catch (err: unknown) {
         rollback();
         const msg =
           (err as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message || "Assignment failed";
+            ?.data?.message || t("dispatch.assignmentFailed");
         toast.error(msg);
       }
       return;
@@ -805,14 +821,12 @@ export default function DispatchPage() {
           `/dispatch/assignments/${job.assignment.id}`,
           payload
         );
-        toast.success(
-          `${field.charAt(0).toUpperCase() + field.slice(1)} updated`
-        );
+        toast.success(t(`dispatch.${field}Updated`));
       } catch (err: unknown) {
         rollback();
         const msg =
           (err as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message || "Update failed";
+            ?.data?.message || t("dispatch.updateFailed");
         toast.error(msg);
       }
     }
@@ -829,7 +843,7 @@ export default function DispatchPage() {
 
   const handleDialogSave = async () => {
     if (!dialogJob || !dialogVehicle) {
-      toast.error("Vehicle is required");
+      toast.error(t("dispatch.vehicleRequired"));
       return;
     }
     setDialogSaving(true);
@@ -860,13 +874,13 @@ export default function DispatchPage() {
         if (dialogRep) payload.repId = dialogRep;
         await api.post("/dispatch/assign", payload);
       }
-      toast.success("Assignment saved");
+      toast.success(t("dispatch.assignmentSaved"));
       setDialogJob(null);
       fetchDay();
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Assignment failed";
+          ?.message || t("dispatch.assignmentFailed");
       toast.error(msg);
     } finally {
       setDialogSaving(false);
@@ -903,12 +917,12 @@ export default function DispatchPage() {
           <div className="flex items-center gap-3">
             <CalendarClock className="h-6 w-6 text-muted-foreground" />
             <h1 className="text-2xl font-semibold text-foreground">
-              Dispatch Console
+              {t("dispatch.title")}
             </h1>
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>
-              {assignedCount}/{totalJobs} assigned
+              {assignedCount}/{totalJobs} {t("dispatch.assigned")}
             </span>
             <Badge
               variant="outline"
@@ -942,15 +956,10 @@ export default function DispatchPage() {
             onClick={goToday}
             className="text-muted-foreground hover:bg-accent"
           >
-            Today
+            {t("dispatch.today")}
           </Button>
           <span className="min-w-[140px] text-center text-lg font-medium text-foreground">
-            {date.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {formatDate(date)}
           </span>
           <Button
             variant="ghost"
@@ -966,17 +975,17 @@ export default function DispatchPage() {
         <div className="flex items-center justify-between">
           <div className="flex gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-red-500" /> Unassigned
+              <span className="h-2 w-2 rounded-full bg-red-500" /> {t("dispatch.unassigned")}
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Assigned
+              <span className="h-2 w-2 rounded-full bg-emerald-500" /> {t("dispatch.assigned")}
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-blue-500" /> In Progress
+              <span className="h-2 w-2 rounded-full bg-blue-500" /> {t("dispatch.inProgress")}
             </span>
           </div>
           <div className="text-xs text-muted-foreground/60">
-            Click cells to edit inline &middot; Click ref for full dialog
+            {t("dispatch.clickCells")} &middot; {t("dispatch.clickRefDialog")}
           </div>
         </div>
 
@@ -991,25 +1000,25 @@ export default function DispatchPage() {
                 value="split"
                 className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
               >
-                Split View
+                {t("dispatch.splitView")}
               </TabsTrigger>
               <TabsTrigger
                 value="arrivals"
                 className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
               >
-                Arrivals ({arrivals.length})
+                {t("dispatch.arrivals")} ({arrivals.length})
               </TabsTrigger>
               <TabsTrigger
                 value="departures"
                 className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
               >
-                Departures ({departures.length})
+                {t("dispatch.departures")} ({departures.length})
               </TabsTrigger>
               <TabsTrigger
                 value="city"
                 className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
               >
-                Excursion ({cityTransfers.length})
+                {t("dispatch.excursion")} ({cityTransfers.length})
               </TabsTrigger>
             </TabsList>
 
@@ -1017,7 +1026,7 @@ export default function DispatchPage() {
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div>
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Plane className="h-4 w-4" /> Arrivals ({arrivals.length})
+                    <Plane className="h-4 w-4" /> {t("dispatch.arrivals")} ({arrivals.length})
                   </h3>
                   <JobGrid
                     jobs={arrivals}
@@ -1028,7 +1037,7 @@ export default function DispatchPage() {
                 </div>
                 <div>
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <PlaneTakeoff className="h-4 w-4" /> Departures (
+                    <PlaneTakeoff className="h-4 w-4" /> {t("dispatch.departures")} (
                     {departures.length})
                   </h3>
                   <JobGrid
@@ -1042,7 +1051,7 @@ export default function DispatchPage() {
               {cityTransfers.length > 0 && (
                 <div className="mt-4">
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Bus className="h-4 w-4" /> Excursions (
+                    <Bus className="h-4 w-4" /> {t("dispatch.excursion")} (
                     {cityTransfers.length})
                   </h3>
                   <JobGrid
@@ -1102,41 +1111,41 @@ export default function DispatchPage() {
         <DialogContent className="border-border bg-popover text-foreground">
           <DialogHeader>
             <DialogTitle>
-              Assign Job — {dialogJob?.internalRef}
+              {t("dispatch.assignJob")} — {dialogJob?.internalRef}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="flex gap-4 text-sm text-muted-foreground">
               <span>
-                Type: <b className="text-foreground">{dialogJob?.serviceType}</b>
+                {t("dispatch.type")} <b className="text-foreground">{dialogJob?.serviceType}</b>
               </span>
               <span>
-                Pax: <b className="text-foreground">{dialogJob?.paxCount}</b>
+                {t("dispatch.paxLabel")} <b className="text-foreground">{dialogJob?.paxCount}</b>
               </span>
               <span>
-                Route:{" "}
+                {t("dispatch.routeLabel")}{" "}
                 <b className="text-foreground">
-                  {dialogJob?.fromZone?.name} → {dialogJob?.toZone?.name}
+                  {dialogJob?.originAirport?.code || dialogJob?.fromZone?.name || dialogJob?.originZone?.name || dialogJob?.originHotel?.name || "\u2014"} → {dialogJob?.destinationAirport?.code || dialogJob?.toZone?.name || dialogJob?.destinationZone?.name || dialogJob?.destinationHotel?.name || "\u2014"}
                 </b>
               </span>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Car className="h-4 w-4" /> Vehicle *
+                <Car className="h-4 w-4" /> {t("dispatch.vehicle")} *
               </div>
               <Select
                 value={dialogVehicle}
                 onValueChange={setDialogVehicle}
               >
                 <SelectTrigger className="border-border bg-card text-foreground">
-                  <SelectValue placeholder="Select vehicle" />
+                  <SelectValue placeholder={t("dispatch.selectVehicle")} />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
                   {vehicles.map((v) => (
                     <SelectItem key={v.id} value={v.id}>
                       {v.plateNumber} — {v.vehicleType?.name} (
-                      {v.vehicleType?.seatCapacity} seats)
+                      {v.vehicleType?.seatCapacity} {t("dispatch.seats")})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1145,14 +1154,14 @@ export default function DispatchPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" /> Driver
+                <Users className="h-4 w-4" /> {t("dispatch.driver")}
               </div>
               <Select
                 value={dialogDriver}
                 onValueChange={setDialogDriver}
               >
                 <SelectTrigger className="border-border bg-card text-foreground">
-                  <SelectValue placeholder="Select driver (optional)" />
+                  <SelectValue placeholder={t("dispatch.selectDriver")} />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
                   {drivers.map((d) => (
@@ -1166,11 +1175,11 @@ export default function DispatchPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <UserCheck className="h-4 w-4" /> Rep
+                <UserCheck className="h-4 w-4" /> {t("dispatch.rep")}
               </div>
               <Select value={dialogRep} onValueChange={setDialogRep}>
                 <SelectTrigger className="border-border bg-card text-foreground">
-                  <SelectValue placeholder="Select rep (optional)" />
+                  <SelectValue placeholder={t("dispatch.selectRep")} />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
                   {reps.map((r) => (
@@ -1188,7 +1197,7 @@ export default function DispatchPage() {
               onClick={() => setDialogJob(null)}
               className="text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleDialogSave}
@@ -1198,7 +1207,7 @@ export default function DispatchPage() {
               {dialogSaving && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save Assignment
+              {t("dispatch.saveAssignment")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import api from "@/lib/api";
 import { useTheme } from "@/components/theme-provider";
+import { useT } from "@/lib/i18n";
 
 // ─── Font options ────────────────────────────────────────────────
 const FONTS = [
@@ -38,6 +39,9 @@ const FONTS = [
   { value: "Raleway", label: "Raleway" },
   { value: "Source Sans 3", label: "Source Sans Pro" },
   { value: "Plus Jakarta Sans", label: "Plus Jakarta Sans" },
+  { value: "Aref Ruqaa", label: "Aref Ruqaa (Arabic)" },
+  { value: "Beiruti", label: "Beiruti (Arabic)" },
+  { value: "El Messiri", label: "El Messiri (Arabic)" },
 ];
 
 // ─── Language options ────────────────────────────────────────────
@@ -58,6 +62,7 @@ const LANGUAGES = [
 ];
 
 export default function StylingPage() {
+  const t = useT();
   const { settings, updateSettings } = useTheme();
   const [theme, setTheme] = useState("dark");
   const [fontFamily, setFontFamily] = useState("Geist");
@@ -93,9 +98,9 @@ export default function StylingPage() {
       });
       // Also update theme provider
       await updateSettings({ theme: theme as "light" | "dark", fontFamily, language, primaryColor, accentColor });
-      toast.success("Settings saved successfully");
+      toast.success(t("styling.settingsSaved"));
     } catch {
-      toast.error("Failed to save settings");
+      toast.error(t("styling.failedSave"));
     } finally {
       setSubmitting(false);
     }
@@ -112,8 +117,8 @@ export default function StylingPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Styling"
-        description="Customize system appearance, font, language and colors"
+        title={t("styling.title")}
+        description={t("styling.description")}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -125,13 +130,13 @@ export default function StylingPage() {
             ) : (
               <Sun className="h-5 w-5 text-muted-foreground" />
             )}
-            <h3 className="text-base font-medium text-foreground">Theme Mode</h3>
+            <h3 className="text-base font-medium text-foreground">{t("styling.themeMode")}</h3>
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
-            Switch between light and dark mode
+            {t("styling.themeModeDesc")}
           </p>
           <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 p-4">
-            <Label className="text-foreground/70">Dark Mode</Label>
+            <Label className="text-foreground/70">{t("styling.darkMode")}</Label>
             <Switch
               checked={theme === "dark"}
               onCheckedChange={(checked) =>
@@ -140,7 +145,7 @@ export default function StylingPage() {
             />
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Currently using {theme} mode
+            {t("styling.currentlyUsing")} {theme} {t("styling.mode")}
           </p>
         </Card>
 
@@ -148,14 +153,14 @@ export default function StylingPage() {
         <Card className="border-border bg-card p-6">
           <div className="mb-4 flex items-center gap-2">
             <Type className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-base font-medium text-foreground">Display Font</h3>
+            <h3 className="text-base font-medium text-foreground">{t("styling.displayFont")}</h3>
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
-            Choose a system-wide font family
+            {t("styling.fontDesc")}
           </p>
           <Select value={fontFamily} onValueChange={setFontFamily}>
             <SelectTrigger className="border-border bg-muted/50 text-foreground">
-              <SelectValue placeholder="Select a font" />
+              <SelectValue placeholder={t("styling.selectFont")} />
             </SelectTrigger>
             <SelectContent className="border-border bg-popover text-popover-foreground">
               {FONTS.map((f) => (
@@ -185,15 +190,15 @@ export default function StylingPage() {
           <div className="mb-4 flex items-center gap-2">
             <Languages className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-base font-medium text-foreground">
-              Display Language
+              {t("styling.displayLanguage")}
             </h3>
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
-            Set the system display language
+            {t("styling.languageDesc")}
           </p>
           <Select value={language} onValueChange={setLanguage}>
             <SelectTrigger className="border-border bg-muted/50 text-foreground">
-              <SelectValue placeholder="Select a language" />
+              <SelectValue placeholder={t("styling.selectLanguage")} />
             </SelectTrigger>
             <SelectContent className="border-border bg-popover text-popover-foreground">
               {LANGUAGES.map((l) => (
@@ -213,15 +218,15 @@ export default function StylingPage() {
         <Card className="border-border bg-card p-6">
           <div className="mb-4 flex items-center gap-2">
             <Palette className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-base font-medium text-foreground">System Colors</h3>
+            <h3 className="text-base font-medium text-foreground">{t("styling.systemColors")}</h3>
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
-            Customize primary and accent colors
+            {t("styling.colorsDesc")}
           </p>
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 p-4">
               <div>
-                <Label className="text-foreground/70">Primary Color</Label>
+                <Label className="text-foreground/70">{t("styling.primaryColor")}</Label>
                 <p className="mt-0.5 text-xs text-muted-foreground">{primaryColor}</p>
               </div>
               <input
@@ -233,7 +238,7 @@ export default function StylingPage() {
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 p-4">
               <div>
-                <Label className="text-foreground/70">Accent Color</Label>
+                <Label className="text-foreground/70">{t("styling.accentColor")}</Label>
                 <p className="mt-0.5 text-xs text-muted-foreground">{accentColor}</p>
               </div>
               <input
@@ -255,7 +260,7 @@ export default function StylingPage() {
           className="gap-1.5"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          Save Changes
+          {t("common.saveChanges")}
         </Button>
       </div>
     </div>

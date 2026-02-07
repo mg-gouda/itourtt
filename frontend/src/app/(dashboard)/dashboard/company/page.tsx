@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import api from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -21,6 +22,7 @@ interface CompanySettingsData {
 }
 
 export default function CompanyPage() {
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -58,9 +60,9 @@ export default function CompanyPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setLogoUrl(data.url);
-      toast.success("Logo uploaded");
+      toast.success(t("company.logoUploaded"));
     } catch {
-      toast.error("Failed to upload logo");
+      toast.error(t("company.failedLogo"));
     } finally {
       setUploadingLogo(false);
     }
@@ -75,9 +77,9 @@ export default function CompanyPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFaviconUrl(data.url);
-      toast.success("Favicon uploaded");
+      toast.success(t("company.faviconUploaded"));
     } catch {
-      toast.error("Failed to upload favicon");
+      toast.error(t("company.failedFavicon"));
     } finally {
       setUploadingFavicon(false);
     }
@@ -91,9 +93,9 @@ export default function CompanyPage() {
         reportHeaderHtml: reportHeaderHtml || null,
         reportFooterHtml: reportFooterHtml || null,
       });
-      toast.success("Company settings saved");
+      toast.success(t("company.settingsSaved"));
     } catch {
-      toast.error("Failed to save settings");
+      toast.error(t("company.failedSave"));
     } finally {
       setSubmitting(false);
     }
@@ -110,20 +112,20 @@ export default function CompanyPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Company"
-        description="Manage company branding, logo, and report templates"
+        title={t("company.title")}
+        description={t("company.description")}
       />
 
       {/* Company Identity */}
       <Card className="border-border bg-card p-6">
         <h3 className="mb-4 text-base font-medium text-foreground">
-          Company Identity
+          {t("company.identity")}
         </h3>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Company Name */}
           <div className="space-y-2">
-            <Label className="text-foreground/70">Company Name</Label>
+            <Label className="text-foreground/70">{t("company.companyName")}</Label>
             <Input
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
@@ -134,7 +136,7 @@ export default function CompanyPage() {
 
           {/* Logo */}
           <div className="space-y-2">
-            <Label className="text-foreground/70">Company Logo</Label>
+            <Label className="text-foreground/70">{t("company.companyLogo")}</Label>
             <div className="flex items-center gap-4">
               <div className="flex h-[120px] w-[120px] shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30">
                 {logoUrl ? (
@@ -170,16 +172,16 @@ export default function CompanyPage() {
                   ) : (
                     <ImageIcon className="h-4 w-4" />
                   )}
-                  Upload Logo
+                  {t("company.uploadLogo")}
                 </Button>
-                <p className="mt-1 text-xs text-muted-foreground/60">PNG, JPG up to 2MB</p>
+                <p className="mt-1 text-xs text-muted-foreground/60">{t("company.logoHint")}</p>
               </div>
             </div>
           </div>
 
           {/* Favicon */}
           <div className="space-y-2">
-            <Label className="text-foreground/70">Favicon</Label>
+            <Label className="text-foreground/70">{t("company.favicon")}</Label>
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30">
                 {faviconUrl ? (
@@ -215,10 +217,10 @@ export default function CompanyPage() {
                   ) : (
                     <FileImage className="h-4 w-4" />
                   )}
-                  Upload Favicon
+                  {t("company.uploadFavicon")}
                 </Button>
                 <p className="mt-1 text-xs text-muted-foreground/60">
-                  16x16 or 32x32 PNG
+                  {t("company.faviconHint")}
                 </p>
               </div>
             </div>
@@ -229,16 +231,16 @@ export default function CompanyPage() {
       {/* Report Header */}
       <Card className="border-border bg-card p-6">
         <h3 className="mb-1 text-base font-medium text-foreground">
-          Report Header
+          {t("company.reportHeader")}
         </h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          HTML content displayed at the top of generated reports
+          {t("company.reportHeaderDesc")}
         </p>
         <textarea
           rows={6}
           value={reportHeaderHtml}
           onChange={(e) => setReportHeaderHtml(e.target.value)}
-          placeholder="Enter report header HTML..."
+          placeholder={t("company.reportHeaderPlaceholder")}
           className="w-full resize-y rounded-md border border-border bg-muted/50 p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
         />
       </Card>
@@ -246,16 +248,16 @@ export default function CompanyPage() {
       {/* Report Footer */}
       <Card className="border-border bg-card p-6">
         <h3 className="mb-1 text-base font-medium text-foreground">
-          Report Footer
+          {t("company.reportFooter")}
         </h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          HTML content displayed at the bottom of generated reports
+          {t("company.reportFooterDesc")}
         </p>
         <textarea
           rows={6}
           value={reportFooterHtml}
           onChange={(e) => setReportFooterHtml(e.target.value)}
-          placeholder="Enter report footer HTML..."
+          placeholder={t("company.reportFooterPlaceholder")}
           className="w-full resize-y rounded-md border border-border bg-muted/50 p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
         />
       </Card>
@@ -268,7 +270,7 @@ export default function CompanyPage() {
           className="gap-1.5"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          Save Changes
+          {t("common.saveChanges")}
         </Button>
       </div>
     </div>

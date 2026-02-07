@@ -52,11 +52,37 @@ User chose the following for the Traffic Assign redesign:
 - Zero TypeScript errors in both frontend and backend
 
 ### Remaining Phase 10 Work
-- Rep flight-aware validation (3-hour gap, same-flight sharing)
-- Driver time-aware validation (3-hour gap rule)
-- Available drivers/reps rewrite with jobId param
-- Block rep assignment on Excursion jobs
-- Add "customers" to role permission seeds
+- ~~Rep flight-aware validation~~ (already implemented)
+- ~~Driver time-aware validation~~ (already implemented)
+- ~~Available drivers/reps rewrite with jobId param~~ (already implemented)
+- ~~Block rep assignment on Excursion jobs~~ (already implemented)
+- ~~Add "customers" to role permission seeds~~ (completed)
+
+**Phase 10 is 100% complete.**
+
+---
+
+## Session 2 (continued) – 2026-02-06
+
+### Phase 11: Driver Extranet + No Show Evidence
+
+User requested:
+1. **Driver Extranet** — mirrors the Rep Extranet so drivers can log in, see jobs, update statuses, view trip fee history, and receive notifications
+2. **No Show Evidence** — both driver and rep extranets require 2 photo uploads + GPS location capture when marking a job as NO_SHOW
+
+### Design Decisions
+- No Show evidence stored in separate `NoShowEvidence` model (not on TrafficJob)
+- GPS coordinates + Google Maps link stored per evidence record
+- `submittedBy` field tracks whether DRIVER or REP submitted the evidence
+- NO_SHOW removed from simple status update endpoints — must go through evidence endpoint
+- COMPLETED and CANCELLED still use simple confirmation
+- Driver portal at `/driver`, mirrors rep portal at `/rep`
+
+### Work Completed
+- Schema: DRIVER role, Driver.userId FK, DriverNotification model, NoShowEvidence model
+- Backend: auth driverId resolution, driver account management (create/reset password), driver-portal module (8 endpoints), rep-portal no-show endpoint
+- Frontend: DRIVER type, login redirect, NoShowEvidenceDialog shared component, driver portal (layout + dashboard + history), rep portal modified to use evidence dialog
+- Zero TypeScript errors in both frontend and backend
 
 ---
 
@@ -67,3 +93,5 @@ User chose the following for the Traffic Assign redesign:
 | 2026-01-29 | Project initialized, memory.md and progress.md created | User |
 | 2026-02-06 | Phase 10 schema refactor: CITY→EXCURSION, 6 FK columns, AgentInvoice consolidation | User |
 | 2026-02-06 | Phase 10 backend+frontend updates for refactored schema | User |
+| 2026-02-06 | Phase 10 completed: all dispatch validations confirmed, customers added to role permissions | User |
+| 2026-02-06 | Phase 11: Driver Extranet + No Show Evidence (schema, backend, frontend) | User |

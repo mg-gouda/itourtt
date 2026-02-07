@@ -38,6 +38,7 @@ import {
 import { LocationCombobox } from "@/components/location-combobox";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { useLocaleId } from "@/lib/i18n";
 
 const SERVICE_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "ARR", label: "Arrival" },
@@ -117,6 +118,7 @@ export default function CustomerDetailPage({
 }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const locale = useLocaleId();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -480,7 +482,7 @@ export default function CustomerDetailPage({
                   <div>
                     <span className="text-muted-foreground">Credit Limit</span>
                     <p className="font-medium text-foreground">
-                      {customer.creditLimit.toLocaleString()} {customer.currency}
+                      {customer.creditLimit.toLocaleString(locale)} {customer.currency}
                     </p>
                   </div>
                 )}
@@ -513,11 +515,11 @@ export default function CustomerDetailPage({
 
         <TabsContent value="prices" className="space-y-4">
           {/* Edit Price List */}
-          <Card className="border-border bg-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-foreground">
+          <div>
+            <div className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
+              <h3 className="text-foreground text-lg font-semibold">
                 {savedPriceItems.length > 0 ? "Add / Edit Prices" : "Price List"}
-              </CardTitle>
+              </h3>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -564,8 +566,8 @@ export default function CustomerDetailPage({
                   Save All
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </div>
+            <div className="space-y-4 px-6 pb-6">
               {/* Add Route Section */}
               <div className="flex items-end gap-4 rounded-lg border border-border bg-muted/50 p-4">
                 <div className="w-52 space-y-2">
@@ -629,33 +631,33 @@ export default function CustomerDetailPage({
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-muted-foreground min-w-[280px]">
+                      <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                        <TableHead className="text-white text-xs min-w-[280px]">
                           Route
                         </TableHead>
                         {vehicleTypes.map((vt) => (
                           <TableHead
                             key={vt.id}
                             colSpan={2}
-                            className="text-center text-muted-foreground border-l border-border"
+                            className="text-center text-white text-xs border-l border-border"
                           >
                             {vt.name}
                             <span className="ml-1 text-xs">({vt.seatCapacity} Pax)</span>
                           </TableHead>
                         ))}
-                        <TableHead className="text-muted-foreground w-[50px]" />
+                        <TableHead className="text-white text-xs w-[50px]" />
                       </TableRow>
-                      <TableRow className="border-border hover:bg-transparent">
+                      <TableRow className="border-border hover:bg-transparent bg-gray-600/75 dark:bg-gray-700/75">
                         <TableHead />
                         {vehicleTypes.map((vt) => (
                           <Fragment key={vt.id}>
                             <TableHead
-                              className="text-xs text-muted-foreground text-center border-l border-border"
+                              className="text-xs text-white text-center border-l border-border"
                             >
                               Price
                             </TableHead>
                             <TableHead
-                              className="text-xs text-muted-foreground text-center"
+                              className="text-xs text-white text-center"
                             >
                               Tip
                             </TableHead>
@@ -665,10 +667,10 @@ export default function CustomerDetailPage({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {routes.map((route) => (
+                      {routes.map((route, idx) => (
                         <TableRow
                           key={route.key}
-                          className="border-border hover:bg-accent"
+                          className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
                         >
                           <TableCell className="font-medium text-foreground">
                             <div className="flex items-center gap-2">
@@ -750,46 +752,46 @@ export default function CustomerDetailPage({
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Saved Price List - Grid View with Actions */}
           {savedPriceItems.length > 0 && (
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <CardTitle className="text-foreground flex items-center gap-2">
+            <div>
+              <div className="px-6 pt-6 pb-4">
+                <h3 className="text-foreground text-lg font-semibold flex items-center gap-2">
                   <FileSpreadsheet className="h-5 w-5" />
                   Current Price List
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h3>
+              </div>
+              <div className="px-6 pb-6">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-muted-foreground min-w-[280px]">
+                      <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                        <TableHead className="text-white text-xs min-w-[280px]">
                           Route
                         </TableHead>
                         {vehicleTypes.map((vt) => (
                           <TableHead
                             key={vt.id}
                             colSpan={2}
-                            className="text-center text-muted-foreground border-l border-border"
+                            className="text-center text-white text-xs border-l border-border"
                           >
                             {vt.name}
                             <span className="ml-1 text-xs">({vt.seatCapacity} Pax)</span>
                           </TableHead>
                         ))}
-                        <TableHead className="text-muted-foreground w-[100px] text-center">Actions</TableHead>
+                        <TableHead className="text-white text-xs w-[100px] text-center">Actions</TableHead>
                       </TableRow>
-                      <TableRow className="border-border hover:bg-transparent">
+                      <TableRow className="border-border hover:bg-transparent bg-gray-600/75 dark:bg-gray-700/75">
                         <TableHead />
                         {vehicleTypes.map((vt) => (
                           <Fragment key={vt.id}>
-                            <TableHead className="text-xs text-muted-foreground text-center border-l border-border">
+                            <TableHead className="text-xs text-white text-center border-l border-border">
                               Price
                             </TableHead>
-                            <TableHead className="text-xs text-muted-foreground text-center">
+                            <TableHead className="text-xs text-white text-center">
                               Tip
                             </TableHead>
                           </Fragment>
@@ -846,10 +848,10 @@ export default function CustomerDetailPage({
                               return (
                                 <Fragment key={`${routeKey}-${vt.id}`}>
                                   <TableCell className="border-l border-border text-center font-mono text-foreground">
-                                    {priceData?.transferPrice ? priceData.transferPrice.toLocaleString() : "\u2014"}
+                                    {priceData?.transferPrice ? priceData.transferPrice.toLocaleString(locale) : "\u2014"}
                                   </TableCell>
                                   <TableCell className="text-center font-mono text-foreground">
-                                    {priceData?.driverTip ? priceData.driverTip.toLocaleString() : "\u2014"}
+                                    {priceData?.driverTip ? priceData.driverTip.toLocaleString(locale) : "\u2014"}
                                   </TableCell>
                                 </Fragment>
                               );
@@ -926,8 +928,8 @@ export default function CustomerDetailPage({
                     </TableBody>
                   </Table>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </TabsContent>
       </Tabs>

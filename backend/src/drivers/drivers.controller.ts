@@ -7,12 +7,14 @@ import {
   Param,
   Body,
   Query,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -60,6 +62,45 @@ export class DriversController {
     return this.driversService.findAll(pagination, isActive);
   }
 
+  @Get('export/excel')
+  @Roles('ADMIN', 'DISPATCHER')
+  async exportExcel(@Res() res: Response) {
+    const buffer = await this.driversService.exportToExcel();
+    const date = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="drivers_${date}.xlsx"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('import/template')
+  @Roles('ADMIN', 'DISPATCHER')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = await this.driversService.generateImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="drivers_import_template.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Post('import/excel')
+  @Roles('ADMIN', 'DISPATCHER')
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
+    }
+    const result = await this.driversService.importFromExcel(file.buffer);
+    const message = result.errors.length > 0
+      ? `Imported ${result.imported} drivers with ${result.errors.length} errors`
+      : `Successfully imported ${result.imported} drivers`;
+    return new ApiResponse(result, message);
+  }
+
   @Post()
   @Roles('ADMIN', 'DISPATCHER')
   async create(@Body() dto: CreateDriverDto) {
@@ -103,6 +144,20 @@ export class DriversController {
     return new ApiResponse(result, 'Vehicle unassigned from driver successfully');
   }
 
+  @Patch(':id/status')
+  @Roles('ADMIN')
+  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+    const result = await this.driversService.toggleStatus(id);
+    return new ApiResponse(result, 'Driver status updated successfully');
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN')
+  async softDelete(@Param('id', ParseUUIDPipe) id: string) {
+    await this.driversService.softDelete(id);
+    return new ApiResponse(null, 'Driver removed successfully');
+  }
+
   @Post(':id/attachment')
   @Roles('ADMIN', 'DISPATCHER')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
@@ -113,5 +168,25 @@ export class DriversController {
     const url = '/uploads/' + file.filename;
     await this.driversService.updateAttachment(id, url);
     return { url };
+  }
+
+  @Post(':id/account')
+  @Roles('ADMIN', 'DISPATCHER')
+  async createUserAccount(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: { email: string; password: string },
+  ) {
+    const result = await this.driversService.createUserAccount(id, dto);
+    return new ApiResponse(result, 'Driver user account created successfully');
+  }
+
+  @Patch(':id/account/password')
+  @Roles('ADMIN', 'DISPATCHER')
+  async resetPassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: { password: string },
+  ) {
+    const result = await this.driversService.resetPassword(id, dto.password);
+    return new ApiResponse(result, 'Password reset successfully');
   }
 }

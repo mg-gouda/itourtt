@@ -19,6 +19,7 @@ import { ExportModule } from './export/export.module.js';
 import { ReportsModule } from './reports/reports.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { RepPortalModule } from './rep-portal/rep-portal.module.js';
+import { DriverPortalModule } from './driver-portal/driver-portal.module.js';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { RepPortalModule } from './rep-portal/rep-portal.module.js';
     ReportsModule,
     SettingsModule,
     RepPortalModule,
+    DriverPortalModule,
   ],
   controllers: [AppController],
   providers: [AppService],

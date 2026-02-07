@@ -7,11 +7,13 @@ import {
   Param,
   Body,
   Query,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
@@ -51,6 +53,45 @@ export class RepsController {
     return this.repsService.findAll(query);
   }
 
+  @Get('export/excel')
+  @Roles('ADMIN', 'DISPATCHER')
+  async exportExcel(@Res() res: Response) {
+    const buffer = await this.repsService.exportToExcel();
+    const date = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="reps_${date}.xlsx"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('import/template')
+  @Roles('ADMIN', 'DISPATCHER')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = await this.repsService.generateImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="reps_import_template.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Post('import/excel')
+  @Roles('ADMIN', 'DISPATCHER')
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
+    }
+    const result = await this.repsService.importFromExcel(file.buffer);
+    const message = result.errors.length > 0
+      ? `Imported ${result.imported} reps with ${result.errors.length} errors`
+      : `Successfully imported ${result.imported} reps`;
+    return new ApiResponse(result, message);
+  }
+
   @Post()
   @Roles('ADMIN', 'DISPATCHER')
   async create(@Body() dto: CreateRepDto) {
@@ -72,6 +113,20 @@ export class RepsController {
   ) {
     const rep = await this.repsService.update(id, dto);
     return new ApiResponse(rep, 'Rep updated successfully');
+  }
+
+  @Patch(':id/status')
+  @Roles('ADMIN')
+  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+    const result = await this.repsService.toggleStatus(id);
+    return new ApiResponse(result, 'Rep status updated successfully');
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN')
+  async softDelete(@Param('id', ParseUUIDPipe) id: string) {
+    const result = await this.repsService.softDelete(id);
+    return new ApiResponse(result, 'Rep removed successfully');
   }
 
   @Post(':id/zones')
