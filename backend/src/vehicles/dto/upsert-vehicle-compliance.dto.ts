@@ -48,15 +48,15 @@ export class UpsertVehicleComplianceDto {
   tourismSupportFundCurrency?: string;
 
   @IsOptional()
-  @IsDateString()
-  temporaryPermitDate?: string;
-
-  @IsOptional()
   @IsNumber()
   @Min(0)
-  depositPayment?: number;
+  registrationFees?: number;
 
   @IsOptional()
   @IsIn(['EGP', 'USD', 'EUR', 'GBP', 'SAR'])
-  depositPaymentCurrency?: string;
+  registrationFeesCurrency?: string;
+
+  @IsOptional()
+  @IsDateString()
+  temporaryPermitDate?: string;
 }

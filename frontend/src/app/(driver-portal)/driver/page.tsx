@@ -43,6 +43,10 @@ interface DriverJob {
   status: string;
   paxCount: number;
   notes: string | null;
+  custRepName: string | null;
+  custRepMobile: string | null;
+  custRepMeetingPoint: string | null;
+  custRepMeetingTime: string | null;
   fromZone?: { name: string };
   toZone?: { name: string };
   originAirport?: { name: string; code: string } | null;
@@ -492,6 +496,20 @@ function DriverJobCard({
             </span>
           )}
         </div>
+
+        {/* Customer Rep Meeting Info */}
+        {(job.custRepName || job.custRepMobile || job.custRepMeetingPoint || job.custRepMeetingTime) && (
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {job.custRepName && <span>{t("jobs.custRepName")}: <b className="text-foreground">{job.custRepName}</b></span>}
+            {job.custRepMobile && (
+              <a href={`tel:${job.custRepMobile}`} className="text-blue-400 underline">
+                {job.custRepMobile}
+              </a>
+            )}
+            {job.custRepMeetingPoint && <span>{t("jobs.custRepMeetingPoint")}: <b className="text-foreground">{job.custRepMeetingPoint}</b></span>}
+            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b></span>}
+          </div>
+        )}
 
         {/* Notes */}
         {job.notes && (

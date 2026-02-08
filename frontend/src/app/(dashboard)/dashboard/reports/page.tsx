@@ -206,9 +206,11 @@ interface ComplianceReportItem {
   annualPaymentCurrency: string | null;
   gpsSubscription: number | null;
   tourismSupportFund: number | null;
+  registrationFees: number | null;
   temporaryPermitDate: string | null;
   temporaryPermitExpiryDate: string | null;
-  depositPayment: number | null;
+  totalFees: number | null;
+  depositTotal: number | null;
   balanceRemaining: number | null;
 }
 
@@ -256,10 +258,10 @@ function StatCard({
   color?: string;
 }) {
   return (
-    <Card className="border-border bg-card p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${color}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+    <Card className="border-border bg-card px-2 py-px">
+      <p className="text-[10px] text-muted-foreground leading-none truncate">{label}</p>
+      <p className={`text-xs font-semibold leading-snug ${color}`}>{value}</p>
+      {sub && <p className="text-[9px] text-muted-foreground leading-none">{sub}</p>}
     </Card>
   );
 }
@@ -567,7 +569,7 @@ export default function ReportsPage() {
 
           {dispatchData && (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-8 gap-1.5">
                 <StatCard
                   label={t("reports.totalJobs")}
                   value={dispatchData.totalJobs}
@@ -575,7 +577,7 @@ export default function ReportsPage() {
                 <StatCard
                   label={t("reports.assigned")}
                   value={dispatchData.assignedCount}
-                  sub={`${dispatchData.assignmentRate}% ${t("reports.rateLabel")}`}
+                  sub={`${dispatchData.assignmentRate}%`}
                   color="text-blue-600 dark:text-blue-400"
                 />
                 <StatCard
@@ -588,26 +590,11 @@ export default function ReportsPage() {
                   value={`${dispatchData.completionRate}%`}
                   color="text-emerald-600 dark:text-emerald-400"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {Object.entries(dispatchData.byServiceType).map(([type, count]) => (
-                  <Card
-                    key={type}
-                    className="border-border bg-card p-3"
-                  >
-                    <p className="text-xs text-muted-foreground">{type}</p>
-                    <p className="text-lg font-semibold text-foreground">{count}</p>
-                  </Card>
+                  <StatCard key={type} label={type} value={count} />
                 ))}
                 {Object.entries(dispatchData.byStatus).map(([status, count]) => (
-                  <Card
-                    key={status}
-                    className="border-border bg-card p-3"
-                  >
-                    <p className="text-xs text-muted-foreground">{status}</p>
-                    <p className="text-lg font-semibold text-foreground">{count}</p>
-                  </Card>
+                  <StatCard key={status} label={status} value={count} />
                 ))}
               </div>
 
@@ -704,7 +691,7 @@ export default function ReportsPage() {
 
           {driverData && (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="flex gap-1.5 flex-wrap">
                 <StatCard label={t("reports.drivers")} value={driverData.totalDrivers} />
                 <StatCard
                   label={t("reports.totalTrips")}
@@ -862,7 +849,7 @@ export default function ReportsPage() {
                 </div>
               </Card>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="flex gap-1.5 flex-wrap">
                 <StatCard label={t("reports.jobs")} value={agentData.jobCount} />
                 <StatCard
                   label={t("reports.totalInvoiced")}
@@ -999,7 +986,7 @@ export default function ReportsPage() {
 
           {repFeeData && (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="flex gap-1.5 flex-wrap">
                 <StatCard
                   label={t("reports.totalReps")}
                   value={repFeeData.reps.length}
@@ -1123,7 +1110,7 @@ export default function ReportsPage() {
 
           {revenueData && (
             <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="flex gap-1.5 flex-wrap">
                 <StatCard
                   label={t("reports.totalRevenue")}
                   value={fmt(revenueData.totalRevenue, locale)}
@@ -1275,7 +1262,7 @@ export default function ReportsPage() {
           ) : complianceData.length > 0 ? (
             <>
               {/* Stat Cards */}
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="flex gap-1.5 flex-wrap">
                 <StatCard label={t("reports.totalVehicles")} value={complianceData.length} />
                 <StatCard
                   label={t("reports.withInsurance")}
@@ -1317,7 +1304,9 @@ export default function ReportsPage() {
                       <SortableHeader label={t("vehicles.temporaryPermit")} sortKey="temporaryPermitDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
                       <TableHead className="text-white text-xs">{t("vehicles.permitExpiry")}</TableHead>
                       <SortableHeader label={t("vehicles.annualPayment")} sortKey="annualPayment" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <SortableHeader label={t("vehicles.depositPayment")} sortKey="depositPayment" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <TableHead className="text-white text-xs">{t("vehicles.registrationFees")}</TableHead>
+                      <SortableHeader label={t("vehicles.totalFees")} sortKey="totalFees" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <SortableHeader label={t("vehicles.totalDeposits")} sortKey="depositTotal" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
                       <TableHead className="text-white text-xs">{t("vehicles.balanceRemaining")}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1332,7 +1321,7 @@ export default function ReportsPage() {
 
                       return (
                         <TableRow
-                          key={v.vehicleId}
+                          key={`${v.vehicleId}-${idx}`}
                           className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                         >
                           <TableCell className="font-medium text-foreground">{v.plateNumber}</TableCell>
@@ -1359,7 +1348,9 @@ export default function ReportsPage() {
                             ) : "—"}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{v.annualPayment != null ? `${fmt(Number(v.annualPayment))} ${v.annualPaymentCurrency || ""}` : "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{v.depositPayment != null ? fmt(Number(v.depositPayment)) : "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{v.registrationFees != null ? fmt(Number(v.registrationFees)) : "—"}</TableCell>
+                          <TableCell className="text-muted-foreground font-medium">{v.totalFees != null ? fmt(Number(v.totalFees)) : "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{v.depositTotal != null ? fmt(Number(v.depositTotal)) : "—"}</TableCell>
                           <TableCell className="text-muted-foreground">{v.balanceRemaining != null ? fmt(Number(v.balanceRemaining)) : "—"}</TableCell>
                         </TableRow>
                       );

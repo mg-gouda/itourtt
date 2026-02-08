@@ -397,6 +397,7 @@ export class DispatchService {
       where: {
         deletedAt: null,
         isActive: true,
+        ownership: { not: 'CONTRACTED' },
         ...(busyVehicleIds.length > 0 && {
           id: { notIn: busyVehicleIds },
         }),

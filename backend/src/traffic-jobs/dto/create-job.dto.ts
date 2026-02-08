@@ -135,6 +135,22 @@ export class CreateJobDto {
   notes?: string;
 
   @IsOptional()
+  @IsString()
+  custRepName?: string;
+
+  @IsOptional()
+  @IsString()
+  custRepMobile?: string;
+
+  @IsOptional()
+  @IsString()
+  custRepMeetingPoint?: string;
+
+  @IsOptional()
+  @IsDateString()
+  custRepMeetingTime?: string;
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => FlightInfoDto)
   flight?: FlightInfoDto;

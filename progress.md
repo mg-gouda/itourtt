@@ -884,3 +884,38 @@ A reusable searchable combobox that:
 - [x] Import and use NoShowEvidenceDialog in rep/page.tsx
 - [x] No Show button now opens evidence dialog instead of simple confirmation
 - [x] Complete and Cancel still use simple confirmation dialog
+
+---
+
+## Phase 12: Vehicle Compliance & Deposits
+- [x] Vehicle compliance tracking (insurance, license, inspection dates)
+- [x] Upsert vehicle compliance DTO
+- [x] Vehicle detail page (`/dashboard/vehicles/[id]`)
+- [x] New vehicle form page (`/dashboard/vehicles/new`)
+- [x] Deposit payment DTO and endpoint
+
+## Phase 13: Client Sign PDF Generation
+- [x] Install pdf-lib in backend
+- [x] `generateClientSigns()` method in ExportService (landscape A4 PDF)
+- [x] Company logo at 90% page width in PDF
+- [x] "Mr/Mrs" text + large bold client name per page
+- [x] GET /export/odoo/client-signs?date= endpoint
+- [x] Print Signs button on traffic jobs page (generates for tomorrow's date)
+- [x] i18n translations for sign generation (en + ar)
+
+## Phase 14: WYSIWYG Report Header/Footer Editor
+- [x] Install TipTap packages (@tiptap/react, starter-kit, text-align, underline, image, table extensions)
+- [x] Create RichTextEditor component (`frontend/src/components/rich-text-editor.tsx`)
+- [x] Toolbar: Bold, Italic, Underline, H1/H2/H3, Bullet/Ordered List, Align L/C/R
+- [x] Table support (insert, add/delete rows/columns, delete table)
+- [x] Company logo insertion with size slider (10-100%)
+- [x] Shortcode buttons: {{reportName}}, {{dateTime}}, {{user}}
+- [x] Replace raw HTML textareas in company settings page
+- [x] SSR fix: `immediatelyRender: false` for Next.js compatibility
+- [x] Updated i18n: removed "HTML" from report header/footer labels
+
+## Phase 15: Reports Page UI Improvements
+- [x] Compact stat cards (reduced padding, font sizes)
+- [x] All stats in single row (grid layout, equal width)
+- [x] Service type cards on same line as stats (8-column grid)
+- [x] Fixed duplicate React key warning in compliance table

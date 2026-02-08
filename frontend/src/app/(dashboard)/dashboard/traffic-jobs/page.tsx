@@ -94,6 +94,7 @@ export default function TrafficJobsPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [search, setSearch] = useState("");
+  const [generatingSigns, setGeneratingSigns] = useState(false);
 
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
@@ -127,6 +128,27 @@ export default function TrafficJobsPage() {
     fetchJobs();
   }, [fetchJobs]);
 
+  const handlePrintSigns = async () => {
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    setGeneratingSigns(true);
+    try {
+      const res = await api.get(`/export/odoo/client-signs?date=${tomorrow}`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        toast.error(t("jobs.noSignJobs"));
+      } else {
+        toast.error(t("jobs.failedLoad"));
+      }
+    } finally {
+      setGeneratingSigns(false);
+    }
+  };
+
   const filtered = jobs.filter((j) => {
     if (search) {
       const q = search.toLowerCase();
@@ -155,10 +177,15 @@ export default function TrafficJobsPage() {
             size="sm"
             variant="outline"
             className="gap-1.5 border-border"
-            onClick={() => router.push("/dashboard/reports?report=client-signs")}
+            disabled={generatingSigns}
+            onClick={handlePrintSigns}
           >
-            <Printer className="h-4 w-4" />
-            {t("jobs.printSigns")}
+            {generatingSigns ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Printer className="h-4 w-4" />
+            )}
+            {generatingSigns ? t("jobs.generatingSigns") : t("jobs.printSigns")}
           </Button>
           <Button
             size="sm"

@@ -102,6 +102,10 @@ interface FormState {
   destinationSelectedId: string;
   pickUpTime: string;
   notes: string;
+  custRepName: string;
+  custRepMobile: string;
+  custRepMeetingPoint: string;
+  custRepMeetingTime: string;
   flightNo: string;
   terminal: string;
   arrivalTime: string;
@@ -124,6 +128,10 @@ const defaultForm: FormState = {
   destinationSelectedId: "",
   pickUpTime: "",
   notes: "",
+  custRepName: "",
+  custRepMobile: "",
+  custRepMeetingPoint: "",
+  custRepMeetingTime: "",
   flightNo: "",
   terminal: "",
   arrivalTime: "",
@@ -229,6 +237,10 @@ export default function B2BJobPage() {
 
       if (form.pickUpTime) payload.pickUpTime = `${form.jobDate}T${form.pickUpTime}`;
       if (form.notes.trim()) payload.notes = form.notes.trim();
+      if (form.custRepName.trim()) payload.custRepName = form.custRepName.trim();
+      if (form.custRepMobile.trim()) payload.custRepMobile = form.custRepMobile.trim();
+      if (form.custRepMeetingPoint.trim()) payload.custRepMeetingPoint = form.custRepMeetingPoint.trim();
+      if (form.custRepMeetingTime) payload.custRepMeetingTime = `${form.jobDate}T${form.custRepMeetingTime}`;
 
       const showFlight = form.serviceType === "ARR" || form.serviceType === "DEP";
       if (showFlight && (form.flightNo || form.terminal || form.arrivalTime || form.departureTime)) {
@@ -288,13 +300,13 @@ export default function B2BJobPage() {
       {/* ─── Inline Form ─── */}
       <Card className="border-border bg-card p-4">
         <div className="space-y-4">
-          {/* Row 1: Customer + Service Type + Date + Pickup */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="space-y-1.5">
+          {/* Row 1: Customer + Service Type + Date + Pickup + Adults */}
+          <div className="grid grid-cols-5 gap-3">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.customer")} *</Label>
               <Select value={form.customerId} onValueChange={(v) => updateForm({ customerId: v })}>
-                <SelectTrigger className="border-border bg-card text-foreground h-9">
-                  <SelectValue placeholder={t("jobs.selectCustomer")} />
+                <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                  <SelectValue placeholder={t("jobs.selectCustomer")} className="truncate" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
                   {customers.map((c) => (
@@ -306,11 +318,11 @@ export default function B2BJobPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>
               <Select value={form.serviceType} onValueChange={(v) => updateForm({ serviceType: v })}>
-                <SelectTrigger className="border-border bg-card text-foreground h-9">
-                  <SelectValue />
+                <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                  <SelectValue className="truncate" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
                   {Object.entries(serviceTypeLabels).map(([key, label]) => (
@@ -319,7 +331,7 @@ export default function B2BJobPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceDate")}</Label>
               <Input
                 type="date"
@@ -328,7 +340,7 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground h-9"
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.pickUpTime")}</Label>
               <Input
                 value={form.pickUpTime}
@@ -343,11 +355,7 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
               />
             </div>
-          </div>
-
-          {/* Row 2: Adults + Children */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.adults")}</Label>
               <Input
                 type="number"
@@ -357,7 +365,11 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground h-9"
               />
             </div>
-            <div className="space-y-1.5">
+          </div>
+
+          {/* Row 2: Children + Origin + Destination + Flight Info (inline when ARR/DEP) */}
+          <div className="grid grid-cols-5 gap-3">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.children")}</Label>
               <Input
                 type="number"
@@ -367,12 +379,7 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground h-9"
               />
             </div>
-            <div className="col-span-2" />
-          </div>
-
-          {/* Row 3: Origin + Destination */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.origin")}</Label>
               <LocationCombobox
                 value={form.originSelectedId}
@@ -385,7 +392,7 @@ export default function B2BJobPage() {
                 placeholder={t("jobs.searchOrigin")}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.destination")}</Label>
               <LocationCombobox
                 value={form.destinationSelectedId}
@@ -398,25 +405,9 @@ export default function B2BJobPage() {
                 placeholder={t("jobs.searchDestination")}
               />
             </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-1.5">
-            <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
-            <Input
-              value={form.notes}
-              onChange={(e) => updateForm({ notes: e.target.value })}
-              placeholder={t("jobs.optionalNotes")}
-              className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
-            />
-          </div>
-
-          {/* Flight Info (ARR/DEP only) */}
-          {showFlightFields && (
-            <div className="rounded-lg border border-border p-3 space-y-3">
-              <Label className="text-muted-foreground text-xs font-medium">{t("jobs.flightInfo")}</Label>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1.5">
+            {showFlightFields && (
+              <>
+                <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("jobs.flightNo")}</Label>
                   <Input
                     value={form.flightNo}
@@ -425,7 +416,7 @@ export default function B2BJobPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("jobs.terminal")}</Label>
                   <Input
                     value={form.terminal}
@@ -434,50 +425,110 @@ export default function B2BJobPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
                   />
                 </div>
-                {form.serviceType === "ARR" && (
-                  <div className="space-y-1.5">
-                    <Label className="text-muted-foreground text-xs">{t("jobs.arrivalTime")}</Label>
-                    <Input
-                      value={form.arrivalTime}
-                      onChange={(e) => {
-                        let v = e.target.value.replace(/[^0-9:]/g, "");
-                        if (v.length === 2 && !v.includes(":") && form.arrivalTime.length < v.length) v += ":";
-                        if (v.length > 5) v = v.slice(0, 5);
-                        updateForm({ arrivalTime: v });
-                      }}
-                      placeholder="HH:MM"
-                      maxLength={5}
-                      className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
-                    />
-                  </div>
-                )}
-                {form.serviceType === "DEP" && (
-                  <div className="space-y-1.5">
-                    <Label className="text-muted-foreground text-xs">{t("jobs.departureTime")}</Label>
-                    <Input
-                      value={form.departureTime}
-                      onChange={(e) => {
-                        let v = e.target.value.replace(/[^0-9:]/g, "");
-                        if (v.length === 2 && !v.includes(":") && form.departureTime.length < v.length) v += ":";
-                        if (v.length > 5) v = v.slice(0, 5);
-                        updateForm({ departureTime: v });
-                      }}
-                      placeholder="HH:MM"
-                      maxLength={5}
-                      className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
-                    />
-                  </div>
-                )}
-              </div>
+              </>
+            )}
+          </div>
+
+          {/* Row 3: Arrival/Departure Time (only when ARR/DEP) */}
+          {showFlightFields && (
+            <div className="grid grid-cols-5 gap-3">
+              {form.serviceType === "ARR" && (
+                <div className="min-w-0 space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("jobs.arrivalTime")}</Label>
+                  <Input
+                    value={form.arrivalTime}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/[^0-9:]/g, "");
+                      if (v.length === 2 && !v.includes(":") && form.arrivalTime.length < v.length) v += ":";
+                      if (v.length > 5) v = v.slice(0, 5);
+                      updateForm({ arrivalTime: v });
+                    }}
+                    placeholder="HH:MM"
+                    maxLength={5}
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
+                  />
+                </div>
+              )}
+              {form.serviceType === "DEP" && (
+                <div className="min-w-0 space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("jobs.departureTime")}</Label>
+                  <Input
+                    value={form.departureTime}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/[^0-9:]/g, "");
+                      if (v.length === 2 && !v.includes(":") && form.departureTime.length < v.length) v += ":";
+                      if (v.length > 5) v = v.slice(0, 5);
+                      updateForm({ departureTime: v });
+                    }}
+                    placeholder="HH:MM"
+                    maxLength={5}
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
+                  />
+                </div>
+              )}
             </div>
           )}
 
-          {/* Submit */}
-          <div className="flex justify-end">
+          {/* Row 4: Customer Rep Meeting Fields */}
+          <div className="grid grid-cols-5 gap-3">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.custRepName")}</Label>
+              <Input
+                value={form.custRepName}
+                onChange={(e) => updateForm({ custRepName: e.target.value })}
+                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+              />
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.custRepMobile")}</Label>
+              <Input
+                type="tel"
+                value={form.custRepMobile}
+                onChange={(e) => updateForm({ custRepMobile: e.target.value })}
+                placeholder="+20 xxx xxx xxxx"
+                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+              />
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.custRepMeetingPoint")}</Label>
+              <Input
+                value={form.custRepMeetingPoint}
+                onChange={(e) => updateForm({ custRepMeetingPoint: e.target.value })}
+                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+              />
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.custRepMeetingTime")}</Label>
+              <Input
+                value={form.custRepMeetingTime}
+                onChange={(e) => {
+                  let v = e.target.value.replace(/[^0-9:]/g, "");
+                  if (v.length === 2 && !v.includes(":") && form.custRepMeetingTime.length < v.length) v += ":";
+                  if (v.length > 5) v = v.slice(0, 5);
+                  updateForm({ custRepMeetingTime: v });
+                }}
+                placeholder="HH:MM"
+                maxLength={5}
+                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Row 5: Notes + Submit */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
+              <Input
+                value={form.notes}
+                onChange={(e) => updateForm({ notes: e.target.value })}
+                placeholder={t("jobs.optionalNotes")}
+                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+              />
+            </div>
             <Button
               onClick={handleCreate}
               disabled={saving}
-              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 mt-auto"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {t("jobs.createJob")}

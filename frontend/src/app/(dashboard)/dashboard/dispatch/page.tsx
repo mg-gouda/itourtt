@@ -13,6 +13,7 @@ import {
   Car,
   Users,
   UserCheck,
+  Download,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,10 @@ interface Job {
   childCount: number;
   paxCount: number;
   clientName: string | null;
+  custRepName: string | null;
+  custRepMobile: string | null;
+  custRepMeetingPoint: string | null;
+  custRepMeetingTime: string | null;
   agent?: { legalName: string } | null;
   customer?: { legalName: string } | null;
   originAirport?: { name: string; code: string } | null;
@@ -84,7 +89,7 @@ interface Job {
       plateNumber: string;
       vehicleType?: { name: string; seatCapacity: number };
     };
-    driver?: { name: string };
+    driver?: { name: string; mobileNumber?: string };
     rep?: { name: string };
   } | null;
 }
@@ -98,6 +103,7 @@ interface VehicleResource {
 interface PersonResource {
   id: string;
   name: string;
+  mobileNumber?: string;
 }
 
 type EditField = "vehicle" | "driver" | "rep";
@@ -281,7 +287,14 @@ function EditablePersonCell({
           : undefined
       }
     >
-      {currentName || (
+      {currentName ? (
+        <div>
+          <span>{currentName}</span>
+          {field === "driver" && job.assignment?.driver?.mobileNumber && (
+            <div className="text-[10px] text-muted-foreground/70 font-mono">{job.assignment.driver.mobileNumber}</div>
+          )}
+        </div>
+      ) : (
         <span
           className={
             field === "driver" ? "text-yellow-600 dark:text-yellow-400 text-xs" : "text-muted-foreground/60 text-xs"
@@ -578,7 +591,14 @@ function JobGrid({
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {job.assignment?.driver?.name || "—"}
+                      {job.assignment?.driver?.name ? (
+                        <div>
+                          <span>{job.assignment.driver.name}</span>
+                          {job.assignment.driver.mobileNumber && (
+                            <div className="text-[10px] text-muted-foreground/70 font-mono">{job.assignment.driver.mobileNumber}</div>
+                          )}
+                        </div>
+                      ) : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {job.assignment?.rep?.name || "—"}
@@ -606,6 +626,7 @@ export default function DispatchPage() {
   const [departures, setDepartures] = useState<Job[]>([]);
   const [cityTransfers, setCityTransfers] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   // Available resources for the day (pre-fetched)
   const [vehicles, setVehicles] = useState<VehicleResource[]>([]);
@@ -684,6 +705,28 @@ export default function DispatchPage() {
     setDate(d);
   };
   const goToday = () => setDate(new Date());
+
+  const exportExcel = async () => {
+    setExporting(true);
+    try {
+      const dateStr = fmtDate(date);
+      const res = await api.get(`/export/odoo/dispatch?date=${dateStr}`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `dispatch_${dateStr}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t("dispatch.exportFailed"));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // ── Optimistic helpers ──
 
@@ -798,8 +841,9 @@ export default function DispatchPage() {
               : updated.assignment.vehicle;
           } else if (field === "driver") {
             updated.assignment.driverId = actualValue;
+            const driverRes = drivers.find((d) => d.id === actualValue);
             updated.assignment.driver = actualValue
-              ? { name: drivers.find((d) => d.id === actualValue)?.name || "" }
+              ? { name: driverRes?.name || "", mobileNumber: driverRes?.mobileNumber }
               : undefined;
           } else if (field === "rep") {
             updated.assignment.repId = actualValue;
@@ -969,6 +1013,18 @@ export default function DispatchPage() {
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+          <div className="ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportExcel}
+              disabled={exporting || loading}
+              className="gap-1.5 text-muted-foreground"
+            >
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {t("dispatch.exportExcel")}
+            </Button>
+          </div>
         </div>
 
         {/* Legend + keyboard hints */}
@@ -1129,6 +1185,24 @@ export default function DispatchPage() {
                 </b>
               </span>
             </div>
+
+            {/* Customer Rep Meeting Info */}
+            {(dialogJob?.custRepName || dialogJob?.custRepMobile || dialogJob?.custRepMeetingPoint || dialogJob?.custRepMeetingTime) && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                {dialogJob.custRepName && (
+                  <span>{t("jobs.custRepName")}: <b className="text-foreground">{dialogJob.custRepName}</b></span>
+                )}
+                {dialogJob.custRepMobile && (
+                  <span>{t("jobs.custRepMobile")}: <b className="text-foreground">{dialogJob.custRepMobile}</b></span>
+                )}
+                {dialogJob.custRepMeetingPoint && (
+                  <span>{t("jobs.custRepMeetingPoint")}: <b className="text-foreground">{dialogJob.custRepMeetingPoint}</b></span>
+                )}
+                {dialogJob.custRepMeetingTime && (
+                  <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(dialogJob.custRepMeetingTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b></span>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

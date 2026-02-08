@@ -27,6 +27,8 @@ import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { CreateVehicleTypeDto } from './dto/create-vehicle-type.dto.js';
 import { CreateVehicleDto } from './dto/create-vehicle.dto.js';
 import { UpsertVehicleComplianceDto } from './dto/upsert-vehicle-compliance.dto.js';
+import { CreateDepositPaymentDto } from './dto/create-deposit-payment.dto.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -165,6 +167,36 @@ export class VehiclesController {
     const url = '/uploads/' + file.filename;
     await this.vehiclesService.updateComplianceFile(id, 'insuranceDocUrl', url);
     return { url };
+  }
+
+  // ─── Deposit Payments ────────────────────────────────
+
+  @Get(':id/deposits')
+  @Roles('ADMIN', 'DISPATCHER', 'ACCOUNTANT')
+  async listDeposits(@Param('id', ParseUUIDPipe) id: string) {
+    const result = await this.vehiclesService.listDepositPayments(id);
+    return new ApiResponse(result);
+  }
+
+  @Post(':id/deposits')
+  @Roles('ADMIN', 'DISPATCHER')
+  async addDeposit(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateDepositPaymentDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    const result = await this.vehiclesService.addDepositPayment(id, dto, userId);
+    return new ApiResponse(result, 'Deposit payment added');
+  }
+
+  @Delete(':id/deposits/:depositId')
+  @Roles('ADMIN')
+  async removeDeposit(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('depositId', ParseUUIDPipe) depositId: string,
+  ) {
+    await this.vehiclesService.removeDepositPayment(id, depositId);
+    return new ApiResponse(null, 'Deposit payment removed');
   }
 
   @Get(':id')

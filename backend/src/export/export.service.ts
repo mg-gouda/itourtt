@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as XLSX from 'xlsx';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class ExportService {
@@ -343,6 +346,271 @@ export class ExportService {
 
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     return Buffer.from(buf);
+  }
+
+  // ─────────────────────────────────────────────
+  // DISPATCH DAY EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportDispatchDay(date: string): Promise<Buffer> {
+    const jobDate = new Date(date);
+
+    const baseInclude = {
+      agent: true,
+      customer: true,
+      originAirport: true,
+      originZone: true,
+      originHotel: { include: { zone: true } },
+      destinationAirport: true,
+      destinationZone: true,
+      destinationHotel: { include: { zone: true } },
+      fromZone: true,
+      toZone: true,
+      flight: true,
+      assignment: {
+        include: {
+          vehicle: { include: { vehicleType: true } },
+          driver: true,
+          rep: true,
+        },
+      },
+    };
+
+    const baseWhere = { jobDate, deletedAt: null };
+
+    const [arrivals, departures, excursions] = await Promise.all([
+      this.prisma.trafficJob.findMany({
+        where: { ...baseWhere, serviceType: 'ARR' as any },
+        include: baseInclude,
+        orderBy: [{ flight: { arrivalTime: 'asc' } }, { createdAt: 'asc' }],
+      }),
+      this.prisma.trafficJob.findMany({
+        where: { ...baseWhere, serviceType: 'DEP' as any },
+        include: baseInclude,
+        orderBy: [{ flight: { departureTime: 'asc' } }, { createdAt: 'asc' }],
+      }),
+      this.prisma.trafficJob.findMany({
+        where: { ...baseWhere, serviceType: 'EXCURSION' as any },
+        include: baseInclude,
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    const mapJob = (job: any): Record<string, unknown> => {
+      const origin =
+        job.originAirport?.code ||
+        job.originZone?.name ||
+        job.originHotel?.name ||
+        '';
+      const destination =
+        job.destinationAirport?.code ||
+        job.destinationZone?.name ||
+        job.destinationHotel?.name ||
+        '';
+      const fmtTime = (d: Date | string | null | undefined) => {
+        if (!d) return '';
+        const dt = new Date(d);
+        return `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+      };
+
+      return {
+        'Ref': job.internalRef,
+        'Agent Ref': job.agentRef || '',
+        'Channel': job.bookingChannel,
+        'Status': job.status,
+        'Agent / Customer':
+          job.agent?.legalName || job.customer?.legalName || '',
+        'Client Name': job.clientName || '',
+        'Client Mobile': job.clientMobile || '',
+        'Cust Rep Name': job.custRepName || '',
+        'Cust Rep Mobile': job.custRepMobile || '',
+        'Meeting Point': job.custRepMeetingPoint || '',
+        'Meeting Time': fmtTime(job.custRepMeetingTime),
+        'Origin': origin,
+        'Destination': destination,
+        'From Zone': job.fromZone?.name || '',
+        'To Zone': job.toZone?.name || '',
+        'Adults': job.adultCount,
+        'Children': job.childCount,
+        'Pax': job.paxCount,
+        'Pick-Up Time': fmtTime(job.pickUpTime),
+        'Flight No': job.flight?.flightNo || '',
+        'Carrier': job.flight?.carrier || '',
+        'Terminal': job.flight?.terminal || '',
+        'Arrival Time': fmtTime(job.flight?.arrivalTime),
+        'Departure Time': fmtTime(job.flight?.departureTime),
+        'Vehicle': job.assignment?.vehicle?.plateNumber || '',
+        'Vehicle Type': job.assignment?.vehicle?.vehicleType?.name || '',
+        'Seat Capacity': job.assignment?.vehicle?.vehicleType?.seatCapacity ?? '',
+        'Driver': job.assignment?.driver?.name || '',
+        'Driver Mobile': job.assignment?.driver?.mobileNumber || '',
+        'Rep': job.assignment?.rep?.name || '',
+        'Rep Mobile': job.assignment?.rep?.mobileNumber || '',
+        'Booster Seat': job.boosterSeat ? `Yes (${job.boosterSeatQty})` : 'No',
+        'Baby Seat': job.babySeat ? `Yes (${job.babySeatQty})` : 'No',
+        'Wheelchair': job.wheelChair ? `Yes (${job.wheelChairQty})` : 'No',
+        'Print Sign': job.printSign ? 'Yes' : 'No',
+        'Notes': job.notes || '',
+      };
+    };
+
+    const wb = XLSX.utils.book_new();
+
+    const addSheet = (name: string, jobs: any[]) => {
+      const rows = jobs.map(mapJob);
+      if (rows.length === 0) {
+        // Add empty sheet with headers only
+        const headers = Object.keys(mapJob({
+          internalRef: '', bookingChannel: '', status: '',
+          adultCount: '', childCount: '', paxCount: '',
+          boosterSeat: false, boosterSeatQty: 0,
+          babySeat: false, babySeatQty: 0,
+          wheelChair: false, wheelChairQty: 0,
+          printSign: false,
+        }));
+        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      } else {
+        const ws = XLSX.utils.json_to_sheet(rows);
+        this.autoSizeColumns(ws, rows);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      }
+    };
+
+    addSheet('Arrivals', arrivals);
+    addSheet('Departures', departures);
+    addSheet('Excursions', excursions);
+
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    return Buffer.from(buf);
+  }
+
+  // ─────────────────────────────────────────────
+  // CLIENT SIGNS PDF
+  // ─────────────────────────────────────────────
+
+  async generateClientSigns(date: string): Promise<Buffer> {
+    const jobDate = new Date(date);
+
+    // Fetch company settings for logo
+    const settings = await this.prisma.companySettings.findFirst();
+    const logoUrl = settings?.logoUrl; // e.g. "/uploads/filename.jpg"
+
+    // Fetch jobs with printSign=true for the given date
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: {
+        jobDate,
+        printSign: true,
+        clientName: { not: null },
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (jobs.length === 0) {
+      throw new Error('NO_SIGN_JOBS');
+    }
+
+    const pdfDoc = await PDFDocument.create();
+
+    // Load logo if available
+    let logoImage: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
+    if (logoUrl) {
+      try {
+        const logoPath = path.join(process.cwd(), logoUrl.replace(/^\//, ''));
+        const logoBytes = fs.readFileSync(logoPath);
+        const ext = logoUrl.toLowerCase();
+        if (ext.endsWith('.png')) {
+          logoImage = await pdfDoc.embedPng(logoBytes);
+        } else {
+          logoImage = await pdfDoc.embedJpg(logoBytes);
+        }
+      } catch {
+        // Logo not found, continue without it
+      }
+    }
+
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    // Landscape A4: 842 x 595 pt
+    const pageWidth = 842;
+    const pageHeight = 595;
+    const margin = 30;
+
+    for (const job of jobs) {
+      const page = pdfDoc.addPage([pageWidth, pageHeight]);
+      const clientName = job.clientName || '';
+
+      // Draw border rectangle
+      page.drawRectangle({
+        x: margin,
+        y: margin,
+        width: pageWidth - 2 * margin,
+        height: pageHeight - 2 * margin,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 2,
+      });
+
+      let currentY = pageHeight - margin - 20;
+
+      // Draw logo centered at top — 90% of page width
+      if (logoImage) {
+        const logoDims = logoImage.scale(1);
+        const maxLogoWidth = pageWidth * 0.9;
+        const scale = maxLogoWidth / logoDims.width;
+        const logoW = logoDims.width * scale;
+        const logoH = logoDims.height * scale;
+        const logoX = (pageWidth - logoW) / 2;
+        currentY -= logoH;
+        page.drawImage(logoImage, {
+          x: logoX,
+          y: currentY,
+          width: logoW,
+          height: logoH,
+        });
+        currentY -= 25;
+      } else {
+        currentY -= 60;
+      }
+
+      // Draw "Mr/Mrs" text below logo, left-aligned
+      page.drawText('Mr/Mrs', {
+        x: margin + 30,
+        y: currentY,
+        size: 18,
+        font: helvetica,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+
+      currentY -= 30;
+
+      // Draw client name in large bold text, centered
+      // Auto-size font to fit within page width
+      let fontSize = 72;
+      const maxTextWidth = pageWidth - 2 * margin - 60;
+      let textWidth = helveticaBold.widthOfTextAtSize(clientName, fontSize);
+      while (textWidth > maxTextWidth && fontSize > 24) {
+        fontSize -= 2;
+        textWidth = helveticaBold.widthOfTextAtSize(clientName, fontSize);
+      }
+
+      // Center the name vertically in the remaining space
+      const textX = (pageWidth - textWidth) / 2;
+      const remainingHeight = currentY - margin;
+      const textY = margin + remainingHeight / 2 - fontSize / 3;
+
+      page.drawText(clientName, {
+        x: textX,
+        y: textY,
+        size: fontSize,
+        font: helveticaBold,
+        color: rgb(0, 0, 0),
+      });
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
   }
 
   private autoSizeColumns(

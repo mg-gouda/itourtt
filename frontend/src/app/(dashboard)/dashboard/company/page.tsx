@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { RichTextEditor } from "@/components/rich-text-editor";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -236,12 +237,10 @@ export default function CompanyPage() {
         <p className="mb-4 text-sm text-muted-foreground">
           {t("company.reportHeaderDesc")}
         </p>
-        <textarea
-          rows={6}
-          value={reportHeaderHtml}
-          onChange={(e) => setReportHeaderHtml(e.target.value)}
-          placeholder={t("company.reportHeaderPlaceholder")}
-          className="w-full resize-y rounded-md border border-border bg-muted/50 p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+        <RichTextEditor
+          content={reportHeaderHtml}
+          onChange={setReportHeaderHtml}
+          logoUrl={logoUrl}
         />
       </Card>
 
@@ -253,12 +252,10 @@ export default function CompanyPage() {
         <p className="mb-4 text-sm text-muted-foreground">
           {t("company.reportFooterDesc")}
         </p>
-        <textarea
-          rows={6}
-          value={reportFooterHtml}
-          onChange={(e) => setReportFooterHtml(e.target.value)}
-          placeholder={t("company.reportFooterPlaceholder")}
-          className="w-full resize-y rounded-md border border-border bg-muted/50 p-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+        <RichTextEditor
+          content={reportFooterHtml}
+          onChange={setReportFooterHtml}
+          logoUrl={logoUrl}
         />
       </Card>
 

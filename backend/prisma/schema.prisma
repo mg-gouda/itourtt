@@ -311,17 +311,33 @@ model VehicleCompliance {
   gpsSubscriptionCurrency     Currency? @map("gps_subscription_currency")
   tourismSupportFund          Decimal?  @map("tourism_support_fund") @db.Decimal(15, 2)
   tourismSupportFundCurrency  Currency? @map("tourism_support_fund_currency")
+  registrationFees            Decimal?  @map("registration_fees") @db.Decimal(15, 2)
+  registrationFeesCurrency    Currency? @map("registration_fees_currency")
   temporaryPermitDate         DateTime? @map("temporary_permit_date") @db.Date
-  depositPayment              Decimal?  @map("deposit_payment") @db.Decimal(15, 2)
-  depositPaymentCurrency      Currency? @map("deposit_payment_currency")
 
   // Audit
   createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   vehicle                     Vehicle   @relation(fields: [vehicleId], references: [id])
+  depositPayments             VehicleDepositPayment[]
 
   @@map("vehicle_compliance")
+}
+
+model VehicleDepositPayment {
+  id             String            @id @default(uuid()) @db.Uuid
+  complianceId   String            @map("compliance_id") @db.Uuid
+  amount         Decimal           @db.Decimal(15, 2)
+  currency       Currency          @default(EGP)
+  paidAt         DateTime          @map("paid_at") @db.Timestamptz
+  createdByName  String            @map("created_by_name")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  compliance     VehicleCompliance @relation(fields: [complianceId], references: [id])
+
+  @@map("vehicle_deposit_payments")
 }
 
 model Driver {
@@ -614,6 +630,13 @@ model TrafficJob {
   printSign       Boolean        @default(false) @map("print_sign")
   pickUpTime      DateTime?      @map("pick_up_time") @db.Timestamptz
   notes           String?
+
+  // Customer rep meeting fields (B2B)
+  custRepName         String?    @map("cust_rep_name")
+  custRepMobile       String?    @map("cust_rep_mobile")
+  custRepMeetingPoint String?    @map("cust_rep_meeting_point")
+  custRepMeetingTime  DateTime?  @map("cust_rep_meeting_time") @db.Timestamptz
+
   createdById     String         @map("created_by_id") @db.Uuid
   createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz

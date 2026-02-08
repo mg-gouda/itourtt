@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
 import * as express from 'express';
 import { ExportService } from './export.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -10,6 +10,19 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}
+
+  @Get('dispatch')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+  async exportDispatchDay(
+    @Query('date') date: string,
+    @Res() res: express.Response,
+  ) {
+    if (!date) {
+      throw new BadRequestException('date query parameter is required');
+    }
+    const buffer = await this.exportService.exportDispatchDay(date);
+    this.sendXlsx(res, buffer, `dispatch_${date}`);
+  }
 
   @Get('rep-fees')
   async exportRepFees(
@@ -57,6 +70,32 @@ export class ExportController {
   async exportJournalEntries(@Res() res: express.Response) {
     const buffer = await this.exportService.exportJournalEntries();
     this.sendXlsx(res, buffer, 'odoo_journal_entries');
+  }
+
+  @Get('client-signs')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+  async exportClientSigns(
+    @Query('date') date: string,
+    @Res() res: express.Response,
+  ) {
+    if (!date) {
+      throw new BadRequestException('date query parameter is required');
+    }
+    try {
+      const buffer = await this.exportService.generateClientSigns(date);
+      const dateStr = new Date().toISOString().split('T')[0];
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="client_signs_${date}_${dateStr}.pdf"`,
+        'Content-Length': buffer.length.toString(),
+      });
+      res.end(buffer);
+    } catch (err: any) {
+      if (err.message === 'NO_SIGN_JOBS') {
+        throw new NotFoundException('No jobs with print sign for this date');
+      }
+      throw err;
+    }
   }
 
   private sendXlsx(res: express.Response, buffer: Buffer, filename: string) {

@@ -86,6 +86,45 @@ User requested:
 
 ---
 
+## Session 4 – 2026-02-08
+
+### Work Completed
+
+#### Vehicle Compliance & Deposits
+- Added vehicle compliance tracking (insurance, license, inspection dates)
+- Vehicle detail page with compliance history
+- New vehicle form page
+- Deposit payment DTO and endpoint
+
+#### Dispatch Export & Client Sign PDF
+- Implemented bulk PDF generation for client pickup signs using `pdf-lib`
+- Signs include company logo (90% page width), "Mr/Mrs" text, and large bold client name
+- Print Signs button on traffic jobs page generates PDF for tomorrow's date
+- Jobs with `printSign=true` and non-null `clientName` are included
+
+#### WYSIWYG Rich Text Editor (TipTap)
+- Replaced raw HTML textareas for report header/footer with TipTap WYSIWYG editor
+- Created `frontend/src/components/rich-text-editor.tsx` with full toolbar:
+  - Bold, Italic, Underline, H1/H2/H3, Bullet/Ordered List, Align L/C/R
+  - Table support (insert, add/delete rows/columns, delete table)
+  - Company logo insertion with size slider (10-100%)
+  - Shortcode buttons: {{reportName}}, {{dateTime}}, {{user}}
+- Packages: @tiptap/react, @tiptap/starter-kit, @tiptap/extension-text-align, @tiptap/extension-underline, @tiptap/extension-image, @tiptap/extension-table (+ row/cell/header)
+
+#### Reports Page UI
+- Made stat cards compact (reduced padding, font sizes)
+- All stats in single row using grid layout
+- Service type cards on same line as stats (8 equal-width cards)
+- Fixed duplicate React key warning in compliance table
+
+#### Other Fixes
+- Fixed dispatch page customer rep fields display
+- Updated driver portal and rep portal pages
+- Updated B2B traffic jobs page
+- Updated i18n translations (en + ar)
+
+---
+
 ## Change Log
 
 | Date | Change | Requested By |
@@ -95,3 +134,4 @@ User requested:
 | 2026-02-06 | Phase 10 backend+frontend updates for refactored schema | User |
 | 2026-02-06 | Phase 10 completed: all dispatch validations confirmed, customers added to role permissions | User |
 | 2026-02-06 | Phase 11: Driver Extranet + No Show Evidence (schema, backend, frontend) | User |
+| 2026-02-08 | Session 4: Customer rep fields, dispatch export, client sign PDF, WYSIWYG editor, reports UI | User |

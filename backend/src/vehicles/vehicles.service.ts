@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Currency } from '../../generated/prisma/enums.js';
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateVehicleTypeDto } from './dto/create-vehicle-type.dto.js';
 import { CreateVehicleDto } from './dto/create-vehicle.dto.js';
 import { UpsertVehicleComplianceDto } from './dto/upsert-vehicle-compliance.dto.js';
+import { CreateDepositPaymentDto } from './dto/create-deposit-payment.dto.js';
 
 @Injectable()
 export class VehiclesService {
@@ -162,20 +164,37 @@ export class VehiclesService {
     const vehicles = await this.prisma.vehicle.findMany({
       where: { deletedAt: null },
       orderBy: { plateNumber: 'asc' },
-      include: { vehicleType: true },
+      include: { vehicleType: true, compliance: true },
     });
 
-    const rows = vehicles.map((v) => ({
-      'Plate Number': v.plateNumber,
-      'Vehicle Type': v.vehicleType?.name || '',
-      Ownership: v.ownership || '',
-      Color: v.color || '',
-      'Car Brand': v.carBrand || '',
-      'Car Model': v.carModel || '',
-      'Make Year': v.makeYear ?? '',
-      'Luggage Capacity': v.luggageCapacity ?? '',
-      Status: v.deletedAt ? 'Inactive' : 'Active',
-    }));
+    const formatDate = (d: Date | null | undefined) => d ? new Date(d).toISOString().split('T')[0] : '';
+
+    const rows = vehicles.map((v) => {
+      const c = v.compliance;
+      return {
+        'Plate Number': v.plateNumber,
+        'Vehicle Type': v.vehicleType?.name || '',
+        Ownership: v.ownership || '',
+        Color: v.color || '',
+        'Car Brand': v.carBrand || '',
+        'Car Model': v.carModel || '',
+        'Make Year': v.makeYear ?? '',
+        'Luggage Capacity': v.luggageCapacity ?? '',
+        Status: v.isActive ? 'Active' : 'Inactive',
+        'License Expiry Date': formatDate(c?.licenseExpiryDate),
+        'Has Insurance': c?.hasInsurance ? 'YES' : 'NO',
+        'Insurance Expiry Date': formatDate(c?.insuranceExpiryDate),
+        'Annual Fees': c?.annualPayment != null ? Number(c.annualPayment) : '',
+        'Annual Fees Currency': c?.annualPaymentCurrency || '',
+        'GPS Subscription': c?.gpsSubscription != null ? Number(c.gpsSubscription) : '',
+        'GPS Currency': c?.gpsSubscriptionCurrency || '',
+        'Tourism Support Fund': c?.tourismSupportFund != null ? Number(c.tourismSupportFund) : '',
+        'Tourism Fund Currency': c?.tourismSupportFundCurrency || '',
+        'Registration Fees': c?.registrationFees != null ? Number(c.registrationFees) : '',
+        'Registration Fees Currency': c?.registrationFeesCurrency || '',
+        'Temporary Permit Date': formatDate(c?.temporaryPermitDate),
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(rows);
 
@@ -216,8 +235,12 @@ export class VehiclesService {
     instructionsSheet.addRow(['3. Vehicle Type must match one of the existing types exactly (see list below)']);
     instructionsSheet.addRow(['4. Ownership must be one of: OWNED, RENTED, CONTRACTED (defaults to OWNED)']);
     instructionsSheet.addRow(['5. Car Brand, Car Model, Make Year, and Luggage Capacity are optional']);
-    instructionsSheet.addRow(['6. Do not modify column headers']);
-    instructionsSheet.addRow(['7. Save the file and upload it via the import button']);
+    instructionsSheet.addRow(['6. Compliance fields (columns I-T) are optional']);
+    instructionsSheet.addRow(['7. Has Insurance must be YES or NO (defaults to NO)']);
+    instructionsSheet.addRow(['8. Currency must be one of: EGP, USD, EUR, GBP, SAR (defaults to EGP)']);
+    instructionsSheet.addRow(['9. Date fields must be in YYYY-MM-DD format']);
+    instructionsSheet.addRow(['10. Do not modify column headers']);
+    instructionsSheet.addRow(['11. Save the file and upload it via the import button']);
     instructionsSheet.addRow(['']);
     instructionsSheet.addRow(['Notes:']);
     instructionsSheet.addRow(['- Duplicate plate numbers will be skipped with an error']);
@@ -229,8 +252,8 @@ export class VehiclesService {
     }
     instructionsSheet.getRow(1).font = { bold: true, size: 14 };
     instructionsSheet.getRow(3).font = { bold: true };
-    instructionsSheet.getRow(12).font = { bold: true };
-    instructionsSheet.getRow(16).font = { bold: true };
+    instructionsSheet.getRow(15).font = { bold: true };
+    instructionsSheet.getRow(19).font = { bold: true };
 
     // Vehicles data sheet
     const vehiclesSheet = workbook.addWorksheet('Vehicles');
@@ -243,6 +266,18 @@ export class VehiclesService {
       { header: 'Car Model', key: 'carModel', width: 20 },
       { header: 'Make Year', key: 'makeYear', width: 12 },
       { header: 'Luggage Capacity', key: 'luggageCapacity', width: 18 },
+      { header: 'License Expiry Date', key: 'licenseExpiryDate', width: 20 },
+      { header: 'Has Insurance', key: 'hasInsurance', width: 15 },
+      { header: 'Insurance Expiry Date', key: 'insuranceExpiryDate', width: 22 },
+      { header: 'Annual Fees', key: 'annualPayment', width: 16 },
+      { header: 'Annual Fees Currency', key: 'annualPaymentCurrency', width: 24 },
+      { header: 'GPS Subscription', key: 'gpsSubscription', width: 18 },
+      { header: 'GPS Currency', key: 'gpsSubscriptionCurrency', width: 15 },
+      { header: 'Tourism Support Fund', key: 'tourismSupportFund', width: 22 },
+      { header: 'Tourism Fund Currency', key: 'tourismSupportFundCurrency', width: 22 },
+      { header: 'Registration Fees', key: 'registrationFees', width: 18 },
+      { header: 'Registration Fees Currency', key: 'registrationFeesCurrency', width: 26 },
+      { header: 'Temporary Permit Date', key: 'temporaryPermitDate', width: 22 },
     ];
 
     // Style header row
@@ -266,16 +301,40 @@ export class VehiclesService {
       carModel: 'Hiace',
       makeYear: 2023,
       luggageCapacity: 6,
+      licenseExpiryDate: '2025-12-31',
+      hasInsurance: 'YES',
+      insuranceExpiryDate: '2025-06-30',
+      annualPayment: '',
+      annualPaymentCurrency: '',
+      gpsSubscription: 150,
+      gpsSubscriptionCurrency: 'EGP',
+      tourismSupportFund: 500,
+      tourismSupportFundCurrency: 'EGP',
+      registrationFees: '',
+      registrationFeesCurrency: '',
+      temporaryPermitDate: '2025-01-15',
     });
     vehiclesSheet.addRow({
       plateNumber: 'XYZ-5678',
       vehicleType: sampleType,
-      ownership: 'RENTED',
+      ownership: 'CONTRACTED',
       color: 'Black',
       carBrand: 'Mercedes',
       carModel: 'Sprinter',
       makeYear: 2022,
       luggageCapacity: 8,
+      licenseExpiryDate: '2026-03-15',
+      hasInsurance: 'YES',
+      insuranceExpiryDate: '2026-01-01',
+      annualPayment: 50000,
+      annualPaymentCurrency: 'EGP',
+      gpsSubscription: 200,
+      gpsSubscriptionCurrency: 'EGP',
+      tourismSupportFund: 1000,
+      tourismSupportFundCurrency: 'EGP',
+      registrationFees: 5000,
+      registrationFeesCurrency: 'EGP',
+      temporaryPermitDate: '2025-06-01',
     });
 
     // Style sample rows in italic gray
@@ -284,7 +343,7 @@ export class VehiclesService {
       row.font = { italic: true, color: { argb: 'FF999999' } };
     }
 
-    // Add data validation for Ownership column
+    // Add data validation for Ownership column (C)
     for (let i = 2; i <= 1000; i++) {
       (vehiclesSheet.getCell(`C${i}`) as any).dataValidation = {
         type: 'list',
@@ -293,7 +352,7 @@ export class VehiclesService {
       };
     }
 
-    // Add data validation for Color column
+    // Add data validation for Color column (D)
     const colorOptions = 'White,Black,Silver,Gray,Red,Blue,Green,Yellow,Orange,Brown,Beige,Gold,Maroon,Navy,Burgundy';
     for (let i = 2; i <= 1000; i++) {
       (vehiclesSheet.getCell(`D${i}`) as any).dataValidation = {
@@ -303,7 +362,7 @@ export class VehiclesService {
       };
     }
 
-    // Add data validation for Vehicle Type column
+    // Add data validation for Vehicle Type column (B)
     if (vehicleTypes.length > 0) {
       const typeNames = vehicleTypes.map((vt) => vt.name).join(',');
       for (let i = 2; i <= 1000; i++) {
@@ -311,6 +370,28 @@ export class VehiclesService {
           type: 'list',
           allowBlank: false,
           formulae: [`"${typeNames}"`],
+        };
+      }
+    }
+
+    // Add data validation for Has Insurance column (J)
+    for (let i = 2; i <= 1000; i++) {
+      (vehiclesSheet.getCell(`J${i}`) as any).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"YES,NO"'],
+      };
+    }
+
+    // Add data validation for currency columns (M, O, Q, T)
+    const currencyOptions = '"EGP,USD,EUR,GBP,SAR"';
+    const currencyCols = ['M', 'O', 'Q', 'S'];
+    for (const col of currencyCols) {
+      for (let i = 2; i <= 1000; i++) {
+        (vehiclesSheet.getCell(`${col}${i}`) as any).dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          formulae: [currencyOptions],
         };
       }
     }
@@ -334,7 +415,9 @@ export class VehiclesService {
     const vehicleTypes = await this.prisma.vehicleType.findMany();
     const typeNameMap = new Map(vehicleTypes.map((vt) => [vt.name.toLowerCase(), vt.id]));
 
-    const items: {
+    const validCurrencies = ['EGP', 'USD', 'EUR', 'GBP', 'SAR'];
+
+    interface ImportItem {
       plateNumber: string;
       vehicleTypeId: string;
       ownership?: 'OWNED' | 'RENTED' | 'CONTRACTED';
@@ -343,7 +426,23 @@ export class VehiclesService {
       carModel?: string;
       makeYear?: number;
       luggageCapacity?: number;
-    }[] = [];
+      compliance?: {
+        licenseExpiryDate?: Date;
+        hasInsurance?: boolean;
+        insuranceExpiryDate?: Date;
+        annualPayment?: number;
+        annualPaymentCurrency?: Currency;
+        gpsSubscription?: number;
+        gpsSubscriptionCurrency?: Currency;
+        tourismSupportFund?: number;
+        tourismSupportFundCurrency?: Currency;
+        registrationFees?: number;
+        registrationFeesCurrency?: Currency;
+        temporaryPermitDate?: Date;
+      };
+    }
+
+    const items: ImportItem[] = [];
     const errors: string[] = [];
 
     vehiclesSheet.eachRow((row, rowNumber) => {
@@ -357,6 +456,20 @@ export class VehiclesService {
       const carModel = String(row.getCell(6).value || '').trim();
       const makeYearRaw = row.getCell(7).value;
       const luggageCapRaw = row.getCell(8).value;
+
+      // Compliance columns (9-20)
+      const licenseExpiryRaw = String(row.getCell(9).value || '').trim();
+      const hasInsuranceRaw = String(row.getCell(10).value || '').trim().toUpperCase();
+      const insuranceExpiryRaw = String(row.getCell(11).value || '').trim();
+      const annualPaymentRaw = row.getCell(12).value;
+      const annualPaymentCurrRaw = String(row.getCell(13).value || '').trim().toUpperCase();
+      const gpsSubRaw = row.getCell(14).value;
+      const gpsSubCurrRaw = String(row.getCell(15).value || '').trim().toUpperCase();
+      const tourismFundRaw = row.getCell(16).value;
+      const tourismFundCurrRaw = String(row.getCell(17).value || '').trim().toUpperCase();
+      const registrationFeesRaw = row.getCell(18).value;
+      const registrationFeesCurrRaw = String(row.getCell(19).value || '').trim().toUpperCase();
+      const tempPermitRaw = String(row.getCell(20).value || '').trim();
 
       // Skip empty rows
       if (!plateNumber && !vehicleTypeName) return;
@@ -412,6 +525,100 @@ export class VehiclesService {
         luggageCapacity = parsed;
       }
 
+      // Parse compliance fields
+      const compliance: ImportItem['compliance'] = {};
+      let hasCompliance = false;
+
+      // License expiry date
+      if (licenseExpiryRaw) {
+        const d = new Date(licenseExpiryRaw);
+        if (isNaN(d.getTime())) {
+          errors.push(`Row ${rowNumber}: Invalid License Expiry Date "${licenseExpiryRaw}"`);
+          return;
+        }
+        compliance.licenseExpiryDate = d;
+        hasCompliance = true;
+      }
+
+      // Has Insurance
+      if (hasInsuranceRaw === 'YES') {
+        compliance.hasInsurance = true;
+        hasCompliance = true;
+      } else if (hasInsuranceRaw === 'NO' || !hasInsuranceRaw) {
+        compliance.hasInsurance = false;
+      } else {
+        errors.push(`Row ${rowNumber}: Has Insurance must be YES or NO`);
+        return;
+      }
+
+      // Insurance expiry date
+      if (insuranceExpiryRaw) {
+        const d = new Date(insuranceExpiryRaw);
+        if (isNaN(d.getTime())) {
+          errors.push(`Row ${rowNumber}: Invalid Insurance Expiry Date "${insuranceExpiryRaw}"`);
+          return;
+        }
+        compliance.insuranceExpiryDate = d;
+        hasCompliance = true;
+      }
+
+      // Helper to parse a decimal column
+      const parseDecimal = (raw: unknown, label: string): number | undefined => {
+        if (raw === null || raw === undefined || String(raw).trim() === '') return undefined;
+        const parsed = parseFloat(String(raw));
+        if (isNaN(parsed) || parsed < 0) {
+          errors.push(`Row ${rowNumber}: Invalid ${label} "${raw}"`);
+          return undefined;
+        }
+        return parsed;
+      };
+
+      // Helper to validate currency
+      const parseCurrency = (raw: string): Currency | undefined => {
+        if (!raw) return undefined;
+        if (!validCurrencies.includes(raw)) return undefined;
+        return raw as Currency;
+      };
+
+      const annualPayment = parseDecimal(annualPaymentRaw, 'Annual Fees');
+      if (annualPayment !== undefined) {
+        compliance.annualPayment = annualPayment;
+        compliance.annualPaymentCurrency = parseCurrency(annualPaymentCurrRaw) || Currency.EGP;
+        hasCompliance = true;
+      }
+
+      const gpsSub = parseDecimal(gpsSubRaw, 'GPS Subscription');
+      if (gpsSub !== undefined) {
+        compliance.gpsSubscription = gpsSub;
+        compliance.gpsSubscriptionCurrency = parseCurrency(gpsSubCurrRaw) || Currency.EGP;
+        hasCompliance = true;
+      }
+
+      const tourismFund = parseDecimal(tourismFundRaw, 'Tourism Support Fund');
+      if (tourismFund !== undefined) {
+        compliance.tourismSupportFund = tourismFund;
+        compliance.tourismSupportFundCurrency = parseCurrency(tourismFundCurrRaw) || Currency.EGP;
+        hasCompliance = true;
+      }
+
+      const regFees = parseDecimal(registrationFeesRaw, 'Registration Fees');
+      if (regFees !== undefined) {
+        compliance.registrationFees = regFees;
+        compliance.registrationFeesCurrency = parseCurrency(registrationFeesCurrRaw) || Currency.EGP;
+        hasCompliance = true;
+      }
+
+      // Temporary permit date
+      if (tempPermitRaw) {
+        const d = new Date(tempPermitRaw);
+        if (isNaN(d.getTime())) {
+          errors.push(`Row ${rowNumber}: Invalid Temporary Permit Date "${tempPermitRaw}"`);
+          return;
+        }
+        compliance.temporaryPermitDate = d;
+        hasCompliance = true;
+      }
+
       items.push({
         plateNumber,
         vehicleTypeId,
@@ -421,6 +628,7 @@ export class VehiclesService {
         ...(carModel && { carModel }),
         ...(makeYear !== undefined && { makeYear }),
         ...(luggageCapacity !== undefined && { luggageCapacity }),
+        ...(hasCompliance && { compliance }),
       });
     });
 
@@ -467,9 +675,9 @@ export class VehiclesService {
 
     // Bulk create in a transaction
     if (toCreate.length > 0) {
-      await this.prisma.$transaction(
-        toCreate.map((v) =>
-          this.prisma.vehicle.create({
+      await this.prisma.$transaction(async (tx) => {
+        for (const v of toCreate) {
+          const created = await tx.vehicle.create({
             data: {
               plateNumber: v.plateNumber,
               vehicleTypeId: v.vehicleTypeId,
@@ -480,9 +688,18 @@ export class VehiclesService {
               makeYear: v.makeYear,
               luggageCapacity: v.luggageCapacity,
             },
-          }),
-        ),
-      );
+          });
+
+          if (v.compliance) {
+            await tx.vehicleCompliance.create({
+              data: {
+                vehicleId: created.id,
+                ...v.compliance,
+              },
+            });
+          }
+        }
+      });
     }
 
     return { imported: toCreate.length, errors };
@@ -494,6 +711,7 @@ export class VehiclesService {
     await this.findVehicleById(vehicleId);
     return this.prisma.vehicleCompliance.findUnique({
       where: { vehicleId },
+      include: { depositPayments: { orderBy: { paidAt: 'desc' } } },
     });
   }
 
@@ -510,9 +728,9 @@ export class VehiclesService {
     if (dto.gpsSubscriptionCurrency !== undefined) data.gpsSubscriptionCurrency = dto.gpsSubscriptionCurrency;
     if (dto.tourismSupportFund !== undefined) data.tourismSupportFund = dto.tourismSupportFund;
     if (dto.tourismSupportFundCurrency !== undefined) data.tourismSupportFundCurrency = dto.tourismSupportFundCurrency;
+    if (dto.registrationFees !== undefined) data.registrationFees = dto.registrationFees;
+    if (dto.registrationFeesCurrency !== undefined) data.registrationFeesCurrency = dto.registrationFeesCurrency;
     if (dto.temporaryPermitDate !== undefined) data.temporaryPermitDate = new Date(dto.temporaryPermitDate);
-    if (dto.depositPayment !== undefined) data.depositPayment = dto.depositPayment;
-    if (dto.depositPaymentCurrency !== undefined) data.depositPaymentCurrency = dto.depositPaymentCurrency;
 
     return this.prisma.vehicleCompliance.upsert({
       where: { vehicleId },
@@ -537,7 +755,10 @@ export class VehiclesService {
   async getComplianceReport() {
     const vehicles = await this.prisma.vehicle.findMany({
       where: { deletedAt: null },
-      include: { vehicleType: true, compliance: true },
+      include: {
+        vehicleType: true,
+        compliance: { include: { depositPayments: true } },
+      },
       orderBy: { plateNumber: 'asc' },
     });
 
@@ -546,8 +767,14 @@ export class VehiclesService {
       const permitExpiry = c?.temporaryPermitDate
         ? new Date(new Date(c.temporaryPermitDate).setMonth(new Date(c.temporaryPermitDate).getMonth() + 3))
         : null;
-      const annual = c?.annualPayment ? Number(c.annualPayment) : null;
-      const deposit = c?.depositPayment ? Number(c.depositPayment) : null;
+      const annual = c?.annualPayment ? Number(c.annualPayment) : 0;
+      const gps = c?.gpsSubscription ? Number(c.gpsSubscription) : 0;
+      const tourism = c?.tourismSupportFund ? Number(c.tourismSupportFund) : 0;
+      const registration = c?.registrationFees ? Number(c.registrationFees) : 0;
+      const totalFees = annual + gps + tourism + registration;
+      const depositTotal = (c?.depositPayments || []).reduce(
+        (sum, d) => sum + Number(d.amount), 0,
+      );
 
       return {
         id: v.id,
@@ -562,14 +789,75 @@ export class VehiclesService {
         gpsSubscriptionCurrency: c?.gpsSubscriptionCurrency,
         tourismSupportFund: c?.tourismSupportFund ? Number(c.tourismSupportFund) : null,
         tourismSupportFundCurrency: c?.tourismSupportFundCurrency,
+        registrationFees: c?.registrationFees ? Number(c.registrationFees) : null,
+        registrationFeesCurrency: c?.registrationFeesCurrency,
         temporaryPermitDate: c?.temporaryPermitDate,
         temporaryPermitExpiryDate: permitExpiry,
-        annualPayment: annual,
+        annualPayment: annual || null,
         annualPaymentCurrency: c?.annualPaymentCurrency,
-        depositPayment: deposit,
-        depositPaymentCurrency: c?.depositPaymentCurrency,
-        balanceRemaining: annual != null && deposit != null ? annual - deposit : null,
+        totalFees: v.ownership === 'CONTRACTED' ? totalFees : null,
+        depositTotal: depositTotal > 0 ? depositTotal : null,
+        balanceRemaining: v.ownership === 'CONTRACTED' ? totalFees - depositTotal : null,
       };
+    });
+  }
+
+  // ─── Deposit Payments ─────────────────────────────────
+
+  async addDepositPayment(vehicleId: string, dto: CreateDepositPaymentDto, userId: string) {
+    await this.findVehicleById(vehicleId);
+
+    // Ensure compliance record exists
+    const compliance = await this.prisma.vehicleCompliance.upsert({
+      where: { vehicleId },
+      create: { vehicleId },
+      update: {},
+    });
+
+    // Look up user name for the audit log
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+
+    return this.prisma.vehicleDepositPayment.create({
+      data: {
+        complianceId: compliance.id,
+        amount: dto.amount,
+        currency: dto.currency as Currency,
+        paidAt: new Date(dto.paidAt),
+        createdByName: user?.name || 'Unknown',
+      },
+    });
+  }
+
+  async removeDepositPayment(vehicleId: string, depositId: string) {
+    await this.findVehicleById(vehicleId);
+
+    const deposit = await this.prisma.vehicleDepositPayment.findUnique({
+      where: { id: depositId },
+      include: { compliance: true },
+    });
+
+    if (!deposit || deposit.compliance.vehicleId !== vehicleId) {
+      throw new NotFoundException(`Deposit payment not found for vehicle ${vehicleId}`);
+    }
+
+    return this.prisma.vehicleDepositPayment.delete({
+      where: { id: depositId },
+    });
+  }
+
+  async listDepositPayments(vehicleId: string) {
+    await this.findVehicleById(vehicleId);
+    const compliance = await this.prisma.vehicleCompliance.findUnique({
+      where: { vehicleId },
+    });
+    if (!compliance) return [];
+
+    return this.prisma.vehicleDepositPayment.findMany({
+      where: { complianceId: compliance.id },
+      orderBy: { paidAt: 'desc' },
     });
   }
 }
