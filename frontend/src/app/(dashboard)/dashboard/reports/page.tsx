@@ -12,6 +12,8 @@ import {
   UserCheck,
   FileSpreadsheet,
   Printer,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -44,6 +46,8 @@ import {
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
+import { SortableHeader } from "@/components/sortable-header";
+import { useSortable } from "@/hooks/use-sortable";
 
 // ────────────────────────────────────────────
 // Types
@@ -190,6 +194,24 @@ interface RepFeeReportRep {
   fees: RepFeeReport["reps"][number]["fees"];
 }
 
+interface ComplianceReportItem {
+  vehicleId: string;
+  plateNumber: string;
+  vehicleTypeName: string;
+  ownership: string;
+  licenseExpiryDate: string | null;
+  hasInsurance: boolean;
+  insuranceExpiryDate: string | null;
+  annualPayment: number | null;
+  annualPaymentCurrency: string | null;
+  gpsSubscription: number | null;
+  tourismSupportFund: number | null;
+  temporaryPermitDate: string | null;
+  temporaryPermitExpiryDate: string | null;
+  depositPayment: number | null;
+  balanceRemaining: number | null;
+}
+
 interface Agent {
   id: string;
   legalName: string;
@@ -283,6 +305,18 @@ export default function ReportsPage() {
   const [repModalOpen, setRepModalOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
+  // Vehicle Compliance
+  const [complianceData, setComplianceData] = useState<ComplianceReportItem[]>([]);
+  const [complianceLoading, setComplianceLoading] = useState(false);
+
+  // Sortable hooks for each report table
+  const dispatchSort = useSortable(dispatchData?.jobs || []);
+  const driverSort = useSortable(driverData?.drivers || []);
+  const agentSort = useSortable(agentData?.invoices || []);
+  const repFeeSort = useSortable(repFeeData?.reps || []);
+  const revenueSort = useSortable(revenueData?.byAgent || []);
+  const complianceSort = useSortable(complianceData);
+
   // Load agents list for agent statement
   useEffect(() => {
     api
@@ -367,6 +401,18 @@ export default function ReportsPage() {
       toast.error(t("reports.failedRepFees"));
     } finally {
       setRepFeeLoading(false);
+    }
+  };
+
+  const fetchCompliance = async () => {
+    setComplianceLoading(true);
+    try {
+      const { data } = await api.get("/vehicles/compliance/report");
+      setComplianceData(data.data || []);
+    } catch {
+      toast.error(t("reports.failedCompliance"));
+    } finally {
+      setComplianceLoading(false);
     }
   };
 
@@ -482,6 +528,13 @@ export default function ReportsPage() {
             <DollarSign className="h-3.5 w-3.5" />
             {t("reports.revenue")}
           </TabsTrigger>
+          <TabsTrigger
+            value="compliance"
+            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {t("reports.vehicleCompliance")}
+          </TabsTrigger>
         </TabsList>
 
         {/* ─── DAILY DISPATCH SUMMARY ─── */}
@@ -561,21 +614,21 @@ export default function ReportsPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
-                      <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
+                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                      <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={dispatchSort.sortKey} currentDir={dispatchSort.sortDir} onSort={dispatchSort.onSort} />
+                      <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={dispatchSort.sortKey} currentDir={dispatchSort.sortDir} onSort={dispatchSort.onSort} />
                       <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("dispatch.pax")}</TableHead>
+                      <SortableHeader label={t("dispatch.pax")} sortKey="paxCount" currentKey={dispatchSort.sortKey} currentDir={dispatchSort.sortDir} onSort={dispatchSort.onSort} />
                       <TableHead className="text-white text-xs">{t("dispatch.vehicle")}</TableHead>
                       <TableHead className="text-white text-xs">{t("dispatch.driver")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                      <SortableHeader label={t("common.status")} sortKey="status" currentKey={dispatchSort.sortKey} currentDir={dispatchSort.sortDir} onSort={dispatchSort.onSort} />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {dispatchData.jobs.map((job, idx) => (
+                    {dispatchSort.sortedData.map((job, idx) => (
                       <TableRow
                         key={job.id}
-                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
                         <TableCell className="text-foreground font-mono text-xs">
                           {job.internalRef}
@@ -674,22 +727,18 @@ export default function ReportsPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
-                      <TableHead className="text-white text-xs">{t("dispatch.driver")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("drivers.mobile")}</TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reports.trips")}
-                      </TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reports.totalFees")}
-                      </TableHead>
+                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                      <SortableHeader label={t("dispatch.driver")} sortKey="driver.name" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} />
+                      <SortableHeader label={t("drivers.mobile")} sortKey="driver.mobileNumber" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} />
+                      <SortableHeader label={t("reports.trips")} sortKey="tripCount" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
+                      <SortableHeader label={t("reports.totalFees")} sortKey="totalFees" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {driverData.drivers.map((d, idx) => (
+                    {driverSort.sortedData.map((d, idx) => (
                       <TableRow
                         key={d.driver.id}
-                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
                         <TableCell className="text-foreground text-sm font-medium">
                           {d.driver.name}
@@ -839,27 +888,21 @@ export default function ReportsPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
-                      <TableHead className="text-white text-xs">{t("finance.invoiceNo")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("finance.dueDate")}</TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("common.total")}
-                      </TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reports.paid")}
-                      </TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reports.balance")}
-                      </TableHead>
-                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                      <SortableHeader label={t("finance.invoiceNo")} sortKey="invoiceNumber" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} />
+                      <SortableHeader label={t("common.date")} sortKey="invoiceDate" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} />
+                      <SortableHeader label={t("finance.dueDate")} sortKey="dueDate" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} />
+                      <SortableHeader label={t("common.total")} sortKey="total" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} className="text-right" />
+                      <SortableHeader label={t("reports.paid")} sortKey="paid" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} className="text-right" />
+                      <SortableHeader label={t("reports.balance")} sortKey="balance" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} className="text-right" />
+                      <SortableHeader label={t("common.status")} sortKey="status" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {agentData.invoices.map((inv, idx) => (
+                    {agentSort.sortedData.map((inv, idx) => (
                       <TableRow
                         key={inv.invoiceNumber}
-                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
                         <TableCell className="text-foreground font-mono text-xs">
                           {inv.invoiceNumber}
@@ -936,7 +979,7 @@ export default function ReportsPage() {
                   <Button
                     variant="outline"
                     onClick={exportRepFeesExcel}
-                    className="gap-1.5 border-border text-foreground hover:bg-accent"
+                    className="gap-1.5 border-border text-foreground"
                   >
                     <FileSpreadsheet className="h-4 w-4" />
                     {t("reports.excel")}
@@ -944,7 +987,7 @@ export default function ReportsPage() {
                   <Button
                     variant="outline"
                     onClick={exportRepFeesPdf}
-                    className="gap-1.5 border-border text-foreground hover:bg-accent"
+                    className="gap-1.5 border-border text-foreground"
                   >
                     <Printer className="h-4 w-4" />
                     {t("reports.pdf")}
@@ -976,24 +1019,18 @@ export default function ReportsPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
-                      <TableHead className="text-white text-xs">{t("reports.repName")}</TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reps.feePerFlight")}
-                      </TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reports.flights")}
-                      </TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("common.total")}
-                      </TableHead>
+                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                      <SortableHeader label={t("reports.repName")} sortKey="repName" currentKey={repFeeSort.sortKey} currentDir={repFeeSort.sortDir} onSort={repFeeSort.onSort} />
+                      <SortableHeader label={t("reps.feePerFlight")} sortKey="feePerFlight" currentKey={repFeeSort.sortKey} currentDir={repFeeSort.sortDir} onSort={repFeeSort.onSort} className="text-right" />
+                      <SortableHeader label={t("reports.flights")} sortKey="flightCount" currentKey={repFeeSort.sortKey} currentDir={repFeeSort.sortDir} onSort={repFeeSort.onSort} className="text-right" />
+                      <SortableHeader label={t("common.total")} sortKey="totalAmount" currentKey={repFeeSort.sortKey} currentDir={repFeeSort.sortDir} onSort={repFeeSort.onSort} className="text-right" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {repFeeData.reps.map((rep, idx) => (
+                    {repFeeSort.sortedData.map((rep, idx) => (
                       <TableRow
                         key={rep.repId}
-                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
                         <TableCell>
                           <button
@@ -1171,24 +1208,18 @@ export default function ReportsPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
-                      <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reports.revenueLabel")}
-                      </TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reports.invoices")}
-                      </TableHead>
-                      <TableHead className="text-white text-xs text-right">
-                        {t("reports.jobs")}
-                      </TableHead>
+                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                      <SortableHeader label={t("dispatch.agent")} sortKey="name" currentKey={revenueSort.sortKey} currentDir={revenueSort.sortDir} onSort={revenueSort.onSort} />
+                      <SortableHeader label={t("reports.revenueLabel")} sortKey="revenue" currentKey={revenueSort.sortKey} currentDir={revenueSort.sortDir} onSort={revenueSort.onSort} className="text-right" />
+                      <SortableHeader label={t("reports.invoices")} sortKey="invoiceCount" currentKey={revenueSort.sortKey} currentDir={revenueSort.sortDir} onSort={revenueSort.onSort} className="text-right" />
+                      <SortableHeader label={t("reports.jobs")} sortKey="jobCount" currentKey={revenueSort.sortKey} currentDir={revenueSort.sortDir} onSort={revenueSort.onSort} className="text-right" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {revenueData.byAgent.map((a, idx) => (
+                    {revenueSort.sortedData.map((a, idx) => (
                       <TableRow
                         key={a.agentId}
-                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
                         <TableCell className="text-foreground text-sm font-medium">
                           {a.name}
@@ -1218,6 +1249,130 @@ export default function ReportsPage() {
                 </Table>
               </div>
             </>
+          )}
+        </TabsContent>
+
+        {/* ─── VEHICLE COMPLIANCE ─── */}
+        <TabsContent value="compliance" className="space-y-4">
+          <Card className="border-border bg-card p-4">
+            <div className="flex items-end gap-3">
+              <Button
+                size="sm"
+                className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={fetchCompliance}
+                disabled={complianceLoading}
+              >
+                {complianceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                {t("reports.generate")}
+              </Button>
+            </div>
+          </Card>
+
+          {complianceLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : complianceData.length > 0 ? (
+            <>
+              {/* Stat Cards */}
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <StatCard label={t("reports.totalVehicles")} value={complianceData.length} />
+                <StatCard
+                  label={t("reports.withInsurance")}
+                  value={complianceData.filter((v) => v.hasInsurance).length}
+                  color="text-emerald-600 dark:text-emerald-400"
+                />
+                <StatCard
+                  label={t("reports.permitWarnings")}
+                  value={complianceData.filter((v) => {
+                    if (!v.temporaryPermitExpiryDate) return false;
+                    const exp = new Date(v.temporaryPermitExpiryDate);
+                    const now = new Date();
+                    const oneMonth = new Date();
+                    oneMonth.setMonth(oneMonth.getMonth() + 1);
+                    return exp >= now && exp < oneMonth;
+                  }).length}
+                  color="text-amber-600 dark:text-amber-400"
+                />
+                <StatCard
+                  label={t("reports.permitsExpired")}
+                  value={complianceData.filter((v) => {
+                    if (!v.temporaryPermitExpiryDate) return false;
+                    return new Date(v.temporaryPermitExpiryDate) < new Date();
+                  }).length}
+                  color="text-red-600 dark:text-red-400"
+                />
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                      <SortableHeader label={t("vehicles.plateNumber")} sortKey="plateNumber" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <SortableHeader label={t("vehicles.type")} sortKey="vehicleTypeName" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <SortableHeader label={t("vehicles.ownership")} sortKey="ownership" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <SortableHeader label={t("vehicles.licenseExpiryDate")} sortKey="licenseExpiryDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <TableHead className="text-white text-xs">{t("vehicles.insurance")}</TableHead>
+                      <SortableHeader label={t("vehicles.temporaryPermit")} sortKey="temporaryPermitDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <TableHead className="text-white text-xs">{t("vehicles.permitExpiry")}</TableHead>
+                      <SortableHeader label={t("vehicles.annualPayment")} sortKey="annualPayment" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <SortableHeader label={t("vehicles.depositPayment")} sortKey="depositPayment" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
+                      <TableHead className="text-white text-xs">{t("vehicles.balanceRemaining")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {complianceSort.sortedData.map((v, idx) => {
+                      const permitExp = v.temporaryPermitExpiryDate ? new Date(v.temporaryPermitExpiryDate) : null;
+                      const now = new Date();
+                      const oneMonth = new Date();
+                      oneMonth.setMonth(oneMonth.getMonth() + 1);
+                      const isExpired = permitExp && permitExp < now;
+                      const isWarning = permitExp && !isExpired && permitExp < oneMonth;
+
+                      return (
+                        <TableRow
+                          key={v.vehicleId}
+                          className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                        >
+                          <TableCell className="font-medium text-foreground">{v.plateNumber}</TableCell>
+                          <TableCell className="text-muted-foreground">{v.vehicleTypeName}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="bg-secondary text-muted-foreground">{v.ownership}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{v.licenseExpiryDate ? formatDate(v.licenseExpiryDate, locale) : "—"}</TableCell>
+                          <TableCell>
+                            {v.hasInsurance ? (
+                              <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">{t("common.yes")}</Badge>
+                            ) : (
+                              <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">{t("common.no")}</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{v.temporaryPermitDate ? formatDate(v.temporaryPermitDate, locale) : "—"}</TableCell>
+                          <TableCell>
+                            {permitExp ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground text-sm">{formatDate(v.temporaryPermitExpiryDate!, locale)}</span>
+                                {isExpired && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
+                                {isWarning && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                              </div>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{v.annualPayment != null ? `${fmt(Number(v.annualPayment))} ${v.annualPaymentCurrency || ""}` : "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{v.depositPayment != null ? fmt(Number(v.depositPayment)) : "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{v.balanceRemaining != null ? fmt(Number(v.balanceRemaining)) : "—"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <ShieldCheck className="mb-2 h-8 w-8" />
+              <p className="text-sm">{t("reports.noComplianceData")}</p>
+            </div>
           )}
         </TabsContent>
       </Tabs>
@@ -1256,7 +1411,7 @@ export default function ReportsPage() {
                   </div>
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                         <TableHead className="text-white text-xs">{t("reports.jobRef")}</TableHead>
                         <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
                         <TableHead className="text-white text-xs text-right">
@@ -1274,7 +1429,7 @@ export default function ReportsPage() {
                       {group.jobs.map((fee, idx) => (
                         <TableRow
                           key={fee.id}
-                          className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                          className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                         >
                           <TableCell className="text-foreground font-mono text-xs">
                             {fee.trafficJob.internalRef}

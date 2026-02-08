@@ -155,14 +155,14 @@ function TreeRow({
 
   return (
     <div
-      className="group flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors hover:bg-accent"
+      className="group flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors"
       style={{ paddingLeft: `${paddingLeft + 8}px` }}
     >
       {/* Expand/collapse toggle */}
       {hasChildren ? (
         <button
           onClick={onToggle}
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors hover:bg-accent"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors"
         >
           <ChevronRight
             className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-150 ${
@@ -567,7 +567,7 @@ export default function LocationsPage() {
             <Button
               variant="outline"
               onClick={() => setDialog((prev) => ({ ...prev, open: false }))}
-              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="border-border text-muted-foreground hover:text-foreground"
             >
               {t("common.cancel")}
             </Button>
@@ -607,7 +607,7 @@ export default function LocationsPage() {
               onClick={() =>
                 setDeleteDialog((prev) => ({ ...prev, open: false }))
               }
-              className="border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="border-border text-muted-foreground hover:text-foreground"
             >
               {t("common.cancel")}
             </Button>

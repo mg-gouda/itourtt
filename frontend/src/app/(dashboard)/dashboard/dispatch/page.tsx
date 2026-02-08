@@ -470,7 +470,7 @@ function JobGrid({
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+          <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
             <TableHead className="text-white text-xs w-28">{t("dispatch.ref")}</TableHead>
             <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
             <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
@@ -490,7 +490,7 @@ function JobGrid({
             return (
               <TableRow
                 key={job.id}
-                className={`border-border hover:bg-accent ${statusRowClass[job.status] || stripe}`}
+                className={`border-border ${statusRowClass[job.status] || stripe}`}
               >
                 <TableCell
                   className="text-foreground font-mono text-xs cursor-pointer"
@@ -946,7 +946,7 @@ export default function DispatchPage() {
             variant="ghost"
             size="icon"
             onClick={prevDay}
-            className="h-8 w-8 text-muted-foreground hover:bg-accent"
+            className="h-8 w-8 text-muted-foreground"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -954,7 +954,7 @@ export default function DispatchPage() {
             variant="ghost"
             size="sm"
             onClick={goToday}
-            className="text-muted-foreground hover:bg-accent"
+            className="text-muted-foreground"
           >
             {t("dispatch.today")}
           </Button>
@@ -965,7 +965,7 @@ export default function DispatchPage() {
             variant="ghost"
             size="icon"
             onClick={nextDay}
-            className="h-8 w-8 text-muted-foreground hover:bg-accent"
+            className="h-8 w-8 text-muted-foreground"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -1195,7 +1195,7 @@ export default function DispatchPage() {
             <Button
               variant="ghost"
               onClick={() => setDialogJob(null)}
-              className="text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground"
             >
               {t("common.cancel")}
             </Button>

@@ -163,7 +163,7 @@ export default function FinancePage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                       <SortableHeader label={t("finance.invoiceNo")} sortKey="invoiceNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                       <TableHead className="text-white text-xs">{t("jobs.agentCustomer")}</TableHead>
                       <SortableHeader label={t("common.date")} sortKey="invoiceDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
@@ -177,7 +177,7 @@ export default function FinancePage() {
                     {sortedData.map((inv, idx) => (
                     <TableRow
                       key={inv.id}
-                      className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                      className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                     >
                       <TableCell className="text-foreground font-mono text-xs">
                         {inv.invoiceNumber}
@@ -243,7 +243,7 @@ export default function FinancePage() {
                   size="sm"
                   variant="ghost"
                   onClick={() => exportOdoo(exp.key)}
-                  className="gap-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="gap-1 text-muted-foreground hover:text-foreground"
                 >
                   <Download className="h-4 w-4" />
                   {t("common.export")}

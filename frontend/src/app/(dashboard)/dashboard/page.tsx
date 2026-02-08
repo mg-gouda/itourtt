@@ -157,7 +157,7 @@ export default function DashboardPage() {
         <h2 className="mb-3 text-lg font-medium text-foreground">{t("dashHome.quickActions")}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <a href="/dashboard/dispatch">
-            <Card className="cursor-pointer border-border bg-card p-4 transition-colors hover:bg-accent">
+            <Card className="cursor-pointer border-border bg-card p-4 transition-colors">
               <div className="flex items-center gap-3">
                 <CalendarClock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <div>
@@ -172,7 +172,7 @@ export default function DashboardPage() {
             </Card>
           </a>
           <a href="/dashboard/traffic-jobs">
-            <Card className="cursor-pointer border-border bg-card p-4 transition-colors hover:bg-accent">
+            <Card className="cursor-pointer border-border bg-card p-4 transition-colors">
               <div className="flex items-center gap-3">
                 <Briefcase className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <div>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
             </Card>
           </a>
           <a href="/dashboard/finance">
-            <Card className="cursor-pointer border-border bg-card p-4 transition-colors hover:bg-accent">
+            <Card className="cursor-pointer border-border bg-card p-4 transition-colors">
               <div className="flex items-center gap-3">
                 <Building2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 <div>

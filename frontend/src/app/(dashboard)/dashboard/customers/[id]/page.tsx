@@ -631,7 +631,7 @@ export default function CustomerDetailPage({
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                         <TableHead className="text-white text-xs min-w-[280px]">
                           Route
                         </TableHead>
@@ -647,7 +647,7 @@ export default function CustomerDetailPage({
                         ))}
                         <TableHead className="text-white text-xs w-[50px]" />
                       </TableRow>
-                      <TableRow className="border-border hover:bg-transparent bg-gray-600/75 dark:bg-gray-700/75">
+                      <TableRow className="border-border bg-gray-600/75 dark:bg-gray-700/75">
                         <TableHead />
                         {vehicleTypes.map((vt) => (
                           <Fragment key={vt.id}>
@@ -670,7 +670,7 @@ export default function CustomerDetailPage({
                       {routes.map((route, idx) => (
                         <TableRow
                           key={route.key}
-                          className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                          className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                         >
                           <TableCell className="font-medium text-foreground">
                             <div className="flex items-center gap-2">
@@ -768,7 +768,7 @@ export default function CustomerDetailPage({
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                         <TableHead className="text-white text-xs min-w-[280px]">
                           Route
                         </TableHead>
@@ -784,7 +784,7 @@ export default function CustomerDetailPage({
                         ))}
                         <TableHead className="text-white text-xs w-[100px] text-center">Actions</TableHead>
                       </TableRow>
-                      <TableRow className="border-border hover:bg-transparent bg-gray-600/75 dark:bg-gray-700/75">
+                      <TableRow className="border-border bg-gray-600/75 dark:bg-gray-700/75">
                         <TableHead />
                         {vehicleTypes.map((vt) => (
                           <Fragment key={vt.id}>
@@ -832,7 +832,7 @@ export default function CustomerDetailPage({
                         });
 
                         return Array.from(savedRouteMap.entries()).map(([routeKey, route]) => (
-                          <TableRow key={routeKey} className="border-border hover:bg-accent">
+                          <TableRow key={routeKey} className="border-border">
                             <TableCell className="font-medium text-foreground">
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs shrink-0">

@@ -531,7 +531,7 @@ export default function B2BJobPage() {
             <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                   <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
                   <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
@@ -544,7 +544,7 @@ export default function B2BJobPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((job, idx) => (
-                  <TableRow key={job.id} className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}>
+                  <TableRow key={job.id} className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
                     <TableCell className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="border-border text-muted-foreground text-xs">

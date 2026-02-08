@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateVehicleTypeDto } from './dto/create-vehicle-type.dto.js';
 import { CreateVehicleDto } from './dto/create-vehicle.dto.js';
+import { UpsertVehicleComplianceDto } from './dto/upsert-vehicle-compliance.dto.js';
 
 @Injectable()
 export class VehiclesService {
@@ -42,7 +43,7 @@ export class VehiclesService {
         orderBy: { plateNumber: 'asc' },
         skip,
         take: limit,
-        include: { vehicleType: true },
+        include: { vehicleType: true, compliance: true },
       }),
       this.prisma.vehicle.count({ where }),
     ]);
@@ -61,7 +62,7 @@ export class VehiclesService {
   async findVehicleById(id: string) {
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { id, deletedAt: null },
-      include: { vehicleType: true },
+      include: { vehicleType: true, compliance: true },
     });
 
     if (!vehicle) {
@@ -485,5 +486,90 @@ export class VehiclesService {
     }
 
     return { imported: toCreate.length, errors };
+  }
+
+  // ─── Vehicle Compliance ─────────────────────────────────
+
+  async getCompliance(vehicleId: string) {
+    await this.findVehicleById(vehicleId);
+    return this.prisma.vehicleCompliance.findUnique({
+      where: { vehicleId },
+    });
+  }
+
+  async upsertCompliance(vehicleId: string, dto: UpsertVehicleComplianceDto) {
+    await this.findVehicleById(vehicleId);
+
+    const data: Record<string, unknown> = {};
+    if (dto.licenseExpiryDate !== undefined) data.licenseExpiryDate = new Date(dto.licenseExpiryDate);
+    if (dto.hasInsurance !== undefined) data.hasInsurance = dto.hasInsurance;
+    if (dto.insuranceExpiryDate !== undefined) data.insuranceExpiryDate = new Date(dto.insuranceExpiryDate);
+    if (dto.annualPayment !== undefined) data.annualPayment = dto.annualPayment;
+    if (dto.annualPaymentCurrency !== undefined) data.annualPaymentCurrency = dto.annualPaymentCurrency;
+    if (dto.gpsSubscription !== undefined) data.gpsSubscription = dto.gpsSubscription;
+    if (dto.gpsSubscriptionCurrency !== undefined) data.gpsSubscriptionCurrency = dto.gpsSubscriptionCurrency;
+    if (dto.tourismSupportFund !== undefined) data.tourismSupportFund = dto.tourismSupportFund;
+    if (dto.tourismSupportFundCurrency !== undefined) data.tourismSupportFundCurrency = dto.tourismSupportFundCurrency;
+    if (dto.temporaryPermitDate !== undefined) data.temporaryPermitDate = new Date(dto.temporaryPermitDate);
+    if (dto.depositPayment !== undefined) data.depositPayment = dto.depositPayment;
+    if (dto.depositPaymentCurrency !== undefined) data.depositPaymentCurrency = dto.depositPaymentCurrency;
+
+    return this.prisma.vehicleCompliance.upsert({
+      where: { vehicleId },
+      create: { vehicleId, ...data },
+      update: data,
+    });
+  }
+
+  async updateComplianceFile(
+    vehicleId: string,
+    field: 'licenseCopyUrl' | 'insuranceDocUrl',
+    url: string,
+  ) {
+    await this.findVehicleById(vehicleId);
+    return this.prisma.vehicleCompliance.upsert({
+      where: { vehicleId },
+      create: { vehicleId, [field]: url },
+      update: { [field]: url },
+    });
+  }
+
+  async getComplianceReport() {
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: { deletedAt: null },
+      include: { vehicleType: true, compliance: true },
+      orderBy: { plateNumber: 'asc' },
+    });
+
+    return vehicles.map((v) => {
+      const c = v.compliance;
+      const permitExpiry = c?.temporaryPermitDate
+        ? new Date(new Date(c.temporaryPermitDate).setMonth(new Date(c.temporaryPermitDate).getMonth() + 3))
+        : null;
+      const annual = c?.annualPayment ? Number(c.annualPayment) : null;
+      const deposit = c?.depositPayment ? Number(c.depositPayment) : null;
+
+      return {
+        id: v.id,
+        plateNumber: v.plateNumber,
+        vehicleType: v.vehicleType?.name,
+        ownership: v.ownership,
+        isActive: v.isActive,
+        licenseExpiryDate: c?.licenseExpiryDate,
+        hasInsurance: c?.hasInsurance ?? false,
+        insuranceExpiryDate: c?.insuranceExpiryDate,
+        gpsSubscription: c?.gpsSubscription ? Number(c.gpsSubscription) : null,
+        gpsSubscriptionCurrency: c?.gpsSubscriptionCurrency,
+        tourismSupportFund: c?.tourismSupportFund ? Number(c.tourismSupportFund) : null,
+        tourismSupportFundCurrency: c?.tourismSupportFundCurrency,
+        temporaryPermitDate: c?.temporaryPermitDate,
+        temporaryPermitExpiryDate: permitExpiry,
+        annualPayment: annual,
+        annualPaymentCurrency: c?.annualPaymentCurrency,
+        depositPayment: deposit,
+        depositPaymentCurrency: c?.depositPaymentCurrency,
+        balanceRemaining: annual != null && deposit != null ? annual - deposit : null,
+      };
+    });
   }
 }

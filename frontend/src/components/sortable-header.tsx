@@ -25,7 +25,7 @@ export function SortableHeader({
 
   return (
     <TableHead
-      className={`text-white text-xs cursor-pointer select-none hover:bg-white/10 transition-colors ${className}`}
+      className={`text-white text-xs cursor-pointer select-none ${className}`}
       onClick={() => onSort(sortKey)}
     >
       <span className="inline-flex items-center gap-1">

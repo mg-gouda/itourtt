@@ -283,11 +283,45 @@ model Vehicle {
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz
 
-  vehicleType    VehicleType       @relation(fields: [vehicleTypeId], references: [id])
+  vehicleType    VehicleType          @relation(fields: [vehicleTypeId], references: [id])
   driverVehicles DriverVehicle[]
   assignments    TrafficAssignment[]
+  compliance     VehicleCompliance?
 
   @@map("vehicles")
+}
+
+model VehicleCompliance {
+  id                          String    @id @default(uuid()) @db.Uuid
+  vehicleId                   String    @unique @map("vehicle_id") @db.Uuid
+
+  // License
+  licenseExpiryDate           DateTime? @map("license_expiry_date") @db.Date
+  licenseCopyUrl              String?   @map("license_copy_url")
+
+  // Insurance
+  hasInsurance                Boolean   @default(false) @map("has_insurance")
+  insuranceExpiryDate         DateTime? @map("insurance_expiry_date") @db.Date
+  insuranceDocUrl             String?   @map("insurance_doc_url")
+
+  // Financial
+  annualPayment               Decimal?  @map("annual_payment") @db.Decimal(15, 2)
+  annualPaymentCurrency       Currency? @map("annual_payment_currency")
+  gpsSubscription             Decimal?  @map("gps_subscription") @db.Decimal(15, 2)
+  gpsSubscriptionCurrency     Currency? @map("gps_subscription_currency")
+  tourismSupportFund          Decimal?  @map("tourism_support_fund") @db.Decimal(15, 2)
+  tourismSupportFundCurrency  Currency? @map("tourism_support_fund_currency")
+  temporaryPermitDate         DateTime? @map("temporary_permit_date") @db.Date
+  depositPayment              Decimal?  @map("deposit_payment") @db.Decimal(15, 2)
+  depositPaymentCurrency      Currency? @map("deposit_payment_currency")
+
+  // Audit
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  vehicle                     Vehicle   @relation(fields: [vehicleId], references: [id])
+
+  @@map("vehicle_compliance")
 }
 
 model Driver {

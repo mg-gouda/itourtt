@@ -36,6 +36,8 @@ import { LocationCombobox } from "@/components/location-combobox";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate } from "@/lib/utils";
+import { SortableHeader } from "@/components/sortable-header";
+import { useSortable } from "@/hooks/use-sortable";
 
 /* ─────────── types ─────────── */
 
@@ -308,6 +310,7 @@ export default function OnlineJobPage() {
     );
   });
 
+  const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
   const showFlightFields = form.serviceType === "ARR" || form.serviceType === "DEP";
   const selectedAgent = agents.find((a) => a.id === form.agentId);
   const agentRefInvalid = !!(form.agentRef && selectedAgent?.refPattern && (() => { try { return !new RegExp(selectedAgent.refPattern).test(form.agentRef); } catch { return false; } })());
@@ -666,22 +669,22 @@ export default function OnlineJobPage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
-                  <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.agentRef")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.transferProvider")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.clientName")}</TableHead>
+                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                  <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <SortableHeader label={t("jobs.agentRef")} sortKey="agentRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <SortableHeader label={t("common.date")} sortKey="jobDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <SortableHeader label={t("jobs.transferProvider")} sortKey="agent.legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <SortableHeader label={t("jobs.clientName")} sortKey="clientName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("dispatch.pax")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                  <SortableHeader label={t("dispatch.pax")} sortKey="paxCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((job, idx) => (
-                  <TableRow key={job.id} className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}>
+                {sortedData.map((job, idx) => (
+                  <TableRow key={job.id} className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
                     <TableCell className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">{job.agentRef || "\u2014"}</TableCell>
                     <TableCell>

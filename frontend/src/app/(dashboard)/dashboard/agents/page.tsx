@@ -275,7 +275,7 @@ export default function AgentsPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
+                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                   <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("agents.taxId")}</TableHead>
@@ -291,7 +291,7 @@ export default function AgentsPage() {
                 {sortedData.map((agent, idx) => (
                 <TableRow
                   key={agent.id}
-                  className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                  className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                 >
                   <TableCell className="font-medium text-foreground">
                     {agent.legalName}
@@ -331,7 +331,7 @@ export default function AgentsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-muted-foreground hover:text-foreground hover:bg-accent"
+                      className="text-muted-foreground hover:text-foreground"
                       onClick={() => openEditDialog(agent)}
                     >
                       {t("common.edit")}
@@ -511,7 +511,7 @@ export default function AgentsPage() {
             <Button
               variant="ghost"
               onClick={() => setDialogOpen(false)}
-              className="text-muted-foreground hover:text-foreground hover:bg-accent"
+              className="text-muted-foreground hover:text-foreground"
             >
               {t("common.cancel")}
             </Button>
@@ -699,7 +699,7 @@ export default function AgentsPage() {
             <Button
               variant="ghost"
               onClick={() => setEditDialogOpen(false)}
-              className="text-muted-foreground hover:text-foreground hover:bg-accent"
+              className="text-muted-foreground hover:text-foreground"
             >
               {t("common.cancel")}
             </Button>

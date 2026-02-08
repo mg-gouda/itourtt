@@ -33,6 +33,8 @@ import {
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
+import { SortableHeader } from "@/components/sortable-header";
+import { useSortable } from "@/hooks/use-sortable";
 
 interface TrafficJob {
   id: string;
@@ -139,6 +141,8 @@ export default function TrafficJobsPage() {
     return true;
   });
 
+  const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -221,18 +225,18 @@ export default function TrafficJobsPage() {
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-border hover:bg-transparent bg-gray-700/75 dark:bg-gray-800/75">
-                <TableHead className="text-white text-xs">{t("jobs.bookingDate")}</TableHead>
-                <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.channel")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.serviceDate")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.pickUpTime")}</TableHead>
+              <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                <SortableHeader label={t("jobs.bookingDate")} sortKey="createdAt" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                <SortableHeader label={t("jobs.channel")} sortKey="bookingChannel" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                <SortableHeader label={t("jobs.serviceDate")} sortKey="jobDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                <SortableHeader label={t("jobs.pickUpTime")} sortKey="pickUpTime" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <TableHead className="text-white text-xs">{t("jobs.agentCustomer")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.clientName")}</TableHead>
+                <SortableHeader label={t("jobs.clientName")} sortKey="clientName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <TableHead className="text-white text-xs">{t("jobs.clientNumber")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.ad")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.chd")}</TableHead>
+                <SortableHeader label={t("jobs.ad")} sortKey="adultCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                <SortableHeader label={t("jobs.chd")} sortKey="childCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <TableHead className="text-white text-xs">{t("jobs.origin")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.destination")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.flightNumber")}</TableHead>
@@ -240,16 +244,16 @@ export default function TrafficJobsPage() {
                 <TableHead className="text-white text-xs">{t("jobs.arrivalTime")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.extras")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.notes")}</TableHead>
-                <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.userLog")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((job, idx) => (
+              {sortedData.map((job, idx) => (
                 <TableRow
                   key={job.id}
-                  className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"} hover:bg-accent`}
+                  className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                 >
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                     {formatDate(job.createdAt)}

@@ -14,6 +14,9 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as path from 'path';
+import * as fs from 'fs';
 import type { Response } from 'express';
 import { VehiclesService } from './vehicles.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -23,6 +26,22 @@ import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { CreateVehicleTypeDto } from './dto/create-vehicle-type.dto.js';
 import { CreateVehicleDto } from './dto/create-vehicle.dto.js';
+import { UpsertVehicleComplianceDto } from './dto/upsert-vehicle-compliance.dto.js';
+
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const uploadStorage = diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  },
+});
 
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -97,6 +116,55 @@ export class VehiclesController {
   @Roles('ADMIN')
   createVehicle(@Body() dto: CreateVehicleDto) {
     return this.vehiclesService.createVehicle(dto);
+  }
+
+  // ─── Vehicle Compliance ─────────────────────────────────
+
+  @Get('compliance/report')
+  @Roles('ADMIN', 'DISPATCHER', 'ACCOUNTANT')
+  async complianceReport() {
+    const result = await this.vehiclesService.getComplianceReport();
+    return new ApiResponse(result);
+  }
+
+  @Get(':id/compliance')
+  async getCompliance(@Param('id', ParseUUIDPipe) id: string) {
+    const result = await this.vehiclesService.getCompliance(id);
+    return new ApiResponse(result);
+  }
+
+  @Patch(':id/compliance')
+  @Roles('ADMIN', 'DISPATCHER')
+  async upsertCompliance(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpsertVehicleComplianceDto,
+  ) {
+    const result = await this.vehiclesService.upsertCompliance(id, dto);
+    return new ApiResponse(result, 'Compliance data updated');
+  }
+
+  @Post(':id/compliance/license')
+  @Roles('ADMIN', 'DISPATCHER')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  async uploadLicenseCopy(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: any,
+  ) {
+    const url = '/uploads/' + file.filename;
+    await this.vehiclesService.updateComplianceFile(id, 'licenseCopyUrl', url);
+    return { url };
+  }
+
+  @Post(':id/compliance/insurance')
+  @Roles('ADMIN', 'DISPATCHER')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  async uploadInsuranceDoc(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: any,
+  ) {
+    const url = '/uploads/' + file.filename;
+    await this.vehiclesService.updateComplianceFile(id, 'insuranceDocUrl', url);
+    return { url };
   }
 
   @Get(':id')
