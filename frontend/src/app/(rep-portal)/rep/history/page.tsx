@@ -34,6 +34,7 @@ interface HistoryJob {
   serviceType: string;
   jobDate: string;
   status: string;
+  repStatus: string;
   paxCount: number;
   feeEarned: number | null;
   fromZone?: { name: string };
@@ -249,9 +250,9 @@ export default function RepHistoryPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={STATUS_COLORS[job.status] || ""}
+                            className={STATUS_COLORS[job.repStatus] || ""}
                           >
-                            {job.status.replace("_", " ")}
+                            {job.repStatus.replace("_", " ")}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono">
@@ -293,9 +294,9 @@ export default function RepHistoryPage() {
                       </Badge>
                       <Badge
                         variant="outline"
-                        className={STATUS_COLORS[job.status] || ""}
+                        className={STATUS_COLORS[job.repStatus] || ""}
                       >
-                        {job.status.replace("_", " ")}
+                        {job.repStatus.replace("_", " ")}
                       </Badge>
                     </div>
                   </div>

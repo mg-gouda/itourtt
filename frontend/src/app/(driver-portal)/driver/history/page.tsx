@@ -34,6 +34,7 @@ interface HistoryJob {
   serviceType: string;
   jobDate: string;
   status: string;
+  driverStatus: string;
   paxCount: number;
   feeEarned: number | null;
   fromZone?: { name: string };
@@ -249,9 +250,9 @@ export default function DriverHistoryPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={STATUS_COLORS[job.status] || ""}
+                            className={STATUS_COLORS[job.driverStatus] || ""}
                           >
-                            {job.status.replace("_", " ")}
+                            {job.driverStatus.replace("_", " ")}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono">
@@ -293,9 +294,9 @@ export default function DriverHistoryPage() {
                       </Badge>
                       <Badge
                         variant="outline"
-                        className={STATUS_COLORS[job.status] || ""}
+                        className={STATUS_COLORS[job.driverStatus] || ""}
                       >
-                        {job.status.replace("_", " ")}
+                        {job.driverStatus.replace("_", " ")}
                       </Badge>
                     </div>
                   </div>

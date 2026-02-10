@@ -28,11 +28,14 @@ import {
   RefreshCw,
   Briefcase,
   User,
+  PlayCircle,
+  Navigation,
 } from "lucide-react";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
+import { captureGPS } from "@/lib/gps";
 
 interface DriverJob {
   id: string;
@@ -41,6 +44,7 @@ interface DriverJob {
   serviceType: string;
   jobDate: string;
   status: string;
+  driverStatus: string;
   paxCount: number;
   notes: string | null;
   custRepName: string | null;
@@ -164,8 +168,12 @@ export default function DriverDashboardPage() {
   const confirmStatusChange = async () => {
     setUpdating(true);
     try {
+      toast.info("Capturing location...");
+      const gps = await captureGPS();
       await api.patch(`/driver-portal/jobs/${confirmDialog.jobId}/status`, {
         status: confirmDialog.status,
+        latitude: gps.lat,
+        longitude: gps.lng,
       });
       toast.success(`Job ${confirmDialog.jobRef} marked as ${confirmDialog.status.replace("_", " ")}`);
       setConfirmDialog({ open: false, jobId: "", jobRef: "", status: "" });
@@ -173,7 +181,7 @@ export default function DriverDashboardPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t("portal.failedUpdateStatus");
+          ?.message || (err instanceof Error ? err.message : t("portal.failedUpdateStatus"));
       toast.error(message);
     } finally {
       setUpdating(false);
@@ -211,8 +219,8 @@ export default function DriverDashboardPage() {
     });
   };
 
-  const activeJobs = jobs.filter((j) => !TERMINAL_STATUSES.includes(j.status));
-  const completedJobs = jobs.filter((j) => TERMINAL_STATUSES.includes(j.status));
+  const activeJobs = jobs.filter((j) => !TERMINAL_STATUSES.includes(j.driverStatus));
+  const completedJobs = jobs.filter((j) => TERMINAL_STATUSES.includes(j.driverStatus));
 
   if (loading) {
     return (
@@ -414,7 +422,8 @@ function DriverJobCard({
   formatTime: (iso: string | null) => string | null;
 }) {
   const t = useT();
-  const isTerminal = TERMINAL_STATUSES.includes(job.status);
+  const driverStatus = job.driverStatus;
+  const isTerminal = TERMINAL_STATUSES.includes(driverStatus);
   const flightTime =
     job.serviceType === "ARR"
       ? formatTime(job.flight?.arrivalTime ?? null)
@@ -436,9 +445,9 @@ function DriverJobCard({
           </Badge>
           <Badge
             variant="outline"
-            className={STATUS_COLORS[job.status] || ""}
+            className={STATUS_COLORS[driverStatus] || ""}
           >
-            {job.status.replace("_", " ")}
+            {driverStatus.replace("_", " ")}
           </Badge>
           {(job.agent || job.customer) && (
             <span className="ml-auto text-xs text-muted-foreground">
@@ -521,6 +530,17 @@ function DriverJobCard({
         {/* Action buttons */}
         {!isTerminal && (
           <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+            {driverStatus === "PENDING" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-cyan-400 hover:text-cyan-300"
+                onClick={() => onStatusChange(job.id, job.internalRef, "IN_PROGRESS")}
+              >
+                <PlayCircle className="h-3.5 w-3.5" />
+                {t("portal.inProgress")}
+              </Button>
+            )}
             <Button
               size="sm"
               variant="default"

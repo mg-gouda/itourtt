@@ -310,8 +310,18 @@ export class DispatchService {
 
     const updateData: Record<string, unknown> = {};
     if (dto.vehicleId !== undefined) updateData.vehicleId = dto.vehicleId;
-    if (dto.driverId !== undefined) updateData.driverId = dto.driverId;
-    if (dto.repId !== undefined) updateData.repId = dto.repId;
+    if (dto.driverId !== undefined) {
+      updateData.driverId = dto.driverId;
+      if (dto.driverId !== existing.driverId) {
+        updateData.driverStatus = 'PENDING';
+      }
+    }
+    if (dto.repId !== undefined) {
+      updateData.repId = dto.repId;
+      if (dto.repId !== existing.repId) {
+        updateData.repStatus = 'PENDING';
+      }
+    }
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.trafficAssignment.update({

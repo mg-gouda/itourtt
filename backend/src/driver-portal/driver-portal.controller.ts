@@ -22,7 +22,7 @@ import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
-import { IsString, IsIn, IsOptional } from 'class-validator';
+import { IsString, IsIn, IsOptional, IsNumber } from 'class-validator';
 
 const uploadsDir = path.join(process.cwd(), 'uploads', 'no-show');
 if (!fs.existsSync(uploadsDir)) {
@@ -41,8 +41,14 @@ const noShowStorage = diskStorage({
 
 class UpdateJobStatusDto {
   @IsString()
-  @IsIn(['COMPLETED', 'CANCELLED'])
+  @IsIn(['IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
   status!: string;
+
+  @IsNumber()
+  latitude!: number;
+
+  @IsNumber()
+  longitude!: number;
 }
 
 class DateQueryDto {
@@ -91,6 +97,8 @@ export class DriverPortalController {
       userId,
       jobId,
       dto.status as any,
+      dto.latitude,
+      dto.longitude,
     );
     return new ApiResponse(result, 'Job status updated');
   }

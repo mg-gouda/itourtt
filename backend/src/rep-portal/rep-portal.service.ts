@@ -9,7 +9,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 type RepJobStatus = 'COMPLETED' | 'CANCELLED';
 
 const REP_ALLOWED_STATUSES: RepJobStatus[] = ['COMPLETED', 'CANCELLED'];
-const TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
+const REP_TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
+
+const REP_VALID_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
+  CANCELLED: [],
+  NO_SHOW: [],
+};
 
 @Injectable()
 export class RepPortalService {
@@ -42,7 +49,6 @@ export class RepPortalService {
   async getMyJobs(userId: string, date?: string) {
     const repId = await this.resolveRepId(userId);
     const jobDate = date ? new Date(date) : new Date();
-    // For "today" default, strip time
     if (!date) {
       jobDate.setHours(0, 0, 0, 0);
     }
@@ -66,7 +72,10 @@ export class RepPortalService {
     return {
       date: jobDate.toISOString().split('T')[0],
       repId,
-      jobs: assignments.map((a) => a.trafficJob),
+      jobs: assignments.map((a) => ({
+        ...a.trafficJob,
+        repStatus: a.repStatus,
+      })),
     };
   }
 
@@ -75,43 +84,67 @@ export class RepPortalService {
     const from = new Date(dateFrom);
     const to = new Date(dateTo);
 
-    const assignments = await this.prisma.trafficAssignment.findMany({
-      where: {
-        repId,
-        trafficJob: {
-          jobDate: { gte: from, lte: to },
-          deletedAt: null,
-          status: { in: TERMINAL_STATUSES as any },
+    const [rep, assignments] = await Promise.all([
+      this.prisma.rep.findUniqueOrThrow({
+        where: { id: repId },
+        select: { feePerFlight: true },
+      }),
+      this.prisma.trafficAssignment.findMany({
+        where: {
+          repId,
+          repStatus: { in: REP_TERMINAL_STATUSES as any },
+          trafficJob: {
+            jobDate: { gte: from, lte: to },
+            deletedAt: null,
+          },
         },
-      },
-      include: {
-        trafficJob: {
-          include: {
-            ...this.jobInclude,
-            repFees: {
-              where: { repId },
-              select: { amount: true, currency: true },
+        include: {
+          trafficJob: {
+            include: {
+              ...this.jobInclude,
+              repFees: {
+                where: { repId },
+                select: { amount: true, currency: true },
+              },
             },
           },
         },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    const feePerFlight = Number(rep.feePerFlight);
 
     return {
       dateFrom,
       dateTo,
       repId,
-      jobs: assignments.map((a) => ({
-        ...a.trafficJob,
-        feeEarned: a.trafficJob.repFees[0]
-          ? Number(a.trafficJob.repFees[0].amount)
-          : null,
-      })),
+      jobs: assignments.map((a) => {
+        const existingFee = a.trafficJob.repFees[0];
+        const isCompletedArr =
+          a.repStatus === 'COMPLETED' &&
+          a.trafficJob.serviceType === 'ARR';
+
+        return {
+          ...a.trafficJob,
+          repStatus: a.repStatus,
+          feeEarned: existingFee
+            ? Number(existingFee.amount)
+            : isCompletedArr
+              ? feePerFlight
+              : null,
+        };
+      }),
     };
   }
 
-  async updateJobStatus(userId: string, jobId: string, status: RepJobStatus) {
+  async updateJobStatus(
+    userId: string,
+    jobId: string,
+    status: RepJobStatus,
+    latitude: number,
+    longitude: number,
+  ) {
     const repId = await this.resolveRepId(userId);
 
     if (!REP_ALLOWED_STATUSES.includes(status)) {
@@ -120,7 +153,6 @@ export class RepPortalService {
       );
     }
 
-    // Verify the rep is assigned to this job
     const assignment = await this.prisma.trafficAssignment.findFirst({
       where: {
         repId,
@@ -135,53 +167,44 @@ export class RepPortalService {
       throw new NotFoundException('Job not found or not assigned to you');
     }
 
-    const currentStatus = assignment.trafficJob.status;
-    if (TERMINAL_STATUSES.includes(currentStatus)) {
+    const currentStatus = assignment.repStatus;
+    const allowed = REP_VALID_TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes(status)) {
       throw new BadRequestException(
-        `Job is already in terminal status "${currentStatus}"`,
+        `Cannot change rep status from "${currentStatus}" to "${status}"`,
       );
     }
 
-    // Only allow transitions from ASSIGNED or IN_PROGRESS
-    if (currentStatus !== 'ASSIGNED' && currentStatus !== 'IN_PROGRESS') {
-      throw new BadRequestException(
-        `Cannot change status from "${currentStatus}"`,
-      );
-    }
+    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
     return this.prisma.$transaction(async (tx) => {
-      const updatedJob = await tx.trafficJob.update({
-        where: { id: jobId },
-        data: { status },
-        include: this.jobInclude,
+      const updated = await tx.trafficAssignment.update({
+        where: { id: assignment.id },
+        data: { repStatus: status as any },
+        include: {
+          trafficJob: {
+            include: this.jobInclude,
+          },
+        },
       });
 
-      // Auto-generate RepFee when an ARR job is completed with a rep assigned
-      if (
-        status === 'COMPLETED' &&
-        updatedJob.serviceType === 'ARR'
-      ) {
-        const rep = await tx.rep.findUniqueOrThrow({
-          where: { id: repId },
-        });
+      await tx.statusChangeLog.create({
+        data: {
+          assignmentId: assignment.id,
+          changedBy: 'REP',
+          changedById: repId,
+          previousStatus: currentStatus as any,
+          newStatus: status as any,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+        },
+      });
 
-        const existingFee = await tx.repFee.findFirst({
-          where: { repId, trafficJobId: jobId },
-        });
-
-        if (!existingFee) {
-          await tx.repFee.create({
-            data: {
-              repId,
-              trafficJobId: jobId,
-              amount: rep.feePerFlight,
-              currency: 'EGP',
-            },
-          });
-        }
-      }
-
-      return updatedJob;
+      return {
+        ...updated.trafficJob,
+        repStatus: updated.repStatus,
+      };
     });
   }
 
@@ -209,26 +232,30 @@ export class RepPortalService {
       throw new NotFoundException('Job not found or not assigned to you');
     }
 
-    const currentStatus = assignment.trafficJob.status;
-    if (TERMINAL_STATUSES.includes(currentStatus)) {
+    const currentStatus = assignment.repStatus;
+    if (REP_TERMINAL_STATUSES.includes(currentStatus)) {
       throw new BadRequestException(
-        `Job is already in terminal status "${currentStatus}"`,
+        `Rep status is already terminal: "${currentStatus}"`,
       );
     }
 
-    if (currentStatus !== 'ASSIGNED' && currentStatus !== 'IN_PROGRESS') {
+    if (currentStatus !== 'PENDING') {
       throw new BadRequestException(
-        `Cannot change status from "${currentStatus}"`,
+        `Cannot change rep status from "${currentStatus}"`,
       );
     }
 
     const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
     return this.prisma.$transaction(async (tx) => {
-      const updatedJob = await tx.trafficJob.update({
-        where: { id: jobId },
-        data: { status: 'NO_SHOW' },
-        include: this.jobInclude,
+      const updated = await tx.trafficAssignment.update({
+        where: { id: assignment.id },
+        data: { repStatus: 'NO_SHOW' as any },
+        include: {
+          trafficJob: {
+            include: this.jobInclude,
+          },
+        },
       });
 
       await tx.noShowEvidence.create({
@@ -244,7 +271,23 @@ export class RepPortalService {
         },
       });
 
-      return updatedJob;
+      await tx.statusChangeLog.create({
+        data: {
+          assignmentId: assignment.id,
+          changedBy: 'REP',
+          changedById: repId,
+          previousStatus: currentStatus as any,
+          newStatus: 'NO_SHOW' as any,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+        },
+      });
+
+      return {
+        ...updated.trafficJob,
+        repStatus: updated.repStatus,
+      };
     });
   }
 

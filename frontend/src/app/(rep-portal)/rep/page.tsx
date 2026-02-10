@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
+import { captureGPS } from "@/lib/gps";
 
 interface RepJob {
   id: string;
@@ -40,6 +41,7 @@ interface RepJob {
   serviceType: string;
   jobDate: string;
   status: string;
+  repStatus: string;
   paxCount: number;
   notes: string | null;
   custRepName: string | null;
@@ -163,8 +165,12 @@ export default function RepDashboardPage() {
   const confirmStatusChange = async () => {
     setUpdating(true);
     try {
+      toast.info("Capturing location...");
+      const gps = await captureGPS();
       await api.patch(`/rep-portal/jobs/${confirmDialog.jobId}/status`, {
         status: confirmDialog.status,
+        latitude: gps.lat,
+        longitude: gps.lng,
       });
       toast.success(`Job ${confirmDialog.jobRef} marked as ${confirmDialog.status.replace("_", " ")}`);
       setConfirmDialog({ open: false, jobId: "", jobRef: "", status: "" });
@@ -172,7 +178,7 @@ export default function RepDashboardPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t("portal.failedUpdateStatus");
+          ?.message || (err instanceof Error ? err.message : t("portal.failedUpdateStatus"));
       toast.error(message);
     } finally {
       setUpdating(false);
@@ -210,8 +216,8 @@ export default function RepDashboardPage() {
     });
   };
 
-  const activeJobs = jobs.filter((j) => !TERMINAL_STATUSES.includes(j.status));
-  const completedJobs = jobs.filter((j) => TERMINAL_STATUSES.includes(j.status));
+  const activeJobs = jobs.filter((j) => !TERMINAL_STATUSES.includes(j.repStatus));
+  const completedJobs = jobs.filter((j) => TERMINAL_STATUSES.includes(j.repStatus));
 
   if (loading) {
     return (
@@ -413,7 +419,8 @@ function JobCard({
   formatTime: (iso: string | null) => string | null;
 }) {
   const t = useT();
-  const isTerminal = TERMINAL_STATUSES.includes(job.status);
+  const repStatus = job.repStatus;
+  const isTerminal = TERMINAL_STATUSES.includes(repStatus);
   const flightTime =
     job.serviceType === "ARR"
       ? formatTime(job.flight?.arrivalTime ?? null)
@@ -435,9 +442,9 @@ function JobCard({
           </Badge>
           <Badge
             variant="outline"
-            className={STATUS_COLORS[job.status] || ""}
+            className={STATUS_COLORS[repStatus] || ""}
           >
-            {job.status.replace("_", " ")}
+            {repStatus.replace("_", " ")}
           </Badge>
           {(job.agent || job.customer) && (
             <span className="ml-auto text-xs text-muted-foreground">

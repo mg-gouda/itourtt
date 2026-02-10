@@ -224,6 +224,18 @@ export class TrafficJobsService {
         include: this.jobInclude,
       });
 
+      // Sync portal statuses when dispatch sets a terminal status
+      const terminalStatuses = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
+      if (terminalStatuses.includes(newStatus) && updatedJob.assignment) {
+        await tx.trafficAssignment.update({
+          where: { id: updatedJob.assignment.id },
+          data: {
+            driverStatus: newStatus as any,
+            repStatus: newStatus as any,
+          },
+        });
+      }
+
       // Auto-generate RepFee when an ARR job is completed with a rep assigned
       if (
         newStatus === 'COMPLETED' &&

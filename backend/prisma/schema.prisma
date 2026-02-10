@@ -48,6 +48,14 @@ enum JobStatus {
   NO_SHOW
 }
 
+enum PortalJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
 enum NotificationType {
   JOB_ASSIGNED
   JOB_UPDATED
@@ -662,7 +670,7 @@ model TrafficJob {
   invoiceLines          InvoiceLine[]
   repNotifications      RepNotification[]
   driverNotifications   DriverNotification[]
-  noShowEvidence        NoShowEvidence?
+  noShowEvidence        NoShowEvidence[]
 
   @@index([jobDate])
   @@index([agentId])
@@ -689,22 +697,43 @@ model TrafficFlight {
 }
 
 model TrafficAssignment {
-  id           String    @id @default(uuid()) @db.Uuid
-  trafficJobId String    @unique @map("traffic_job_id") @db.Uuid
-  vehicleId    String    @map("vehicle_id") @db.Uuid
-  driverId     String?   @map("driver_id") @db.Uuid
-  repId        String?   @map("rep_id") @db.Uuid
-  assignedById String    @map("assigned_by_id") @db.Uuid
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id           String          @id @default(uuid()) @db.Uuid
+  trafficJobId String          @unique @map("traffic_job_id") @db.Uuid
+  vehicleId    String          @map("vehicle_id") @db.Uuid
+  driverId     String?         @map("driver_id") @db.Uuid
+  repId        String?         @map("rep_id") @db.Uuid
+  assignedById String          @map("assigned_by_id") @db.Uuid
+  driverStatus PortalJobStatus @default(PENDING) @map("driver_status")
+  repStatus    PortalJobStatus @default(PENDING) @map("rep_status")
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
-  trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
-  vehicle      Vehicle    @relation(fields: [vehicleId], references: [id])
-  driver       Driver?    @relation(fields: [driverId], references: [id])
-  rep          Rep?       @relation(fields: [repId], references: [id])
-  assignedBy   User       @relation("AssignedBy", fields: [assignedById], references: [id])
+  trafficJob       TrafficJob       @relation(fields: [trafficJobId], references: [id])
+  vehicle          Vehicle          @relation(fields: [vehicleId], references: [id])
+  driver           Driver?          @relation(fields: [driverId], references: [id])
+  rep              Rep?             @relation(fields: [repId], references: [id])
+  assignedBy       User             @relation("AssignedBy", fields: [assignedById], references: [id])
+  statusChangeLogs StatusChangeLog[]
 
   @@map("traffic_assignments")
+}
+
+model StatusChangeLog {
+  id             String          @id @default(uuid()) @db.Uuid
+  assignmentId   String          @map("assignment_id") @db.Uuid
+  changedBy      String          @map("changed_by")
+  changedById    String          @map("changed_by_id") @db.Uuid
+  previousStatus PortalJobStatus @map("previous_status")
+  newStatus      PortalJobStatus @map("new_status")
+  gpsLatitude    Decimal         @map("gps_latitude") @db.Decimal(10, 7)
+  gpsLongitude   Decimal         @map("gps_longitude") @db.Decimal(10, 7)
+  gpsMapLink     String          @map("gps_map_link")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  assignment     TrafficAssignment @relation(fields: [assignmentId], references: [id])
+
+  @@index([assignmentId])
+  @@map("status_change_logs")
 }
 
 // ─────────────────────────────────────────────
@@ -983,7 +1012,7 @@ model DriverNotification {
 
 model NoShowEvidence {
   id             String   @id @default(uuid()) @db.Uuid
-  trafficJobId   String   @unique @map("traffic_job_id") @db.Uuid
+  trafficJobId   String   @map("traffic_job_id") @db.Uuid
   imageUrl1      String   @map("image_url_1")
   imageUrl2      String   @map("image_url_2")
   gpsLatitude    Decimal  @map("gps_latitude") @db.Decimal(10, 7)
@@ -995,5 +1024,6 @@ model NoShowEvidence {
 
   trafficJob     TrafficJob @relation(fields: [trafficJobId], references: [id])
 
+  @@unique([trafficJobId, submittedBy])
   @@map("no_show_evidence")
 }

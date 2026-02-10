@@ -6,10 +6,18 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-type DriverJobStatus = 'COMPLETED' | 'CANCELLED';
+type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
-const DRIVER_ALLOWED_STATUSES: DriverJobStatus[] = ['COMPLETED', 'CANCELLED'];
-const TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
+const DRIVER_ALLOWED_STATUSES: DriverJobStatus[] = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+const DRIVER_TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
+
+const DRIVER_VALID_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
+  IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
+  CANCELLED: [],
+  NO_SHOW: [],
+};
 
 @Injectable()
 export class DriverPortalService {
@@ -65,7 +73,10 @@ export class DriverPortalService {
     return {
       date: jobDate.toISOString().split('T')[0],
       driverId,
-      jobs: assignments.map((a) => a.trafficJob),
+      jobs: assignments.map((a) => ({
+        ...a.trafficJob,
+        driverStatus: a.driverStatus,
+      })),
     };
   }
 
@@ -77,10 +88,10 @@ export class DriverPortalService {
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         driverId,
+        driverStatus: { in: DRIVER_TERMINAL_STATUSES as any },
         trafficJob: {
           jobDate: { gte: from, lte: to },
           deletedAt: null,
-          status: { in: TERMINAL_STATUSES as any },
         },
       },
       include: {
@@ -103,6 +114,7 @@ export class DriverPortalService {
       driverId,
       jobs: assignments.map((a) => ({
         ...a.trafficJob,
+        driverStatus: a.driverStatus,
         feeEarned: a.trafficJob.driverFees[0]
           ? Number(a.trafficJob.driverFees[0].amount)
           : null,
@@ -110,7 +122,13 @@ export class DriverPortalService {
     };
   }
 
-  async updateJobStatus(userId: string, jobId: string, status: DriverJobStatus) {
+  async updateJobStatus(
+    userId: string,
+    jobId: string,
+    status: DriverJobStatus,
+    latitude: number,
+    longitude: number,
+  ) {
     const driverId = await this.resolveDriverId(userId);
 
     if (!DRIVER_ALLOWED_STATUSES.includes(status)) {
@@ -133,48 +151,44 @@ export class DriverPortalService {
       throw new NotFoundException('Job not found or not assigned to you');
     }
 
-    const currentStatus = assignment.trafficJob.status;
-    if (TERMINAL_STATUSES.includes(currentStatus)) {
+    const currentStatus = assignment.driverStatus;
+    const allowed = DRIVER_VALID_TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes(status)) {
       throw new BadRequestException(
-        `Job is already in terminal status "${currentStatus}"`,
+        `Cannot change driver status from "${currentStatus}" to "${status}"`,
       );
     }
 
-    if (currentStatus !== 'ASSIGNED' && currentStatus !== 'IN_PROGRESS') {
-      throw new BadRequestException(
-        `Cannot change status from "${currentStatus}"`,
-      );
-    }
+    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
     return this.prisma.$transaction(async (tx) => {
-      const updatedJob = await tx.trafficJob.update({
-        where: { id: jobId },
-        data: { status },
-        include: this.jobInclude,
+      const updated = await tx.trafficAssignment.update({
+        where: { id: assignment.id },
+        data: { driverStatus: status as any },
+        include: {
+          trafficJob: {
+            include: this.jobInclude,
+          },
+        },
       });
 
-      // Auto-generate DriverTripFee when a job is completed
-      if (status === 'COMPLETED' && updatedJob.fromZoneId && updatedJob.toZoneId) {
-        const existingFee = await tx.driverTripFee.findFirst({
-          where: { driverId, trafficJobId: jobId },
-        });
+      await tx.statusChangeLog.create({
+        data: {
+          assignmentId: assignment.id,
+          changedBy: 'DRIVER',
+          changedById: driverId,
+          previousStatus: currentStatus as any,
+          newStatus: status as any,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+        },
+      });
 
-        if (!existingFee) {
-          // Look up fee amount from driver trip fee schedule
-          const feeSchedule = await tx.driverTripFee.findFirst({
-            where: {
-              driverId,
-              fromZoneId: updatedJob.fromZoneId,
-              toZoneId: updatedJob.toZoneId,
-            },
-          });
-
-          // Only auto-create if there's no existing fee (the dispatch service handles fee creation)
-          // This is a no-op safety net — dispatch already handles fee creation on COMPLETED
-        }
-      }
-
-      return updatedJob;
+      return {
+        ...updated.trafficJob,
+        driverStatus: updated.driverStatus,
+      };
     });
   }
 
@@ -202,26 +216,30 @@ export class DriverPortalService {
       throw new NotFoundException('Job not found or not assigned to you');
     }
 
-    const currentStatus = assignment.trafficJob.status;
-    if (TERMINAL_STATUSES.includes(currentStatus)) {
+    const currentStatus = assignment.driverStatus;
+    if (DRIVER_TERMINAL_STATUSES.includes(currentStatus)) {
       throw new BadRequestException(
-        `Job is already in terminal status "${currentStatus}"`,
+        `Driver status is already terminal: "${currentStatus}"`,
       );
     }
 
-    if (currentStatus !== 'ASSIGNED' && currentStatus !== 'IN_PROGRESS') {
+    if (currentStatus !== 'PENDING' && currentStatus !== 'IN_PROGRESS') {
       throw new BadRequestException(
-        `Cannot change status from "${currentStatus}"`,
+        `Cannot change driver status from "${currentStatus}"`,
       );
     }
 
     const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
     return this.prisma.$transaction(async (tx) => {
-      const updatedJob = await tx.trafficJob.update({
-        where: { id: jobId },
-        data: { status: 'NO_SHOW' },
-        include: this.jobInclude,
+      const updated = await tx.trafficAssignment.update({
+        where: { id: assignment.id },
+        data: { driverStatus: 'NO_SHOW' as any },
+        include: {
+          trafficJob: {
+            include: this.jobInclude,
+          },
+        },
       });
 
       await tx.noShowEvidence.create({
@@ -237,7 +255,23 @@ export class DriverPortalService {
         },
       });
 
-      return updatedJob;
+      await tx.statusChangeLog.create({
+        data: {
+          assignmentId: assignment.id,
+          changedBy: 'DRIVER',
+          changedById: driverId,
+          previousStatus: currentStatus as any,
+          newStatus: 'NO_SHOW' as any,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+        },
+      });
+
+      return {
+        ...updated.trafficJob,
+        driverStatus: updated.driverStatus,
+      };
     });
   }
 
