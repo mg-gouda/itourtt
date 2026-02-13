@@ -9,4 +9,8 @@ coverage/
 .turbo/
 backend/uploads/
 backend/generated/
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+!nginx/ssl/.gitkeep
 *:Zone.Identifier
