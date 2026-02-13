@@ -3,16 +3,19 @@ import * as express from 'express';
 import { ExportService } from './export.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 
 @Controller('export/odoo')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 
   @Get('dispatch')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+  @Permissions('dispatch.exportButton')
   async exportDispatchDay(
     @Query('date') date: string,
     @Res() res: express.Response,
@@ -25,6 +28,7 @@ export class ExportController {
   }
 
   @Get('rep-fees')
+  @Permissions('reports.repFees')
   async exportRepFees(
     @Query('date') date: string,
     @Res() res: express.Response,
@@ -37,36 +41,42 @@ export class ExportController {
   }
 
   @Get('customers')
+  @Permissions('finance.exports.customers')
   async exportCustomers(@Res() res: express.Response) {
     const buffer = await this.exportService.exportCustomers();
     this.sendXlsx(res, buffer, 'odoo_customers');
   }
 
   @Get('suppliers')
+  @Permissions('finance.exports.suppliers')
   async exportSuppliers(@Res() res: express.Response) {
     const buffer = await this.exportService.exportSuppliers();
     this.sendXlsx(res, buffer, 'odoo_suppliers');
   }
 
   @Get('invoices')
+  @Permissions('finance.exports.invoices')
   async exportInvoices(@Res() res: express.Response) {
     const buffer = await this.exportService.exportInvoices();
     this.sendXlsx(res, buffer, 'odoo_customer_invoices');
   }
 
   @Get('vendor-bills')
+  @Permissions('finance.exports.vendorBills')
   async exportVendorBills(@Res() res: express.Response) {
     const buffer = await this.exportService.exportVendorBills();
     this.sendXlsx(res, buffer, 'odoo_vendor_bills');
   }
 
   @Get('payments')
+  @Permissions('finance.exports.payments')
   async exportPayments(@Res() res: express.Response) {
     const buffer = await this.exportService.exportPayments();
     this.sendXlsx(res, buffer, 'odoo_payments');
   }
 
   @Get('journals')
+  @Permissions('finance.exports.journals')
   async exportJournalEntries(@Res() res: express.Response) {
     const buffer = await this.exportService.exportJournalEntries();
     this.sendXlsx(res, buffer, 'odoo_journal_entries');
@@ -74,6 +84,7 @@ export class ExportController {
 
   @Get('client-signs')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+  @Permissions('dispatch.exportButton')
   async exportClientSigns(
     @Query('date') date: string,
     @Res() res: express.Response,

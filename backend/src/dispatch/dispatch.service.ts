@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
@@ -10,6 +11,7 @@ import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import type { ServiceType, JobStatus } from '../../generated/prisma/client.js';
 
 const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
 @Injectable()
 export class DispatchService {
@@ -79,7 +81,7 @@ export class DispatchService {
   // ASSIGN JOB
   // ─────────────────────────────────────────────
 
-  async assignJob(dto: AssignJobDto, userId: string) {
+  async assignJob(dto: AssignJobDto, userId: string, userRole?: string, roleSlug?: string) {
     // 1. Verify job exists and is eligible
     const job = await this.prisma.trafficJob.findFirst({
       where: { id: dto.trafficJobId, deletedAt: null },
@@ -91,6 +93,9 @@ export class DispatchService {
         `Traffic job with ID "${dto.trafficJobId}" not found`,
       );
     }
+
+    // Dispatcher 48-hour lock (skip if job was explicitly unlocked)
+    this.checkDispatcherTimelock(job.jobDate, userRole, roleSlug, job.dispatchUnlockedAt);
 
     if (job.status === ('CANCELLED' as JobStatus)) {
       throw new BadRequestException('Cannot assign a cancelled job');
@@ -216,7 +221,7 @@ export class DispatchService {
   // REASSIGN JOB
   // ─────────────────────────────────────────────
 
-  async reassignJob(assignmentId: string, dto: ReassignJobDto, userId: string) {
+  async reassignJob(assignmentId: string, dto: ReassignJobDto, userId: string, userRole?: string, roleSlug?: string) {
     if (!dto.vehicleId && !dto.driverId && !dto.repId) {
       throw new BadRequestException(
         'At least one of vehicleId, driverId, or repId must be provided',
@@ -238,6 +243,9 @@ export class DispatchService {
     }
 
     const job = existing.trafficJob;
+
+    // Dispatcher 48-hour lock (skip if job was explicitly unlocked)
+    this.checkDispatcherTimelock(job.jobDate, userRole, roleSlug, job.dispatchUnlockedAt);
 
     // Vehicle validation
     if (dto.vehicleId) {
@@ -357,7 +365,7 @@ export class DispatchService {
   // UNASSIGN JOB
   // ─────────────────────────────────────────────
 
-  async unassignJob(assignmentId: string) {
+  async unassignJob(assignmentId: string, userRole?: string, roleSlug?: string) {
     const assignment = await this.prisma.trafficAssignment.findUnique({
       where: { id: assignmentId },
       include: { trafficJob: true },
@@ -368,6 +376,9 @@ export class DispatchService {
         `Assignment with ID "${assignmentId}" not found`,
       );
     }
+
+    // Dispatcher 48-hour lock (skip if job was explicitly unlocked)
+    this.checkDispatcherTimelock(assignment.trafficJob.jobDate, userRole, roleSlug, assignment.trafficJob.dispatchUnlockedAt);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.trafficAssignment.delete({
@@ -387,7 +398,7 @@ export class DispatchService {
   // AVAILABLE RESOURCES
   // ─────────────────────────────────────────────
 
-  async getAvailableVehicles(date: string) {
+  async getAvailableVehicles(date: string, supplierId?: string) {
     const jobDate = new Date(date);
 
     const busyAssignments = await this.prisma.trafficAssignment.findMany({
@@ -407,27 +418,72 @@ export class DispatchService {
       where: {
         deletedAt: null,
         isActive: true,
-        ownership: { not: 'CONTRACTED' },
+        ...(supplierId ? { supplierId } : {}),
         ...(busyVehicleIds.length > 0 && {
           id: { notIn: busyVehicleIds },
         }),
       },
-      include: { vehicleType: true },
+      include: { vehicleType: true, supplier: { select: { id: true, legalName: true, tradeName: true } } },
       orderBy: { plateNumber: 'asc' },
     });
+  }
+
+  async getAvailableSuppliers() {
+    const suppliers = await this.prisma.supplier.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        vehicles: {
+          some: {
+            deletedAt: null,
+            isActive: true,
+          },
+        },
+      },
+      select: {
+        id: true,
+        legalName: true,
+        tradeName: true,
+        _count: {
+          select: {
+            vehicles: {
+              where: { deletedAt: null, isActive: true },
+            },
+          },
+        },
+      },
+      orderBy: { legalName: 'asc' },
+    });
+
+    return suppliers.map((s) => ({
+      id: s.id,
+      legalName: s.legalName,
+      tradeName: s.tradeName,
+      vehicleCount: s._count.vehicles,
+    }));
   }
 
   /**
    * Time-aware driver availability. When jobId is provided, only returns drivers
    * with a 3+ hour gap from the target job's flight time.
    */
-  async getAvailableDrivers(date: string, jobId?: string) {
+  async getAvailableDrivers(date: string, jobId?: string, supplierId?: string) {
     const jobDate = new Date(date);
+
+    // Supplier filter: "owned" means supplierId IS NULL, UUID means match that supplier
+    const supplierFilter = supplierId === 'owned'
+      ? { supplierId: null }
+      : supplierId
+        ? { supplierId }
+        : {};
+
+    const driverInclude = { supplier: { select: { id: true, legalName: true, tradeName: true } } };
 
     // If no jobId, return all active drivers (legacy fallback)
     if (!jobId) {
       return this.prisma.driver.findMany({
-        where: { deletedAt: null, isActive: true },
+        where: { deletedAt: null, isActive: true, ...supplierFilter },
+        include: driverInclude,
         orderBy: { name: 'asc' },
       });
     }
@@ -438,7 +494,8 @@ export class DispatchService {
     });
     if (!targetJob) {
       return this.prisma.driver.findMany({
-        where: { deletedAt: null, isActive: true },
+        where: { deletedAt: null, isActive: true, ...supplierFilter },
+        include: driverInclude,
         orderBy: { name: 'asc' },
       });
     }
@@ -493,10 +550,12 @@ export class DispatchService {
       where: {
         deletedAt: null,
         isActive: true,
+        ...supplierFilter,
         ...(busyDriverIds.length > 0 && {
           id: { notIn: busyDriverIds },
         }),
       },
+      include: driverInclude,
       orderBy: { name: 'asc' },
     });
   }
@@ -602,6 +661,68 @@ export class DispatchService {
   // ─────────────────────────────────────────────
   // PRIVATE HELPERS
   // ─────────────────────────────────────────────
+
+  // ─────────────────────────────────────────────
+  // UNLOCK / LOCK JOB (48-hour override)
+  // ─────────────────────────────────────────────
+
+  async unlockJob(jobId: string, userId: string) {
+    const job = await this.prisma.trafficJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+    });
+    if (!job) {
+      throw new NotFoundException(`Traffic job with ID "${jobId}" not found`);
+    }
+    return this.prisma.trafficJob.update({
+      where: { id: jobId },
+      data: {
+        dispatchUnlockedAt: new Date(),
+        dispatchUnlockedById: userId,
+      },
+    });
+  }
+
+  async lockJob(jobId: string) {
+    const job = await this.prisma.trafficJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+    });
+    if (!job) {
+      throw new NotFoundException(`Traffic job with ID "${jobId}" not found`);
+    }
+    return this.prisma.trafficJob.update({
+      where: { id: jobId },
+      data: {
+        dispatchUnlockedAt: null,
+        dispatchUnlockedById: null,
+      },
+    });
+  }
+
+  /**
+   * Dispatchers cannot modify assignments after 48 hours from the service date,
+   * unless the job has been explicitly unlocked by an authorized user.
+   * Admins and Managers bypass this restriction.
+   */
+  private checkDispatcherTimelock(
+    jobDate: Date,
+    userRole?: string,
+    roleSlug?: string,
+    dispatchUnlockedAt?: Date | null,
+  ) {
+    const isDispatcher =
+      userRole === 'DISPATCHER' || roleSlug === 'dispatcher';
+    if (!isDispatcher) return;
+
+    // Skip if job was explicitly unlocked
+    if (dispatchUnlockedAt) return;
+
+    const cutoff = new Date(jobDate.getTime() + FORTY_EIGHT_HOURS_MS);
+    if (new Date() > cutoff) {
+      throw new ForbiddenException(
+        'Dispatchers cannot modify assignments more than 48 hours after the service date.',
+      );
+    }
+  }
 
   /**
    * Get the reference time for a job. ARR → arrivalTime, DEP → departureTime or pickUpTime.

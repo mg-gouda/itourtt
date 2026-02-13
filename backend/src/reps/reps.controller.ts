@@ -25,7 +25,9 @@ import { AssignZoneDto } from './dto/assign-zone.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -44,17 +46,19 @@ const uploadStorage = diskStorage({
 });
 
 @Controller('reps')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class RepsController {
   constructor(private readonly repsService: RepsService) {}
 
   @Get()
+  @Permissions('reps')
   async findAll(@Query() query: PaginationDto) {
     return this.repsService.findAll(query);
   }
 
   @Get('export/excel')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('reps.export')
   async exportExcel(@Res() res: Response) {
     const buffer = await this.repsService.exportToExcel();
     const date = new Date().toISOString().split('T')[0];
@@ -68,6 +72,7 @@ export class RepsController {
 
   @Get('import/template')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('reps.downloadTemplate')
   async downloadTemplate(@Res() res: Response) {
     const buffer = await this.repsService.generateImportTemplate();
     res.set({
@@ -80,6 +85,7 @@ export class RepsController {
 
   @Post('import/excel')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('reps.import')
   @UseInterceptors(FileInterceptor('file'))
   async importExcel(@UploadedFile() file: any) {
     if (!file) {
@@ -94,12 +100,14 @@ export class RepsController {
 
   @Post()
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('reps.addButton')
   async create(@Body() dto: CreateRepDto) {
     const rep = await this.repsService.create(dto);
     return new ApiResponse(rep, 'Rep created successfully');
   }
 
   @Get(':id')
+  @Permissions('reps')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const rep = await this.repsService.findOne(id);
     return new ApiResponse(rep);
@@ -107,6 +115,7 @@ export class RepsController {
 
   @Patch(':id')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('reps.table.editButton')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRepDto,
@@ -117,6 +126,7 @@ export class RepsController {
 
   @Patch(':id/status')
   @Roles('ADMIN')
+  @Permissions('reps.table.toggleStatus')
   async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.repsService.toggleStatus(id);
     return new ApiResponse(result, 'Rep status updated successfully');
@@ -124,6 +134,7 @@ export class RepsController {
 
   @Delete(':id')
   @Roles('ADMIN')
+  @Permissions('reps.table.deleteButton')
   async softDelete(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.repsService.softDelete(id);
     return new ApiResponse(result, 'Rep removed successfully');
@@ -131,6 +142,7 @@ export class RepsController {
 
   @Post(':id/zones')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('reps.table.editButton')
   async assignZone(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignZoneDto,
@@ -141,6 +153,7 @@ export class RepsController {
 
   @Delete(':repId/zones/:zoneId')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('reps.table.editButton')
   async unassignZone(
     @Param('repId', ParseUUIDPipe) repId: string,
     @Param('zoneId', ParseUUIDPipe) zoneId: string,
@@ -151,6 +164,7 @@ export class RepsController {
 
   @Post(':id/attachment')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('reps.table.uploadAttachment')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadAttachment(
     @Param('id', ParseUUIDPipe) id: string,
@@ -163,6 +177,7 @@ export class RepsController {
 
   @Post(':id/account')
   @Roles('ADMIN')
+  @Permissions('reps.table.createAccount')
   async createAccount(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: { email: string; password: string },
@@ -173,6 +188,7 @@ export class RepsController {
 
   @Patch(':id/account/password')
   @Roles('ADMIN')
+  @Permissions('reps.table.resetPassword')
   async resetPassword(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: { password: string },

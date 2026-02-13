@@ -10,7 +10,9 @@ import {
 import { ReportsService } from './reports.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsOptional, IsString } from 'class-validator';
 
@@ -28,12 +30,13 @@ class DayQueryDto {
 }
 
 @Controller('reports')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT', 'DISPATCHER')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('daily-dispatch')
+  @Permissions('reports.dailyDispatch')
   async dailyDispatchSummary(@Query() query: DayQueryDto) {
     if (!query.date) {
       throw new BadRequestException('date query parameter is required');
@@ -43,6 +46,7 @@ export class ReportsController {
   }
 
   @Get('rep-fees')
+  @Permissions('reports.repFees')
   async repFeeReport(@Query() query: DayQueryDto) {
     if (!query.date) {
       throw new BadRequestException('date query parameter is required');
@@ -52,6 +56,7 @@ export class ReportsController {
   }
 
   @Get('driver-trips')
+  @Permissions('reports.driverTrips')
   async driverTripReport(@Query() query: DateRangeQueryDto) {
     if (!query.from || !query.to) {
       throw new BadRequestException(
@@ -66,6 +71,7 @@ export class ReportsController {
   }
 
   @Get('agent-statement/:agentId')
+  @Permissions('reports.agentStatement')
   async agentStatement(
     @Param('agentId', ParseUUIDPipe) agentId: string,
     @Query() query: DateRangeQueryDto,
@@ -84,6 +90,7 @@ export class ReportsController {
   }
 
   @Get('revenue')
+  @Permissions('reports.revenue')
   async revenueReport(@Query() query: DateRangeQueryDto) {
     if (!query.from || !query.to) {
       throw new BadRequestException(

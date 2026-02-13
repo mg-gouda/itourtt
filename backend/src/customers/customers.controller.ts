@@ -22,7 +22,9 @@ import { BulkPriceListDto } from './dto/price-list.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsOptional, IsString } from 'class-validator';
 
@@ -33,17 +35,19 @@ class CustomerListQueryDto extends PaginationDto {
 }
 
 @Controller('customers')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Get()
+  @Permissions('customers')
   async findAll(@Query() query: CustomerListQueryDto) {
     const { search, ...pagination } = query;
     return this.customersService.findAll(pagination, search);
   }
 
   @Get(':id')
+  @Permissions('customers')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const customer = await this.customersService.findOne(id);
     return new ApiResponse(customer);
@@ -51,6 +55,7 @@ export class CustomersController {
 
   @Post()
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('customers.addButton')
   async create(@Body() dto: CreateCustomerDto) {
     const customer = await this.customersService.create(dto);
     return new ApiResponse(customer, 'Customer created successfully');
@@ -58,6 +63,7 @@ export class CustomersController {
 
   @Patch(':id')
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('customers.table.editButton')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCustomerDto,
@@ -68,6 +74,7 @@ export class CustomersController {
 
   @Patch(':id/status')
   @Roles('ADMIN')
+  @Permissions('customers.table.toggleStatus')
   async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.customersService.toggleStatus(id);
     return new ApiResponse(result, 'Customer status updated successfully');
@@ -75,6 +82,7 @@ export class CustomersController {
 
   @Delete(':id')
   @Roles('ADMIN')
+  @Permissions('customers.table.editButton')
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.customersService.remove(id);
     return new ApiResponse(result, 'Customer deleted successfully');
@@ -83,6 +91,7 @@ export class CustomersController {
   // Price List Endpoints
 
   @Get(':id/price-list')
+  @Permissions('customers.detail.priceList')
   async getPriceList(@Param('id', ParseUUIDPipe) id: string) {
     const priceItems = await this.customersService.getPriceList(id);
     return new ApiResponse(priceItems);
@@ -90,6 +99,7 @@ export class CustomersController {
 
   @Post(':id/price-list')
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('customers.detail.priceList.editPrice')
   async upsertPriceItems(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: BulkPriceListDto,
@@ -100,6 +110,7 @@ export class CustomersController {
 
   @Delete(':id/price-list/:priceItemId')
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('customers.detail.priceList.deleteRoute')
   async deletePriceItem(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('priceItemId', ParseUUIDPipe) priceItemId: string,
@@ -109,6 +120,7 @@ export class CustomersController {
   }
 
   @Get('price-list/template')
+  @Permissions('customers.detail.priceList.downloadTemplate')
   async downloadPriceListTemplate(@Res() res: Response) {
     const buffer = await this.customersService.generatePriceListTemplate();
     res.set({
@@ -121,6 +133,7 @@ export class CustomersController {
 
   @Post(':id/price-list/import')
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('customers.detail.priceList.import')
   @UseInterceptors(FileInterceptor('file'))
   async importPriceList(
     @Param('id', ParseUUIDPipe) id: string,

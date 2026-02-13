@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -20,6 +22,12 @@ import { ReportsModule } from './reports/reports.module.js';
 import { SettingsModule } from './settings/settings.module.js';
 import { RepPortalModule } from './rep-portal/rep-portal.module.js';
 import { DriverPortalModule } from './driver-portal/driver-portal.module.js';
+import { WhatsappNotificationsModule } from './whatsapp-notifications/whatsapp-notifications.module.js';
+import { PermissionsModule } from './permissions/permissions.module.js';
+import { JobLocksModule } from './job-locks/job-locks.module.js';
+import { SupplierPortalModule } from './supplier-portal/supplier-portal.module.js';
+import { ActivityLogsModule } from './activity-logs/activity-logs.module.js';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 
 @Module({
   imports: [
@@ -27,7 +35,9 @@ import { DriverPortalModule } from './driver-portal/driver-portal.module.js';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
+    PermissionsModule,
     AuthModule,
     UsersModule,
     LocationsModule,
@@ -45,8 +55,15 @@ import { DriverPortalModule } from './driver-portal/driver-portal.module.js';
     SettingsModule,
     RepPortalModule,
     DriverPortalModule,
+    WhatsappNotificationsModule,
+    JobLocksModule,
+    SupplierPortalModule,
+    ActivityLogsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+  ],
 })
 export class AppModule {}

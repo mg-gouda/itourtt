@@ -17,7 +17,9 @@ import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 
 /** Ensure the uploads directory exists at startup. */
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -55,8 +57,9 @@ export class SettingsController {
   // ──────────────────────────────────────────────
 
   @Patch('system')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('company.editSettings')
   async updateSystemSettings(@Body() dto: UpdateSystemSettingsDto) {
     return this.settingsService.updateSystemSettings(dto);
   }
@@ -75,8 +78,9 @@ export class SettingsController {
   // ──────────────────────────────────────────────
 
   @Patch('company')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('company.editSettings')
   async updateCompanySettings(@Body() dto: UpdateCompanySettingsDto) {
     return this.settingsService.updateCompanySettings(dto);
   }
@@ -86,8 +90,9 @@ export class SettingsController {
   // ──────────────────────────────────────────────
 
   @Post('company/logo')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('company.uploadLogo')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadLogo(@UploadedFile() file: any /* Express.Multer.File */) {
     const url = '/uploads/' + file.filename;
@@ -100,8 +105,9 @@ export class SettingsController {
   // ──────────────────────────────────────────────
 
   @Post('company/favicon')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('company.uploadFavicon')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadFavicon(@UploadedFile() file: any /* Express.Multer.File */) {
     const url = '/uploads/' + file.filename;

@@ -7,14 +7,17 @@ import {
   IsString,
   IsDateString,
   IsArray,
+  IsInt,
+  Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class InvoiceLineDto {
   @IsUUID()
-  @IsNotEmpty()
-  trafficJobId!: string;
+  @IsOptional()
+  trafficJobId?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -22,7 +25,24 @@ export class InvoiceLineDto {
 
   @IsNumber()
   @IsPositive()
-  amount!: number;
+  @IsOptional()
+  amount?: number;
+
+  @IsNumber()
+  @IsPositive()
+  @IsOptional()
+  unitPrice?: number;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  quantity?: number;
+
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  @IsOptional()
+  taxRate?: number;
 }
 
 export class CreateInvoiceDto {

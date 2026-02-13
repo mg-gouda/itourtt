@@ -1,5 +1,5 @@
 // ─── Enums ──────────────────────────────────────────────────────
-export type UserRole = 'ADMIN' | 'DISPATCHER' | 'ACCOUNTANT' | 'AGENT_MANAGER' | 'VIEWER' | 'REP' | 'DRIVER';
+export type UserRole = 'ADMIN' | 'DISPATCHER' | 'ACCOUNTANT' | 'AGENT_MANAGER' | 'VIEWER' | 'REP' | 'DRIVER' | 'SUPPLIER';
 export type ServiceType = 'ARR' | 'DEP' | 'EXCURSION' | 'ROUND_TRIP' | 'ONE_WAY_GOING' | 'ONE_WAY_RETURN' | 'OVER_DAY' | 'TRANSFER' | 'CITY_TOUR' | 'COLLECTING_ONE_WAY' | 'COLLECTING_ROUND_TRIP' | 'EXPRESS_SHOPPING';
 export type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type VehicleOwnership = 'OWNED' | 'RENTED' | 'CONTRACTED';
@@ -15,8 +15,11 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
+  roleId?: string;
+  roleSlug?: string;
   repId?: string;
   driverId?: string;
+  supplierId?: string;
 }
 
 export interface AuthResponse {
@@ -103,6 +106,13 @@ export interface Vehicle {
   vehicleTypeId: string;
   vehicleType?: VehicleType;
   ownership: VehicleOwnership;
+  color?: string | null;
+  carBrand?: string | null;
+  carModel?: string | null;
+  makeYear?: number | null;
+  luggageCapacity?: number | null;
+  supplierId?: string | null;
+  supplier?: { id: string; legalName: string; tradeName?: string | null } | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -199,6 +209,8 @@ export interface Supplier {
   country: string;
   phone: string;
   email: string;
+  userId?: string | null;
+  user?: { id: string; email: string; name: string; role: string; isActive: boolean } | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -207,13 +219,22 @@ export interface Supplier {
 export interface SupplierTripPrice {
   id: string;
   supplierId: string;
+  serviceType: ServiceType;
   fromZoneId: string;
   toZoneId: string;
   vehicleTypeId: string;
   price: number;
+  driverTip: number;
   currency: Currency;
-  effectiveFrom: string;
+  effectiveFrom: string | null;
   effectiveTo: string | null;
+  fromZone?: Zone;
+  toZone?: Zone;
+  vehicleType?: VehicleType;
+}
+
+export interface SupplierWithVehicles extends Supplier {
+  vehicles?: Vehicle[];
 }
 
 // ─── Traffic Jobs ───────────────────────────────────────────────

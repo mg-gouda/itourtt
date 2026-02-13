@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Truck, Plus, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Truck, Plus, Loader2, UserPlus, KeyRound, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,8 @@ interface Supplier {
   country: string;
   phone: string;
   email: string;
+  userId?: string | null;
+  user?: { id: string; email: string; name: string; role: string; isActive: boolean } | null;
   isActive: boolean;
 }
 
@@ -51,6 +54,7 @@ interface SuppliersResponse {
 
 export default function SuppliersPage() {
   const t = useT();
+  const router = useRouter();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -72,6 +76,15 @@ export default function SuppliersPage() {
   }, [suppliers, search]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable<Supplier>(filtered);
+
+  // Account management
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [accountSupplierId, setAccountSupplierId] = useState<string | null>(null);
+  const [accountSupplierName, setAccountSupplierName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   const [legalName, setLegalName] = useState("");
   const [tradeName, setTradeName] = useState("");
@@ -199,6 +212,69 @@ export default function SuppliersPage() {
     }
   }
 
+  function openAccountDialog(supplier: Supplier) {
+    setAccountSupplierId(supplier.id);
+    setAccountSupplierName(supplier.legalName);
+    setAccountEmail(supplier.email || "");
+    setAccountPassword("");
+    setAccountDialogOpen(true);
+  }
+
+  function openPasswordDialog(supplier: Supplier) {
+    setAccountSupplierId(supplier.id);
+    setAccountSupplierName(supplier.legalName);
+    setNewPassword("");
+    setPasswordDialogOpen(true);
+  }
+
+  async function handleCreateAccount() {
+    if (!accountSupplierId || !accountEmail.trim() || !accountPassword.trim()) {
+      toast.error("Email and password are required");
+      return;
+    }
+    if (accountPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await api.post(`/suppliers/${accountSupplierId}/account`, {
+        email: accountEmail.trim(),
+        password: accountPassword,
+      });
+      toast.success("Supplier account created successfully");
+      setAccountDialogOpen(false);
+      fetchSuppliers();
+    } catch {
+      toast.error("Failed to create account");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!accountSupplierId || !newPassword.trim()) {
+      toast.error("Password is required");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await api.patch(`/suppliers/${accountSupplierId}/account/password`, {
+        password: newPassword,
+      });
+      toast.success("Password reset successfully");
+      setPasswordDialogOpen(false);
+    } catch {
+      toast.error("Failed to reset password");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -248,6 +324,7 @@ export default function SuppliersPage() {
                   <SortableHeader label={t("locations.city")} sortKey="city" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("locations.country")} sortKey="country" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("agents.phone")}</TableHead>
+                  <TableHead className="text-white text-xs">Account</TableHead>
                   <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
                   <TableHead className="text-right text-white text-xs">
                     {t("common.actions")}
@@ -279,6 +356,34 @@ export default function SuppliersPage() {
                     {supplier.phone || "-"}
                   </TableCell>
                   <TableCell>
+                    {supplier.userId ? (
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="text-xs">
+                          {supplier.user?.email}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
+                          onClick={() => openPasswordDialog(supplier)}
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />
+                          {t("common.reset")}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => openAccountDialog(supplier)}
+                      >
+                        <UserPlus className="h-3.5 w-3.5" />
+                        Create Account
+                      </Button>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <button onClick={() => handleToggleStatus(supplier.id)} className="cursor-pointer">
                       {supplier.isActive ? (
                         <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
@@ -292,14 +397,25 @@ export default function SuppliersPage() {
                     </button>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-foreground"
-                      onClick={() => openEditDialog(supplier)}
-                    >
-                      {t("common.edit")}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1 text-muted-foreground hover:text-foreground"
+                        onClick={() => router.push(`/dashboard/suppliers/${supplier.id}`)}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {t("common.view")}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => openEditDialog(supplier)}
+                      >
+                        {t("common.edit")}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -438,6 +554,85 @@ export default function SuppliersPage() {
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {t("common.create")} {t("suppliers.title")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Account Dialog */}
+      <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
+        <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Account for {accountSupplierName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="acct-email" className="text-muted-foreground">
+                {t("common.email")} *
+              </Label>
+              <Input
+                id="acct-email"
+                type="email"
+                placeholder="supplier@itour.local"
+                value={accountEmail}
+                onChange={(e) => setAccountEmail(e.target.value)}
+                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="acct-password" className="text-muted-foreground">
+                {t("common.password")} *
+              </Label>
+              <Input
+                id="acct-password"
+                type="password"
+                placeholder="Min 6 characters"
+                value={accountPassword}
+                onChange={(e) => setAccountPassword(e.target.value)}
+                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAccountDialogOpen(false)} disabled={submitting}>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={handleCreateAccount} disabled={submitting} className="gap-1.5">
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Create Account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password for {accountSupplierName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="new-pw" className="text-muted-foreground">
+                New Password *
+              </Label>
+              <Input
+                id="new-pw"
+                type="password"
+                placeholder="Min 6 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPasswordDialogOpen(false)} disabled={submitting}>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={handleResetPassword} disabled={submitting} className="gap-1.5">
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Reset Password
             </Button>
           </DialogFooter>
         </DialogContent>

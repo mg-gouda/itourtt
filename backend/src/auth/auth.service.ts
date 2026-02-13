@@ -24,7 +24,17 @@ export class AuthService {
   async login(email: string, password: string): Promise<AuthResponseDto> {
     const user = await this.validateUser(email, password);
 
-    const tokens = await this.generateTokens(user);
+    // Load role reference for JWT
+    const userWithRole = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: { roleRef: { select: { id: true, slug: true } } },
+    });
+
+    const tokens = await this.generateTokens({
+      ...user,
+      roleId: userWithRole?.roleRef?.id,
+      roleSlug: userWithRole?.roleRef?.slug,
+    });
 
     // Store the hashed refresh token on the user record
     const hashedRefreshToken = await this.hashPassword(tokens.refreshToken);
@@ -53,6 +63,16 @@ export class AuthService {
       driverId = driver?.id;
     }
 
+    // If user is a SUPPLIER, resolve their supplierId
+    let supplierId: string | undefined;
+    if (user.role === 'SUPPLIER') {
+      const supplier = await this.prisma.supplier.findFirst({
+        where: { userId: user.id, deletedAt: null },
+        select: { id: true },
+      });
+      supplierId = supplier?.id;
+    }
+
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -61,8 +81,11 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        roleId: userWithRole?.roleRef?.id,
+        roleSlug: userWithRole?.roleRef?.slug,
         ...(repId && { repId }),
         ...(driverId && { driverId }),
+        ...(supplierId && { supplierId }),
       },
     };
   }
@@ -103,8 +126,18 @@ export class AuthService {
       throw new ForbiddenException('Refresh token does not match');
     }
 
+    // Load role reference for JWT
+    const userWithRole = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: { roleRef: { select: { id: true, slug: true } } },
+    });
+
     // Generate new token pair
-    const tokens = await this.generateTokens(user);
+    const tokens = await this.generateTokens({
+      ...user,
+      roleId: userWithRole?.roleRef?.id,
+      roleSlug: userWithRole?.roleRef?.slug,
+    });
 
     // Update stored refresh token hash
     const hashedRefreshToken = await this.hashPassword(tokens.refreshToken);
@@ -121,6 +154,8 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        roleId: userWithRole?.roleRef?.id,
+        roleSlug: userWithRole?.roleRef?.slug,
       },
     };
   }
@@ -172,12 +207,17 @@ export class AuthService {
    * Generate both access and refresh JWT tokens for a given user.
    */
   async generateTokens(
-    user: Pick<User, 'id' | 'email' | 'role'>,
+    user: Pick<User, 'id' | 'email' | 'role'> & {
+      roleId?: string;
+      roleSlug?: string;
+    },
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
+      roleId: user.roleId,
+      roleSlug: user.roleSlug,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

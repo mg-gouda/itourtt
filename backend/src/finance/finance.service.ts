@@ -10,6 +10,8 @@ import { CreateSupplierCostDto } from './dto/create-supplier-cost.dto.js';
 import { CreateInvoiceDto } from './dto/create-invoice.dto.js';
 import { CreatePaymentDto } from './dto/create-payment.dto.js';
 import { GenerateCustomerInvoicesDto } from './dto/create-customer-invoice.dto.js';
+import { UpdateInvoiceLinesDto } from './dto/update-invoice-lines.dto.js';
+import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 import { Currency, PaymentMethod, InvoiceStatus } from '../../generated/prisma/client.js';
@@ -213,6 +215,77 @@ export class FinanceService {
   }
 
   // ─────────────────────────────────────────────
+  // CREDIT LIMIT CHECK
+  // ─────────────────────────────────────────────
+
+  private async checkAgentCreditLimit(
+    agentId: string,
+    newInvoiceTotal: number,
+  ): Promise<void> {
+    const creditTerms = await this.prisma.agentCreditTerms.findUnique({
+      where: { agentId },
+    });
+
+    if (!creditTerms) return;
+
+    const creditLimit = Number(creditTerms.creditLimit);
+    if (creditLimit <= 0) return;
+
+    const outstandingResult = await this.prisma.agentInvoice.aggregate({
+      where: {
+        agentId,
+        status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.POSTED] },
+      },
+      _sum: { total: true },
+    });
+
+    const outstandingBalance = Number(outstandingResult._sum.total || 0);
+    const availableCredit = creditLimit - outstandingBalance;
+
+    if (newInvoiceTotal > availableCredit) {
+      throw new BadRequestException(
+        `Agent credit limit exceeded. Limit: ${creditLimit}, Outstanding: ${outstandingBalance}, Available: ${availableCredit.toFixed(2)}, Requested: ${newInvoiceTotal}`,
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // TAX CALCULATION HELPERS
+  // ─────────────────────────────────────────────
+
+  private calculateLineTax(
+    unitPrice: number,
+    quantity: number,
+    taxRate: number,
+  ): { taxAmount: number; lineTotal: number } {
+    const netAmount = unitPrice * quantity;
+    const taxAmount =
+      taxRate > 0
+        ? parseFloat((netAmount * taxRate / 100).toFixed(2))
+        : 0;
+    const lineTotal = parseFloat((netAmount + taxAmount).toFixed(2));
+    return { taxAmount, lineTotal };
+  }
+
+  private calculateInvoiceTotals(
+    lines: Array<{ unitPrice: number; quantity: number; taxRate: number }>,
+  ): { subtotal: number; taxAmount: number; total: number } {
+    let subtotal = 0;
+    let taxAmount = 0;
+    for (const line of lines) {
+      const net = line.unitPrice * line.quantity;
+      subtotal += net;
+      if (line.taxRate > 0) {
+        taxAmount += parseFloat((net * line.taxRate / 100).toFixed(2));
+      }
+    }
+    subtotal = parseFloat(subtotal.toFixed(2));
+    taxAmount = parseFloat(taxAmount.toFixed(2));
+    const total = parseFloat((subtotal + taxAmount).toFixed(2));
+    return { subtotal, taxAmount, total };
+  }
+
+  // ─────────────────────────────────────────────
   // INVOICES
   // ─────────────────────────────────────────────
 
@@ -236,21 +309,51 @@ export class FinanceService {
       );
     }
 
-    // Verify all traffic jobs in lines exist
-    const jobIds = dto.lines.map((line) => line.trafficJobId);
-    const jobs = await this.prisma.trafficJob.findMany({
-      where: { id: { in: jobIds }, deletedAt: null },
-    });
-    if (jobs.length !== jobIds.length) {
-      const foundIds = new Set(jobs.map((j) => j.id));
-      const missingIds = jobIds.filter((id) => !foundIds.has(id));
-      throw new NotFoundException(
-        `Traffic jobs not found: ${missingIds.join(', ')}`,
-      );
+    // Verify all traffic jobs in lines exist (only for lines that have trafficJobId)
+    const jobIds = dto.lines
+      .map((line) => line.trafficJobId)
+      .filter((id): id is string => !!id);
+    if (jobIds.length > 0) {
+      const jobs = await this.prisma.trafficJob.findMany({
+        where: { id: { in: jobIds }, deletedAt: null },
+      });
+      if (jobs.length !== jobIds.length) {
+        const foundIds = new Set(jobs.map((j) => j.id));
+        const missingIds = jobIds.filter((id) => !foundIds.has(id));
+        throw new NotFoundException(
+          `Traffic jobs not found: ${missingIds.join(', ')}`,
+        );
+      }
     }
 
-    // Calculate totals from lines
-    const totalAmount = dto.lines.reduce((sum, line) => sum + line.amount, 0);
+    // Normalize lines with tax calculation, then check credit limit
+    const normalizedLines = dto.lines.map((line) => {
+      const unitPrice = line.unitPrice ?? line.amount ?? 0;
+      const quantity = line.quantity ?? 1;
+      const taxRate = line.taxRate ?? 0;
+      const { taxAmount, lineTotal } = this.calculateLineTax(unitPrice, quantity, taxRate);
+      return {
+        trafficJobId: line.trafficJobId,
+        description: line.description,
+        unitPrice,
+        quantity,
+        taxRate,
+        taxAmount,
+        lineTotal,
+      };
+    });
+
+    const totals = this.calculateInvoiceTotals(
+      normalizedLines.map((l) => ({
+        unitPrice: l.unitPrice,
+        quantity: l.quantity,
+        taxRate: l.taxRate,
+      })),
+    );
+
+    // Check credit limit before creating the invoice
+    await this.checkAgentCreditLimit(dto.agentId, totals.total);
+
     const currency = (dto.currency as Currency) || Currency.EGP;
 
     // Generate unique invoice number with retry logic
@@ -282,20 +385,20 @@ export class FinanceService {
           invoiceDate: new Date(dto.issueDate),
           dueDate: new Date(dto.dueDate),
           currency,
-          subtotal: totalAmount,
-          taxAmount: 0,
-          total: totalAmount,
+          subtotal: totals.subtotal,
+          taxAmount: totals.taxAmount,
+          total: totals.total,
           exchangeRate: 1,
           status: InvoiceStatus.DRAFT,
           lines: {
-            create: dto.lines.map((line) => ({
-              trafficJobId: line.trafficJobId,
+            create: normalizedLines.map((line) => ({
+              trafficJobId: line.trafficJobId || undefined,
               description: line.description,
-              quantity: 1,
-              unitPrice: line.amount,
-              taxRate: 0,
-              taxAmount: 0,
-              lineTotal: line.amount,
+              quantity: line.quantity,
+              unitPrice: line.unitPrice,
+              taxRate: line.taxRate,
+              taxAmount: line.taxAmount,
+              lineTotal: line.lineTotal,
             })),
           },
         },
@@ -332,7 +435,123 @@ export class FinanceService {
       throw new NotFoundException(`Invoice with ID "${id}" not found`);
     }
 
-    return invoice;
+    const paidAmount = invoice.payments.reduce(
+      (sum, p) => sum + Number(p.amount),
+      0,
+    );
+
+    return {
+      ...invoice,
+      paidAmount,
+      remainingBalance: Number(invoice.total) - paidAmount,
+    };
+  }
+
+  async updateInvoiceLines(id: string, dto: UpdateInvoiceLinesDto) {
+    const invoice = await this.prisma.agentInvoice.findUnique({
+      where: { id },
+      include: { lines: true },
+    });
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID "${id}" not found`);
+    }
+    if (invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Can only edit lines on DRAFT invoices');
+    }
+
+    const calculatedLines = dto.lines.map((line) => {
+      const { taxAmount, lineTotal } = this.calculateLineTax(
+        line.unitPrice,
+        line.quantity,
+        line.taxRate,
+      );
+      return { ...line, taxAmount, lineTotal };
+    });
+
+    const totals = this.calculateInvoiceTotals(
+      dto.lines.map((l) => ({
+        unitPrice: l.unitPrice,
+        quantity: l.quantity,
+        taxRate: l.taxRate,
+      })),
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.invoiceLine.deleteMany({ where: { invoiceId: id } });
+
+      for (const line of calculatedLines) {
+        await tx.invoiceLine.create({
+          data: {
+            invoiceId: id,
+            trafficJobId: line.trafficJobId || null,
+            description: line.description,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            taxRate: line.taxRate,
+            taxAmount: line.taxAmount,
+            lineTotal: line.lineTotal,
+          },
+        });
+      }
+
+      return tx.agentInvoice.update({
+        where: { id },
+        data: {
+          subtotal: totals.subtotal,
+          taxAmount: totals.taxAmount,
+          total: totals.total,
+        },
+        include: {
+          agent: true,
+          customer: true,
+          lines: { include: { trafficJob: true } },
+          payments: true,
+        },
+      });
+    });
+  }
+
+  async updateInvoiceStatus(id: string, dto: UpdateInvoiceStatusDto) {
+    const invoice = await this.prisma.agentInvoice.findUnique({
+      where: { id },
+    });
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID "${id}" not found`);
+    }
+
+    if (dto.status === 'POSTED') {
+      if (invoice.status !== InvoiceStatus.DRAFT) {
+        throw new BadRequestException('Can only post DRAFT invoices');
+      }
+      return this.prisma.agentInvoice.update({
+        where: { id },
+        data: { status: InvoiceStatus.POSTED, postedAt: new Date() },
+        include: {
+          agent: true,
+          customer: true,
+          lines: { include: { trafficJob: true } },
+          payments: true,
+        },
+      });
+    }
+
+    if (dto.status === 'CANCELLED') {
+      if (invoice.status !== InvoiceStatus.DRAFT) {
+        throw new BadRequestException('Can only cancel DRAFT invoices');
+      }
+      return this.prisma.agentInvoice.update({
+        where: { id },
+        data: { status: InvoiceStatus.CANCELLED },
+        include: {
+          agent: true,
+          customer: true,
+          lines: { include: { trafficJob: true } },
+          payments: true,
+        },
+      });
+    }
+
+    throw new BadRequestException(`Invalid target status: ${dto.status}`);
   }
 
   async listInvoices(
@@ -351,7 +570,7 @@ export class FinanceService {
       where.status = status as InvoiceStatus;
     }
 
-    const [data, total] = await Promise.all([
+    const [rawData, total] = await Promise.all([
       this.prisma.agentInvoice.findMany({
         where,
         skip,
@@ -360,6 +579,7 @@ export class FinanceService {
         include: {
           agent: true,
           customer: true,
+          payments: { select: { amount: true } },
           _count: {
             select: { lines: true, payments: true },
           },
@@ -367,6 +587,19 @@ export class FinanceService {
       }),
       this.prisma.agentInvoice.count({ where }),
     ]);
+
+    const data = rawData.map((inv) => {
+      const paidAmount = inv.payments.reduce(
+        (sum, p) => sum + Number(p.amount),
+        0,
+      );
+      const { payments: _payments, ...rest } = inv;
+      return {
+        ...rest,
+        paidAmount,
+        remainingBalance: Number(inv.total) - paidAmount,
+      };
+    });
 
     return new PaginatedResponse(data, total, page, limit);
   }
@@ -731,5 +964,96 @@ export class FinanceService {
     ]);
 
     return new PaginatedResponse(data, total, page, limit);
+  }
+
+  // ─────────────────────────────────────────────
+  // AGENT OPTIONS & JOB FETCHING FOR INVOICES
+  // ─────────────────────────────────────────────
+
+  async getAgentOptions() {
+    return this.prisma.agent.findMany({
+      where: { isActive: true, deletedAt: null },
+      select: {
+        id: true,
+        legalName: true,
+        tradeName: true,
+        currency: true,
+        creditTerms: {
+          select: { creditLimit: true, creditDays: true },
+        },
+      },
+      orderBy: { legalName: 'asc' },
+    });
+  }
+
+  async getAgentJobsForInvoice(agentId: string, dateFrom: string, dateTo: string) {
+    const agent = await this.prisma.agent.findFirst({
+      where: { id: agentId, deletedAt: null },
+    });
+    if (!agent) {
+      throw new NotFoundException(`Agent with ID "${agentId}" not found`);
+    }
+
+    const [jobs, priceItems] = await Promise.all([
+      this.prisma.trafficJob.findMany({
+        where: {
+          agentId,
+          status: 'COMPLETED' as any,
+          deletedAt: null,
+          jobDate: {
+            gte: new Date(dateFrom),
+            lte: new Date(dateTo),
+          },
+          // Exclude jobs already linked to an invoice line
+          invoiceLines: { none: {} },
+        },
+        include: {
+          fromZone: { select: { id: true, name: true } },
+          toZone: { select: { id: true, name: true } },
+          originAirport: { select: { id: true, code: true, name: true } },
+          destinationAirport: { select: { id: true, code: true, name: true } },
+          originHotel: { select: { id: true, name: true } },
+          destinationHotel: { select: { id: true, name: true } },
+          flight: { select: { flightNo: true, carrier: true } },
+          assignment: {
+            include: {
+              vehicle: {
+                include: { vehicleType: { select: { id: true, name: true } } },
+              },
+            },
+          },
+        },
+        orderBy: { jobDate: 'asc' },
+      }),
+      this.prisma.agentPriceItem.findMany({
+        where: { agentId },
+      }),
+    ]);
+
+    // Build price map: serviceType-fromZoneId-toZoneId-vehicleTypeId → priceItem
+    const priceMap = new Map<string, typeof priceItems[0]>();
+    for (const item of priceItems) {
+      const key = `${item.serviceType}-${item.fromZoneId}-${item.toZoneId}-${item.vehicleTypeId}`;
+      priceMap.set(key, item);
+    }
+
+    // Attach suggestedUnitPrice to each job
+    return jobs.map((job) => {
+      const vehicleTypeId = job.assignment?.vehicle?.vehicleType?.id;
+      let suggestedUnitPrice = 0;
+
+      if (job.fromZoneId && job.toZoneId && vehicleTypeId) {
+        const key = `${job.serviceType}-${job.fromZoneId}-${job.toZoneId}-${vehicleTypeId}`;
+        const priceItem = priceMap.get(key);
+        if (priceItem) {
+          suggestedUnitPrice = Number(priceItem.price)
+            + (job.boosterSeatQty > 0 ? job.boosterSeatQty * Number(priceItem.boosterSeatPrice) : 0)
+            + (job.babySeatQty > 0 ? job.babySeatQty * Number(priceItem.babySeatPrice) : 0)
+            + (job.wheelChairQty > 0 ? job.wheelChairQty * Number(priceItem.wheelChairPrice) : 0);
+        }
+      }
+
+      return { ...job, suggestedUnitPrice };
+    });
   }
 }

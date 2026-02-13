@@ -19,6 +19,8 @@ const DRIVER_VALID_TRANSITIONS: Record<string, string[]> = {
   NO_SHOW: [],
 };
 
+const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
+
 @Injectable()
 export class DriverPortalService {
   constructor(private readonly prisma: PrismaService) {}
@@ -151,6 +153,8 @@ export class DriverPortalService {
       throw new NotFoundException('Job not found or not assigned to you');
     }
 
+    this.checkDriverTimelock(assignment.trafficJob);
+
     const currentStatus = assignment.driverStatus;
     const allowed = DRIVER_VALID_TRANSITIONS[currentStatus] || [];
     if (!allowed.includes(status)) {
@@ -215,6 +219,8 @@ export class DriverPortalService {
     if (!assignment) {
       throw new NotFoundException('Job not found or not assigned to you');
     }
+
+    this.checkDriverTimelock(assignment.trafficJob);
 
     const currentStatus = assignment.driverStatus;
     if (DRIVER_TERMINAL_STATUSES.includes(currentStatus)) {
@@ -346,5 +352,15 @@ export class DriverPortalService {
     }
 
     return driver;
+  }
+
+  private checkDriverTimelock(job: { jobDate: Date; driverUnlockedAt?: Date | null }) {
+    if (job.driverUnlockedAt) return;
+    const cutoff = new Date(job.jobDate.getTime() + FORTY_EIGHT_HOURS_MS);
+    if (new Date() > cutoff) {
+      throw new ForbiddenException(
+        'Drivers cannot update job status more than 48 hours after the service date.',
+      );
+    }
   }
 }

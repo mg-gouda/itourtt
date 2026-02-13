@@ -18,6 +18,8 @@ const REP_VALID_TRANSITIONS: Record<string, string[]> = {
   NO_SHOW: [],
 };
 
+const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
+
 @Injectable()
 export class RepPortalService {
   constructor(private readonly prisma: PrismaService) {}
@@ -167,6 +169,8 @@ export class RepPortalService {
       throw new NotFoundException('Job not found or not assigned to you');
     }
 
+    this.checkRepTimelock(assignment.trafficJob);
+
     const currentStatus = assignment.repStatus;
     const allowed = REP_VALID_TRANSITIONS[currentStatus] || [];
     if (!allowed.includes(status)) {
@@ -231,6 +235,8 @@ export class RepPortalService {
     if (!assignment) {
       throw new NotFoundException('Job not found or not assigned to you');
     }
+
+    this.checkRepTimelock(assignment.trafficJob);
 
     const currentStatus = assignment.repStatus;
     if (REP_TERMINAL_STATUSES.includes(currentStatus)) {
@@ -367,5 +373,15 @@ export class RepPortalService {
     }
 
     return rep;
+  }
+
+  private checkRepTimelock(job: { jobDate: Date; repUnlockedAt?: Date | null }) {
+    if (job.repUnlockedAt) return;
+    const cutoff = new Date(job.jobDate.getTime() + FORTY_EIGHT_HOURS_MS);
+    if (new Date() > cutoff) {
+      throw new ForbiddenException(
+        'Reps cannot update job status more than 48 hours after the service date.',
+      );
+    }
   }
 }

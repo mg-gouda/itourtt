@@ -1329,7 +1329,7 @@ export default function ReportsPage() {
                           <TableCell>
                             <Badge variant="secondary" className="bg-secondary text-muted-foreground">{v.ownership}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{v.licenseExpiryDate ? formatDate(v.licenseExpiryDate, locale) : "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{v.licenseExpiryDate ? formatDate(v.licenseExpiryDate) : "—"}</TableCell>
                           <TableCell>
                             {v.hasInsurance ? (
                               <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">{t("common.yes")}</Badge>
@@ -1337,11 +1337,11 @@ export default function ReportsPage() {
                               <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">{t("common.no")}</Badge>
                             )}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{v.temporaryPermitDate ? formatDate(v.temporaryPermitDate, locale) : "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">{v.temporaryPermitDate ? formatDate(v.temporaryPermitDate) : "—"}</TableCell>
                           <TableCell>
                             {permitExp ? (
                               <div className="flex items-center gap-1.5">
-                                <span className="text-muted-foreground text-sm">{formatDate(v.temporaryPermitExpiryDate!, locale)}</span>
+                                <span className="text-muted-foreground text-sm">{formatDate(v.temporaryPermitExpiryDate!)}</span>
                                 {isExpired && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
                                 {isWarning && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
                               </div>

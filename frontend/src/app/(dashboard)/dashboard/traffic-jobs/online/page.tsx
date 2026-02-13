@@ -234,6 +234,14 @@ export default function OnlineJobPage() {
       toast.error(`${t("jobs.agentRefInvalid")} ${selectedAgent?.refExample ? `(${selectedAgent.refExample})` : ""}`);
       return;
     }
+    if (!form.clientName.trim()) {
+      toast.error(t("jobs.clientNameRequired"));
+      return;
+    }
+    if (!form.clientMobile.trim()) {
+      toast.error(t("jobs.clientMobileRequired"));
+      return;
+    }
 
     const hasOrigin = form.originAirportId || form.originZoneId || form.originHotelId;
     const hasDest = form.destinationAirportId || form.destinationZoneId || form.destinationHotelId;
@@ -261,8 +269,8 @@ export default function OnlineJobPage() {
       if (form.destinationZoneId) payload.destinationZoneId = form.destinationZoneId;
       if (form.destinationHotelId) payload.destinationHotelId = form.destinationHotelId;
 
-      if (form.clientName.trim()) payload.clientName = form.clientName.trim();
-      if (form.clientMobile.trim()) payload.clientMobile = form.clientMobile.trim();
+      payload.clientName = form.clientName.trim();
+      payload.clientMobile = form.clientMobile.trim();
       payload.boosterSeat = form.boosterSeat;
       if (form.boosterSeat) payload.boosterSeatQty = parseInt(form.boosterSeatQty) || 1;
       payload.babySeat = form.babySeat;
@@ -410,7 +418,7 @@ export default function OnlineJobPage() {
           {/* Line 3: Client Lead Name + Client Mobile + Adults + Children + Print Sign */}
           <div className="grid grid-cols-5 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.clientName")}</Label>
+              <Label className="text-muted-foreground text-xs">{t("jobs.clientName")} *</Label>
               <Input
                 value={form.clientName}
                 onChange={(e) => updateForm({ clientName: e.target.value })}
@@ -419,7 +427,7 @@ export default function OnlineJobPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.clientMobile")}</Label>
+              <Label className="text-muted-foreground text-xs">{t("jobs.clientMobile")} *</Label>
               <Input
                 value={form.clientMobile}
                 onChange={(e) => updateForm({ clientMobile: e.target.value })}

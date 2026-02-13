@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -16,10 +17,13 @@ import { UpdateAgentDto } from './dto/update-agent.dto.js';
 import { UpdateCreditDto } from './dto/update-credit.dto.js';
 import { UpdateInvoiceCycleDto } from './dto/update-invoice-cycle.dto.js';
 import { CreateDocumentDto } from './dto/create-document.dto.js';
+import { BulkAgentPriceListDto } from './dto/agent-price-list.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -31,11 +35,12 @@ class AgentListQueryDto extends PaginationDto {
 }
 
 @Controller('agents')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class AgentsController {
   constructor(private readonly agentsService: AgentsService) {}
 
   @Get()
+  @Permissions('agents')
   async findAll(@Query() query: AgentListQueryDto) {
     const { isActive, ...pagination } = query;
     return this.agentsService.findAll(pagination, isActive);
@@ -43,12 +48,14 @@ export class AgentsController {
 
   @Post()
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.addButton')
   async create(@Body() dto: CreateAgentDto) {
     const agent = await this.agentsService.create(dto);
     return new ApiResponse(agent, 'Agent created successfully');
   }
 
   @Get(':id')
+  @Permissions('agents')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const agent = await this.agentsService.findOne(id);
     return new ApiResponse(agent);
@@ -56,6 +63,7 @@ export class AgentsController {
 
   @Put(':id')
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.table.editButton')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateAgentDto,
@@ -66,13 +74,22 @@ export class AgentsController {
 
   @Patch(':id/status')
   @Roles('ADMIN')
+  @Permissions('agents.table.toggleStatus')
   async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.agentsService.toggleStatus(id);
     return new ApiResponse(result, 'Agent status updated successfully');
   }
 
+  @Get(':id/credit-status')
+  @Permissions('agents')
+  async getCreditStatus(@Param('id', ParseUUIDPipe) id: string) {
+    const status = await this.agentsService.getCreditStatus(id);
+    return new ApiResponse(status);
+  }
+
   @Put(':id/credit')
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.table.editButton')
   async updateCredit(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCreditDto,
@@ -83,6 +100,7 @@ export class AgentsController {
 
   @Put(':id/invoice-cycle')
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.table.editButton')
   async updateInvoiceCycle(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInvoiceCycleDto,
@@ -93,6 +111,7 @@ export class AgentsController {
 
   @Post(':id/documents')
   @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.table.editButton')
   async createDocument(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateDocumentDto,
@@ -102,8 +121,40 @@ export class AgentsController {
   }
 
   @Get(':id/documents')
+  @Permissions('agents')
   async findDocuments(@Param('id', ParseUUIDPipe) id: string) {
     const documents = await this.agentsService.findDocuments(id);
     return new ApiResponse(documents);
+  }
+
+  // ─── Price List ────────────────────────────────
+
+  @Get(':id/price-list')
+  @Permissions('agents')
+  async getPriceList(@Param('id', ParseUUIDPipe) id: string) {
+    const items = await this.agentsService.getPriceList(id);
+    return new ApiResponse(items);
+  }
+
+  @Post(':id/price-list')
+  @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.table.editButton')
+  async upsertPriceList(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: BulkAgentPriceListDto,
+  ) {
+    const items = await this.agentsService.upsertPriceItems(id, dto);
+    return new ApiResponse(items, 'Agent price list updated successfully');
+  }
+
+  @Delete(':id/price-list/:priceItemId')
+  @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.table.editButton')
+  async deletePriceItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('priceItemId', ParseUUIDPipe) priceItemId: string,
+  ) {
+    await this.agentsService.deletePriceItem(id, priceItemId);
+    return new ApiResponse(null, 'Price item deleted successfully');
   }
 }

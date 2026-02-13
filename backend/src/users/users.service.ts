@@ -65,6 +65,7 @@ export class UsersService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         omit: SAFE_USER_OMIT,
+        include: { roleRef: { select: { name: true, slug: true } } },
       }),
       this.prisma.user.count({
         where: { deletedAt: null },

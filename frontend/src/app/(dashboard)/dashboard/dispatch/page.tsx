@@ -11,9 +11,12 @@ import {
   PlaneTakeoff,
   Bus,
   Car,
+  Truck,
   Users,
   UserCheck,
   Download,
+  Lock,
+  LockOpen,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +47,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
+import { usePermission } from "@/hooks/use-permission";
 
 // ────────────────────────────────────────────
 // Types
@@ -55,6 +60,7 @@ interface Job {
   agentRef: string | null;
   bookingChannel: "ONLINE" | "B2B";
   serviceType: string;
+  jobDate: string;
   status: string;
   adultCount: number;
   childCount: number;
@@ -64,6 +70,7 @@ interface Job {
   custRepMobile: string | null;
   custRepMeetingPoint: string | null;
   custRepMeetingTime: string | null;
+  dispatchUnlockedAt: string | null;
   agent?: { legalName: string } | null;
   customer?: { legalName: string } | null;
   originAirport?: { name: string; code: string } | null;
@@ -94,19 +101,29 @@ interface Job {
   } | null;
 }
 
+interface SupplierResource {
+  id: string;
+  legalName: string;
+  tradeName: string | null;
+  vehicleCount: number;
+}
+
 interface VehicleResource {
   id: string;
   plateNumber: string;
   vehicleType?: { name: string; seatCapacity: number };
+  supplierId?: string | null;
+  supplier?: { id: string; legalName: string; tradeName?: string | null } | null;
 }
 
 interface PersonResource {
   id: string;
   name: string;
   mobileNumber?: string;
+  supplierId?: string | null;
 }
 
-type EditField = "vehicle" | "driver" | "rep";
+type EditField = "source" | "vehicle" | "driver" | "rep";
 
 interface ActiveCell {
   jobId: string;
@@ -139,25 +156,143 @@ function fmtTime(iso: string | undefined, locale = "en-US") {
 // Editable Cell
 // ────────────────────────────────────────────
 
-function EditableVehicleCell({
+function EditableSourceCell({
   job,
   vehicles,
+  suppliers,
+  selectedSource,
   isEditing,
   onStartEdit,
   onSelect,
   onCancel,
   cellRef,
+  locked,
 }: {
   job: Job;
   vehicles: VehicleResource[];
+  suppliers: SupplierResource[];
+  selectedSource: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onSelect: (source: string) => void;
+  onCancel: () => void;
+  cellRef: (el: HTMLTableCellElement | null) => void;
+  locked?: boolean;
+}) {
+  const t = useT();
+  const ownedCount = vehicles.filter((v) => !v.supplierId).length;
+
+  // Derive display label for the current source
+  const sourceLabel = selectedSource === "owned"
+    ? t("dispatch.ownedVehicles")
+    : selectedSource
+      ? (suppliers.find((s) => s.id === selectedSource)?.tradeName ||
+         suppliers.find((s) => s.id === selectedSource)?.legalName || "—")
+      : "";
+
+  if (locked) {
+    return (
+      <TableCell ref={cellRef} className="text-sm text-muted-foreground">
+        {sourceLabel || "—"}
+      </TableCell>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <TableCell ref={cellRef} className="p-1">
+        <Select
+          defaultOpen
+          value={selectedSource}
+          onValueChange={(val) => onSelect(val)}
+          onOpenChange={(open) => {
+            if (!open) onCancel();
+          }}
+        >
+          <SelectTrigger className="h-7 w-full border-border bg-secondary text-foreground text-xs">
+            <SelectValue placeholder={t("dispatch.selectSource")} />
+          </SelectTrigger>
+          <SelectContent className="border-border bg-popover text-foreground max-h-60">
+            <SelectItem value="owned" className="text-xs font-medium">
+              {t("dispatch.ownedVehicles")} ({ownedCount})
+            </SelectItem>
+            {suppliers.map((s) => (
+              <SelectItem key={s.id} value={s.id} className="text-xs">
+                {s.tradeName || s.legalName} ({s.vehicleCount})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </TableCell>
+    );
+  }
+
+  return (
+    <TableCell
+      ref={cellRef}
+      tabIndex={0}
+      className="cursor-pointer text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:ring-inset"
+      onClick={onStartEdit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onStartEdit();
+        }
+      }}
+    >
+      {sourceLabel ? (
+        <span className="text-muted-foreground text-xs">{sourceLabel}</span>
+      ) : (
+        <span className="text-orange-600 dark:text-orange-400 text-xs">{t("dispatch.selectSource")}</span>
+      )}
+    </TableCell>
+  );
+}
+
+function EditableVehicleCell({
+  job,
+  vehicles,
+  selectedSource,
+  isEditing,
+  onStartEdit,
+  onSelect,
+  onCancel,
+  cellRef,
+  locked,
+}: {
+  job: Job;
+  vehicles: VehicleResource[];
+  selectedSource: string;
   isEditing: boolean;
   onStartEdit: () => void;
   onSelect: (vehicleId: string) => void;
   onCancel: () => void;
   cellRef: (el: HTMLTableCellElement | null) => void;
+  locked?: boolean;
 }) {
   const t = useT();
   const current = job.assignment?.vehicle;
+
+  // Filter vehicles based on the source column selection
+  const filteredVehicles = selectedSource === "owned"
+    ? vehicles.filter((v) => !v.supplierId)
+    : selectedSource
+      ? vehicles.filter((v) => v.supplierId === selectedSource)
+      : vehicles;
+
+  if (locked) {
+    return (
+      <TableCell ref={cellRef} className="text-sm">
+        {current ? (
+          <Badge variant="outline" className="border-zinc-500/30 text-zinc-600 dark:text-zinc-400">
+            {current.plateNumber}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground/60 text-xs">—</span>
+        )}
+      </TableCell>
+    );
+  }
 
   if (isEditing) {
     return (
@@ -174,12 +309,16 @@ function EditableVehicleCell({
             <SelectValue placeholder={t("dispatch.select")} />
           </SelectTrigger>
           <SelectContent className="border-border bg-popover text-foreground max-h-60">
-            {vehicles.map((v) => (
-              <SelectItem key={v.id} value={v.id} className="text-xs">
-                {v.plateNumber} — {v.vehicleType?.name} (
-                {v.vehicleType?.seatCapacity})
-              </SelectItem>
-            ))}
+            {filteredVehicles.length === 0 ? (
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">{t("dispatch.noVehiclesAvailable")}</div>
+            ) : (
+              filteredVehicles.map((v) => (
+                <SelectItem key={v.id} value={v.id} className="text-xs">
+                  {v.plateNumber} — {v.vehicleType?.name} (
+                  {v.vehicleType?.seatCapacity})
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </TableCell>
@@ -217,20 +356,24 @@ function EditablePersonCell({
   job,
   field,
   resources,
+  selectedSource,
   isEditing,
   onStartEdit,
   onSelect,
   onCancel,
   cellRef,
+  locked,
 }: {
   job: Job;
   field: "driver" | "rep";
   resources: PersonResource[];
+  selectedSource?: string;
   isEditing: boolean;
   onStartEdit: () => void;
   onSelect: (id: string) => void;
   onCancel: () => void;
   cellRef: (el: HTMLTableCellElement | null) => void;
+  locked?: boolean;
 }) {
   const t = useT();
   const currentId =
@@ -239,7 +382,14 @@ function EditablePersonCell({
     field === "driver"
       ? job.assignment?.driver?.name
       : job.assignment?.rep?.name;
-  const canEdit = !!job.assignment; // must have vehicle first
+  const canEdit = !locked && !!job.assignment; // must have vehicle first, and not locked
+
+  // Filter drivers by source (owned vs supplier), reps show all
+  const filteredResources = field === "driver" && selectedSource
+    ? selectedSource === "owned"
+      ? resources.filter((r) => !r.supplierId)
+      : resources.filter((r) => r.supplierId === selectedSource)
+    : resources;
 
   if (isEditing && canEdit) {
     return (
@@ -259,11 +409,15 @@ function EditablePersonCell({
             <SelectItem value="__none__" className="text-xs text-muted-foreground">
               {t("dispatch.none")}
             </SelectItem>
-            {resources.map((r) => (
-              <SelectItem key={r.id} value={r.id} className="text-xs">
-                {r.name}
-              </SelectItem>
-            ))}
+            {filteredResources.length === 0 ? (
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">{t("dispatch.noDriversAvailable")}</div>
+            ) : (
+              filteredResources.map((r) => (
+                <SelectItem key={r.id} value={r.id} className="text-xs">
+                  {r.name}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </TableCell>
@@ -394,18 +548,24 @@ function JobGrid({
   icon: Icon,
   activeCell,
   vehicles,
+  suppliers,
   drivers,
   reps,
   onStartEdit,
   onCancelEdit,
   onInlineAssign,
   onDialogAssign,
+  locked,
+  showLockColumn,
+  canUnlock,
+  onToggleLock,
 }: {
   jobs: Job[];
   title: string;
   icon: React.ElementType;
   activeCell: ActiveCell | null;
   vehicles: VehicleResource[];
+  suppliers: SupplierResource[];
   drivers: PersonResource[];
   reps: PersonResource[];
   onStartEdit: (jobId: string, field: EditField) => void;
@@ -416,10 +576,36 @@ function JobGrid({
     value: string
   ) => void;
   onDialogAssign: (job: Job) => void;
+  locked?: boolean;
+  showLockColumn?: boolean;
+  canUnlock?: boolean;
+  onToggleLock?: (jobId: string, unlock: boolean) => void;
 }) {
   const t = useT();
   const locale = useLocaleId();
   const cellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
+
+  // Per-job source selection state (keyed by jobId)
+  const [jobSources, setJobSources] = useState<Record<string, string>>({});
+
+  // Derive initial sources from existing vehicle assignments
+  useEffect(() => {
+    const initial: Record<string, string> = {};
+    for (const job of jobs) {
+      if (job.assignment?.vehicleId) {
+        const v = vehicles.find((veh) => veh.id === job.assignment?.vehicleId);
+        if (v) {
+          initial[job.id] = v.supplierId || "owned";
+        }
+      }
+    }
+    setJobSources((prev) => ({ ...initial, ...prev }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, vehicles]);
+
+  const setJobSource = (jobId: string, source: string) => {
+    setJobSources((prev) => ({ ...prev, [jobId]: source }));
+  };
 
   const setCellRef = useCallback(
     (jobId: string, field: EditField) =>
@@ -434,7 +620,7 @@ function JobGrid({
   // Keyboard navigation between cells
   const handleCellKeyDown = useCallback(
     (e: React.KeyboardEvent, jobId: string, field: EditField) => {
-      const fields: EditField[] = ["vehicle", "driver", "rep"];
+      const fields: EditField[] = ["source", "vehicle", "driver", "rep"];
       const fieldIdx = fields.indexOf(field);
       const jobIdx = jobs.findIndex((j) => j.id === jobId);
 
@@ -484,27 +670,55 @@ function JobGrid({
       <Table>
         <TableHeader>
           <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+            {showLockColumn && <TableHead className="text-white text-xs w-8" />}
             <TableHead className="text-white text-xs w-28">{t("dispatch.ref")}</TableHead>
             <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
             <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
             <TableHead className="text-white text-xs w-14">{t("dispatch.pax")}</TableHead>
             <TableHead className="text-white text-xs">{t("dispatch.flight")}</TableHead>
-            <TableHead className="text-white text-xs w-40">{t("dispatch.vehicle")}</TableHead>
+            <TableHead className="text-white text-xs w-36">{t("dispatch.carSource")}</TableHead>
+            <TableHead className="text-white text-xs w-36">{t("dispatch.vehicle")}</TableHead>
             <TableHead className="text-white text-xs w-32">{t("dispatch.driver")}</TableHead>
             <TableHead className="text-white text-xs w-32">{t("dispatch.rep")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {jobs.map((job, idx) => {
+            const isJobLocked = locked && !job.dispatchUnlockedAt;
             const isEditable =
-              job.status === "PENDING" || job.status === "ASSIGNED";
+              !isJobLocked && (job.status === "PENDING" || job.status === "ASSIGNED");
             const stripe = idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50";
+            const jobSource = jobSources[job.id] || "";
 
             return (
               <TableRow
                 key={job.id}
                 className={`border-border ${statusRowClass[job.status] || stripe}`}
               >
+                {showLockColumn && (
+                  <TableCell className="w-8 px-1">
+                    {canUnlock && onToggleLock ? (
+                      <button
+                        type="button"
+                        onClick={() => onToggleLock(job.id, !job.dispatchUnlockedAt)}
+                        className="flex h-6 w-6 items-center justify-center rounded hover:bg-muted/50 transition-colors"
+                        title={job.dispatchUnlockedAt ? t("dispatch.lockJob") : t("dispatch.unlockJob")}
+                      >
+                        {job.dispatchUnlockedAt ? (
+                          <LockOpen className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <Lock className="h-3.5 w-3.5 text-amber-500" />
+                        )}
+                      </button>
+                    ) : (
+                      job.dispatchUnlockedAt ? (
+                        <LockOpen className="h-3.5 w-3.5 text-emerald-500/60 mx-auto" />
+                      ) : (
+                        <Lock className="h-3.5 w-3.5 text-amber-500/60 mx-auto" />
+                      )
+                    )}
+                  </TableCell>
+                )}
                 <TableCell
                   className="text-foreground font-mono text-xs cursor-pointer"
                   onClick={() => isEditable && onDialogAssign(job)}
@@ -531,9 +745,28 @@ function JobGrid({
 
                 {isEditable ? (
                   <>
+                    <EditableSourceCell
+                      job={job}
+                      vehicles={vehicles}
+                      suppliers={suppliers}
+                      selectedSource={jobSource}
+                      isEditing={
+                        activeCell?.jobId === job.id &&
+                        activeCell?.field === "source"
+                      }
+                      onStartEdit={() => onStartEdit(job.id, "source")}
+                      onSelect={(val) => {
+                        setJobSource(job.id, val);
+                        onCancelEdit();
+                      }}
+                      onCancel={onCancelEdit}
+                      cellRef={setCellRef(job.id, "source")}
+                      locked={isJobLocked}
+                    />
                     <EditableVehicleCell
                       job={job}
                       vehicles={vehicles}
+                      selectedSource={jobSource}
                       isEditing={
                         activeCell?.jobId === job.id &&
                         activeCell?.field === "vehicle"
@@ -544,11 +777,13 @@ function JobGrid({
                       }
                       onCancel={onCancelEdit}
                       cellRef={setCellRef(job.id, "vehicle")}
+                      locked={isJobLocked}
                     />
                     <EditablePersonCell
                       job={job}
                       field="driver"
                       resources={drivers}
+                      selectedSource={jobSource}
                       isEditing={
                         activeCell?.jobId === job.id &&
                         activeCell?.field === "driver"
@@ -559,6 +794,7 @@ function JobGrid({
                       }
                       onCancel={onCancelEdit}
                       cellRef={setCellRef(job.id, "driver")}
+                      locked={isJobLocked}
                     />
                     <EditablePersonCell
                       job={job}
@@ -574,10 +810,22 @@ function JobGrid({
                       }
                       onCancel={onCancelEdit}
                       cellRef={setCellRef(job.id, "rep")}
+                      locked={isJobLocked}
                     />
                   </>
                 ) : (
                   <>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {(() => {
+                        const v = job.assignment?.vehicleId
+                          ? vehicles.find((veh) => veh.id === job.assignment?.vehicleId)
+                          : null;
+                        if (!v) return "—";
+                        if (!v.supplierId) return t("dispatch.ownedVehicles");
+                        const s = suppliers.find((sup) => sup.id === v.supplierId);
+                        return s?.tradeName || s?.legalName || "—";
+                      })()}
+                    </TableCell>
                     <TableCell className="text-sm">
                       {job.assignment?.vehicle ? (
                         <Badge
@@ -618,9 +866,12 @@ function JobGrid({
 // Main Component
 // ────────────────────────────────────────────
 
+const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
+
 export default function DispatchPage() {
   const t = useT();
   const locale = useLocaleId();
+  const { user } = useAuthStore();
   const [date, setDate] = useState(new Date());
   const [arrivals, setArrivals] = useState<Job[]>([]);
   const [departures, setDepartures] = useState<Job[]>([]);
@@ -629,6 +880,7 @@ export default function DispatchPage() {
   const [exporting, setExporting] = useState(false);
 
   // Available resources for the day (pre-fetched)
+  const [suppliers, setSuppliers] = useState<SupplierResource[]>([]);
   const [vehicles, setVehicles] = useState<VehicleResource[]>([]);
   const [drivers, setDrivers] = useState<PersonResource[]>([]);
   const [reps, setReps] = useState<PersonResource[]>([]);
@@ -645,10 +897,18 @@ export default function DispatchPage() {
 
   // Dialog fallback
   const [dialogJob, setDialogJob] = useState<Job | null>(null);
+  const [dialogSupplier, setDialogSupplier] = useState("");
   const [dialogVehicle, setDialogVehicle] = useState("");
   const [dialogDriver, setDialogDriver] = useState("");
   const [dialogRep, setDialogRep] = useState("");
   const [dialogSaving, setDialogSaving] = useState(false);
+
+  // Filtered vehicles for dialog based on owned/supplier selection
+  const dialogFilteredVehicles = dialogSupplier === "owned"
+    ? vehicles.filter((v) => !v.supplierId)
+    : dialogSupplier
+      ? vehicles.filter((v) => v.supplierId === dialogSupplier)
+      : [];
 
   // ── Fetch day data + available resources ──
 
@@ -656,8 +916,9 @@ export default function DispatchPage() {
     setLoading(true);
     const dateStr = fmtDate(date);
     try {
-      const [dayRes, vRes, dRes, rRes] = await Promise.allSettled([
+      const [dayRes, sRes, vRes, dRes, rRes] = await Promise.allSettled([
         api.get(`/dispatch/day?date=${dateStr}`),
+        api.get(`/dispatch/available-suppliers`),
         api.get(`/dispatch/available-vehicles?date=${dateStr}`),
         api.get(`/dispatch/available-drivers?date=${dateStr}`),
         api.get(`/dispatch/available-reps?date=${dateStr}`),
@@ -668,6 +929,10 @@ export default function DispatchPage() {
         setArrivals(d.arrivals || []);
         setDepartures(d.departures || []);
         setCityTransfers(d.cityJobs || d.cityTransfers || []);
+      }
+      if (sRes.status === "fulfilled") {
+        const s = sRes.value.data?.data || sRes.value.data;
+        setSuppliers(Array.isArray(s) ? s : []);
       }
       if (vRes.status === "fulfilled") {
         const v = vRes.value.data?.data || vRes.value.data;
@@ -879,7 +1144,13 @@ export default function DispatchPage() {
   // ── Dialog-based assignment (fallback) ──
 
   const openDialog = (job: Job) => {
+    if (dispatcherLocked && !job.dispatchUnlockedAt) return;
     setDialogJob(job);
+    // Pre-select source: owned vs supplier based on current vehicle
+    const currentVehicle = job.assignment?.vehicleId
+      ? vehicles.find((v) => v.id === job.assignment?.vehicleId)
+      : null;
+    setDialogSupplier(currentVehicle ? (currentVehicle.supplierId || "owned") : "");
     setDialogVehicle(job.assignment?.vehicleId || "");
     setDialogDriver(job.assignment?.driverId || "");
     setDialogRep(job.assignment?.repId || "");
@@ -939,11 +1210,39 @@ export default function DispatchPage() {
     (j) => j.assignment
   ).length;
 
+  // ── Dispatcher 48-hour lock ──
+
+  const isDispatcher = user?.role === "DISPATCHER" || user?.roleSlug === "dispatcher";
+  const isPast48h = new Date() > new Date(date.getTime() + FORTY_EIGHT_HOURS_MS);
+  const dispatcherLocked = isDispatcher && isPast48h;
+  const canUnlock = usePermission("dispatch.assignment.unlock48h");
+
+  const handleToggleLock = async (jobId: string, shouldUnlock: boolean) => {
+    try {
+      if (shouldUnlock) {
+        await api.post(`/dispatch/jobs/${jobId}/unlock`);
+        toast.success(t("dispatch.jobUnlocked"));
+      } else {
+        await api.post(`/dispatch/jobs/${jobId}/lock`);
+        toast.success(t("dispatch.jobLocked"));
+      }
+      fetchDay();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || t("dispatch.lockToggleFailed");
+      toast.error(msg);
+    }
+  };
+
   // ── Grid props ──
+
+  const showLockColumn = isPast48h;
 
   const gridProps = {
     activeCell,
     vehicles,
+    suppliers,
     drivers,
     reps,
     onStartEdit: (jobId: string, field: EditField) =>
@@ -951,6 +1250,10 @@ export default function DispatchPage() {
     onCancelEdit: () => setActiveCell(null),
     onInlineAssign: handleInlineAssign,
     onDialogAssign: openDialog,
+    locked: dispatcherLocked,
+    showLockColumn,
+    canUnlock: canUnlock && isPast48h,
+    onToggleLock: handleToggleLock,
   };
 
   return (
@@ -1013,7 +1316,7 @@ export default function DispatchPage() {
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -1044,6 +1347,12 @@ export default function DispatchPage() {
             {t("dispatch.clickCells")} &middot; {t("dispatch.clickRefDialog")}
           </div>
         </div>
+
+        {dispatcherLocked && (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-600 dark:text-amber-400">
+            {t("dispatch.lockedBanner")}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -1206,6 +1515,34 @@ export default function DispatchPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Truck className="h-4 w-4" /> {t("dispatch.vehicleSource")}
+              </div>
+              <Select
+                value={dialogSupplier}
+                onValueChange={(val) => {
+                  setDialogSupplier(val);
+                  setDialogVehicle(""); // reset vehicle when source changes
+                  setDialogDriver(""); // reset driver when source changes
+                }}
+              >
+                <SelectTrigger className="border-border bg-card text-foreground">
+                  <SelectValue placeholder={t("dispatch.selectSource")} />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover text-foreground">
+                  <SelectItem value="owned" className="font-medium">
+                    {t("dispatch.ownedVehicles")} ({vehicles.filter((v) => !v.supplierId).length})
+                  </SelectItem>
+                  {suppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.tradeName || s.legalName} ({s.vehicleCount})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Car className="h-4 w-4" /> {t("dispatch.vehicle")} *
               </div>
               <Select
@@ -1216,12 +1553,16 @@ export default function DispatchPage() {
                   <SelectValue placeholder={t("dispatch.selectVehicle")} />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.plateNumber} — {v.vehicleType?.name} (
-                      {v.vehicleType?.seatCapacity} {t("dispatch.seats")})
-                    </SelectItem>
-                  ))}
+                  {dialogFilteredVehicles.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noVehiclesAvailable")}</div>
+                  ) : (
+                    dialogFilteredVehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.plateNumber} — {v.vehicleType?.name} (
+                        {v.vehicleType?.seatCapacity} {t("dispatch.seats")})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1238,11 +1579,22 @@ export default function DispatchPage() {
                   <SelectValue placeholder={t("dispatch.selectDriver")} />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
-                  {drivers.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
+                  {(() => {
+                    const filtered = dialogSupplier === "owned"
+                      ? drivers.filter((d) => !d.supplierId)
+                      : dialogSupplier
+                        ? drivers.filter((d) => d.supplierId === dialogSupplier)
+                        : drivers;
+                    return filtered.length === 0 ? (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noDriversAvailable")}</div>
+                    ) : (
+                      filtered.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
+                      ))
+                    );
+                  })()}
                 </SelectContent>
               </Select>
             </div>

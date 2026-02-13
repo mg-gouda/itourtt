@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Building2, Plus, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ interface Agent {
   refPattern: string | null;
   refExample: string | null;
   isActive: boolean;
+  creditTerms?: { creditLimit: number; creditDays: number } | null;
 }
 
 interface AgentsResponse {
@@ -77,6 +79,7 @@ const INITIAL_FORM = {
 
 export default function AgentsPage() {
   const t = useT();
+  const router = useRouter();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -110,6 +113,8 @@ export default function AgentsPage() {
   const [currency, setCurrency] = useState(INITIAL_FORM.currency);
   const [refPattern, setRefPattern] = useState(INITIAL_FORM.refPattern);
   const [refExample, setRefExample] = useState(INITIAL_FORM.refExample);
+  const [creditLimit, setCreditLimit] = useState<number>(0);
+  const [creditDays, setCreditDays] = useState<number>(0);
 
   const fetchAgents = useCallback(async () => {
     try {
@@ -151,6 +156,8 @@ export default function AgentsPage() {
     setCurrency(INITIAL_FORM.currency);
     setRefPattern(INITIAL_FORM.refPattern);
     setRefExample(INITIAL_FORM.refExample);
+    setCreditLimit(0);
+    setCreditDays(0);
   }
 
   function openDialog() {
@@ -171,6 +178,8 @@ export default function AgentsPage() {
     setCurrency(agent.currency || "EGP");
     setRefPattern(agent.refPattern || "");
     setRefExample(agent.refExample || "");
+    setCreditLimit(agent.creditTerms ? Number(agent.creditTerms.creditLimit) : 0);
+    setCreditDays(agent.creditTerms ? agent.creditTerms.creditDays : 0);
     setEditDialogOpen(true);
   }
 
@@ -183,19 +192,25 @@ export default function AgentsPage() {
 
     try {
       setSubmitting(true);
-      await api.put(`/agents/${editingAgent.id}`, {
-        legalName: legalName.trim(),
-        tradeName: tradeName.trim(),
-        taxId: taxId.trim(),
-        address: address.trim(),
-        city: city.trim(),
-        country: country.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-        currency,
-        ...(refPattern.trim() ? { refPattern: refPattern.trim() } : { refPattern: null }),
-        ...(refExample.trim() ? { refExample: refExample.trim() } : { refExample: null }),
-      });
+      await Promise.all([
+        api.put(`/agents/${editingAgent.id}`, {
+          legalName: legalName.trim(),
+          tradeName: tradeName.trim(),
+          taxId: taxId.trim(),
+          address: address.trim(),
+          city: city.trim(),
+          country: country.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+          currency,
+          ...(refPattern.trim() ? { refPattern: refPattern.trim() } : { refPattern: null }),
+          ...(refExample.trim() ? { refExample: refExample.trim() } : { refExample: null }),
+        }),
+        api.put(`/agents/${editingAgent.id}/credit`, {
+          creditLimit,
+          creditDays,
+        }),
+      ]);
       toast.success(t("agents.updated"));
       setEditDialogOpen(false);
       setEditingAgent(null);
@@ -291,7 +306,8 @@ export default function AgentsPage() {
                 {sortedData.map((agent, idx) => (
                 <TableRow
                   key={agent.id}
-                  className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                  className={`border-border cursor-pointer ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                  onClick={() => router.push(`/dashboard/agents/${agent.id}`)}
                 >
                   <TableCell className="font-medium text-foreground">
                     {agent.legalName}
@@ -315,7 +331,7 @@ export default function AgentsPage() {
                     {agent.currency}
                   </TableCell>
                   <TableCell>
-                    <button onClick={() => handleToggleStatus(agent.id)} className="cursor-pointer">
+                    <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(agent.id); }} className="cursor-pointer">
                       {agent.isActive ? (
                         <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
                           {t("common.active")}
@@ -332,7 +348,7 @@ export default function AgentsPage() {
                       variant="ghost"
                       size="sm"
                       className="text-muted-foreground hover:text-foreground"
-                      onClick={() => openEditDialog(agent)}
+                      onClick={(e) => { e.stopPropagation(); openEditDialog(agent); }}
                     >
                       {t("common.edit")}
                     </Button>
@@ -692,6 +708,40 @@ export default function AgentsPage() {
                 placeholder="e.g. INT-3550321"
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
+            </div>
+
+            <div className="col-span-2 border-t border-border pt-3 mt-1">
+              <p className="text-sm font-medium text-foreground mb-3">{t("finance.creditStatus")}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-creditLimit" className="text-muted-foreground">
+                    {t("agents.creditLimit")}
+                  </Label>
+                  <Input
+                    id="edit-creditLimit"
+                    type="number"
+                    min={0}
+                    value={creditLimit}
+                    onChange={(e) => setCreditLimit(Number(e.target.value) || 0)}
+                    placeholder="0"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-creditDays" className="text-muted-foreground">
+                    {t("agents.creditDays")}
+                  </Label>
+                  <Input
+                    id="edit-creditDays"
+                    type="number"
+                    min={0}
+                    value={creditDays}
+                    onChange={(e) => setCreditDays(Number(e.target.value) || 0)}
+                    placeholder="0"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

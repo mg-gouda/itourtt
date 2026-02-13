@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   LayoutDashboard,
   CalendarClock,
@@ -15,7 +16,6 @@ import {
   Truck,
   DollarSign,
   BarChart3,
-  Plane,
   Settings2,
   ChevronRight,
   ChevronsLeft,
@@ -23,6 +23,9 @@ import {
   Palette,
   Building,
   ShieldCheck,
+  MessageCircle,
+  Lock,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -33,12 +36,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useT } from "@/lib/i18n";
+import { usePermissionsStore } from "@/stores/permissions-store";
 
 interface NavLink {
   type: "link";
   nameKey: string;
   href: string;
   icon: React.ElementType;
+  permissionKey?: string;
 }
 
 interface NavSeparator {
@@ -55,28 +60,31 @@ interface NavGroup {
 type NavItem = NavLink | NavSeparator | NavGroup;
 
 const navigation: NavItem[] = [
-  { type: "link", nameKey: "sidebar.dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { type: "link", nameKey: "sidebar.dispatch", href: "/dashboard/dispatch", icon: CalendarClock },
-  { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase },
+  { type: "link", nameKey: "sidebar.dashboard", href: "/dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
+  { type: "link", nameKey: "sidebar.dispatch", href: "/dashboard/dispatch", icon: CalendarClock, permissionKey: "dispatch" },
+  { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase, permissionKey: "traffic-jobs" },
   { type: "separator" },
-  { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign },
-  { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3 },
+  { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
+  { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3, permissionKey: "reports" },
+  { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },
+  { type: "link", nameKey: "sidebar.activityLog", href: "/dashboard/activity-log", icon: ClipboardList, permissionKey: "activity-logs" },
   { type: "separator" },
   {
     type: "group",
     nameKey: "sidebar.systemParams",
     icon: Settings2,
     children: [
-      { type: "link", nameKey: "sidebar.locations", href: "/dashboard/locations", icon: MapPin },
-      { type: "link", nameKey: "sidebar.vehicles", href: "/dashboard/vehicles", icon: Car },
-      { type: "link", nameKey: "sidebar.drivers", href: "/dashboard/drivers", icon: Users },
-      { type: "link", nameKey: "sidebar.reps", href: "/dashboard/reps", icon: UserCheck },
-      { type: "link", nameKey: "sidebar.agents", href: "/dashboard/agents", icon: Building2 },
-      { type: "link", nameKey: "sidebar.customers", href: "/dashboard/customers", icon: Users },
-      { type: "link", nameKey: "sidebar.suppliers", href: "/dashboard/suppliers", icon: Truck },
+      { type: "link", nameKey: "sidebar.locations", href: "/dashboard/locations", icon: MapPin, permissionKey: "locations" },
+      { type: "link", nameKey: "sidebar.vehicles", href: "/dashboard/vehicles", icon: Car, permissionKey: "vehicles" },
+      { type: "link", nameKey: "sidebar.drivers", href: "/dashboard/drivers", icon: Users, permissionKey: "drivers" },
+      { type: "link", nameKey: "sidebar.reps", href: "/dashboard/reps", icon: UserCheck, permissionKey: "reps" },
+      { type: "link", nameKey: "sidebar.agents", href: "/dashboard/agents", icon: Building2, permissionKey: "agents" },
+      { type: "link", nameKey: "sidebar.customers", href: "/dashboard/customers", icon: Users, permissionKey: "customers" },
+      { type: "link", nameKey: "sidebar.suppliers", href: "/dashboard/suppliers", icon: Truck, permissionKey: "suppliers" },
       { type: "link", nameKey: "sidebar.styling", href: "/dashboard/styling", icon: Palette },
-      { type: "link", nameKey: "sidebar.company", href: "/dashboard/company", icon: Building },
-      { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck },
+      { type: "link", nameKey: "sidebar.company", href: "/dashboard/company", icon: Building, permissionKey: "company" },
+      { type: "link", nameKey: "sidebar.whatsapp", href: "/dashboard/whatsapp", icon: MessageCircle, permissionKey: "whatsapp" },
+      { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck, permissionKey: "users" },
     ],
   },
 ];
@@ -87,6 +95,30 @@ export function Sidebar() {
   const pathname = usePathname();
   const t = useT();
   const [collapsed, setCollapsed] = useState(false);
+  const { has: hasPerm, isLoaded: permsLoaded } = usePermissionsStore();
+
+  // Filter navigation based on permissions (hide items user can't access)
+  const canAccess = (item: NavLink): boolean => {
+    if (!permsLoaded || !item.permissionKey) return true;
+    return hasPerm(item.permissionKey);
+  };
+
+  const filteredNavigation = useMemo(() => {
+    if (!permsLoaded) return navigation;
+    return navigation
+      .map((item) => {
+        if (item.type === "group") {
+          const visibleChildren = item.children.filter(canAccess);
+          if (visibleChildren.length === 0) return null;
+          return { ...item, children: visibleChildren };
+        }
+        if (item.type === "link" && !canAccess(item)) return null;
+        return item;
+      })
+      .filter(Boolean) as NavItem[];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permsLoaded, hasPerm]);
+
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     for (const item of navigation) {
@@ -132,21 +164,31 @@ export function Sidebar() {
         )}
       >
         {/* Brand */}
-        <div className={cn("flex h-14 items-center gap-2", collapsed ? "justify-center px-0" : "px-4")}>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent">
-            <Plane className="h-4 w-4 text-sidebar-foreground" />
-          </div>
-          {!collapsed && (
-            <span className="text-sm font-semibold text-sidebar-foreground whitespace-nowrap overflow-hidden">
-              {t("sidebar.brand")}
-            </span>
+        <div className={cn("flex h-14 items-center", collapsed ? "justify-center px-0" : "px-4")}>
+          {collapsed ? (
+            <Image
+              src="/favicon.svg"
+              alt="iTourTT"
+              width={32}
+              height={32}
+              className="shrink-0"
+            />
+          ) : (
+            <Image
+              src="/itourtt-logo.svg"
+              alt={t("sidebar.brand")}
+              width={200}
+              height={44}
+              className="h-11 w-full object-contain"
+              priority
+            />
           )}
         </div>
         <Separator className="bg-sidebar-border" />
 
         {/* Navigation */}
         <nav className={cn("flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden", collapsed ? "p-1.5" : "p-2")}>
-          {navigation.map((item, i) => {
+          {filteredNavigation.map((item, i) => {
             if (item.type === "separator") {
               return <Separator key={i} className="my-2 bg-sidebar-border" />;
             }

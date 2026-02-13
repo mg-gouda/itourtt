@@ -21,7 +21,9 @@ import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { UserRole } from '../../generated/prisma/enums.js';
 
@@ -38,8 +40,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Post()
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users.addButton')
   async create(@Body() dto: CreateUserDto) {
     return this.usersService.create(dto);
   }
@@ -49,8 +52,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Get()
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users')
   async findAll(@Query() pagination: PaginationDto) {
     return this.usersService.findAll(pagination);
   }
@@ -69,8 +73,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Get('permissions')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users.roles')
   async getPermissions() {
     return this.rolePermissionsService.findAll();
   }
@@ -80,8 +85,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Put('permissions')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users.roles.editPermissions')
   async updatePermissions(@Body() dto: UpdateRolePermissionsDto) {
     return this.rolePermissionsService.bulkUpdate(dto.permissions);
   }
@@ -91,8 +97,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Get('permissions/seed')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users.roles')
   async seedPermissions() {
     return this.rolePermissionsService.seedDefaults();
   }
@@ -102,8 +109,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Get('permissions/:role')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users.roles')
   async getPermissionsByRole(
     @Param('role', new ParseEnumPipe(UserRole)) role: UserRole,
   ) {
@@ -115,8 +123,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Get(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
   }
@@ -126,8 +135,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users.table.editButton')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDto,
@@ -140,8 +150,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Patch(':id/role')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users.table.changeRole')
   async updateRole(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRoleDto,
@@ -154,8 +165,9 @@ export class UsersController {
   // ──────────────────────────────────────────────
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
+  @Permissions('users.table.deactivate')
   async deactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.deactivate(id);
   }

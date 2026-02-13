@@ -21,7 +21,9 @@ import type { Response } from 'express';
 import { VehiclesService } from './vehicles.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { CreateVehicleTypeDto } from './dto/create-vehicle-type.dto.js';
@@ -46,19 +48,21 @@ const uploadStorage = diskStorage({
 });
 
 @Controller('vehicles')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class VehiclesController {
   constructor(private readonly vehiclesService: VehiclesService) {}
 
   // ─── Vehicle Types ────────────────────────────────────────
 
   @Get('types')
+  @Permissions('vehicles')
   findAllVehicleTypes() {
     return this.vehiclesService.findAllVehicleTypes();
   }
 
   @Post('types')
   @Roles('ADMIN')
+  @Permissions('vehicles.types.addButton')
   createVehicleType(@Body() dto: CreateVehicleTypeDto) {
     return this.vehiclesService.createVehicleType(dto);
   }
@@ -66,6 +70,7 @@ export class VehiclesController {
   // ─── Vehicles ─────────────────────────────────────────────
 
   @Get()
+  @Permissions('vehicles')
   findAllVehicles(
     @Query() pagination: PaginationDto,
     @Query('vehicleTypeId') vehicleTypeId?: string,
@@ -77,6 +82,7 @@ export class VehiclesController {
 
   @Get('export/excel')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.export')
   async exportExcel(@Res() res: Response) {
     const buffer = await this.vehiclesService.exportToExcel();
     const date = new Date().toISOString().split('T')[0];
@@ -90,6 +96,7 @@ export class VehiclesController {
 
   @Get('import/template')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.downloadTemplate')
   async downloadTemplate(@Res() res: Response) {
     const buffer = await this.vehiclesService.generateImportTemplate();
     res.set({
@@ -102,6 +109,7 @@ export class VehiclesController {
 
   @Post('import/excel')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.import')
   @UseInterceptors(FileInterceptor('file'))
   async importExcel(@UploadedFile() file: any) {
     if (!file) {
@@ -116,6 +124,7 @@ export class VehiclesController {
 
   @Post()
   @Roles('ADMIN')
+  @Permissions('vehicles.addButton')
   createVehicle(@Body() dto: CreateVehicleDto) {
     return this.vehiclesService.createVehicle(dto);
   }
@@ -124,12 +133,14 @@ export class VehiclesController {
 
   @Get('compliance/report')
   @Roles('ADMIN', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('vehicles')
   async complianceReport() {
     const result = await this.vehiclesService.getComplianceReport();
     return new ApiResponse(result);
   }
 
   @Get(':id/compliance')
+  @Permissions('vehicles')
   async getCompliance(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.vehiclesService.getCompliance(id);
     return new ApiResponse(result);
@@ -137,6 +148,7 @@ export class VehiclesController {
 
   @Patch(':id/compliance')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.table.editButton')
   async upsertCompliance(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpsertVehicleComplianceDto,
@@ -147,6 +159,7 @@ export class VehiclesController {
 
   @Post(':id/compliance/license')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.table.editButton')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadLicenseCopy(
     @Param('id', ParseUUIDPipe) id: string,
@@ -159,6 +172,7 @@ export class VehiclesController {
 
   @Post(':id/compliance/insurance')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.table.editButton')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadInsuranceDoc(
     @Param('id', ParseUUIDPipe) id: string,
@@ -173,6 +187,7 @@ export class VehiclesController {
 
   @Get(':id/deposits')
   @Roles('ADMIN', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('vehicles')
   async listDeposits(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.vehiclesService.listDepositPayments(id);
     return new ApiResponse(result);
@@ -180,6 +195,7 @@ export class VehiclesController {
 
   @Post(':id/deposits')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.table.editButton')
   async addDeposit(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateDepositPaymentDto,
@@ -191,6 +207,7 @@ export class VehiclesController {
 
   @Delete(':id/deposits/:depositId')
   @Roles('ADMIN')
+  @Permissions('vehicles.table.deleteButton')
   async removeDeposit(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('depositId', ParseUUIDPipe) depositId: string,
@@ -200,12 +217,14 @@ export class VehiclesController {
   }
 
   @Get(':id')
+  @Permissions('vehicles')
   findVehicleById(@Param('id', ParseUUIDPipe) id: string) {
     return this.vehiclesService.findVehicleById(id);
   }
 
   @Patch(':id')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.table.editButton')
   updateVehicle(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateVehicleDto,
@@ -215,6 +234,7 @@ export class VehiclesController {
 
   @Patch(':id/status')
   @Roles('ADMIN')
+  @Permissions('vehicles.table.toggleStatus')
   async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.vehiclesService.toggleStatus(id);
     return new ApiResponse(result, 'Vehicle status updated successfully');
@@ -222,6 +242,7 @@ export class VehiclesController {
 
   @Delete(':id')
   @Roles('ADMIN')
+  @Permissions('vehicles.table.deleteButton')
   async softDelete(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.vehiclesService.softDelete(id);
     return new ApiResponse(result, 'Vehicle removed successfully');

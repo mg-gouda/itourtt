@@ -25,7 +25,9 @@ import { AssignVehicleDto } from './dto/assign-vehicle.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -52,11 +54,12 @@ class DriverListQueryDto extends PaginationDto {
 }
 
 @Controller('drivers')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class DriversController {
   constructor(private readonly driversService: DriversService) {}
 
   @Get()
+  @Permissions('drivers')
   async findAll(@Query() query: DriverListQueryDto) {
     const { isActive, ...pagination } = query;
     return this.driversService.findAll(pagination, isActive);
@@ -64,6 +67,7 @@ export class DriversController {
 
   @Get('export/excel')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.export')
   async exportExcel(@Res() res: Response) {
     const buffer = await this.driversService.exportToExcel();
     const date = new Date().toISOString().split('T')[0];
@@ -77,6 +81,7 @@ export class DriversController {
 
   @Get('import/template')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.downloadTemplate')
   async downloadTemplate(@Res() res: Response) {
     const buffer = await this.driversService.generateImportTemplate();
     res.set({
@@ -89,6 +94,7 @@ export class DriversController {
 
   @Post('import/excel')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.import')
   @UseInterceptors(FileInterceptor('file'))
   async importExcel(@UploadedFile() file: any) {
     if (!file) {
@@ -103,12 +109,14 @@ export class DriversController {
 
   @Post()
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.addButton')
   async create(@Body() dto: CreateDriverDto) {
     const driver = await this.driversService.create(dto);
     return new ApiResponse(driver, 'Driver created successfully');
   }
 
   @Get(':id')
+  @Permissions('drivers')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const driver = await this.driversService.findOne(id);
     return new ApiResponse(driver);
@@ -116,6 +124,7 @@ export class DriversController {
 
   @Patch(':id')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.table.editButton')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateDriverDto,
@@ -126,6 +135,7 @@ export class DriversController {
 
   @Post(':id/vehicles')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.table.editButton')
   async assignVehicle(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignVehicleDto,
@@ -136,6 +146,7 @@ export class DriversController {
 
   @Delete(':driverId/vehicles/:vehicleId')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.table.editButton')
   async unassignVehicle(
     @Param('driverId', ParseUUIDPipe) driverId: string,
     @Param('vehicleId', ParseUUIDPipe) vehicleId: string,
@@ -146,6 +157,7 @@ export class DriversController {
 
   @Patch(':id/status')
   @Roles('ADMIN')
+  @Permissions('drivers.table.toggleStatus')
   async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.driversService.toggleStatus(id);
     return new ApiResponse(result, 'Driver status updated successfully');
@@ -153,6 +165,7 @@ export class DriversController {
 
   @Delete(':id')
   @Roles('ADMIN')
+  @Permissions('drivers.table.deleteButton')
   async softDelete(@Param('id', ParseUUIDPipe) id: string) {
     await this.driversService.softDelete(id);
     return new ApiResponse(null, 'Driver removed successfully');
@@ -160,6 +173,7 @@ export class DriversController {
 
   @Post(':id/attachment')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.table.uploadAttachment')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadAttachment(
     @Param('id', ParseUUIDPipe) id: string,
@@ -172,6 +186,7 @@ export class DriversController {
 
   @Post(':id/account')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.table.createAccount')
   async createUserAccount(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: { email: string; password: string },
@@ -182,6 +197,7 @@ export class DriversController {
 
   @Patch(':id/account/password')
   @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('drivers.table.resetPassword')
   async resetPassword(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: { password: string },

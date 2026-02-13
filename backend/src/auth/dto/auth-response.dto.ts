@@ -5,7 +5,10 @@ export class AuthUserDto {
   email!: string;
   name!: string;
   role!: UserRole;
+  roleId?: string;
+  roleSlug?: string;
   repId?: string;
+  driverId?: string;
 }
 
 export class AuthResponseDto {

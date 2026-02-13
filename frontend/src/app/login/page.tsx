@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
-import { Plane, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,10 +76,13 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-sm px-4">
         <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-2xl backdrop-blur-xl">
           {/* Logo / Brand */}
-          <div className="mb-6 flex flex-col items-center gap-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-              <Plane className="h-6 w-6 text-white" />
-            </div>
+          <div className="mb-6 flex flex-col items-center gap-3">
+            <Image
+              src="/favicon.svg"
+              alt="iTourTT"
+              width={56}
+              height={56}
+            />
             <h1 className="text-xl font-semibold text-white">{t("sidebar.brand")}</h1>
             <p className="text-sm text-white/50">{t("login.system")}</p>
           </div>

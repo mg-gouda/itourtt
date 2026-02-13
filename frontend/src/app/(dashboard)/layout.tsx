@@ -41,7 +41,10 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto p-6 pb-10">{children}</main>
+          <footer className="shrink-0 border-t border-border bg-gray-500/15 px-6 py-1.5 text-left text-[11px] text-foreground">
+            Developed by: Mohamed Gouda &middot; v0.1.0
+          </footer>
         </div>
       </div>
     </ThemeProvider>

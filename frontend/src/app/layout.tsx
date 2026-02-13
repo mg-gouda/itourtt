@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "iTour Transport & Traffic",
+  title: "iTourTT",
   description: "Enterprise transport, traffic, and accounting system",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export const viewport = {
