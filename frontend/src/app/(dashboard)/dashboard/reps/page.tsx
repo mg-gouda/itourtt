@@ -104,7 +104,7 @@ export default function RepsPage() {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [accountRepId, setAccountRepId] = useState<string | null>(null);
   const [accountRepName, setAccountRepName] = useState("");
-  const [accountEmail, setAccountEmail] = useState("");
+  const [accountRepPhone, setAccountRepPhone] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -346,7 +346,7 @@ export default function RepsPage() {
   function openAccountDialog(rep: Rep) {
     setAccountRepId(rep.id);
     setAccountRepName(rep.name);
-    setAccountEmail("");
+    setAccountRepPhone(rep.mobileNumber);
     setAccountPassword("");
     setAccountDialogOpen(true);
   }
@@ -359,15 +359,14 @@ export default function RepsPage() {
   }
 
   async function handleCreateAccount() {
-    if (!accountRepId || !accountEmail.trim() || !accountPassword.trim()) {
-      toast.error(t("drivers.emailRequired"));
+    if (!accountRepId || !accountPassword.trim()) {
+      toast.error(t("drivers.passwordRequired"));
       return;
     }
 
     try {
       setSubmitting(true);
       await api.post(`/reps/${accountRepId}/account`, {
-        email: accountEmail.trim(),
         password: accountPassword.trim(),
       });
       toast.success(t("drivers.accountCreated"));
@@ -747,17 +746,15 @@ export default function RepsPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="account-email" className="text-muted-foreground">
-                {t("common.email")} *
+              <Label className="text-muted-foreground">
+                {t("reps.mobileNumber")}
               </Label>
               <Input
-                id="account-email"
-                type="email"
-                placeholder="rep@itour.local"
-                value={accountEmail}
-                onChange={(e) => setAccountEmail(e.target.value)}
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
+                value={accountRepPhone}
+                disabled
+                className="border-border bg-muted/30 text-foreground"
               />
+              <p className="text-xs text-muted-foreground">{t("drivers.loginWithMobile")}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="account-password" className="text-muted-foreground">

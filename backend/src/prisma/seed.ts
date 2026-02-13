@@ -30,6 +30,23 @@ async function main() {
 
     console.log(`Admin user created: ${admin.email} (${admin.id})`);
 
+    // Create super admin
+    const superAdminHash = await bcrypt.hash('Win16@64_PineBlue', 12);
+
+    const superAdmin = await prisma.user.upsert({
+      where: { email: 'mggouda@gmail.com' },
+      update: {},
+      create: {
+        email: 'mggouda@gmail.com',
+        passwordHash: superAdminHash,
+        name: 'Mohamed Gouda',
+        role: 'ADMIN',
+        isActive: true,
+      },
+    });
+
+    console.log(`Super admin created: ${superAdmin.email} (${superAdmin.id})`);
+
     // ─── SEED SYSTEM ROLES ───
     const allPermissionKeys = getAllPermissionKeys();
     const pageKeys = allPermissionKeys.filter((k) => !k.includes('.'));
@@ -54,9 +71,9 @@ async function main() {
 
       // Skip admin (always has full access in code)
       if (role.slug === 'admin') {
-        // Assign admin user to admin role
-        await prisma.user.update({
-          where: { id: admin.id },
+        // Assign admin users to admin role
+        await prisma.user.updateMany({
+          where: { id: { in: [admin.id, superAdmin.id] } },
           data: { roleId: role.id },
         });
         continue;

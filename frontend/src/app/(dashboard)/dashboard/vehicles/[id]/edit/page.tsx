@@ -401,7 +401,7 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="edit-car-brand" className="text-muted-foreground">{t("vehicles.carBrand")}</Label>
                   <Input id="edit-car-brand" placeholder="e.g. Toyota" value={carBrand} onChange={(e) => setCarBrand(e.target.value)} className="border-border bg-card text-foreground placeholder:text-muted-foreground" />

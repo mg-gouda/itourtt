@@ -368,7 +368,7 @@ export default function AgentsPage() {
             <DialogTitle className="text-foreground">{t("agents.addAgent")}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-2">
+          <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="legalName" className="text-muted-foreground">
                 {t("agents.legalName")} *
@@ -556,7 +556,7 @@ export default function AgentsPage() {
             <DialogTitle className="text-foreground">{t("agents.editAgent")}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-2">
+          <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-legalName" className="text-muted-foreground">
                 {t("agents.legalName")} *
@@ -712,7 +712,7 @@ export default function AgentsPage() {
 
             <div className="col-span-2 border-t border-border pt-3 mt-1">
               <p className="text-sm font-medium text-foreground mb-3">{t("finance.creditStatus")}</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="edit-creditLimit" className="text-muted-foreground">
                     {t("agents.creditLimit")}

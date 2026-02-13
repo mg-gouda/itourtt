@@ -160,26 +160,33 @@ export class DriversService {
     });
   }
 
-  async createUserAccount(driverId: string, dto: { email: string; password: string }) {
+  async createUserAccount(driverId: string, dto: { password: string }) {
     const driver = await this.findOne(driverId);
 
     if (driver.userId) {
       throw new ConflictException('This driver already has a user account');
     }
 
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    if (!driver.mobileNumber) {
+      throw new BadRequestException('Driver must have a mobile number to create an account');
+    }
+
+    // Check if phone already taken
+    const existingPhone = await this.prisma.user.findUnique({
+      where: { phone: driver.mobileNumber },
     });
-    if (existing) {
-      throw new ConflictException('A user with this email already exists');
+    if (existingPhone) {
+      throw new ConflictException('A user with this mobile number already exists');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    const portalEmail = `driver.${driver.mobileNumber}@portal.itour.local`;
 
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          email: dto.email,
+          email: portalEmail,
+          phone: driver.mobileNumber,
           passwordHash,
           name: driver.name,
           role: 'DRIVER',
@@ -193,7 +200,7 @@ export class DriversService {
 
       return {
         userId: user.id,
-        email: user.email,
+        phone: user.phone,
         name: user.name,
         role: user.role,
       };

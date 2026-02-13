@@ -1013,7 +1013,7 @@ export default function SupplierDetailPage({
               {editingDriver ? t("suppliers.editDriver") : t("suppliers.addDriver")}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t("suppliers.driverName")} *</Label>
               <Input
@@ -1085,7 +1085,7 @@ export default function SupplierDetailPage({
               {editingVehicle ? t("suppliers.editVehicle") : t("suppliers.addVehicle")}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label className="text-muted-foreground">{t("vehicles.plateNumber")} *</Label>
               <Input

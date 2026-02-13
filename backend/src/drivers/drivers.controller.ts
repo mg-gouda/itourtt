@@ -189,7 +189,7 @@ export class DriversController {
   @Permissions('drivers.table.createAccount')
   async createUserAccount(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: { email: string; password: string },
+    @Body() dto: { password: string },
   ) {
     const result = await this.driversService.createUserAccount(id, dto);
     return new ApiResponse(result, 'Driver user account created successfully');

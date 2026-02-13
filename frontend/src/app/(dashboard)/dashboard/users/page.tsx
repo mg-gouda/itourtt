@@ -547,9 +547,9 @@ export default function UsersPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
             {/* Left: Role List */}
-            <div className="col-span-3">
+            <div className="lg:col-span-3">
               <Card className="border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-foreground">Roles</h3>
@@ -631,7 +631,7 @@ export default function UsersPage() {
             </div>
 
             {/* Right: Permission Tree */}
-            <div className="col-span-9">
+            <div className="lg:col-span-9">
               <Card className="border-border bg-card p-4">
                 {!selectedRoleId ? (
                   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

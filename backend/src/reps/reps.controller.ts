@@ -180,7 +180,7 @@ export class RepsController {
   @Permissions('reps.table.createAccount')
   async createAccount(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: { email: string; password: string },
+    @Body() dto: { password: string },
   ) {
     const result = await this.repsService.createUserAccount(id, dto);
     return new ApiResponse(result, 'Rep account created successfully');

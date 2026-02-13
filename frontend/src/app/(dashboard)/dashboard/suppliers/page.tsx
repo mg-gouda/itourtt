@@ -82,7 +82,7 @@ export default function SuppliersPage() {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [accountSupplierId, setAccountSupplierId] = useState<string | null>(null);
   const [accountSupplierName, setAccountSupplierName] = useState("");
-  const [accountEmail, setAccountEmail] = useState("");
+  const [accountSupplierPhone, setAccountSupplierPhone] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -215,7 +215,7 @@ export default function SuppliersPage() {
   function openAccountDialog(supplier: Supplier) {
     setAccountSupplierId(supplier.id);
     setAccountSupplierName(supplier.legalName);
-    setAccountEmail(supplier.email || "");
+    setAccountSupplierPhone(supplier.phone || "");
     setAccountPassword("");
     setAccountDialogOpen(true);
   }
@@ -228,8 +228,8 @@ export default function SuppliersPage() {
   }
 
   async function handleCreateAccount() {
-    if (!accountSupplierId || !accountEmail.trim() || !accountPassword.trim()) {
-      toast.error("Email and password are required");
+    if (!accountSupplierId || !accountPassword.trim()) {
+      toast.error("Password is required");
       return;
     }
     if (accountPassword.length < 6) {
@@ -239,7 +239,6 @@ export default function SuppliersPage() {
     try {
       setSubmitting(true);
       await api.post(`/suppliers/${accountSupplierId}/account`, {
-        email: accountEmail.trim(),
         password: accountPassword,
       });
       toast.success("Supplier account created successfully");
@@ -432,7 +431,7 @@ export default function SuppliersPage() {
             <DialogTitle className="text-foreground">{t("suppliers.addSupplier")}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="legalName" className="text-muted-foreground">
                 {t("agents.legalName")} *
@@ -567,17 +566,15 @@ export default function SuppliersPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="acct-email" className="text-muted-foreground">
-                {t("common.email")} *
+              <Label className="text-muted-foreground">
+                {t("suppliers.phone")}
               </Label>
               <Input
-                id="acct-email"
-                type="email"
-                placeholder="supplier@itour.local"
-                value={accountEmail}
-                onChange={(e) => setAccountEmail(e.target.value)}
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
+                value={accountSupplierPhone}
+                disabled
+                className="border-border bg-muted/30 text-foreground"
               />
+              <p className="text-xs text-muted-foreground">{t("drivers.loginWithMobile")}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="acct-password" className="text-muted-foreground">
@@ -651,7 +648,7 @@ export default function SuppliersPage() {
             <DialogTitle className="text-foreground">{t("suppliers.editSupplier")}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-legalName" className="text-muted-foreground">
                 {t("agents.legalName")} *

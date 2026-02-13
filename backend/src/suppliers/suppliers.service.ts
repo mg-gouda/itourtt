@@ -577,26 +577,32 @@ export class SuppliersService {
 
   // ─── Supplier Account ────────────────────────────────────────
 
-  async createUserAccount(supplierId: string, dto: { email: string; password: string }) {
+  async createUserAccount(supplierId: string, dto: { password: string }) {
     const supplier = await this.findOne(supplierId);
 
     if (supplier.userId) {
       throw new ConflictException('This supplier already has a user account');
     }
 
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    if (!supplier.phone) {
+      throw new BadRequestException('Supplier must have a phone number to create an account');
+    }
+
+    const existingPhone = await this.prisma.user.findUnique({
+      where: { phone: supplier.phone },
     });
-    if (existing) {
-      throw new ConflictException('A user with this email already exists');
+    if (existingPhone) {
+      throw new ConflictException('A user with this phone number already exists');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    const portalEmail = `supplier.${supplier.phone}@portal.itour.local`;
 
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          email: dto.email,
+          email: portalEmail,
+          phone: supplier.phone!,
           passwordHash,
           name: supplier.legalName,
           role: 'SUPPLIER',
@@ -610,7 +616,7 @@ export class SuppliersService {
 
       return {
         userId: user.id,
-        email: user.email,
+        phone: user.phone,
         name: user.name,
         role: user.role,
       };

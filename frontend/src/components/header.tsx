@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { LogOut, User, Settings, HelpCircle } from "lucide-react";
+import { LogOut, User, Settings, HelpCircle, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,17 +20,26 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuthStore } from "@/stores/auth-store";
 import { useT } from "@/lib/i18n";
+import { MobileSidebar } from "@/components/mobile-sidebar";
 
 export function Header() {
   const { user, logout } = useAuthStore();
   const t = useT();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-6">
-      <div />
-      <div className="flex items-center gap-3">
+    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-3 md:px-6">
+      <div className="flex items-center">
+        <button
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+          onClick={() => setMobileNavOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="flex items-center gap-2 sm:gap-3">
         {user && (
-          <Badge variant="outline" className="border-border text-muted-foreground">
+          <Badge variant="outline" className="hidden border-border text-muted-foreground sm:inline-flex">
             {t(`role.${user.role}`)}
           </Badge>
         )}
@@ -41,7 +51,7 @@ export function Header() {
               className="gap-2 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <User className="h-4 w-4" />
-              <span className="text-sm">{user?.name || "User"}</span>
+              <span className="hidden text-sm sm:inline">{user?.name || "User"}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -83,6 +93,8 @@ export function Header() {
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      <MobileSidebar open={mobileNavOpen} onOpenChange={setMobileNavOpen} />
     </header>
   );
 }

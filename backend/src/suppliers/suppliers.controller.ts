@@ -376,7 +376,7 @@ export class SuppliersController {
   @Permissions('suppliers.table.createAccount')
   async createAccount(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: { email: string; password: string },
+    @Body() dto: { password: string },
   ) {
     const result = await this.suppliersService.createUserAccount(id, dto);
     return new ApiResponse(result, 'Supplier account created successfully');

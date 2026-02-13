@@ -205,26 +205,32 @@ export class RepsService {
     });
   }
 
-  async createUserAccount(repId: string, dto: { email: string; password: string }) {
+  async createUserAccount(repId: string, dto: { password: string }) {
     const rep = await this.findOne(repId);
 
     if (rep.userId) {
       throw new ConflictException('This rep already has a user account');
     }
 
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    if (!rep.mobileNumber) {
+      throw new BadRequestException('Rep must have a mobile number to create an account');
+    }
+
+    const existingPhone = await this.prisma.user.findUnique({
+      where: { phone: rep.mobileNumber },
     });
-    if (existing) {
-      throw new ConflictException('A user with this email already exists');
+    if (existingPhone) {
+      throw new ConflictException('A user with this mobile number already exists');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    const portalEmail = `rep.${rep.mobileNumber}@portal.itour.local`;
 
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          email: dto.email,
+          email: portalEmail,
+          phone: rep.mobileNumber,
           passwordHash,
           name: rep.name,
           role: 'REP',
@@ -238,7 +244,7 @@ export class RepsService {
 
       return {
         userId: user.id,
-        email: user.email,
+        phone: user.phone,
         name: user.name,
         role: user.role,
       };

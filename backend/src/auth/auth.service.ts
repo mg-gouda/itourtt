@@ -19,10 +19,10 @@ export class AuthService {
   ) {}
 
   /**
-   * Authenticate a user by email and password, returning tokens and user info.
+   * Authenticate a user by email/phone and password, returning tokens and user info.
    */
-  async login(email: string, password: string): Promise<AuthResponseDto> {
-    const user = await this.validateUser(email, password);
+  async login(identifier: string, password: string): Promise<AuthResponseDto> {
+    const user = await this.validateUser(identifier, password);
 
     // Load role reference for JWT
     const userWithRole = await this.prisma.user.findUnique({
@@ -161,15 +161,22 @@ export class AuthService {
   }
 
   /**
-   * Find user by email and verify password. Throws if invalid.
+   * Find user by email or phone and verify password. Throws if invalid.
    */
-  async validateUser(email: string, password: string): Promise<User> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
+  async validateUser(identifier: string, password: string): Promise<User> {
+    // Try email first, then phone
+    let user = await this.prisma.user.findUnique({
+      where: { email: identifier },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      user = await this.prisma.user.findUnique({
+        where: { phone: identifier },
+      });
+    }
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     if (!user.isActive || user.deletedAt) {
@@ -182,7 +189,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     return user;

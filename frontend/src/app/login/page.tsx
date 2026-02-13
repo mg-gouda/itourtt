@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useT } from "@/lib/i18n";
 
 const loginSchema = z.object({
-  email: z.email("Invalid email address"),
+  identifier: z.string().min(1, "Email or mobile number is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -32,7 +32,7 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identifier: "", password: "" },
   });
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (mounted && isAuthenticated) {
       const user = useAuthStore.getState().user;
-      router.replace(user?.role === 'REP' ? '/rep' : user?.role === 'DRIVER' ? '/driver' : '/dashboard');
+      router.replace(user?.role === 'REP' ? '/rep' : user?.role === 'DRIVER' ? '/driver' : user?.role === 'SUPPLIER' ? '/supplier' : '/dashboard');
     }
   }, [mounted, isAuthenticated, router]);
 
@@ -51,7 +51,7 @@ export default function LoginPage() {
     try {
       await login(data);
       const user = useAuthStore.getState().user;
-      router.replace(user?.role === 'REP' ? '/rep' : user?.role === 'DRIVER' ? '/driver' : '/dashboard');
+      router.replace(user?.role === 'REP' ? '/rep' : user?.role === 'DRIVER' ? '/driver' : user?.role === 'SUPPLIER' ? '/supplier' : '/dashboard');
     } catch {
       // error is already set in the store
     }
@@ -90,19 +90,19 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm text-white/70">
-                {t("login.email")}
+              <Label htmlFor="identifier" className="text-sm text-white/70">
+                {t("login.identifier")}
               </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="admin@itour.local"
-                autoComplete="email"
+                id="identifier"
+                type="text"
+                placeholder={t("login.identifierPlaceholder")}
+                autoComplete="username"
                 className="border-white/10 bg-white/[0.06] text-white placeholder:text-white/30 focus-visible:ring-white/20"
-                {...register("email")}
+                {...register("identifier")}
               />
-              {errors.email && (
-                <p className="text-xs text-red-400">{errors.email.message}</p>
+              {errors.identifier && (
+                <p className="text-xs text-red-400">{errors.identifier.message}</p>
               )}
             </div>
 

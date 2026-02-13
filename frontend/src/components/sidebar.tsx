@@ -38,7 +38,7 @@ import {
 import { useT } from "@/lib/i18n";
 import { usePermissionsStore } from "@/stores/permissions-store";
 
-interface NavLink {
+export interface NavLink {
   type: "link";
   nameKey: string;
   href: string;
@@ -46,20 +46,20 @@ interface NavLink {
   permissionKey?: string;
 }
 
-interface NavSeparator {
+export interface NavSeparator {
   type: "separator";
 }
 
-interface NavGroup {
+export interface NavGroup {
   type: "group";
   nameKey: string;
   icon: React.ElementType;
   children: NavLink[];
 }
 
-type NavItem = NavLink | NavSeparator | NavGroup;
+export type NavItem = NavLink | NavSeparator | NavGroup;
 
-const navigation: NavItem[] = [
+export const navigation: NavItem[] = [
   { type: "link", nameKey: "sidebar.dashboard", href: "/dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
   { type: "link", nameKey: "sidebar.dispatch", href: "/dashboard/dispatch", icon: CalendarClock, permissionKey: "dispatch" },
   { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase, permissionKey: "traffic-jobs" },

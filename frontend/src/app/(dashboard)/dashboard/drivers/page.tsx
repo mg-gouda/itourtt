@@ -106,7 +106,7 @@ export default function DriversPage() {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [accountDriverId, setAccountDriverId] = useState<string | null>(null);
   const [accountDriverName, setAccountDriverName] = useState("");
-  const [accountEmail, setAccountEmail] = useState("");
+  const [accountDriverPhone, setAccountDriverPhone] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -375,7 +375,7 @@ export default function DriversPage() {
   function openAccountDialog(driver: Driver) {
     setAccountDriverId(driver.id);
     setAccountDriverName(driver.name);
-    setAccountEmail("");
+    setAccountDriverPhone(driver.mobileNumber);
     setAccountPassword("");
     setAccountDialogOpen(true);
   }
@@ -388,15 +388,14 @@ export default function DriversPage() {
   }
 
   async function handleCreateAccount() {
-    if (!accountDriverId || !accountEmail.trim() || !accountPassword.trim()) {
-      toast.error(t("drivers.emailRequired"));
+    if (!accountDriverId || !accountPassword.trim()) {
+      toast.error(t("drivers.passwordRequired"));
       return;
     }
 
     try {
       setSubmitting(true);
       await api.post(`/drivers/${accountDriverId}/account`, {
-        email: accountEmail.trim(),
         password: accountPassword.trim(),
       });
       toast.success(t("drivers.accountCreated"));
@@ -850,17 +849,15 @@ export default function DriversPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="account-email" className="text-muted-foreground">
-                {t("common.email")} *
+              <Label className="text-muted-foreground">
+                {t("drivers.mobileNumber")}
               </Label>
               <Input
-                id="account-email"
-                type="email"
-                placeholder="driver@itour.local"
-                value={accountEmail}
-                onChange={(e) => setAccountEmail(e.target.value)}
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
+                value={accountDriverPhone}
+                disabled
+                className="border-border bg-muted/30 text-foreground"
               />
+              <p className="text-xs text-muted-foreground">{t("drivers.loginWithMobile")}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="account-password" className="text-muted-foreground">

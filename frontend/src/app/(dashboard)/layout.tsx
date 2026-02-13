@@ -38,11 +38,13 @@ export default function DashboardLayout({
   return (
     <ThemeProvider>
       <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar />
+        <div className="hidden lg:flex">
+          <Sidebar />
+        </div>
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto p-6 pb-10">{children}</main>
-          <footer className="shrink-0 border-t border-border bg-gray-500/15 px-6 py-1.5 text-left text-[11px] text-foreground">
+          <main className="flex-1 overflow-y-auto p-3 pb-10 md:p-6 md:pb-10">{children}</main>
+          <footer className="shrink-0 border-t border-border bg-gray-500/15 px-3 md:px-6 py-1.5 text-left text-[11px] text-foreground">
             Developed by: Mohamed Gouda &middot; v0.1.0
           </footer>
         </div>

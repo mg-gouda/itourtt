@@ -379,7 +379,7 @@ export default function CustomersPage() {
             <DialogTitle className="text-foreground">{t("customers.addCustomer")}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-2">
+          <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="legalName" className="text-muted-foreground">
                 {t("customers.legalName")} *
@@ -584,7 +584,7 @@ export default function CustomersPage() {
             <DialogTitle className="text-foreground">{t("customers.editCustomer")}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-2">
+          <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-legalName" className="text-muted-foreground">
                 {t("customers.legalName")} *
