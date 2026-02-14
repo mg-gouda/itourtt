@@ -151,7 +151,7 @@ export class DispatchService {
       );
     }
 
-    // 5. Validate driver with time-aware rules
+    // 5. Validate driver with time-aware rules (skip for external/supplier drivers)
     if (dto.driverId) {
       const driver = await this.prisma.driver.findFirst({
         where: { id: dto.driverId, deletedAt: null, isActive: true },
@@ -191,6 +191,9 @@ export class DispatchService {
           vehicleId: dto.vehicleId,
           driverId: dto.driverId ?? null,
           repId: dto.repId ?? null,
+          externalDriverName: dto.externalDriverName ?? null,
+          externalDriverPhone: dto.externalDriverPhone ?? null,
+          remarks: dto.remarks ?? null,
           assignedById: userId,
         },
         include: {
@@ -263,9 +266,11 @@ export class DispatchService {
   // ─────────────────────────────────────────────
 
   async reassignJob(assignmentId: string, dto: ReassignJobDto, userId: string, userRole?: string, roleSlug?: string) {
-    if (!dto.vehicleId && !dto.driverId && !dto.repId) {
+    if (!dto.vehicleId && !dto.driverId && !dto.repId
+        && dto.externalDriverName === undefined && dto.externalDriverPhone === undefined
+        && dto.remarks === undefined) {
       throw new BadRequestException(
-        'At least one of vehicleId, driverId, or repId must be provided',
+        'At least one field must be provided',
       );
     }
 
@@ -371,6 +376,9 @@ export class DispatchService {
         updateData.repStatus = 'PENDING';
       }
     }
+    if (dto.externalDriverName !== undefined) updateData.externalDriverName = dto.externalDriverName || null;
+    if (dto.externalDriverPhone !== undefined) updateData.externalDriverPhone = dto.externalDriverPhone || null;
+    if (dto.remarks !== undefined) updateData.remarks = dto.remarks || null;
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.trafficAssignment.update({

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class AssignJobDto {
   @IsNotEmpty()
@@ -16,4 +16,16 @@ export class AssignJobDto {
   @IsOptional()
   @IsUUID()
   repId?: string;
+
+  @IsOptional()
+  @IsString()
+  externalDriverName?: string;
+
+  @IsOptional()
+  @IsString()
+  externalDriverPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  remarks?: string;
 }

@@ -44,6 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
@@ -92,6 +93,9 @@ interface Job {
     vehicleId: string;
     driverId: string | null;
     repId: string | null;
+    externalDriverName?: string | null;
+    externalDriverPhone?: string | null;
+    remarks?: string | null;
     vehicle?: {
       plateNumber: string;
       vehicleType?: { name: string; seatCapacity: number };
@@ -123,7 +127,7 @@ interface PersonResource {
   supplierId?: string | null;
 }
 
-type EditField = "source" | "vehicle" | "driver" | "rep";
+type EditField = "source" | "vehicle" | "driver" | "rep" | "remarks";
 
 interface ActiveCell {
   jobId: string;
@@ -360,6 +364,7 @@ function EditablePersonCell({
   isEditing,
   onStartEdit,
   onSelect,
+  onExternalDriver,
   onCancel,
   cellRef,
   locked,
@@ -371,6 +376,7 @@ function EditablePersonCell({
   isEditing: boolean;
   onStartEdit: () => void;
   onSelect: (id: string) => void;
+  onExternalDriver?: (name: string, phone: string) => void;
   onCancel: () => void;
   cellRef: (el: HTMLTableCellElement | null) => void;
   locked?: boolean;
@@ -380,9 +386,10 @@ function EditablePersonCell({
     field === "driver" ? job.assignment?.driverId : job.assignment?.repId;
   const currentName =
     field === "driver"
-      ? job.assignment?.driver?.name
+      ? (job.assignment?.driver?.name || job.assignment?.externalDriverName)
       : job.assignment?.rep?.name;
   const canEdit = !locked && !!job.assignment; // must have vehicle first, and not locked
+  const isSupplierDriver = field === "driver" && selectedSource && selectedSource !== "owned";
 
   // Filter drivers by source (owned vs supplier), reps show all
   const filteredResources = field === "driver" && selectedSource
@@ -390,6 +397,20 @@ function EditablePersonCell({
       ? resources.filter((r) => !r.supplierId)
       : resources.filter((r) => r.supplierId === selectedSource)
     : resources;
+
+  // Supplier driver: show text inputs for name + phone
+  if (isSupplierDriver && isEditing && canEdit) {
+    return (
+      <ExternalDriverInput
+        job={job}
+        onSave={(name, phone) => {
+          onExternalDriver?.(name, phone);
+        }}
+        onCancel={onCancel}
+        cellRef={cellRef}
+      />
+    );
+  }
 
   if (isEditing && canEdit) {
     return (
@@ -444,8 +465,10 @@ function EditablePersonCell({
       {currentName ? (
         <div>
           <span>{currentName}</span>
-          {field === "driver" && job.assignment?.driver?.mobileNumber && (
-            <div className="text-[10px] text-muted-foreground/70 font-mono">{job.assignment.driver.mobileNumber}</div>
+          {field === "driver" && (job.assignment?.driver?.mobileNumber || job.assignment?.externalDriverPhone) && (
+            <div className="text-[10px] text-muted-foreground/70 font-mono">
+              {job.assignment?.driver?.mobileNumber || job.assignment?.externalDriverPhone}
+            </div>
           )}
         </div>
       ) : (
@@ -456,6 +479,147 @@ function EditablePersonCell({
         >
           —
         </span>
+      )}
+    </TableCell>
+  );
+}
+
+// ────────────────────────────────────────────
+// External Driver Input (for supplier drivers)
+// ────────────────────────────────────────────
+
+function ExternalDriverInput({
+  job,
+  onSave,
+  onCancel,
+  cellRef,
+}: {
+  job: Job;
+  onSave: (name: string, phone: string) => void;
+  onCancel: () => void;
+  cellRef: (el: HTMLTableCellElement | null) => void;
+}) {
+  const t = useT();
+  const [name, setName] = useState(job.assignment?.externalDriverName || "");
+  const [phone, setPhone] = useState(job.assignment?.externalDriverPhone || "");
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    nameRef.current?.focus();
+  }, []);
+
+  const handleSave = () => {
+    onSave(name.trim(), phone.trim());
+  };
+
+  return (
+    <TableCell ref={cellRef} className="p-1">
+      <div className="flex flex-col gap-0.5">
+        <input
+          ref={nameRef}
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t("dispatch.externalDriverName")}
+          className="h-6 w-full rounded border border-border bg-secondary px-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") onCancel();
+          }}
+        />
+        <input
+          type="text"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder={t("dispatch.externalDriverPhone")}
+          className="h-6 w-full rounded border border-border bg-secondary px-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") onCancel();
+          }}
+          onBlur={handleSave}
+        />
+      </div>
+    </TableCell>
+  );
+}
+
+// ────────────────────────────────────────────
+// Editable Remarks Cell
+// ────────────────────────────────────────────
+
+function EditableRemarksCell({
+  job,
+  isEditing,
+  onStartEdit,
+  onSave,
+  onCancel,
+  cellRef,
+  locked,
+}: {
+  job: Job;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onSave: (value: string) => void;
+  onCancel: () => void;
+  cellRef: (el: HTMLTableCellElement | null) => void;
+  locked?: boolean;
+}) {
+  const t = useT();
+  const [value, setValue] = useState(job.assignment?.remarks || "");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const canEdit = !locked && !!job.assignment;
+
+  useEffect(() => {
+    if (isEditing) {
+      setValue(job.assignment?.remarks || "");
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [isEditing, job.assignment?.remarks]);
+
+  if (isEditing && canEdit) {
+    return (
+      <TableCell ref={cellRef} className="p-1">
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={t("dispatch.remarks")}
+          className="h-7 w-full rounded border border-border bg-secondary px-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              onSave(value.trim());
+            }
+            if (e.key === "Escape") onCancel();
+          }}
+          onBlur={() => onSave(value.trim())}
+        />
+      </TableCell>
+    );
+  }
+
+  return (
+    <TableCell
+      ref={cellRef}
+      tabIndex={canEdit ? 0 : -1}
+      className={`text-sm text-muted-foreground ${canEdit ? "cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring focus:ring-inset" : ""}`}
+      onClick={canEdit ? onStartEdit : undefined}
+      onKeyDown={
+        canEdit
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onStartEdit();
+              }
+            }
+          : undefined
+      }
+    >
+      {job.assignment?.remarks ? (
+        <span className="text-xs">{job.assignment.remarks}</span>
+      ) : (
+        <span className="text-muted-foreground/60 text-xs">—</span>
       )}
     </TableCell>
   );
@@ -620,7 +784,7 @@ function JobGrid({
   // Keyboard navigation between cells
   const handleCellKeyDown = useCallback(
     (e: React.KeyboardEvent, jobId: string, field: EditField) => {
-      const fields: EditField[] = ["source", "vehicle", "driver", "rep"];
+      const fields: EditField[] = ["source", "vehicle", "driver", "rep", "remarks"];
       const fieldIdx = fields.indexOf(field);
       const jobIdx = jobs.findIndex((j) => j.id === jobId);
 
@@ -680,6 +844,7 @@ function JobGrid({
             <TableHead className="text-white text-xs w-36">{t("dispatch.vehicle")}</TableHead>
             <TableHead className="text-white text-xs w-32">{t("dispatch.driver")}</TableHead>
             <TableHead className="text-white text-xs w-32">{t("dispatch.rep")}</TableHead>
+            <TableHead className="text-white text-xs w-32">{t("dispatch.remarks")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -792,6 +957,9 @@ function JobGrid({
                       onSelect={(val) =>
                         onInlineAssign(job, "driver", val)
                       }
+                      onExternalDriver={(name, phone) =>
+                        onInlineAssign(job, "driver", `__external__:${name}:${phone}`)
+                      }
                       onCancel={onCancelEdit}
                       cellRef={setCellRef(job.id, "driver")}
                       locked={isJobLocked}
@@ -810,6 +978,20 @@ function JobGrid({
                       }
                       onCancel={onCancelEdit}
                       cellRef={setCellRef(job.id, "rep")}
+                      locked={isJobLocked}
+                    />
+                    <EditableRemarksCell
+                      job={job}
+                      isEditing={
+                        activeCell?.jobId === job.id &&
+                        activeCell?.field === "remarks"
+                      }
+                      onStartEdit={() => onStartEdit(job.id, "remarks")}
+                      onSave={(val) =>
+                        onInlineAssign(job, "remarks", val)
+                      }
+                      onCancel={onCancelEdit}
+                      cellRef={setCellRef(job.id, "remarks")}
                       locked={isJobLocked}
                     />
                   </>
@@ -839,17 +1021,24 @@ function JobGrid({
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {job.assignment?.driver?.name ? (
+                      {(job.assignment?.driver?.name || job.assignment?.externalDriverName) ? (
                         <div>
-                          <span>{job.assignment.driver.name}</span>
-                          {job.assignment.driver.mobileNumber && (
-                            <div className="text-[10px] text-muted-foreground/70 font-mono">{job.assignment.driver.mobileNumber}</div>
+                          <span>{job.assignment?.driver?.name || job.assignment?.externalDriverName}</span>
+                          {(job.assignment?.driver?.mobileNumber || job.assignment?.externalDriverPhone) && (
+                            <div className="text-[10px] text-muted-foreground/70 font-mono">
+                              {job.assignment?.driver?.mobileNumber || job.assignment?.externalDriverPhone}
+                            </div>
                           )}
                         </div>
                       ) : "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {job.assignment?.rep?.name || "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {job.assignment?.remarks ? (
+                        <span className="text-xs">{job.assignment.remarks}</span>
+                      ) : "—"}
                     </TableCell>
                   </>
                 )}
@@ -901,6 +1090,9 @@ export default function DispatchPage() {
   const [dialogVehicle, setDialogVehicle] = useState("");
   const [dialogDriver, setDialogDriver] = useState("");
   const [dialogRep, setDialogRep] = useState("");
+  const [dialogExternalDriverName, setDialogExternalDriverName] = useState("");
+  const [dialogExternalDriverPhone, setDialogExternalDriverPhone] = useState("");
+  const [dialogRemarks, setDialogRemarks] = useState("");
   const [dialogSaving, setDialogSaving] = useState(false);
 
   // Filtered vehicles for dialog based on owned/supplier selection
@@ -1092,6 +1284,9 @@ export default function DispatchPage() {
     if (job.assignment && job.assignment.id !== "__pending__") {
       saveSnapshot();
 
+      // Check if this is an external driver (supplier driver entered manually)
+      const isExternalDriver = field === "driver" && typeof value === "string" && value.startsWith("__external__:");
+
       // Build optimistic update
       const found = findJobList(job.id);
       if (found) {
@@ -1104,17 +1299,27 @@ export default function DispatchPage() {
             updated.assignment.vehicle = v
               ? { plateNumber: v.plateNumber, vehicleType: v.vehicleType }
               : updated.assignment.vehicle;
+          } else if (field === "driver" && isExternalDriver) {
+            const parts = value.split(":");
+            updated.assignment.driverId = null;
+            updated.assignment.driver = undefined;
+            updated.assignment.externalDriverName = parts[1] || null;
+            updated.assignment.externalDriverPhone = parts[2] || null;
           } else if (field === "driver") {
             updated.assignment.driverId = actualValue;
             const driverRes = drivers.find((d) => d.id === actualValue);
             updated.assignment.driver = actualValue
               ? { name: driverRes?.name || "", mobileNumber: driverRes?.mobileNumber }
               : undefined;
+            updated.assignment.externalDriverName = null;
+            updated.assignment.externalDriverPhone = null;
           } else if (field === "rep") {
             updated.assignment.repId = actualValue;
             updated.assignment.rep = actualValue
               ? { name: reps.find((r) => r.id === actualValue)?.name || "" }
               : undefined;
+          } else if (field === "remarks") {
+            updated.assignment.remarks = actualValue;
           }
           return updated;
         });
@@ -1123,14 +1328,22 @@ export default function DispatchPage() {
       try {
         const payload: Record<string, string | null> = {};
         if (field === "vehicle" && actualValue) payload.vehicleId = actualValue;
-        if (field === "driver") payload.driverId = actualValue;
+        if (field === "driver" && isExternalDriver) {
+          const parts = value.split(":");
+          payload.driverId = null;
+          payload.externalDriverName = parts[1] || null;
+          payload.externalDriverPhone = parts[2] || null;
+        } else if (field === "driver") {
+          payload.driverId = actualValue;
+        }
         if (field === "rep") payload.repId = actualValue;
+        if (field === "remarks") payload.remarks = actualValue;
 
         await api.patch(
           `/dispatch/assignments/${job.assignment.id}`,
           payload
         );
-        toast.success(t(`dispatch.${field}Updated`));
+        toast.success(t(`dispatch.${field === "remarks" ? "remarks" : field}Updated`));
       } catch (err: unknown) {
         rollback();
         const msg =
@@ -1154,7 +1367,12 @@ export default function DispatchPage() {
     setDialogVehicle(job.assignment?.vehicleId || "");
     setDialogDriver(job.assignment?.driverId || "");
     setDialogRep(job.assignment?.repId || "");
+    setDialogExternalDriverName(job.assignment?.externalDriverName || "");
+    setDialogExternalDriverPhone(job.assignment?.externalDriverPhone || "");
+    setDialogRemarks(job.assignment?.remarks || "");
   };
+
+  const dialogIsSupplier = dialogSupplier && dialogSupplier !== "owned";
 
   const handleDialogSave = async () => {
     if (!dialogJob || !dialogVehicle) {
@@ -1165,13 +1383,26 @@ export default function DispatchPage() {
     try {
       if (dialogJob.assignment) {
         // Reassign
-        const payload: Record<string, string> = {};
+        const payload: Record<string, string | null> = {};
         if (dialogVehicle !== dialogJob.assignment.vehicleId)
           payload.vehicleId = dialogVehicle;
-        if (dialogDriver !== (dialogJob.assignment.driverId || ""))
-          payload.driverId = dialogDriver;
+        if (dialogIsSupplier) {
+          // External driver (text fields)
+          if (dialogExternalDriverName !== (dialogJob.assignment.externalDriverName || ""))
+            payload.externalDriverName = dialogExternalDriverName || null;
+          if (dialogExternalDriverPhone !== (dialogJob.assignment.externalDriverPhone || ""))
+            payload.externalDriverPhone = dialogExternalDriverPhone || null;
+          payload.driverId = null;
+        } else {
+          if (dialogDriver !== (dialogJob.assignment.driverId || ""))
+            payload.driverId = dialogDriver || null;
+          payload.externalDriverName = null;
+          payload.externalDriverPhone = null;
+        }
         if (dialogRep !== (dialogJob.assignment.repId || ""))
-          payload.repId = dialogRep;
+          payload.repId = dialogRep || null;
+        if (dialogRemarks !== (dialogJob.assignment.remarks || ""))
+          payload.remarks = dialogRemarks || null;
 
         if (Object.keys(payload).length > 0) {
           await api.patch(
@@ -1181,12 +1412,18 @@ export default function DispatchPage() {
         }
       } else {
         // New assign
-        const payload: Record<string, string> = {
+        const payload: Record<string, string | null> = {
           trafficJobId: dialogJob.id,
           vehicleId: dialogVehicle,
         };
-        if (dialogDriver) payload.driverId = dialogDriver;
+        if (dialogIsSupplier) {
+          if (dialogExternalDriverName) payload.externalDriverName = dialogExternalDriverName;
+          if (dialogExternalDriverPhone) payload.externalDriverPhone = dialogExternalDriverPhone;
+        } else {
+          if (dialogDriver) payload.driverId = dialogDriver;
+        }
         if (dialogRep) payload.repId = dialogRep;
+        if (dialogRemarks) payload.remarks = dialogRemarks;
         await api.post("/dispatch/assign", payload);
       }
       toast.success(t("dispatch.assignmentSaved"));
@@ -1571,32 +1808,49 @@ export default function DispatchPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" /> {t("dispatch.driver")}
               </div>
-              <Select
-                value={dialogDriver}
-                onValueChange={setDialogDriver}
-              >
-                <SelectTrigger className="border-border bg-card text-foreground">
-                  <SelectValue placeholder={t("dispatch.selectDriver")} />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover text-foreground">
-                  {(() => {
-                    const filtered = dialogSupplier === "owned"
-                      ? drivers.filter((d) => !d.supplierId)
-                      : dialogSupplier
-                        ? drivers.filter((d) => d.supplierId === dialogSupplier)
-                        : drivers;
-                    return filtered.length === 0 ? (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noDriversAvailable")}</div>
-                    ) : (
-                      filtered.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                        </SelectItem>
-                      ))
-                    );
-                  })()}
-                </SelectContent>
-              </Select>
+              {dialogIsSupplier ? (
+                <div className="space-y-2">
+                  <Input
+                    placeholder={t("dispatch.externalDriverName")}
+                    value={dialogExternalDriverName}
+                    onChange={(e) => setDialogExternalDriverName(e.target.value)}
+                    className="border-border bg-card text-foreground"
+                  />
+                  <Input
+                    placeholder={t("dispatch.externalDriverPhone")}
+                    value={dialogExternalDriverPhone}
+                    onChange={(e) => setDialogExternalDriverPhone(e.target.value)}
+                    className="border-border bg-card text-foreground"
+                  />
+                </div>
+              ) : (
+                <Select
+                  value={dialogDriver}
+                  onValueChange={setDialogDriver}
+                >
+                  <SelectTrigger className="border-border bg-card text-foreground">
+                    <SelectValue placeholder={t("dispatch.selectDriver")} />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover text-foreground">
+                    {(() => {
+                      const filtered = dialogSupplier === "owned"
+                        ? drivers.filter((d) => !d.supplierId)
+                        : dialogSupplier
+                          ? drivers.filter((d) => d.supplierId === dialogSupplier)
+                          : drivers;
+                      return filtered.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noDriversAvailable")}</div>
+                      ) : (
+                        filtered.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                          </SelectItem>
+                        ))
+                      );
+                    })()}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -1615,6 +1869,18 @@ export default function DispatchPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {t("dispatch.remarks")}
+              </div>
+              <Input
+                placeholder={t("dispatch.remarks")}
+                value={dialogRemarks}
+                onChange={(e) => setDialogRemarks(e.target.value)}
+                className="border-border bg-card text-foreground"
+              />
             </div>
           </div>
           <DialogFooter>

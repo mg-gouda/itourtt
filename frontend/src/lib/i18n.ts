@@ -511,6 +511,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "dispatch.vehicleUpdated": "Vehicle updated",
     "dispatch.driverUpdated": "Driver updated",
     "dispatch.repUpdated": "Rep updated",
+    "dispatch.remarks": "Remarks",
+    "dispatch.externalDriverName": "Driver Name",
+    "dispatch.externalDriverPhone": "Driver Phone",
+    "dispatch.remarksUpdated": "Remarks updated",
+    "dispatch.externalDriverUpdated": "External driver updated",
 
     // ── Job Locks ──
     "jobLocks.title": "Job Locks",
@@ -1642,6 +1647,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "dispatch.vehicleUpdated": "تم تحديث المركبة",
     "dispatch.driverUpdated": "تم تحديث السائق",
     "dispatch.repUpdated": "تم تحديث المندوب",
+    "dispatch.remarks": "ملاحظات",
+    "dispatch.externalDriverName": "اسم السائق",
+    "dispatch.externalDriverPhone": "هاتف السائق",
+    "dispatch.remarksUpdated": "تم تحديث الملاحظات",
+    "dispatch.externalDriverUpdated": "تم تحديث السائق الخارجي",
 
     // ── Job Locks ──
     "jobLocks.title": "أقفال المهام",

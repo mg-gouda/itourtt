@@ -948,9 +948,12 @@ model TrafficAssignment {
   driverStatus   PortalJobStatus @default(PENDING) @map("driver_status")
   repStatus      PortalJobStatus @default(PENDING) @map("rep_status")
   supplierStatus PortalJobStatus @default(PENDING) @map("supplier_status")
-  supplierNotes  String?         @map("supplier_notes")
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  supplierNotes       String?         @map("supplier_notes")
+  externalDriverName  String?         @map("external_driver_name")
+  externalDriverPhone String?         @map("external_driver_phone")
+  remarks             String?
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
   trafficJob       TrafficJob       @relation(fields: [trafficJobId], references: [id])
   vehicle          Vehicle          @relation(fields: [vehicleId], references: [id])
