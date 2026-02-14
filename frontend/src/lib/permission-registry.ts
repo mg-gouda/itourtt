@@ -488,6 +488,26 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     ],
   },
 
+  // ─── GUEST BOOKINGS (B2C) ───
+  {
+    key: 'guest-bookings',
+    labelKey: 'permissions.guestBookings',
+    children: [
+      { key: 'guest-bookings.convert', labelKey: 'permissions.guestBookings.convert' },
+      { key: 'guest-bookings.cancel', labelKey: 'permissions.guestBookings.cancel' },
+    ],
+  },
+
+  // ─── PUBLIC PRICES (B2C) ───
+  {
+    key: 'public-prices',
+    labelKey: 'permissions.publicPrices',
+    children: [
+      { key: 'public-prices.bulk', labelKey: 'permissions.publicPrices.bulk' },
+      { key: 'public-prices.delete', labelKey: 'permissions.publicPrices.delete' },
+    ],
+  },
+
   // ─── JOB LOCKS ───
   {
     key: 'job-locks',

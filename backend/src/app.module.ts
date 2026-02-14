@@ -27,6 +27,11 @@ import { PermissionsModule } from './permissions/permissions.module.js';
 import { JobLocksModule } from './job-locks/job-locks.module.js';
 import { SupplierPortalModule } from './supplier-portal/supplier-portal.module.js';
 import { ActivityLogsModule } from './activity-logs/activity-logs.module.js';
+import { PublicPricesModule } from './public-prices/public-prices.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
+import { PublicApiModule } from './public-api/public-api.module.js';
+import { GuestBookingsModule } from './guest-bookings/guest-bookings.module.js';
+import { EmailModule } from './email/email.module.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 
 @Module({
@@ -59,6 +64,10 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
     JobLocksModule,
     SupplierPortalModule,
     ActivityLogsModule,
+    PublicPricesModule,
+    PaymentsModule,
+    PublicApiModule,
+    GuestBookingsModule,
   ],
   controllers: [AppController],
   providers: [

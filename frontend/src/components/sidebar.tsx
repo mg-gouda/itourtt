@@ -26,6 +26,8 @@ import {
   MessageCircle,
   Lock,
   ClipboardList,
+  Globe,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -66,6 +68,8 @@ export const navigation: NavItem[] = [
   { type: "separator" },
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
   { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3, permissionKey: "reports" },
+  { type: "link", nameKey: "sidebar.guestBookings", href: "/dashboard/guest-bookings", icon: Globe, permissionKey: "guest-bookings" },
+  { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
   { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },
   { type: "link", nameKey: "sidebar.activityLog", href: "/dashboard/activity-log", icon: ClipboardList, permissionKey: "activity-logs" },
   { type: "separator" },

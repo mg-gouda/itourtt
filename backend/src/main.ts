@@ -6,7 +6,9 @@ import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
   const logger = new Logger('Bootstrap');
 
   // Serve uploaded files statically (logos, favicons, etc.)

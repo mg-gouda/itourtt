@@ -4,8 +4,10 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EmailService } from '../email/email.service.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
 import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import type { ServiceType, JobStatus } from '../../generated/prisma/client.js';
@@ -15,7 +17,12 @@ const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
 @Injectable()
 export class DispatchService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(DispatchService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   // ─────────────────────────────────────────────
   // DAY VIEW
@@ -214,7 +221,41 @@ export class DispatchService {
       return created;
     });
 
+    // Send driver assignment email if this job is linked to a guest booking
+    if (assignment.driverId && assignment.driver) {
+      this.sendDriverAssignmentEmail(
+        assignment.trafficJob.id,
+        assignment.driver,
+        assignment.vehicle,
+      ).catch((err) =>
+        this.logger.error(`Failed to send driver assignment email: ${err.message}`),
+      );
+    }
+
     return assignment;
+  }
+
+  private async sendDriverAssignmentEmail(
+    trafficJobId: string,
+    driver: { name: string; phone?: string | null },
+    vehicle: { plateNumber: string; color?: string | null; vehicleType?: { name: string } | null },
+  ) {
+    const guestBooking = await this.prisma.guestBooking.findFirst({
+      where: { trafficJobId },
+    });
+
+    if (!guestBooking) return;
+
+    await this.emailService.sendDriverAssignment({
+      bookingRef: guestBooking.bookingRef,
+      guestName: guestBooking.guestName,
+      guestEmail: guestBooking.guestEmail,
+      driverName: driver.name,
+      driverPhone: driver.phone ?? '',
+      vehiclePlate: vehicle.plateNumber,
+      vehicleType: vehicle.vehicleType?.name ?? '',
+      vehicleColor: vehicle.color ?? undefined,
+    });
   }
 
   // ─────────────────────────────────────────────

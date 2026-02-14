@@ -136,6 +136,30 @@ enum InvoiceType {
   DRIVER_TIP
 }
 
+enum B2CPaymentMethod {
+  ONLINE
+  PAY_ON_ARRIVAL
+}
+
+enum B2CPaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum B2CPaymentGateway {
+  STRIPE
+  EGYPT_BANK
+  DUBAI_BANK
+}
+
+enum GuestBookingStatus {
+  CONFIRMED
+  CANCELLED
+  CONVERTED
+}
+
 // ─────────────────────────────────────────────
 // ROLES & GRANULAR PERMISSIONS
 // ─────────────────────────────────────────────
@@ -233,8 +257,10 @@ model Airport {
   country   Country   @relation(fields: [countryId], references: [id])
   cities    City[]
 
-  jobsOrigin       TrafficJob[] @relation("JobOriginAirport")
-  jobsDestination  TrafficJob[] @relation("JobDestAirport")
+  jobsOrigin             TrafficJob[]    @relation("JobOriginAirport")
+  jobsDestination        TrafficJob[]    @relation("JobDestAirport")
+  guestBookingsOrigin    GuestBooking[]  @relation("GuestBookingOriginAirport")
+  guestBookingsDest      GuestBooking[]  @relation("GuestBookingDestAirport")
 
   @@map("airports")
 }
@@ -279,6 +305,10 @@ model Zone {
   customerPricesTo     CustomerPriceItem[]   @relation("CustomerPriceToZone")
   agentPricesFrom      AgentPriceItem[]      @relation("AgentPriceFromZone")
   agentPricesTo        AgentPriceItem[]      @relation("AgentPriceToZone")
+  publicPricesFrom     PublicPriceItem[]     @relation("PublicPriceFromZone")
+  publicPricesTo       PublicPriceItem[]     @relation("PublicPriceToZone")
+  guestBookingsFrom    GuestBooking[]        @relation("GuestBookingFromZone")
+  guestBookingsTo      GuestBooking[]        @relation("GuestBookingToZone")
 
   @@map("zones")
 }
@@ -296,8 +326,9 @@ model Hotel {
 
   zone      Zone      @relation(fields: [zoneId], references: [id])
 
-  jobsOrigin       TrafficJob[] @relation("JobOriginHotel")
-  jobsDestination  TrafficJob[] @relation("JobDestHotel")
+  jobsOrigin       TrafficJob[]    @relation("JobOriginHotel")
+  jobsDestination  TrafficJob[]    @relation("JobDestHotel")
+  guestBookings    GuestBooking[]
 
   @@map("hotels")
 }
@@ -318,6 +349,8 @@ model VehicleType {
   supplierPrices    SupplierTripPrice[]
   customerPrices    CustomerPriceItem[]
   agentPrices       AgentPriceItem[]
+  publicPrices      PublicPriceItem[]
+  guestBookings     GuestBooking[]
 
   @@map("vehicle_types")
 }
@@ -623,6 +656,107 @@ model CustomerPriceItem {
   @@unique([customerId, serviceType, fromZoneId, toZoneId, vehicleTypeId])
   @@index([customerId])
   @@map("customer_price_items")
+}
+
+// ─────────────────────────────────────────────
+// PUBLIC PRICE LIST (B2C)
+// ─────────────────────────────────────────────
+
+model PublicPriceItem {
+  id               String      @id @default(uuid()) @db.Uuid
+  serviceType      ServiceType @default(ARR) @map("service_type")
+  fromZoneId       String      @map("from_zone_id") @db.Uuid
+  toZoneId         String      @map("to_zone_id") @db.Uuid
+  vehicleTypeId    String      @map("vehicle_type_id") @db.Uuid
+  price            Decimal     @db.Decimal(15, 2)
+  driverTip        Decimal     @default(0) @map("driver_tip") @db.Decimal(15, 2)
+  boosterSeatPrice Decimal     @default(0) @map("booster_seat_price") @db.Decimal(15, 2)
+  babySeatPrice    Decimal     @default(0) @map("baby_seat_price") @db.Decimal(15, 2)
+  wheelChairPrice  Decimal     @default(0) @map("wheel_chair_price") @db.Decimal(15, 2)
+  currency         Currency    @default(EGP)
+  effectiveFrom    DateTime?   @map("effective_from") @db.Date
+  effectiveTo      DateTime?   @map("effective_to") @db.Date
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  fromZone         Zone        @relation("PublicPriceFromZone", fields: [fromZoneId], references: [id])
+  toZone           Zone        @relation("PublicPriceToZone", fields: [toZoneId], references: [id])
+  vehicleType      VehicleType @relation(fields: [vehicleTypeId], references: [id])
+
+  @@unique([serviceType, fromZoneId, toZoneId, vehicleTypeId])
+  @@map("public_price_items")
+}
+
+// ─────────────────────────────────────────────
+// GUEST BOOKINGS (B2C)
+// ─────────────────────────────────────────────
+
+model GuestBooking {
+  id                   String              @id @default(uuid()) @db.Uuid
+  bookingRef           String              @unique @map("booking_ref")
+  guestName            String              @map("guest_name")
+  guestEmail           String              @map("guest_email")
+  guestPhone           String              @map("guest_phone")
+  guestCountry         String?             @map("guest_country")
+  serviceType          ServiceType         @map("service_type")
+  jobDate              DateTime            @map("job_date") @db.Date
+  pickupTime           DateTime?           @map("pickup_time") @db.Timestamptz
+  fromZoneId           String              @map("from_zone_id") @db.Uuid
+  toZoneId             String              @map("to_zone_id") @db.Uuid
+  hotelId              String?             @map("hotel_id") @db.Uuid
+  originAirportId      String?             @map("origin_airport_id") @db.Uuid
+  destinationAirportId String?             @map("destination_airport_id") @db.Uuid
+  flightNo             String?             @map("flight_no")
+  carrier              String?
+  terminal             String?
+  paxCount             Int                 @map("pax_count") @db.SmallInt
+  vehicleTypeId        String              @map("vehicle_type_id") @db.Uuid
+  extras               Json?               @db.JsonB
+  notes                String?
+  subtotal             Decimal             @db.Decimal(15, 2)
+  taxAmount            Decimal             @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  total                Decimal             @db.Decimal(15, 2)
+  currency             Currency            @default(EGP)
+  exchangeRate         Decimal             @default(1) @map("exchange_rate") @db.Decimal(10, 4)
+  paymentMethod        B2CPaymentMethod    @map("payment_method")
+  paymentStatus        B2CPaymentStatus    @default(PENDING) @map("payment_status")
+  paymentGateway       B2CPaymentGateway?  @map("payment_gateway")
+  paymentReference     String?             @map("payment_reference")
+  bookingStatus        GuestBookingStatus  @default(CONFIRMED) @map("booking_status")
+  trafficJobId         String?             @unique @map("traffic_job_id") @db.Uuid
+  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  fromZone             Zone                @relation("GuestBookingFromZone", fields: [fromZoneId], references: [id])
+  toZone               Zone                @relation("GuestBookingToZone", fields: [toZoneId], references: [id])
+  hotel                Hotel?              @relation(fields: [hotelId], references: [id])
+  originAirport        Airport?            @relation("GuestBookingOriginAirport", fields: [originAirportId], references: [id])
+  destinationAirport   Airport?            @relation("GuestBookingDestAirport", fields: [destinationAirportId], references: [id])
+  vehicleType          VehicleType         @relation(fields: [vehicleTypeId], references: [id])
+  paymentTransactions  PaymentTransaction[]
+
+  @@index([bookingRef])
+  @@index([bookingStatus])
+  @@index([paymentStatus])
+  @@index([jobDate])
+  @@map("guest_bookings")
+}
+
+model PaymentTransaction {
+  id                   String             @id @default(uuid()) @db.Uuid
+  guestBookingId       String             @map("guest_booking_id") @db.Uuid
+  gateway              B2CPaymentGateway
+  gatewayTransactionId String?            @map("gateway_transaction_id")
+  amount               Decimal            @db.Decimal(15, 2)
+  currency             Currency           @default(EGP)
+  status               B2CPaymentStatus   @default(PENDING)
+  rawResponse          Json?              @map("raw_response") @db.JsonB
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
+
+  guestBooking         GuestBooking       @relation(fields: [guestBookingId], references: [id])
+
+  @@index([guestBookingId])
+  @@map("payment_transactions")
 }
 
 // ─────────────────────────────────────────────
