@@ -42,6 +42,7 @@ export class UsersService {
         passwordHash,
         name: dto.name,
         role: dto.role,
+        ...(dto.roleId && { roleId: dto.roleId }),
       },
       omit: SAFE_USER_OMIT,
     });
