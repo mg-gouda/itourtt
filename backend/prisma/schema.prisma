@@ -228,6 +228,7 @@ model User {
   driver            Driver?
   supplier          Supplier?
   activityLogs      ActivityLog[]
+  notifications     UserNotification[]
 
   @@map("users")
 }
@@ -920,6 +921,7 @@ model TrafficJob {
   driverNotifications   DriverNotification[]
   noShowEvidence        NoShowEvidence[]
   whatsappLogs          WhatsappNotificationLog[]
+  userNotifications     UserNotification[]
 
   @@index([jobDate])
   @@index([agentId])
@@ -1245,6 +1247,26 @@ model WhatsappSettings {
 }
 
 // ─────────────────────────────────────────────
+// EMAIL SETTINGS
+// ─────────────────────────────────────────────
+
+model EmailSettings {
+  id                  String   @id @default(uuid()) @db.Uuid
+  smtpHost            String?  @map("smtp_host")
+  smtpPort            Int      @default(587) @map("smtp_port") @db.SmallInt
+  smtpSecure          Boolean  @default(false) @map("smtp_secure")
+  smtpUser            String?  @map("smtp_user")
+  smtpPass            String?  @map("smtp_pass")
+  fromAddress         String   @default("noreply@itour.local") @map("from_address")
+  notifyDispatchEmail String?  @map("notify_dispatch_email")
+  notifyTrafficEmail  String?  @map("notify_traffic_email")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("email_settings")
+}
+
+// ─────────────────────────────────────────────
 // WHATSAPP NOTIFICATION LOG
 // ─────────────────────────────────────────────
 
@@ -1325,6 +1347,28 @@ model DriverNotification {
   trafficJob    TrafficJob?      @relation(fields: [trafficJobId], references: [id])
 
   @@map("driver_notifications")
+}
+
+// ─────────────────────────────────────────────
+// USER NOTIFICATIONS (dashboard users)
+// ─────────────────────────────────────────────
+
+model UserNotification {
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @map("user_id") @db.Uuid
+  title         String
+  message       String
+  type          NotificationType @default(GENERAL)
+  isRead        Boolean          @default(false) @map("is_read")
+  trafficJobId  String?          @map("traffic_job_id") @db.Uuid
+  metadata      Json?
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  user          User             @relation(fields: [userId], references: [id])
+  trafficJob    TrafficJob?      @relation(fields: [trafficJobId], references: [id])
+
+  @@index([userId])
+  @@map("user_notifications")
 }
 
 // ─────────────────────────────────────────────

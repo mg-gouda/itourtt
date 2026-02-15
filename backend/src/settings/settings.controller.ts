@@ -15,6 +15,8 @@ import * as fs from 'fs';
 import { SettingsService } from './settings.service.js';
 import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
+import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
+import { EmailService } from '../email/email.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -41,7 +43,10 @@ const uploadStorage = diskStorage({
 @Controller('settings')
 @UseGuards(JwtAuthGuard)
 export class SettingsController {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly emailService: EmailService,
+  ) {}
 
   // ──────────────────────────────────────────────
   // GET /settings/system — retrieve system settings
@@ -113,5 +118,45 @@ export class SettingsController {
     const url = '/uploads/' + file.filename;
     await this.settingsService.updateFavicon(url);
     return { url };
+  }
+
+  // ──────────────────────────────────────────────
+  // GET /settings/email — retrieve email/SMTP settings
+  // ──────────────────────────────────────────────
+
+  @Get('email')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async getEmailSettings() {
+    return this.settingsService.getEmailSettings();
+  }
+
+  // ──────────────────────────────────────────────
+  // PATCH /settings/email — update email/SMTP settings (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Patch('email')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async updateEmailSettings(@Body() dto: UpdateEmailSettingsDto) {
+    const result = await this.settingsService.updateEmailSettings(dto);
+    // Force reload the SMTP transporter with new settings
+    this.emailService.reloadTransporter();
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/email/test — send a test email (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Post('email/test')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async sendTestEmail(@Body() body: { email: string }) {
+    await this.emailService.sendTestEmail(body.email);
+    return { success: true };
   }
 }

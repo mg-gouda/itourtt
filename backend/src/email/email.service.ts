@@ -1,12 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   bookingConfirmationTemplate,
   paymentReceiptTemplate,
   bookingCancellationTemplate,
   driverAssignmentTemplate,
+  jobUpdateNotificationTemplate,
 } from './templates/index.js';
 
 export interface BookingEmailData {
@@ -49,13 +51,42 @@ export interface DriverAssignmentData {
   vehicleColor?: string;
 }
 
+export interface JobUpdateEmailData {
+  internalRef: string;
+  bookingChannel: string;
+  bookingStatus: string;
+  jobStatus: string;
+  agentName?: string;
+  agentRef?: string;
+  customerName?: string;
+  serviceType: string;
+  jobDate: string;
+  pickUpTime?: string;
+  adultCount: number;
+  childCount: number;
+  paxCount: number;
+  clientName?: string;
+  clientMobile?: string;
+  originLocation?: string;
+  destinationLocation?: string;
+  flightNo?: string;
+  notes?: string;
+  updatedBy: string;
+  updatedAt: string;
+  changedFields: string[];
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: Transporter | null = null;
   private fromAddress: string;
+  private dbInitialized = false;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     this.fromAddress = this.config.get<string>('SMTP_FROM', 'noreply@itour.local');
 
     const host = this.config.get<string>('SMTP_HOST');
@@ -71,8 +102,39 @@ export class EmailService {
       });
       this.logger.log(`Email transporter configured with host: ${host}`);
     } else {
-      this.logger.warn('SMTP_HOST not configured — emails will be logged but not sent');
+      this.logger.warn('SMTP_HOST not configured via env — will check DB settings on first send');
     }
+  }
+
+  /** Lazily load SMTP config from DB if env vars aren't set. */
+  private async ensureTransporter(): Promise<void> {
+    if (this.transporter || this.dbInitialized) return;
+    this.dbInitialized = true;
+
+    try {
+      const settings = await this.prisma.emailSettings.findFirst();
+      if (settings?.smtpHost) {
+        this.transporter = nodemailer.createTransport({
+          host: settings.smtpHost,
+          port: settings.smtpPort,
+          secure: settings.smtpSecure,
+          auth: {
+            user: settings.smtpUser ?? undefined,
+            pass: settings.smtpPass ?? undefined,
+          },
+        });
+        this.fromAddress = settings.fromAddress;
+        this.logger.log(`Email transporter configured from DB with host: ${settings.smtpHost}`);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to load email settings from DB: ${(err as Error).message}`);
+    }
+  }
+
+  /** Force reload transporter from DB (called after settings update). */
+  reloadTransporter(): void {
+    this.transporter = null;
+    this.dbInitialized = false;
   }
 
   async sendBookingConfirmation(data: BookingEmailData): Promise<void> {
@@ -95,7 +157,29 @@ export class EmailService {
     await this.send(data.guestEmail, `Driver Assigned - ${data.bookingRef}`, html);
   }
 
+  async sendJobUpdateNotification(recipients: string[], data: JobUpdateEmailData): Promise<void> {
+    const html = jobUpdateNotificationTemplate(data);
+    const subject = `${data.bookingStatus} - ${data.internalRef} - ${data.agentRef || 'N/A'} - ${data.updatedAt}`;
+    for (const to of recipients) {
+      await this.send(to, subject, html);
+    }
+  }
+
+  async sendTestEmail(to: string): Promise<void> {
+    const html = `
+      <div style="font-family:Arial,sans-serif;padding:20px;">
+        <h2 style="color:#333;">iTour TT — Test Email</h2>
+        <p>This is a test email to verify your SMTP configuration.</p>
+        <p>If you received this email, your settings are working correctly.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
+        <p style="color:#999;font-size:12px;">Sent at ${new Date().toLocaleString('en-GB', { timeZone: 'Africa/Cairo' })} (Cairo time)</p>
+      </div>
+    `;
+    await this.send(to, 'iTour TT — SMTP Test', html);
+  }
+
   private async send(to: string, subject: string, html: string): Promise<void> {
+    await this.ensureTransporter();
     if (!this.transporter) {
       this.logger.log(`[Email Mock] To: ${to} | Subject: ${subject}`);
       return;

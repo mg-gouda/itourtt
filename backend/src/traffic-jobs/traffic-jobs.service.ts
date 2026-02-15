@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -9,6 +10,7 @@ import { UpdateJobDto } from './dto/update-job.dto.js';
 import { JobFilterDto } from './dto/job-filter.dto.js';
 import { UpdateStatusDto } from './dto/update-status.dto.js';
 import { PaginatedResponse } from '../common/dto/api-response.dto.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
@@ -23,7 +25,12 @@ const VALID_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
 
 @Injectable()
 export class TrafficJobsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(TrafficJobsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   private readonly jobInclude = {
     agent: true,
@@ -256,7 +263,25 @@ export class TrafficJobsService {
     // Auto-set bookingStatus to UPDATED if not explicitly provided
     const bookingStatus = dto.bookingStatus ?? 'UPDATED';
 
-    return this.prisma.$transaction(async (tx) => {
+    // Compute changed fields for notification
+    const changedFields: string[] = [];
+    if (dto.bookingStatus !== undefined && dto.bookingStatus !== job.bookingStatus) changedFields.push('bookingStatus');
+    if (dto.agentId !== undefined && dto.agentId !== job.agentId) changedFields.push('agentId');
+    if (dto.agentRef !== undefined && dto.agentRef !== job.agentRef) changedFields.push('agentRef');
+    if (dto.customerId !== undefined && dto.customerId !== job.customerId) changedFields.push('customerId');
+    if (dto.serviceType !== undefined && dto.serviceType !== job.serviceType) changedFields.push('serviceType');
+    if (dto.jobDate !== undefined && dto.jobDate !== job.jobDate.toISOString().split('T')[0]) changedFields.push('jobDate');
+    if (dto.adultCount !== undefined && dto.adultCount !== job.adultCount) changedFields.push('adultCount');
+    if (dto.childCount !== undefined && dto.childCount !== job.childCount) changedFields.push('childCount');
+    if (dto.clientName !== undefined && dto.clientName !== job.clientName) changedFields.push('clientName');
+    if (dto.clientMobile !== undefined && dto.clientMobile !== job.clientMobile) changedFields.push('clientMobile');
+    if (dto.pickUpTime !== undefined) changedFields.push('pickUpTime');
+    if (dto.notes !== undefined && dto.notes !== job.notes) changedFields.push('notes');
+    if (hasOriginUpdate) changedFields.push('originAirportId', 'originZoneId', 'originHotelId');
+    if (hasDestUpdate) changedFields.push('destinationAirportId', 'destinationZoneId', 'destinationHotelId');
+    if (dto.flight) changedFields.push('flight');
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const data: Record<string, unknown> = {
         bookingStatus,
         adultCount,
@@ -332,9 +357,16 @@ export class TrafficJobsService {
 
       return updatedJob;
     });
+
+    // Fire-and-forget notification
+    this.notificationsService
+      .notifyJobUpdate(id, userId, changedFields)
+      .catch((err) => this.logger.error(`Failed to send update notifications: ${err.message}`));
+
+    return result;
   }
 
-  async updateStatus(id: string, dto: UpdateStatusDto) {
+  async updateStatus(id: string, dto: UpdateStatusDto, userId?: string) {
     const job = await this.findOne(id);
     const currentStatus = job.status as JobStatus;
     const newStatus = dto.status as JobStatus;
@@ -347,7 +379,7 @@ export class TrafficJobsService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updatedJob = await tx.trafficJob.update({
         where: { id },
         data: { status: newStatus },
@@ -397,6 +429,15 @@ export class TrafficJobsService {
 
       return updatedJob;
     });
+
+    // Fire-and-forget notification
+    if (userId) {
+      this.notificationsService
+        .notifyJobUpdate(id, userId, ['status'])
+        .catch((err) => this.logger.error(`Failed to send status update notifications: ${err.message}`));
+    }
+
+    return result;
   }
 
   async remove(id: string) {

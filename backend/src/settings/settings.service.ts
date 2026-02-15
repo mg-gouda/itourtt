@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
+import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
 
 /** Default values returned when no row exists yet. */
 const SYSTEM_DEFAULTS = {
@@ -10,6 +11,17 @@ const SYSTEM_DEFAULTS = {
   accentColor: '#8b5cf6',
   fontFamily: 'Geist',
   language: 'en',
+};
+
+const EMAIL_DEFAULTS = {
+  smtpHost: null as string | null,
+  smtpPort: 587,
+  smtpSecure: false,
+  smtpUser: null as string | null,
+  smtpPass: null as string | null,
+  fromAddress: 'noreply@itour.local',
+  notifyDispatchEmail: null as string | null,
+  notifyTrafficEmail: null as string | null,
 };
 
 const COMPANY_DEFAULTS = {
@@ -136,5 +148,64 @@ export class SettingsService {
         faviconUrl: fileUrl,
       },
     });
+  }
+
+  // ──────────────────────────────────────────────
+  // EMAIL SETTINGS
+  // ──────────────────────────────────────────────
+
+  async getEmailSettings() {
+    const settings = await this.prisma.emailSettings.findFirst();
+    if (!settings) {
+      return EMAIL_DEFAULTS;
+    }
+    // Mask password for frontend display
+    return {
+      ...settings,
+      smtpPass: settings.smtpPass ? '••••••••' : null,
+    };
+  }
+
+  async updateEmailSettings(dto: UpdateEmailSettingsDto) {
+    const existing = await this.prisma.emailSettings.findFirst();
+
+    // Don't overwrite password if masked placeholder is sent
+    const data: Record<string, unknown> = {};
+    if (dto.smtpHost !== undefined) data.smtpHost = dto.smtpHost || null;
+    if (dto.smtpPort !== undefined) data.smtpPort = dto.smtpPort;
+    if (dto.smtpSecure !== undefined) data.smtpSecure = dto.smtpSecure;
+    if (dto.smtpUser !== undefined) data.smtpUser = dto.smtpUser || null;
+    if (dto.smtpPass !== undefined && dto.smtpPass !== '••••••••') {
+      data.smtpPass = dto.smtpPass || null;
+    }
+    if (dto.fromAddress !== undefined) data.fromAddress = dto.fromAddress;
+    if (dto.notifyDispatchEmail !== undefined) data.notifyDispatchEmail = dto.notifyDispatchEmail || null;
+    if (dto.notifyTrafficEmail !== undefined) data.notifyTrafficEmail = dto.notifyTrafficEmail || null;
+
+    if (existing) {
+      return this.prisma.emailSettings.update({
+        where: { id: existing.id },
+        data,
+      });
+    }
+
+    return this.prisma.emailSettings.create({
+      data: {
+        smtpHost: dto.smtpHost ?? EMAIL_DEFAULTS.smtpHost,
+        smtpPort: dto.smtpPort ?? EMAIL_DEFAULTS.smtpPort,
+        smtpSecure: dto.smtpSecure ?? EMAIL_DEFAULTS.smtpSecure,
+        smtpUser: dto.smtpUser ?? EMAIL_DEFAULTS.smtpUser,
+        smtpPass: dto.smtpPass ?? EMAIL_DEFAULTS.smtpPass,
+        fromAddress: dto.fromAddress ?? EMAIL_DEFAULTS.fromAddress,
+        notifyDispatchEmail: dto.notifyDispatchEmail ?? EMAIL_DEFAULTS.notifyDispatchEmail,
+        notifyTrafficEmail: dto.notifyTrafficEmail ?? EMAIL_DEFAULTS.notifyTrafficEmail,
+      },
+    });
+  }
+
+  /** Raw settings (with real password) for the email transporter. */
+  async getEmailSettingsRaw() {
+    const settings = await this.prisma.emailSettings.findFirst();
+    return settings ?? EMAIL_DEFAULTS;
   }
 }

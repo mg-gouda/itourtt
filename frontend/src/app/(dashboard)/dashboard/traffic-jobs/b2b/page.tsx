@@ -337,7 +337,8 @@ export default function B2BJobPage() {
       }
 
       if (editingJobId) {
-        await api.patch(`/traffic-jobs/${editingJobId}`, payload);
+        const { bookingChannel, ...updatePayload } = payload;
+        await api.patch(`/traffic-jobs/${editingJobId}`, updatePayload);
         toast.success(t("jobs.updated") || "Job updated successfully");
       } else {
         await api.post("/traffic-jobs", payload);

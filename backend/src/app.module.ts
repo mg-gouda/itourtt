@@ -32,6 +32,7 @@ import { PaymentsModule } from './payments/payments.module.js';
 import { PublicApiModule } from './public-api/public-api.module.js';
 import { GuestBookingsModule } from './guest-bookings/guest-bookings.module.js';
 import { EmailModule } from './email/email.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 
 @Module({
@@ -68,6 +69,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
     PaymentsModule,
     PublicApiModule,
     GuestBookingsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

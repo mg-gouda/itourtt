@@ -72,8 +72,9 @@ export class TrafficJobsController {
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateStatusDto,
+    @CurrentUser('id') userId: string,
   ) {
-    const job = await this.trafficJobsService.updateStatus(id, dto);
+    const job = await this.trafficJobsService.updateStatus(id, dto, userId);
     return new ApiResponse(job, 'Traffic job status updated successfully');
   }
 

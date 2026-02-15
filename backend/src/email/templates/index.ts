@@ -1,4 +1,4 @@
-import type { BookingEmailData, PaymentReceiptData, DriverAssignmentData } from '../email.service.js';
+import type { BookingEmailData, PaymentReceiptData, DriverAssignmentData, JobUpdateEmailData } from '../email.service.js';
 
 const baseStyle = `
   body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f4f4f7; }
@@ -116,5 +116,37 @@ export function driverAssignmentTemplate(data: DriverAssignmentData): string {
       </table>
     </div>
     <p>Your driver will be waiting for you. Have a great trip!</p>
+  </div>`);
+}
+
+export function jobUpdateNotificationTemplate(data: JobUpdateEmailData): string {
+  const hl = (field: string) => data.changedFields.includes(field) ? 'background:#FFFF00;' : '';
+  return wrap(`
+  <div class="body">
+    <h2>Traffic Job Updated</h2>
+    <p>Job <strong>${data.internalRef}</strong> has been updated by <strong>${data.updatedBy}</strong>.</p>
+    <div class="details">
+      <table>
+        <tr style="${hl('bookingStatus')}"><td>Booking Status</td><td>${data.bookingStatus}</td></tr>
+        <tr style="${hl('status')}"><td>Job Status</td><td>${data.jobStatus}</td></tr>
+        <tr><td>Internal Ref</td><td>${data.internalRef}</td></tr>
+        <tr><td>Channel</td><td>${data.bookingChannel}</td></tr>
+        ${data.agentName ? `<tr style="${hl('agentId')}"><td>Agent</td><td>${data.agentName}</td></tr>` : ''}
+        ${data.agentRef ? `<tr style="${hl('agentRef')}"><td>Agent Ref</td><td>${data.agentRef}</td></tr>` : ''}
+        ${data.customerName ? `<tr style="${hl('customerId')}"><td>Customer</td><td>${data.customerName}</td></tr>` : ''}
+        <tr style="${hl('serviceType')}"><td>Service Type</td><td>${data.serviceType}</td></tr>
+        <tr style="${hl('jobDate')}"><td>Service Date</td><td>${data.jobDate}</td></tr>
+        ${data.pickUpTime ? `<tr style="${hl('pickUpTime')}"><td>Pick-up Time</td><td>${data.pickUpTime}</td></tr>` : ''}
+        <tr style="${hl('adultCount')}${hl('childCount')}"><td>Passengers</td><td>${data.paxCount} (${data.adultCount}A${data.childCount > 0 ? `+${data.childCount}C` : ''})</td></tr>
+        ${data.clientName ? `<tr style="${hl('clientName')}"><td>Client Name</td><td>${data.clientName}</td></tr>` : ''}
+        ${data.clientMobile ? `<tr style="${hl('clientMobile')}"><td>Client Mobile</td><td>${data.clientMobile}</td></tr>` : ''}
+        ${data.originLocation ? `<tr style="${hl('originAirportId')}${hl('originZoneId')}${hl('originHotelId')}"><td>Origin</td><td>${data.originLocation}</td></tr>` : ''}
+        ${data.destinationLocation ? `<tr style="${hl('destinationAirportId')}${hl('destinationZoneId')}${hl('destinationHotelId')}"><td>Destination</td><td>${data.destinationLocation}</td></tr>` : ''}
+        ${data.flightNo ? `<tr style="${hl('flight')}"><td>Flight</td><td>${data.flightNo}</td></tr>` : ''}
+        ${data.notes ? `<tr style="${hl('notes')}"><td>Notes</td><td>${data.notes}</td></tr>` : ''}
+        <tr><td>Updated At</td><td>${data.updatedAt}</td></tr>
+      </table>
+    </div>
+    ${data.changedFields.length > 0 ? '<p style="font-size:12px;color:#888;">Fields highlighted in <span style="background:#FFFF00;padding:2px 6px;">yellow</span> were changed in this update.</p>' : ''}
   </div>`);
 }
