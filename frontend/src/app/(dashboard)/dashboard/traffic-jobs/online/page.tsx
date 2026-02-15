@@ -10,6 +10,8 @@ import {
   Filter,
   ArrowLeft,
   Save,
+  Lock,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +58,7 @@ interface TrafficJob {
   serviceType: string;
   jobDate: string;
   status: string;
+  bookingStatus: string;
   adultCount: number;
   childCount: number;
   paxCount: number;
@@ -63,6 +66,21 @@ interface TrafficJob {
   clientMobile: string | null;
   pickUpTime: string | null;
   notes: string | null;
+  boosterSeat: boolean;
+  boosterSeatQty: number;
+  babySeat: boolean;
+  babySeatQty: number;
+  wheelChair: boolean;
+  wheelChairQty: number;
+  printSign: boolean;
+  createdAt: string;
+  agentId: string | null;
+  originAirportId: string | null;
+  originZoneId: string | null;
+  originHotelId: string | null;
+  destinationAirportId: string | null;
+  destinationZoneId: string | null;
+  destinationHotelId: string | null;
   agent?: { legalName: string } | null;
   originAirport?: { name: string; code: string } | null;
   originZone?: { name: string } | null;
@@ -72,7 +90,7 @@ interface TrafficJob {
   destinationHotel?: { name: string } | null;
   fromZone?: { name: string } | null;
   toZone?: { name: string } | null;
-  flight?: { flightNo: string } | null;
+  flight?: { flightNo: string; terminal?: string; arrivalTime?: string; departureTime?: string } | null;
   assignment?: {
     vehicle?: { plateNumber: string };
     driver?: { name: string };
@@ -89,9 +107,22 @@ const statusColors: Record<string, string> = {
   NO_SHOW: "bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30",
 };
 
+const bookingStatusColors: Record<string, string> = {
+  NEW: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  UPDATED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
+  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
+};
+
+function isJobLocked(createdAt: string): boolean {
+  const created = new Date(createdAt);
+  const oneWeekLater = new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return new Date() > oneWeekLater;
+}
+
 /* ─────────── form state ─────────── */
 
 interface FormState {
+  bookingStatus: string;
   agentId: string;
   agentRef: string;
   serviceType: string;
@@ -124,6 +155,7 @@ interface FormState {
 }
 
 const defaultForm: FormState = {
+  bookingStatus: "NEW",
   agentId: "",
   agentRef: "",
   serviceType: "ARR",
@@ -169,6 +201,7 @@ export default function OnlineJobPage() {
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<FormState>({ ...defaultForm });
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
 
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
@@ -220,8 +253,60 @@ export default function OnlineJobPage() {
     fetchJobs();
   }, [fetchJobs]);
 
-  /* ── Create job ── */
-  const handleCreate = async () => {
+  /* ── Select job for editing ── */
+  const handleSelectJob = (job: TrafficJob) => {
+    if (isJobLocked(job.createdAt)) return;
+
+    setEditingJobId(job.id);
+
+    const originSelectedId = job.originAirportId || job.originZoneId || job.originHotelId || "";
+    const destinationSelectedId = job.destinationAirportId || job.destinationZoneId || job.destinationHotelId || "";
+
+    const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+    const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+    const departureTime = job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+
+    setForm({
+      bookingStatus: job.bookingStatus || "NEW",
+      agentId: job.agentId || "",
+      agentRef: job.agentRef || "",
+      serviceType: job.serviceType,
+      jobDate: job.jobDate?.split("T")[0] || "",
+      adultCount: String(job.adultCount),
+      childCount: String(job.childCount),
+      originAirportId: job.originAirportId || "",
+      originZoneId: job.originZoneId || "",
+      originHotelId: job.originHotelId || "",
+      destinationAirportId: job.destinationAirportId || "",
+      destinationZoneId: job.destinationZoneId || "",
+      destinationHotelId: job.destinationHotelId || "",
+      originSelectedId,
+      destinationSelectedId,
+      clientName: job.clientName || "",
+      clientMobile: job.clientMobile || "",
+      boosterSeat: job.boosterSeat,
+      boosterSeatQty: String(job.boosterSeatQty || 1),
+      babySeat: job.babySeat,
+      babySeatQty: String(job.babySeatQty || 1),
+      wheelChair: job.wheelChair,
+      wheelChairQty: String(job.wheelChairQty || 1),
+      printSign: job.printSign,
+      pickUpTime,
+      notes: job.notes || "",
+      flightNo: job.flight?.flightNo || "",
+      terminal: job.flight?.terminal || "",
+      arrivalTime,
+      departureTime,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingJobId(null);
+    setForm({ ...defaultForm });
+  };
+
+  /* ── Create or Update job ── */
+  const handleSave = async () => {
     if (!form.agentId) {
       toast.error(t("jobs.agentRequired"));
       return;
@@ -260,6 +345,7 @@ export default function OnlineJobPage() {
         jobDate: form.jobDate,
         adultCount: parseInt(form.adultCount) || 1,
         childCount: parseInt(form.childCount) || 0,
+        bookingStatus: form.bookingStatus,
       };
 
       if (form.originAirportId) payload.originAirportId = form.originAirportId;
@@ -292,8 +378,15 @@ export default function OnlineJobPage() {
         };
       }
 
-      await api.post("/traffic-jobs", payload);
-      toast.success(t("jobs.created"));
+      if (editingJobId) {
+        await api.patch(`/traffic-jobs/${editingJobId}`, payload);
+        toast.success(t("jobs.updated") || "Job updated successfully");
+      } else {
+        await api.post("/traffic-jobs", payload);
+        toast.success(t("jobs.created"));
+      }
+
+      setEditingJobId(null);
       setForm({ ...defaultForm });
       fetchJobs();
     } catch (err: unknown) {
@@ -336,16 +429,31 @@ export default function OnlineJobPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t("jobs.newOnlineJob")}</h1>
+          <h1 className="text-2xl font-semibold text-foreground">
+            {editingJobId ? (t("jobs.editJob") || "Edit Job") : t("jobs.newOnlineJob")}
+          </h1>
           <p className="text-sm text-muted-foreground">{t("jobs.onlineDescription")}</p>
         </div>
       </div>
 
       {/* ─── Inline Form ─── */}
-      <Card className="border-border bg-card p-4">
+      <Card className={cn("border-border bg-card p-4", editingJobId && "ring-2 ring-primary/50")}>
         <div className="space-y-4">
-          {/* Line 1: Transfer Provider + Agent Ref + Service Type + Service Date + Pickup Time */}
-          <div className="grid grid-cols-5 gap-3">
+          {/* Line 1: Booking Status + Transfer Provider + Agent Ref + Service Type + Service Date + Pickup Time */}
+          <div className="grid grid-cols-6 gap-3">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.bookingStatus") || "Booking Status"}</Label>
+              <Select value={form.bookingStatus} onValueChange={(v) => updateForm({ bookingStatus: v })}>
+                <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover text-foreground">
+                  <SelectItem value="NEW">{t("jobs.bookingNew") || "New"}</SelectItem>
+                  <SelectItem value="UPDATED">{t("jobs.bookingUpdated") || "Updated"}</SelectItem>
+                  <SelectItem value="CANCELLED">{t("jobs.bookingCancelled") || "Cancelled"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.transferProvider")} *</Label>
               <Select value={form.agentId} onValueChange={(v) => updateForm({ agentId: v, agentRef: "" })}>
@@ -415,7 +523,7 @@ export default function OnlineJobPage() {
             </div>
           </div>
 
-          {/* Line 3: Client Lead Name + Client Mobile + Adults + Children + Print Sign */}
+          {/* Line 2: Client Lead Name + Client Mobile + Adults + Children + Print Sign */}
           <div className="grid grid-cols-5 gap-3">
             <div className="space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.clientName")} *</Label>
@@ -552,7 +660,7 @@ export default function OnlineJobPage() {
             )}
           </div>
 
-          {/* Line 6: Extras */}
+          {/* Line 4: Extras */}
           <div className="grid grid-cols-5 gap-3">
             <div className="min-w-0 flex items-center">
               <label className="flex items-center gap-2 text-sm text-foreground">
@@ -610,7 +718,7 @@ export default function OnlineJobPage() {
             </div>
           </div>
 
-          {/* Line 7: Notes + Submit */}
+          {/* Line 5: Notes + Submit */}
           <div className="flex items-center gap-3">
             <div className="flex-1 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
@@ -621,13 +729,23 @@ export default function OnlineJobPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
               />
             </div>
+            {editingJobId && (
+              <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                className="gap-1.5 mt-auto border-border text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+                {t("common.cancel") || "Cancel"}
+              </Button>
+            )}
             <Button
-              onClick={handleCreate}
+              onClick={handleSave}
               disabled={saving}
               className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 mt-auto"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {t("jobs.createJob")}
+              {editingJobId ? (t("jobs.updateJob") || "Update Job") : t("jobs.createJob")}
             </Button>
           </div>
         </div>
@@ -678,6 +796,7 @@ export default function OnlineJobPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                  <TableHead className="text-white text-xs w-8"></TableHead>
                   <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("jobs.agentRef")} sortKey="agentRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
@@ -686,51 +805,76 @@ export default function OnlineJobPage() {
                   <SortableHeader label={t("jobs.clientName")} sortKey="clientName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
                   <SortableHeader label={t("dispatch.pax")} sortKey="paxCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <TableHead className="text-white text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
                   <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedData.map((job, idx) => (
-                  <TableRow key={job.id} className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
-                    <TableCell className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{job.agentRef || "\u2014"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="border-border text-muted-foreground text-xs">
-                        {serviceTypeLabels[job.serviceType] || job.serviceType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {formatDate(job.jobDate)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{job.agent?.legalName || "\u2014"}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{job.clientName || "\u2014"}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {job.paxCount}
-                      <span className="ml-1 text-muted-foreground/60">
-                        ({job.adultCount}A{job.childCount > 0 && `+${job.childCount}C`})
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-xs ${statusColors[job.status] || ""}`}>
-                        {job.status.replace("_", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {job.assignment ? (
-                        <span>
-                          {job.assignment.vehicle?.plateNumber || "\u2014"}
-                          {job.assignment.driver && ` / ${job.assignment.driver.name}`}
-                        </span>
-                      ) : (
-                        t("dispatch.unassigned")
+                {sortedData.map((job, idx) => {
+                  const locked = isJobLocked(job.createdAt);
+                  const isSelected = editingJobId === job.id;
+                  return (
+                    <TableRow
+                      key={job.id}
+                      onClick={() => !locked && handleSelectJob(job)}
+                      className={cn(
+                        "border-border",
+                        locked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:bg-primary/10",
+                        isSelected
+                          ? "bg-primary/20 dark:bg-primary/20"
+                          : idx % 2 === 0
+                            ? "bg-gray-100/25 dark:bg-gray-800/25"
+                            : "bg-gray-200/50 dark:bg-gray-700/50"
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                    >
+                      <TableCell className="text-center px-2">
+                        {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />}
+                      </TableCell>
+                      <TableCell className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{job.agentRef || "\u2014"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="border-border text-muted-foreground text-xs">
+                          {serviceTypeLabels[job.serviceType] || job.serviceType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {formatDate(job.jobDate)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{job.agent?.legalName || "\u2014"}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{job.clientName || "\u2014"}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {job.paxCount}
+                        <span className="ml-1 text-muted-foreground/60">
+                          ({job.adultCount}A{job.childCount > 0 && `+${job.childCount}C`})
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-xs ${bookingStatusColors[job.bookingStatus] || ""}`}>
+                          {job.bookingStatus || "NEW"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-xs ${statusColors[job.status] || ""}`}>
+                          {job.status.replace("_", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {job.assignment ? (
+                          <span>
+                            {job.assignment.vehicle?.plateNumber || "\u2014"}
+                            {job.assignment.driver && ` / ${job.assignment.driver.name}`}
+                          </span>
+                        ) : (
+                          t("dispatch.unassigned")
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

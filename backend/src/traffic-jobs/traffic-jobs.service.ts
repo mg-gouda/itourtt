@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateJobDto } from './dto/create-job.dto.js';
+import { UpdateJobDto } from './dto/update-job.dto.js';
 import { JobFilterDto } from './dto/job-filter.dto.js';
 import { UpdateStatusDto } from './dto/update-status.dto.js';
 import { PaginatedResponse } from '../common/dto/api-response.dto.js';
@@ -201,6 +202,135 @@ export class TrafficJobsService {
       }
 
       return job;
+    });
+  }
+
+  async update(id: string, dto: UpdateJobDto, userId: string) {
+    const job = await this.findOne(id);
+
+    // 1-week lock check
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    if (job.createdAt < oneWeekAgo) {
+      throw new BadRequestException('Job is locked after 1 week and cannot be edited');
+    }
+
+    // Validate origin if any origin field is provided
+    const hasOriginUpdate = dto.originAirportId !== undefined || dto.originZoneId !== undefined || dto.originHotelId !== undefined;
+    if (hasOriginUpdate) {
+      const originCount = [dto.originAirportId, dto.originZoneId, dto.originHotelId].filter(Boolean).length;
+      if (originCount !== 1) {
+        throw new BadRequestException('Exactly one origin (airport, zone, or hotel) must be provided');
+      }
+    }
+
+    // Validate destination if any destination field is provided
+    const hasDestUpdate = dto.destinationAirportId !== undefined || dto.destinationZoneId !== undefined || dto.destinationHotelId !== undefined;
+    if (hasDestUpdate) {
+      const destCount = [dto.destinationAirportId, dto.destinationZoneId, dto.destinationHotelId].filter(Boolean).length;
+      if (destCount !== 1) {
+        throw new BadRequestException('Exactly one destination (airport, zone, or hotel) must be provided');
+      }
+    }
+
+    // Resolve zones if locations changed
+    const originAirportId = hasOriginUpdate ? (dto.originAirportId ?? null) : job.originAirportId;
+    const originZoneId = hasOriginUpdate ? (dto.originZoneId ?? null) : job.originZoneId;
+    const originHotelId = hasOriginUpdate ? (dto.originHotelId ?? null) : job.originHotelId;
+    const destAirportId = hasDestUpdate ? (dto.destinationAirportId ?? null) : job.destinationAirportId;
+    const destZoneId = hasDestUpdate ? (dto.destinationZoneId ?? null) : job.destinationZoneId;
+    const destHotelId = hasDestUpdate ? (dto.destinationHotelId ?? null) : job.destinationHotelId;
+
+    const fromZoneId = (hasOriginUpdate)
+      ? await this.resolveZoneFromFKs(originAirportId, originZoneId, originHotelId)
+      : undefined;
+    const toZoneId = (hasDestUpdate)
+      ? await this.resolveZoneFromFKs(destAirportId, destZoneId, destHotelId)
+      : undefined;
+
+    // Recalculate pax if counts changed
+    const adultCount = dto.adultCount ?? job.adultCount;
+    const childCount = dto.childCount ?? job.childCount;
+    const paxCount = adultCount + childCount;
+
+    // Auto-set bookingStatus to UPDATED if not explicitly provided
+    const bookingStatus = dto.bookingStatus ?? 'UPDATED';
+
+    return this.prisma.$transaction(async (tx) => {
+      const data: Record<string, unknown> = {
+        bookingStatus,
+        adultCount,
+        childCount,
+        paxCount,
+      };
+
+      if (dto.agentId !== undefined) data.agentId = dto.agentId || null;
+      if (dto.agentRef !== undefined) data.agentRef = dto.agentRef || null;
+      if (dto.customerId !== undefined) data.customerId = dto.customerId || null;
+      if (dto.serviceType !== undefined) data.serviceType = dto.serviceType;
+      if (dto.jobDate !== undefined) data.jobDate = new Date(dto.jobDate);
+      if (dto.clientName !== undefined) data.clientName = dto.clientName;
+      if (dto.clientMobile !== undefined) data.clientMobile = dto.clientMobile;
+      if (dto.boosterSeat !== undefined) data.boosterSeat = dto.boosterSeat;
+      if (dto.boosterSeatQty !== undefined) data.boosterSeatQty = dto.boosterSeatQty;
+      if (dto.babySeat !== undefined) data.babySeat = dto.babySeat;
+      if (dto.babySeatQty !== undefined) data.babySeatQty = dto.babySeatQty;
+      if (dto.wheelChair !== undefined) data.wheelChair = dto.wheelChair;
+      if (dto.wheelChairQty !== undefined) data.wheelChairQty = dto.wheelChairQty;
+      if (dto.printSign !== undefined) data.printSign = dto.printSign;
+      if (dto.pickUpTime !== undefined) data.pickUpTime = dto.pickUpTime ? new Date(dto.pickUpTime) : null;
+      if (dto.notes !== undefined) data.notes = dto.notes;
+      if (dto.custRepName !== undefined) data.custRepName = dto.custRepName;
+      if (dto.custRepMobile !== undefined) data.custRepMobile = dto.custRepMobile;
+      if (dto.custRepMeetingPoint !== undefined) data.custRepMeetingPoint = dto.custRepMeetingPoint;
+      if (dto.custRepMeetingTime !== undefined) data.custRepMeetingTime = dto.custRepMeetingTime ? new Date(dto.custRepMeetingTime) : null;
+
+      if (hasOriginUpdate) {
+        data.originAirportId = originAirportId;
+        data.originZoneId = originZoneId;
+        data.originHotelId = originHotelId;
+      }
+      if (hasDestUpdate) {
+        data.destinationAirportId = destAirportId;
+        data.destinationZoneId = destZoneId;
+        data.destinationHotelId = destHotelId;
+      }
+      if (fromZoneId !== undefined) data.fromZoneId = fromZoneId;
+      if (toZoneId !== undefined) data.toZoneId = toZoneId;
+
+      const updatedJob = await tx.trafficJob.update({
+        where: { id },
+        data: data as any,
+        include: this.jobInclude,
+      });
+
+      // Upsert flight record
+      if (dto.flight) {
+        await tx.trafficFlight.upsert({
+          where: { trafficJobId: id },
+          update: {
+            flightNo: dto.flight.flightNo,
+            carrier: dto.flight.carrier,
+            terminal: dto.flight.terminal,
+            arrivalTime: dto.flight.arrivalTime ? new Date(dto.flight.arrivalTime) : undefined,
+            departureTime: dto.flight.departureTime ? new Date(dto.flight.departureTime) : undefined,
+          },
+          create: {
+            trafficJobId: id,
+            flightNo: dto.flight.flightNo,
+            carrier: dto.flight.carrier,
+            terminal: dto.flight.terminal,
+            arrivalTime: dto.flight.arrivalTime ? new Date(dto.flight.arrivalTime) : undefined,
+            departureTime: dto.flight.departureTime ? new Date(dto.flight.departureTime) : undefined,
+          },
+        });
+        return tx.trafficJob.findUniqueOrThrow({
+          where: { id },
+          include: this.jobInclude,
+        });
+      }
+
+      return updatedJob;
     });
   }
 

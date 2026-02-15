@@ -49,6 +49,12 @@ enum JobStatus {
   NO_SHOW
 }
 
+enum BookingStatus {
+  NEW
+  UPDATED
+  CANCELLED
+}
+
 enum PortalJobStatus {
   PENDING
   IN_PROGRESS
@@ -827,6 +833,7 @@ model TrafficJob {
   serviceType     ServiceType    @map("service_type")
   jobDate         DateTime       @map("job_date") @db.Date
   status          JobStatus      @default(PENDING)
+  bookingStatus   BookingStatus  @default(NEW) @map("booking_status")
   adultCount      Int            @map("adult_count") @db.SmallInt
   childCount      Int            @default(0) @map("child_count") @db.SmallInt
   paxCount        Int            @map("pax_count") @db.SmallInt

@@ -13,6 +13,7 @@ import {
 import { TrafficJobsService } from './traffic-jobs.service.js';
 import { CreateJobDto } from './dto/create-job.dto.js';
 import { JobFilterDto } from './dto/job-filter.dto.js';
+import { UpdateJobDto } from './dto/update-job.dto.js';
 import { UpdateStatusDto } from './dto/update-status.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -51,6 +52,18 @@ export class TrafficJobsController {
   ) {
     const job = await this.trafficJobsService.create(dto, userId);
     return new ApiResponse(job, 'Traffic job created successfully');
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+  @Permissions('traffic-jobs.online.createJob')
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateJobDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    const job = await this.trafficJobsService.update(id, dto, userId);
+    return new ApiResponse(job, 'Traffic job updated successfully');
   }
 
   @Patch(':id/status')
