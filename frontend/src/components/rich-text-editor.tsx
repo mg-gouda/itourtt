@@ -103,7 +103,7 @@ export function RichTextEditor({
 
   if (!editor) return null;
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
   const inTable = editor.isActive("table");
 
   const getLogoFullUrl = () => {

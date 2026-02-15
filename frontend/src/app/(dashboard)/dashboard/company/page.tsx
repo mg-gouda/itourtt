@@ -12,7 +12,7 @@ import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { RichTextEditor } from "@/components/rich-text-editor";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 interface CompanySettingsData {
   companyName: string;

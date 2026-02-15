@@ -16,7 +16,7 @@ import { StepIndicator } from '@/components/public/step-indicator';
 import { useBookingStore } from '@/stores/booking-store';
 import { cn } from '@/lib/utils';
 
-const API = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api`;
+const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api`;
 const STEPS = ['Search', 'Details', 'Payment', 'Confirmation'];
 
 const SERVICE_LABELS: Record<string, string> = {

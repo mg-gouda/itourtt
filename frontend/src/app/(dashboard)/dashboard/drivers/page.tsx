@@ -467,7 +467,7 @@ export default function DriversPage() {
     }
   }
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:3001";
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ?? "http://localhost:3001";
 
   const driverFormFields = (
     <div className="space-y-4 py-2">

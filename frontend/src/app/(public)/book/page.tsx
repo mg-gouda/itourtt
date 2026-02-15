@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StepIndicator } from '@/components/public/step-indicator';
 import { useBookingStore } from '@/stores/booking-store';
 
-const API = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api`;
+const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api`;
 const STEPS = ['Search', 'Details', 'Payment', 'Confirmation'];
 
 const SERVICE_TYPES = [
