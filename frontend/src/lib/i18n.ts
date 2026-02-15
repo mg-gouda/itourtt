@@ -957,6 +957,15 @@ const translations: Record<Locale, Record<string, string>> = {
     "jobs.clientMobileRequired": "Client mobile number is required",
     "jobs.customerRequired": "Customer is required for online bookings",
     "jobs.originDestRequired": "Origin and destination are required",
+    "jobs.bookingStatus": "Booking Status",
+    "jobs.bookingNew": "New",
+    "jobs.bookingUpdated": "Updated",
+    "jobs.bookingCancelled": "Cancelled",
+    "jobs.updateJob": "Update Job",
+    "jobs.cancelEdit": "Cancel",
+    "jobs.updated": "Job updated successfully",
+    "jobs.failedUpdate": "Failed to update job",
+    "jobs.locked": "Locked (over 1 week)",
 
     // ── Service Types ──
     "serviceType.ARR": "Arrival",
@@ -2093,6 +2102,15 @@ const translations: Record<Locale, Record<string, string>> = {
     "jobs.clientMobileRequired": "رقم موبايل العميل مطلوب",
     "jobs.customerRequired": "العميل مطلوب للحجوزات الأونلاين",
     "jobs.originDestRequired": "نقطة الانطلاق والوجهة مطلوبتان",
+    "jobs.bookingStatus": "حالة الحجز",
+    "jobs.bookingNew": "جديد",
+    "jobs.bookingUpdated": "محدّث",
+    "jobs.bookingCancelled": "ملغي",
+    "jobs.updateJob": "تحديث الحجز",
+    "jobs.cancelEdit": "إلغاء",
+    "jobs.updated": "تم تحديث الحجز بنجاح",
+    "jobs.failedUpdate": "فشل تحديث الحجز",
+    "jobs.locked": "مقفل (أكثر من أسبوع)",
 
     // ── Service Types ──
     "serviceType.ARR": "وصول",
