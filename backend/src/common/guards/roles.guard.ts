@@ -15,6 +15,13 @@ export class RolesGuard implements CanActivate {
       return true;
     }
     const { user } = context.switchToHttp().getRequest();
+
+    // If user is on the new granular permission system (has roleId),
+    // skip the legacy role check — PermissionsGuard will handle access.
+    if (user?.roleId) {
+      return true;
+    }
+
     return requiredRoles.some((role) => user?.role === role);
   }
 }
