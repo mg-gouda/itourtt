@@ -30,7 +30,7 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      CORS_ORIGINS: https://${DOMAIN},https://fulvago.${DOMAIN}
+      CORS_ORIGINS: https://fulvago.${DOMAIN}
       NODE_ENV: production
       TZ: Africa/Cairo
     volumes:
@@ -46,7 +46,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://${DOMAIN}
+        NEXT_PUBLIC_API_URL: ""
     container_name: itour_frontend
     restart: unless-stopped
     environment:
