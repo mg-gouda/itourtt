@@ -22,7 +22,7 @@ import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
-import { IsString, IsIn, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsIn, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 
 const uploadsDir = path.join(process.cwd(), 'uploads', 'no-show');
 if (!fs.existsSync(uploadsDir)) {
@@ -49,6 +49,11 @@ class UpdateJobStatusDto {
 
   @IsNumber()
   longitude!: number;
+}
+
+class MarkCollectedDto {
+  @IsBoolean()
+  collected!: boolean;
 }
 
 class DateQueryDto {
@@ -101,6 +106,16 @@ export class DriverPortalController {
       dto.longitude,
     );
     return new ApiResponse(result, 'Job status updated');
+  }
+
+  @Patch('jobs/:jobId/collection')
+  async markCollected(
+    @CurrentUser('id') userId: string,
+    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Body() dto: MarkCollectedDto,
+  ) {
+    const result = await this.driverPortalService.markCollected(userId, jobId, dto.collected);
+    return new ApiResponse(result, 'Collection status updated');
   }
 
   @Post('jobs/:jobId/no-show')

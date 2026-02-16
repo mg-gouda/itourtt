@@ -1,6 +1,6 @@
 import {
   IsOptional, IsString, IsUUID, IsDateString,
-  IsInt, IsIn, IsBoolean, Min, ValidateNested,
+  IsInt, IsIn, IsBoolean, IsNumber, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { FlightInfoDto } from './create-job.dto.js';
@@ -110,6 +110,19 @@ export class UpdateJobDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  collectionRequired?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  collectionAmount?: number;
+
+  @IsOptional()
+  @IsIn(['EGP', 'USD', 'EUR'])
+  collectionCurrency?: string;
 
   @IsOptional()
   @IsString()

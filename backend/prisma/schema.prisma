@@ -868,6 +868,15 @@ model TrafficJob {
   pickUpTime      DateTime?      @map("pick_up_time") @db.Timestamptz
   notes           String?
 
+  // Collection (Online bookings – driver collects from passenger)
+  collectionRequired     Boolean   @default(false) @map("collection_required")
+  collectionAmount       Decimal?  @db.Decimal(15, 2) @map("collection_amount")
+  collectionCurrency     Currency  @default(EGP) @map("collection_currency")
+  collectionCollected    Boolean   @default(false) @map("collection_collected")
+  collectionCollectedAt  DateTime? @map("collection_collected_at") @db.Timestamptz
+  collectionReceiptNo    String?   @map("collection_receipt_no")
+  collectionLiquidatedAt DateTime? @map("collection_liquidated_at") @db.Timestamptz
+
   // Customer rep meeting fields (B2B)
   custRepName         String?    @map("cust_rep_name")
   custRepMobile       String?    @map("cust_rep_mobile")

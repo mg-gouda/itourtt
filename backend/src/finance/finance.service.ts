@@ -1056,4 +1056,61 @@ export class FinanceService {
       return { ...job, suggestedUnitPrice };
     });
   }
+
+  // ─── Collections ──────────────────────────────
+
+  async getCollections(filters: { status?: string; dateFrom?: string; dateTo?: string }) {
+    const where: Record<string, unknown> = {
+      collectionRequired: true,
+      deletedAt: null,
+    };
+
+    if (filters.status === 'PENDING') {
+      where.collectionCollected = false;
+    } else if (filters.status === 'COLLECTED') {
+      where.collectionCollected = true;
+      where.collectionLiquidatedAt = null;
+    } else if (filters.status === 'LIQUIDATED') {
+      where.collectionLiquidatedAt = { not: null };
+    }
+
+    if (filters.dateFrom || filters.dateTo) {
+      const dateFilter: Record<string, Date> = {};
+      if (filters.dateFrom) dateFilter.gte = new Date(filters.dateFrom);
+      if (filters.dateTo) dateFilter.lte = new Date(filters.dateTo);
+      where.jobDate = dateFilter;
+    }
+
+    return this.prisma.trafficJob.findMany({
+      where: where as any,
+      include: {
+        agent: { select: { legalName: true } },
+        customer: { select: { legalName: true } },
+        assignment: {
+          include: {
+            driver: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { jobDate: 'desc' },
+    });
+  }
+
+  async liquidateCollection(jobId: string, receiptNo: string, userId: string) {
+    const job = await this.prisma.trafficJob.findFirst({
+      where: { id: jobId, collectionRequired: true, deletedAt: null },
+    });
+
+    if (!job) throw new NotFoundException('Collection job not found');
+    if (!job.collectionCollected) throw new BadRequestException('Collection has not been collected by driver yet');
+    if (job.collectionLiquidatedAt) throw new BadRequestException('Collection already liquidated');
+
+    return this.prisma.trafficJob.update({
+      where: { id: jobId },
+      data: {
+        collectionReceiptNo: receiptNo,
+        collectionLiquidatedAt: new Date(),
+      },
+    });
+  }
 }

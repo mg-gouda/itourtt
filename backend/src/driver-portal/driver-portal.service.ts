@@ -163,6 +163,11 @@ export class DriverPortalService {
       );
     }
 
+    // Collection guard: driver must collect before completing
+    if (status === 'COMPLETED' && assignment.trafficJob.collectionRequired && !assignment.trafficJob.collectionCollected) {
+      throw new BadRequestException('Collection must be marked as collected before completing the job');
+    }
+
     const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
     return this.prisma.$transaction(async (tx) => {
@@ -193,6 +198,34 @@ export class DriverPortalService {
         ...updated.trafficJob,
         driverStatus: updated.driverStatus,
       };
+    });
+  }
+
+  async markCollected(userId: string, jobId: string, collected: boolean) {
+    const driverId = await this.resolveDriverId(userId);
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { driverId, trafficJobId: jobId },
+      include: { trafficJob: true },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Job not found or not assigned to you');
+    }
+
+    if (!assignment.trafficJob.collectionRequired) {
+      throw new BadRequestException('This job does not require collection');
+    }
+
+    this.checkDriverTimelock(assignment.trafficJob);
+
+    return this.prisma.trafficJob.update({
+      where: { id: jobId },
+      data: {
+        collectionCollected: collected,
+        collectionCollectedAt: collected ? new Date() : null,
+      },
+      include: this.jobInclude,
     });
   }
 

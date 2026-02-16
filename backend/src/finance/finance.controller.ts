@@ -267,4 +267,31 @@ export class FinanceController {
     });
     res.end(buffer);
   }
+
+  // ─── Collections ──────────────────────────────
+
+  @Get('collections')
+  @Permissions('finance')
+  async getCollections(
+    @Query('status') status?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const result = await this.financeService.getCollections({ status, dateFrom, dateTo });
+    return new ApiResponse(result);
+  }
+
+  @Patch('collections/:jobId/liquidate')
+  @Permissions('finance')
+  async liquidateCollection(
+    @CurrentUser('id') userId: string,
+    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Body() dto: { receiptNo: string },
+  ) {
+    if (!dto.receiptNo?.trim()) {
+      throw new BadRequestException('Receipt number is required');
+    }
+    const result = await this.financeService.liquidateCollection(jobId, dto.receiptNo.trim(), userId);
+    return new ApiResponse(result, 'Collection liquidated successfully');
+  }
 }

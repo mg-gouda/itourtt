@@ -163,6 +163,21 @@ interface EditableLine {
   lineTotal: number;
 }
 
+interface CollectionJob {
+  id: string;
+  internalRef: string;
+  jobDate: string;
+  collectionAmount: number;
+  collectionCurrency: string;
+  collectionCollected: boolean;
+  collectionCollectedAt: string | null;
+  collectionReceiptNo: string | null;
+  collectionLiquidatedAt: string | null;
+  agent?: { legalName: string } | null;
+  customer?: { legalName: string } | null;
+  assignment?: { driver?: { name: string } | null } | null;
+}
+
 interface CreditStatus {
   creditLimit: number;
   creditDays: number;
@@ -178,6 +193,12 @@ const statusColors: Record<string, string> = {
   POSTED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
   PAID: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
   CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
+};
+
+const collectionStatusColors: Record<string, string> = {
+  PENDING: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  COLLECTED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
+  LIQUIDATED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
 };
 
 const paymentMethodLabels: Record<string, string> = {
@@ -211,6 +232,12 @@ function calcTotals(lines: EditableLine[]) {
 
 function fmtNum(n: number, locale: string) {
   return n.toLocaleString(locale, { minimumFractionDigits: 2 });
+}
+
+function getCollectionStatus(c: CollectionJob): string {
+  if (c.collectionLiquidatedAt) return "LIQUIDATED";
+  if (c.collectionCollected) return "COLLECTED";
+  return "PENDING";
 }
 
 /* ─── Page ──────────────────────────────────── */
@@ -277,6 +304,16 @@ export default function FinancePage() {
   const [jobsFetching, setJobsFetching] = useState(false);
   const [jobsFetched, setJobsFetched] = useState(false);
 
+  // Collections
+  const [collections, setCollections] = useState<CollectionJob[]>([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
+  const [collectionStatusFilter, setCollectionStatusFilter] = useState("ALL");
+  const [collectionDateFrom, setCollectionDateFrom] = useState("");
+  const [collectionDateTo, setCollectionDateTo] = useState("");
+  const [liquidateDialog, setLiquidateDialog] = useState<{ open: boolean; jobId: string; ref: string }>({ open: false, jobId: "", ref: "" });
+  const [receiptNo, setReceiptNo] = useState("");
+  const [liquidating, setLiquidating] = useState(false);
+
   /* ─── Data fetching ───────────────────────── */
 
   const fetchInvoices = useCallback(async () => {
@@ -289,6 +326,41 @@ export default function FinancePage() {
       setLoading(false);
     }
   }, []);
+
+  const fetchCollections = useCallback(async () => {
+    setCollectionsLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (collectionStatusFilter !== "ALL") params.status = collectionStatusFilter;
+      if (collectionDateFrom) params.dateFrom = collectionDateFrom;
+      if (collectionDateTo) params.dateTo = collectionDateTo;
+      const { data } = await api.get("/finance/collections", { params });
+      setCollections(data.data || data || []);
+    } catch {
+      toast.error(t("finance.collectionsLoadError") || "Failed to load collections");
+    } finally {
+      setCollectionsLoading(false);
+    }
+  }, [collectionStatusFilter, collectionDateFrom, collectionDateTo, t]);
+
+  const handleLiquidate = async () => {
+    if (!receiptNo.trim()) {
+      toast.error(t("finance.receiptNoRequired") || "Receipt number is required");
+      return;
+    }
+    setLiquidating(true);
+    try {
+      await api.patch(`/finance/collections/${liquidateDialog.jobId}/liquidate`, { receiptNo: receiptNo.trim() });
+      toast.success(t("finance.collectionLiquidated") || "Collection liquidated");
+      setLiquidateDialog({ open: false, jobId: "", ref: "" });
+      setReceiptNo("");
+      fetchCollections();
+    } catch {
+      toast.error(t("finance.liquidateError") || "Failed to liquidate collection");
+    } finally {
+      setLiquidating(false);
+    }
+  };
 
   useEffect(() => {
     fetchInvoices();
@@ -882,6 +954,13 @@ export default function FinancePage() {
           >
             {t("finance.odooExports")}
           </TabsTrigger>
+          <TabsTrigger
+            value="collections"
+            className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            onClick={() => { if (collections.length === 0) fetchCollections(); }}
+          >
+            {t("finance.collections") || "Collections"}
+          </TabsTrigger>
         </TabsList>
 
         {/* ─── Invoices Tab ─────────────────── */}
@@ -997,6 +1076,7 @@ export default function FinancePage() {
               { key: "vendor-bills", label: t("finance.exportVendorBills") },
               { key: "payments", label: t("finance.exportPayments") },
               { key: "journals", label: t("finance.exportJournals") },
+              { key: "collections", label: t("finance.collections") || "Collections" },
             ].map((exp) => (
               <Card
                 key={exp.key}
@@ -1026,7 +1106,146 @@ export default function FinancePage() {
             ))}
           </div>
         </TabsContent>
+
+        {/* ─── Collections Tab ─────────────────── */}
+        <TabsContent value="collections">
+          {/* Filters */}
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="flex gap-1">
+              {["ALL", "PENDING", "COLLECTED", "LIQUIDATED"].map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={collectionStatusFilter === s ? "default" : "outline"}
+                  onClick={() => setCollectionStatusFilter(s)}
+                  className="text-xs"
+                >
+                  {s === "ALL" ? t("common.all") : t(`finance.collection${s.charAt(0) + s.slice(1).toLowerCase()}`) || s}
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">{t("common.from") || "From"}</Label>
+              <Input
+                type="date"
+                value={collectionDateFrom}
+                onChange={(e) => setCollectionDateFrom(e.target.value)}
+                className="h-8 w-36 text-xs border-border bg-card text-foreground"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">{t("common.to") || "To"}</Label>
+              <Input
+                type="date"
+                value={collectionDateTo}
+                onChange={(e) => setCollectionDateTo(e.target.value)}
+                className="h-8 w-36 text-xs border-border bg-card text-foreground"
+              />
+            </div>
+            <Button size="sm" onClick={fetchCollections} className="gap-1">
+              {collectionsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DollarSign className="h-3.5 w-3.5" />}
+              {t("common.search") || "Search"}
+            </Button>
+          </div>
+
+          {/* Table */}
+          {collectionsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : collections.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <DollarSign className="mb-2 h-8 w-8" />
+              <p>{t("finance.noCollections") || "No collections found"}</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                    <TableHead className="text-white text-xs">{t("dispatch.ref") || "Ref"}</TableHead>
+                    <TableHead className="text-white text-xs">{t("common.date") || "Date"}</TableHead>
+                    <TableHead className="text-white text-xs">{t("jobs.agentCustomer") || "Agent/Customer"}</TableHead>
+                    <TableHead className="text-white text-xs">{t("dispatch.driver") || "Driver"}</TableHead>
+                    <TableHead className="text-white text-xs text-right">{t("finance.collectionAmount") || "Amount"}</TableHead>
+                    <TableHead className="text-white text-xs">{t("finance.currency") || "Currency"}</TableHead>
+                    <TableHead className="text-white text-xs">{t("finance.receiptNo") || "Receipt"}</TableHead>
+                    <TableHead className="text-white text-xs">{t("common.status") || "Status"}</TableHead>
+                    <TableHead className="text-white text-xs">{t("common.actions") || "Actions"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {collections.map((c, idx) => {
+                    const status = getCollectionStatus(c);
+                    return (
+                      <TableRow
+                        key={c.id}
+                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                      >
+                        <TableCell className="text-foreground font-mono text-xs">{c.internalRef}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{formatDate(c.jobDate)}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{c.agent?.legalName || c.customer?.legalName || "\u2014"}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{c.assignment?.driver?.name || "\u2014"}</TableCell>
+                        <TableCell className="text-right text-foreground font-mono">{fmtNum(c.collectionAmount, locale)}</TableCell>
+                        <TableCell className="text-muted-foreground">{c.collectionCurrency}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{c.collectionReceiptNo || "\u2014"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={collectionStatusColors[status] || ""}>
+                            {status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {status === "COLLECTED" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="gap-1 text-xs"
+                              onClick={() => setLiquidateDialog({ open: true, jobId: c.id, ref: c.internalRef })}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              {t("finance.liquidate") || "Liquidate"}
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
+
+      {/* ─── Liquidate Dialog ─────────────────── */}
+      <Dialog open={liquidateDialog.open} onOpenChange={(open) => { if (!open) { setLiquidateDialog({ open: false, jobId: "", ref: "" }); setReceiptNo(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("finance.liquidateCollection") || "Liquidate Collection"}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {t("finance.liquidateDesc") || "Enter receipt number for"} <b>{liquidateDialog.ref}</b>
+          </p>
+          <div className="space-y-2">
+            <Label>{t("finance.receiptNo") || "Receipt No."}</Label>
+            <Input
+              value={receiptNo}
+              onChange={(e) => setReceiptNo(e.target.value)}
+              placeholder={t("finance.receiptNoPlaceholder") || "e.g. REC-001"}
+              className="border-border bg-card text-foreground"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setLiquidateDialog({ open: false, jobId: "", ref: "" }); setReceiptNo(""); }}>
+              {t("common.cancel") || "Cancel"}
+            </Button>
+            <Button onClick={handleLiquidate} disabled={liquidating}>
+              {liquidating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("finance.liquidate") || "Liquidate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Invoice Detail Sheet ────────────── */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

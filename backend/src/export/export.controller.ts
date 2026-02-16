@@ -82,6 +82,18 @@ export class ExportController {
     this.sendXlsx(res, buffer, 'odoo_journal_entries');
   }
 
+  @Get('collections')
+  @Permissions('finance.exports.collections')
+  async exportCollections(
+    @Query('status') status: string,
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Res() res: express.Response,
+  ) {
+    const buffer = await this.exportService.exportCollections(status, dateFrom, dateTo);
+    this.sendXlsx(res, buffer, 'odoo_collections');
+  }
+
   @Get('client-signs')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
   @Permissions('dispatch.exportButton')

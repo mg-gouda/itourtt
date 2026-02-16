@@ -182,6 +182,9 @@ export class TrafficJobsService {
           printSign: dto.printSign ?? false,
           pickUpTime: dto.pickUpTime ? new Date(dto.pickUpTime) : null,
           notes: dto.notes,
+          collectionRequired: dto.collectionRequired ?? false,
+          collectionAmount: dto.collectionRequired ? dto.collectionAmount : null,
+          collectionCurrency: dto.collectionRequired ? (dto.collectionCurrency as any || 'EGP') : 'EGP',
           custRepName: dto.custRepName ?? null,
           custRepMobile: dto.custRepMobile ?? null,
           custRepMeetingPoint: dto.custRepMeetingPoint ?? null,
@@ -305,6 +308,16 @@ export class TrafficJobsService {
       if (dto.printSign !== undefined) data.printSign = dto.printSign;
       if (dto.pickUpTime !== undefined) data.pickUpTime = dto.pickUpTime ? new Date(dto.pickUpTime) : null;
       if (dto.notes !== undefined) data.notes = dto.notes;
+      if (dto.collectionRequired !== undefined) {
+        data.collectionRequired = dto.collectionRequired;
+        if (!dto.collectionRequired) {
+          data.collectionAmount = null;
+          data.collectionCollected = false;
+          data.collectionCollectedAt = null;
+        }
+      }
+      if (dto.collectionAmount !== undefined) data.collectionAmount = dto.collectionAmount;
+      if (dto.collectionCurrency !== undefined) data.collectionCurrency = dto.collectionCurrency;
       if (dto.custRepName !== undefined) data.custRepName = dto.custRepName;
       if (dto.custRepMobile !== undefined) data.custRepMobile = dto.custRepMobile;
       if (dto.custRepMeetingPoint !== undefined) data.custRepMeetingPoint = dto.custRepMeetingPoint;

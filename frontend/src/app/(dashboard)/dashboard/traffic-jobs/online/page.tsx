@@ -12,6 +12,7 @@ import {
   Save,
   Lock,
   X,
+  DollarSign,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,10 @@ interface TrafficJob {
   clientMobile: string | null;
   pickUpTime: string | null;
   notes: string | null;
+  collectionRequired: boolean;
+  collectionAmount: number | null;
+  collectionCurrency: string;
+  collectionCollected: boolean;
   boosterSeat: boolean;
   boosterSeatQty: number;
   babySeat: boolean;
@@ -148,6 +153,9 @@ interface FormState {
   printSign: boolean;
   pickUpTime: string;
   notes: string;
+  collectionRequired: boolean;
+  collectionAmount: string;
+  collectionCurrency: string;
   flightNo: string;
   terminal: string;
   arrivalTime: string;
@@ -181,6 +189,9 @@ const defaultForm: FormState = {
   printSign: false,
   pickUpTime: "",
   notes: "",
+  collectionRequired: false,
+  collectionAmount: "",
+  collectionCurrency: "EGP",
   flightNo: "",
   terminal: "",
   arrivalTime: "",
@@ -294,6 +305,9 @@ export default function OnlineJobPage() {
       printSign: job.printSign,
       pickUpTime,
       notes: job.notes || "",
+      collectionRequired: job.collectionRequired || false,
+      collectionAmount: job.collectionAmount ? String(job.collectionAmount) : "",
+      collectionCurrency: job.collectionCurrency || "EGP",
       flightNo: job.flight?.flightNo || "",
       terminal: job.flight?.terminal || "",
       arrivalTime,
@@ -365,6 +379,18 @@ export default function OnlineJobPage() {
       payload.wheelChair = form.wheelChair;
       if (form.wheelChair) payload.wheelChairQty = parseInt(form.wheelChairQty) || 1;
       payload.printSign = form.printSign;
+
+      payload.collectionRequired = form.collectionRequired;
+      if (form.collectionRequired) {
+        const collectionAmt = parseFloat(form.collectionAmount);
+        if (!collectionAmt || collectionAmt <= 0) {
+          toast.error(t("jobs.collectionAmountRequired") || "Collection amount is required");
+          setSaving(false);
+          return;
+        }
+        payload.collectionAmount = collectionAmt;
+        payload.collectionCurrency = form.collectionCurrency;
+      }
 
       if (form.pickUpTime) payload.pickUpTime = `${form.jobDate}T${form.pickUpTime}`;
       if (form.notes.trim()) payload.notes = form.notes.trim();
@@ -722,6 +748,38 @@ export default function OnlineJobPage() {
                 )}
               </label>
             </div>
+            <div className="min-w-0 flex items-center">
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <Checkbox
+                  checked={form.collectionRequired}
+                  onCheckedChange={(v) => updateForm({ collectionRequired: v === true, ...(!v ? { collectionAmount: "", collectionCurrency: "EGP" } : {}) })}
+                />
+                {t("jobs.collection") || "Collection"}
+                {form.collectionRequired && (
+                  <>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.collectionAmount}
+                      onChange={(e) => updateForm({ collectionAmount: e.target.value })}
+                      placeholder={t("jobs.collectionAmount") || "Amount"}
+                      className="border-border bg-card text-foreground h-7 w-24 text-center"
+                    />
+                    <Select value={form.collectionCurrency} onValueChange={(v) => updateForm({ collectionCurrency: v })}>
+                      <SelectTrigger className="border-border bg-card text-foreground h-7 w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["EGP", "USD", "EUR", "GBP", "SAR"].map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </label>
+            </div>
           </div>
 
           {/* Line 5: Notes + Submit */}
@@ -823,6 +881,7 @@ export default function OnlineJobPage() {
                   <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
                   <SortableHeader label={t("dispatch.pax")} sortKey="paxCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("jobs.extras") || "Extras"}</TableHead>
+                  <TableHead className="text-white text-xs w-[60px]">{t("jobs.collection") || "$"}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.notes") || "Notes"}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
                   <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
@@ -879,6 +938,14 @@ export default function OnlineJobPage() {
                           if (job.wheelChairQty > 0) extras.push(`W:${job.wheelChairQty}`);
                           return extras.length > 0 ? extras.join(" ") : "\u2014";
                         })()}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs text-center">
+                        {job.collectionRequired ? (
+                          <span className="flex items-center gap-0.5 text-amber-500" title={`${job.collectionAmount} ${job.collectionCurrency}`}>
+                            <DollarSign className="h-3.5 w-3.5" />
+                            <span className="text-[10px]">{job.collectionAmount}</span>
+                          </span>
+                        ) : "\u2014"}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
                         {job.notes || "\u2014"}

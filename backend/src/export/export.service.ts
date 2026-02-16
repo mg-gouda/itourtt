@@ -237,6 +237,64 @@ export class ExportService {
   }
 
   // ─────────────────────────────────────────────
+  // COLLECTIONS EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportCollections(status?: string, dateFrom?: string, dateTo?: string): Promise<Buffer> {
+    const where: any = { collectionRequired: true };
+
+    if (status === 'PENDING') {
+      where.collectionCollected = false;
+    } else if (status === 'COLLECTED') {
+      where.collectionCollected = true;
+      where.collectionLiquidatedAt = null;
+    } else if (status === 'LIQUIDATED') {
+      where.collectionLiquidatedAt = { not: null };
+    }
+
+    if (dateFrom || dateTo) {
+      where.jobDate = {};
+      if (dateFrom) where.jobDate.gte = new Date(dateFrom);
+      if (dateTo) where.jobDate.lte = new Date(dateTo);
+    }
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: {
+        agent: { select: { legalName: true } },
+        customer: { select: { legalName: true } },
+        assignment: { include: { driver: { select: { name: true } } } },
+      },
+      orderBy: { jobDate: 'desc' },
+    });
+
+    const rows = jobs.map((j) => {
+      let collectionStatus = 'PENDING';
+      if (j.collectionLiquidatedAt) collectionStatus = 'LIQUIDATED';
+      else if (j.collectionCollected) collectionStatus = 'COLLECTED';
+
+      return {
+        job_reference: j.internalRef,
+        job_date: this.formatDate(j.jobDate),
+        partner_name: j.agent?.legalName || j.customer?.legalName || '',
+        driver_name: j.assignment?.driver?.name || '',
+        collection_amount: j.collectionAmount ? Number(j.collectionAmount) : 0,
+        collection_currency: j.collectionCurrency || 'EGP',
+        status: collectionStatus,
+        receipt_no: j.collectionReceiptNo || '',
+        collected_at: j.collectionCollectedAt ? this.formatDate(j.collectionCollectedAt) : '',
+        liquidated_at: j.collectionLiquidatedAt ? this.formatDate(j.collectionLiquidatedAt) : '',
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Collections');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
   // REP FEES REPORT
   // ─────────────────────────────────────────────
 

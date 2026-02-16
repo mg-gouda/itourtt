@@ -239,6 +239,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'finance.exports.vendorBills', labelKey: 'permissions.finance.exports.vendorBills' },
           { key: 'finance.exports.payments', labelKey: 'permissions.finance.exports.payments' },
           { key: 'finance.exports.journals', labelKey: 'permissions.finance.exports.journals' },
+          { key: 'finance.exports.collections', labelKey: 'permissions.finance.exports.collections' },
         ],
       },
     ],

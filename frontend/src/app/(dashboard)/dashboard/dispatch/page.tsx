@@ -17,6 +17,7 @@ import {
   Download,
   Lock,
   LockOpen,
+  DollarSign,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ interface Job {
   custRepMobile: string | null;
   custRepMeetingPoint: string | null;
   custRepMeetingTime: string | null;
+  pickUpTime: string | null;
   dispatchUnlockedAt: string | null;
   agent?: { legalName: string } | null;
   customer?: { legalName: string } | null;
@@ -103,6 +105,9 @@ interface Job {
     driver?: { name: string; mobileNumber?: string };
     rep?: { name: string };
   } | null;
+  collectionRequired: boolean;
+  collectionAmount: number | null;
+  collectionCurrency: string | null;
 }
 
 interface SupplierResource {
@@ -723,6 +728,7 @@ function JobGrid({
   showLockColumn,
   canUnlock,
   onToggleLock,
+  showPickUpTime,
 }: {
   jobs: Job[];
   title: string;
@@ -744,6 +750,7 @@ function JobGrid({
   showLockColumn?: boolean;
   canUnlock?: boolean;
   onToggleLock?: (jobId: string, unlock: boolean) => void;
+  showPickUpTime?: boolean;
 }) {
   const t = useT();
   const locale = useLocaleId();
@@ -840,6 +847,7 @@ function JobGrid({
             <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
             <TableHead className="text-white text-xs w-14">{t("dispatch.pax")}</TableHead>
             <TableHead className="text-white text-xs">{t("dispatch.flight")}</TableHead>
+            {showPickUpTime && <TableHead className="text-white text-xs w-20">{t("jobs.pickUpTime")}</TableHead>}
             <TableHead className="text-white text-xs w-36">{t("dispatch.carSource")}</TableHead>
             <TableHead className="text-white text-xs w-36">{t("dispatch.vehicle")}</TableHead>
             <TableHead className="text-white text-xs w-32">{t("dispatch.driver")}</TableHead>
@@ -900,13 +908,23 @@ function JobGrid({
                   {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} → {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-center">
-                  {job.paxCount}
+                  <span className="flex items-center justify-center gap-0.5">
+                    {job.paxCount}
+                    {job.collectionRequired && (
+                      <DollarSign className="h-3 w-3 text-amber-500" title={`${job.collectionAmount} ${job.collectionCurrency}`} />
+                    )}
+                  </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
                   {job.flight
                     ? `${job.flight.flightNo} ${fmtTime(job.flight.arrivalTime || job.flight.departureTime, locale)}`
                     : "—"}
                 </TableCell>
+                {showPickUpTime && (
+                  <TableCell className="text-muted-foreground text-xs font-mono">
+                    {fmtTime(job.pickUpTime ?? undefined, locale) || "—"}
+                  </TableCell>
+                )}
 
                 {isEditable ? (
                   <>
@@ -1646,6 +1664,7 @@ export default function DispatchPage() {
                     jobs={departures}
                     title="Departure"
                     icon={PlaneTakeoff}
+                    showPickUpTime
                     {...gridProps}
                   />
                 </div>
@@ -1680,6 +1699,7 @@ export default function DispatchPage() {
                 jobs={departures}
                 title="Departure"
                 icon={PlaneTakeoff}
+                showPickUpTime
                 {...gridProps}
               />
             </TabsContent>

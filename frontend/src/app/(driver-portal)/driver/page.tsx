@@ -32,6 +32,7 @@ import {
   Navigation,
   ChevronLeft,
   ChevronRight,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
@@ -74,6 +75,10 @@ interface DriverJob {
     vehicle?: { plateNumber: string; vehicleType?: { name: string } };
     rep?: { name: string; mobileNumber: string };
   };
+  collectionRequired: boolean;
+  collectionAmount: number | null;
+  collectionCurrency: string;
+  collectionCollected: boolean;
 }
 
 interface Notification {
@@ -126,6 +131,7 @@ export default function DriverDashboardPage() {
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
   const [updating, setUpdating] = useState(false);
+  const [collectingJobId, setCollectingJobId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   const shiftDate = (days: number) => {
@@ -164,6 +170,19 @@ export default function DriverDashboardPage() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  const handleMarkCollected = async (jobId: string) => {
+    setCollectingJobId(jobId);
+    try {
+      await api.patch(`/driver-portal/jobs/${jobId}/collection`, { collected: true });
+      toast.success(t("portal.collectionMarked") || "Collection marked");
+      fetchJobs();
+    } catch {
+      toast.error(t("portal.collectionError") || "Failed to mark collection");
+    } finally {
+      setCollectingJobId(null);
+    }
+  };
 
   const handleStatusChange = (jobId: string, jobRef: string, status: string) => {
     if (status === "NO_SHOW") {
@@ -299,6 +318,8 @@ export default function DriverDashboardPage() {
                     key={job.id}
                     job={job}
                     onStatusChange={handleStatusChange}
+                    onMarkCollected={handleMarkCollected}
+                    collectingJobId={collectingJobId}
                     formatTime={formatTime}
                   />
                 ))}
@@ -317,6 +338,8 @@ export default function DriverDashboardPage() {
                     key={job.id}
                     job={job}
                     onStatusChange={handleStatusChange}
+                    onMarkCollected={handleMarkCollected}
+                    collectingJobId={collectingJobId}
                     formatTime={formatTime}
                   />
                 ))}
@@ -443,10 +466,14 @@ export default function DriverDashboardPage() {
 function DriverJobCard({
   job,
   onStatusChange,
+  onMarkCollected,
+  collectingJobId,
   formatTime,
 }: {
   job: DriverJob;
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
+  onMarkCollected: (jobId: string) => void;
+  collectingJobId: string | null;
   formatTime: (iso: string | null) => string | null;
 }) {
   const t = useT();
@@ -555,6 +582,32 @@ function DriverJobCard({
           </p>
         )}
 
+        {/* Collection banner */}
+        {job.collectionRequired && (
+          <div className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${job.collectionCollected ? "border-emerald-500/30 bg-emerald-500/10" : "border-amber-500/30 bg-amber-500/10"}`}>
+            <DollarSign className={`h-4 w-4 ${job.collectionCollected ? "text-emerald-500" : "text-amber-500"}`} />
+            <span className="font-medium text-foreground">
+              {job.collectionAmount} {job.collectionCurrency}
+            </span>
+            {job.collectionCollected ? (
+              <Badge variant="outline" className="ml-auto border-emerald-500/50 text-emerald-500 text-xs">
+                {t("portal.collected") || "Collected"}
+              </Badge>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="ml-auto gap-1.5 border-amber-500/50 text-amber-500 hover:bg-amber-500/20 hover:text-amber-400"
+                onClick={() => onMarkCollected(job.id)}
+                disabled={collectingJobId === job.id}
+              >
+                {collectingJobId === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DollarSign className="h-3.5 w-3.5" />}
+                {t("portal.markCollected") || "Mark Collected"}
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Action buttons */}
         {!isTerminal && (
           <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
@@ -574,6 +627,8 @@ function DriverJobCard({
               variant="default"
               className="gap-1.5"
               onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
+              disabled={job.collectionRequired && !job.collectionCollected}
+              title={job.collectionRequired && !job.collectionCollected ? (t("portal.collectionRequiredBeforeComplete") || "Collect payment before completing") : ""}
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               {t("portal.complete")}
