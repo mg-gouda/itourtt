@@ -482,98 +482,19 @@ export class DispatchService {
   }
 
   /**
-   * Time-aware driver availability. When jobId is provided, only returns drivers
-   * with a 3+ hour gap from the target job's flight time.
+   * Returns all active drivers, optionally filtered by supplier.
+   * No time-based restrictions — drivers can be freely assigned.
    */
   async getAvailableDrivers(date: string, jobId?: string, supplierId?: string) {
-    const jobDate = new Date(date);
-
-    // Supplier filter: "owned" means supplierId IS NULL, UUID means match that supplier
     const supplierFilter = supplierId === 'owned'
       ? { supplierId: null }
       : supplierId
         ? { supplierId }
         : {};
 
-    const driverInclude = { supplier: { select: { id: true, legalName: true, tradeName: true } } };
-
-    // If no jobId, return all active drivers (legacy fallback)
-    if (!jobId) {
-      return this.prisma.driver.findMany({
-        where: { deletedAt: null, isActive: true, ...supplierFilter },
-        include: driverInclude,
-        orderBy: { name: 'asc' },
-      });
-    }
-
-    const targetJob = await this.prisma.trafficJob.findFirst({
-      where: { id: jobId, deletedAt: null },
-      include: { flight: true },
-    });
-    if (!targetJob) {
-      return this.prisma.driver.findMany({
-        where: { deletedAt: null, isActive: true, ...supplierFilter },
-        include: driverInclude,
-        orderBy: { name: 'asc' },
-      });
-    }
-
-    const targetTime = this.getJobReferenceTime(targetJob);
-
-    // Get all active driver assignments on this date
-    const busyAssignments = await this.prisma.trafficAssignment.findMany({
-      where: {
-        driverId: { not: null },
-        trafficJob: {
-          jobDate,
-          deletedAt: null,
-          status: { notIn: ['CANCELLED', 'COMPLETED'] as JobStatus[] },
-        },
-      },
-      include: {
-        trafficJob: { include: { flight: true } },
-      },
-    });
-
-    // Group assignments by driver
-    const driverAssignments = new Map<string, typeof busyAssignments>();
-    for (const a of busyAssignments) {
-      if (!a.driverId) continue;
-      const list = driverAssignments.get(a.driverId) || [];
-      list.push(a);
-      driverAssignments.set(a.driverId, list);
-    }
-
-    // Find busy driver IDs (those that conflict with target)
-    const busyDriverIds: string[] = [];
-    for (const [driverId, assignments] of driverAssignments) {
-      for (const a of assignments) {
-        const existingTime = this.getJobReferenceTime(a.trafficJob);
-
-        // Excursion with no time blocks full day
-        if (targetTime === null || existingTime === null) {
-          busyDriverIds.push(driverId);
-          break;
-        }
-
-        const gap = Math.abs(targetTime.getTime() - existingTime.getTime());
-        if (gap < THREE_HOURS_MS) {
-          busyDriverIds.push(driverId);
-          break;
-        }
-      }
-    }
-
     return this.prisma.driver.findMany({
-      where: {
-        deletedAt: null,
-        isActive: true,
-        ...supplierFilter,
-        ...(busyDriverIds.length > 0 && {
-          id: { notIn: busyDriverIds },
-        }),
-      },
-      include: driverInclude,
+      where: { deletedAt: null, isActive: true, ...supplierFilter },
+      include: { supplier: { select: { id: true, legalName: true, tradeName: true } } },
       orderBy: { name: 'asc' },
     });
   }
@@ -759,126 +680,24 @@ export class DispatchService {
     return null;
   }
 
-  /**
-   * Validate vehicle availability with time-aware + route-aware rules.
-   * A vehicle can be assigned to multiple jobs on the same date if:
-   *   - The destination of the existing job matches the origin of the new job (back-to-back route), OR
-   *   - There is at least a 3-hour gap between the jobs.
-   * Excursion jobs with no time block the vehicle for the full day.
-   */
+  // Vehicle availability — no time restrictions, free assignment allowed.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async validateVehicleAvailability(
-    vehicleId: string,
-    job: {
-      id: string;
-      jobDate: Date;
-      serviceType: string;
-      pickUpTime?: Date | null;
-      flight?: { arrivalTime?: Date | null; departureTime?: Date | null } | null;
-      originAirportId?: string | null;
-      originZoneId?: string | null;
-      originHotelId?: string | null;
-      destinationAirportId?: string | null;
-      destinationZoneId?: string | null;
-      destinationHotelId?: string | null;
-    },
-    excludeAssignmentId?: string,
+    _vehicleId: string,
+    _job: Record<string, unknown>,
+    _excludeAssignmentId?: string,
   ) {
-    const existingAssignments = await this.prisma.trafficAssignment.findMany({
-      where: {
-        vehicleId,
-        ...(excludeAssignmentId ? { id: { not: excludeAssignmentId } } : {}),
-        trafficJob: {
-          jobDate: job.jobDate,
-          deletedAt: null,
-          status: { notIn: ['CANCELLED', 'COMPLETED'] as JobStatus[] },
-        },
-      },
-      include: {
-        trafficJob: { include: { flight: true } },
-      },
-    });
-
-    if (existingAssignments.length === 0) return;
-
-    const targetTime = this.getJobReferenceTime(job);
-    const newOrigin = job.originAirportId || job.originZoneId || job.originHotelId || null;
-
-    for (const a of existingAssignments) {
-      const existingJob = a.trafficJob;
-      const existingTime = this.getJobReferenceTime(existingJob);
-
-      // Check if existing job's destination matches new job's origin (back-to-back route)
-      const existingDest = existingJob.destinationAirportId || existingJob.destinationZoneId || existingJob.destinationHotelId || null;
-      if (newOrigin && existingDest && newOrigin === existingDest) {
-        continue; // Same route continuation — allowed
-      }
-
-      // Excursion involved → block full day
-      if (targetTime === null || existingTime === null) {
-        throw new ConflictException(
-          `Vehicle is already assigned to job ${existingJob.internalRef} on this date.`,
-        );
-      }
-
-      const gap = Math.abs(targetTime.getTime() - existingTime.getTime());
-      if (gap < THREE_HOURS_MS) {
-        const nextAvailable = new Date(existingTime.getTime() + THREE_HOURS_MS);
-        throw new ConflictException(
-          `Vehicle is assigned to job ${existingJob.internalRef} (at ${existingTime.toISOString().slice(11, 16)}). ` +
-          `Minimum 3-hour gap required. Next available: ${nextAvailable.toISOString().slice(11, 16)}.`,
-        );
-      }
-    }
+    return;
   }
 
-  /**
-   * Validate driver availability with 3-hour gap rule.
-   * Drivers can NEVER share a job — one driver = one vehicle = one job at a time.
-   * Excursion jobs block the driver for the full day.
-   */
+  // Driver availability — no time restrictions, free assignment allowed.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async validateDriverAvailability(
-    driverId: string,
-    job: { id: string; jobDate: Date; serviceType: string; pickUpTime?: Date | null; flight?: { arrivalTime?: Date | null; departureTime?: Date | null } | null },
-    excludeAssignmentId?: string,
+    _driverId: string,
+    _job: Record<string, unknown>,
+    _excludeAssignmentId?: string,
   ) {
-    const existingAssignments = await this.prisma.trafficAssignment.findMany({
-      where: {
-        driverId,
-        ...(excludeAssignmentId ? { id: { not: excludeAssignmentId } } : {}),
-        trafficJob: {
-          jobDate: job.jobDate,
-          deletedAt: null,
-          status: { notIn: ['CANCELLED', 'COMPLETED'] as JobStatus[] },
-        },
-      },
-      include: {
-        trafficJob: { include: { flight: true } },
-      },
-    });
-
-    if (existingAssignments.length === 0) return;
-
-    const targetTime = this.getJobReferenceTime(job);
-
-    for (const a of existingAssignments) {
-      const existingTime = this.getJobReferenceTime(a.trafficJob);
-
-      // Excursion involved → block full day
-      if (targetTime === null || existingTime === null) {
-        throw new ConflictException(
-          `Driver is already assigned to job ${a.trafficJob.internalRef} on this date.`,
-        );
-      }
-
-      const gap = Math.abs(targetTime.getTime() - existingTime.getTime());
-      if (gap < THREE_HOURS_MS) {
-        const nextAvailable = new Date(existingTime.getTime() + THREE_HOURS_MS);
-        throw new ConflictException(
-          `Driver is assigned to job ${a.trafficJob.internalRef} (flight at ${existingTime.toISOString().slice(11, 16)}). ` +
-          `Minimum 3-hour gap required. Next available: ${nextAvailable.toISOString().slice(11, 16)}.`,
-        );
-      }
-    }
+    return;
   }
 
   /**
