@@ -106,7 +106,7 @@ export default function DriverHistoryPage() {
     return new Date(isoString).toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true,
+      hour12: false,
     });
   };
 

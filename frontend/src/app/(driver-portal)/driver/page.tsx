@@ -30,6 +30,8 @@ import {
   User,
   PlayCircle,
   Navigation,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
@@ -124,18 +126,24 @@ export default function DriverDashboardPage() {
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
   const [updating, setUpdating] = useState(false);
-  const [today] = useState(() => new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+
+  const shiftDate = (days: number) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + days);
+    setSelectedDate(d.toISOString().split("T")[0]);
+  };
 
   const fetchJobs = useCallback(async () => {
     try {
       const { data } = await api.get("/driver-portal/jobs", {
-        params: { date: today },
+        params: { date: selectedDate },
       });
       setJobs(data.data?.jobs ?? []);
     } catch {
       toast.error(t("portal.failedLoadJobs"));
     }
-  }, [today]);
+  }, [selectedDate]);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -215,7 +223,7 @@ export default function DriverDashboardPage() {
     return new Date(isoString).toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true,
+      hour12: false,
     });
   };
 
@@ -234,17 +242,37 @@ export default function DriverDashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("portal.myJobs")}</h1>
-          <p className="text-sm text-muted-foreground">
-            <CalendarDays className="mr-1 inline h-4 w-4" />
-            {t("portal.today")} &mdash;{" "}
-            {formatDate(today)}
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-foreground">{t("portal.myJobs")}</h1>
         <Button variant="outline" size="sm" onClick={fetchAll}>
           <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
           {t("portal.refresh")}
+        </Button>
+      </div>
+
+      {/* Date Selector */}
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => shiftDate(-1)}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="relative">
+          <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+            className="h-9 rounded-md border border-border bg-card pl-9 pr-3 text-sm text-foreground"
+          />
+        </div>
+        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => shiftDate(1)}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs"
+          onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])}
+        >
+          {t("portal.today")}
         </Button>
       </div>
 
@@ -516,7 +544,7 @@ function DriverJobCard({
               </a>
             )}
             {job.custRepMeetingPoint && <span>{t("jobs.custRepMeetingPoint")}: <b className="text-foreground">{job.custRepMeetingPoint}</b></span>}
-            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</b></span>}
+            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>}
           </div>
         )}
 

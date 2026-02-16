@@ -92,7 +92,7 @@ export class DispatchService {
     // 1. Verify job exists and is eligible
     const job = await this.prisma.trafficJob.findFirst({
       where: { id: dto.trafficJobId, deletedAt: null },
-      include: { assignment: true, flight: true },
+      include: { assignment: true, flight: true, originAirport: true, originZone: true, originHotel: true, destinationAirport: true, destinationZone: true, destinationHotel: true },
     });
 
     if (!job) {
@@ -133,23 +133,8 @@ export class DispatchService {
       );
     }
 
-    // 4. Check vehicle availability on the same date
-    const conflictingAssignment = await this.prisma.trafficAssignment.findFirst({
-      where: {
-        vehicleId: dto.vehicleId,
-        trafficJob: {
-          jobDate: job.jobDate,
-          deletedAt: null,
-          status: { notIn: ['CANCELLED', 'COMPLETED'] as JobStatus[] },
-        },
-      },
-    });
-
-    if (conflictingAssignment) {
-      throw new ConflictException(
-        'Vehicle is already assigned to another active job on this date',
-      );
-    }
+    // 4. Check vehicle availability with time-aware + route-aware rules
+    await this.validateVehicleAvailability(dto.vehicleId, job);
 
     // 5. Validate driver with time-aware rules (skip for external/supplier drivers)
     if (dto.driverId) {
@@ -277,7 +262,7 @@ export class DispatchService {
     const existing = await this.prisma.trafficAssignment.findUnique({
       where: { id: assignmentId },
       include: {
-        trafficJob: { include: { flight: true } },
+        trafficJob: { include: { flight: true, originAirport: true, originZone: true, originHotel: true, destinationAirport: true, destinationZone: true, destinationHotel: true } },
         vehicle: { include: { vehicleType: true } },
       },
     });
@@ -312,23 +297,7 @@ export class DispatchService {
         );
       }
 
-      const conflicting = await this.prisma.trafficAssignment.findFirst({
-        where: {
-          vehicleId: dto.vehicleId,
-          id: { not: assignmentId },
-          trafficJob: {
-            jobDate: job.jobDate,
-            deletedAt: null,
-            status: { notIn: ['CANCELLED', 'COMPLETED'] as JobStatus[] },
-          },
-        },
-      });
-
-      if (conflicting) {
-        throw new ConflictException(
-          'Vehicle is already assigned to another active job on this date',
-        );
-      }
+      await this.validateVehicleAvailability(dto.vehicleId, job, assignmentId);
     }
 
     // Driver validation with time-aware rules
@@ -788,6 +757,78 @@ export class DispatchService {
       if (job.flight?.departureTime) return new Date(job.flight.departureTime);
     }
     return null;
+  }
+
+  /**
+   * Validate vehicle availability with time-aware + route-aware rules.
+   * A vehicle can be assigned to multiple jobs on the same date if:
+   *   - The destination of the existing job matches the origin of the new job (back-to-back route), OR
+   *   - There is at least a 3-hour gap between the jobs.
+   * Excursion jobs with no time block the vehicle for the full day.
+   */
+  private async validateVehicleAvailability(
+    vehicleId: string,
+    job: {
+      id: string;
+      jobDate: Date;
+      serviceType: string;
+      pickUpTime?: Date | null;
+      flight?: { arrivalTime?: Date | null; departureTime?: Date | null } | null;
+      originAirportId?: string | null;
+      originZoneId?: string | null;
+      originHotelId?: string | null;
+      destinationAirportId?: string | null;
+      destinationZoneId?: string | null;
+      destinationHotelId?: string | null;
+    },
+    excludeAssignmentId?: string,
+  ) {
+    const existingAssignments = await this.prisma.trafficAssignment.findMany({
+      where: {
+        vehicleId,
+        ...(excludeAssignmentId ? { id: { not: excludeAssignmentId } } : {}),
+        trafficJob: {
+          jobDate: job.jobDate,
+          deletedAt: null,
+          status: { notIn: ['CANCELLED', 'COMPLETED'] as JobStatus[] },
+        },
+      },
+      include: {
+        trafficJob: { include: { flight: true } },
+      },
+    });
+
+    if (existingAssignments.length === 0) return;
+
+    const targetTime = this.getJobReferenceTime(job);
+    const newOrigin = job.originAirportId || job.originZoneId || job.originHotelId || null;
+
+    for (const a of existingAssignments) {
+      const existingJob = a.trafficJob;
+      const existingTime = this.getJobReferenceTime(existingJob);
+
+      // Check if existing job's destination matches new job's origin (back-to-back route)
+      const existingDest = existingJob.destinationAirportId || existingJob.destinationZoneId || existingJob.destinationHotelId || null;
+      if (newOrigin && existingDest && newOrigin === existingDest) {
+        continue; // Same route continuation — allowed
+      }
+
+      // Excursion involved → block full day
+      if (targetTime === null || existingTime === null) {
+        throw new ConflictException(
+          `Vehicle is already assigned to job ${existingJob.internalRef} on this date.`,
+        );
+      }
+
+      const gap = Math.abs(targetTime.getTime() - existingTime.getTime());
+      if (gap < THREE_HOURS_MS) {
+        const nextAvailable = new Date(existingTime.getTime() + THREE_HOURS_MS);
+        throw new ConflictException(
+          `Vehicle is assigned to job ${existingJob.internalRef} (at ${existingTime.toISOString().slice(11, 16)}). ` +
+          `Minimum 3-hour gap required. Next available: ${nextAvailable.toISOString().slice(11, 16)}.`,
+        );
+      }
+    }
   }
 
   /**

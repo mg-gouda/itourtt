@@ -185,6 +185,7 @@ export default function B2BJobPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [filterBookingStatus, setFilterBookingStatus] = useState<string>("ALL");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<FormState>({ ...defaultForm });
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -248,13 +249,13 @@ export default function B2BJobPage() {
     const originSelectedId = job.originAirportId || job.originZoneId || job.originHotelId || "";
     const destinationSelectedId = job.destinationAirportId || job.destinationZoneId || job.destinationHotelId || "";
 
-    const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
-    const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
-    const departureTime = job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
-    const custRepMeetingTime = job.custRepMeetingTime ? new Date(job.custRepMeetingTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+    const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const departureTime = job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const custRepMeetingTime = job.custRepMeetingTime ? new Date(job.custRepMeetingTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
 
     setForm({
-      bookingStatus: job.bookingStatus || "NEW",
+      bookingStatus: "UPDATED",
       customerId: job.customerId || "",
       serviceType: job.serviceType,
       jobDate: job.jobDate?.split("T")[0] || "",
@@ -337,11 +338,12 @@ export default function B2BJobPage() {
       }
 
       if (editingJobId) {
-        const { bookingChannel, ...updatePayload } = payload;
+        const { bookingChannel, bookingStatus, ...updatePayload } = payload;
         await api.patch(`/traffic-jobs/${editingJobId}`, updatePayload);
         toast.success(t("jobs.updated") || "Job updated successfully");
       } else {
-        await api.post("/traffic-jobs", payload);
+        const { bookingStatus, ...createPayload } = payload;
+        await api.post("/traffic-jobs", createPayload);
         toast.success(t("jobs.created"));
       }
 
@@ -360,6 +362,7 @@ export default function B2BJobPage() {
   };
 
   const filtered = jobs.filter((j) => {
+    if (filterBookingStatus !== "ALL" && j.bookingStatus !== filterBookingStatus) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -403,7 +406,7 @@ export default function B2BJobPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
-                  <SelectItem value="NEW">{t("jobs.bookingNew") || "New"}</SelectItem>
+                  {!editingJobId && <SelectItem value="NEW">{t("jobs.bookingNew") || "New"}</SelectItem>}
                   <SelectItem value="UPDATED">{t("jobs.bookingUpdated") || "Updated"}</SelectItem>
                   <SelectItem value="CANCELLED">{t("jobs.bookingCancelled") || "Cancelled"}</SelectItem>
                 </SelectContent>
@@ -447,21 +450,23 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground h-9"
               />
             </div>
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.pickUpTime")}</Label>
-              <Input
-                value={form.pickUpTime}
-                onChange={(e) => {
-                  let v = e.target.value.replace(/[^0-9:]/g, "");
-                  if (v.length === 2 && !v.includes(":") && form.pickUpTime.length < v.length) v += ":";
-                  if (v.length > 5) v = v.slice(0, 5);
-                  updateForm({ pickUpTime: v });
-                }}
-                placeholder="HH:MM"
-                maxLength={5}
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
-              />
-            </div>
+            {form.serviceType !== "ARR" && (
+              <div className="min-w-0 space-y-1.5">
+                <Label className="text-muted-foreground text-xs">{t("jobs.pickUpTime")}</Label>
+                <Input
+                  value={form.pickUpTime}
+                  onChange={(e) => {
+                    let v = e.target.value.replace(/[^0-9:]/g, "");
+                    if (v.length === 2 && !v.includes(":") && form.pickUpTime.length < v.length) v += ":";
+                    if (v.length > 5) v = v.slice(0, 5);
+                    updateForm({ pickUpTime: v });
+                  }}
+                  placeholder="HH:MM"
+                  maxLength={5}
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
+                />
+              </div>
+            )}
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.adults")}</Label>
               <Input
@@ -682,6 +687,17 @@ export default function B2BJobPage() {
                 <SelectItem value="NO_SHOW">{t("jobs.noShow")}</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={filterBookingStatus} onValueChange={setFilterBookingStatus}>
+              <SelectTrigger className="w-36 border-border bg-card text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover text-foreground">
+                <SelectItem value="ALL">{t("jobs.allBooking") || "All Booking"}</SelectItem>
+                <SelectItem value="NEW">{t("jobs.bookingNew") || "New"}</SelectItem>
+                <SelectItem value="UPDATED">{t("jobs.bookingUpdated") || "Updated"}</SelectItem>
+                <SelectItem value="CANCELLED">{t("jobs.bookingCancelled") || "Cancelled"}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -707,6 +723,8 @@ export default function B2BJobPage() {
                   <TableHead className="text-white text-xs">{t("jobs.customer")}</TableHead>
                   <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
                   <TableHead className="text-white text-xs">{t("dispatch.pax")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("jobs.extras") || "Extras"}</TableHead>
+                  <TableHead className="text-white text-xs">{t("jobs.notes") || "Notes"}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
                   <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
@@ -751,6 +769,18 @@ export default function B2BJobPage() {
                         <span className="ml-1 text-muted-foreground/60">
                           ({job.adultCount}A{job.childCount > 0 && `+${job.childCount}C`})
                         </span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {(() => {
+                          const extras: string[] = [];
+                          if (job.boosterSeatQty > 0) extras.push(`B:${job.boosterSeatQty}`);
+                          if (job.babySeatQty > 0) extras.push(`I:${job.babySeatQty}`);
+                          if (job.wheelChairQty > 0) extras.push(`W:${job.wheelChairQty}`);
+                          return extras.length > 0 ? extras.join(" ") : "\u2014";
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
+                        {job.notes || "\u2014"}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`text-xs ${bookingStatusColors[job.bookingStatus] || ""}`}>
