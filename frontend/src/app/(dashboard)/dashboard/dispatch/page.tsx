@@ -213,7 +213,9 @@ function EditableSourceCell({
         <Select
           defaultOpen
           value={selectedSource}
-          onValueChange={(val) => onSelect(val)}
+          onValueChange={(val) => {
+            onSelect(val);
+          }}
           onOpenChange={(open) => {
             if (!open) onCancel();
           }}
@@ -720,6 +722,8 @@ function JobGrid({
   suppliers,
   drivers,
   reps,
+  jobSources,
+  setJobSource,
   onStartEdit,
   onCancelEdit,
   onInlineAssign,
@@ -738,6 +742,8 @@ function JobGrid({
   suppliers: SupplierResource[];
   drivers: PersonResource[];
   reps: PersonResource[];
+  jobSources: Record<string, string>;
+  setJobSource: (jobId: string, source: string) => void;
   onStartEdit: (jobId: string, field: EditField) => void;
   onCancelEdit: () => void;
   onInlineAssign: (
@@ -755,28 +761,6 @@ function JobGrid({
   const t = useT();
   const locale = useLocaleId();
   const cellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
-
-  // Per-job source selection state (keyed by jobId)
-  const [jobSources, setJobSources] = useState<Record<string, string>>({});
-
-  // Derive initial sources from existing vehicle assignments
-  useEffect(() => {
-    const initial: Record<string, string> = {};
-    for (const job of jobs) {
-      if (job.assignment?.vehicleId) {
-        const v = vehicles.find((veh) => veh.id === job.assignment?.vehicleId);
-        if (v) {
-          initial[job.id] = v.supplierId || "owned";
-        }
-      }
-    }
-    setJobSources((prev) => ({ ...initial, ...prev }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, vehicles]);
-
-  const setJobSource = (jobId: string, source: string) => {
-    setJobSources((prev) => ({ ...prev, [jobId]: source }));
-  };
 
   const setCellRef = useCallback(
     (jobId: string, field: EditField) =>
@@ -1095,6 +1079,9 @@ export default function DispatchPage() {
   // Inline editing state
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
 
+  // Per-job car source selection (lifted to parent so it persists across tab switches)
+  const [jobSources, setJobSources] = useState<Record<string, string>>({});
+
   // Optimistic rollback state
   const prevState = useRef<{
     arrivals: Job[];
@@ -1112,6 +1099,25 @@ export default function DispatchPage() {
   const [dialogExternalDriverPhone, setDialogExternalDriverPhone] = useState("");
   const [dialogRemarks, setDialogRemarks] = useState("");
   const [dialogSaving, setDialogSaving] = useState(false);
+
+  // Derive initial car sources from existing vehicle assignments
+  useEffect(() => {
+    const allJobs = [...arrivals, ...departures, ...cityTransfers];
+    const initial: Record<string, string> = {};
+    for (const job of allJobs) {
+      if (job.assignment?.vehicleId) {
+        const v = vehicles.find((veh) => veh.id === job.assignment?.vehicleId);
+        if (v) {
+          initial[job.id] = v.supplierId || "owned";
+        }
+      }
+    }
+    setJobSources((prev) => ({ ...initial, ...prev }));
+  }, [arrivals, departures, cityTransfers, vehicles]);
+
+  const setJobSource = useCallback((jobId: string, source: string) => {
+    setJobSources((prev) => ({ ...prev, [jobId]: source }));
+  }, []);
 
   // Filtered vehicles for dialog based on owned/supplier selection
   const dialogFilteredVehicles = dialogSupplier === "owned"
@@ -1500,6 +1506,8 @@ export default function DispatchPage() {
     suppliers,
     drivers,
     reps,
+    jobSources,
+    setJobSource,
     onStartEdit: (jobId: string, field: EditField) =>
       setActiveCell({ jobId, field }),
     onCancelEdit: () => setActiveCell(null),
