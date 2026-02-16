@@ -351,7 +351,7 @@ export default function FinancePage() {
     setLiquidating(true);
     try {
       await api.patch(`/finance/collections/${liquidateDialog.jobId}/liquidate`, { receiptNo: receiptNo.trim() });
-      toast.success(t("finance.collectionLiquidated") || "Collection liquidated");
+      toast.success(t("finance.collectionLiquidatedSuccess") || "Collection liquidated");
       setLiquidateDialog({ open: false, jobId: "", ref: "" });
       setReceiptNo("");
       fetchCollections();

@@ -895,7 +895,9 @@ function JobGrid({
                   <span className="flex items-center justify-center gap-0.5">
                     {job.paxCount}
                     {job.collectionRequired && (
-                      <DollarSign className="h-3 w-3 text-amber-500" title={`${job.collectionAmount} ${job.collectionCurrency}`} />
+                      <span title={`${job.collectionAmount} ${job.collectionCurrency}`}>
+                        <DollarSign className="h-3 w-3 text-amber-500" />
+                      </span>
                     )}
                   </span>
                 </TableCell>

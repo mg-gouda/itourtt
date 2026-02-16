@@ -571,7 +571,6 @@ const translations: Record<Locale, Record<string, string>> = {
     "finance.liquidateDesc": "Enter receipt number for",
     "finance.noCollections": "No collections found",
     "finance.collectionsLoadError": "Failed to load collections",
-    "finance.collectionLiquidated": "Collection liquidated successfully",
     "finance.liquidateError": "Failed to liquidate collection",
     "finance.receiptNoPlaceholder": "e.g. REC-001",
 
@@ -1781,7 +1780,6 @@ const translations: Record<Locale, Record<string, string>> = {
     "finance.liquidateDesc": "أدخل رقم الإيصال لـ",
     "finance.noCollections": "لا توجد تحصيلات",
     "finance.collectionsLoadError": "فشل تحميل التحصيلات",
-    "finance.collectionLiquidated": "تمت تسوية التحصيل بنجاح",
     "finance.liquidateError": "فشل تسوية التحصيل",
     "finance.receiptNoPlaceholder": "مثال: REC-001",
 
