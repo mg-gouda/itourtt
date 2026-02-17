@@ -50,6 +50,48 @@ export class SuppliersController {
     return this.suppliersService.findAll(page, limit, active);
   }
 
+  @Get('export/excel')
+  @Roles('ADMIN')
+  @Permissions('suppliers.export')
+  async exportExcel(@Res() res: Response) {
+    const buffer = await this.suppliersService.exportToExcel();
+    const date = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="suppliers_${date}.xlsx"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('import/template')
+  @Roles('ADMIN')
+  @Permissions('suppliers.downloadTemplate')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = await this.suppliersService.generateImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="suppliers_import_template.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Post('import/excel')
+  @Roles('ADMIN')
+  @Permissions('suppliers.import')
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
+    }
+    const result = await this.suppliersService.importFromExcel(file.buffer);
+    const message = result.errors.length > 0
+      ? `Imported ${result.imported} suppliers with ${result.errors.length} errors`
+      : `Successfully imported ${result.imported} suppliers`;
+    return new ApiResponse(result, message);
+  }
+
   @Post()
   @Roles('ADMIN')
   @Permissions('suppliers.addButton')

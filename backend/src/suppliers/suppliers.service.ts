@@ -640,6 +640,163 @@ export class SuppliersService {
     return { success: true };
   }
 
+  // ──────────────────────────────────────────────
+  // EXPORT – all suppliers to Excel
+  // ──────────────────────────────────────────────
+
+  async exportToExcel(): Promise<Buffer> {
+    const suppliers = await this.prisma.supplier.findMany({
+      where: { deletedAt: null },
+      orderBy: { legalName: 'asc' },
+    });
+
+    const rows = suppliers.map((s) => ({
+      'Legal Name': s.legalName,
+      'Trade Name': s.tradeName || '',
+      'Tax ID': s.taxId || '',
+      Address: s.address || '',
+      City: s.city || '',
+      Country: s.country || '',
+      Phone: s.phone || '',
+      Email: s.email || '',
+      Status: s.isActive ? 'Active' : 'Inactive',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const colWidths = Object.keys(rows[0] || {}).map((key) => {
+      const maxLen = Math.max(key.length, ...rows.map((r) => String((r as any)[key] || '').length));
+      return { wch: Math.min(maxLen + 2, 40) };
+    });
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Suppliers');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    return Buffer.from(buf);
+  }
+
+  async generateImportTemplate(): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'iTour Transport';
+    workbook.created = new Date();
+
+    const instructionsSheet = workbook.addWorksheet('Instructions');
+    instructionsSheet.columns = [{ width: 80 }];
+    instructionsSheet.addRow(['Supplier Bulk Import Template']);
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Instructions:']);
+    instructionsSheet.addRow(['1. Fill in supplier data in the "Suppliers" sheet']);
+    instructionsSheet.addRow(['2. Legal Name is the only required field']);
+    instructionsSheet.addRow(['3. Do not modify column headers']);
+    instructionsSheet.addRow(['4. Save the file and upload it via the import button']);
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Notes:']);
+    instructionsSheet.addRow(['- All imported suppliers will be set to Active status']);
+    instructionsSheet.addRow(['- Maximum 500 suppliers per import']);
+    instructionsSheet.getRow(1).font = { bold: true, size: 14 };
+    instructionsSheet.getRow(3).font = { bold: true };
+    instructionsSheet.getRow(9).font = { bold: true };
+
+    const suppliersSheet = workbook.addWorksheet('Suppliers');
+    suppliersSheet.columns = [
+      { header: 'Legal Name', key: 'legalName', width: 30 },
+      { header: 'Trade Name', key: 'tradeName', width: 25 },
+      { header: 'Tax ID', key: 'taxId', width: 20 },
+      { header: 'Address', key: 'address', width: 30 },
+      { header: 'City', key: 'city', width: 20 },
+      { header: 'Country', key: 'country', width: 20 },
+      { header: 'Phone', key: 'phone', width: 20 },
+      { header: 'Email', key: 'email', width: 25 },
+    ];
+
+    const headerRow = suppliersSheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    suppliersSheet.addRow({
+      legalName: 'Cairo Fleet Services', tradeName: 'CFS', taxId: '111-222-333',
+      address: '15 Fleet St', city: 'Cairo', country: 'Egypt',
+      phone: '+20 2 1111 2222', email: 'info@cairofleet.com',
+    });
+    suppliersSheet.addRow({
+      legalName: 'Luxor Transport Co', tradeName: '', taxId: '',
+      address: '', city: 'Luxor', country: 'Egypt', phone: '', email: '',
+    });
+
+    for (let i = 2; i <= 3; i++) {
+      suppliersSheet.getRow(i).font = { italic: true, color: { argb: 'FF999999' } };
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
+
+  async importFromExcel(fileBuffer: Buffer): Promise<{ imported: number; errors: string[] }> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(fileBuffer as unknown as ExcelJS.Buffer);
+
+    const suppliersSheet = workbook.getWorksheet('Suppliers');
+    if (!suppliersSheet) {
+      throw new BadRequestException('Invalid template: "Suppliers" sheet not found');
+    }
+
+    const items: {
+      legalName: string; tradeName?: string; taxId?: string; address?: string;
+      city?: string; country?: string; phone?: string; email?: string;
+    }[] = [];
+    const errors: string[] = [];
+
+    suppliersSheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+
+      const legalName = String(row.getCell(1).value || '').trim();
+      if (!legalName) return;
+
+      // Skip sample rows
+      if (legalName === 'Cairo Fleet Services' || legalName === 'Luxor Transport Co') return;
+
+      const tradeName = String(row.getCell(2).value || '').trim();
+      const taxId = String(row.getCell(3).value || '').trim();
+      const address = String(row.getCell(4).value || '').trim();
+      const city = String(row.getCell(5).value || '').trim();
+      const country = String(row.getCell(6).value || '').trim();
+      const phone = String(row.getCell(7).value || '').trim();
+      const email = String(row.getCell(8).value || '').trim();
+
+      items.push({
+        legalName,
+        ...(tradeName && { tradeName }),
+        ...(taxId && { taxId }),
+        ...(address && { address }),
+        ...(city && { city }),
+        ...(country && { country }),
+        ...(phone && { phone }),
+        ...(email && { email }),
+      });
+    });
+
+    if (items.length === 0 && errors.length === 0) {
+      throw new BadRequestException('No data found in the Suppliers sheet');
+    }
+
+    if (items.length > 500) {
+      throw new BadRequestException('Maximum 500 suppliers per import.');
+    }
+
+    let imported = 0;
+    for (const item of items) {
+      try {
+        await this.prisma.supplier.create({ data: item });
+        imported++;
+      } catch (err: any) {
+        errors.push(`Failed "${item.legalName}": ${err.message}`);
+      }
+    }
+
+    return { imported, errors };
+  }
+
   // ─── Vehicle Excel Export ─────────────────────────────────────
 
   async exportVehiclesToExcel(supplierId: string): Promise<Buffer> {

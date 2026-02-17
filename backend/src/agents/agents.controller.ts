@@ -8,9 +8,14 @@ import {
   Param,
   Body,
   Query,
+  Res,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { AgentsService } from './agents.service.js';
 import { CreateAgentDto } from './dto/create-agent.dto.js';
 import { UpdateAgentDto } from './dto/update-agent.dto.js';
@@ -44,6 +49,48 @@ export class AgentsController {
   async findAll(@Query() query: AgentListQueryDto) {
     const { isActive, ...pagination } = query;
     return this.agentsService.findAll(pagination, isActive);
+  }
+
+  @Get('export/excel')
+  @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.export')
+  async exportExcel(@Res() res: Response) {
+    const buffer = await this.agentsService.exportToExcel();
+    const date = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="agents_${date}.xlsx"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('import/template')
+  @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.downloadTemplate')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = await this.agentsService.generateImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="agents_import_template.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Post('import/excel')
+  @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('agents.import')
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
+    }
+    const result = await this.agentsService.importFromExcel(file.buffer);
+    const message = result.errors.length > 0
+      ? `Imported ${result.imported} agents with ${result.errors.length} errors`
+      : `Successfully imported ${result.imported} agents`;
+    return new ApiResponse(result, message);
   }
 
   @Post()

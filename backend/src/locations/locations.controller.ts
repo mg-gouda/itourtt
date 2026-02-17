@@ -6,9 +6,15 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
+import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { LocationsService } from './locations.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -26,6 +32,50 @@ import { CreateHotelDto } from './dto/create-hotel.dto.js';
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class LocationsController {
   constructor(private readonly locationsService: LocationsService) {}
+
+  // ─── Export / Import ──────────────────────────────────────
+
+  @Get('export/excel')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('locations.export')
+  async exportExcel(@Res() res: Response) {
+    const buffer = await this.locationsService.exportToExcel();
+    const date = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="locations_${date}.xlsx"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('import/template')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('locations.downloadTemplate')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = await this.locationsService.generateImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="locations_import_template.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Post('import/excel')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('locations.import')
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
+    }
+    const result = await this.locationsService.importFromExcel(file.buffer);
+    const message = result.errors.length > 0
+      ? `Imported ${result.imported} locations with ${result.errors.length} errors`
+      : `Successfully imported ${result.imported} locations`;
+    return new ApiResponse(result, message);
+  }
 
   // ─── Search ──────────────────────────────────────────────
 

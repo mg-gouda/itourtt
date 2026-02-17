@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { useT } from "@/lib/i18n";
 import { usePermissionsStore } from "@/stores/permissions-store";
+import { useCompanyStore } from "@/stores/company-store";
 import {
   navigation,
   type NavItem,
@@ -29,6 +30,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
   const pathname = usePathname();
   const t = useT();
   const { has: hasPerm, isLoaded: permsLoaded } = usePermissionsStore();
+  const { logoUrl } = useCompanyStore();
 
   // Close drawer on navigation
   useEffect(() => {
@@ -85,14 +87,22 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
 
         {/* Brand */}
         <div className="flex h-14 items-center px-4">
-          <Image
-            src="/itourtt-logo.svg"
-            alt={t("sidebar.brand")}
-            width={200}
-            height={44}
-            className="h-11 w-full object-contain"
-            priority
-          />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={t("sidebar.brand")}
+              className="h-11 w-full object-contain"
+            />
+          ) : (
+            <Image
+              src="/itourtt-logo.svg"
+              alt={t("sidebar.brand")}
+              width={200}
+              height={44}
+              className="h-11 w-full object-contain"
+              priority
+            />
+          )}
         </div>
         <Separator className="bg-sidebar-border" />
 

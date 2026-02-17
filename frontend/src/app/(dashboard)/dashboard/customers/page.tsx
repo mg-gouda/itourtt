@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Plus, Loader2, Eye } from "lucide-react";
+import {
+  Users,
+  Plus,
+  Loader2,
+  Eye,
+  AlertTriangle,
+  FileSpreadsheet,
+  FileDown,
+  FileUp,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { useSortable } from "@/hooks/use-sortable";
@@ -88,6 +97,14 @@ export default function CustomersPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    open: boolean;
+    imported: number;
+    errors: string[];
+  }>({ open: false, imported: 0, errors: [] });
 
   const [search, setSearch] = useState("");
 
@@ -254,12 +271,139 @@ export default function CustomersPage() {
     }
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await api.get("/customers/export/excel", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      const date = new Date().toISOString().split("T")[0];
+      link.setAttribute("download", `customers_${date}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(t("customers.exportSuccess"));
+    } catch {
+      toast.error(t("customers.failedExport"));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDownloadTemplate() {
+    try {
+      const res = await api.get("/customers/import/template", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "customers_import_template.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t("customers.failedTemplate"));
+    }
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await api.post("/customers/import/excel", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const result = res.data.data;
+      setImportResult({
+        open: true,
+        imported: result.imported,
+        errors: result.errors,
+      });
+      if (result.imported > 0) {
+        fetchCustomers();
+      }
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || t("customers.failedImport");
+      toast.error(message);
+    } finally {
+      setImporting(false);
+      if (importFileRef.current) {
+        importFileRef.current.value = "";
+      }
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t("customers.title")}
-        description={t("customers.description")}
-        action={{ label: t("customers.addCustomer"), onClick: openDialog }}
+      <div className="flex items-center justify-between">
+        <PageHeader
+          title={t("customers.title")}
+          description={t("customers.description")}
+        />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={handleDownloadTemplate}
+          >
+            <FileDown className="h-4 w-4" />
+            {t("common.template")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => importFileRef.current?.click()}
+            disabled={importing}
+          >
+            {importing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileUp className="h-4 w-4" />
+            )}
+            {t("common.import")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={handleExport}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4" />
+            )}
+            {t("common.export")}
+          </Button>
+          <Button size="sm" className="gap-1.5" onClick={openDialog}>
+            <Plus className="h-4 w-4" />
+            {t("customers.addCustomer")}
+          </Button>
+        </div>
+      </div>
+
+      {/* Hidden file input for import */}
+      <input
+        ref={importFileRef}
+        type="file"
+        className="hidden"
+        accept=".xlsx,.xls"
+        onChange={handleImportFile}
       />
 
       {loading ? (
@@ -771,6 +915,65 @@ export default function CustomersPage() {
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {t("common.saveChanges")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Results Dialog */}
+      <Dialog
+        open={importResult.open}
+        onOpenChange={(open) => {
+          if (!open) setImportResult({ open: false, imported: 0, errors: [] });
+        }}
+      >
+        <DialogContent className="border-border bg-popover text-foreground max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">{t("customers.importResults")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15">
+                <FileSpreadsheet className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {importResult.imported} {t("customers.imported")}
+                </p>
+                {importResult.errors.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {importResult.errors.length} {t("customers.errors")}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {importResult.errors.length > 0 && (
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-muted/30 p-3">
+                <p className="mb-2 text-xs font-medium text-muted-foreground uppercase">
+                  Errors
+                </p>
+                <ul className="space-y-1">
+                  {importResult.errors.map((err, i) => (
+                    <li
+                      key={i}
+                      className="text-xs text-destructive flex items-start gap-1.5"
+                    >
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                      {err}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() =>
+                setImportResult({ open: false, imported: 0, errors: [] })
+              }
+            >
+              {t("common.close")}
             </Button>
           </DialogFooter>
         </DialogContent>

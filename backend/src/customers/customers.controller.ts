@@ -46,6 +46,48 @@ export class CustomersController {
     return this.customersService.findAll(pagination, search);
   }
 
+  @Get('export/excel')
+  @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('customers.export')
+  async exportExcel(@Res() res: Response) {
+    const buffer = await this.customersService.exportToExcel();
+    const date = new Date().toISOString().split('T')[0];
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="customers_${date}.xlsx"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('import/template')
+  @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('customers.downloadTemplate')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = await this.customersService.generateImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="customers_import_template.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Post('import/excel')
+  @Roles('ADMIN', 'AGENT_MANAGER')
+  @Permissions('customers.import')
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
+    }
+    const result = await this.customersService.importFromExcel(file.buffer);
+    const message = result.errors.length > 0
+      ? `Imported ${result.imported} customers with ${result.errors.length} errors`
+      : `Successfully imported ${result.imported} customers`;
+    return new ApiResponse(result, message);
+  }
+
   @Get(':id')
   @Permissions('customers')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {

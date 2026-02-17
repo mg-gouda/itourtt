@@ -270,6 +270,7 @@ export class DriversService {
     const drivers = await this.prisma.driver.findMany({
       where: { deletedAt: null },
       orderBy: { name: 'asc' },
+      include: { supplier: { select: { legalName: true } } },
     });
 
     const rows = drivers.map((d) => ({
@@ -279,6 +280,7 @@ export class DriversService {
       'License Expiry Date': d.licenseExpiryDate
         ? new Date(d.licenseExpiryDate).toISOString().split('T')[0]
         : '',
+      'Supplier': (d as any).supplier?.legalName || '',
       Status: d.isActive ? 'Active' : 'Inactive',
     }));
 
@@ -305,6 +307,12 @@ export class DriversService {
   // ──────────────────────────────────────────────
 
   async generateImportTemplate(): Promise<Buffer> {
+    const suppliers = await this.prisma.supplier.findMany({
+      where: { deletedAt: null },
+      orderBy: { legalName: 'asc' },
+      select: { legalName: true },
+    });
+
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'iTour Transport';
     workbook.created = new Date();
@@ -317,18 +325,25 @@ export class DriversService {
     instructionsSheet.addRow(['Instructions:']);
     instructionsSheet.addRow(['1. Fill in driver data in the "Drivers" sheet']);
     instructionsSheet.addRow(['2. Name and Mobile Number are required fields']);
-    instructionsSheet.addRow(['3. License Number is optional']);
-    instructionsSheet.addRow(['4. License Expiry Date format: YYYY-MM-DD (e.g., 2026-12-31)']);
-    instructionsSheet.addRow(['5. Do not modify column headers']);
-    instructionsSheet.addRow(['6. Save the file and upload it via the import button']);
+    instructionsSheet.addRow(['3. License Number and Supplier are optional']);
+    instructionsSheet.addRow(['4. Supplier must match an existing supplier Legal Name exactly (see list below)']);
+    instructionsSheet.addRow(['5. License Expiry Date format: YYYY-MM-DD (e.g., 2026-12-31)']);
+    instructionsSheet.addRow(['6. Do not modify column headers']);
+    instructionsSheet.addRow(['7. Save the file and upload it via the import button']);
     instructionsSheet.addRow(['']);
     instructionsSheet.addRow(['Notes:']);
     instructionsSheet.addRow(['- Duplicate mobile numbers will be skipped with an error']);
     instructionsSheet.addRow(['- All imported drivers will be set to Active status']);
     instructionsSheet.addRow(['- Maximum 500 drivers per import']);
+    instructionsSheet.addRow(['']);
+    instructionsSheet.addRow(['Available Suppliers:']);
+    for (const s of suppliers) {
+      instructionsSheet.addRow([`  - ${s.legalName}`]);
+    }
     instructionsSheet.getRow(1).font = { bold: true, size: 14 };
     instructionsSheet.getRow(3).font = { bold: true };
-    instructionsSheet.getRow(11).font = { bold: true };
+    instructionsSheet.getRow(12).font = { bold: true };
+    instructionsSheet.getRow(17).font = { bold: true };
 
     // Drivers data sheet
     const driversSheet = workbook.addWorksheet('Drivers');
@@ -337,6 +352,7 @@ export class DriversService {
       { header: 'Mobile Number', key: 'mobileNumber', width: 20 },
       { header: 'License Number', key: 'licenseNumber', width: 20 },
       { header: 'License Expiry Date', key: 'licenseExpiryDate', width: 20 },
+      { header: 'Supplier', key: 'supplier', width: 30 },
     ];
 
     // Style header row
@@ -350,23 +366,27 @@ export class DriversService {
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
     // Add 3 sample rows for guidance
+    const sampleSupplier = suppliers[0]?.legalName || '';
     driversSheet.addRow({
       name: 'Ahmed Hassan',
       mobileNumber: '+20 100 123 4567',
       licenseNumber: 'DL-12345',
       licenseExpiryDate: '2027-06-15',
+      supplier: sampleSupplier,
     });
     driversSheet.addRow({
       name: 'Mohamed Ali',
       mobileNumber: '+20 111 987 6543',
       licenseNumber: 'DL-67890',
       licenseExpiryDate: '2026-12-31',
+      supplier: '',
     });
     driversSheet.addRow({
       name: 'Ibrahim Saeed',
       mobileNumber: '+20 122 555 1234',
       licenseNumber: '',
       licenseExpiryDate: '',
+      supplier: '',
     });
 
     // Style sample rows in italic gray
@@ -392,7 +412,14 @@ export class DriversService {
       throw new BadRequestException('Invalid template: "Drivers" sheet not found');
     }
 
-    const items: { name: string; mobileNumber: string; licenseNumber?: string; licenseExpiryDate?: Date }[] = [];
+    // Pre-load suppliers for lookup
+    const allSuppliers = await this.prisma.supplier.findMany({
+      where: { deletedAt: null },
+      select: { id: true, legalName: true },
+    });
+    const supplierMap = new Map(allSuppliers.map((s) => [s.legalName.toLowerCase(), s.id]));
+
+    const items: { name: string; mobileNumber: string; licenseNumber?: string; licenseExpiryDate?: Date; supplierId?: string }[] = [];
     const errors: string[] = [];
 
     driversSheet.eachRow((row, rowNumber) => {
@@ -402,6 +429,7 @@ export class DriversService {
       const mobileNumber = String(row.getCell(2).value || '').trim();
       const licenseNumber = String(row.getCell(3).value || '').trim();
       const licenseExpiryStr = String(row.getCell(4).value || '').trim();
+      const supplierName = String(row.getCell(5).value || '').trim();
 
       // Skip empty rows
       if (!name && !mobileNumber) return;
@@ -433,11 +461,21 @@ export class DriversService {
         licenseExpiryDate = parsed;
       }
 
+      // Resolve supplier
+      let supplierId: string | undefined;
+      if (supplierName) {
+        supplierId = supplierMap.get(supplierName.toLowerCase());
+        if (!supplierId) {
+          errors.push(`Row ${rowNumber}: Supplier "${supplierName}" not found — driver will be imported without supplier`);
+        }
+      }
+
       items.push({
         name,
         mobileNumber,
         ...(licenseNumber && { licenseNumber }),
         ...(licenseExpiryDate && { licenseExpiryDate }),
+        ...(supplierId && { supplierId }),
       });
     });
 
@@ -491,6 +529,7 @@ export class DriversService {
               mobileNumber: d.mobileNumber,
               licenseNumber: d.licenseNumber,
               licenseExpiryDate: d.licenseExpiryDate,
+              supplierId: d.supplierId,
             },
           }),
         ),

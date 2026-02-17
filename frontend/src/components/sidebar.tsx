@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useT } from "@/lib/i18n";
 import { usePermissionsStore } from "@/stores/permissions-store";
+import { useCompanyStore } from "@/stores/company-store";
 
 export interface NavLink {
   type: "link";
@@ -102,6 +103,7 @@ export function Sidebar() {
   const t = useT();
   const [collapsed, setCollapsed] = useState(false);
   const { has: hasPerm, isLoaded: permsLoaded } = usePermissionsStore();
+  const { logoUrl, faviconUrl } = useCompanyStore();
 
   // Filter navigation based on permissions (hide items user can't access)
   const canAccess = (item: NavLink): boolean => {
@@ -172,12 +174,28 @@ export function Sidebar() {
         {/* Brand */}
         <div className={cn("flex h-14 items-center", collapsed ? "justify-center px-0" : "px-4")}>
           {collapsed ? (
-            <Image
-              src="/favicon.svg"
-              alt="iTourTT"
-              width={32}
-              height={32}
-              className="shrink-0"
+            faviconUrl ? (
+              <img
+                src={faviconUrl}
+                alt="iTourTT"
+                width={32}
+                height={32}
+                className="h-8 w-8 shrink-0 rounded object-contain"
+              />
+            ) : (
+              <Image
+                src="/favicon.svg"
+                alt="iTourTT"
+                width={32}
+                height={32}
+                className="shrink-0"
+              />
+            )
+          ) : logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={t("sidebar.brand")}
+              className="h-11 w-full object-contain"
             />
           ) : (
             <Image

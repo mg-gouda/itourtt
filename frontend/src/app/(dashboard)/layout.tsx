@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
+import { useCompanyStore } from "@/stores/company-store";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -14,12 +15,19 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { isAuthenticated, hydrate } = useAuthStore();
+  const { loadCompanySettings } = useCompanyStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     hydrate();
     setMounted(true);
   }, [hydrate]);
+
+  useEffect(() => {
+    if (mounted && isAuthenticated) {
+      loadCompanySettings();
+    }
+  }, [mounted, isAuthenticated, loadCompanySettings]);
 
   useEffect(() => {
     if (mounted && !isAuthenticated) {
