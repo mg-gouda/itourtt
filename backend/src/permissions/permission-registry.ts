@@ -130,6 +130,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'agents.table.toggleStatus', labelKey: 'permissions.agents.table.toggleStatus' },
         ],
       },
+      { key: 'agents.export', labelKey: 'permissions.agents.export' },
+      { key: 'agents.downloadTemplate', labelKey: 'permissions.agents.downloadTemplate' },
+      { key: 'agents.import', labelKey: 'permissions.agents.import' },
       {
         key: 'agents.form',
         labelKey: 'permissions.agents.form',
@@ -162,6 +165,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'customers.table.toggleStatus', labelKey: 'permissions.customers.table.toggleStatus' },
         ],
       },
+      { key: 'customers.export', labelKey: 'permissions.customers.export' },
+      { key: 'customers.downloadTemplate', labelKey: 'permissions.customers.downloadTemplate' },
+      { key: 'customers.import', labelKey: 'permissions.customers.import' },
       {
         key: 'customers.form',
         labelKey: 'permissions.customers.form',
@@ -385,6 +391,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'suppliers.table.resetPassword', labelKey: 'permissions.suppliers.table.resetPassword' },
         ],
       },
+      { key: 'suppliers.export', labelKey: 'permissions.suppliers.export' },
+      { key: 'suppliers.downloadTemplate', labelKey: 'permissions.suppliers.downloadTemplate' },
+      { key: 'suppliers.import', labelKey: 'permissions.suppliers.import' },
       {
         key: 'suppliers.form',
         labelKey: 'permissions.suppliers.form',
