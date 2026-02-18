@@ -501,4 +501,22 @@ export class TrafficJobsService {
     // AIRPORT - no single zone mapping
     return null;
   }
+
+  async bulkCreate(
+    jobs: CreateJobDto[],
+    userId: string,
+  ): Promise<{ created: number; errors: { index: number; message: string }[] }> {
+    const results = { created: 0, errors: [] as { index: number; message: string }[] };
+
+    for (let i = 0; i < jobs.length; i++) {
+      try {
+        await this.create(jobs[i], userId);
+        results.created++;
+      } catch (error: any) {
+        results.errors.push({ index: i, message: error.message || 'Unknown error' });
+      }
+    }
+
+    return results;
+  }
 }

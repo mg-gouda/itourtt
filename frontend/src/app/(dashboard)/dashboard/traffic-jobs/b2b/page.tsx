@@ -12,6 +12,7 @@ import {
   Save,
   Lock,
   X,
+  Upload,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LocationCombobox } from "@/components/location-combobox";
+import { B2BJobImportModal } from "@/components/b2b-job-import-modal";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate } from "@/lib/utils";
@@ -189,6 +191,7 @@ export default function B2BJobPage() {
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<FormState>({ ...defaultForm });
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
@@ -699,6 +702,14 @@ export default function B2BJobPage() {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            className="gap-1.5 border-border ml-auto"
+            onClick={() => setImportModalOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            {t("jobImport.title") || "Import Jobs"}
+          </Button>
         </div>
 
         <div>
@@ -811,6 +822,13 @@ export default function B2BJobPage() {
           )}
         </div>
       </div>
+
+      <B2BJobImportModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        customers={customers}
+        onImportComplete={fetchJobs}
+      />
     </div>
   );
 }

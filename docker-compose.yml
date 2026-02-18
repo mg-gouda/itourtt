@@ -34,6 +34,7 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       NODE_ENV: ${NODE_ENV:-development}
       TZ: Africa/Cairo
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - '${BACKEND_PORT:-3001}:3001'
     depends_on:

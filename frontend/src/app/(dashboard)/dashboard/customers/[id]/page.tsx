@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PriceListGrid, PriceGridItem, PriceGridVehicleType } from "@/components/price-list-grid";
+import { ImportTemplateManager } from "@/components/import-template-manager";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useLocaleId } from "@/lib/i18n";
@@ -199,6 +200,7 @@ export default function CustomerDetailPage({
         <TabsList className="bg-muted">
           <TabsTrigger value="info">Overview</TabsTrigger>
           <TabsTrigger value="prices">Price List</TabsTrigger>
+          <TabsTrigger value="templates">Import Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="space-y-4">
@@ -308,6 +310,10 @@ export default function CustomerDetailPage({
             onImport={handleImport}
             onRefresh={fetchPriceList}
           />
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-4">
+          <ImportTemplateManager customerId={resolvedParams.id} />
         </TabsContent>
       </Tabs>
     </div>

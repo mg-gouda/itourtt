@@ -33,6 +33,8 @@ import { PublicApiModule } from './public-api/public-api.module.js';
 import { GuestBookingsModule } from './guest-bookings/guest-bookings.module.js';
 import { EmailModule } from './email/email.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { ImportTemplatesModule } from './import-templates/import-templates.module.js';
+import { AiParserModule } from './ai-parser/ai-parser.module.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 
 @Module({
@@ -70,6 +72,8 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
     PublicApiModule,
     GuestBookingsModule,
     NotificationsModule,
+    ImportTemplatesModule,
+    AiParserModule,
   ],
   controllers: [AppController],
   providers: [

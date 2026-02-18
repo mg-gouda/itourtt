@@ -919,3 +919,77 @@ A reusable searchable combobox that:
 - [x] All stats in single row (grid layout, equal width)
 - [x] Service type cards on same line as stats (8-column grid)
 - [x] Fixed duplicate React key warning in compliance table
+
+## Phase 16: V2 B2B AI-Powered Job Import System
+
+### Overview
+Operators receive traffic job files from B2B customers in various formats (PDF, Excel, image screenshots). Previously, operators had to manually re-type every job. This feature adds AI-powered document parsing using Google Gemini to extract jobs automatically, with human review before import.
+
+### 16.1 Database
+- [x] Add `CustomerImportTemplate` model (stores sample templates per customer/service type)
+- [x] Add `JobImportLog` model (audit trail for import sessions)
+- [x] Add `importTemplates` reverse relation on Customer model
+- [x] Run prisma db push to create new tables
+
+### 16.2 Backend – Import Templates Module (`backend/src/import-templates/`)
+- [x] Create import-templates.module.ts
+- [x] Create import-templates.controller.ts (GET list, POST upload, DELETE)
+- [x] Create import-templates.service.ts (upsert, Excel sample extraction)
+- [x] Create dto/create-template.dto.ts
+- [x] Multer file upload with disk storage to `uploads/templates/`
+- [x] Upsert behavior (one template per customer + service type)
+
+### 16.3 Backend – AI Parser Module (`backend/src/ai-parser/`)
+- [x] Create ai-parser.module.ts
+- [x] Create ai-parser.controller.ts (POST /ai-parser/extract-jobs)
+- [x] Create ai-parser.service.ts with Google Gemini 2.5 Flash integration
+- [x] Support PDF, Excel (.xlsx/.xls), and image files (.png/.jpg)
+- [x] Deterministic location matching against database (airports, zones, hotels)
+- [x] Template context used as few-shot examples for better accuracy
+- [x] Auto-creation of missing locations (hotels/zones) when AI extracts unknown destinations
+- [x] AI prompt requests location type hints and zone hints for auto-creation
+- [x] `findBestZone()` helper for fuzzy zone matching
+
+### 16.4 Backend – Bulk Create Endpoint
+- [x] Create dto/bulk-create-jobs.dto.ts
+- [x] Add POST /traffic-jobs/bulk endpoint
+- [x] Add bulkCreate() service method (iterative, partial success allowed)
+
+### 16.5 Backend – Permissions
+- [x] Add `customers.detail.importTemplates` (upload, delete) to permission registry
+- [x] Add `traffic-jobs.b2b.importJobs` to permission registry
+- [x] Mirror permission changes in frontend registry
+
+### 16.6 Backend – Module Registration
+- [x] Register ImportTemplatesModule in app.module.ts
+- [x] Register AiParserModule in app.module.ts
+
+### 16.7 Frontend – Import Template Manager (`frontend/src/components/import-template-manager.tsx`)
+- [x] Grid showing templates per service type with file type icons
+- [x] Upload dialog with service type dropdown + file picker
+- [x] Delete functionality
+- [x] Empty state message
+
+### 16.8 Frontend – Customer Detail Integration
+- [x] Add "Import Templates" tab to customer detail page (third tab)
+
+### 16.9 Frontend – B2B Job Import Modal (`frontend/src/components/b2b-job-import-modal.tsx`)
+- [x] Step 1: Select customer + upload file + extract jobs via AI
+- [x] Step 2: Review & edit extracted jobs in editable table with confidence scoring
+- [x] Step 3: Confirm import + view results
+- [x] Inline editing with LocationCombobox for location correction
+- [x] Confidence badges (green >= 80%, yellow 50-80%, red < 50%)
+- [x] Row selection for partial import
+
+### 16.10 Frontend – B2B Page Integration
+- [x] Add "Import Jobs" button to B2B traffic jobs toolbar
+- [x] Wire up B2BJobImportModal with customer list and refresh callback
+
+### 16.11 Frontend – i18n
+- [x] Add English translations for importTemplates.* and jobImport.* keys
+- [x] Add Arabic translations for importTemplates.* and jobImport.* keys
+
+### 16.12 Infrastructure
+- [x] Add GEMINI_API_KEY to docker-compose.yml backend environment
+- [x] Configure Gemini API key in backend/.env and root .env
+- [x] Docker rebuild and deployment

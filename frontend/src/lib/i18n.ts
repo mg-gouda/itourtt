@@ -1236,9 +1236,38 @@ const translations: Record<Locale, Record<string, string>> = {
     "help.whatsapp.steps": "Navigate to WhatsApp from the sidebar (under System Parameters)\nView the list of notification templates\nClick on a template to view or edit its content\nUse template variables (shown in the editor) to insert dynamic data\nSave the template — it will be used for future notifications\nTest the template by triggering the associated action",
     "help.whatsapp.tips": "Template variables are replaced with real data when messages are sent\nKeep messages concise — WhatsApp has message length limits\nTest templates after editing to verify the output looks correct\nDifferent templates are triggered by different system events (job assignment, status change, etc.)",
 
+    // ── Import Templates ──
+    "importTemplates.title": "Import Templates",
+    "importTemplates.upload": "Upload Template",
+    "importTemplates.serviceType": "Service Type",
+    "importTemplates.fileType": "File Type",
+    "importTemplates.fileName": "File Name",
+    "importTemplates.uploaded": "Uploaded",
+    "importTemplates.noTemplates": "No import templates configured. Upload a sample file for each service type to improve AI extraction accuracy.",
+    "importTemplates.uploadSuccess": "Template uploaded successfully",
+    "importTemplates.deleteSuccess": "Template deleted",
+    "importTemplates.confirmDelete": "Are you sure you want to delete this template?",
+
+    // ── B2B Job Import ──
+    "jobImport.title": "Import Jobs",
+    "jobImport.selectCustomer": "Select Customer",
+    "jobImport.uploadFile": "Upload File",
+    "jobImport.extracting": "Analyzing document with AI...",
+    "jobImport.reviewTitle": "Review Extracted Jobs",
+    "jobImport.reviewDescription": "Review and correct the extracted jobs before importing",
+    "jobImport.noJobsExtracted": "No jobs could be extracted from this document",
+    "jobImport.lowConfidenceWarning": "{count} rows have low confidence and may need manual correction",
+    "jobImport.importSelected": "Import Selected",
+    "jobImport.importing": "Importing jobs...",
+    "jobImport.importSuccess": "Successfully imported {count} jobs",
+
     // ── Permissions Labels ──
     "permissions.activityLogs": "Activity Logs",
     "permissions.activityLogs.export": "Export Activity Logs",
+    "permissions.customers.detail.importTemplates": "Import Templates",
+    "permissions.customers.detail.importTemplates.upload": "Upload Templates",
+    "permissions.customers.detail.importTemplates.delete": "Delete Templates",
+    "permissions.trafficJobs.b2b.importJobs": "Import Jobs from File",
   },
 
   ar: {
@@ -2473,9 +2502,38 @@ const translations: Record<Locale, Record<string, string>> = {
     "help.whatsapp.steps": "انتقل إلى واتساب من الشريط الجانبي (تحت معلمات النظام)\nاعرض قائمة قوالب الإشعارات\nانقر على قالب لعرض أو تحرير محتواه\nاستخدم متغيرات القالب (الموضحة في المحرر) لإدراج بيانات ديناميكية\nاحفظ القالب — سيُستخدم للإشعارات المستقبلية\nاختبر القالب بتنفيذ الإجراء المرتبط",
     "help.whatsapp.tips": "تُستبدل متغيرات القالب ببيانات حقيقية عند إرسال الرسائل\nحافظ على إيجاز الرسائل — واتساب له حدود لطول الرسائل\nاختبر القوالب بعد التحرير للتحقق من شكل المخرجات\nقوالب مختلفة تُفعّل بأحداث نظام مختلفة (تعيين وظيفة، تغيير حالة، إلخ)",
 
+    // ── Import Templates ──
+    "importTemplates.title": "قوالب الاستيراد",
+    "importTemplates.upload": "رفع قالب",
+    "importTemplates.serviceType": "نوع الخدمة",
+    "importTemplates.fileType": "نوع الملف",
+    "importTemplates.fileName": "اسم الملف",
+    "importTemplates.uploaded": "تاريخ الرفع",
+    "importTemplates.noTemplates": "لا توجد قوالب استيراد. ارفع ملف عينة لكل نوع خدمة لتحسين دقة الاستخراج.",
+    "importTemplates.uploadSuccess": "تم رفع القالب بنجاح",
+    "importTemplates.deleteSuccess": "تم حذف القالب",
+    "importTemplates.confirmDelete": "هل أنت متأكد من حذف هذا القالب؟",
+
+    // ── B2B Job Import ──
+    "jobImport.title": "استيراد الرحلات",
+    "jobImport.selectCustomer": "اختر العميل",
+    "jobImport.uploadFile": "رفع ملف",
+    "jobImport.extracting": "جاري تحليل المستند بالذكاء الاصطناعي...",
+    "jobImport.reviewTitle": "مراجعة الرحلات المستخرجة",
+    "jobImport.reviewDescription": "راجع وصحح الرحلات المستخرجة قبل الاستيراد",
+    "jobImport.noJobsExtracted": "لم يتم استخراج أي رحلات من هذا المستند",
+    "jobImport.lowConfidenceWarning": "{count} صفوف ذات ثقة منخفضة وقد تحتاج تصحيح يدوي",
+    "jobImport.importSelected": "استيراد المحدد",
+    "jobImport.importing": "جاري استيراد الرحلات...",
+    "jobImport.importSuccess": "تم استيراد {count} رحلات بنجاح",
+
     // ── Permissions Labels ──
     "permissions.activityLogs": "سجل النشاط",
     "permissions.activityLogs.export": "تصدير سجل النشاط",
+    "permissions.customers.detail.importTemplates": "قوالب الاستيراد",
+    "permissions.customers.detail.importTemplates.upload": "رفع القوالب",
+    "permissions.customers.detail.importTemplates.delete": "حذف القوالب",
+    "permissions.trafficJobs.b2b.importJobs": "استيراد الرحلات من ملف",
   },
 };
 

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { TrafficJobsService } from './traffic-jobs.service.js';
 import { CreateJobDto } from './dto/create-job.dto.js';
+import { BulkCreateJobsDto } from './dto/bulk-create-jobs.dto.js';
 import { JobFilterDto } from './dto/job-filter.dto.js';
 import { UpdateJobDto } from './dto/update-job.dto.js';
 import { UpdateStatusDto } from './dto/update-status.dto.js';
@@ -41,6 +42,17 @@ export class TrafficJobsController {
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const job = await this.trafficJobsService.findOne(id);
     return new ApiResponse(job);
+  }
+
+  @Post('bulk')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+  @Permissions('traffic-jobs.b2b.importJobs')
+  async bulkCreate(
+    @Body() dto: BulkCreateJobsDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    const results = await this.trafficJobsService.bulkCreate(dto.jobs, userId);
+    return new ApiResponse(results, `Created ${results.created} jobs`);
   }
 
   @Post()

@@ -636,6 +636,7 @@ model Customer {
   trafficJobs       TrafficJob[]
   invoices          AgentInvoice[]
   priceItems        CustomerPriceItem[]
+  importTemplates   CustomerImportTemplate[]
 
   @@map("customers")
 }
@@ -663,6 +664,53 @@ model CustomerPriceItem {
   @@unique([customerId, serviceType, fromZoneId, toZoneId, vehicleTypeId])
   @@index([customerId])
   @@map("customer_price_items")
+}
+
+// ─────────────────────────────────────────────
+// CUSTOMER IMPORT TEMPLATES (AI Job Import)
+// ─────────────────────────────────────────────
+
+model CustomerImportTemplate {
+  id            String      @id @default(uuid()) @db.Uuid
+  customerId    String      @map("customer_id") @db.Uuid
+  serviceType   ServiceType @map("service_type")
+  fileType      String      @map("file_type")
+  fileName      String      @map("file_name")
+  filePath      String      @map("file_path")
+  fieldMappings Json?       @map("field_mappings") @db.JsonB
+  sampleData    Json?       @map("sample_data") @db.JsonB
+  notes         String?
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  customer      Customer    @relation(fields: [customerId], references: [id])
+
+  @@unique([customerId, serviceType])
+  @@index([customerId])
+  @@map("customer_import_templates")
+}
+
+// ─────────────────────────────────────────────
+// JOB IMPORT LOGS (Audit Trail)
+// ─────────────────────────────────────────────
+
+model JobImportLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  customerId     String   @map("customer_id") @db.Uuid
+  fileName       String   @map("file_name")
+  fileType       String   @map("file_type")
+  jobsExtracted  Int      @map("jobs_extracted")
+  jobsImported   Int      @map("jobs_imported")
+  jobsRejected   Int      @map("jobs_rejected")
+  rawAiResponse  Json?    @map("raw_ai_response") @db.JsonB
+  importedJobIds String[] @map("imported_job_ids") @db.Uuid
+  importedById   String   @map("imported_by_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([customerId])
+  @@index([importedById])
+  @@map("job_import_logs")
 }
 
 // ─────────────────────────────────────────────

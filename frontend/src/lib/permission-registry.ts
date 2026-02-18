@@ -111,6 +111,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
               { key: 'traffic-jobs.b2b.table.statusFilter', labelKey: 'permissions.trafficJobs.b2b.table.statusFilter' },
             ],
           },
+          { key: 'traffic-jobs.b2b.importJobs', labelKey: 'permissions.trafficJobs.b2b.importJobs' },
         ],
       },
     ],
@@ -189,6 +190,14 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
               { key: 'customers.detail.priceList.import', labelKey: 'permissions.customers.detail.priceList.import' },
               { key: 'customers.detail.priceList.downloadTemplate', labelKey: 'permissions.customers.detail.priceList.downloadTemplate' },
               { key: 'customers.detail.priceList.saveAll', labelKey: 'permissions.customers.detail.priceList.saveAll' },
+            ],
+          },
+          {
+            key: 'customers.detail.importTemplates',
+            labelKey: 'permissions.customers.detail.importTemplates',
+            children: [
+              { key: 'customers.detail.importTemplates.upload', labelKey: 'permissions.customers.detail.importTemplates.upload' },
+              { key: 'customers.detail.importTemplates.delete', labelKey: 'permissions.customers.detail.importTemplates.delete' },
             ],
           },
         ],
