@@ -17,6 +17,7 @@ import { RolePermissionsService } from './role-permissions.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { UpdateRoleDto } from './dto/update-role.dto.js';
+import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -158,6 +159,21 @@ export class UsersController {
     @Body() dto: UpdateRoleDto,
   ) {
     return this.usersService.updateRole(id, dto.role);
+  }
+
+  // ──────────────────────────────────────────────
+  // PATCH /users/:id/password — change password (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Patch(':id/password')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('users.table.editButton')
+  async changePassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(id, dto.newPassword);
   }
 
   // ──────────────────────────────────────────────

@@ -250,6 +250,11 @@ export default function UsersPage() {
           roleId: formRoleId,
         });
       }
+      if (formPassword.trim()) {
+        await api.patch(`/users/${editingUser.id}/password`, {
+          newPassword: formPassword.trim(),
+        });
+      }
       toast.success(t("users.userUpdated"));
       setEditDialogOpen(false);
       resetForm();
@@ -836,6 +841,16 @@ export default function UsersPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-foreground/70">{t("common.password")}</Label>
+              <Input
+                type="password"
+                value={formPassword}
+                onChange={(e) => setFormPassword(e.target.value)}
+                placeholder="Leave blank to keep current"
+                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
+              />
             </div>
           </div>
           <DialogFooter>

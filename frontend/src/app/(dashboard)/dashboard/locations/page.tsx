@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
+import { useAuthStore } from "@/stores/auth-store";
 
 // ─── Types ──────────────────────────────────────────────────────
 interface HotelNode {
@@ -228,6 +229,8 @@ function TreeRow({
 // ─── Main page ──────────────────────────────────────────────────
 export default function LocationsPage() {
   const t = useT();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "ADMIN";
   const [countries, setCountries] = useState<CountryNode[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -528,9 +531,9 @@ export default function LocationsPage() {
                       openAdd("airport", country.id, country.name)
                     }
                     childLabel={t("locations.airport")}
-                    onDelete={() =>
+                    onDelete={isAdmin ? () =>
                       confirmDelete("country", country.id, country.name)
-                    }
+                    : undefined}
                   />
 
                   {/* Airports */}
@@ -553,9 +556,9 @@ export default function LocationsPage() {
                               openAdd("city", airport.id, airport.name)
                             }
                             childLabel={t("locations.city")}
-                            onDelete={() =>
+                            onDelete={isAdmin ? () =>
                               confirmDelete("airport", airport.id, airport.name)
-                            }
+                            : undefined}
                           />
 
                           {/* Cities */}
@@ -577,9 +580,9 @@ export default function LocationsPage() {
                                       openAdd("zone", city.id, city.name)
                                     }
                                     childLabel={t("locations.zone")}
-                                    onDelete={() =>
+                                    onDelete={isAdmin ? () =>
                                       confirmDelete("city", city.id, city.name)
-                                    }
+                                    : undefined}
                                   />
 
                                   {/* Zones */}
@@ -607,13 +610,13 @@ export default function LocationsPage() {
                                               )
                                             }
                                             childLabel={t("locations.hotel")}
-                                            onDelete={() =>
+                                            onDelete={isAdmin ? () =>
                                               confirmDelete(
                                                 "zone",
                                                 zone.id,
                                                 zone.name
                                               )
-                                            }
+                                            : undefined}
                                           />
 
                                           {/* Hotels */}
@@ -627,13 +630,13 @@ export default function LocationsPage() {
                                                 hasChildren={false}
                                                 expanded={false}
                                                 onToggle={() => {}}
-                                                onDelete={() =>
+                                                onDelete={isAdmin ? () =>
                                                   confirmDelete(
                                                     "hotel",
                                                     hotel.id,
                                                     hotel.name
                                                   )
-                                                }
+                                                : undefined}
                                               />
                                             ))}
                                         </div>

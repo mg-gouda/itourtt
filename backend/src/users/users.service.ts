@@ -156,6 +156,20 @@ export class UsersService {
   }
 
   // ──────────────────────────────────────────────
+  // UPDATE – password (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  async changePassword(id: string, newPassword: string) {
+    await this.ensureUserExists(id);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+    return { message: 'Password changed successfully' };
+  }
+
+  // ──────────────────────────────────────────────
   // SOFT-DEACTIVATE
   // ──────────────────────────────────────────────
 
