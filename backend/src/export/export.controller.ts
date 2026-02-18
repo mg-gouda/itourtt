@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Query, Param, Res, UseGuards, BadRequestException, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
 import * as express from 'express';
 import { ExportService } from './export.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -119,6 +119,73 @@ export class ExportController {
       }
       throw err;
     }
+  }
+
+  @Get('daily-dispatch')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+  @Permissions('reports.dailyDispatch')
+  async exportDailyDispatch(
+    @Query('date') date: string,
+    @Res() res: express.Response,
+  ) {
+    if (!date) {
+      throw new BadRequestException('date query parameter is required');
+    }
+    const buffer = await this.exportService.exportDailyDispatchReport(date);
+    this.sendXlsx(res, buffer, `daily_dispatch_${date}`);
+  }
+
+  @Get('driver-trips')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.driverTrips')
+  async exportDriverTrips(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const buffer = await this.exportService.exportDriverTrips(from, to);
+    this.sendXlsx(res, buffer, `driver_trips_${from}_${to}`);
+  }
+
+  @Get('agent-statement/:agentId')
+  @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
+  @Permissions('reports.agentStatement')
+  async exportAgentStatement(
+    @Param('agentId', ParseUUIDPipe) agentId: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const buffer = await this.exportService.exportAgentStatement(agentId, from, to);
+    this.sendXlsx(res, buffer, `agent_statement_${from}_${to}`);
+  }
+
+  @Get('revenue')
+  @Permissions('reports.revenue')
+  async exportRevenue(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const buffer = await this.exportService.exportRevenue(from, to);
+    this.sendXlsx(res, buffer, `revenue_${from}_${to}`);
+  }
+
+  @Get('vehicle-compliance')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+  @Permissions('reports.vehicleCompliance')
+  async exportVehicleCompliance(@Res() res: express.Response) {
+    const buffer = await this.exportService.exportVehicleCompliance();
+    this.sendXlsx(res, buffer, 'vehicle_compliance');
   }
 
   private sendXlsx(res: express.Response, buffer: Buffer, filename: string) {

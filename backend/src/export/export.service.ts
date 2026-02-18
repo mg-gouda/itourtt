@@ -671,6 +671,385 @@ export class ExportService {
     return Buffer.from(pdfBytes);
   }
 
+  // ─────────────────────────────────────────────
+  // DAILY DISPATCH REPORT EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportDailyDispatchReport(date: string): Promise<Buffer> {
+    const jobDate = new Date(date);
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: { jobDate, deletedAt: null },
+      include: {
+        agent: true,
+        customer: true,
+        fromZone: true,
+        toZone: true,
+        flight: true,
+        assignment: {
+          include: {
+            vehicle: { include: { vehicleType: true } },
+            driver: true,
+            rep: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const rows = jobs.map((job) => ({
+      'Ref': job.internalRef,
+      'Agent / Customer': job.agent?.legalName || job.customer?.legalName || '',
+      'Service Type': job.serviceType,
+      'Status': job.status,
+      'Client Name': job.clientName || '',
+      'Pax': job.paxCount,
+      'From': job.fromZone?.name || '',
+      'To': job.toZone?.name || '',
+      'Flight No': job.flight?.flightNo || '',
+      'Carrier': job.flight?.carrier || '',
+      'Vehicle': job.assignment?.vehicle?.plateNumber || '',
+      'Vehicle Type': job.assignment?.vehicle?.vehicleType?.name || '',
+      'Driver': job.assignment?.driver?.name || '',
+      'Rep': job.assignment?.rep?.name || '',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, `Dispatch ${date}`);
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // DRIVER TRIP REPORT EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportDriverTrips(from: string, to: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const assignments = await this.prisma.trafficAssignment.findMany({
+      where: {
+        driverId: { not: null },
+        trafficJob: {
+          jobDate: { gte: fromDate, lte: toDate },
+          deletedAt: null,
+        },
+      },
+      include: {
+        driver: true,
+        trafficJob: {
+          include: {
+            fromZone: true,
+            toZone: true,
+            agent: true,
+          },
+        },
+      },
+    });
+
+    // Aggregate by driver for summary
+    const driverMap = new Map<string, { name: string; mobile: string; trips: number; fees: number }>();
+
+    const detailRows: Record<string, unknown>[] = [];
+
+    for (const a of assignments) {
+      if (!a.driver) continue;
+      const existing = driverMap.get(a.driverId!);
+      if (existing) {
+        existing.trips++;
+      } else {
+        driverMap.set(a.driverId!, {
+          name: a.driver.name,
+          mobile: a.driver.mobileNumber,
+          trips: 1,
+          fees: 0,
+        });
+      }
+
+      detailRows.push({
+        'Driver': a.driver.name,
+        'Job Date': this.formatDate(a.trafficJob.jobDate),
+        'Service Type': a.trafficJob.serviceType,
+        'Route': a.trafficJob.fromZone && a.trafficJob.toZone
+          ? `${a.trafficJob.fromZone.name} → ${a.trafficJob.toZone.name}`
+          : '—',
+        'Agent': a.trafficJob.agent?.legalName || '—',
+        'Ref': a.trafficJob.internalRef,
+      });
+    }
+
+    // Fetch fees
+    const fees = await this.prisma.driverTripFee.findMany({
+      where: {
+        trafficJob: {
+          jobDate: { gte: fromDate, lte: toDate },
+          deletedAt: null,
+        },
+      },
+    });
+    for (const fee of fees) {
+      const d = driverMap.get(fee.driverId);
+      if (d) d.fees += Number(fee.amount);
+    }
+
+    const summaryRows = Array.from(driverMap.values()).map((d) => ({
+      'Driver': d.name,
+      'Mobile': d.mobile,
+      'Trips': d.trips,
+      'Total Fees': d.fees,
+    }));
+
+    const wb = XLSX.utils.book_new();
+
+    const summaryWs = XLSX.utils.json_to_sheet(summaryRows);
+    this.autoSizeColumns(summaryWs, summaryRows);
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+    if (detailRows.length > 0) {
+      const detailWs = XLSX.utils.json_to_sheet(detailRows);
+      this.autoSizeColumns(detailWs, detailRows);
+      XLSX.utils.book_append_sheet(wb, detailWs, 'Details');
+    }
+
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // AGENT STATEMENT EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportAgentStatement(agentId: string, from: string, to: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const agent = await this.prisma.agent.findUnique({
+      where: { id: agentId },
+      include: { creditTerms: true },
+    });
+
+    const invoices = await this.prisma.agentInvoice.findMany({
+      where: {
+        agentId,
+        invoiceDate: { gte: fromDate, lte: toDate },
+      },
+      include: { payments: true },
+      orderBy: { invoiceDate: 'asc' },
+    });
+
+    const rows = invoices.map((inv) => {
+      const paid = inv.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+      return {
+        'Invoice #': inv.invoiceNumber,
+        'Date': this.formatDate(inv.invoiceDate),
+        'Due Date': this.formatDate(inv.dueDate),
+        'Currency': inv.currency,
+        'Subtotal': Number(inv.subtotal),
+        'Tax': Number(inv.taxAmount),
+        'Total': Number(inv.total),
+        'Paid': paid,
+        'Balance': Number(inv.total) - paid,
+        'Status': inv.status,
+      };
+    });
+
+    // Add totals row
+    const totalInvoiced = rows.reduce((sum, r) => sum + (r['Total'] as number), 0);
+    const totalPaid = rows.reduce((sum, r) => sum + (r['Paid'] as number), 0);
+    rows.push({
+      'Invoice #': 'TOTALS',
+      'Date': '',
+      'Due Date': '',
+      'Currency': '' as any,
+      'Subtotal': rows.reduce((sum, r) => sum + (r['Subtotal'] as number), 0),
+      'Tax': rows.reduce((sum, r) => sum + (r['Tax'] as number), 0),
+      'Total': totalInvoiced,
+      'Paid': totalPaid,
+      'Balance': totalInvoiced - totalPaid,
+      'Status': '' as any,
+    });
+
+    const wb = XLSX.utils.book_new();
+
+    // Agent info sheet
+    const infoRows = [
+      { Field: 'Agent', Value: agent?.legalName || '' },
+      { Field: 'Trade Name', Value: agent?.tradeName || '' },
+      { Field: 'Period', Value: `${from} to ${to}` },
+      { Field: 'Credit Limit', Value: agent?.creditTerms ? Number(agent.creditTerms.creditLimit) : 'N/A' },
+      { Field: 'Credit Days', Value: agent?.creditTerms?.creditDays ?? 'N/A' },
+      { Field: 'Total Invoiced', Value: totalInvoiced },
+      { Field: 'Total Paid', Value: totalPaid },
+      { Field: 'Outstanding', Value: totalInvoiced - totalPaid },
+    ];
+    const infoWs = XLSX.utils.json_to_sheet(infoRows);
+    this.autoSizeColumns(infoWs, infoRows);
+    XLSX.utils.book_append_sheet(wb, infoWs, 'Summary');
+
+    const invoiceWs = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(invoiceWs, rows);
+    XLSX.utils.book_append_sheet(wb, invoiceWs, 'Invoices');
+
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // REVENUE REPORT EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportRevenue(from: string, to: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const invoices = await this.prisma.agentInvoice.findMany({
+      where: {
+        invoiceDate: { gte: fromDate, lte: toDate },
+        status: { not: 'CANCELLED' as any },
+      },
+      include: {
+        agent: true,
+        customer: true,
+        lines: { include: { trafficJob: true } },
+      },
+    });
+
+    let totalRevenue = 0;
+    const byAgent = new Map<string, { name: string; revenue: number; invoices: number; jobs: number }>();
+    const byServiceType: Record<string, number> = {};
+
+    for (const inv of invoices) {
+      const invTotal = Number(inv.total);
+      totalRevenue += invTotal;
+      const partnerId = inv.agentId || inv.customerId || 'unknown';
+      const partnerName = inv.agent?.legalName || inv.customer?.legalName || 'Unknown';
+      const entry = byAgent.get(partnerId) || { name: partnerName, revenue: 0, invoices: 0, jobs: 0 };
+      entry.revenue += invTotal;
+      entry.invoices++;
+      byAgent.set(partnerId, entry);
+
+      for (const line of inv.lines) {
+        if (line.trafficJob) {
+          byServiceType[line.trafficJob.serviceType] = (byServiceType[line.trafficJob.serviceType] || 0) + Number(line.lineTotal);
+          byAgent.get(partnerId)!.jobs++;
+        }
+      }
+    }
+
+    const [driverFees, repFees, supplierCosts] = await Promise.all([
+      this.prisma.driverTripFee.aggregate({
+        where: { trafficJob: { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null } },
+        _sum: { amount: true },
+      }),
+      this.prisma.repFee.aggregate({
+        where: { trafficJob: { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null } },
+        _sum: { amount: true },
+      }),
+      this.prisma.supplierCost.aggregate({
+        where: { trafficJob: { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null } },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const totalDriverFees = Number(driverFees._sum.amount || 0);
+    const totalRepFees = Number(repFees._sum.amount || 0);
+    const totalSupplierCosts = Number(supplierCosts._sum.amount || 0);
+    const totalCosts = totalDriverFees + totalRepFees + totalSupplierCosts;
+
+    const wb = XLSX.utils.book_new();
+
+    // Summary sheet
+    const summaryRows = [
+      { Metric: 'Period', Value: `${from} to ${to}` },
+      { Metric: 'Total Revenue', Value: totalRevenue },
+      { Metric: 'Driver Fees', Value: totalDriverFees },
+      { Metric: 'Rep Fees', Value: totalRepFees },
+      { Metric: 'Supplier Costs', Value: totalSupplierCosts },
+      { Metric: 'Total Costs', Value: totalCosts },
+      { Metric: 'Gross Profit', Value: totalRevenue - totalCosts },
+      { Metric: 'Profit Margin %', Value: totalRevenue > 0 ? Math.round(((totalRevenue - totalCosts) / totalRevenue) * 100) : 0 },
+    ];
+    const summaryWs = XLSX.utils.json_to_sheet(summaryRows);
+    this.autoSizeColumns(summaryWs, summaryRows);
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+    // By Agent sheet
+    const agentRows = Array.from(byAgent.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .map((a) => ({
+        'Agent / Customer': a.name,
+        'Revenue': a.revenue,
+        'Invoices': a.invoices,
+        'Jobs': a.jobs,
+      }));
+    if (agentRows.length > 0) {
+      const agentWs = XLSX.utils.json_to_sheet(agentRows);
+      this.autoSizeColumns(agentWs, agentRows);
+      XLSX.utils.book_append_sheet(wb, agentWs, 'By Agent');
+    }
+
+    // By Service Type sheet
+    const stRows = Object.entries(byServiceType).map(([type, revenue]) => ({
+      'Service Type': type,
+      'Revenue': revenue,
+    }));
+    if (stRows.length > 0) {
+      const stWs = XLSX.utils.json_to_sheet(stRows);
+      this.autoSizeColumns(stWs, stRows);
+      XLSX.utils.book_append_sheet(wb, stWs, 'By Service Type');
+    }
+
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // VEHICLE COMPLIANCE REPORT EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportVehicleCompliance(): Promise<Buffer> {
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: { deletedAt: null },
+      include: {
+        vehicleType: true,
+        compliance: true,
+      },
+      orderBy: { plateNumber: 'asc' },
+    });
+
+    const today = new Date();
+    const rows = vehicles.map((v) => {
+      const c = v.compliance;
+      const licenseStatus = c?.licenseExpiryDate
+        ? new Date(c.licenseExpiryDate) < today ? 'EXPIRED' : 'VALID'
+        : 'N/A';
+      const insuranceStatus = c?.insuranceExpiryDate
+        ? new Date(c.insuranceExpiryDate) < today ? 'EXPIRED' : 'VALID'
+        : c?.hasInsurance ? 'VALID' : 'N/A';
+
+      return {
+        'Plate Number': v.plateNumber,
+        'Vehicle Type': v.vehicleType?.name || '',
+        'Ownership': v.ownership,
+        'Active': v.isActive ? 'Yes' : 'No',
+        'License Expiry': c?.licenseExpiryDate ? this.formatDate(c.licenseExpiryDate) : '',
+        'License Status': licenseStatus,
+        'Has Insurance': c?.hasInsurance ? 'Yes' : 'No',
+        'Insurance Expiry': c?.insuranceExpiryDate ? this.formatDate(c.insuranceExpiryDate) : '',
+        'Insurance Status': insuranceStatus,
+        'Annual Payment': c?.annualPayment ? Number(c.annualPayment) : '',
+        'GPS Subscription': c?.gpsSubscription ? Number(c.gpsSubscription) : '',
+        'Tourism Fund': c?.tourismSupportFund ? Number(c.tourismSupportFund) : '',
+        'Registration Fees': c?.registrationFees ? Number(c.registrationFees) : '',
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Vehicle Compliance');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
   private autoSizeColumns(
     ws: XLSX.WorkSheet,
     data: Record<string, unknown>[],

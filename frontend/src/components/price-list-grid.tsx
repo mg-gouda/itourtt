@@ -418,28 +418,28 @@ export function PriceListGrid({
           </Select>
         </div>
         <div className="flex-1 space-y-2">
-          <span className="text-sm text-muted-foreground">From Zone</span>
+          <span className="text-sm text-muted-foreground">From</span>
           <LocationCombobox
             value={newFromZone}
             onChange={(id, _type, name) => {
               setNewFromZone(id);
               setNewFromZoneName(name || "");
             }}
-            types={["ZONE"]}
-            placeholder="Select origin zone..."
+            types={["ZONE", "AIRPORT"]}
+            placeholder="Select origin..."
           />
         </div>
         <ChevronRight className="mb-2 h-5 w-5 text-muted-foreground" />
         <div className="flex-1 space-y-2">
-          <span className="text-sm text-muted-foreground">To Zone</span>
+          <span className="text-sm text-muted-foreground">To</span>
           <LocationCombobox
             value={newToZone}
             onChange={(id, _type, name) => {
               setNewToZone(id);
               setNewToZoneName(name || "");
             }}
-            types={["ZONE"]}
-            placeholder="Select destination zone..."
+            types={["ZONE", "AIRPORT"]}
+            placeholder="Select destination..."
           />
         </div>
         <Button

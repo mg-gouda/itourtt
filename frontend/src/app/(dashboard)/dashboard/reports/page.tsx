@@ -306,6 +306,11 @@ export default function ReportsPage() {
   const [selectedRep, setSelectedRep] = useState<RepFeeReportRep | null>(null);
   const [repModalOpen, setRepModalOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const dispatchPrintRef = useRef<HTMLDivElement>(null);
+  const driverPrintRef = useRef<HTMLDivElement>(null);
+  const agentPrintRef = useRef<HTMLDivElement>(null);
+  const revenuePrintRef = useRef<HTMLDivElement>(null);
+  const compliancePrintRef = useRef<HTMLDivElement>(null);
 
   // Vehicle Compliance
   const [complianceData, setComplianceData] = useState<ComplianceReportItem[]>([]);
@@ -466,6 +471,92 @@ export default function ReportsPage() {
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
   };
 
+  // ── Generic helpers ──
+
+  const downloadBlob = (data: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const printFromRef = (ref: React.RefObject<HTMLDivElement | null>, title: string) => {
+    if (!ref.current) return;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) { toast.error(t("reports.allowPopups")); return; }
+    printWindow.document.write(`
+      <html><head><title>${title}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        h2 { font-size: 14px; color: #555; margin-bottom: 16px; }
+        h3 { font-size: 13px; margin-top: 16px; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; font-size: 12px; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .text-right { text-align: right; }
+        .total-row { font-weight: 700; background: #f9f9f9; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin-bottom: 16px; font-size: 12px; }
+        .info-grid dt { color: #666; } .info-grid dd { font-weight: 600; margin: 0; }
+        @media print { body { padding: 0; } }
+      </style></head><body>
+      ${ref.current.innerHTML}
+      </body></html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+  };
+
+  // ── Daily Dispatch Export ──
+  const exportDispatchExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/daily-dispatch?date=${dispatchDate}`, { responseType: "blob" });
+      downloadBlob(new Blob([res.data]), `daily_dispatch_${dispatchDate}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+  const exportDispatchPdf = () => printFromRef(dispatchPrintRef, `Daily Dispatch - ${dispatchDate}`);
+
+  // ── Driver Trips Export ──
+  const exportDriverTripsExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/driver-trips?from=${driverFrom}&to=${driverTo}`, { responseType: "blob" });
+      downloadBlob(new Blob([res.data]), `driver_trips_${driverFrom}_${driverTo}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+  const exportDriverTripsPdf = () => printFromRef(driverPrintRef, `Driver Trips - ${driverFrom} to ${driverTo}`);
+
+  // ── Agent Statement Export ──
+  const exportAgentStatementExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/agent-statement/${selectedAgentId}?from=${agentFrom}&to=${agentTo}`, { responseType: "blob" });
+      downloadBlob(new Blob([res.data]), `agent_statement_${agentFrom}_${agentTo}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+  const exportAgentStatementPdf = () => printFromRef(agentPrintRef, `Agent Statement - ${agentData?.agent.legalName || ""}`);
+
+  // ── Revenue Export ──
+  const exportRevenueExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/revenue?from=${revenueFrom}&to=${revenueTo}`, { responseType: "blob" });
+      downloadBlob(new Blob([res.data]), `revenue_${revenueFrom}_${revenueTo}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+  const exportRevenuePdf = () => printFromRef(revenuePrintRef, `Revenue Report - ${revenueFrom} to ${revenueTo}`);
+
+  // ── Vehicle Compliance Export ──
+  const exportComplianceExcel = async () => {
+    try {
+      const res = await api.get("/export/odoo/vehicle-compliance", { responseType: "blob" });
+      downloadBlob(new Blob([res.data]), "vehicle_compliance.xlsx");
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+  const exportCompliancePdf = () => printFromRef(compliancePrintRef, "Vehicle Compliance Report");
+
   // Group fees by flight number for the modal
   function groupByFlight(fees: RepFeeReportRep["fees"]) {
     const groups = new Map<
@@ -564,6 +655,16 @@ export default function ReportsPage() {
                 )}
                 {t("reports.generate")}
               </Button>
+              {dispatchData && (
+                <>
+                  <Button variant="outline" onClick={exportDispatchExcel} className="gap-1.5 border-border text-foreground">
+                    <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                  </Button>
+                  <Button variant="outline" onClick={exportDispatchPdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                  </Button>
+                </>
+              )}
             </div>
           </Card>
 
@@ -686,6 +787,16 @@ export default function ReportsPage() {
                 )}
                 {t("reports.generate")}
               </Button>
+              {driverData && (
+                <>
+                  <Button variant="outline" onClick={exportDriverTripsExcel} className="gap-1.5 border-border text-foreground">
+                    <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                  </Button>
+                  <Button variant="outline" onClick={exportDriverTripsPdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                  </Button>
+                </>
+              )}
             </div>
           </Card>
 
@@ -810,6 +921,16 @@ export default function ReportsPage() {
                 )}
                 {t("reports.generate")}
               </Button>
+              {agentData && (
+                <>
+                  <Button variant="outline" onClick={exportAgentStatementExcel} className="gap-1.5 border-border text-foreground">
+                    <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                  </Button>
+                  <Button variant="outline" onClick={exportAgentStatementPdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                  </Button>
+                </>
+              )}
             </div>
           </Card>
 
@@ -1105,6 +1226,16 @@ export default function ReportsPage() {
                 )}
                 {t("reports.generate")}
               </Button>
+              {revenueData && (
+                <>
+                  <Button variant="outline" onClick={exportRevenueExcel} className="gap-1.5 border-border text-foreground">
+                    <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                  </Button>
+                  <Button variant="outline" onClick={exportRevenuePdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                  </Button>
+                </>
+              )}
             </div>
           </Card>
 
@@ -1252,6 +1383,16 @@ export default function ReportsPage() {
                 {complianceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 {t("reports.generate")}
               </Button>
+              {complianceData.length > 0 && (
+                <>
+                  <Button variant="outline" size="sm" onClick={exportComplianceExcel} className="gap-1.5 border-border text-foreground">
+                    <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={exportCompliancePdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                  </Button>
+                </>
+              )}
             </div>
           </Card>
 
@@ -1477,7 +1618,178 @@ export default function ReportsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hidden print content for PDF export */}
+      {/* Hidden print content for PDF exports */}
+
+      {/* Daily Dispatch Print */}
+      {dispatchData && (
+        <div ref={dispatchPrintRef} className="hidden">
+          <h1>Daily Dispatch Summary</h1>
+          <h2>Date: {dispatchDate}</h2>
+          <dl className="info-grid">
+            <dt>Total Jobs</dt><dd>{dispatchData.totalJobs}</dd>
+            <dt>Assigned</dt><dd>{dispatchData.assignedCount} ({dispatchData.assignmentRate}%)</dd>
+            <dt>Unassigned</dt><dd>{dispatchData.unassignedCount}</dd>
+            <dt>Completion Rate</dt><dd>{dispatchData.completionRate}%</dd>
+          </dl>
+          <table>
+            <thead>
+              <tr><th>Ref</th><th>Type</th><th>Agent/Customer</th><th>Pax</th><th>Vehicle</th><th>Driver</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {dispatchData.jobs.map((job) => (
+                <tr key={job.id}>
+                  <td>{job.internalRef}</td>
+                  <td>{job.serviceType}</td>
+                  <td>{job.agent?.legalName || job.customer?.legalName || "\u2014"}</td>
+                  <td className="text-right">{job.paxCount}</td>
+                  <td>{job.assignment?.vehicle.plateNumber || "\u2014"}</td>
+                  <td>{job.assignment?.driver?.name || "\u2014"}</td>
+                  <td>{job.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Driver Trips Print */}
+      {driverData && (
+        <div ref={driverPrintRef} className="hidden">
+          <h1>Driver Trip Report</h1>
+          <h2>Period: {driverFrom} to {driverTo}</h2>
+          <dl className="info-grid">
+            <dt>Total Drivers</dt><dd>{driverData.totalDrivers}</dd>
+            <dt>Total Trips</dt><dd>{driverData.totalTrips}</dd>
+          </dl>
+          <table>
+            <thead>
+              <tr><th>Driver</th><th>Mobile</th><th className="text-right">Trips</th><th className="text-right">Total Fees (EGP)</th></tr>
+            </thead>
+            <tbody>
+              {driverData.drivers.map((d) => (
+                <tr key={d.driver.id}>
+                  <td>{d.driver.name}</td>
+                  <td>{d.driver.mobileNumber}</td>
+                  <td className="text-right">{d.tripCount}</td>
+                  <td className="text-right">{fmt(d.totalFees, locale)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Agent Statement Print */}
+      {agentData && (
+        <div ref={agentPrintRef} className="hidden">
+          <h1>Agent Statement</h1>
+          <h2>{agentData.agent.legalName} {agentData.agent.tradeName ? `(${agentData.agent.tradeName})` : ""}</h2>
+          <dl className="info-grid">
+            <dt>Period</dt><dd>{agentData.period.from} to {agentData.period.to}</dd>
+            <dt>Jobs</dt><dd>{agentData.jobCount}</dd>
+            <dt>Total Invoiced</dt><dd>{fmt(agentData.totalInvoiced, locale)} {agentData.agent.currency}</dd>
+            <dt>Total Paid</dt><dd>{fmt(agentData.totalPaid, locale)} {agentData.agent.currency}</dd>
+            <dt>Outstanding</dt><dd>{fmt(agentData.outstandingBalance, locale)} {agentData.agent.currency}</dd>
+            {agentData.agent.creditLimit !== null && <><dt>Credit Limit</dt><dd>{fmt(agentData.agent.creditLimit, locale)}</dd></>}
+            {agentData.agent.creditDays !== null && <><dt>Credit Days</dt><dd>{agentData.agent.creditDays}</dd></>}
+          </dl>
+          <table>
+            <thead>
+              <tr><th>Invoice #</th><th>Date</th><th>Due Date</th><th className="text-right">Total</th><th className="text-right">Paid</th><th className="text-right">Balance</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {agentData.invoices.map((inv) => (
+                <tr key={inv.invoiceNumber}>
+                  <td>{inv.invoiceNumber}</td>
+                  <td>{formatDate(inv.invoiceDate)}</td>
+                  <td>{formatDate(inv.dueDate)}</td>
+                  <td className="text-right">{fmt(inv.total, locale)}</td>
+                  <td className="text-right">{fmt(inv.paid, locale)}</td>
+                  <td className="text-right">{fmt(inv.balance, locale)}</td>
+                  <td>{inv.status}</td>
+                </tr>
+              ))}
+              <tr className="total-row">
+                <td colSpan={3}>Totals</td>
+                <td className="text-right">{fmt(agentData.totalInvoiced, locale)}</td>
+                <td className="text-right">{fmt(agentData.totalPaid, locale)}</td>
+                <td className="text-right">{fmt(agentData.outstandingBalance, locale)}</td>
+                <td />
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Revenue Print */}
+      {revenueData && (
+        <div ref={revenuePrintRef} className="hidden">
+          <h1>Revenue Report</h1>
+          <h2>Period: {revenueData.period.from} to {revenueData.period.to}</h2>
+          <dl className="info-grid">
+            <dt>Total Revenue</dt><dd>{fmt(revenueData.totalRevenue, locale)}</dd>
+            <dt>Total Costs</dt><dd>{fmt(revenueData.totalCosts, locale)}</dd>
+            <dt>Gross Profit</dt><dd>{fmt(revenueData.grossProfit, locale)}</dd>
+            <dt>Profit Margin</dt><dd>{revenueData.profitMargin}%</dd>
+            <dt>Driver Fees</dt><dd>{fmt(revenueData.costBreakdown.driverFees, locale)}</dd>
+            <dt>Rep Fees</dt><dd>{fmt(revenueData.costBreakdown.repFees, locale)}</dd>
+            <dt>Supplier Costs</dt><dd>{fmt(revenueData.costBreakdown.supplierCosts, locale)}</dd>
+          </dl>
+          <h3>Revenue by Agent</h3>
+          <table>
+            <thead>
+              <tr><th>Agent / Customer</th><th className="text-right">Revenue</th><th className="text-right">Invoices</th><th className="text-right">Jobs</th></tr>
+            </thead>
+            <tbody>
+              {revenueData.byAgent.map((a) => (
+                <tr key={a.agentId}>
+                  <td>{a.name}</td>
+                  <td className="text-right">{fmt(a.revenue, locale)}</td>
+                  <td className="text-right">{a.invoiceCount}</td>
+                  <td className="text-right">{a.jobCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <h3>Revenue by Service Type</h3>
+          <table>
+            <thead><tr><th>Service Type</th><th className="text-right">Revenue</th></tr></thead>
+            <tbody>
+              {Object.entries(revenueData.byServiceType).map(([type, amount]) => (
+                <tr key={type}><td>{type}</td><td className="text-right">{fmt(amount, locale)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Vehicle Compliance Print */}
+      {complianceData.length > 0 && (
+        <div ref={compliancePrintRef} className="hidden">
+          <h1>Vehicle Compliance Report</h1>
+          <table>
+            <thead>
+              <tr><th>Plate</th><th>Type</th><th>Ownership</th><th>License Expiry</th><th>Insurance</th><th>Insurance Expiry</th><th className="text-right">Annual Payment</th><th className="text-right">Total Fees</th></tr>
+            </thead>
+            <tbody>
+              {complianceData.map((v) => (
+                <tr key={v.vehicleId}>
+                  <td>{v.plateNumber}</td>
+                  <td>{v.vehicleTypeName}</td>
+                  <td>{v.ownership}</td>
+                  <td>{v.licenseExpiryDate ? formatDate(v.licenseExpiryDate) : "\u2014"}</td>
+                  <td>{v.hasInsurance ? "Yes" : "No"}</td>
+                  <td>{v.insuranceExpiryDate ? formatDate(v.insuranceExpiryDate) : "\u2014"}</td>
+                  <td className="text-right">{v.annualPayment != null ? fmt(Number(v.annualPayment)) : "\u2014"}</td>
+                  <td className="text-right">{v.totalFees != null ? fmt(Number(v.totalFees)) : "\u2014"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Rep Fees Print */}
       {repFeeData && (
         <div ref={printRef} className="hidden">
           <h1>Rep Fees Report</h1>
