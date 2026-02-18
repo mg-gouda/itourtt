@@ -48,6 +48,8 @@ import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
 import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
+import { useAuthStore } from "@/stores/auth-store";
+import { useCompanyStore } from "@/stores/company-store";
 
 // ────────────────────────────────────────────
 // Types
@@ -273,6 +275,8 @@ function StatCard({
 export default function ReportsPage() {
   const t = useT();
   const locale = useLocaleId();
+  const { user } = useAuthStore();
+  const { logoUrl, companyName } = useCompanyStore();
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -449,6 +453,11 @@ export default function ReportsPage() {
       toast.error(t("reports.allowPopups"));
       return;
     }
+    const now = new Date().toLocaleString();
+    const userName = user?.name || "System";
+    const logoHtml = logoUrl
+      ? `<img src="${logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
+      : `<span style="font-size:18px;font-weight:700;">${companyName}</span>`;
     printWindow.document.write(`
       <html><head><title>Rep Fees Report - ${repFeeDate}</title>
       <style>
@@ -461,9 +470,25 @@ export default function ReportsPage() {
         .text-right { text-align: right; }
         .total-row { font-weight: 700; background: #f9f9f9; }
         .group-header { background: #eef; font-weight: 600; }
-        @media print { body { padding: 0; } }
+        .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111; }
+        .report-header .logo { flex-shrink: 0; }
+        .report-header .report-title { font-size: 20px; font-weight: 700; text-align: center; flex: 1; }
+        .report-footer { display: flex; justify-content: space-between; margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #555; }
+        @media print {
+          body { padding: 0; }
+          .report-footer { position: fixed; bottom: 20px; left: 20px; right: 20px; }
+        }
       </style></head><body>
+      <div class="report-header">
+        <div class="logo">${logoHtml}</div>
+        <div class="report-title">Rep Fees Report - ${repFeeDate}</div>
+        <div style="width:160px;"></div>
+      </div>
       ${printRef.current.innerHTML}
+      <div class="report-footer">
+        <span>Issued By: ${userName}</span>
+        <span>Issued on ${now}</span>
+      </div>
       </body></html>
     `);
     printWindow.document.close();
@@ -488,6 +513,11 @@ export default function ReportsPage() {
     if (!ref.current) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) { toast.error(t("reports.allowPopups")); return; }
+    const now = new Date().toLocaleString();
+    const userName = user?.name || "System";
+    const logoHtml = logoUrl
+      ? `<img src="${logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
+      : `<span style="font-size:18px;font-weight:700;">${companyName}</span>`;
     printWindow.document.write(`
       <html><head><title>${title}</title>
       <style>
@@ -502,9 +532,25 @@ export default function ReportsPage() {
         .total-row { font-weight: 700; background: #f9f9f9; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin-bottom: 16px; font-size: 12px; }
         .info-grid dt { color: #666; } .info-grid dd { font-weight: 600; margin: 0; }
-        @media print { body { padding: 0; } }
+        .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111; }
+        .report-header .logo { flex-shrink: 0; }
+        .report-header .report-title { font-size: 20px; font-weight: 700; text-align: center; flex: 1; }
+        .report-footer { display: flex; justify-content: space-between; margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #555; }
+        @media print {
+          body { padding: 0; }
+          .report-footer { position: fixed; bottom: 20px; left: 20px; right: 20px; }
+        }
       </style></head><body>
+      <div class="report-header">
+        <div class="logo">${logoHtml}</div>
+        <div class="report-title">${title}</div>
+        <div style="width:160px;"></div>
+      </div>
       ${ref.current.innerHTML}
+      <div class="report-footer">
+        <span>Issued By: ${userName}</span>
+        <span>Issued on ${now}</span>
+      </div>
       </body></html>
     `);
     printWindow.document.close();
