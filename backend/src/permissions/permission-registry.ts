@@ -447,6 +447,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'locations.hotels.deleteButton', labelKey: 'permissions.locations.hotels.deleteButton' },
         ],
       },
+      { key: 'locations.export', labelKey: 'permissions.locations.export' },
+      { key: 'locations.downloadTemplate', labelKey: 'permissions.locations.downloadTemplate' },
+      { key: 'locations.import', labelKey: 'permissions.locations.import' },
     ],
   },
 
