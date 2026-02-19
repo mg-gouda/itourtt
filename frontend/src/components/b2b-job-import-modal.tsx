@@ -151,7 +151,7 @@ export function B2BJobImportModal({
 
       const res = await api.post("/ai-parser/extract-jobs", formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        timeout: 120000, // 2 min timeout for AI processing
+        timeout: 300000, // 5 min timeout for AI processing
       });
 
       const data = res.data.data;
