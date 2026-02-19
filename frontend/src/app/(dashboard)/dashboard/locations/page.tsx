@@ -15,6 +15,8 @@ import {
   FileUp,
   FileSpreadsheet,
   AlertTriangle,
+  Search,
+  X,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -233,6 +235,7 @@ export default function LocationsPage() {
   const isAdmin = user?.role === "ADMIN";
   const [countries, setCountries] = useState<CountryNode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   // Import/Export state
   const importFileRef = useRef<HTMLInputElement>(null);
@@ -288,6 +291,77 @@ export default function LocationsPage() {
   function toggle(key: string) {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
   }
+
+  // ─── Search filter ────────────────────────────────────────
+  const searchLower = search.toLowerCase().trim();
+
+  function matchesSearch(name: string, code?: string): boolean {
+    if (!searchLower) return true;
+    return (
+      name.toLowerCase().includes(searchLower) ||
+      (code ? code.toLowerCase().includes(searchLower) : false)
+    );
+  }
+
+  // Filter tree: keep a node if it or any descendant matches
+  const filteredCountries = !searchLower
+    ? countries
+    : countries
+        .map((country) => {
+          const filteredAirports = country.airports
+            .map((airport) => {
+              const filteredCities = airport.cities
+                .map((city) => {
+                  const filteredZones = city.zones
+                    .map((zone) => {
+                      const filteredHotels = zone.hotels.filter((h) =>
+                        matchesSearch(h.name)
+                      );
+                      if (filteredHotels.length > 0 || matchesSearch(zone.name))
+                        return { ...zone, hotels: filteredHotels };
+                      return null;
+                    })
+                    .filter(Boolean) as ZoneNode[];
+                  if (filteredZones.length > 0 || matchesSearch(city.name))
+                    return { ...city, zones: filteredZones };
+                  return null;
+                })
+                .filter(Boolean) as CityNode[];
+              if (
+                filteredCities.length > 0 ||
+                matchesSearch(airport.name, airport.code)
+              )
+                return { ...airport, cities: filteredCities };
+              return null;
+            })
+            .filter(Boolean) as AirportNode[];
+          if (
+            filteredAirports.length > 0 ||
+            matchesSearch(country.name, country.code)
+          )
+            return { ...country, airports: filteredAirports };
+          return null;
+        })
+        .filter(Boolean) as CountryNode[];
+
+  // Auto-expand all nodes when searching
+  const searchExpanded: Record<string, boolean> = {};
+  if (searchLower) {
+    filteredCountries.forEach((country) => {
+      searchExpanded[`country-${country.id}`] = true;
+      country.airports.forEach((airport) => {
+        searchExpanded[`airport-${airport.id}`] = true;
+        airport.cities.forEach((city) => {
+          searchExpanded[`city-${city.id}`] = true;
+          city.zones.forEach((zone) => {
+            searchExpanded[`zone-${zone.id}`] = true;
+          });
+        });
+      });
+    });
+  }
+
+  const effectiveExpanded = searchLower ? searchExpanded : expanded;
 
   // ─── Open add dialog ──────────────────────────────────────
   function openAdd(level: LocationLevel, parentId: string, parentLabel: string) {
@@ -497,24 +571,55 @@ export default function LocationsPage() {
         onChange={handleImportFile}
       />
 
+      {/* Search filter */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder={t("locations.searchPlaceholder") || "Search locations..."}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border-border bg-card pl-9 pr-9 text-foreground placeholder:text-muted-foreground/50"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       <Card className="border-border bg-card p-0">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : countries.length === 0 ? (
+        ) : filteredCountries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <Globe className="mb-3 h-10 w-10" />
-            <p className="text-sm">{t("locations.noLocations")}</p>
-            <p className="mt-1 text-xs text-muted-foreground/60">
-              {t("locations.addCountryToStart")}
-            </p>
+            {searchLower ? (
+              <>
+                <Search className="mb-3 h-10 w-10" />
+                <p className="text-sm">{t("locations.noSearchResults") || "No locations match your search"}</p>
+                <p className="mt-1 text-xs text-muted-foreground/60">
+                  {t("locations.tryDifferentSearch") || "Try a different search term"}
+                </p>
+              </>
+            ) : (
+              <>
+                <Globe className="mb-3 h-10 w-10" />
+                <p className="text-sm">{t("locations.noLocations")}</p>
+                <p className="mt-1 text-xs text-muted-foreground/60">
+                  {t("locations.addCountryToStart")}
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="py-2">
-            {countries.map((country) => {
+            {filteredCountries.map((country) => {
               const countryKey = `country-${country.id}`;
-              const countryExpanded = !!expanded[countryKey];
+              const countryExpanded = !!effectiveExpanded[countryKey];
 
               return (
                 <div key={country.id}>
@@ -540,7 +645,7 @@ export default function LocationsPage() {
                   {countryExpanded &&
                     country.airports.map((airport) => {
                       const airportKey = `airport-${airport.id}`;
-                      const airportExpanded = !!expanded[airportKey];
+                      const airportExpanded = !!effectiveExpanded[airportKey];
 
                       return (
                         <div key={airport.id}>
@@ -565,7 +670,7 @@ export default function LocationsPage() {
                           {airportExpanded &&
                             airport.cities.map((city) => {
                               const cityKey = `city-${city.id}`;
-                              const cityExpanded = !!expanded[cityKey];
+                              const cityExpanded = !!effectiveExpanded[cityKey];
 
                               return (
                                 <div key={city.id}>
@@ -589,7 +694,7 @@ export default function LocationsPage() {
                                   {cityExpanded &&
                                     city.zones.map((zone) => {
                                       const zoneKey = `zone-${zone.id}`;
-                                      const zoneExpanded = !!expanded[zoneKey];
+                                      const zoneExpanded = !!effectiveExpanded[zoneKey];
 
                                       return (
                                         <div key={zone.id}>
