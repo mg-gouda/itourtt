@@ -35,6 +35,7 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       TZ: Africa/Cairo
       GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyDn0bDhTm0zReCHa0VikJvVKjaNXDW8nwE}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://fulvago.itourtt.cloud,https://itourtt.cloud}
     ports:
       - '${BACKEND_PORT:-3001}:3001'
     depends_on:
