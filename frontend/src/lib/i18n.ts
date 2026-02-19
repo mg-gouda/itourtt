@@ -354,6 +354,17 @@ const translations: Record<Locale, Record<string, string>> = {
     "locations.in": "in",
     "locations.namePlaceholder": "name",
 
+    // ── Location Combobox ──
+    "locationCombobox.searchPlaceholder": "Search locations...",
+    "locationCombobox.noResults": "No locations found.",
+    "locationCombobox.addNew": "Add New Location",
+    "locationCombobox.addNewTitle": "Add New Location",
+    "locationCombobox.locationType": "Location Type",
+    "locationCombobox.selectZone": "Select zone...",
+    "locationCombobox.selectCity": "Select city...",
+    "locationCombobox.hotelNamePlaceholder": "e.g. Hilton Hurghada Resort",
+    "locationCombobox.zoneNamePlaceholder": "e.g. Sahl Hasheesh",
+
     // ── Agents ──
     "agents.title": "Agents",
     "agents.description": "Manage travel agents",
@@ -1623,6 +1634,17 @@ const translations: Record<Locale, Record<string, string>> = {
     "locations.locationTree": "\u062F\u0648\u0644\u0629\u060C \u0645\u0637\u0627\u0631\u060C \u0645\u062F\u064A\u0646\u0629\u060C \u0645\u0646\u0637\u0642\u0629\u060C \u0641\u0646\u062F\u0642",
     "locations.in": "\u0641\u064A",
     "locations.namePlaceholder": "\u0627\u0633\u0645",
+
+    // ── Location Combobox ──
+    "locationCombobox.searchPlaceholder": "\u0628\u062D\u062B \u0641\u064A \u0627\u0644\u0645\u0648\u0627\u0642\u0639...",
+    "locationCombobox.noResults": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0648\u0627\u0642\u0639.",
+    "locationCombobox.addNew": "\u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0642\u0639 \u062C\u062F\u064A\u062F",
+    "locationCombobox.addNewTitle": "\u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0642\u0639 \u062C\u062F\u064A\u062F",
+    "locationCombobox.locationType": "\u0646\u0648\u0639 \u0627\u0644\u0645\u0648\u0642\u0639",
+    "locationCombobox.selectZone": "\u0627\u062E\u062A\u0631 \u0627\u0644\u0645\u0646\u0637\u0642\u0629...",
+    "locationCombobox.selectCity": "\u0627\u062E\u062A\u0631 \u0627\u0644\u0645\u062F\u064A\u0646\u0629...",
+    "locationCombobox.hotelNamePlaceholder": "\u0645\u062B\u0627\u0644: \u0641\u0646\u062F\u0642 \u0647\u064A\u0644\u062A\u0648\u0646 \u0627\u0644\u063A\u0631\u062F\u0642\u0629",
+    "locationCombobox.zoneNamePlaceholder": "\u0645\u062B\u0627\u0644: \u0633\u0647\u0644 \u062D\u0634\u064A\u0634",
 
     // ── Agents ──
     "agents.title": "\u0627\u0644\u0648\u0643\u0644\u0627\u0621",

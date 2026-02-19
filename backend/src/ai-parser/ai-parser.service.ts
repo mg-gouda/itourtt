@@ -138,15 +138,7 @@ export class AiParserService {
       throw new Error('No transport jobs were found in this document.');
     }
 
-    // 7. Auto-create missing locations before resolving
-    const createdLocations = await this.autoCreateMissingLocations(rawJobs, locationIndex);
-
-    // 8. Refresh location index after auto-creation
-    if (createdLocations > 0) {
-      locationIndex = await this.buildLocationIndex();
-    }
-
-    // 9. Resolve locations and build ParsedJob[]
+    // 7. Resolve locations and build ParsedJob[]
     const parsedJobs = rawJobs.map((raw, index) =>
       this.resolveAndValidateJob(raw, index, locationIndex),
     );
@@ -168,173 +160,10 @@ export class AiParserService {
         totalExtracted: parsedJobs.length,
         highConfidence: parsedJobs.filter((j) => j.confidence >= 0.8).length,
         lowConfidence: parsedJobs.filter((j) => j.confidence < 0.5).length,
-        locationsCreated: createdLocations,
+        locationsCreated: 0,
         processingTimeMs,
       },
     };
-  }
-
-  /**
-   * Auto-create hotels and zones that the AI extracted but don't exist in the database.
-   * Logic:
-   * - For ARR jobs: destination is typically a hotel → create as hotel under best-matching zone
-   * - For DEP jobs: origin is typically a hotel → create as hotel under best-matching zone
-   * - If no zone matches the AI's hint, create a new zone under the first city
-   * Returns the number of locations created.
-   */
-  private async autoCreateMissingLocations(
-    rawJobs: any[],
-    locationIndex: LocationIndex,
-  ): Promise<number> {
-    // Collect all unique unresolved location names with their context
-    const unresolvedLocations = new Map<
-      string,
-      { name: string; locationType: string; zoneHint: string; role: string }
-    >();
-
-    for (const raw of rawJobs) {
-      const serviceType = (raw.serviceType || 'TRANSFER').toUpperCase();
-
-      // Check origin
-      const originName = String(raw.originName || '').trim();
-      if (originName && !this.resolveLocation(originName, locationIndex)) {
-        const locationType = String(raw.originLocationType || '').toUpperCase();
-        const zoneHint = String(raw.originZoneHint || raw.destinationZoneHint || '').trim();
-        // For DEP: origin is usually a hotel. For ARR: origin is usually an airport (skip).
-        const role = serviceType === 'ARR' ? 'airport' : 'hotel';
-        if (role !== 'airport') {
-          unresolvedLocations.set(originName.toLowerCase(), {
-            name: originName,
-            locationType: locationType || 'HOTEL',
-            zoneHint,
-            role: 'origin',
-          });
-        }
-      }
-
-      // Check destination
-      const destName = String(raw.destinationName || '').trim();
-      if (destName && !this.resolveLocation(destName, locationIndex)) {
-        const locationType = String(raw.destinationLocationType || '').toUpperCase();
-        const zoneHint = String(raw.destinationZoneHint || raw.originZoneHint || '').trim();
-        // For ARR: destination is usually a hotel. For DEP: destination is usually an airport (skip).
-        const role = serviceType === 'DEP' ? 'airport' : 'hotel';
-        if (role !== 'airport') {
-          unresolvedLocations.set(destName.toLowerCase(), {
-            name: destName,
-            locationType: locationType || 'HOTEL',
-            zoneHint,
-            role: 'destination',
-          });
-        }
-      }
-    }
-
-    if (unresolvedLocations.size === 0) return 0;
-
-    this.logger.log(`Auto-creating ${unresolvedLocations.size} missing location(s)`);
-
-    // Load zones with their city info for zone matching
-    const zones = await this.prisma.zone.findMany({
-      where: { deletedAt: null },
-      include: { city: true },
-    });
-
-    // Load cities for potential zone creation
-    const cities = await this.prisma.city.findMany({
-      where: { deletedAt: null },
-    });
-
-    let createdCount = 0;
-
-    for (const [, loc] of unresolvedLocations) {
-      try {
-        if (loc.locationType === 'ZONE') {
-          // Create a new zone under the first available city
-          const targetCity = cities[0];
-          if (!targetCity) {
-            this.logger.warn(`Cannot create zone "${loc.name}": no cities exist`);
-            continue;
-          }
-
-          // Check if zone already exists (case-insensitive)
-          const existing = await this.prisma.zone.findFirst({
-            where: { name: { equals: loc.name, mode: 'insensitive' }, deletedAt: null },
-          });
-          if (existing) continue;
-
-          await this.prisma.zone.create({
-            data: { name: loc.name, cityId: targetCity.id },
-          });
-          this.logger.log(`Created zone: "${loc.name}" under city "${targetCity.name}"`);
-          createdCount++;
-        } else {
-          // Default: create as hotel
-          // Find the best zone to place this hotel in
-          let targetZone = this.findBestZone(loc.zoneHint, zones);
-
-          if (!targetZone && zones.length > 0) {
-            // Fall back to first zone
-            targetZone = zones[0];
-          }
-
-          if (!targetZone) {
-            this.logger.warn(`Cannot create hotel "${loc.name}": no zones exist`);
-            continue;
-          }
-
-          // Check if hotel already exists (case-insensitive)
-          const existing = await this.prisma.hotel.findFirst({
-            where: { name: { equals: loc.name, mode: 'insensitive' }, deletedAt: null },
-          });
-          if (existing) continue;
-
-          await this.prisma.hotel.create({
-            data: { name: loc.name, zoneId: targetZone.id },
-          });
-          this.logger.log(`Created hotel: "${loc.name}" under zone "${targetZone.name}"`);
-          createdCount++;
-        }
-      } catch (error: any) {
-        this.logger.error(`Failed to auto-create location "${loc.name}": ${error.message}`);
-      }
-    }
-
-    return createdCount;
-  }
-
-  /**
-   * Find the best matching zone for a zone hint string.
-   */
-  private findBestZone(
-    zoneHint: string,
-    zones: Array<{ id: string; name: string; city: { name: string } }>,
-  ): { id: string; name: string } | null {
-    if (!zoneHint) return null;
-
-    const lower = zoneHint.toLowerCase().trim();
-
-    // Exact name match
-    const exact = zones.find((z) => z.name.toLowerCase() === lower);
-    if (exact) return exact;
-
-    // Contains match
-    const contains = zones.find(
-      (z) =>
-        lower.includes(z.name.toLowerCase()) ||
-        z.name.toLowerCase().includes(lower),
-    );
-    if (contains) return contains;
-
-    // City name match
-    const byCity = zones.find(
-      (z) =>
-        lower.includes(z.city.name.toLowerCase()) ||
-        z.city.name.toLowerCase().includes(lower),
-    );
-    if (byCity) return byCity;
-
-    return null;
   }
 
   private extractExcelContent(filePath: string): string {
@@ -449,7 +278,7 @@ RULES:
       prompt += `- ${h.name} (zone: ${h.parentName})\n`;
     }
 
-    prompt += `\nIMPORTANT: Use the exact names from KNOWN LOCATIONS when possible. If a location in the document is NOT in the known list, still include it with its original name — the system will auto-create it.
+    prompt += `\nIMPORTANT: Use the exact names from KNOWN LOCATIONS when possible. If a location in the document is NOT in the known list, still include it with its original name.
 
 Return ONLY a valid JSON array. Each element must have the fields listed above.
 Do not include any explanatory text, markdown formatting, or code fences outside the JSON array.
