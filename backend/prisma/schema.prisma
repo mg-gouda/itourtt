@@ -229,6 +229,7 @@ model User {
   supplier          Supplier?
   activityLogs      ActivityLog[]
   notifications     UserNotification[]
+  deviceTokens      DeviceToken[]
 
   @@map("users")
 }
@@ -1450,4 +1451,23 @@ model NoShowEvidence {
 
   @@unique([trafficJobId, submittedBy])
   @@map("no_show_evidence")
+}
+
+// ─────────────────────────────────────────────
+// DEVICE TOKENS (FCM push notifications)
+// ─────────────────────────────────────────────
+
+model DeviceToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String
+  platform  String   // 'ios' | 'android'
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@index([userId])
+  @@map("device_tokens")
 }

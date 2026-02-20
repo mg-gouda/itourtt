@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
+import { PushNotificationsService } from '../push-notifications/push-notifications.service.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
 import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import type { ServiceType, JobStatus } from '../../generated/prisma/client.js';
@@ -22,6 +23,7 @@ export class DispatchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly pushService: PushNotificationsService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -206,8 +208,38 @@ export class DispatchService {
         });
       }
 
+      if (dto.driverId) {
+        await tx.driverNotification.create({
+          data: {
+            driverId: dto.driverId,
+            title: 'New Job Assigned',
+            message: `${created.trafficJob.internalRef} - ${created.trafficJob.serviceType} on ${created.trafficJob.jobDate.toISOString().split('T')[0]}`,
+            type: 'JOB_ASSIGNED',
+            trafficJobId: dto.trafficJobId,
+          },
+        });
+      }
+
       return created;
     });
+
+    // Push notifications (fire-and-forget)
+    if (assignment.driverId) {
+      this.pushService.sendToDriver(
+        assignment.driverId,
+        'New Job Assigned',
+        `${assignment.trafficJob.internalRef} - ${assignment.trafficJob.serviceType}`,
+        { jobId: dto.trafficJobId, type: 'JOB_ASSIGNED' },
+      ).catch(() => {});
+    }
+    if (assignment.repId) {
+      this.pushService.sendToRep(
+        assignment.repId,
+        'New Job Assigned',
+        `${assignment.trafficJob.internalRef} - ${assignment.trafficJob.serviceType}`,
+        { jobId: dto.trafficJobId, type: 'JOB_ASSIGNED' },
+      ).catch(() => {});
+    }
 
     // Send driver assignment email if this job is linked to a guest booking
     if (assignment.driverId && assignment.driver) {
@@ -373,8 +405,38 @@ export class DispatchService {
         });
       }
 
+      if (dto.driverId && dto.driverId !== existing.driverId) {
+        await tx.driverNotification.create({
+          data: {
+            driverId: dto.driverId,
+            title: 'New Job Assigned',
+            message: `${result.trafficJob.internalRef} - ${result.trafficJob.serviceType} on ${result.trafficJob.jobDate.toISOString().split('T')[0]}`,
+            type: 'JOB_ASSIGNED',
+            trafficJobId: result.trafficJobId,
+          },
+        });
+      }
+
       return result;
     });
+
+    // Push notifications (fire-and-forget)
+    if (dto.driverId && dto.driverId !== existing.driverId) {
+      this.pushService.sendToDriver(
+        dto.driverId,
+        'New Job Assigned',
+        `${updated.trafficJob.internalRef} - ${updated.trafficJob.serviceType}`,
+        { jobId: updated.trafficJobId, type: 'JOB_ASSIGNED' },
+      ).catch(() => {});
+    }
+    if (dto.repId && dto.repId !== existing.repId) {
+      this.pushService.sendToRep(
+        dto.repId,
+        'New Job Assigned',
+        `${updated.trafficJob.internalRef} - ${updated.trafficJob.serviceType}`,
+        { jobId: updated.trafficJobId, type: 'JOB_ASSIGNED' },
+      ).catch(() => {});
+    }
 
     return updated;
   }

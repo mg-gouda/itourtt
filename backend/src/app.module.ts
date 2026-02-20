@@ -35,6 +35,7 @@ import { EmailModule } from './email/email.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { ImportTemplatesModule } from './import-templates/import-templates.module.js';
 import { AiParserModule } from './ai-parser/ai-parser.module.js';
+import { PushNotificationsModule } from './push-notifications/push-notifications.module.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 
 @Module({
@@ -74,6 +75,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
     NotificationsModule,
     ImportTemplatesModule,
     AiParserModule,
+    PushNotificationsModule,
   ],
   controllers: [AppController],
   providers: [
