@@ -946,9 +946,9 @@ Operators receive traffic job files from B2B customers in various formats (PDF, 
 - [x] Support PDF, Excel (.xlsx/.xls), and image files (.png/.jpg)
 - [x] Deterministic location matching against database (airports, zones, hotels)
 - [x] Template context used as few-shot examples for better accuracy
-- [x] Auto-creation of missing locations (hotels/zones) when AI extracts unknown destinations
-- [x] AI prompt requests location type hints and zone hints for auto-creation
-- [x] `findBestZone()` helper for fuzzy zone matching
+- [x] ~~Auto-creation of missing locations~~ (removed — replaced by inline creation in LocationCombobox)
+- [x] AI prompt extracts location type hints and zone hints for matching
+- [x] AI prompt extracts customerJobId (customer booking references) from documents
 
 ### 16.4 Backend – Bulk Create Endpoint
 - [x] Create dto/bulk-create-jobs.dto.ts
@@ -993,3 +993,60 @@ Operators receive traffic job files from B2B customers in various formats (PDF, 
 - [x] Add GEMINI_API_KEY to docker-compose.yml backend environment
 - [x] Configure Gemini API key in backend/.env and root .env
 - [x] Docker rebuild and deployment
+
+## Phase 17: Production Deployment & Hardening
+
+### 17.1 Deployment
+- [x] Create deploy.md with 4-step VPS deployment commands
+- [x] Fix production path from `/root/iTourTT` to `/opt/iTourTT`
+
+### 17.2 Infrastructure Fixes
+- [x] Fix 502 Bad Gateway: reconnect orphan nginx container to docker-compose network
+- [x] Fix `/uploads/` serving: proxy through backend instead of local nginx alias
+- [x] Fix CORS: use relative API URLs (`NEXT_PUBLIC_API_URL` empty for production)
+- [x] Fix CORS: add `CORS_ORIGINS` env var for `https://fulvago.itourtt.cloud`
+- [x] Fix 504 Gateway Timeout: increase nginx `proxy_read_timeout` to 300s for AI parser
+- [x] Fix frontend axios timeout: increase to 300s (5 min) for AI extraction
+
+## Phase 18: Location Management Enhancements
+
+### 18.1 Searchable Location Filter
+- [x] Add search input to locations page with real-time tree filtering
+- [x] Auto-expand matching branches when searching
+- [x] Empty state for no search results
+- [x] i18n support (English + Arabic)
+
+### 18.2 Inline Location Creation (ERP-style)
+- [x] Add "Add New Location" button to all LocationCombobox dropdowns
+- [x] Modal dialog to create Hotel (under a zone) or Zone (under a city)
+- [x] Pre-fill name from current search query
+- [x] Auto-select newly created location after creation
+- [x] Load location tree (zones/cities) dynamically when modal opens
+- [x] i18n support (English + Arabic)
+
+### 18.3 Remove Auto-Create from AI Parser
+- [x] Remove `autoCreateMissingLocations()` method from ai-parser.service.ts
+- [x] Remove `findBestZone()` helper method
+- [x] AI parser now only matches existing locations (no side effects)
+
+## Phase 19: B2B Customer Job ID
+
+- [x] Add `customerJobId` column to TrafficJob schema (nullable string)
+- [x] Add field to CreateJobDto and UpdateJobDto
+- [x] Handle in traffic-jobs service (create, update, changedFields tracking)
+- [x] Add Customer Job ID input to B2B form (Row 1, after Customer dropdown)
+- [x] Add "Cust. Job ID" column to B2B jobs table
+- [x] Include customerJobId in B2B search filter
+- [x] Update AI parser prompt to extract customer booking references
+- [x] Add customerJobId to B2B import modal (ParsedJob interface + payload)
+- [x] Add i18n keys (English + Arabic)
+- [x] Prisma client regenerated
+
+---
+
+## Version History
+
+| Version | Date | Summary |
+|---------|------|---------|
+| v1.0.0 | 2026-02-18 | Production release — Phases 1-15 complete. Full transport system with dispatch, finance, Odoo exports, reports, driver/rep portals, vehicle compliance, WYSIWYG editor. |
+| v2.0.0 | 2026-02-20 | AI-powered B2B job import (Gemini), inline location creation, Customer Job ID, production deployment hardening, location search filter. |
