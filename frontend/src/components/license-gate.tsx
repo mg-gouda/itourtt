@@ -1,10 +1,19 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { ShieldX } from 'lucide-react';
 import { useLicense } from '@/hooks/use-license';
 
+const ALLOWED_PATHS = ['/dashboard/company'];
+
 export function LicenseGate({ children }: { children: React.ReactNode }) {
   const { status, loading } = useLicense();
+  const pathname = usePathname();
+
+  // Always allow the Company settings page so admin can enter the license key
+  if (ALLOWED_PATHS.includes(pathname)) {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (
@@ -28,14 +37,22 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
           <p className="text-sm text-muted-foreground">
             Please contact the developer to reactivate your license.
           </p>
-          <a
-            href="https://wa.me/+201002805139"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-block rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Contact Mohamed Gouda
-          </a>
+          <div className="mt-4 flex flex-col gap-2 items-center">
+            <a
+              href="/dashboard/company"
+              className="inline-block rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Activate License
+            </a>
+            <a
+              href="https://wa.me/+201002805139"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
+            >
+              Contact Mohamed Gouda
+            </a>
+          </div>
         </div>
       </div>
     );
