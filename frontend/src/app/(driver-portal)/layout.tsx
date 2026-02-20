@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LicenseGate } from "@/components/license-gate";
 import { useT } from "@/lib/i18n";
 import {
   Truck,
@@ -52,7 +53,9 @@ export default function DriverPortalLayout({
 
   return (
     <ThemeProvider>
-      <DriverPortalShell user={user}>{children}</DriverPortalShell>
+      <LicenseGate>
+        <DriverPortalShell user={user}>{children}</DriverPortalShell>
+      </LicenseGate>
     </ThemeProvider>
   );
 }

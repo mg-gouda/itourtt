@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LicenseGate } from "@/components/license-gate";
 import { useT } from "@/lib/i18n";
 import { Truck, Briefcase, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,9 @@ export default function SupplierPortalLayout({
 
   return (
     <ThemeProvider>
-      <SupplierPortalShell user={user}>{children}</SupplierPortalShell>
+      <LicenseGate>
+        <SupplierPortalShell user={user}>{children}</SupplierPortalShell>
+      </LicenseGate>
     </ThemeProvider>
   );
 }

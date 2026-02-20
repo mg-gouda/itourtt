@@ -12,4 +12,8 @@ export class UpdateCompanySettingsDto {
   @IsOptional()
   @IsString()
   reportFooterHtml?: string;
+
+  @IsOptional()
+  @IsString()
+  licenseKey?: string;
 }

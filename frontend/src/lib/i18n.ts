@@ -878,6 +878,14 @@ const translations: Record<Locale, Record<string, string>> = {
     "company.failedFavicon": "Failed to upload favicon",
     "company.settingsSaved": "Company settings saved",
     "company.failedSave": "Failed to save company settings",
+    "company.softwareLicense": "Software License",
+    "company.softwareLicenseDesc": "Enter your license key to activate the software.",
+    "company.licenseKey": "License Key",
+    "company.licenseKeyPlaceholder": "Enter license key...",
+    "company.pasteFullKey": "Paste full license key here to activate...",
+    "company.activate": "Activate",
+    "company.licenseActivated": "License activated successfully",
+    "company.licenseFailed": "Failed to activate license",
 
     // ── WhatsApp ──
     "whatsapp.title": "WhatsApp Notifications",
@@ -2160,6 +2168,14 @@ const translations: Record<Locale, Record<string, string>> = {
     "company.failedFavicon": "فشل رفع أيقونة الموقع",
     "company.settingsSaved": "تم حفظ إعدادات الشركة",
     "company.failedSave": "فشل حفظ إعدادات الشركة",
+    "company.softwareLicense": "ترخيص البرنامج",
+    "company.softwareLicenseDesc": "أدخل مفتاح الترخيص لتفعيل البرنامج.",
+    "company.licenseKey": "مفتاح الترخيص",
+    "company.licenseKeyPlaceholder": "أدخل مفتاح الترخيص...",
+    "company.pasteFullKey": "الصق مفتاح الترخيص الكامل هنا للتفعيل...",
+    "company.activate": "تفعيل",
+    "company.licenseActivated": "تم تفعيل الترخيص بنجاح",
+    "company.licenseFailed": "فشل تفعيل الترخيص",
 
     // ── WhatsApp ──
     "whatsapp.title": "\u0625\u0634\u0639\u0627\u0631\u0627\u062A \u0648\u0627\u062A\u0633\u0627\u0628",

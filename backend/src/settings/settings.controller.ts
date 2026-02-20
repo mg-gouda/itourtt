@@ -70,6 +70,15 @@ export class SettingsController {
   }
 
   // ──────────────────────────────────────────────
+  // GET /settings/license-status — check license validity (authenticated)
+  // ──────────────────────────────────────────────
+
+  @Get('license-status')
+  async getLicenseStatus() {
+    return this.settingsService.getLicenseStatus();
+  }
+
+  // ──────────────────────────────────────────────
   // GET /settings/company — retrieve company settings
   // ──────────────────────────────────────────────
 

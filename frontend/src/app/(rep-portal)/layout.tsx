@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LicenseGate } from "@/components/license-gate";
 import {
   Plane,
   Briefcase,
@@ -52,7 +53,9 @@ export default function RepPortalLayout({
 
   return (
     <ThemeProvider>
-      <RepPortalShell user={user}>{children}</RepPortalShell>
+      <LicenseGate>
+        <RepPortalShell user={user}>{children}</RepPortalShell>
+      </LicenseGate>
     </ThemeProvider>
   );
 }

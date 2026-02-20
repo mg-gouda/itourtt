@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
+import { validateLicenseKey, type LicenseStatus } from '../common/license.util.js';
 
 /** Default values returned when no row exists yet. */
 const SYSTEM_DEFAULTS = {
@@ -90,14 +91,16 @@ export class SettingsService {
   async updateCompanySettings(dto: UpdateCompanySettingsDto) {
     const existing = await this.prisma.companySettings.findFirst();
 
+    const data: Record<string, unknown> = {};
+    if (dto.companyName !== undefined) data.companyName = dto.companyName;
+    if (dto.reportHeaderHtml !== undefined) data.reportHeaderHtml = dto.reportHeaderHtml;
+    if (dto.reportFooterHtml !== undefined) data.reportFooterHtml = dto.reportFooterHtml;
+    if (dto.licenseKey !== undefined) data.licenseKey = dto.licenseKey || null;
+
     if (existing) {
       return this.prisma.companySettings.update({
         where: { id: existing.id },
-        data: {
-          ...(dto.companyName !== undefined && { companyName: dto.companyName }),
-          ...(dto.reportHeaderHtml !== undefined && { reportHeaderHtml: dto.reportHeaderHtml }),
-          ...(dto.reportFooterHtml !== undefined && { reportFooterHtml: dto.reportFooterHtml }),
-        },
+        data,
       });
     }
 
@@ -106,8 +109,18 @@ export class SettingsService {
         companyName: dto.companyName ?? COMPANY_DEFAULTS.companyName,
         reportHeaderHtml: dto.reportHeaderHtml ?? COMPANY_DEFAULTS.reportHeaderHtml,
         reportFooterHtml: dto.reportFooterHtml ?? COMPANY_DEFAULTS.reportFooterHtml,
+        licenseKey: dto.licenseKey ?? null,
       },
     });
+  }
+
+  // ──────────────────────────────────────────────
+  // LICENSE STATUS
+  // ──────────────────────────────────────────────
+
+  async getLicenseStatus(): Promise<LicenseStatus> {
+    const settings = await this.prisma.companySettings.findFirst();
+    return validateLicenseKey(settings?.licenseKey);
   }
 
   // ──────────────────────────────────────────────

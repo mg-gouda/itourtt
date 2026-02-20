@@ -1279,6 +1279,7 @@ model CompanySettings {
   faviconUrl       String?  @map("favicon_url")
   reportHeaderHtml String?  @map("report_header_html") @db.Text
   reportFooterHtml String?  @map("report_footer_html") @db.Text
+  licenseKey       String?  @map("license_key") @db.Text
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
