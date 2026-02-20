@@ -40,6 +40,10 @@ export class CreateJobDto {
   agentRef?: string;
 
   @IsOptional()
+  @IsString()
+  customerJobId?: string;
+
+  @IsOptional()
   @IsUUID()
   customerId?: string;
 

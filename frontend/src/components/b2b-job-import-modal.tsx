@@ -61,6 +61,7 @@ interface ParsedJob {
   destinationAirportId?: string;
   destinationZoneId?: string;
   destinationHotelId?: string;
+  customerJobId?: string;
   clientName?: string;
   flightNo?: string;
   arrivalTime?: string;
@@ -221,6 +222,7 @@ export function B2BJobImportModal({
         destinationAirportId: j.destinationAirportId || undefined,
         destinationZoneId: j.destinationZoneId || undefined,
         destinationHotelId: j.destinationHotelId || undefined,
+        customerJobId: j.customerJobId || undefined,
         clientName: j.clientName || undefined,
         notes: j.notes || undefined,
         pickUpTime: j.pickUpTime ? `${j.jobDate}T${j.pickUpTime}:00` : undefined,

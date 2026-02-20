@@ -878,6 +878,7 @@ model TrafficJob {
   bookingChannel  BookingChannel @default(ONLINE) @map("booking_channel")
   agentId         String?        @map("agent_id") @db.Uuid
   agentRef        String?        @map("agent_ref")
+  customerJobId   String?        @map("customer_job_id")
   customerId      String?        @map("customer_id") @db.Uuid
   serviceType     ServiceType    @map("service_type")
   jobDate         DateTime       @map("job_date") @db.Date

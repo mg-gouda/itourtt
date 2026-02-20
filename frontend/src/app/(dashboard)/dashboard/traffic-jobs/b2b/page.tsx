@@ -52,6 +52,7 @@ interface TrafficJob {
   id: string;
   internalRef: string;
   agentRef: string | null;
+  customerJobId: string | null;
   bookingChannel: "ONLINE" | "B2B";
   serviceType: string;
   jobDate: string;
@@ -124,6 +125,7 @@ function isJobLocked(createdAt: string): boolean {
 interface FormState {
   bookingStatus: string;
   customerId: string;
+  customerJobId: string;
   serviceType: string;
   jobDate: string;
   adultCount: string;
@@ -151,6 +153,7 @@ interface FormState {
 const defaultForm: FormState = {
   bookingStatus: "NEW",
   customerId: "",
+  customerJobId: "",
   serviceType: "ARR",
   jobDate: new Date().toISOString().split("T")[0],
   adultCount: "1",
@@ -260,6 +263,7 @@ export default function B2BJobPage() {
     setForm({
       bookingStatus: "UPDATED",
       customerId: job.customerId || "",
+      customerJobId: job.customerJobId || "",
       serviceType: job.serviceType,
       jobDate: job.jobDate?.split("T")[0] || "",
       adultCount: String(job.adultCount),
@@ -316,6 +320,8 @@ export default function B2BJobPage() {
         bookingStatus: form.bookingStatus,
       };
 
+      if (form.customerJobId.trim()) payload.customerJobId = form.customerJobId.trim();
+
       if (form.originAirportId) payload.originAirportId = form.originAirportId;
       if (form.originZoneId) payload.originZoneId = form.originZoneId;
       if (form.originHotelId) payload.originHotelId = form.originHotelId;
@@ -370,6 +376,7 @@ export default function B2BJobPage() {
     const q = search.toLowerCase();
     return (
       j.internalRef?.toLowerCase().includes(q) ||
+      j.customerJobId?.toLowerCase().includes(q) ||
       j.customer?.legalName?.toLowerCase().includes(q) ||
       j.clientName?.toLowerCase().includes(q)
     );
@@ -401,7 +408,7 @@ export default function B2BJobPage() {
       <Card className={cn("border-border bg-card p-4", editingJobId && "ring-2 ring-primary/50")}>
         <div className="space-y-4">
           {/* Row 1: Booking Status + Customer + Service Type + Date + Pickup + Adults */}
-          <div className="grid grid-cols-6 gap-3">
+          <div className="grid grid-cols-7 gap-3">
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.bookingStatus") || "Booking Status"}</Label>
               <Select value={form.bookingStatus} onValueChange={(v) => updateForm({ bookingStatus: v })}>
@@ -430,6 +437,15 @@ export default function B2BJobPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.customerJobId") || "Customer Job ID"}</Label>
+              <Input
+                value={form.customerJobId}
+                onChange={(e) => updateForm({ customerJobId: e.target.value })}
+                placeholder={t("jobs.customerJobIdPlaceholder") || "Customer ref..."}
+                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+              />
             </div>
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>
@@ -729,6 +745,7 @@ export default function B2BJobPage() {
                 <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                   <TableHead className="text-white text-xs w-8"></TableHead>
                   <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
+                  <TableHead className="text-white text-xs">{t("jobs.customerJobId") || "Cust. Job ID"}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
                   <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.customer")}</TableHead>
@@ -763,6 +780,7 @@ export default function B2BJobPage() {
                         {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />}
                       </TableCell>
                       <TableCell className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{job.customerJobId || "\u2014"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="border-border text-muted-foreground text-xs">
                           {serviceTypeLabels[job.serviceType] || job.serviceType}

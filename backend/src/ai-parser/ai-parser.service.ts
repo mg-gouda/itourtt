@@ -20,6 +20,7 @@ export interface ParsedJob {
   destinationAirportId?: string;
   destinationZoneId?: string;
   destinationHotelId?: string;
+  customerJobId?: string;
   clientName?: string;
   flightNo?: string;
   arrivalTime?: string;
@@ -230,6 +231,7 @@ For each job, extract these fields as a JSON object:
 - destinationName: the drop-off location name (airport, zone, or hotel)
 - destinationLocationType: one of "AIRPORT", "ZONE", "HOTEL" — classify what type of location the destination is
 - destinationZoneHint: if destination is a hotel, which zone/area/neighborhood is it in (best guess based on name)
+- customerJobId: the customer's own booking/job reference number if available (may be labeled as "Ref", "Booking No", "File No", "Job ID", etc.)
 - clientName: passenger/guest name if available
 - flightNo: flight number if available (for ARR/DEP services)
 - arrivalTime: HH:MM 24-hour format (for ARR services)
@@ -393,6 +395,7 @@ Do not include any explanatory text, markdown formatting, or code fences outside
       destinationAirportId,
       destinationZoneId,
       destinationHotelId,
+      customerJobId: raw.customerJobId || undefined,
       clientName: raw.clientName || undefined,
       flightNo: raw.flightNo || undefined,
       arrivalTime: raw.arrivalTime || undefined,

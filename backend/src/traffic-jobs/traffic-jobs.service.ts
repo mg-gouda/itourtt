@@ -157,6 +157,7 @@ export class TrafficJobsService {
           bookingChannel: dto.bookingChannel,
           agentId: dto.bookingChannel === 'ONLINE' ? dto.agentId! : null,
           agentRef: dto.agentRef,
+          customerJobId: dto.customerJobId ?? null,
           customerId: dto.bookingChannel === 'B2B' ? dto.customerId! : null,
           serviceType: dto.serviceType as any,
           jobDate: new Date(dto.jobDate),
@@ -271,6 +272,7 @@ export class TrafficJobsService {
     if (dto.bookingStatus !== undefined && dto.bookingStatus !== job.bookingStatus) changedFields.push('bookingStatus');
     if (dto.agentId !== undefined && dto.agentId !== job.agentId) changedFields.push('agentId');
     if (dto.agentRef !== undefined && dto.agentRef !== job.agentRef) changedFields.push('agentRef');
+    if (dto.customerJobId !== undefined && dto.customerJobId !== job.customerJobId) changedFields.push('customerJobId');
     if (dto.customerId !== undefined && dto.customerId !== job.customerId) changedFields.push('customerId');
     if (dto.serviceType !== undefined && dto.serviceType !== job.serviceType) changedFields.push('serviceType');
     if (dto.jobDate !== undefined && dto.jobDate !== job.jobDate.toISOString().split('T')[0]) changedFields.push('jobDate');
@@ -294,6 +296,7 @@ export class TrafficJobsService {
 
       if (dto.agentId !== undefined) data.agentId = dto.agentId || null;
       if (dto.agentRef !== undefined) data.agentRef = dto.agentRef || null;
+      if (dto.customerJobId !== undefined) data.customerJobId = dto.customerJobId || null;
       if (dto.customerId !== undefined) data.customerId = dto.customerId || null;
       if (dto.serviceType !== undefined) data.serviceType = dto.serviceType;
       if (dto.jobDate !== undefined) data.jobDate = new Date(dto.jobDate);
