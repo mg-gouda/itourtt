@@ -128,6 +128,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
         labelKey: 'permissions.agents.table',
         children: [
           { key: 'agents.table.editButton', labelKey: 'permissions.agents.table.editButton' },
+          { key: 'agents.table.deleteButton', labelKey: 'permissions.agents.table.deleteButton' },
           { key: 'agents.table.toggleStatus', labelKey: 'permissions.agents.table.toggleStatus' },
         ],
       },
@@ -162,6 +163,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
         labelKey: 'permissions.customers.table',
         children: [
           { key: 'customers.table.editButton', labelKey: 'permissions.customers.table.editButton' },
+          { key: 'customers.table.deleteButton', labelKey: 'permissions.customers.table.deleteButton' },
           { key: 'customers.table.viewButton', labelKey: 'permissions.customers.table.viewButton' },
           { key: 'customers.table.toggleStatus', labelKey: 'permissions.customers.table.toggleStatus' },
         ],
@@ -395,6 +397,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
         labelKey: 'permissions.suppliers.table',
         children: [
           { key: 'suppliers.table.editButton', labelKey: 'permissions.suppliers.table.editButton' },
+          { key: 'suppliers.table.deleteButton', labelKey: 'permissions.suppliers.table.deleteButton' },
           { key: 'suppliers.table.toggleStatus', labelKey: 'permissions.suppliers.table.toggleStatus' },
           { key: 'suppliers.table.createAccount', labelKey: 'permissions.suppliers.table.createAccount' },
           { key: 'suppliers.table.resetPassword', labelKey: 'permissions.suppliers.table.resetPassword' },
