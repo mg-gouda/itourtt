@@ -60,9 +60,12 @@ interface Supplier {
 
 interface SuppliersResponse {
   data: Supplier[];
-  total: number;
-  page: number;
-  limit: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export default function SuppliersPage() {
@@ -84,6 +87,10 @@ export default function SuppliersPage() {
   }>({ open: false, imported: 0, errors: [] });
 
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 50;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
@@ -120,21 +127,26 @@ export default function SuppliersPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
 
-  const fetchSuppliers = useCallback(async () => {
+  const fetchSuppliers = useCallback(async (p = page) => {
     try {
       setLoading(true);
-      const { data } = await api.get<SuppliersResponse>("/suppliers");
+      const { data } = await api.get<SuppliersResponse>("/suppliers", {
+        params: { page: p, limit: PAGE_SIZE },
+      });
       setSuppliers(data.data);
+      setTotalPages(data.meta.totalPages);
+      setTotal(data.meta.total);
     } catch {
       toast.error(t("suppliers.failedLoad"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
-    fetchSuppliers();
-  }, [fetchSuppliers]);
+    setSelectedIds(new Set());
+    fetchSuppliers(page);
+  }, [page]);
 
   async function handleToggleStatus(id: string) {
     try {
@@ -537,6 +549,34 @@ export default function SuppliersPage() {
               </Button>
             </div>
           )}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              {t("common.showing")} {sortedData.length} {t("common.of")} {total} {t("suppliers.title").toLowerCase()}
+            </span>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  {t("common.previous")}
+                </Button>
+                <span className="text-xs">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  {t("common.next")}
+                </Button>
+              </div>
+            )}
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
