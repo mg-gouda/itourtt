@@ -122,9 +122,17 @@ export class CustomersController {
     return new ApiResponse(result, 'Customer status updated successfully');
   }
 
+  @Delete('bulk')
+  @Roles('ADMIN')
+  @Permissions('customers.table.deleteButton')
+  async bulkDelete(@Body() dto: { ids: string[] }) {
+    const result = await this.customersService.bulkDelete(dto.ids);
+    return new ApiResponse(result, `${result.deleted} customers deleted successfully`);
+  }
+
   @Delete(':id')
   @Roles('ADMIN')
-  @Permissions('customers.table.editButton')
+  @Permissions('customers.table.deleteButton')
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     const result = await this.customersService.remove(id);
     return new ApiResponse(result, 'Customer deleted successfully');

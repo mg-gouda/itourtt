@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Plus, Loader2, FileDown, FileUp, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { Building2, Plus, Loader2, FileDown, FileUp, FileSpreadsheet, AlertTriangle, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
@@ -96,6 +97,10 @@ export default function AgentsPage() {
   }>({ open: false, imported: 0, errors: [] });
 
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return agents;
@@ -149,6 +154,54 @@ export default function AgentsPage() {
       toast.success(t("common.statusUpdated"));
     } catch {
       toast.error(t("common.failedStatusUpdate"));
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === sortedData.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedData.map((a) => a.id)));
+    }
+  }
+
+  function openDeleteDialog(agent: Agent) {
+    setDeleteTarget({ id: agent.id, name: agent.legalName });
+    setDeleteDialogOpen(true);
+  }
+
+  function openBulkDeleteDialog() {
+    setDeleteTarget(null);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      if (deleteTarget) {
+        await api.delete(`/agents/${deleteTarget.id}`);
+        toast.success(t("agents.deleted"));
+      } else {
+        await api.delete("/agents/bulk", { data: { ids: Array.from(selectedIds) } });
+        toast.success(`${selectedIds.size} agents deleted`);
+        setSelectedIds(new Set());
+      }
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+      fetchAgents();
+    } catch {
+      toast.error(t("agents.failedDelete"));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -422,10 +475,40 @@ export default function AgentsPage() {
             onSearchChange={setSearch}
             placeholder={t("common.search") + "..."}
           />
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2">
+              <span className="text-sm text-foreground font-medium">
+                {selectedIds.size} selected
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1.5"
+                onClick={openBulkDeleteDialog}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete Selected
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Clear
+              </Button>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={sortedData.length > 0 && selectedIds.size === sortedData.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("agents.taxId")}</TableHead>
@@ -444,6 +527,12 @@ export default function AgentsPage() {
                   className={`border-border cursor-pointer ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                   onClick={() => router.push(`/dashboard/agents/${agent.id}`)}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.has(agent.id)}
+                      onCheckedChange={() => toggleSelect(agent.id)}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium text-foreground">
                     {agent.legalName}
                   </TableCell>
@@ -479,14 +568,24 @@ export default function AgentsPage() {
                     </button>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-foreground"
-                      onClick={(e) => { e.stopPropagation(); openEditDialog(agent); }}
-                    >
-                      {t("common.edit")}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={(e) => { e.stopPropagation(); openEditDialog(agent); }}
+                      >
+                        {t("common.edit")}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+                        onClick={(e) => { e.stopPropagation(); openDeleteDialog(agent); }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -895,6 +994,47 @@ export default function AgentsPage() {
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {t("common.saveChanges")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {deleteTarget ? "Delete Agent" : "Delete Selected Agents"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {deleteTarget ? (
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete <span className="font-medium text-foreground">{deleteTarget.name}</span>? This action cannot be undone.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete <span className="font-medium text-foreground">{selectedIds.size} agents</span>? This action cannot be undone.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="gap-1.5"
+            >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {t("common.delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

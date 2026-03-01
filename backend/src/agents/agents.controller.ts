@@ -127,6 +127,22 @@ export class AgentsController {
     return new ApiResponse(result, 'Agent status updated successfully');
   }
 
+  @Delete('bulk')
+  @Roles('ADMIN')
+  @Permissions('agents.table.deleteButton')
+  async bulkDelete(@Body() dto: { ids: string[] }) {
+    const result = await this.agentsService.bulkDelete(dto.ids);
+    return new ApiResponse(result, `${result.deleted} agents deleted successfully`);
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN')
+  @Permissions('agents.table.deleteButton')
+  async delete(@Param('id', ParseUUIDPipe) id: string) {
+    await this.agentsService.delete(id);
+    return new ApiResponse(null, 'Agent deleted successfully');
+  }
+
   @Get(':id/credit-status')
   @Permissions('agents')
   async getCreditStatus(@Param('id', ParseUUIDPipe) id: string) {

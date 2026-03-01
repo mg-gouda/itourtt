@@ -122,6 +122,22 @@ export class SuppliersController {
     return new ApiResponse(result, 'Supplier status updated successfully');
   }
 
+  @Delete('bulk')
+  @Roles('ADMIN')
+  @Permissions('suppliers.table.deleteButton')
+  async bulkDelete(@Body() dto: { ids: string[] }) {
+    const result = await this.suppliersService.bulkDelete(dto.ids);
+    return new ApiResponse(result, `${result.deleted} suppliers deleted successfully`);
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN')
+  @Permissions('suppliers.table.deleteButton')
+  async delete(@Param('id', ParseUUIDPipe) id: string) {
+    await this.suppliersService.delete(id);
+    return new ApiResponse(null, 'Supplier deleted successfully');
+  }
+
   // ─── Trip Prices (legacy) ──────────────────────────────
 
   @Post(':id/trip-prices')

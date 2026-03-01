@@ -145,6 +145,34 @@ export class SuppliersService {
     });
   }
 
+  async delete(id: string) {
+    const supplier = await this.prisma.supplier.findUnique({
+      where: { id, deletedAt: null },
+    });
+
+    if (!supplier) {
+      throw new NotFoundException(`Supplier with id ${id} not found`);
+    }
+
+    return this.prisma.supplier.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async bulkDelete(ids: string[]) {
+    if (!ids || ids.length === 0) {
+      throw new BadRequestException('No supplier IDs provided');
+    }
+
+    const result = await this.prisma.supplier.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+
+    return { deleted: result.count };
+  }
+
   // ─── Trip Prices ────────────────────────────────────────────
 
   async findTripPrices(supplierId: string) {

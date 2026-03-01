@@ -118,6 +118,28 @@ export class AgentsService {
     });
   }
 
+  async delete(id: string) {
+    await this.findOne(id);
+
+    return this.prisma.agent.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async bulkDelete(ids: string[]) {
+    if (!ids || ids.length === 0) {
+      throw new BadRequestException('No agent IDs provided');
+    }
+
+    const result = await this.prisma.agent.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+
+    return { deleted: result.count };
+  }
+
   async getCreditStatus(agentId: string) {
     const agent = await this.findOne(agentId);
     const creditTerms = await this.prisma.agentCreditTerms.findUnique({

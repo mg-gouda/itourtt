@@ -132,6 +132,19 @@ export class CustomersService {
     });
   }
 
+  async bulkDelete(ids: string[]) {
+    if (!ids || ids.length === 0) {
+      throw new BadRequestException('No customer IDs provided');
+    }
+
+    const result = await this.prisma.customer.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+
+    return { deleted: result.count };
+  }
+
   // Price List Methods
 
   async getPriceList(customerId: string) {
