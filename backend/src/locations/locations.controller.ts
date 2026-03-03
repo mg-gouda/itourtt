@@ -163,7 +163,7 @@ export class LocationsController {
 
   @Get('zones/:id/hotels')
   @Permissions('locations.hotels')
-  findHotelsByZone(@Param('id', ParseUUIDPipe) zoneId: string) {
+  findHotelsByZone(@Param('id') zoneId: string) {
     return this.locationsService.findHotelsByZone(zoneId);
   }
 
@@ -179,35 +179,35 @@ export class LocationsController {
   @Delete('countries/:id')
   @Roles('ADMIN')
   @Permissions('locations.countries.addButton')
-  deleteCountry(@Param('id', ParseUUIDPipe) id: string) {
+  deleteCountry(@Param('id') id: string) {
     return this.locationsService.deleteCountry(id);
   }
 
   @Delete('airports/:id')
   @Roles('ADMIN')
   @Permissions('locations.airports.deleteButton')
-  deleteAirport(@Param('id', ParseUUIDPipe) id: string) {
+  deleteAirport(@Param('id') id: string) {
     return this.locationsService.deleteAirport(id);
   }
 
   @Delete('cities/:id')
   @Roles('ADMIN')
   @Permissions('locations.cities.deleteButton')
-  deleteCity(@Param('id', ParseUUIDPipe) id: string) {
+  deleteCity(@Param('id') id: string) {
     return this.locationsService.deleteCity(id);
   }
 
   @Delete('zones/:id')
   @Roles('ADMIN')
   @Permissions('locations.zones.deleteButton')
-  deleteZone(@Param('id', ParseUUIDPipe) id: string) {
+  deleteZone(@Param('id') id: string) {
     return this.locationsService.deleteZone(id);
   }
 
   @Delete('hotels/:id')
   @Roles('ADMIN')
   @Permissions('locations.hotels.deleteButton')
-  deleteHotel(@Param('id', ParseUUIDPipe) id: string) {
+  deleteHotel(@Param('id') id: string) {
     return this.locationsService.deleteHotel(id);
   }
 }

@@ -903,7 +903,7 @@ export class SuppliersService {
     return Buffer.from(buffer);
   }
 
-  async importVehiclesFromExcel(supplierId: string, fileBuffer: Buffer): Promise<{ imported: number; errors: string[] }> {
+  async importVehiclesFromExcel(supplierId: string, fileBuffer: Buffer): Promise<{ imported: number; updated: number; errors: string[] }> {
     await this.findOne(supplierId);
 
     const vehicleTypes = await this.prisma.vehicleType.findMany();
@@ -948,10 +948,27 @@ export class SuppliersService {
     });
 
     let imported = 0;
+    let updated = 0;
     for (const item of items) {
       try {
         const existing = await this.prisma.vehicle.findUnique({ where: { plateNumber: item.plateNumber } });
-        if (existing) { errors.push(`Skipped "${item.plateNumber}": plate number already exists`); continue; }
+        if (existing) {
+          await this.prisma.vehicle.update({
+            where: { id: existing.id },
+            data: {
+              supplierId,
+              vehicleTypeId: item.vehicleTypeId,
+              ownership: (item.ownership as VehicleOwnership) ?? existing.ownership,
+              ...(item.color && { color: item.color }),
+              ...(item.carBrand && { carBrand: item.carBrand }),
+              ...(item.carModel && { carModel: item.carModel }),
+              ...(item.makeYear !== undefined && { makeYear: item.makeYear }),
+              ...(item.luggageCapacity !== undefined && { luggageCapacity: item.luggageCapacity }),
+            },
+          });
+          updated++;
+          continue;
+        }
 
         await this.prisma.vehicle.create({
           data: {
@@ -972,7 +989,7 @@ export class SuppliersService {
       }
     }
 
-    return { imported, errors };
+    return { imported, updated, errors };
   }
 
   // ─── Driver Excel Export ──────────────────────────────────────

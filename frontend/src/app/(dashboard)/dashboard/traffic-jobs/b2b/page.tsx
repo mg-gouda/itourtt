@@ -38,7 +38,7 @@ import { LocationCombobox } from "@/components/location-combobox";
 import { B2BJobImportModal } from "@/components/b2b-job-import-modal";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate , localDateStr } from "@/lib/utils";
 
 /* ─────────── types ─────────── */
 
@@ -155,7 +155,7 @@ const defaultForm: FormState = {
   customerId: "",
   customerJobId: "",
   serviceType: "ARR",
-  jobDate: new Date().toISOString().split("T")[0],
+  jobDate: localDateStr(new Date()),
   adultCount: "1",
   childCount: "0",
   originAirportId: "",

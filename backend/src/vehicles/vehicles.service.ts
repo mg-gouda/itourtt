@@ -29,6 +29,18 @@ export class VehiclesService {
     });
   }
 
+  async updateVehicleType(id: string, dto: CreateVehicleTypeDto) {
+    const existing = await this.prisma.vehicleType.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Vehicle type not found');
+    return this.prisma.vehicleType.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        seatCapacity: dto.seatCapacity,
+      },
+    });
+  }
+
   // ─── Vehicles ─────────────────────────────────────────────
 
   async findAllVehicles(page: number, limit: number, vehicleTypeId?: string) {
@@ -92,6 +104,7 @@ export class VehiclesService {
         carModel: dto.carModel,
         makeYear: dto.makeYear,
         luggageCapacity: dto.luggageCapacity,
+        supplierId: dto.supplierId || null,
       },
       include: { vehicleType: true },
     });
@@ -153,6 +166,7 @@ export class VehiclesService {
         ...(dto.carModel !== undefined && { carModel: dto.carModel }),
         ...(dto.makeYear !== undefined && { makeYear: dto.makeYear }),
         ...(dto.luggageCapacity !== undefined && { luggageCapacity: dto.luggageCapacity }),
+        ...(dto.supplierId !== undefined && { supplierId: dto.supplierId || null }),
       },
       include: { vehicleType: true },
     });
@@ -402,7 +416,7 @@ export class VehiclesService {
 
   // ─── Bulk Import ──────────────────────────────────────────
 
-  async importFromExcel(fileBuffer: Buffer): Promise<{ imported: number; errors: string[] }> {
+  async importFromExcel(fileBuffer: Buffer, supplierId?: string): Promise<{ imported: number; updated: number; errors: string[] }> {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(fileBuffer as unknown as ExcelJS.Buffer);
 
@@ -659,22 +673,27 @@ export class VehiclesService {
         plateNumber: { in: deduped.map((v) => v.plateNumber) },
         deletedAt: null,
       },
-      select: { plateNumber: true },
+      select: { id: true, plateNumber: true },
     });
 
-    const existingPlates = new Set(existingVehicles.map((v) => v.plateNumber.toLowerCase()));
+    const existingPlateMap = new Map(
+      existingVehicles.map((v) => [v.plateNumber.toLowerCase(), v.id]),
+    );
     const toCreate: typeof deduped = [];
+    const toUpdate: { id: string; item: (typeof deduped)[0] }[] = [];
 
     for (const item of deduped) {
-      if (existingPlates.has(item.plateNumber.toLowerCase())) {
-        errors.push(`Plate "${item.plateNumber}" already exists — skipped`);
-        continue;
+      const existingId = existingPlateMap.get(item.plateNumber.toLowerCase());
+      if (existingId) {
+        toUpdate.push({ id: existingId, item });
+      } else {
+        toCreate.push(item);
       }
-      toCreate.push(item);
     }
 
-    // Bulk create in a transaction
-    if (toCreate.length > 0) {
+    // Bulk create + update in a transaction
+    let updated = 0;
+    if (toCreate.length > 0 || toUpdate.length > 0) {
       await this.prisma.$transaction(async (tx) => {
         for (const v of toCreate) {
           const created = await tx.vehicle.create({
@@ -687,6 +706,7 @@ export class VehiclesService {
               carModel: v.carModel,
               makeYear: v.makeYear,
               luggageCapacity: v.luggageCapacity,
+              supplierId: supplierId || null,
             },
           });
 
@@ -699,10 +719,28 @@ export class VehiclesService {
             });
           }
         }
+
+        // Update existing vehicles (assign supplier + update fields)
+        for (const { id, item } of toUpdate) {
+          await tx.vehicle.update({
+            where: { id },
+            data: {
+              vehicleTypeId: item.vehicleTypeId,
+              ...(item.ownership && { ownership: item.ownership }),
+              ...(item.color && { color: item.color }),
+              ...(item.carBrand && { carBrand: item.carBrand }),
+              ...(item.carModel && { carModel: item.carModel }),
+              ...(item.makeYear !== undefined && { makeYear: item.makeYear }),
+              ...(item.luggageCapacity !== undefined && { luggageCapacity: item.luggageCapacity }),
+              ...(supplierId !== undefined && { supplierId: supplierId || null }),
+            },
+          });
+          updated++;
+        }
       });
     }
 
-    return { imported: toCreate.length, errors };
+    return { imported: toCreate.length, updated, errors };
   }
 
   // ─── Vehicle Compliance ─────────────────────────────────

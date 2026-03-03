@@ -2,7 +2,6 @@ import {
   IsNotEmpty,
   IsString,
   IsEmail,
-  IsUUID,
   IsInt,
   Min,
   IsOptional,
@@ -57,23 +56,23 @@ export class CreateGuestBookingDto {
   @IsOptional()
   pickupTime?: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   fromZoneId!: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   toZoneId!: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   hotelId?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   originAirportId?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   destinationAirportId?: string;
 
@@ -93,7 +92,7 @@ export class CreateGuestBookingDto {
   @Min(1)
   paxCount!: number;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   vehicleTypeId!: string;
 

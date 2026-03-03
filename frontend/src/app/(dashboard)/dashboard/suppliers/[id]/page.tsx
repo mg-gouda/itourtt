@@ -456,7 +456,11 @@ export default function SupplierDetailPage({
       headers: { "Content-Type": "multipart/form-data" },
     });
     const result = res.data?.data;
-    toast.success(`Imported ${result?.created ?? 0} vehicles, ${result?.errors?.length ?? 0} errors`);
+    const parts = [];
+    if (result?.imported > 0) parts.push(`${result.imported} imported`);
+    if (result?.updated > 0) parts.push(`${result.updated} updated`);
+    if (result?.errors?.length > 0) parts.push(`${result.errors.length} errors`);
+    toast.success(parts.length > 0 ? `Vehicles: ${parts.join(", ")}` : "No changes");
     fetchVehicles();
   }
 

@@ -1,9 +1,9 @@
-import { IsOptional, IsString, IsUUID, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsDateString } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto.js';
 
 export class QueryActivityLogDto extends PaginationDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   userId?: string;
 
   @IsOptional()

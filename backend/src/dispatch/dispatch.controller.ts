@@ -47,7 +47,7 @@ export class DispatchController {
 
   @Patch('assignments/:id')
   async reassignJob(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: ReassignJobDto,
     @CurrentUser('id') userId: string,
     @CurrentUser('role') userRole: string,
@@ -59,7 +59,7 @@ export class DispatchController {
 
   @Delete('assignments/:id')
   async unassignJob(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @CurrentUser('role') userRole: string,
     @CurrentUser('roleSlug') roleSlug: string,
   ) {
@@ -105,7 +105,7 @@ export class DispatchController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('dispatch.assignment.unlock48h')
   async unlockJob(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @CurrentUser('id') userId: string,
   ) {
     const result = await this.dispatchService.unlockJob(id, userId);
@@ -115,7 +115,7 @@ export class DispatchController {
   @Post('jobs/:id/lock')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('dispatch.assignment.unlock48h')
-  async lockJob(@Param('id', ParseUUIDPipe) id: string) {
+  async lockJob(@Param('id') id: string) {
     const result = await this.dispatchService.lockJob(id);
     return new ApiResponse(result, 'Job locked for dispatch editing');
   }

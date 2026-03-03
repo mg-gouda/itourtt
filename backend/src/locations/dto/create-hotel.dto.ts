@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 
 export class CreateHotelDto {
   @IsNotEmpty()
@@ -6,7 +6,7 @@ export class CreateHotelDto {
   name!: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   zoneId!: string;
 
   @IsOptional()

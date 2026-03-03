@@ -101,14 +101,14 @@ export class SuppliersController {
 
   @Get(':id')
   @Permissions('suppliers')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     return this.suppliersService.findOne(id);
   }
 
   @Put(':id')
   @Permissions('suppliers.table.editButton')
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateSupplierDto,
   ) {
     return this.suppliersService.update(id, dto);
@@ -117,7 +117,7 @@ export class SuppliersController {
   @Patch(':id/status')
   @Roles('ADMIN')
   @Permissions('suppliers.table.toggleStatus')
-  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+  async toggleStatus(@Param('id') id: string) {
     const result = await this.suppliersService.toggleStatus(id);
     return new ApiResponse(result, 'Supplier status updated successfully');
   }
@@ -133,7 +133,7 @@ export class SuppliersController {
   @Delete(':id')
   @Roles('ADMIN')
   @Permissions('suppliers.table.deleteButton')
-  async delete(@Param('id', ParseUUIDPipe) id: string) {
+  async delete(@Param('id') id: string) {
     await this.suppliersService.delete(id);
     return new ApiResponse(null, 'Supplier deleted successfully');
   }
@@ -143,7 +143,7 @@ export class SuppliersController {
   @Post(':id/trip-prices')
   @Permissions('suppliers')
   async createTripPrice(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: CreateTripPriceDto,
   ) {
     return this.suppliersService.createTripPrice(id, dto);
@@ -151,14 +151,14 @@ export class SuppliersController {
 
   @Get(':id/trip-prices')
   @Permissions('suppliers')
-  async findTripPrices(@Param('id', ParseUUIDPipe) id: string) {
+  async findTripPrices(@Param('id') id: string) {
     return this.suppliersService.findTripPrices(id);
   }
 
   @Put('trip-prices/:priceId')
   @Permissions('suppliers')
   async updateTripPrice(
-    @Param('priceId', ParseUUIDPipe) priceId: string,
+    @Param('priceId') priceId: string,
     @Body() dto: CreateTripPriceDto,
   ) {
     return this.suppliersService.updateTripPrice(priceId, dto);
@@ -169,7 +169,7 @@ export class SuppliersController {
   @Get(':id/vehicles')
   @Permissions('suppliers')
   async findVehicles(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Query() pagination: PaginationDto,
     @Query('vehicleTypeId') vehicleTypeId?: string,
   ) {
@@ -182,7 +182,7 @@ export class SuppliersController {
   @Post(':id/vehicles')
   @Permissions('suppliers')
   async createVehicle(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: CreateSupplierVehicleDto,
   ) {
     const result = await this.suppliersService.createVehicle(id, dto);
@@ -192,8 +192,8 @@ export class SuppliersController {
   @Put(':id/vehicles/:vehicleId')
   @Permissions('suppliers')
   async updateVehicle(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('vehicleId', ParseUUIDPipe) vehicleId: string,
+    @Param('id') id: string,
+    @Param('vehicleId') vehicleId: string,
     @Body() dto: UpdateSupplierVehicleDto,
   ) {
     const result = await this.suppliersService.updateVehicle(id, vehicleId, dto);
@@ -203,8 +203,8 @@ export class SuppliersController {
   @Delete(':id/vehicles/:vehicleId')
   @Permissions('suppliers')
   async deleteVehicle(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('vehicleId', ParseUUIDPipe) vehicleId: string,
+    @Param('id') id: string,
+    @Param('vehicleId') vehicleId: string,
   ) {
     await this.suppliersService.deleteVehicle(id, vehicleId);
     return new ApiResponse(null, 'Vehicle removed successfully');
@@ -213,8 +213,8 @@ export class SuppliersController {
   @Patch(':id/vehicles/:vehicleId/status')
   @Permissions('suppliers')
   async toggleVehicleStatus(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('vehicleId', ParseUUIDPipe) vehicleId: string,
+    @Param('id') id: string,
+    @Param('vehicleId') vehicleId: string,
   ) {
     const result = await this.suppliersService.toggleVehicleStatus(id, vehicleId);
     return new ApiResponse(result, 'Vehicle status updated successfully');
@@ -225,7 +225,7 @@ export class SuppliersController {
   @Get(':id/drivers')
   @Permissions('suppliers')
   async findDrivers(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Query() pagination: PaginationDto,
   ) {
     const page = pagination.page ?? 1;
@@ -237,7 +237,7 @@ export class SuppliersController {
   @Post(':id/drivers')
   @Permissions('suppliers')
   async createDriver(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: CreateSupplierDriverDto,
   ) {
     const result = await this.suppliersService.createDriver(id, dto);
@@ -247,8 +247,8 @@ export class SuppliersController {
   @Put(':id/drivers/:driverId')
   @Permissions('suppliers')
   async updateDriver(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('driverId', ParseUUIDPipe) driverId: string,
+    @Param('id') id: string,
+    @Param('driverId') driverId: string,
     @Body() dto: UpdateSupplierDriverDto,
   ) {
     const result = await this.suppliersService.updateDriver(id, driverId, dto);
@@ -258,8 +258,8 @@ export class SuppliersController {
   @Delete(':id/drivers/:driverId')
   @Permissions('suppliers')
   async deleteDriver(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('driverId', ParseUUIDPipe) driverId: string,
+    @Param('id') id: string,
+    @Param('driverId') driverId: string,
   ) {
     await this.suppliersService.deleteDriver(id, driverId);
     return new ApiResponse(null, 'Driver removed successfully');
@@ -268,8 +268,8 @@ export class SuppliersController {
   @Patch(':id/drivers/:driverId/status')
   @Permissions('suppliers')
   async toggleDriverStatus(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('driverId', ParseUUIDPipe) driverId: string,
+    @Param('id') id: string,
+    @Param('driverId') driverId: string,
   ) {
     const result = await this.suppliersService.toggleDriverStatus(id, driverId);
     return new ApiResponse(result, 'Driver status updated successfully');
@@ -279,7 +279,7 @@ export class SuppliersController {
 
   @Get(':id/price-list')
   @Permissions('suppliers')
-  async getPriceList(@Param('id', ParseUUIDPipe) id: string) {
+  async getPriceList(@Param('id') id: string) {
     const result = await this.suppliersService.getPriceList(id);
     return new ApiResponse(result);
   }
@@ -287,7 +287,7 @@ export class SuppliersController {
   @Post(':id/price-list')
   @Permissions('suppliers')
   async upsertPriceList(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: BulkPriceListDto,
   ) {
     const result = await this.suppliersService.upsertPriceItems(id, dto);
@@ -297,8 +297,8 @@ export class SuppliersController {
   @Delete(':id/price-list/:priceItemId')
   @Permissions('suppliers')
   async deletePriceItem(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('priceItemId', ParseUUIDPipe) priceItemId: string,
+    @Param('id') id: string,
+    @Param('priceItemId') priceItemId: string,
   ) {
     await this.suppliersService.deletePriceItem(id, priceItemId);
     return new ApiResponse(null, 'Price item deleted successfully');
@@ -309,7 +309,7 @@ export class SuppliersController {
   @Get(':id/vehicles/export')
   @Permissions('suppliers')
   async exportVehicles(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Res() res: Response,
   ) {
     const buffer = await this.suppliersService.exportVehiclesToExcel(id);
@@ -323,7 +323,7 @@ export class SuppliersController {
   @Get(':id/vehicles/template')
   @Permissions('suppliers')
   async getVehicleTemplate(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Res() res: Response,
   ) {
     const buffer = await this.suppliersService.generateVehicleImportTemplate(id);
@@ -338,7 +338,7 @@ export class SuppliersController {
   @Permissions('suppliers')
   @UseInterceptors(FileInterceptor('file'))
   async importVehicles(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
     const result = await this.suppliersService.importVehiclesFromExcel(id, file.buffer);
@@ -350,7 +350,7 @@ export class SuppliersController {
   @Get(':id/drivers/export')
   @Permissions('suppliers')
   async exportDrivers(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Res() res: Response,
   ) {
     const buffer = await this.suppliersService.exportDriversToExcel(id);
@@ -364,7 +364,7 @@ export class SuppliersController {
   @Get(':id/drivers/template')
   @Permissions('suppliers')
   async getDriverTemplate(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Res() res: Response,
   ) {
     const buffer = await this.suppliersService.generateDriverImportTemplate(id);
@@ -379,7 +379,7 @@ export class SuppliersController {
   @Permissions('suppliers')
   @UseInterceptors(FileInterceptor('file'))
   async importDrivers(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
     const result = await this.suppliersService.importDriversFromExcel(id, file.buffer);
@@ -391,7 +391,7 @@ export class SuppliersController {
   @Get(':id/price-list/export')
   @Permissions('suppliers')
   async exportPriceList(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Res() res: Response,
   ) {
     const buffer = await this.suppliersService.exportPriceListToExcel(id);
@@ -405,7 +405,7 @@ export class SuppliersController {
   @Get(':id/price-list/template')
   @Permissions('suppliers')
   async getPriceListTemplate(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Res() res: Response,
   ) {
     const buffer = await this.suppliersService.generatePriceListTemplate(id);
@@ -420,7 +420,7 @@ export class SuppliersController {
   @Permissions('suppliers')
   @UseInterceptors(FileInterceptor('file'))
   async importPriceList(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
     const result = await this.suppliersService.importPriceListFromExcel(id, file.buffer);
@@ -433,7 +433,7 @@ export class SuppliersController {
   @Roles('ADMIN')
   @Permissions('suppliers.table.createAccount')
   async createAccount(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: { password: string },
   ) {
     const result = await this.suppliersService.createUserAccount(id, dto);
@@ -444,7 +444,7 @@ export class SuppliersController {
   @Roles('ADMIN')
   @Permissions('suppliers.table.resetPassword')
   async resetPassword(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: { password: string },
   ) {
     const result = await this.suppliersService.resetPassword(id, dto.password);

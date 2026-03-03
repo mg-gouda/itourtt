@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { formatDate } from "@/lib/utils";
+import { formatDate , localDateStr } from "@/lib/utils";
 
 interface HistoryJob {
   id: string;
@@ -75,7 +75,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function RepHistoryPage() {
   const t = useT();
   const locale = useLocaleId();
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateStr(new Date());
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
   const [jobs, setJobs] = useState<HistoryJob[]>([]);

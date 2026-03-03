@@ -26,6 +26,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StepIndicator } from '@/components/public/step-indicator';
 import { useBookingStore } from '@/stores/booking-store';
+import { localDateStr } from "@/lib/utils";
 
 const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api`;
 const STEPS = ['Search', 'Details', 'Payment', 'Confirmation'];
@@ -363,7 +364,7 @@ export default function BookSearchPage() {
                 type="date"
                 value={store.jobDate}
                 onChange={(e) => store.setField('jobDate', e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                min={localDateStr(new Date())}
               />
             </div>
             <div className="space-y-1.5">

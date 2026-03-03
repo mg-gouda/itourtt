@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateAirportDto {
   @IsNotEmpty()
@@ -11,6 +11,6 @@ export class CreateAirportDto {
   code!: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   countryId!: string;
 }

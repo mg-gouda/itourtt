@@ -48,7 +48,7 @@ export class ImportTemplatesController {
 
   @Get()
   @Permissions('customers.detail.importTemplates')
-  async findAll(@Param('customerId', ParseUUIDPipe) customerId: string) {
+  async findAll(@Param('customerId') customerId: string) {
     const templates = await this.importTemplatesService.findAllByCustomer(customerId);
     return new ApiResponse(templates);
   }
@@ -70,7 +70,7 @@ export class ImportTemplatesController {
     }),
   )
   async create(
-    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Param('customerId') customerId: string,
     @Body() dto: CreateTemplateDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
@@ -91,8 +91,8 @@ export class ImportTemplatesController {
   @Delete(':id')
   @Permissions('customers.detail.importTemplates.delete')
   async remove(
-    @Param('customerId', ParseUUIDPipe) customerId: string,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('customerId') customerId: string,
+    @Param('id') id: string,
   ) {
     const result = await this.importTemplatesService.remove(customerId, id);
     return new ApiResponse(result);

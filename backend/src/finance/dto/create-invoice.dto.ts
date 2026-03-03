@@ -1,6 +1,5 @@
 import {
   IsNotEmpty,
-  IsUUID,
   IsNumber,
   IsPositive,
   IsOptional,
@@ -15,7 +14,7 @@ import {
 import { Type } from 'class-transformer';
 
 export class InvoiceLineDto {
-  @IsUUID()
+  @IsString()
   @IsOptional()
   trafficJobId?: string;
 
@@ -46,7 +45,7 @@ export class InvoiceLineDto {
 }
 
 export class CreateInvoiceDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   agentId!: string;
 

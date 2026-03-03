@@ -1,6 +1,5 @@
 import {
   IsNotEmpty,
-  IsUUID,
   IsNumber,
   IsPositive,
   IsOptional,
@@ -10,7 +9,7 @@ import {
 } from 'class-validator';
 
 export class CreatePaymentDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   agentInvoiceId!: string;
 

@@ -1,16 +1,16 @@
-import { IsOptional, IsString, IsUUID, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, ValidateIf } from 'class-validator';
 
 export class ReassignJobDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   vehicleId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   driverId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   repId?: string;
 
   @IsOptional()
@@ -24,6 +24,10 @@ export class ReassignJobDto {
   @IsOptional()
   @IsString()
   remarks?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  allowTypeMismatch?: boolean;
 
   /** At least one field must be provided – validated in the service layer. */
   @ValidateIf((o) => !o.vehicleId && !o.driverId && !o.repId && !o.externalDriverName && !o.remarks)

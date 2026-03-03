@@ -31,7 +31,7 @@ export class GuestBookingsController {
 
   @Get(':id')
   @Permissions('guest-bookings')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     const booking = await this.guestBookingsService.findOne(id);
     return new ApiResponse(booking);
   }
@@ -40,7 +40,7 @@ export class GuestBookingsController {
   @Permissions('guest-bookings.convert')
   @Roles('ADMIN', 'DISPATCHER')
   async convertToJob(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @CurrentUser('id') userId: string,
   ) {
     const job = await this.guestBookingsService.convertToJob(id, userId);
@@ -50,7 +50,7 @@ export class GuestBookingsController {
   @Patch(':id/cancel')
   @Permissions('guest-bookings.cancel')
   @Roles('ADMIN')
-  async cancelBooking(@Param('id', ParseUUIDPipe) id: string) {
+  async cancelBooking(@Param('id') id: string) {
     const result = await this.guestBookingsService.cancelBooking(id);
     return new ApiResponse(result);
   }

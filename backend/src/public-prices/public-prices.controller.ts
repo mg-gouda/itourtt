@@ -17,7 +17,7 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 class PublicPriceFilterDto {
   @IsOptional()
@@ -25,15 +25,15 @@ class PublicPriceFilterDto {
   serviceType?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   fromZoneId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   toZoneId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   vehicleTypeId?: string;
 }
 

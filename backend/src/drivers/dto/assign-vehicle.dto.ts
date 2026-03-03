@@ -1,7 +1,7 @@
-import { IsUUID, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean } from 'class-validator';
 
 export class AssignVehicleDto {
-  @IsUUID()
+  @IsString()
   vehicleId!: string;
 
   @IsOptional()

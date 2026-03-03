@@ -1,5 +1,5 @@
 import {
-  IsNotEmpty, IsOptional, IsString, IsUUID, IsDateString,
+  IsNotEmpty, IsOptional, IsString, IsDateString,
   IsInt, IsIn, IsBoolean, IsNumber, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -32,7 +32,7 @@ export class CreateJobDto {
   bookingChannel!: 'ONLINE' | 'B2B';
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   agentId?: string;
 
   @IsOptional()
@@ -44,7 +44,7 @@ export class CreateJobDto {
   customerJobId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   customerId?: string;
 
   @IsNotEmpty()
@@ -67,28 +67,28 @@ export class CreateJobDto {
 
   // Origin – exactly one must be provided
   @IsOptional()
-  @IsUUID()
+  @IsString()
   originAirportId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   originZoneId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   originHotelId?: string;
 
   // Destination – exactly one must be provided
   @IsOptional()
-  @IsUUID()
+  @IsString()
   destinationAirportId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   destinationZoneId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   destinationHotelId?: string;
 
   @IsOptional()
@@ -150,6 +150,19 @@ export class CreateJobDto {
   @IsOptional()
   @IsIn(['EGP', 'USD', 'EUR'])
   collectionCurrency?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  transferPrice?: number;
+
+  @IsOptional()
+  @IsIn(['EGP', 'USD', 'EUR', 'GBP', 'SAR'])
+  transferPriceCurrency?: string;
+
+  @IsOptional()
+  @IsString()
+  requestedVehicleTypeId?: string;
 
   @IsOptional()
   @IsString()

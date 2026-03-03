@@ -44,6 +44,7 @@ export class DispatchService {
       destinationHotel: { include: { zone: true } },
       fromZone: true,
       toZone: true,
+      requestedVehicleType: true,
       flight: true,
       assignment: {
         include: {
@@ -132,6 +133,21 @@ export class DispatchService {
     if (job.paxCount > vehicle.vehicleType.seatCapacity) {
       throw new BadRequestException(
         `Pax count (${job.paxCount}) exceeds vehicle capacity (${vehicle.vehicleType.seatCapacity})`,
+      );
+    }
+
+    // 3b. Vehicle type mismatch check (requested vs assigned)
+    if (
+      job.requestedVehicleTypeId &&
+      vehicle.vehicleTypeId !== job.requestedVehicleTypeId &&
+      !dto.allowTypeMismatch
+    ) {
+      const requestedType = await this.prisma.vehicleType.findUnique({
+        where: { id: job.requestedVehicleTypeId },
+        select: { name: true },
+      });
+      throw new ConflictException(
+        `Vehicle type mismatch: requested "${requestedType?.name || 'Unknown'}", got "${vehicle.vehicleType.name}"`,
       );
     }
 
@@ -326,6 +342,21 @@ export class DispatchService {
       if (job.paxCount > vehicle.vehicleType.seatCapacity) {
         throw new BadRequestException(
           `Pax count (${job.paxCount}) exceeds vehicle capacity (${vehicle.vehicleType.seatCapacity})`,
+        );
+      }
+
+      // Vehicle type mismatch check (requested vs assigned)
+      if (
+        job.requestedVehicleTypeId &&
+        vehicle.vehicleTypeId !== job.requestedVehicleTypeId &&
+        !dto.allowTypeMismatch
+      ) {
+        const requestedType = await this.prisma.vehicleType.findUnique({
+          where: { id: job.requestedVehicleTypeId },
+          select: { name: true },
+        });
+        throw new ConflictException(
+          `Vehicle type mismatch: requested "${requestedType?.name || 'Unknown'}", got "${vehicle.vehicleType.name}"`,
         );
       }
 

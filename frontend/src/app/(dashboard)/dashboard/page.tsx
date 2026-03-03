@@ -12,6 +12,7 @@ import {
 import { Card } from "@/components/ui/card";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { localDateStr } from "@/lib/utils";
 
 interface DashboardStats {
   todayJobs: number;
@@ -65,7 +66,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const today = new Date().toISOString().split("T")[0];
+        const today = localDateStr(new Date());
         const [jobsRes, vehiclesRes] = await Promise.allSettled([
           api.get(`/dispatch/day?date=${today}`),
           api.get("/vehicles/types"),

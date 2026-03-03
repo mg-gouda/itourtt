@@ -39,7 +39,7 @@ export class TrafficJobsController {
   @Get(':id')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
   @Permissions('traffic-jobs')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     const job = await this.trafficJobsService.findOne(id);
     return new ApiResponse(job);
   }
@@ -70,7 +70,7 @@ export class TrafficJobsController {
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
   @Permissions('traffic-jobs.online.createJob')
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateJobDto,
     @CurrentUser('id') userId: string,
   ) {
@@ -82,7 +82,7 @@ export class TrafficJobsController {
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
   @Permissions('traffic-jobs.online.table.statusFilter')
   async updateStatus(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateStatusDto,
     @CurrentUser('id') userId: string,
   ) {
@@ -93,7 +93,7 @@ export class TrafficJobsController {
   @Delete(':id')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
   @Permissions('traffic-jobs.online.createJob')
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
+  async remove(@Param('id') id: string) {
     const result = await this.trafficJobsService.remove(id);
     return new ApiResponse(result, 'Traffic job deleted successfully');
   }

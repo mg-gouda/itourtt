@@ -108,7 +108,7 @@ export class RepsController {
 
   @Get(':id')
   @Permissions('reps')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     const rep = await this.repsService.findOne(id);
     return new ApiResponse(rep);
   }
@@ -117,7 +117,7 @@ export class RepsController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('reps.table.editButton')
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateRepDto,
   ) {
     const rep = await this.repsService.update(id, dto);
@@ -127,7 +127,7 @@ export class RepsController {
   @Patch(':id/status')
   @Roles('ADMIN')
   @Permissions('reps.table.toggleStatus')
-  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+  async toggleStatus(@Param('id') id: string) {
     const result = await this.repsService.toggleStatus(id);
     return new ApiResponse(result, 'Rep status updated successfully');
   }
@@ -135,7 +135,7 @@ export class RepsController {
   @Delete(':id')
   @Roles('ADMIN')
   @Permissions('reps.table.deleteButton')
-  async softDelete(@Param('id', ParseUUIDPipe) id: string) {
+  async softDelete(@Param('id') id: string) {
     const result = await this.repsService.softDelete(id);
     return new ApiResponse(result, 'Rep removed successfully');
   }
@@ -144,7 +144,7 @@ export class RepsController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('reps.table.editButton')
   async assignZone(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: AssignZoneDto,
   ) {
     const assignment = await this.repsService.assignZone(id, dto);
@@ -155,8 +155,8 @@ export class RepsController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('reps.table.editButton')
   async unassignZone(
-    @Param('repId', ParseUUIDPipe) repId: string,
-    @Param('zoneId', ParseUUIDPipe) zoneId: string,
+    @Param('repId') repId: string,
+    @Param('zoneId') zoneId: string,
   ) {
     const result = await this.repsService.unassignZone(repId, zoneId);
     return new ApiResponse(result, 'Zone unassigned from rep successfully');
@@ -167,7 +167,7 @@ export class RepsController {
   @Permissions('reps.table.uploadAttachment')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadAttachment(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @UploadedFile() file: any,
   ) {
     const url = '/uploads/' + file.filename;
@@ -179,7 +179,7 @@ export class RepsController {
   @Roles('ADMIN')
   @Permissions('reps.table.createAccount')
   async createAccount(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: { password: string },
   ) {
     const result = await this.repsService.createUserAccount(id, dto);
@@ -190,7 +190,7 @@ export class RepsController {
   @Roles('ADMIN')
   @Permissions('reps.table.resetPassword')
   async resetPassword(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: { password: string },
   ) {
     const result = await this.repsService.resetPassword(id, dto.password);

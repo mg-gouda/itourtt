@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { localDateStr } from "@/lib/utils";
 
 type LockTab = "dispatcher" | "driver" | "rep" | "supplier";
 
@@ -50,8 +51,8 @@ function getDefaultDateRange() {
   const from = new Date();
   from.setDate(from.getDate() - 7);
   return {
-    dateFrom: from.toISOString().split("T")[0],
-    dateTo: to.toISOString().split("T")[0],
+    dateFrom: localDateStr(from),
+    dateTo: localDateStr(to),
   };
 }
 

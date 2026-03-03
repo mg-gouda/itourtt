@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsArray,
   ValidateNested,
-  IsUUID,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -15,13 +14,13 @@ export class PublicPriceItemDto {
   @IsNotEmpty()
   serviceType!: string;
 
-  @IsUUID()
+  @IsString()
   fromZoneId!: string;
 
-  @IsUUID()
+  @IsString()
   toZoneId!: string;
 
-  @IsUUID()
+  @IsString()
   vehicleTypeId!: string;
 
   @IsNumber()

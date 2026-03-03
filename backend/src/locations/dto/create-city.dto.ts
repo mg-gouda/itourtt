@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateCityDto {
   @IsNotEmpty()
@@ -6,6 +6,6 @@ export class CreateCityDto {
   name!: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   airportId!: string;
 }

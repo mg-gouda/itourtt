@@ -1,6 +1,6 @@
-import { IsUUID } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class AssignZoneDto {
-  @IsUUID()
+  @IsString()
   zoneId!: string;
 }

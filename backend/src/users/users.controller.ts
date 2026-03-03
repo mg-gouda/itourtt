@@ -127,7 +127,7 @@ export class UsersController {
   @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions('users')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
@@ -140,7 +140,7 @@ export class UsersController {
   @Roles('ADMIN')
   @Permissions('users.table.editButton')
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateUserDto,
   ) {
     return this.usersService.update(id, dto);
@@ -155,7 +155,7 @@ export class UsersController {
   @Roles('ADMIN')
   @Permissions('users.table.changeRole')
   async updateRole(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateRoleDto,
   ) {
     return this.usersService.updateRole(id, dto.role);
@@ -170,7 +170,7 @@ export class UsersController {
   @Roles('ADMIN')
   @Permissions('users.table.editButton')
   async changePassword(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: ChangePasswordDto,
   ) {
     return this.usersService.changePassword(id, dto.newPassword);
@@ -184,7 +184,7 @@ export class UsersController {
   @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions('users.table.deactivate')
-  async deactivate(@Param('id', ParseUUIDPipe) id: string) {
+  async deactivate(@Param('id') id: string) {
     return this.usersService.deactivate(id);
   }
 }

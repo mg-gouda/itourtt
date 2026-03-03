@@ -103,7 +103,7 @@ export class AgentsController {
 
   @Get(':id')
   @Permissions('agents')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     const agent = await this.agentsService.findOne(id);
     return new ApiResponse(agent);
   }
@@ -112,7 +112,7 @@ export class AgentsController {
   @Roles('ADMIN', 'AGENT_MANAGER')
   @Permissions('agents.table.editButton')
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateAgentDto,
   ) {
     const agent = await this.agentsService.update(id, dto);
@@ -122,7 +122,7 @@ export class AgentsController {
   @Patch(':id/status')
   @Roles('ADMIN')
   @Permissions('agents.table.toggleStatus')
-  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+  async toggleStatus(@Param('id') id: string) {
     const result = await this.agentsService.toggleStatus(id);
     return new ApiResponse(result, 'Agent status updated successfully');
   }
@@ -138,14 +138,14 @@ export class AgentsController {
   @Delete(':id')
   @Roles('ADMIN')
   @Permissions('agents.table.deleteButton')
-  async delete(@Param('id', ParseUUIDPipe) id: string) {
+  async delete(@Param('id') id: string) {
     await this.agentsService.delete(id);
     return new ApiResponse(null, 'Agent deleted successfully');
   }
 
   @Get(':id/credit-status')
   @Permissions('agents')
-  async getCreditStatus(@Param('id', ParseUUIDPipe) id: string) {
+  async getCreditStatus(@Param('id') id: string) {
     const status = await this.agentsService.getCreditStatus(id);
     return new ApiResponse(status);
   }
@@ -154,7 +154,7 @@ export class AgentsController {
   @Roles('ADMIN', 'AGENT_MANAGER')
   @Permissions('agents.table.editButton')
   async updateCredit(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateCreditDto,
   ) {
     const credit = await this.agentsService.updateCredit(id, dto);
@@ -165,7 +165,7 @@ export class AgentsController {
   @Roles('ADMIN', 'AGENT_MANAGER')
   @Permissions('agents.table.editButton')
   async updateInvoiceCycle(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateInvoiceCycleDto,
   ) {
     const cycle = await this.agentsService.updateInvoiceCycle(id, dto);
@@ -176,7 +176,7 @@ export class AgentsController {
   @Roles('ADMIN', 'AGENT_MANAGER')
   @Permissions('agents.table.editButton')
   async createDocument(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: CreateDocumentDto,
   ) {
     const document = await this.agentsService.createDocument(id, dto);
@@ -185,7 +185,7 @@ export class AgentsController {
 
   @Get(':id/documents')
   @Permissions('agents')
-  async findDocuments(@Param('id', ParseUUIDPipe) id: string) {
+  async findDocuments(@Param('id') id: string) {
     const documents = await this.agentsService.findDocuments(id);
     return new ApiResponse(documents);
   }
@@ -194,7 +194,7 @@ export class AgentsController {
 
   @Get(':id/price-list')
   @Permissions('agents')
-  async getPriceList(@Param('id', ParseUUIDPipe) id: string) {
+  async getPriceList(@Param('id') id: string) {
     const items = await this.agentsService.getPriceList(id);
     return new ApiResponse(items);
   }
@@ -203,7 +203,7 @@ export class AgentsController {
   @Roles('ADMIN', 'AGENT_MANAGER')
   @Permissions('agents.table.editButton')
   async upsertPriceList(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: BulkAgentPriceListDto,
   ) {
     const items = await this.agentsService.upsertPriceItems(id, dto);
@@ -214,8 +214,8 @@ export class AgentsController {
   @Roles('ADMIN', 'AGENT_MANAGER')
   @Permissions('agents.table.editButton')
   async deletePriceItem(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('priceItemId', ParseUUIDPipe) priceItemId: string,
+    @Param('id') id: string,
+    @Param('priceItemId') priceItemId: string,
   ) {
     await this.agentsService.deletePriceItem(id, priceItemId);
     return new ApiResponse(null, 'Price item deleted successfully');

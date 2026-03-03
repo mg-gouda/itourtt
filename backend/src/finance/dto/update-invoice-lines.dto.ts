@@ -9,16 +9,15 @@ import {
   Min,
   Max,
   IsOptional,
-  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateInvoiceLineItemDto {
-  @IsUUID()
+  @IsString()
   @IsOptional()
   id?: string;
 
-  @IsUUID()
+  @IsString()
   @IsOptional()
   trafficJobId?: string;
 

@@ -1,4 +1,4 @@
-import { IsOptional, IsDateString, IsUUID, IsIn, IsString } from 'class-validator';
+import { IsOptional, IsDateString, IsIn, IsString } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto.js';
 
 export class JobFilterDto extends PaginationDto {
@@ -11,7 +11,7 @@ export class JobFilterDto extends PaginationDto {
   status?: 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   agentId?: string;
 
   @IsOptional()

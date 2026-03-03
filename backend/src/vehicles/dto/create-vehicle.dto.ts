@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID, IsOptional, IsIn, IsInt, Min, Max } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsIn, IsInt, Min, Max } from 'class-validator';
 
 export class CreateVehicleDto {
   @IsNotEmpty()
@@ -6,12 +6,16 @@ export class CreateVehicleDto {
   plateNumber!: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   vehicleTypeId!: string;
 
   @IsOptional()
   @IsIn(['OWNED', 'RENTED', 'CONTRACTED'])
   ownership?: 'OWNED' | 'RENTED' | 'CONTRACTED';
+
+  @IsOptional()
+  @IsString()
+  supplierId?: string;
 
   @IsOptional()
   @IsString()

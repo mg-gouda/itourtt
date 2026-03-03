@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { formatDate as utilsFormatDate } from "@/lib/utils";
+import { formatDate as utilsFormatDate , localDateStr } from "@/lib/utils";
 
 interface Driver {
   id: string;
@@ -195,7 +195,7 @@ export default function DriversPage() {
     setLicenseNumber(driver.licenseNumber || "");
     setLicenseExpiryDate(
       driver.licenseExpiryDate
-        ? new Date(driver.licenseExpiryDate).toISOString().split("T")[0]
+        ? localDateStr(new Date(driver.licenseExpiryDate))
         : ""
     );
     setEditDialogOpen(true);
@@ -307,7 +307,7 @@ export default function DriversPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      const date = new Date().toISOString().split("T")[0];
+      const date = localDateStr(new Date());
       link.setAttribute("download", `drivers_${date}.xlsx`);
       document.body.appendChild(link);
       link.click();

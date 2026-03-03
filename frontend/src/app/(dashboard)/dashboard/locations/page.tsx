@@ -35,6 +35,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { useAuthStore } from "@/stores/auth-store";
+import { localDateStr } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────
 interface HotelNode {
@@ -440,7 +441,7 @@ export default function LocationsPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      const date = new Date().toISOString().split("T")[0];
+      const date = localDateStr(new Date());
       link.setAttribute("download", `locations_${date}.xlsx`);
       document.body.appendChild(link);
       link.click();

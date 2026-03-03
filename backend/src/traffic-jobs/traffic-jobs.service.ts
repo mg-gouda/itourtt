@@ -43,6 +43,7 @@ export class TrafficJobsService {
     destinationHotel: { include: { zone: true } },
     fromZone: true,
     toZone: true,
+    requestedVehicleType: true,
     flight: true,
     createdBy: { select: { id: true, name: true } },
     assignment: {
@@ -186,6 +187,9 @@ export class TrafficJobsService {
           collectionRequired: dto.collectionRequired ?? false,
           collectionAmount: dto.collectionRequired ? dto.collectionAmount : null,
           collectionCurrency: dto.collectionRequired ? (dto.collectionCurrency as any || 'EGP') : 'EGP',
+          transferPrice: dto.transferPrice ?? null,
+          transferPriceCurrency: dto.transferPriceCurrency as any ?? 'EGP',
+          requestedVehicleTypeId: dto.requestedVehicleTypeId ?? null,
           custRepName: dto.custRepName ?? null,
           custRepMobile: dto.custRepMobile ?? null,
           custRepMeetingPoint: dto.custRepMeetingPoint ?? null,
@@ -282,6 +286,9 @@ export class TrafficJobsService {
     if (dto.clientMobile !== undefined && dto.clientMobile !== job.clientMobile) changedFields.push('clientMobile');
     if (dto.pickUpTime !== undefined) changedFields.push('pickUpTime');
     if (dto.notes !== undefined && dto.notes !== job.notes) changedFields.push('notes');
+    if (dto.transferPrice !== undefined) changedFields.push('transferPrice');
+    if (dto.transferPriceCurrency !== undefined) changedFields.push('transferPriceCurrency');
+    if (dto.requestedVehicleTypeId !== undefined) changedFields.push('requestedVehicleTypeId');
     if (hasOriginUpdate) changedFields.push('originAirportId', 'originZoneId', 'originHotelId');
     if (hasDestUpdate) changedFields.push('destinationAirportId', 'destinationZoneId', 'destinationHotelId');
     if (dto.flight) changedFields.push('flight');
@@ -321,6 +328,9 @@ export class TrafficJobsService {
       }
       if (dto.collectionAmount !== undefined) data.collectionAmount = dto.collectionAmount;
       if (dto.collectionCurrency !== undefined) data.collectionCurrency = dto.collectionCurrency;
+      if (dto.transferPrice !== undefined) data.transferPrice = dto.transferPrice ?? null;
+      if (dto.transferPriceCurrency !== undefined) data.transferPriceCurrency = dto.transferPriceCurrency;
+      if (dto.requestedVehicleTypeId !== undefined) data.requestedVehicleTypeId = dto.requestedVehicleTypeId || null;
       if (dto.custRepName !== undefined) data.custRepName = dto.custRepName;
       if (dto.custRepMobile !== undefined) data.custRepMobile = dto.custRepMobile;
       if (dto.custRepMeetingPoint !== undefined) data.custRepMeetingPoint = dto.custRepMeetingPoint;

@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/select";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { formatDate } from "@/lib/utils";
+import { formatDate , localDateStr } from "@/lib/utils";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
@@ -269,7 +269,7 @@ export default function FinancePage() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().split("T")[0]
+    localDateStr(new Date())
   );
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
@@ -284,12 +284,12 @@ export default function FinancePage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [issueDate, setIssueDate] = useState(
-    new Date().toISOString().split("T")[0]
+    localDateStr(new Date())
   );
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toISOString().split("T")[0];
+    return localDateStr(d);
   });
   const [createLines, setCreateLines] = useState<EditableLine[]>([
     { description: "", quantity: 1, unitPrice: 0, taxRate: 0, taxAmount: 0, lineTotal: 0 },
@@ -559,7 +559,7 @@ export default function FinancePage() {
     setPaymentInvoice(inv);
     setPaymentAmount("");
     setPaymentMethod("CASH");
-    setPaymentDate(new Date().toISOString().split("T")[0]);
+    setPaymentDate(localDateStr(new Date()));
     setPaymentRef("");
     setPaymentOpen(true);
   }
@@ -609,7 +609,7 @@ export default function FinancePage() {
       const url = URL.createObjectURL(data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `odoo-${type}-${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.download = `odoo-${type}-${localDateStr(new Date())}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(`${type} ${t("finance.exportDownloaded")}`);
@@ -631,16 +631,16 @@ export default function FinancePage() {
     setCreateLines([
       { description: "", quantity: 1, unitPrice: 0, taxRate: 0, taxAmount: 0, lineTotal: 0 },
     ]);
-    setIssueDate(new Date().toISOString().split("T")[0]);
+    setIssueDate(localDateStr(new Date()));
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    setDueDate(d.toISOString().split("T")[0]);
+    setDueDate(localDateStr(d));
 
     // Default job period: first day of current month to today
     const now = new Date();
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    setAgentJobDateFrom(firstOfMonth.toISOString().split("T")[0]);
-    setAgentJobDateTo(now.toISOString().split("T")[0]);
+    setAgentJobDateFrom(localDateStr(firstOfMonth));
+    setAgentJobDateTo(localDateStr(now));
 
     setOptionsLoading(true);
     const [agentRes, customerRes, jobRes] = await Promise.allSettled([
@@ -1779,7 +1779,7 @@ export default function FinancePage() {
                           if (agent?.creditDays) {
                             const d = new Date(issueDate);
                             d.setDate(d.getDate() + agent.creditDays);
-                            setDueDate(d.toISOString().split("T")[0]);
+                            setDueDate(localDateStr(d));
                           }
                         }}
                       >
@@ -1990,7 +1990,7 @@ export default function FinancePage() {
                         if (cust?.creditDays) {
                           const d = new Date(issueDate);
                           d.setDate(d.getDate() + cust.creditDays);
-                          setDueDate(d.toISOString().split("T")[0]);
+                          setDueDate(localDateStr(d));
                         }
                       }}
                     >

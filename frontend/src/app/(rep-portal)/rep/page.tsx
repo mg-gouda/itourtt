@@ -33,7 +33,7 @@ import {
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { formatDate } from "@/lib/utils";
+import { formatDate , localDateStr } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
 
 interface RepJob {
@@ -123,12 +123,12 @@ export default function RepDashboardPage() {
     jobId: string;
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
 
   const shiftDate = (days: number) => {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + days);
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate(localDateStr(d));
   };
 
   const fetchJobs = useCallback(async () => {
@@ -267,7 +267,7 @@ export default function RepDashboardPage() {
           variant="ghost"
           size="sm"
           className="text-xs"
-          onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])}
+          onClick={() => setSelectedDate(localDateStr(new Date()))}
         >
           {t("portal.today")}
         </Button>

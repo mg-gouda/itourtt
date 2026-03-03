@@ -1,5 +1,5 @@
 import {
-  IsUUID,
+  IsString,
   IsNumber,
   IsOptional,
   IsDateString,
@@ -29,13 +29,13 @@ export class AgentPriceItemDto {
   @IsEnum(ServiceTypeEnum)
   serviceType!: string;
 
-  @IsUUID()
+  @IsString()
   fromZoneId!: string;
 
-  @IsUUID()
+  @IsString()
   toZoneId!: string;
 
-  @IsUUID()
+  @IsString()
   vehicleTypeId!: string;
 
   @IsNumber()

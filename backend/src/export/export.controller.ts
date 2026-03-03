@@ -154,7 +154,7 @@ export class ExportController {
   @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
   @Permissions('reports.agentStatement')
   async exportAgentStatement(
-    @Param('agentId', ParseUUIDPipe) agentId: string,
+    @Param('agentId') agentId: string,
     @Query('from') from: string,
     @Query('to') to: string,
     @Res() res: express.Response,

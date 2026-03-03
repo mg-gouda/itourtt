@@ -23,6 +23,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
   Table,
   TableBody,
   TableCell,
@@ -32,7 +40,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { formatDate } from "@/lib/utils";
+import { formatDate , localDateStr } from "@/lib/utils";
 import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 
@@ -95,6 +103,8 @@ export default function TrafficJobsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [search, setSearch] = useState("");
   const [generatingSigns, setGeneratingSigns] = useState(false);
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [signDate, setSignDate] = useState(localDateStr(new Date()));
 
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
@@ -129,15 +139,19 @@ export default function TrafficJobsPage() {
   }, [fetchJobs]);
 
   const handlePrintSigns = async () => {
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    if (!signDate) {
+      toast.error(t("jobs.selectDateForSigns"));
+      return;
+    }
     setGeneratingSigns(true);
     try {
-      const res = await api.get(`/export/odoo/client-signs?date=${tomorrow}`, {
+      const res = await api.get(`/export/odoo/client-signs?date=${signDate}`, {
         responseType: "blob",
       });
       const blob = new Blob([res.data], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
+      setSignModalOpen(false);
     } catch (err: any) {
       if (err.response?.status === 404) {
         toast.error(t("jobs.noSignJobs"));
@@ -177,15 +191,10 @@ export default function TrafficJobsPage() {
             size="sm"
             variant="outline"
             className="gap-1.5 border-border"
-            disabled={generatingSigns}
-            onClick={handlePrintSigns}
+            onClick={() => setSignModalOpen(true)}
           >
-            {generatingSigns ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Printer className="h-4 w-4" />
-            )}
-            {generatingSigns ? t("jobs.generatingSigns") : t("jobs.printSigns")}
+            <Printer className="h-4 w-4" />
+            {t("jobs.printSigns")}
           </Button>
           <Button
             size="sm"
@@ -394,6 +403,47 @@ export default function TrafficJobsPage() {
           </div>
         )}
       </div>
+
+      {/* Print Signs Date Modal */}
+      <Dialog open={signModalOpen} onOpenChange={setSignModalOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("jobs.printSigns")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-sm">{t("jobs.selectDateForSigns")}</Label>
+              <Input
+                type="date"
+                value={signDate}
+                onChange={(e) => setSignDate(e.target.value)}
+                className="border-border bg-card text-foreground"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSignModalOpen(false)}
+              className="border-border"
+            >
+              {t("common.cancel") || "Cancel"}
+            </Button>
+            <Button
+              onClick={handlePrintSigns}
+              disabled={generatingSigns || !signDate}
+              className="gap-1.5"
+            >
+              {generatingSigns ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="h-4 w-4" />
+              )}
+              {generatingSigns ? t("jobs.generatingSigns") : t("jobs.printSigns")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

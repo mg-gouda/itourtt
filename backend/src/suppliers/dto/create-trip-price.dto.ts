@@ -1,6 +1,5 @@
 import {
   IsNotEmpty,
-  IsUUID,
   IsNumber,
   IsOptional,
   IsString,
@@ -10,15 +9,15 @@ import {
 
 export class CreateTripPriceDto {
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   fromZoneId!: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   toZoneId!: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   vehicleTypeId!: string;
 
   @IsNotEmpty()

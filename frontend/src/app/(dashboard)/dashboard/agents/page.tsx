@@ -37,6 +37,7 @@ import { useT } from "@/lib/i18n";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
+import { localDateStr } from "@/lib/utils";
 
 interface Agent {
   id: string;
@@ -325,7 +326,7 @@ export default function AgentsPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      const date = new Date().toISOString().split("T")[0];
+      const date = localDateStr(new Date());
       link.setAttribute("download", `agents_${date}.xlsx`);
       document.body.appendChild(link);
       link.click();

@@ -67,6 +67,16 @@ export class VehiclesController {
     return this.vehiclesService.createVehicleType(dto);
   }
 
+  @Patch('types/:id')
+  @Roles('ADMIN')
+  @Permissions('vehicles.types.addButton')
+  updateVehicleType(
+    @Param('id') id: string,
+    @Body() dto: CreateVehicleTypeDto,
+  ) {
+    return this.vehiclesService.updateVehicleType(id, dto);
+  }
+
   // ─── Vehicles ─────────────────────────────────────────────
 
   @Get()
@@ -111,14 +121,19 @@ export class VehiclesController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('vehicles.import')
   @UseInterceptors(FileInterceptor('file'))
-  async importExcel(@UploadedFile() file: any) {
+  async importExcel(
+    @UploadedFile() file: any,
+    @Query('supplierId') supplierId?: string,
+  ) {
     if (!file) {
       return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
     }
-    const result = await this.vehiclesService.importFromExcel(file.buffer);
-    const message = result.errors.length > 0
-      ? `Imported ${result.imported} vehicles with ${result.errors.length} errors`
-      : `Successfully imported ${result.imported} vehicles`;
+    const result = await this.vehiclesService.importFromExcel(file.buffer, supplierId);
+    const parts: string[] = [];
+    if (result.imported > 0) parts.push(`${result.imported} imported`);
+    if (result.updated > 0) parts.push(`${result.updated} updated`);
+    if (result.errors.length > 0) parts.push(`${result.errors.length} errors`);
+    const message = parts.length > 0 ? `Vehicles: ${parts.join(', ')}` : 'No changes';
     return new ApiResponse(result, message);
   }
 
@@ -141,7 +156,7 @@ export class VehiclesController {
 
   @Get(':id/compliance')
   @Permissions('vehicles')
-  async getCompliance(@Param('id', ParseUUIDPipe) id: string) {
+  async getCompliance(@Param('id') id: string) {
     const result = await this.vehiclesService.getCompliance(id);
     return new ApiResponse(result);
   }
@@ -150,7 +165,7 @@ export class VehiclesController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('vehicles.table.editButton')
   async upsertCompliance(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpsertVehicleComplianceDto,
   ) {
     const result = await this.vehiclesService.upsertCompliance(id, dto);
@@ -162,7 +177,7 @@ export class VehiclesController {
   @Permissions('vehicles.table.editButton')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadLicenseCopy(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @UploadedFile() file: any,
   ) {
     const url = '/uploads/' + file.filename;
@@ -175,7 +190,7 @@ export class VehiclesController {
   @Permissions('vehicles.table.editButton')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadInsuranceDoc(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @UploadedFile() file: any,
   ) {
     const url = '/uploads/' + file.filename;
@@ -188,7 +203,7 @@ export class VehiclesController {
   @Get(':id/deposits')
   @Roles('ADMIN', 'DISPATCHER', 'ACCOUNTANT')
   @Permissions('vehicles')
-  async listDeposits(@Param('id', ParseUUIDPipe) id: string) {
+  async listDeposits(@Param('id') id: string) {
     const result = await this.vehiclesService.listDepositPayments(id);
     return new ApiResponse(result);
   }
@@ -197,7 +212,7 @@ export class VehiclesController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('vehicles.table.editButton')
   async addDeposit(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: CreateDepositPaymentDto,
     @CurrentUser('id') userId: string,
   ) {
@@ -209,8 +224,8 @@ export class VehiclesController {
   @Roles('ADMIN')
   @Permissions('vehicles.table.deleteButton')
   async removeDeposit(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('depositId', ParseUUIDPipe) depositId: string,
+    @Param('id') id: string,
+    @Param('depositId') depositId: string,
   ) {
     await this.vehiclesService.removeDepositPayment(id, depositId);
     return new ApiResponse(null, 'Deposit payment removed');
@@ -218,7 +233,7 @@ export class VehiclesController {
 
   @Get(':id')
   @Permissions('vehicles')
-  findVehicleById(@Param('id', ParseUUIDPipe) id: string) {
+  findVehicleById(@Param('id') id: string) {
     return this.vehiclesService.findVehicleById(id);
   }
 
@@ -226,7 +241,7 @@ export class VehiclesController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('vehicles.table.editButton')
   updateVehicle(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: CreateVehicleDto,
   ) {
     return this.vehiclesService.updateVehicle(id, dto);
@@ -235,7 +250,7 @@ export class VehiclesController {
   @Patch(':id/status')
   @Roles('ADMIN')
   @Permissions('vehicles.table.toggleStatus')
-  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+  async toggleStatus(@Param('id') id: string) {
     const result = await this.vehiclesService.toggleStatus(id);
     return new ApiResponse(result, 'Vehicle status updated successfully');
   }
@@ -243,7 +258,7 @@ export class VehiclesController {
   @Delete(':id')
   @Roles('ADMIN')
   @Permissions('vehicles.table.deleteButton')
-  async softDelete(@Param('id', ParseUUIDPipe) id: string) {
+  async softDelete(@Param('id') id: string) {
     const result = await this.vehiclesService.softDelete(id);
     return new ApiResponse(result, 'Vehicle removed successfully');
   }

@@ -1,6 +1,5 @@
 import {
   IsNotEmpty,
-  IsUUID,
   IsNumber,
   IsPositive,
   IsOptional,
@@ -8,11 +7,11 @@ import {
 } from 'class-validator';
 
 export class CreateSupplierCostDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   trafficJobId!: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   supplierId!: string;
 

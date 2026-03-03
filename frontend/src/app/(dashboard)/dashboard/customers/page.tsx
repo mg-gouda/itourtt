@@ -47,6 +47,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT, useLocaleId } from "@/lib/i18n";
+import { localDateStr } from "@/lib/utils";
 
 interface Customer {
   id: string;
@@ -334,7 +335,7 @@ export default function CustomersPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      const date = new Date().toISOString().split("T")[0];
+      const date = localDateStr(new Date());
       link.setAttribute("download", `customers_${date}.xlsx`);
       document.body.appendChild(link);
       link.click();

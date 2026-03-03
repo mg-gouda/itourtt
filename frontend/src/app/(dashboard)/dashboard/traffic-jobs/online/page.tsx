@@ -38,7 +38,7 @@ import {
 import { LocationCombobox } from "@/components/location-combobox";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate , localDateStr } from "@/lib/utils";
 import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 
@@ -49,6 +49,12 @@ interface Agent {
   legalName: string;
   refPattern?: string | null;
   refExample?: string | null;
+}
+
+interface VehicleType {
+  id: string;
+  name: string;
+  seatCapacity: number;
 }
 
 interface TrafficJob {
@@ -71,6 +77,10 @@ interface TrafficJob {
   collectionAmount: number | null;
   collectionCurrency: string;
   collectionCollected: boolean;
+  transferPrice: number | null;
+  transferPriceCurrency: string;
+  requestedVehicleTypeId: string | null;
+  requestedVehicleType?: { id: string; name: string } | null;
   boosterSeat: boolean;
   boosterSeatQty: number;
   babySeat: boolean;
@@ -150,12 +160,14 @@ interface FormState {
   babySeatQty: string;
   wheelChair: boolean;
   wheelChairQty: string;
-  printSign: boolean;
   pickUpTime: string;
   notes: string;
   collectionRequired: boolean;
   collectionAmount: string;
   collectionCurrency: string;
+  transferPrice: string;
+  transferPriceCurrency: string;
+  requestedVehicleTypeId: string;
   flightNo: string;
   terminal: string;
   arrivalTime: string;
@@ -167,7 +179,7 @@ const defaultForm: FormState = {
   agentId: "",
   agentRef: "",
   serviceType: "ARR",
-  jobDate: new Date().toISOString().split("T")[0],
+  jobDate: localDateStr(new Date()),
   adultCount: "1",
   childCount: "0",
   originAirportId: "",
@@ -186,12 +198,14 @@ const defaultForm: FormState = {
   babySeatQty: "1",
   wheelChair: false,
   wheelChairQty: "1",
-  printSign: false,
   pickUpTime: "",
   notes: "",
   collectionRequired: false,
   collectionAmount: "",
   collectionCurrency: "EGP",
+  transferPrice: "",
+  transferPriceCurrency: "EGP",
+  requestedVehicleTypeId: "",
   flightNo: "",
   terminal: "",
   arrivalTime: "",
@@ -206,6 +220,7 @@ export default function OnlineJobPage() {
   const router = useRouter();
 
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -234,7 +249,7 @@ export default function OnlineJobPage() {
     setForm((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  /* ── Fetch agents ── */
+  /* ── Fetch agents + vehicle types ── */
   useEffect(() => {
     async function fetchAgents() {
       try {
@@ -244,7 +259,16 @@ export default function OnlineJobPage() {
         /* non-critical */
       }
     }
+    async function fetchVehicleTypes() {
+      try {
+        const { data } = await api.get("/vehicles/types");
+        setVehicleTypes(Array.isArray(data) ? data : data.data || []);
+      } catch {
+        /* non-critical */
+      }
+    }
     fetchAgents();
+    fetchVehicleTypes();
   }, []);
 
   /* ── Fetch ONLINE jobs ── */
@@ -302,12 +326,14 @@ export default function OnlineJobPage() {
       babySeatQty: String(job.babySeatQty || 1),
       wheelChair: job.wheelChair,
       wheelChairQty: String(job.wheelChairQty || 1),
-      printSign: job.printSign,
       pickUpTime,
       notes: job.notes || "",
       collectionRequired: job.collectionRequired || false,
       collectionAmount: job.collectionAmount ? String(job.collectionAmount) : "",
       collectionCurrency: job.collectionCurrency || "EGP",
+      transferPrice: job.transferPrice ? String(job.transferPrice) : "",
+      transferPriceCurrency: job.transferPriceCurrency || "EGP",
+      requestedVehicleTypeId: job.requestedVehicleTypeId || "",
       flightNo: job.flight?.flightNo || "",
       terminal: job.flight?.terminal || "",
       arrivalTime,
@@ -378,7 +404,7 @@ export default function OnlineJobPage() {
       if (form.babySeat) payload.babySeatQty = parseInt(form.babySeatQty) || 1;
       payload.wheelChair = form.wheelChair;
       if (form.wheelChair) payload.wheelChairQty = parseInt(form.wheelChairQty) || 1;
-      payload.printSign = form.printSign;
+      payload.printSign = form.serviceType === "ARR";
 
       payload.collectionRequired = form.collectionRequired;
       if (form.collectionRequired) {
@@ -390,6 +416,15 @@ export default function OnlineJobPage() {
         }
         payload.collectionAmount = collectionAmt;
         payload.collectionCurrency = form.collectionCurrency;
+      }
+
+      const transferAmt = parseFloat(form.transferPrice);
+      if (transferAmt > 0) {
+        payload.transferPrice = transferAmt;
+        payload.transferPriceCurrency = form.transferPriceCurrency;
+      }
+      if (form.requestedVehicleTypeId) {
+        payload.requestedVehicleTypeId = form.requestedVehicleTypeId;
       }
 
       if (form.pickUpTime) payload.pickUpTime = `${form.jobDate}T${form.pickUpTime}`;
@@ -555,8 +590,8 @@ export default function OnlineJobPage() {
             )}
           </div>
 
-          {/* Line 2: Client Lead Name + Client Mobile + Adults + Children + Print Sign */}
-          <div className="grid grid-cols-5 gap-3">
+          {/* Line 2: Client Lead Name + Client Mobile + Adults + Children */}
+          <div className="grid grid-cols-4 gap-3">
             <div className="space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.clientName")} *</Label>
               <Input
@@ -594,15 +629,6 @@ export default function OnlineJobPage() {
                 onChange={(e) => updateForm({ childCount: e.target.value })}
                 className="border-border bg-card text-foreground h-9"
               />
-            </div>
-            <div className="flex items-end pb-1">
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <Checkbox
-                  checked={form.printSign}
-                  onCheckedChange={(v) => updateForm({ printSign: v === true })}
-                />
-                {t("jobs.printSign")}
-              </label>
             </div>
           </div>
 
@@ -782,7 +808,49 @@ export default function OnlineJobPage() {
             </div>
           </div>
 
-          {/* Line 5: Notes + Submit */}
+          {/* Line 5: Transfer Price + Requested Vehicle Type */}
+          <div className="grid grid-cols-5 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">Transfer Price</Label>
+              <div className="flex gap-1.5">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.transferPrice}
+                  onChange={(e) => updateForm({ transferPrice: e.target.value })}
+                  placeholder="0.00"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 flex-1"
+                />
+                <Select value={form.transferPriceCurrency} onValueChange={(v) => updateForm({ transferPriceCurrency: v })}>
+                  <SelectTrigger className="border-border bg-card text-foreground h-9 w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["EGP", "USD", "EUR", "GBP", "SAR"].map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">Requested Vehicle Type</Label>
+              <Select value={form.requestedVehicleTypeId} onValueChange={(v) => updateForm({ requestedVehicleTypeId: v === "__none__" ? "" : v })}>
+                <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover text-foreground">
+                  <SelectItem value="__none__">None</SelectItem>
+                  {vehicleTypes.map((vt) => (
+                    <SelectItem key={vt.id} value={vt.id}>{vt.name} ({vt.seatCapacity} seats)</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Line 6: Notes + Submit */}
           <div className="flex items-center gap-3">
             <div className="flex-1 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>

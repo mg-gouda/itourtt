@@ -1,20 +1,20 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
 
 export class AssignJobDto {
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   trafficJobId!: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   vehicleId!: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   driverId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   repId?: string;
 
   @IsOptional()
@@ -28,4 +28,8 @@ export class AssignJobDto {
   @IsOptional()
   @IsString()
   remarks?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  allowTypeMismatch?: boolean;
 }

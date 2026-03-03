@@ -35,7 +35,7 @@ export class JobLocksController {
   @Post('dispatcher/:id/unlock')
   @Permissions('job-locks.dispatcher')
   async unlockDispatcher(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @CurrentUser('id') userId: string,
   ) {
     const result = await this.jobLocksService.unlockJob('dispatcher', id, userId);
@@ -44,7 +44,7 @@ export class JobLocksController {
 
   @Post('dispatcher/:id/lock')
   @Permissions('job-locks.dispatcher')
-  async lockDispatcher(@Param('id', ParseUUIDPipe) id: string) {
+  async lockDispatcher(@Param('id') id: string) {
     const result = await this.jobLocksService.lockJob('dispatcher', id);
     return new ApiResponse(result, 'Job locked for dispatcher');
   }
@@ -65,7 +65,7 @@ export class JobLocksController {
   @Post('driver/:id/unlock')
   @Permissions('job-locks.driver')
   async unlockDriver(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @CurrentUser('id') userId: string,
   ) {
     const result = await this.jobLocksService.unlockJob('driver', id, userId);
@@ -74,7 +74,7 @@ export class JobLocksController {
 
   @Post('driver/:id/lock')
   @Permissions('job-locks.driver')
-  async lockDriver(@Param('id', ParseUUIDPipe) id: string) {
+  async lockDriver(@Param('id') id: string) {
     const result = await this.jobLocksService.lockJob('driver', id);
     return new ApiResponse(result, 'Job locked for driver');
   }
@@ -95,7 +95,7 @@ export class JobLocksController {
   @Post('rep/:id/unlock')
   @Permissions('job-locks.rep')
   async unlockRep(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @CurrentUser('id') userId: string,
   ) {
     const result = await this.jobLocksService.unlockJob('rep', id, userId);
@@ -104,7 +104,7 @@ export class JobLocksController {
 
   @Post('rep/:id/lock')
   @Permissions('job-locks.rep')
-  async lockRep(@Param('id', ParseUUIDPipe) id: string) {
+  async lockRep(@Param('id') id: string) {
     const result = await this.jobLocksService.lockJob('rep', id);
     return new ApiResponse(result, 'Job locked for rep');
   }
@@ -125,7 +125,7 @@ export class JobLocksController {
   @Post('supplier/:id/unlock')
   @Permissions('job-locks.supplier')
   async unlockSupplier(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @CurrentUser('id') userId: string,
   ) {
     const result = await this.jobLocksService.unlockJob('supplier', id, userId);
@@ -134,7 +134,7 @@ export class JobLocksController {
 
   @Post('supplier/:id/lock')
   @Permissions('job-locks.supplier')
-  async lockSupplier(@Param('id', ParseUUIDPipe) id: string) {
+  async lockSupplier(@Param('id') id: string) {
     const result = await this.jobLocksService.lockJob('supplier', id);
     return new ApiResponse(result, 'Job locked for supplier');
   }

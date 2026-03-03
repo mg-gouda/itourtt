@@ -1,7 +1,6 @@
 import {
   IsNotEmpty,
   IsString,
-  IsUUID,
   IsInt,
   Min,
   IsOptional,
@@ -31,15 +30,15 @@ export class QuoteRequestDto {
   @IsNotEmpty()
   serviceType!: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   fromZoneId!: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   toZoneId!: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   vehicleTypeId!: string;
 

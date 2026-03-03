@@ -117,7 +117,7 @@ export class DriversController {
 
   @Get(':id')
   @Permissions('drivers')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     const driver = await this.driversService.findOne(id);
     return new ApiResponse(driver);
   }
@@ -126,7 +126,7 @@ export class DriversController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('drivers.table.editButton')
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateDriverDto,
   ) {
     const driver = await this.driversService.update(id, dto);
@@ -137,7 +137,7 @@ export class DriversController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('drivers.table.editButton')
   async assignVehicle(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: AssignVehicleDto,
   ) {
     const assignment = await this.driversService.assignVehicle(id, dto);
@@ -148,8 +148,8 @@ export class DriversController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('drivers.table.editButton')
   async unassignVehicle(
-    @Param('driverId', ParseUUIDPipe) driverId: string,
-    @Param('vehicleId', ParseUUIDPipe) vehicleId: string,
+    @Param('driverId') driverId: string,
+    @Param('vehicleId') vehicleId: string,
   ) {
     const result = await this.driversService.unassignVehicle(driverId, vehicleId);
     return new ApiResponse(result, 'Vehicle unassigned from driver successfully');
@@ -158,7 +158,7 @@ export class DriversController {
   @Patch(':id/status')
   @Roles('ADMIN')
   @Permissions('drivers.table.toggleStatus')
-  async toggleStatus(@Param('id', ParseUUIDPipe) id: string) {
+  async toggleStatus(@Param('id') id: string) {
     const result = await this.driversService.toggleStatus(id);
     return new ApiResponse(result, 'Driver status updated successfully');
   }
@@ -166,7 +166,7 @@ export class DriversController {
   @Delete(':id')
   @Roles('ADMIN')
   @Permissions('drivers.table.deleteButton')
-  async softDelete(@Param('id', ParseUUIDPipe) id: string) {
+  async softDelete(@Param('id') id: string) {
     await this.driversService.softDelete(id);
     return new ApiResponse(null, 'Driver removed successfully');
   }
@@ -176,7 +176,7 @@ export class DriversController {
   @Permissions('drivers.table.uploadAttachment')
   @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
   async uploadAttachment(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @UploadedFile() file: any,
   ) {
     const url = '/uploads/' + file.filename;
@@ -188,7 +188,7 @@ export class DriversController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('drivers.table.createAccount')
   async createUserAccount(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: { password: string },
   ) {
     const result = await this.driversService.createUserAccount(id, dto);
@@ -199,7 +199,7 @@ export class DriversController {
   @Roles('ADMIN', 'DISPATCHER')
   @Permissions('drivers.table.resetPassword')
   async resetPassword(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: { password: string },
   ) {
     const result = await this.driversService.resetPassword(id, dto.password);

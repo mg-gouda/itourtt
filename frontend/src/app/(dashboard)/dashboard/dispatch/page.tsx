@@ -100,6 +100,7 @@ interface Job {
     remarks?: string | null;
     vehicle?: {
       plateNumber: string;
+      supplierId?: string | null;
       vehicleType?: { name: string; seatCapacity: number };
     };
     driver?: { name: string; mobileNumber?: string };
@@ -108,6 +109,8 @@ interface Job {
   collectionRequired: boolean;
   collectionAmount: number | null;
   collectionCurrency: string | null;
+  requestedVehicleTypeId: string | null;
+  requestedVehicleType?: { id: string; name: string } | null;
 }
 
 interface SupplierResource {
@@ -152,7 +155,10 @@ const statusRowClass: Record<string, string> = {
 };
 
 function fmtDate(d: Date) {
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function fmtTime(iso: string | undefined, locale = "en-US") {
@@ -830,6 +836,7 @@ function JobGrid({
             <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
             <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
             <TableHead className="text-white text-xs w-14">{t("dispatch.pax")}</TableHead>
+            <TableHead className="text-white text-xs w-24">Req. Type</TableHead>
             <TableHead className="text-white text-xs">{t("dispatch.flight")}</TableHead>
             {showPickUpTime && <TableHead className="text-white text-xs w-20">{t("jobs.pickUpTime")}</TableHead>}
             <TableHead className="text-white text-xs w-36">{t("dispatch.carSource")}</TableHead>
@@ -900,6 +907,24 @@ function JobGrid({
                       </span>
                     )}
                   </span>
+                </TableCell>
+                <TableCell className="text-xs">
+                  {job.requestedVehicleType ? (
+                    <Badge
+                      variant="outline"
+                      className={
+                        job.assignment?.vehicle?.vehicleType &&
+                        job.requestedVehicleTypeId &&
+                        job.assignment.vehicle.vehicleType.name !== job.requestedVehicleType.name
+                          ? "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          : "border-border text-muted-foreground"
+                      }
+                    >
+                      {job.requestedVehicleType.name}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground/60">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
                   {job.flight
@@ -1016,7 +1041,14 @@ function JobGrid({
                       {job.assignment?.vehicle ? (
                         <Badge
                           variant="outline"
-                          className="border-zinc-500/30 text-zinc-600 dark:text-zinc-400"
+                          className={
+                            job.requestedVehicleTypeId &&
+                            job.assignment.vehicle.vehicleType &&
+                            job.requestedVehicleType &&
+                            job.assignment.vehicle.vehicleType.name !== job.requestedVehicleType.name
+                              ? "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "border-zinc-500/30 text-zinc-600 dark:text-zinc-400"
+                          }
                         >
                           {job.assignment.vehicle.plateNumber}
                         </Badge>
@@ -1108,9 +1140,13 @@ export default function DispatchPage() {
     const initial: Record<string, string> = {};
     for (const job of allJobs) {
       if (job.assignment?.vehicleId) {
+        // First try the available vehicles list
         const v = vehicles.find((veh) => veh.id === job.assignment?.vehicleId);
         if (v) {
           initial[job.id] = v.supplierId || "owned";
+        } else if (job.assignment.vehicle) {
+          // Vehicle is already assigned (not in available list) — use assignment data
+          initial[job.id] = job.assignment.vehicle.supplierId || "owned";
         }
       }
     }
@@ -1297,10 +1333,34 @@ export default function DispatchPage() {
         toast.success(t("dispatch.vehicleAssigned"));
         fetchDay(); // refresh to get full assignment data
       } catch (err: unknown) {
+        const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
+        if (resp?.status === 409 && resp?.data?.message?.includes("Vehicle type mismatch")) {
+          // Ask user to confirm mismatch
+          if (window.confirm(resp.data.message + "\n\nAssign anyway?")) {
+            try {
+              await api.post("/dispatch/assign", {
+                trafficJobId: job.id,
+                vehicleId: actualValue,
+                allowTypeMismatch: true,
+              });
+              toast.success(t("dispatch.vehicleAssigned"));
+              fetchDay();
+              return;
+            } catch (retryErr: unknown) {
+              rollback();
+              const retryMsg =
+                (retryErr as { response?: { data?: { message?: string } } })?.response
+                  ?.data?.message || t("dispatch.assignmentFailed");
+              toast.error(retryMsg);
+              return;
+            }
+          } else {
+            rollback();
+            return;
+          }
+        }
         rollback();
-        const msg =
-          (err as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message || t("dispatch.assignmentFailed");
+        const msg = resp?.data?.message || t("dispatch.assignmentFailed");
         toast.error(msg);
       }
       return;
@@ -1351,30 +1411,52 @@ export default function DispatchPage() {
         });
       }
 
-      try {
-        const payload: Record<string, string | null> = {};
-        if (field === "vehicle" && actualValue) payload.vehicleId = actualValue;
-        if (field === "driver" && isExternalDriver) {
-          const parts = value.split(":");
-          payload.driverId = null;
-          payload.externalDriverName = parts[1] || null;
-          payload.externalDriverPhone = parts[2] || null;
-        } else if (field === "driver") {
-          payload.driverId = actualValue;
-        }
-        if (field === "rep") payload.repId = actualValue;
-        if (field === "remarks") payload.remarks = actualValue;
+      const payload: Record<string, string | boolean | null> = {};
+      if (field === "vehicle" && actualValue) payload.vehicleId = actualValue;
+      if (field === "driver" && isExternalDriver) {
+        const parts = value.split(":");
+        payload.driverId = null;
+        payload.externalDriverName = parts[1] || null;
+        payload.externalDriverPhone = parts[2] || null;
+      } else if (field === "driver") {
+        payload.driverId = actualValue;
+      }
+      if (field === "rep") payload.repId = actualValue;
+      if (field === "remarks") payload.remarks = actualValue;
 
+      try {
         await api.patch(
           `/dispatch/assignments/${job.assignment.id}`,
           payload
         );
         toast.success(t(`dispatch.${field === "remarks" ? "remarks" : field}Updated`));
       } catch (err: unknown) {
+        const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
+        if (resp?.status === 409 && resp?.data?.message?.includes("Vehicle type mismatch")) {
+          if (window.confirm(resp.data.message + "\n\nAssign anyway?")) {
+            try {
+              await api.patch(
+                `/dispatch/assignments/${job.assignment!.id}`,
+                { ...payload, allowTypeMismatch: true }
+              );
+              toast.success(t(`dispatch.${field === "remarks" ? "remarks" : field}Updated`));
+              fetchDay();
+              return;
+            } catch (retryErr: unknown) {
+              rollback();
+              const retryMsg =
+                (retryErr as { response?: { data?: { message?: string } } })?.response
+                  ?.data?.message || t("dispatch.updateFailed");
+              toast.error(retryMsg);
+              return;
+            }
+          } else {
+            rollback();
+            return;
+          }
+        }
         rollback();
-        const msg =
-          (err as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message || t("dispatch.updateFailed");
+        const msg = resp?.data?.message || t("dispatch.updateFailed");
         toast.error(msg);
       }
     }
@@ -1456,10 +1538,48 @@ export default function DispatchPage() {
       setDialogJob(null);
       fetchDay();
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t("dispatch.assignmentFailed");
-      toast.error(msg);
+      const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
+      if (resp?.status === 409 && resp?.data?.message?.includes("Vehicle type mismatch")) {
+        if (window.confirm(resp.data.message + "\n\nAssign anyway?")) {
+          try {
+            if (dialogJob!.assignment) {
+              const retryPayload: Record<string, unknown> = { allowTypeMismatch: true };
+              if (dialogVehicle !== dialogJob!.assignment.vehicleId)
+                retryPayload.vehicleId = dialogVehicle;
+              await api.patch(
+                `/dispatch/assignments/${dialogJob!.assignment.id}`,
+                retryPayload
+              );
+            } else {
+              const retryPayload: Record<string, unknown> = {
+                trafficJobId: dialogJob!.id,
+                vehicleId: dialogVehicle,
+                allowTypeMismatch: true,
+              };
+              if (dialogIsSupplier) {
+                if (dialogExternalDriverName) retryPayload.externalDriverName = dialogExternalDriverName;
+                if (dialogExternalDriverPhone) retryPayload.externalDriverPhone = dialogExternalDriverPhone;
+              } else {
+                if (dialogDriver) retryPayload.driverId = dialogDriver;
+              }
+              if (dialogRep) retryPayload.repId = dialogRep;
+              if (dialogRemarks) retryPayload.remarks = dialogRemarks;
+              await api.post("/dispatch/assign", retryPayload);
+            }
+            toast.success(t("dispatch.assignmentSaved"));
+            setDialogJob(null);
+            fetchDay();
+          } catch (retryErr: unknown) {
+            const retryMsg =
+              (retryErr as { response?: { data?: { message?: string } } })?.response?.data
+                ?.message || t("dispatch.assignmentFailed");
+            toast.error(retryMsg);
+          }
+        }
+      } else {
+        const msg = resp?.data?.message || t("dispatch.assignmentFailed");
+        toast.error(msg);
+      }
     } finally {
       setDialogSaving(false);
     }

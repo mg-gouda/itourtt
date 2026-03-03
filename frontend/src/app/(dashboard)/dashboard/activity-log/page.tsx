@@ -39,6 +39,7 @@ import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { localDateStr } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────
 interface ActivityLog {
@@ -201,7 +202,7 @@ export default function ActivityLogPage() {
       const url = window.URL.createObjectURL(new Blob([data]));
       const a = document.createElement("a");
       a.href = url;
-      a.download = `activity_log_${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.download = `activity_log_${localDateStr(new Date())}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success(t("common.exportSuccess"));

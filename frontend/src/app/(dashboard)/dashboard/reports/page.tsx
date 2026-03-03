@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/select";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { formatDate } from "@/lib/utils";
+import { formatDate , localDateStr } from "@/lib/utils";
 import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 import { useAuthStore } from "@/stores/auth-store";
@@ -225,7 +225,7 @@ interface Agent {
 // Helpers
 // ────────────────────────────────────────────
 
-const today = new Date().toISOString().split("T")[0];
+const today = localDateStr(new Date());
 const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
   .toISOString()
   .split("T")[0];

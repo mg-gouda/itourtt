@@ -1,6 +1,5 @@
 import {
   IsNotEmpty,
-  IsUUID,
   IsOptional,
   IsString,
   IsInt,
@@ -21,7 +20,7 @@ export class CreateSupplierVehicleDto {
   plateNumber!: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   vehicleTypeId!: string;
 
   @IsOptional()
@@ -58,7 +57,7 @@ export class UpdateSupplierVehicleDto {
   plateNumber?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   vehicleTypeId?: string;
 
   @IsOptional()

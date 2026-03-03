@@ -48,7 +48,7 @@ export class ActivityLogsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     return this.service.findOne(id);
   }
 }

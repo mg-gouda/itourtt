@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { localDateStr } from "@/lib/utils";
 
 interface SupplierJob {
   id: string;
@@ -40,7 +41,7 @@ interface SupplierJob {
 
 export default function SupplierJobsPage() {
   const t = useT();
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => localDateStr(new Date()));
   const [jobs, setJobs] = useState<SupplierJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export default function SupplierJobsPage() {
   const navigateDay = (dir: -1 | 1) => {
     const d = new Date(date);
     d.setDate(d.getDate() + dir);
-    setDate(d.toISOString().split("T")[0]);
+    setDate(localDateStr(d));
   };
 
   const handleComplete = async (jobId: string) => {

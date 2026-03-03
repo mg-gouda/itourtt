@@ -1,5 +1,5 @@
 import {
-  IsUUID,
+  IsString,
   IsArray,
   IsDateString,
   IsOptional,
@@ -7,11 +7,11 @@ import {
 } from 'class-validator';
 
 export class GenerateCustomerInvoicesDto {
-  @IsUUID()
+  @IsString()
   customerId!: string;
 
   @IsArray()
-  @IsUUID(undefined, { each: true })
+  @IsString({ each: true })
   trafficJobIds!: string[];
 
   @IsDateString()

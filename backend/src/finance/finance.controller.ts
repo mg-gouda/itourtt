@@ -30,7 +30,7 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
-import { IsOptional, IsUUID, IsString, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsDateString } from 'class-validator';
 
 class RepDailyFeeQueryDto {
   @IsDateString()
@@ -39,7 +39,7 @@ class RepDailyFeeQueryDto {
 
 class InvoiceListQueryDto extends PaginationDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   agentId?: string;
 
   @IsOptional()
@@ -49,7 +49,7 @@ class InvoiceListQueryDto extends PaginationDto {
 
 class CustomerInvoiceListQueryDto extends PaginationDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   customerId?: string;
 
   @IsOptional()

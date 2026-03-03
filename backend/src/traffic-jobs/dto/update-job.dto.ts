@@ -1,5 +1,5 @@
 import {
-  IsOptional, IsString, IsUUID, IsDateString,
+  IsOptional, IsString, IsDateString,
   IsInt, IsIn, IsBoolean, IsNumber, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -11,7 +11,7 @@ export class UpdateJobDto {
   bookingStatus?: 'NEW' | 'UPDATED' | 'CANCELLED';
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   agentId?: string;
 
   @IsOptional()
@@ -23,7 +23,7 @@ export class UpdateJobDto {
   customerJobId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   customerId?: string;
 
   @IsOptional()
@@ -45,27 +45,27 @@ export class UpdateJobDto {
   childCount?: number;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   originAirportId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   originZoneId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   originHotelId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   destinationAirportId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   destinationZoneId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   destinationHotelId?: string;
 
   @IsOptional()
@@ -127,6 +127,19 @@ export class UpdateJobDto {
   @IsOptional()
   @IsIn(['EGP', 'USD', 'EUR'])
   collectionCurrency?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  transferPrice?: number;
+
+  @IsOptional()
+  @IsIn(['EGP', 'USD', 'EUR', 'GBP', 'SAR'])
+  transferPriceCurrency?: string;
+
+  @IsOptional()
+  @IsString()
+  requestedVehicleTypeId?: string;
 
   @IsOptional()
   @IsString()

@@ -171,14 +171,14 @@ enum GuestBookingStatus {
 // ─────────────────────────────────────────────
 
 model Role {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(cuid())
   name        String    @unique
   slug        String    @unique
   description String?
   isSystem    Boolean   @default(false) @map("is_system")
   isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   users       User[]
   permissions RolePermissionV2[]
@@ -187,10 +187,10 @@ model Role {
 }
 
 model RolePermissionV2 {
-  id            String   @id @default(uuid()) @db.Uuid
-  roleId        String   @map("role_id") @db.Uuid
+  id            String   @id @default(cuid())
+  roleId        String   @map("role_id")
   permissionKey String   @map("permission_key")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt     DateTime @default(now()) @map("created_at")
 
   role          Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -204,18 +204,18 @@ model RolePermissionV2 {
 // ─────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(uuid()) @db.Uuid
+  id            String    @id @default(cuid())
   email         String    @unique
   phone         String?   @unique
   passwordHash  String    @map("password_hash")
   name          String
   role          UserRole  @default(VIEWER)
-  roleId        String?   @map("role_id") @db.Uuid
+  roleId        String?   @map("role_id")
   isActive      Boolean   @default(true) @map("is_active")
   refreshToken  String?   @map("refresh_token")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   roleRef           Role?               @relation(fields: [roleId], references: [id])
   createdJobs       TrafficJob[]        @relation("JobCreatedBy")
@@ -239,13 +239,13 @@ model User {
 // ─────────────────────────────────────────────
 
 model Country {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(cuid())
   name      String    @unique
   code      String    @unique @db.VarChar(3)
   isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   airports  Airport[]
 
@@ -253,14 +253,14 @@ model Country {
 }
 
 model Airport {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(cuid())
   name      String
   code      String    @unique @db.VarChar(10)
-  countryId String    @map("country_id") @db.Uuid
+  countryId String    @map("country_id")
   isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   country   Country   @relation(fields: [countryId], references: [id])
   cities    City[]
@@ -274,13 +274,13 @@ model Airport {
 }
 
 model City {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(cuid())
   name      String
-  airportId String    @map("airport_id") @db.Uuid
+  airportId String    @map("airport_id")
   isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   airport   Airport   @relation(fields: [airportId], references: [id])
   zones     Zone[]
@@ -289,13 +289,13 @@ model City {
 }
 
 model Zone {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(cuid())
   name      String
-  cityId    String    @map("city_id") @db.Uuid
+  cityId    String    @map("city_id")
   isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   city      City      @relation(fields: [cityId], references: [id])
   hotels    Hotel[]
@@ -322,15 +322,15 @@ model Zone {
 }
 
 model Hotel {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String    @id @default(cuid())
   name      String
-  zoneId    String    @map("zone_id") @db.Uuid
+  zoneId    String    @map("zone_id")
   address   String?
-  stars     Int?      @db.SmallInt
+  stars     Int?     
   isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   zone      Zone      @relation(fields: [zoneId], references: [id])
 
@@ -346,12 +346,12 @@ model Hotel {
 // ─────────────────────────────────────────────
 
 model VehicleType {
-  id           String    @id @default(uuid()) @db.Uuid
+  id           String    @id @default(cuid())
   name         String    @unique
   seatCapacity Int       @map("seat_capacity")
   isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   vehicles          Vehicle[]
   supplierPrices    SupplierTripPrice[]
@@ -359,25 +359,26 @@ model VehicleType {
   agentPrices       AgentPriceItem[]
   publicPrices      PublicPriceItem[]
   guestBookings     GuestBooking[]
+  requestedByJobs   TrafficJob[] @relation("JobRequestedVehicleType")
 
   @@map("vehicle_types")
 }
 
 model Vehicle {
-  id              String           @id @default(uuid()) @db.Uuid
+  id              String           @id @default(cuid())
   plateNumber     String           @unique @map("plate_number")
-  vehicleTypeId   String           @map("vehicle_type_id") @db.Uuid
+  vehicleTypeId   String           @map("vehicle_type_id")
   ownership       VehicleOwnership @default(OWNED)
   color           String?
   carBrand        String?          @map("car_brand")
   carModel        String?          @map("car_model")
   makeYear        Int?             @map("make_year")
   luggageCapacity Int?             @map("luggage_capacity")
-  supplierId      String?          @map("supplier_id") @db.Uuid
+  supplierId      String?          @map("supplier_id")
   isActive        Boolean          @default(true) @map("is_active")
-  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  deletedAt       DateTime?        @map("deleted_at")
 
   vehicleType    VehicleType          @relation(fields: [vehicleTypeId], references: [id])
   supplier       Supplier?            @relation(fields: [supplierId], references: [id])
@@ -389,8 +390,8 @@ model Vehicle {
 }
 
 model VehicleCompliance {
-  id                          String    @id @default(uuid()) @db.Uuid
-  vehicleId                   String    @unique @map("vehicle_id") @db.Uuid
+  id                          String    @id @default(cuid())
+  vehicleId                   String    @unique @map("vehicle_id")
 
   // License
   licenseExpiryDate           DateTime? @map("license_expiry_date") @db.Date
@@ -413,8 +414,8 @@ model VehicleCompliance {
   temporaryPermitDate         DateTime? @map("temporary_permit_date") @db.Date
 
   // Audit
-  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt                   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt                   DateTime  @default(now()) @map("created_at")
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
 
   vehicle                     Vehicle   @relation(fields: [vehicleId], references: [id])
   depositPayments             VehicleDepositPayment[]
@@ -423,14 +424,14 @@ model VehicleCompliance {
 }
 
 model VehicleDepositPayment {
-  id             String            @id @default(uuid()) @db.Uuid
-  complianceId   String            @map("compliance_id") @db.Uuid
+  id             String            @id @default(cuid())
+  complianceId   String            @map("compliance_id")
   amount         Decimal           @db.Decimal(15, 2)
   currency       Currency          @default(EGP)
-  paidAt         DateTime          @map("paid_at") @db.Timestamptz
+  paidAt         DateTime          @map("paid_at")
   createdByName  String            @map("created_by_name")
-  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
 
   compliance     VehicleCompliance @relation(fields: [complianceId], references: [id])
 
@@ -438,18 +439,18 @@ model VehicleDepositPayment {
 }
 
 model Driver {
-  id                String    @id @default(uuid()) @db.Uuid
+  id                String    @id @default(cuid())
   name              String
   mobileNumber      String    @map("mobile_number")
   licenseNumber     String?   @map("license_number")
   attachmentUrl     String?   @map("attachment_url")
   licenseExpiryDate DateTime? @map("license_expiry_date") @db.Date
-  supplierId        String?   @map("supplier_id") @db.Uuid
-  userId            String?   @unique @map("user_id") @db.Uuid
+  supplierId        String?   @map("supplier_id")
+  userId            String?   @unique @map("user_id")
   isActive          Boolean   @default(true) @map("is_active")
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
 
   supplier       Supplier?         @relation(fields: [supplierId], references: [id])
   user           User?             @relation(fields: [userId], references: [id])
@@ -462,12 +463,12 @@ model Driver {
 }
 
 model DriverVehicle {
-  id           String    @id @default(uuid()) @db.Uuid
-  driverId     String    @map("driver_id") @db.Uuid
-  vehicleId    String    @map("vehicle_id") @db.Uuid
+  id           String    @id @default(cuid())
+  driverId     String    @map("driver_id")
+  vehicleId    String    @map("vehicle_id")
   isPrimary    Boolean   @default(false) @map("is_primary")
-  assignedAt   DateTime  @default(now()) @map("assigned_at") @db.Timestamptz
-  unassignedAt DateTime? @map("unassigned_at") @db.Timestamptz
+  assignedAt   DateTime  @default(now()) @map("assigned_at")
+  unassignedAt DateTime? @map("unassigned_at")
 
   driver       Driver    @relation(fields: [driverId], references: [id])
   vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
@@ -477,16 +478,16 @@ model DriverVehicle {
 }
 
 model Rep {
-  id            String    @id @default(uuid()) @db.Uuid
+  id            String    @id @default(cuid())
   name          String
   mobileNumber  String    @map("mobile_number")
   attachmentUrl String?   @map("attachment_url")
   feePerFlight  Decimal   @default(0) @map("fee_per_flight") @db.Decimal(15, 2)
-  userId        String?   @unique @map("user_id") @db.Uuid
+  userId        String?   @unique @map("user_id")
   isActive      Boolean   @default(true) @map("is_active")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   user          User?     @relation(fields: [userId], references: [id])
   repZones      RepZone[]
@@ -498,9 +499,9 @@ model Rep {
 }
 
 model RepZone {
-  id     String @id @default(uuid()) @db.Uuid
-  repId  String @map("rep_id") @db.Uuid
-  zoneId String @map("zone_id") @db.Uuid
+  id     String @id @default(cuid())
+  repId  String @map("rep_id")
+  zoneId String @map("zone_id")
 
   rep    Rep    @relation(fields: [repId], references: [id])
   zone   Zone   @relation(fields: [zoneId], references: [id])
@@ -514,7 +515,7 @@ model RepZone {
 // ─────────────────────────────────────────────
 
 model Agent {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String    @id @default(cuid())
   legalName   String    @map("legal_name")
   tradeName   String?   @map("trade_name")
   taxId       String?   @map("tax_id")
@@ -527,9 +528,9 @@ model Agent {
   refPattern  String?   @map("ref_pattern")
   refExample  String?   @map("ref_example")
   isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   documents     AgentDocument[]
   creditTerms   AgentCreditTerms?
@@ -542,14 +543,14 @@ model Agent {
 }
 
 model AgentDocument {
-  id           String       @id @default(uuid()) @db.Uuid
-  agentId      String       @map("agent_id") @db.Uuid
+  id           String       @id @default(cuid())
+  agentId      String       @map("agent_id")
   documentType DocumentType @map("document_type")
   fileUrl      String       @map("file_url")
   fileName     String       @map("file_name")
-  expiresAt    DateTime?    @map("expires_at") @db.Timestamptz
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  expiresAt    DateTime?    @map("expires_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
 
   agent        Agent        @relation(fields: [agentId], references: [id])
 
@@ -557,12 +558,12 @@ model AgentDocument {
 }
 
 model AgentCreditTerms {
-  id          String   @id @default(uuid()) @db.Uuid
-  agentId     String   @unique @map("agent_id") @db.Uuid
+  id          String   @id @default(cuid())
+  agentId     String   @unique @map("agent_id")
   creditLimit Decimal  @map("credit_limit") @db.Decimal(15, 2)
   creditDays  Int      @map("credit_days")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   agent       Agent    @relation(fields: [agentId], references: [id])
 
@@ -570,13 +571,13 @@ model AgentCreditTerms {
 }
 
 model AgentInvoiceCycle {
-  id          String           @id @default(uuid()) @db.Uuid
-  agentId     String           @unique @map("agent_id") @db.Uuid
+  id          String           @id @default(cuid())
+  agentId     String           @unique @map("agent_id")
   cycleType   InvoiceCycleType @map("cycle_type")
-  dayOfWeek   Int?             @map("day_of_week") @db.SmallInt
-  dayOfMonth  Int?             @map("day_of_month") @db.SmallInt
-  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  dayOfWeek   Int?             @map("day_of_week")
+  dayOfMonth  Int?             @map("day_of_month")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
 
   agent       Agent            @relation(fields: [agentId], references: [id])
 
@@ -584,12 +585,12 @@ model AgentInvoiceCycle {
 }
 
 model AgentPriceItem {
-  id               String      @id @default(uuid()) @db.Uuid
-  agentId          String      @map("agent_id") @db.Uuid
+  id               String      @id @default(cuid())
+  agentId          String      @map("agent_id")
   serviceType      ServiceType @default(ARR) @map("service_type")
-  fromZoneId       String      @map("from_zone_id") @db.Uuid
-  toZoneId         String      @map("to_zone_id") @db.Uuid
-  vehicleTypeId    String      @map("vehicle_type_id") @db.Uuid
+  fromZoneId       String      @map("from_zone_id")
+  toZoneId         String      @map("to_zone_id")
+  vehicleTypeId    String      @map("vehicle_type_id")
   price            Decimal     @db.Decimal(15, 2)
   driverTip        Decimal     @default(0) @map("driver_tip") @db.Decimal(15, 2)
   boosterSeatPrice Decimal     @default(0) @map("booster_seat_price") @db.Decimal(15, 2)
@@ -598,8 +599,8 @@ model AgentPriceItem {
   currency         Currency    @default(EGP)
   effectiveFrom    DateTime?   @map("effective_from") @db.Date
   effectiveTo      DateTime?   @map("effective_to") @db.Date
-  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
 
   agent            Agent       @relation(fields: [agentId], references: [id])
   fromZone         Zone        @relation("AgentPriceFromZone", fields: [fromZoneId], references: [id])
@@ -616,7 +617,7 @@ model AgentPriceItem {
 // ─────────────────────────────────────────────
 
 model Customer {
-  id            String    @id @default(uuid()) @db.Uuid
+  id            String    @id @default(cuid())
   legalName     String    @map("legal_name")
   tradeName     String?   @map("trade_name")
   taxId         String?   @map("tax_id")
@@ -630,9 +631,9 @@ model Customer {
   creditLimit   Decimal?  @map("credit_limit") @db.Decimal(15, 2)
   creditDays    Int?      @map("credit_days")
   isActive      Boolean   @default(true) @map("is_active")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   trafficJobs       TrafficJob[]
   invoices          AgentInvoice[]
@@ -643,19 +644,19 @@ model Customer {
 }
 
 model CustomerPriceItem {
-  id            String      @id @default(uuid()) @db.Uuid
-  customerId    String      @map("customer_id") @db.Uuid
+  id            String      @id @default(cuid())
+  customerId    String      @map("customer_id")
   serviceType   ServiceType @default(ARR) @map("service_type")
-  fromZoneId    String      @map("from_zone_id") @db.Uuid
-  toZoneId      String      @map("to_zone_id") @db.Uuid
-  vehicleTypeId String      @map("vehicle_type_id") @db.Uuid
+  fromZoneId    String      @map("from_zone_id")
+  toZoneId      String      @map("to_zone_id")
+  vehicleTypeId String      @map("vehicle_type_id")
   transferPrice Decimal     @map("transfer_price") @db.Decimal(15, 2)
   driverTip     Decimal     @default(0) @map("driver_tip") @db.Decimal(15, 2)
   currency      Currency    @default(EGP)
   effectiveFrom DateTime?   @map("effective_from") @db.Date
   effectiveTo   DateTime?   @map("effective_to") @db.Date
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   customer      Customer    @relation(fields: [customerId], references: [id])
   fromZone      Zone        @relation("CustomerPriceFromZone", fields: [fromZoneId], references: [id])
@@ -672,18 +673,18 @@ model CustomerPriceItem {
 // ─────────────────────────────────────────────
 
 model CustomerImportTemplate {
-  id            String      @id @default(uuid()) @db.Uuid
-  customerId    String      @map("customer_id") @db.Uuid
+  id            String      @id @default(cuid())
+  customerId    String      @map("customer_id")
   serviceType   ServiceType @map("service_type")
   fileType      String      @map("file_type")
   fileName      String      @map("file_name")
   filePath      String      @map("file_path")
-  fieldMappings Json?       @map("field_mappings") @db.JsonB
-  sampleData    Json?       @map("sample_data") @db.JsonB
+  fieldMappings Json?       @map("field_mappings")
+  sampleData    Json?       @map("sample_data")
   notes         String?
   isActive      Boolean     @default(true) @map("is_active")
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   customer      Customer    @relation(fields: [customerId], references: [id])
 
@@ -697,17 +698,17 @@ model CustomerImportTemplate {
 // ─────────────────────────────────────────────
 
 model JobImportLog {
-  id             String   @id @default(uuid()) @db.Uuid
-  customerId     String   @map("customer_id") @db.Uuid
+  id             String   @id @default(cuid())
+  customerId     String   @map("customer_id")
   fileName       String   @map("file_name")
   fileType       String   @map("file_type")
   jobsExtracted  Int      @map("jobs_extracted")
   jobsImported   Int      @map("jobs_imported")
   jobsRejected   Int      @map("jobs_rejected")
-  rawAiResponse  Json?    @map("raw_ai_response") @db.JsonB
-  importedJobIds String[] @map("imported_job_ids") @db.Uuid
-  importedById   String   @map("imported_by_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  rawAiResponse  Json?    @map("raw_ai_response")
+  importedJobIds String[] @map("imported_job_ids")
+  importedById   String   @map("imported_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@index([customerId])
   @@index([importedById])
@@ -719,11 +720,11 @@ model JobImportLog {
 // ─────────────────────────────────────────────
 
 model PublicPriceItem {
-  id               String      @id @default(uuid()) @db.Uuid
+  id               String      @id @default(cuid())
   serviceType      ServiceType @default(ARR) @map("service_type")
-  fromZoneId       String      @map("from_zone_id") @db.Uuid
-  toZoneId         String      @map("to_zone_id") @db.Uuid
-  vehicleTypeId    String      @map("vehicle_type_id") @db.Uuid
+  fromZoneId       String      @map("from_zone_id")
+  toZoneId         String      @map("to_zone_id")
+  vehicleTypeId    String      @map("vehicle_type_id")
   price            Decimal     @db.Decimal(15, 2)
   driverTip        Decimal     @default(0) @map("driver_tip") @db.Decimal(15, 2)
   boosterSeatPrice Decimal     @default(0) @map("booster_seat_price") @db.Decimal(15, 2)
@@ -732,8 +733,8 @@ model PublicPriceItem {
   currency         Currency    @default(EGP)
   effectiveFrom    DateTime?   @map("effective_from") @db.Date
   effectiveTo      DateTime?   @map("effective_to") @db.Date
-  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
 
   fromZone         Zone        @relation("PublicPriceFromZone", fields: [fromZoneId], references: [id])
   toZone           Zone        @relation("PublicPriceToZone", fields: [toZoneId], references: [id])
@@ -748,7 +749,7 @@ model PublicPriceItem {
 // ─────────────────────────────────────────────
 
 model GuestBooking {
-  id                   String              @id @default(uuid()) @db.Uuid
+  id                   String              @id @default(cuid())
   bookingRef           String              @unique @map("booking_ref")
   guestName            String              @map("guest_name")
   guestEmail           String              @map("guest_email")
@@ -756,18 +757,18 @@ model GuestBooking {
   guestCountry         String?             @map("guest_country")
   serviceType          ServiceType         @map("service_type")
   jobDate              DateTime            @map("job_date") @db.Date
-  pickupTime           DateTime?           @map("pickup_time") @db.Timestamptz
-  fromZoneId           String              @map("from_zone_id") @db.Uuid
-  toZoneId             String              @map("to_zone_id") @db.Uuid
-  hotelId              String?             @map("hotel_id") @db.Uuid
-  originAirportId      String?             @map("origin_airport_id") @db.Uuid
-  destinationAirportId String?             @map("destination_airport_id") @db.Uuid
+  pickupTime           DateTime?           @map("pickup_time")
+  fromZoneId           String              @map("from_zone_id")
+  toZoneId             String              @map("to_zone_id")
+  hotelId              String?             @map("hotel_id")
+  originAirportId      String?             @map("origin_airport_id")
+  destinationAirportId String?             @map("destination_airport_id")
   flightNo             String?             @map("flight_no")
   carrier              String?
   terminal             String?
-  paxCount             Int                 @map("pax_count") @db.SmallInt
-  vehicleTypeId        String              @map("vehicle_type_id") @db.Uuid
-  extras               Json?               @db.JsonB
+  paxCount             Int                 @map("pax_count")
+  vehicleTypeId        String              @map("vehicle_type_id")
+  extras               Json?              
   notes                String?
   subtotal             Decimal             @db.Decimal(15, 2)
   taxAmount            Decimal             @default(0) @map("tax_amount") @db.Decimal(15, 2)
@@ -779,9 +780,9 @@ model GuestBooking {
   paymentGateway       B2CPaymentGateway?  @map("payment_gateway")
   paymentReference     String?             @map("payment_reference")
   bookingStatus        GuestBookingStatus  @default(CONFIRMED) @map("booking_status")
-  trafficJobId         String?             @unique @map("traffic_job_id") @db.Uuid
-  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  trafficJobId         String?             @unique @map("traffic_job_id")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
 
   fromZone             Zone                @relation("GuestBookingFromZone", fields: [fromZoneId], references: [id])
   toZone               Zone                @relation("GuestBookingToZone", fields: [toZoneId], references: [id])
@@ -799,15 +800,15 @@ model GuestBooking {
 }
 
 model PaymentTransaction {
-  id                   String             @id @default(uuid()) @db.Uuid
-  guestBookingId       String             @map("guest_booking_id") @db.Uuid
+  id                   String             @id @default(cuid())
+  guestBookingId       String             @map("guest_booking_id")
   gateway              B2CPaymentGateway
   gatewayTransactionId String?            @map("gateway_transaction_id")
   amount               Decimal            @db.Decimal(15, 2)
   currency             Currency           @default(EGP)
   status               B2CPaymentStatus   @default(PENDING)
-  rawResponse          Json?              @map("raw_response") @db.JsonB
-  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  rawResponse          Json?              @map("raw_response")
+  createdAt            DateTime           @default(now()) @map("created_at")
 
   guestBooking         GuestBooking       @relation(fields: [guestBookingId], references: [id])
 
@@ -820,7 +821,7 @@ model PaymentTransaction {
 // ─────────────────────────────────────────────
 
 model Supplier {
-  id         String    @id @default(uuid()) @db.Uuid
+  id         String    @id @default(cuid())
   legalName  String    @map("legal_name")
   tradeName  String?   @map("trade_name")
   taxId      String?   @map("tax_id")
@@ -829,11 +830,11 @@ model Supplier {
   country    String?
   phone      String?
   email      String?
-  userId     String?   @unique @map("user_id") @db.Uuid
+  userId     String?   @unique @map("user_id")
   isActive   Boolean   @default(true) @map("is_active")
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
 
   user          User?               @relation(fields: [userId], references: [id])
   vehicles      Vehicle[]
@@ -845,19 +846,19 @@ model Supplier {
 }
 
 model SupplierTripPrice {
-  id            String      @id @default(uuid()) @db.Uuid
-  supplierId    String      @map("supplier_id") @db.Uuid
+  id            String      @id @default(cuid())
+  supplierId    String      @map("supplier_id")
   serviceType   ServiceType @default(ARR) @map("service_type")
-  fromZoneId    String      @map("from_zone_id") @db.Uuid
-  toZoneId      String      @map("to_zone_id") @db.Uuid
-  vehicleTypeId String      @map("vehicle_type_id") @db.Uuid
+  fromZoneId    String      @map("from_zone_id")
+  toZoneId      String      @map("to_zone_id")
+  vehicleTypeId String      @map("vehicle_type_id")
   price         Decimal     @db.Decimal(15, 2)
   driverTip     Decimal     @default(0) @map("driver_tip") @db.Decimal(15, 2)
   currency      Currency    @default(EGP)
   effectiveFrom DateTime?   @map("effective_from") @db.Date
   effectiveTo   DateTime?   @map("effective_to") @db.Date
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
   supplier      Supplier    @relation(fields: [supplierId], references: [id])
   fromZone      Zone        @relation("FromZone", fields: [fromZoneId], references: [id])
@@ -874,48 +875,48 @@ model SupplierTripPrice {
 // ─────────────────────────────────────────────
 
 model TrafficJob {
-  id              String         @id @default(uuid()) @db.Uuid
+  id              String         @id @default(cuid())
   internalRef     String         @unique @map("internal_ref")
   bookingChannel  BookingChannel @default(ONLINE) @map("booking_channel")
-  agentId         String?        @map("agent_id") @db.Uuid
+  agentId         String?        @map("agent_id")
   agentRef        String?        @map("agent_ref")
   customerJobId   String?        @map("customer_job_id")
-  customerId      String?        @map("customer_id") @db.Uuid
+  customerId      String?        @map("customer_id")
   serviceType     ServiceType    @map("service_type")
   jobDate         DateTime       @map("job_date") @db.Date
   status          JobStatus      @default(PENDING)
   bookingStatus   BookingStatus  @default(NEW) @map("booking_status")
-  adultCount      Int            @map("adult_count") @db.SmallInt
-  childCount      Int            @default(0) @map("child_count") @db.SmallInt
-  paxCount        Int            @map("pax_count") @db.SmallInt
+  adultCount      Int            @map("adult_count")
+  childCount      Int            @default(0) @map("child_count")
+  paxCount        Int            @map("pax_count")
 
   // Origin – exactly one must be set (validated in service layer)
-  originAirportId      String?  @map("origin_airport_id") @db.Uuid
-  originZoneId         String?  @map("origin_zone_id") @db.Uuid
-  originHotelId        String?  @map("origin_hotel_id") @db.Uuid
+  originAirportId      String?  @map("origin_airport_id")
+  originZoneId         String?  @map("origin_zone_id")
+  originHotelId        String?  @map("origin_hotel_id")
 
   // Destination – exactly one must be set (validated in service layer)
-  destinationAirportId String?  @map("destination_airport_id") @db.Uuid
-  destinationZoneId    String?  @map("destination_zone_id") @db.Uuid
-  destinationHotelId   String?  @map("destination_hotel_id") @db.Uuid
+  destinationAirportId String?  @map("destination_airport_id")
+  destinationZoneId    String?  @map("destination_zone_id")
+  destinationHotelId   String?  @map("destination_hotel_id")
 
   // Resolved zones for pricing (auto-computed from origin/destination)
-  fromZoneId      String?        @map("from_zone_id") @db.Uuid
-  toZoneId        String?        @map("to_zone_id") @db.Uuid
+  fromZoneId      String?        @map("from_zone_id")
+  toZoneId        String?        @map("to_zone_id")
 
   // Deprecated – kept for backward compatibility
-  hotelId         String?        @map("hotel_id") @db.Uuid
+  hotelId         String?        @map("hotel_id")
 
   clientName      String?        @map("client_name")
   clientMobile    String?        @map("client_mobile")
   boosterSeat     Boolean        @default(false) @map("booster_seat")
-  boosterSeatQty  Int            @default(0) @map("booster_seat_qty") @db.SmallInt
+  boosterSeatQty  Int            @default(0) @map("booster_seat_qty")
   babySeat        Boolean        @default(false) @map("baby_seat")
-  babySeatQty     Int            @default(0) @map("baby_seat_qty") @db.SmallInt
+  babySeatQty     Int            @default(0) @map("baby_seat_qty")
   wheelChair      Boolean        @default(false) @map("wheel_chair")
-  wheelChairQty   Int            @default(0) @map("wheel_chair_qty") @db.SmallInt
+  wheelChairQty   Int            @default(0) @map("wheel_chair_qty")
   printSign       Boolean        @default(false) @map("print_sign")
-  pickUpTime      DateTime?      @map("pick_up_time") @db.Timestamptz
+  pickUpTime      DateTime?      @map("pick_up_time")
   notes           String?
 
   // Collection (Online bookings – driver collects from passenger)
@@ -923,36 +924,41 @@ model TrafficJob {
   collectionAmount       Decimal?  @db.Decimal(15, 2) @map("collection_amount")
   collectionCurrency     Currency  @default(EGP) @map("collection_currency")
   collectionCollected    Boolean   @default(false) @map("collection_collected")
-  collectionCollectedAt  DateTime? @map("collection_collected_at") @db.Timestamptz
+  collectionCollectedAt  DateTime? @map("collection_collected_at")
   collectionReceiptNo    String?   @map("collection_receipt_no")
-  collectionLiquidatedAt DateTime? @map("collection_liquidated_at") @db.Timestamptz
+  collectionLiquidatedAt DateTime? @map("collection_liquidated_at")
+
+  // Transfer price (quoted by agent)
+  transferPrice          Decimal?     @db.Decimal(15, 2) @map("transfer_price")
+  transferPriceCurrency  Currency     @default(EGP) @map("transfer_price_currency")
+  requestedVehicleTypeId String?      @map("requested_vehicle_type_id")
 
   // Customer rep meeting fields (B2B)
   custRepName         String?    @map("cust_rep_name")
   custRepMobile       String?    @map("cust_rep_mobile")
   custRepMeetingPoint String?    @map("cust_rep_meeting_point")
-  custRepMeetingTime  DateTime?  @map("cust_rep_meeting_time") @db.Timestamptz
+  custRepMeetingTime  DateTime?  @map("cust_rep_meeting_time")
 
   // Dispatch 48-hour lock override
-  dispatchUnlockedAt   DateTime? @map("dispatch_unlocked_at") @db.Timestamptz
-  dispatchUnlockedById String?   @map("dispatch_unlocked_by_id") @db.Uuid
+  dispatchUnlockedAt   DateTime? @map("dispatch_unlocked_at")
+  dispatchUnlockedById String?   @map("dispatch_unlocked_by_id")
 
   // Driver portal 48-hour lock override
-  driverUnlockedAt     DateTime? @map("driver_unlocked_at") @db.Timestamptz
-  driverUnlockedById   String?   @map("driver_unlocked_by_id") @db.Uuid
+  driverUnlockedAt     DateTime? @map("driver_unlocked_at")
+  driverUnlockedById   String?   @map("driver_unlocked_by_id")
 
   // Rep portal 48-hour lock override
-  repUnlockedAt        DateTime? @map("rep_unlocked_at") @db.Timestamptz
-  repUnlockedById      String?   @map("rep_unlocked_by_id") @db.Uuid
+  repUnlockedAt        DateTime? @map("rep_unlocked_at")
+  repUnlockedById      String?   @map("rep_unlocked_by_id")
 
   // Supplier portal 48-hour lock override
-  supplierUnlockedAt   DateTime? @map("supplier_unlocked_at") @db.Timestamptz
-  supplierUnlockedById String?   @map("supplier_unlocked_by_id") @db.Uuid
+  supplierUnlockedAt   DateTime? @map("supplier_unlocked_at")
+  supplierUnlockedById String?   @map("supplier_unlocked_by_id")
 
-  createdById     String         @map("created_by_id") @db.Uuid
-  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt       DateTime?      @map("deleted_at") @db.Timestamptz
+  createdById     String         @map("created_by_id")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  deletedAt       DateTime?      @map("deleted_at")
 
   agent              Agent?    @relation(fields: [agentId], references: [id])
   customer           Customer? @relation(fields: [customerId], references: [id])
@@ -968,6 +974,7 @@ model TrafficJob {
   destinationHotel   Hotel?    @relation("JobDestHotel", fields: [destinationHotelId], references: [id])
   fromZone           Zone?     @relation("JobFromZone", fields: [fromZoneId], references: [id])
   toZone             Zone?     @relation("JobToZone", fields: [toZoneId], references: [id])
+  requestedVehicleType VehicleType? @relation("JobRequestedVehicleType", fields: [requestedVehicleTypeId], references: [id])
   createdBy          User      @relation("JobCreatedBy", fields: [createdById], references: [id])
 
   flight                TrafficFlight?
@@ -991,15 +998,15 @@ model TrafficJob {
 }
 
 model TrafficFlight {
-  id            String    @id @default(uuid()) @db.Uuid
-  trafficJobId  String    @unique @map("traffic_job_id") @db.Uuid
+  id            String    @id @default(cuid())
+  trafficJobId  String    @unique @map("traffic_job_id")
   flightNo      String    @map("flight_no")
   carrier       String?
   terminal      String?
-  arrivalTime   DateTime? @map("arrival_time") @db.Timestamptz
-  departureTime DateTime? @map("departure_time") @db.Timestamptz
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  arrivalTime   DateTime? @map("arrival_time")
+  departureTime DateTime? @map("departure_time")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   trafficJob    TrafficJob @relation(fields: [trafficJobId], references: [id])
 
@@ -1007,12 +1014,12 @@ model TrafficFlight {
 }
 
 model TrafficAssignment {
-  id           String          @id @default(uuid()) @db.Uuid
-  trafficJobId String          @unique @map("traffic_job_id") @db.Uuid
-  vehicleId    String          @map("vehicle_id") @db.Uuid
-  driverId     String?         @map("driver_id") @db.Uuid
-  repId        String?         @map("rep_id") @db.Uuid
-  assignedById String          @map("assigned_by_id") @db.Uuid
+  id           String          @id @default(cuid())
+  trafficJobId String          @unique @map("traffic_job_id")
+  vehicleId    String          @map("vehicle_id")
+  driverId     String?         @map("driver_id")
+  repId        String?         @map("rep_id")
+  assignedById String          @map("assigned_by_id")
   driverStatus   PortalJobStatus @default(PENDING) @map("driver_status")
   repStatus      PortalJobStatus @default(PENDING) @map("rep_status")
   supplierStatus PortalJobStatus @default(PENDING) @map("supplier_status")
@@ -1020,8 +1027,8 @@ model TrafficAssignment {
   externalDriverName  String?         @map("external_driver_name")
   externalDriverPhone String?         @map("external_driver_phone")
   remarks             String?
-  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
 
   trafficJob       TrafficJob       @relation(fields: [trafficJobId], references: [id])
   vehicle          Vehicle          @relation(fields: [vehicleId], references: [id])
@@ -1034,16 +1041,16 @@ model TrafficAssignment {
 }
 
 model StatusChangeLog {
-  id             String          @id @default(uuid()) @db.Uuid
-  assignmentId   String          @map("assignment_id") @db.Uuid
+  id             String          @id @default(cuid())
+  assignmentId   String          @map("assignment_id")
   changedBy      String          @map("changed_by")
-  changedById    String          @map("changed_by_id") @db.Uuid
+  changedById    String          @map("changed_by_id")
   previousStatus PortalJobStatus @map("previous_status")
   newStatus      PortalJobStatus @map("new_status")
   gpsLatitude    Decimal         @map("gps_latitude") @db.Decimal(10, 7)
   gpsLongitude   Decimal         @map("gps_longitude") @db.Decimal(10, 7)
   gpsMapLink     String          @map("gps_map_link")
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  createdAt      DateTime        @default(now()) @map("created_at")
 
   assignment     TrafficAssignment @relation(fields: [assignmentId], references: [id])
 
@@ -1056,16 +1063,16 @@ model StatusChangeLog {
 // ─────────────────────────────────────────────
 
 model ActivityLog {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
   userName  String   @map("user_name")
   action    String   // CREATE, UPDATE, DELETE
   entity    String   // e.g. "TrafficJob", "Agent", "Invoice"
   entityId  String?  @map("entity_id")
   summary   String   // Human-readable: "Created traffic job TJ-00123"
-  details   Json?    @db.JsonB
+  details   Json?   
   ipAddress String?  @map("ip_address")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -1080,16 +1087,16 @@ model ActivityLog {
 // ─────────────────────────────────────────────
 
 model DriverTripFee {
-  id           String   @id @default(uuid()) @db.Uuid
-  driverId     String   @map("driver_id") @db.Uuid
-  trafficJobId String   @map("traffic_job_id") @db.Uuid
-  fromZoneId   String   @map("from_zone_id") @db.Uuid
-  toZoneId     String   @map("to_zone_id") @db.Uuid
+  id           String   @id @default(cuid())
+  driverId     String   @map("driver_id")
+  trafficJobId String   @map("traffic_job_id")
+  fromZoneId   String   @map("from_zone_id")
+  toZoneId     String   @map("to_zone_id")
   amount       Decimal  @db.Decimal(15, 2)
   currency     Currency @default(EGP)
   isPosted     Boolean  @default(false) @map("is_posted")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   driver       Driver     @relation(fields: [driverId], references: [id])
   trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
@@ -1100,14 +1107,14 @@ model DriverTripFee {
 }
 
 model RepFee {
-  id           String   @id @default(uuid()) @db.Uuid
-  repId        String   @map("rep_id") @db.Uuid
-  trafficJobId String   @map("traffic_job_id") @db.Uuid
+  id           String   @id @default(cuid())
+  repId        String   @map("rep_id")
+  trafficJobId String   @map("traffic_job_id")
   amount       Decimal  @db.Decimal(15, 2)
   currency     Currency @default(EGP)
   isPosted     Boolean  @default(false) @map("is_posted")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   rep          Rep        @relation(fields: [repId], references: [id])
   trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
@@ -1116,14 +1123,14 @@ model RepFee {
 }
 
 model SupplierCost {
-  id           String   @id @default(uuid()) @db.Uuid
-  supplierId   String   @map("supplier_id") @db.Uuid
-  trafficJobId String   @map("traffic_job_id") @db.Uuid
+  id           String   @id @default(cuid())
+  supplierId   String   @map("supplier_id")
+  trafficJobId String   @map("traffic_job_id")
   amount       Decimal  @db.Decimal(15, 2)
   currency     Currency @default(EGP)
   isPosted     Boolean  @default(false) @map("is_posted")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   supplier     Supplier   @relation(fields: [supplierId], references: [id])
   trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
@@ -1132,9 +1139,9 @@ model SupplierCost {
 }
 
 model AgentInvoice {
-  id            String        @id @default(uuid()) @db.Uuid
-  agentId       String?       @map("agent_id") @db.Uuid
-  customerId    String?       @map("customer_id") @db.Uuid
+  id            String        @id @default(cuid())
+  agentId       String?       @map("agent_id")
+  customerId    String?       @map("customer_id")
   invoiceNumber String        @unique @map("invoice_number")
   invoiceType   InvoiceType?  @map("invoice_type")
   invoiceDate   DateTime      @map("invoice_date") @db.Date
@@ -1145,9 +1152,9 @@ model AgentInvoice {
   total         Decimal       @db.Decimal(15, 2)
   exchangeRate  Decimal       @default(1) @map("exchange_rate") @db.Decimal(10, 4)
   status        InvoiceStatus @default(DRAFT)
-  postedAt      DateTime?     @map("posted_at") @db.Timestamptz
-  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  postedAt      DateTime?     @map("posted_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   agent         Agent?        @relation(fields: [agentId], references: [id])
   customer      Customer?     @relation(fields: [customerId], references: [id])
@@ -1161,17 +1168,17 @@ model AgentInvoice {
 }
 
 model InvoiceLine {
-  id           String     @id @default(uuid()) @db.Uuid
-  invoiceId    String     @map("invoice_id") @db.Uuid
-  trafficJobId String?    @map("traffic_job_id") @db.Uuid
+  id           String     @id @default(cuid())
+  invoiceId    String     @map("invoice_id")
+  trafficJobId String?    @map("traffic_job_id")
   description  String
   quantity     Int        @default(1)
   unitPrice    Decimal    @map("unit_price") @db.Decimal(15, 2)
   taxRate      Decimal    @default(0) @map("tax_rate") @db.Decimal(5, 2)
   taxAmount    Decimal    @default(0) @map("tax_amount") @db.Decimal(15, 2)
   lineTotal    Decimal    @map("line_total") @db.Decimal(15, 2)
-  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
   invoice      AgentInvoice @relation(fields: [invoiceId], references: [id])
   trafficJob   TrafficJob?  @relation(fields: [trafficJobId], references: [id])
@@ -1180,8 +1187,8 @@ model InvoiceLine {
 }
 
 model Payment {
-  id              String        @id @default(uuid()) @db.Uuid
-  agentInvoiceId  String        @map("agent_invoice_id") @db.Uuid
+  id              String        @id @default(cuid())
+  agentInvoiceId  String        @map("agent_invoice_id")
   amount          Decimal       @db.Decimal(15, 2)
   currency        Currency      @default(EGP)
   exchangeRate    Decimal       @default(1) @map("exchange_rate") @db.Decimal(10, 4)
@@ -1189,8 +1196,8 @@ model Payment {
   paymentDate     DateTime      @map("payment_date") @db.Date
   reference       String?
   isPosted        Boolean       @default(false) @map("is_posted")
-  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
   agentInvoice    AgentInvoice  @relation(fields: [agentInvoiceId], references: [id])
 
@@ -1203,13 +1210,13 @@ model Payment {
 // ─────────────────────────────────────────────
 
 model Account {
-  id          String      @id @default(uuid()) @db.Uuid
+  id          String      @id @default(cuid())
   code        String      @unique
   name        String
   accountType AccountType @map("account_type")
   isActive    Boolean     @default(true) @map("is_active")
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   journalLines JournalLine[]
 
@@ -1217,15 +1224,15 @@ model Account {
 }
 
 model JournalEntry {
-  id          String      @id @default(uuid()) @db.Uuid
+  id          String      @id @default(cuid())
   entryNumber String      @unique @map("entry_number")
   entryDate   DateTime    @map("entry_date") @db.Date
   journalType JournalType @map("journal_type")
   description String?
   isPosted    Boolean     @default(false) @map("is_posted")
-  postedAt    DateTime?   @map("posted_at") @db.Timestamptz
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  postedAt    DateTime?   @map("posted_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   lines       JournalLine[]
 
@@ -1234,17 +1241,17 @@ model JournalEntry {
 }
 
 model JournalLine {
-  id             String       @id @default(uuid()) @db.Uuid
-  journalEntryId String       @map("journal_entry_id") @db.Uuid
-  accountId      String       @map("account_id") @db.Uuid
+  id             String       @id @default(cuid())
+  journalEntryId String       @map("journal_entry_id")
+  accountId      String       @map("account_id")
   debit          Decimal      @default(0) @db.Decimal(15, 2)
   credit         Decimal      @default(0) @db.Decimal(15, 2)
   currency       Currency     @default(EGP)
   exchangeRate   Decimal      @default(1) @map("exchange_rate") @db.Decimal(10, 4)
   partnerType    String?      @map("partner_type")
-  partnerId      String?      @map("partner_id") @db.Uuid
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  partnerId      String?      @map("partner_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
 
   journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id])
   account        Account      @relation(fields: [accountId], references: [id])
@@ -1257,14 +1264,14 @@ model JournalLine {
 // ─────────────────────────────────────────────
 
 model SystemSettings {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(cuid())
   theme        String   @default("dark")
   primaryColor String   @default("#3b82f6") @map("primary_color")
   accentColor  String   @default("#8b5cf6") @map("accent_color")
   fontFamily   String   @default("Geist") @map("font_family")
   language     String   @default("en")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
 }
@@ -1274,15 +1281,15 @@ model SystemSettings {
 // ─────────────────────────────────────────────
 
 model CompanySettings {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String   @id @default(cuid())
   companyName      String   @default("iTour TT") @map("company_name")
   logoUrl          String?  @map("logo_url")
   faviconUrl       String?  @map("favicon_url")
-  reportHeaderHtml String?  @map("report_header_html") @db.Text
-  reportFooterHtml String?  @map("report_footer_html") @db.Text
-  licenseKey       String?  @map("license_key") @db.Text
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  reportHeaderHtml String?  @map("report_header_html")
+  reportFooterHtml String?  @map("report_footer_html")
+  licenseKey       String?  @map("license_key")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("company_settings")
 }
@@ -1292,16 +1299,16 @@ model CompanySettings {
 // ─────────────────────────────────────────────
 
 model WhatsappSettings {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String   @id @default(cuid())
   isEnabled        Boolean  @default(false) @map("is_enabled")
   twilioAccountSid String?  @map("twilio_account_sid")
   twilioAuthToken  String?  @map("twilio_auth_token")
   whatsappFrom     String?  @map("whatsapp_from")
-  messageTemplate  String?  @map("message_template") @db.Text
+  messageTemplate  String?  @map("message_template")
   mediaUrl         String?  @map("media_url")
-  sendHour         Int      @default(9) @map("send_hour") @db.SmallInt
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  sendHour         Int      @default(9) @map("send_hour")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("whatsapp_settings")
 }
@@ -1311,17 +1318,17 @@ model WhatsappSettings {
 // ─────────────────────────────────────────────
 
 model EmailSettings {
-  id                  String   @id @default(uuid()) @db.Uuid
+  id                  String   @id @default(cuid())
   smtpHost            String?  @map("smtp_host")
-  smtpPort            Int      @default(587) @map("smtp_port") @db.SmallInt
+  smtpPort            Int      @default(587) @map("smtp_port")
   smtpSecure          Boolean  @default(false) @map("smtp_secure")
   smtpUser            String?  @map("smtp_user")
   smtpPass            String?  @map("smtp_pass")
   fromAddress         String   @default("noreply@itour.local") @map("from_address")
   notifyDispatchEmail String?  @map("notify_dispatch_email")
   notifyTrafficEmail  String?  @map("notify_traffic_email")
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   @@map("email_settings")
 }
@@ -1336,13 +1343,13 @@ enum WhatsappNotificationStatus {
 }
 
 model WhatsappNotificationLog {
-  id             String                      @id @default(uuid()) @db.Uuid
-  trafficJobId   String                      @map("traffic_job_id") @db.Uuid
+  id             String                      @id @default(cuid())
+  trafficJobId   String                      @map("traffic_job_id")
   recipientPhone String                      @map("recipient_phone")
   messageSid     String?                     @map("message_sid")
   status         WhatsappNotificationStatus
   errorMessage   String?                     @map("error_message")
-  sentAt         DateTime                    @default(now()) @map("sent_at") @db.Timestamptz
+  sentAt         DateTime                    @default(now()) @map("sent_at")
 
   trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
 
@@ -1355,15 +1362,15 @@ model WhatsappNotificationLog {
 // ─────────────────────────────────────────────
 
 model RolePermission {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(cuid())
   role      UserRole
   module    String
   canView   Boolean  @default(false) @map("can_view")
   canCreate Boolean  @default(false) @map("can_create")
   canEdit   Boolean  @default(false) @map("can_edit")
   canDelete Boolean  @default(false) @map("can_delete")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([role, module])
   @@map("role_permissions")
@@ -1374,14 +1381,14 @@ model RolePermission {
 // ─────────────────────────────────────────────
 
 model RepNotification {
-  id            String           @id @default(uuid()) @db.Uuid
-  repId         String           @map("rep_id") @db.Uuid
+  id            String           @id @default(cuid())
+  repId         String           @map("rep_id")
   title         String
   message       String
   type          NotificationType @default(GENERAL)
   isRead        Boolean          @default(false) @map("is_read")
-  trafficJobId  String?          @map("traffic_job_id") @db.Uuid
-  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  trafficJobId  String?          @map("traffic_job_id")
+  createdAt     DateTime         @default(now()) @map("created_at")
 
   rep           Rep              @relation(fields: [repId], references: [id])
   trafficJob    TrafficJob?      @relation(fields: [trafficJobId], references: [id])
@@ -1394,14 +1401,14 @@ model RepNotification {
 // ─────────────────────────────────────────────
 
 model DriverNotification {
-  id            String           @id @default(uuid()) @db.Uuid
-  driverId      String           @map("driver_id") @db.Uuid
+  id            String           @id @default(cuid())
+  driverId      String           @map("driver_id")
   title         String
   message       String
   type          NotificationType @default(GENERAL)
   isRead        Boolean          @default(false) @map("is_read")
-  trafficJobId  String?          @map("traffic_job_id") @db.Uuid
-  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  trafficJobId  String?          @map("traffic_job_id")
+  createdAt     DateTime         @default(now()) @map("created_at")
 
   driver        Driver           @relation(fields: [driverId], references: [id])
   trafficJob    TrafficJob?      @relation(fields: [trafficJobId], references: [id])
@@ -1414,15 +1421,15 @@ model DriverNotification {
 // ─────────────────────────────────────────────
 
 model UserNotification {
-  id            String           @id @default(uuid()) @db.Uuid
-  userId        String           @map("user_id") @db.Uuid
+  id            String           @id @default(cuid())
+  userId        String           @map("user_id")
   title         String
   message       String
   type          NotificationType @default(GENERAL)
   isRead        Boolean          @default(false) @map("is_read")
-  trafficJobId  String?          @map("traffic_job_id") @db.Uuid
+  trafficJobId  String?          @map("traffic_job_id")
   metadata      Json?
-  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  createdAt     DateTime         @default(now()) @map("created_at")
 
   user          User             @relation(fields: [userId], references: [id])
   trafficJob    TrafficJob?      @relation(fields: [trafficJobId], references: [id])
@@ -1436,16 +1443,16 @@ model UserNotification {
 // ─────────────────────────────────────────────
 
 model NoShowEvidence {
-  id             String   @id @default(uuid()) @db.Uuid
-  trafficJobId   String   @map("traffic_job_id") @db.Uuid
+  id             String   @id @default(cuid())
+  trafficJobId   String   @map("traffic_job_id")
   imageUrl1      String   @map("image_url_1")
   imageUrl2      String   @map("image_url_2")
   gpsLatitude    Decimal  @map("gps_latitude") @db.Decimal(10, 7)
   gpsLongitude   Decimal  @map("gps_longitude") @db.Decimal(10, 7)
   gpsMapLink     String   @map("gps_map_link")
   submittedBy    String   @map("submitted_by")
-  submittedById  String   @map("submitted_by_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  submittedById  String   @map("submitted_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   trafficJob     TrafficJob @relation(fields: [trafficJobId], references: [id])
 
@@ -1458,12 +1465,12 @@ model NoShowEvidence {
 // ─────────────────────────────────────────────
 
 model DeviceToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
   token     String
   platform  String   // 'ios' | 'android'
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
