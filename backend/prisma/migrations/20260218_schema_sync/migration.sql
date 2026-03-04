@@ -42,8 +42,7 @@ END $$;
 
 -- ─── ALTER EXISTING ENUMS ───────────────────────────
 
-ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'DRIVER';
-ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'SUPPLIER';
+-- UserRole is stored as text, not an enum — skip ALTER TYPE
 
 -- ─── NEW TABLE: roles ───────────────────────────────
 
@@ -92,6 +91,7 @@ CREATE TABLE IF NOT EXISTS "suppliers" (
     "deleted_at" TIMESTAMPTZ,
     CONSTRAINT "suppliers_pkey" PRIMARY KEY ("id")
 );
+ALTER TABLE "suppliers" ADD COLUMN IF NOT EXISTS "user_id" UUID;
 CREATE UNIQUE INDEX IF NOT EXISTS "suppliers_user_id_key" ON "suppliers"("user_id");
 
 -- ─── NEW TABLE: vehicle_compliance ──────────────────
