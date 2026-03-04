@@ -370,6 +370,10 @@ CREATE TABLE IF NOT EXISTS "no_show_evidence" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "no_show_evidence_traffic_job_id_submitted_by_key" ON "no_show_evidence"("traffic_job_id", "submitted_by");
 
+-- ─── ALTER TABLE: company_settings ────────────────────
+
+ALTER TABLE "company_settings" ADD COLUMN IF NOT EXISTS "license_key" TEXT;
+
 -- ─── ALTER TABLE: users ─────────────────────────────
 
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "phone" TEXT;
