@@ -1,6 +1,13 @@
-# iTourTT - Transport & Traffic Management System
+# iTourTT - Transport & Traffic Management System — v2.1.0
 
 A production-grade, full-stack enterprise transport, traffic, and accounting system built for Egypt-based transfer operations. Fully compatible with Odoo ERP — no customization required on the Odoo side.
+
+## Live Environments
+
+| Environment | URL |
+|---|---|
+| Production (Fulvago) | https://fulvago.itourtt.cloud |
+| Training | https://tranning.itourtt.cloud |
 
 ## Overview
 
@@ -22,13 +29,18 @@ iTourTT manages the complete lifecycle of transport operations: from booking tra
 - Daily view with ARR (arrival) jobs on the left, DEP (departure) on the right
 - Excel-like inline editing grid with keyboard navigation
 - Real-time conflict validation (capacity, double-booking)
-- Assignment order enforcement: Vehicle -> Driver -> Rep
+- **Split assignment logic**: dispatchers assign vehicle + driver independently; online operators assign rep independently — neither side needs to wait for the other
+- **Vehicle Fleet Overview**: visual card strip per vehicle showing all day's assignments with automatic conflict detection (🔴 confirmed time overlap within 2h, 🟡 missing time data)
+- **Rep Overview**: same visual cards grouped by rep — visible to online operators
+- 48-hour dispatcher time-lock with manual unlock per job
+- Excel export
 
 ### Traffic Jobs
 - B2B (agent) and Online (direct) booking management
-- Service types: ARR, DEP, CITY
-- Auto-generated internal booking references
+- Service types: ARR, DEP, CITY, ROUND_TRIP, EXCURSION, and more
+- Auto-generated internal booking references (ITT-XXXX)
 - Pax count validated against vehicle capacity
+- Collection amount support (multi-currency)
 
 ### Finance & Invoicing
 - Multi-currency support with exchange rates stored per transaction
@@ -56,10 +68,16 @@ iTourTT manages the complete lifecycle of transport operations: from booking tra
 - External transport providers with their own vehicles, drivers, and price lists
 - Self-service portal for supplier resource management
 
+### No-Show Evidence
+- Submitted by driver or rep via their portal
+- Up to 10 geo-tagged photos per submission
+- Clickable badge on traffic jobs table opens evidence modal
+- Submitter label shows `ROLE-UserName`
+
 ### Permissions & Security
 - Role-Based Access Control (RBAC) with granular permission tree
-- System roles: Admin, Dispatcher, Accountant, Agent Manager, Viewer, Rep, Driver, Supplier
-- Permission-based UI rendering (sidebar, pages, actions)
+- Roles: `super_admin`, `online_manager`, `online_operator`, `dispatch_manager`, `dispatch_operator`, `financial_controller`, `transportation_accountant`, `management`
+- Permission-based UI rendering (sidebar, pages, actions, columns)
 - JWT authentication with refresh token rotation
 
 ### Activity Log
@@ -209,6 +227,26 @@ All endpoints follow REST conventions with JWT authentication:
 - `POST /auth/refresh` - Refresh access token
 - `GET/POST/PATCH/DELETE /api/{resource}` - CRUD operations
 - All mutating endpoints are audit-logged automatically
+
+## Changelog
+
+### v2.1.0 — 2026-03-06
+- Split assignment: dispatchers assign vehicle+driver, online operators assign rep independently
+- Vehicle Fleet Overview panel with red/amber conflict detection above dispatch table
+- Rep Overview panel for online operators with same conflict detection
+- No-show evidence: up to 10 images, `ROLE-UserName` submitted-by label, clickable badge
+- 7 new RBAC roles with granular permission-registry keys
+- Agent reference shown in rep & driver portal job cards
+- Production deployment: Nginx reverse proxy + SSL (Let's Encrypt) for both domains
+- CORS fix for training domain
+
+### v2.0.0
+- Core system: traffic jobs, dispatch console, driver/rep/supplier portals
+- JWT authentication with refresh token rotation
+- Prisma schema with full location tree (Country → Airport → City → Zone → Hotel)
+- Docker Compose full-stack infrastructure
+
+---
 
 ## License
 
