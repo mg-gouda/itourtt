@@ -1386,6 +1386,180 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
 }
 
 // ────────────────────────────────────────────
+// RepOverview
+// ────────────────────────────────────────────
+
+function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
+  const t = useT();
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Group jobs that have a rep assigned
+  const repMap = new Map<string, { name: string; jobs: Job[] }>();
+
+  for (const job of jobs) {
+    if (!job.assignment?.repId || !job.assignment.rep) continue;
+    const rid = job.assignment.repId;
+    if (!repMap.has(rid)) {
+      repMap.set(rid, { name: job.assignment.rep.name, jobs: [] });
+    }
+    repMap.get(rid)!.jobs.push(job);
+  }
+
+  const entries = Array.from(repMap.entries()).map(([rid, data]) => {
+    const sorted = [...data.jobs].sort((a, b) => {
+      const ta = getJobTime(a)?.getTime() ?? 0;
+      const tb = getJobTime(b)?.getTime() ?? 0;
+      return ta - tb;
+    });
+
+    const multiJob = sorted.length > 1;
+    const hasUnverifiable = multiJob && sorted.some((j) => !getJobTime(j));
+    let hasConflict = false;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const t1 = getJobTime(sorted[i]);
+      const t2 = getJobTime(sorted[i + 1]);
+      if (t1 && t2 && Math.abs(t2.getTime() - t1.getTime()) < CONFLICT_WINDOW_MS) {
+        hasConflict = true;
+        break;
+      }
+    }
+    return { rid, ...data, jobs: sorted, hasConflict, hasUnverifiable };
+  });
+
+  entries.sort((a, b) => {
+    const rank = (e: typeof entries[0]) => (e.hasConflict ? 0 : e.hasUnverifiable ? 1 : 2);
+    const diff = rank(a) - rank(b);
+    if (diff !== 0) return diff;
+    return a.name.localeCompare(b.name);
+  });
+
+  if (entries.length === 0) return null;
+
+  const conflictCount = entries.filter((e) => e.hasConflict).length;
+  const unverifiableCount = entries.filter((e) => !e.hasConflict && e.hasUnverifiable).length;
+
+  const serviceColors: Record<string, string> = {
+    ARR: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    DEP: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    CITY: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    EXCURSION: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    ROUND_TRIP: "bg-teal-500/20 text-teal-400 border-teal-500/30",
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Section header */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <UserCheck className="h-4 w-4" />
+          {t("dispatch.repOverview")}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal">
+            {entries.length} {t("dispatch.repsLabel")}
+          </span>
+          {conflictCount > 0 && (
+            <span className="rounded-full bg-red-500/20 border border-red-500/30 text-red-400 px-2 py-0.5 text-xs font-semibold">
+              ⚠ {conflictCount} {t("dispatch.conflictLabel")}
+            </span>
+          )}
+          {unverifiableCount > 0 && (
+            <span className="rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 px-2 py-0.5 text-xs font-semibold">
+              ? {unverifiableCount} {t("dispatch.unverifiableLabel")}
+            </span>
+          )}
+          <span className="text-muted-foreground/50 text-xs">
+            {collapsed ? "▸" : "▾"}
+          </span>
+        </button>
+      </div>
+
+      {!collapsed && (
+        <div className="flex gap-3 overflow-x-auto pb-2 pt-0.5">
+          {entries.map(({ rid, name, jobs: rjobs, hasConflict, hasUnverifiable }) => (
+            <div
+              key={rid}
+              className={`flex-shrink-0 w-52 rounded-lg border bg-card p-3 space-y-2 transition-colors ${
+                hasConflict
+                  ? "border-red-500/60 bg-red-950/10"
+                  : hasUnverifiable
+                  ? "border-amber-500/50 bg-amber-950/10"
+                  : "border-border"
+              }`}
+            >
+              {/* Card header */}
+              <div className="flex items-start justify-between gap-1">
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm text-foreground leading-tight truncate">
+                    {name}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">{t("dispatch.rep")}</div>
+                </div>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    {rjobs.length} {rjobs.length === 1 ? t("dispatch.tripSingle") : t("dispatch.tripPlural")}
+                  </span>
+                  {hasConflict && (
+                    <span className="text-[10px] font-bold text-red-400">⚠ {t("dispatch.conflict")}</span>
+                  )}
+                  {!hasConflict && hasUnverifiable && (
+                    <span className="text-[10px] font-bold text-amber-400">? {t("dispatch.noTime")}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Trip list */}
+              <div className="space-y-1 border-t border-border pt-2">
+                {rjobs.map((job, idx) => {
+                  const jobTime = getJobTime(job);
+                  const prevTime = idx > 0 ? getJobTime(rjobs[idx - 1]) : null;
+                  const isConflictWithPrev =
+                    !!jobTime &&
+                    !!prevTime &&
+                    Math.abs(jobTime.getTime() - prevTime.getTime()) < CONFLICT_WINDOW_MS;
+                  const isUnknownTime = !jobTime && rjobs.length > 1;
+                  return (
+                    <div
+                      key={job.id}
+                      className={`rounded px-2 py-1 text-[11px] space-y-0.5 ${
+                        isConflictWithPrev
+                          ? "bg-red-500/15 border border-red-500/30"
+                          : isUnknownTime
+                          ? "bg-amber-500/10 border border-amber-500/25"
+                          : "bg-muted/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className={`rounded border px-1 py-0.5 text-[10px] font-semibold ${
+                            serviceColors[job.serviceType] ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30"
+                          }`}
+                        >
+                          {job.serviceType}
+                        </span>
+                        <span className={`font-mono text-[10px] ${isUnknownTime ? "text-amber-400" : "text-muted-foreground"}`}>
+                          {jobTime ? fmtTime(jobTime.toISOString(), locale) : "no time"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-foreground/80 truncate font-mono">{job.internalRef}</span>
+                        <span className="text-muted-foreground ml-1 flex-shrink-0">{job.paxCount}p</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────
 // Main Component
 // ────────────────────────────────────────────
 
@@ -2088,8 +2262,16 @@ export default function DispatchPage() {
         </div>
 
         {/* Fleet Overview */}
-        {!loading && (
+        {!loading && canAssignVehicle && (
           <VehicleFleetOverview
+            jobs={[...arrivals, ...departures, ...cityTransfers]}
+            locale={locale}
+          />
+        )}
+
+        {/* Rep Overview */}
+        {!loading && canAssignRep && (
+          <RepOverview
             jobs={[...arrivals, ...departures, ...cityTransfers]}
             locale={locale}
           />
