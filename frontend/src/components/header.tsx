@@ -57,7 +57,7 @@ export function Header() {
 
   useEffect(() => {
     fetchNotifications();
-    intervalRef.current = setInterval(fetchNotifications, 30000);
+    intervalRef.current = setInterval(fetchNotifications, 10000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };

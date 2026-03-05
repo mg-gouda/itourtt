@@ -232,12 +232,17 @@ export class DriverPortalService {
   async submitNoShow(
     userId: string,
     jobId: string,
-    imageUrl1: string,
-    imageUrl2: string,
+    imageUrls: string[],
     latitude: number,
     longitude: number,
   ) {
-    const driverId = await this.resolveDriverId(userId);
+    const driver = await this.prisma.driver.findFirst({
+      where: { userId, deletedAt: null },
+      include: { user: { select: { name: true } } },
+    });
+    if (!driver) throw new ForbiddenException('No driver profile linked to this account');
+    const driverId = driver.id;
+    const submittedByLabel = `DRIVER-${driver.user?.name ?? 'Unknown'}`;
 
     const assignment = await this.prisma.trafficAssignment.findFirst({
       where: {
@@ -284,12 +289,11 @@ export class DriverPortalService {
       await tx.noShowEvidence.create({
         data: {
           trafficJobId: jobId,
-          imageUrl1,
-          imageUrl2,
+          imageUrls,
           gpsLatitude: latitude,
           gpsLongitude: longitude,
           gpsMapLink,
-          submittedBy: 'DRIVER',
+          submittedBy: submittedByLabel,
           submittedById: driverId,
         },
       });

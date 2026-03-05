@@ -5,9 +5,9 @@ export class AssignJobDto {
   @IsString()
   trafficJobId!: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  vehicleId!: string;
+  vehicleId?: string;
 
   @IsOptional()
   @IsString()

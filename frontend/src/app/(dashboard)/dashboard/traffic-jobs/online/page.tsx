@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Briefcase,
@@ -218,6 +218,10 @@ export default function OnlineJobPage() {
   const t = useT();
   const locale = useLocaleId();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editParam = searchParams.get("edit");
+  const formRef = useRef<HTMLDivElement>(null);
+  const autoEditLoadedRef = useRef(false);
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
@@ -288,6 +292,19 @@ export default function OnlineJobPage() {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  /* ── Auto-open edit form when ?edit=<id> is in the URL ── */
+  useEffect(() => {
+    if (!editParam || autoEditLoadedRef.current) return;
+    autoEditLoadedRef.current = true;
+    api.get(`/traffic-jobs/${editParam}`)
+      .then(({ data }) => {
+        handleSelectJob(data);
+        setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      })
+      .catch(() => toast.error("Job not found"));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editParam]);
 
   /* ── Select job for editing ── */
   const handleSelectJob = (job: TrafficJob) => {
@@ -441,8 +458,16 @@ export default function OnlineJobPage() {
       }
 
       if (editingJobId) {
-        const { bookingChannel, bookingStatus, ...updatePayload } = payload;
+        const { bookingChannel, ...updatePayload } = payload;
         await api.patch(`/traffic-jobs/${editingJobId}`, updatePayload);
+        // When booking is cancelled, also cancel the operational job status
+        if (form.bookingStatus === "CANCELLED") {
+          try {
+            await api.patch(`/traffic-jobs/${editingJobId}/status`, { status: "CANCELLED" });
+          } catch {
+            // Job may already be in a terminal state — booking status still saved
+          }
+        }
         toast.success(t("jobs.updated") || "Job updated successfully");
       } else {
         const { bookingStatus, ...createPayload } = payload;
@@ -502,7 +527,7 @@ export default function OnlineJobPage() {
       </div>
 
       {/* ─── Inline Form ─── */}
-      <Card className={cn("border-border bg-card p-4", editingJobId && "ring-2 ring-primary/50")}>
+      <Card ref={formRef} className={cn("border-border bg-card p-4", editingJobId && "ring-2 ring-primary/50")}>
         <div className="space-y-4">
           {/* Line 1: Booking Status + Transfer Provider + Agent Ref + Service Type + Service Date + Pickup Time */}
           <div className="grid grid-cols-6 gap-3">
@@ -944,12 +969,18 @@ export default function OnlineJobPage() {
                   <SortableHeader label={t("jobs.agentRef")} sortKey="agentRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("common.date")} sortKey="jobDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <SortableHeader label={t("jobs.pickUpTime")} sortKey="pickUpTime" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                  <TableHead className="text-white text-xs">{t("jobs.arrivalTime")}</TableHead>
                   <SortableHeader label={t("jobs.transferProvider")} sortKey="agent.legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("jobs.clientName")} sortKey="clientName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
                   <SortableHeader label={t("dispatch.pax")} sortKey="paxCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("jobs.extras") || "Extras"}</TableHead>
-                  <TableHead className="text-white text-xs w-[60px]">{t("jobs.collection") || "$"}</TableHead>
+                  <TableHead className="text-white text-xs w-[70px]">Coll. Amt</TableHead>
+                  <TableHead className="text-white text-xs w-[60px]">Coll. Cur</TableHead>
+                  <TableHead className="text-white text-xs w-[70px]">Tr. Price</TableHead>
+                  <TableHead className="text-white text-xs w-[60px]">Tr. Cur</TableHead>
+                  <TableHead className="text-white text-xs">Veh. Type</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.notes") || "Notes"}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
                   <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
@@ -987,6 +1018,16 @@ export default function OnlineJobPage() {
                       <TableCell className="text-muted-foreground text-xs">
                         {formatDate(job.jobDate)}
                       </TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        {job.pickUpTime
+                          ? new Date(job.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
+                          : "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        {job.flight?.arrivalTime
+                          ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
+                          : "\u2014"}
+                      </TableCell>
                       <TableCell className="text-muted-foreground text-xs">{job.agent?.legalName || "\u2014"}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">{job.clientName || "\u2014"}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">
@@ -1008,12 +1049,27 @@ export default function OnlineJobPage() {
                         })()}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs text-center">
-                        {job.collectionRequired ? (
-                          <span className="flex items-center gap-0.5 text-amber-500" title={`${job.collectionAmount} ${job.collectionCurrency}`}>
-                            <DollarSign className="h-3.5 w-3.5" />
-                            <span className="text-[10px]">{job.collectionAmount}</span>
-                          </span>
-                        ) : "\u2014"}
+                        {job.collectionRequired && job.collectionAmount
+                          ? <span className="text-amber-500">{job.collectionAmount}</span>
+                          : "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs text-center">
+                        {job.collectionRequired
+                          ? <span className="text-amber-500">{job.collectionCurrency}</span>
+                          : "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs text-center">
+                        {job.transferPrice
+                          ? <span className="text-sky-500">{job.transferPrice}</span>
+                          : "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs text-center">
+                        {job.transferPrice
+                          ? <span className="text-sky-500">{job.transferPriceCurrency}</span>
+                          : "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        {job.requestedVehicleType?.name || "\u2014"}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
                         {job.notes || "\u2014"}

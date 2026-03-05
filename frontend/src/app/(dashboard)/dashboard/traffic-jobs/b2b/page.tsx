@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Briefcase,
@@ -184,6 +184,10 @@ export default function B2BJobPage() {
   const t = useT();
   const locale = useLocaleId();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editParam = searchParams.get("edit");
+  const formRef = useRef<HTMLDivElement>(null);
+  const autoEditLoadedRef = useRef(false);
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
@@ -245,6 +249,19 @@ export default function B2BJobPage() {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  /* ── Auto-open edit form when ?edit=<id> is in the URL ── */
+  useEffect(() => {
+    if (!editParam || autoEditLoadedRef.current) return;
+    autoEditLoadedRef.current = true;
+    api.get(`/traffic-jobs/${editParam}`)
+      .then(({ data }) => {
+        handleSelectJob(data);
+        setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      })
+      .catch(() => toast.error("Job not found"));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editParam]);
 
   /* ── Select job for editing ── */
   const handleSelectJob = (job: TrafficJob) => {
@@ -347,8 +364,16 @@ export default function B2BJobPage() {
       }
 
       if (editingJobId) {
-        const { bookingChannel, bookingStatus, ...updatePayload } = payload;
+        const { bookingChannel, ...updatePayload } = payload;
         await api.patch(`/traffic-jobs/${editingJobId}`, updatePayload);
+        // When booking is cancelled, also cancel the operational job status
+        if (form.bookingStatus === "CANCELLED") {
+          try {
+            await api.patch(`/traffic-jobs/${editingJobId}/status`, { status: "CANCELLED" });
+          } catch {
+            // Job may already be in a terminal state — booking status still saved
+          }
+        }
         toast.success(t("jobs.updated") || "Job updated successfully");
       } else {
         const { bookingStatus, ...createPayload } = payload;
@@ -405,7 +430,7 @@ export default function B2BJobPage() {
       </div>
 
       {/* ─── Inline Form ─── */}
-      <Card className={cn("border-border bg-card p-4", editingJobId && "ring-2 ring-primary/50")}>
+      <Card ref={formRef} className={cn("border-border bg-card p-4", editingJobId && "ring-2 ring-primary/50")}>
         <div className="space-y-4">
           {/* Row 1: Booking Status + Customer + Service Type + Date + Pickup + Adults */}
           <div className="grid grid-cols-7 gap-3">

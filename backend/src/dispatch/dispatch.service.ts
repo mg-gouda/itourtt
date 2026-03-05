@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
 import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import type { ServiceType, JobStatus } from '../../generated/prisma/client.js';
@@ -24,6 +25,7 @@ export class DispatchService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly pushService: PushNotificationsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -92,6 +94,11 @@ export class DispatchService {
   // ─────────────────────────────────────────────
 
   async assignJob(dto: AssignJobDto, userId: string, userRole?: string, roleSlug?: string) {
+    // Must provide at least vehicle or rep
+    if (!dto.vehicleId && !dto.repId) {
+      throw new BadRequestException('Either vehicleId or repId must be provided');
+    }
+
     // 1. Verify job exists and is eligible
     const job = await this.prisma.trafficJob.findFirst({
       where: { id: dto.trafficJobId, deletedAt: null },
@@ -117,42 +124,44 @@ export class DispatchService {
       );
     }
 
-    // 2. Verify vehicle exists and is active
-    const vehicle = await this.prisma.vehicle.findFirst({
-      where: { id: dto.vehicleId, deletedAt: null, isActive: true },
-      include: { vehicleType: true },
-    });
-
-    if (!vehicle) {
-      throw new NotFoundException(
-        `Vehicle with ID "${dto.vehicleId}" not found or inactive`,
-      );
-    }
-
-    // 3. Pax count must not exceed vehicle capacity
-    if (job.paxCount > vehicle.vehicleType.seatCapacity) {
-      throw new BadRequestException(
-        `Pax count (${job.paxCount}) exceeds vehicle capacity (${vehicle.vehicleType.seatCapacity})`,
-      );
-    }
-
-    // 3b. Vehicle type mismatch check (requested vs assigned)
-    if (
-      job.requestedVehicleTypeId &&
-      vehicle.vehicleTypeId !== job.requestedVehicleTypeId &&
-      !dto.allowTypeMismatch
-    ) {
-      const requestedType = await this.prisma.vehicleType.findUnique({
-        where: { id: job.requestedVehicleTypeId },
-        select: { name: true },
+    // 2. Verify vehicle exists and is active (only when vehicleId provided)
+    if (dto.vehicleId) {
+      const vehicle = await this.prisma.vehicle.findFirst({
+        where: { id: dto.vehicleId, deletedAt: null, isActive: true },
+        include: { vehicleType: true },
       });
-      throw new ConflictException(
-        `Vehicle type mismatch: requested "${requestedType?.name || 'Unknown'}", got "${vehicle.vehicleType.name}"`,
-      );
-    }
 
-    // 4. Check vehicle availability with time-aware + route-aware rules
-    await this.validateVehicleAvailability(dto.vehicleId, job);
+      if (!vehicle) {
+        throw new NotFoundException(
+          `Vehicle with ID "${dto.vehicleId}" not found or inactive`,
+        );
+      }
+
+      // 3. Pax count must not exceed vehicle capacity
+      if (job.paxCount > vehicle.vehicleType.seatCapacity) {
+        throw new BadRequestException(
+          `Pax count (${job.paxCount}) exceeds vehicle capacity (${vehicle.vehicleType.seatCapacity})`,
+        );
+      }
+
+      // 3b. Vehicle type mismatch check (requested vs assigned)
+      if (
+        job.requestedVehicleTypeId &&
+        vehicle.vehicleTypeId !== job.requestedVehicleTypeId &&
+        !dto.allowTypeMismatch
+      ) {
+        const requestedType = await this.prisma.vehicleType.findUnique({
+          where: { id: job.requestedVehicleTypeId },
+          select: { name: true },
+        });
+        throw new ConflictException(
+          `Vehicle type mismatch: requested "${requestedType?.name || 'Unknown'}", got "${vehicle.vehicleType.name}"`,
+        );
+      }
+
+      // 4. Check vehicle availability with time-aware + route-aware rules
+      await this.validateVehicleAvailability(dto.vehicleId, job);
+    }
 
     // 5. Validate driver with time-aware rules (skip for external/supplier drivers)
     if (dto.driverId) {
@@ -258,7 +267,7 @@ export class DispatchService {
     }
 
     // Send driver assignment email if this job is linked to a guest booking
-    if (assignment.driverId && assignment.driver) {
+    if (assignment.driverId && assignment.driver && assignment.vehicle) {
       this.sendDriverAssignmentEmail(
         assignment.trafficJob.id,
         assignment.driver,
@@ -267,6 +276,18 @@ export class DispatchService {
         this.logger.error(`Failed to send driver assignment email: ${err.message}`),
       );
     }
+
+    // Notify online users about the dispatch action (fire-and-forget)
+    this.notificationsService.notifyDispatchAction(
+      dto.trafficJobId,
+      userId,
+      'ASSIGNED',
+      {
+        vehiclePlate: assignment.vehicle?.plateNumber,
+        driverName: assignment.driver?.name ?? undefined,
+        repName: assignment.rep?.name ?? undefined,
+      },
+    ).catch((err) => this.logger.error(`Failed to send dispatch notification: ${err.message}`));
 
     return assignment;
   }
@@ -469,6 +490,18 @@ export class DispatchService {
       ).catch(() => {});
     }
 
+    // Notify online users about the reassignment (fire-and-forget)
+    this.notificationsService.notifyDispatchAction(
+      updated.trafficJobId,
+      userId,
+      'REASSIGNED',
+      {
+        vehiclePlate: updated.vehicle?.plateNumber,
+        driverName: updated.driver?.name ?? undefined,
+        repName: updated.rep?.name ?? undefined,
+      },
+    ).catch((err) => this.logger.error(`Failed to send dispatch notification: ${err.message}`));
+
     return updated;
   }
 
@@ -476,7 +509,7 @@ export class DispatchService {
   // UNASSIGN JOB
   // ─────────────────────────────────────────────
 
-  async unassignJob(assignmentId: string, userRole?: string, roleSlug?: string) {
+  async unassignJob(assignmentId: string, userId: string, userRole?: string, roleSlug?: string) {
     const assignment = await this.prisma.trafficAssignment.findUnique({
       where: { id: assignmentId },
       include: { trafficJob: true },
@@ -502,6 +535,14 @@ export class DispatchService {
       });
     });
 
+    // Notify online users about the unassignment (fire-and-forget)
+    this.notificationsService.notifyDispatchAction(
+      assignment.trafficJobId,
+      userId,
+      'UNASSIGNED',
+      {},
+    ).catch((err) => this.logger.error(`Failed to send dispatch notification: ${err.message}`));
+
     return { message: 'Assignment removed successfully' };
   }
 
@@ -523,7 +564,7 @@ export class DispatchService {
       select: { vehicleId: true },
     });
 
-    const busyVehicleIds = busyAssignments.map((a) => a.vehicleId);
+    const busyVehicleIds = busyAssignments.map((a) => a.vehicleId).filter((id): id is string => id !== null);
 
     return this.prisma.vehicle.findMany({
       where: {

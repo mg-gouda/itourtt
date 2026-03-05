@@ -92,7 +92,7 @@ interface Job {
   } | null;
   assignment?: {
     id: string;
-    vehicleId: string;
+    vehicleId: string | null;
     driverId: string | null;
     repId: string | null;
     externalDriverName?: string | null;
@@ -109,6 +109,12 @@ interface Job {
   collectionRequired: boolean;
   collectionAmount: number | null;
   collectionCurrency: string | null;
+  boosterSeat: boolean;
+  boosterSeatQty: number;
+  babySeat: boolean;
+  babySeatQty: number;
+  wheelChair: boolean;
+  wheelChairQty: number;
   requestedVehicleTypeId: string | null;
   requestedVehicleType?: { id: string; name: string } | null;
 }
@@ -151,7 +157,7 @@ const statusRowClass: Record<string, string> = {
   ASSIGNED: "border-l-4 border-l-emerald-500",
   IN_PROGRESS: "border-l-4 border-l-blue-500",
   COMPLETED: "border-l-4 border-l-zinc-500",
-  CANCELLED: "border-l-4 border-l-zinc-700",
+  CANCELLED: "border-l-4 border-l-red-900 bg-red-950/30",
 };
 
 function fmtDate(d: Date) {
@@ -381,6 +387,7 @@ function EditablePersonCell({
   onCancel,
   cellRef,
   locked,
+  allowWithoutAssignment,
 }: {
   job: Job;
   field: "driver" | "rep";
@@ -393,6 +400,7 @@ function EditablePersonCell({
   onCancel: () => void;
   cellRef: (el: HTMLTableCellElement | null) => void;
   locked?: boolean;
+  allowWithoutAssignment?: boolean;
 }) {
   const t = useT();
   const currentId =
@@ -401,7 +409,7 @@ function EditablePersonCell({
     field === "driver"
       ? (job.assignment?.driver?.name || job.assignment?.externalDriverName)
       : job.assignment?.rep?.name;
-  const canEdit = !locked && !!job.assignment; // must have vehicle first, and not locked
+  const canEdit = !locked && (!!job.assignment || !!allowWithoutAssignment);
   const isSupplierDriver = field === "driver" && selectedSource && selectedSource !== "owned";
 
   // Filter drivers by source (owned vs supplier), reps show all
@@ -716,6 +724,40 @@ function SummaryFooter({
 }
 
 // ────────────────────────────────────────────
+// ────────────────────────────────────────────
+// Shared Extras & Collection cells
+// ────────────────────────────────────────────
+
+function ExtrasCell({ job }: { job: Job }) {
+  const parts = [
+    job.boosterSeat && `Booster×${job.boosterSeatQty}`,
+    job.babySeat    && `Baby×${job.babySeatQty}`,
+    job.wheelChair  && `WC×${job.wheelChairQty}`,
+  ].filter(Boolean).join(", ");
+  return (
+    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+      {parts || "—"}
+    </TableCell>
+  );
+}
+
+function CollectionCells({ job }: { job: Job }) {
+  return (
+    <>
+      <TableCell className="text-xs text-center whitespace-nowrap">
+        {job.collectionRequired && job.collectionAmount
+          ? <span className="text-amber-500 font-medium">{job.collectionAmount}</span>
+          : "—"}
+      </TableCell>
+      <TableCell className="text-xs text-center">
+        {job.collectionRequired
+          ? <span className="text-amber-500">{job.collectionCurrency}</span>
+          : "—"}
+      </TableCell>
+    </>
+  );
+}
+
 // JobGrid with inline editing
 // ────────────────────────────────────────────
 
@@ -739,6 +781,8 @@ function JobGrid({
   canUnlock,
   onToggleLock,
   showPickUpTime,
+  canAssignVehicle = true,
+  canAssignRep = true,
 }: {
   jobs: Job[];
   title: string;
@@ -763,6 +807,8 @@ function JobGrid({
   canUnlock?: boolean;
   onToggleLock?: (jobId: string, unlock: boolean) => void;
   showPickUpTime?: boolean;
+  canAssignVehicle?: boolean;
+  canAssignRep?: boolean;
 }) {
   const t = useT();
   const locale = useLocaleId();
@@ -837,13 +883,17 @@ function JobGrid({
             <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
             <TableHead className="text-white text-xs w-14">{t("dispatch.pax")}</TableHead>
             <TableHead className="text-white text-xs w-24">Req. Type</TableHead>
-            <TableHead className="text-white text-xs">{t("dispatch.flight")}</TableHead>
+            <TableHead className="text-white text-xs w-24">{t("jobs.flightNumber")}</TableHead>
+            <TableHead className="text-white text-xs w-20">Flight Time</TableHead>
             {showPickUpTime && <TableHead className="text-white text-xs w-20">{t("jobs.pickUpTime")}</TableHead>}
             <TableHead className="text-white text-xs w-36">{t("dispatch.carSource")}</TableHead>
             <TableHead className="text-white text-xs w-36">{t("dispatch.vehicle")}</TableHead>
             <TableHead className="text-white text-xs w-32">{t("dispatch.driver")}</TableHead>
             <TableHead className="text-white text-xs w-32">{t("dispatch.rep")}</TableHead>
             <TableHead className="text-white text-xs w-32">{t("dispatch.remarks")}</TableHead>
+            <TableHead className="text-white text-xs w-28">{t("jobs.extras")}</TableHead>
+            <TableHead className="text-white text-xs w-20">Coll. Amt</TableHead>
+            <TableHead className="text-white text-xs w-16">Coll. Cur</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -857,7 +907,7 @@ function JobGrid({
             return (
               <TableRow
                 key={job.id}
-                className={`border-border ${statusRowClass[job.status] || stripe}`}
+                className={`border-border ${statusRowClass[job.status] || stripe} ${job.status === "CANCELLED" ? "[&_td]:line-through [&_td]:text-red-900 dark:[&_td]:text-red-800" : ""}`}
               >
                 {showLockColumn && (
                   <TableCell className="w-8 px-1">
@@ -926,9 +976,12 @@ function JobGrid({
                     <span className="text-muted-foreground/60">—</span>
                   )}
                 </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
+                <TableCell className="text-muted-foreground text-xs font-mono">
+                  {job.flight?.flightNo || "—"}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-xs font-mono">
                   {job.flight
-                    ? `${job.flight.flightNo} ${fmtTime(job.flight.arrivalTime || job.flight.departureTime, locale)}`
+                    ? fmtTime(job.flight.arrivalTime || job.flight.departureTime, locale) || "—"
                     : "—"}
                 </TableCell>
                 {showPickUpTime && (
@@ -939,76 +992,105 @@ function JobGrid({
 
                 {isEditable ? (
                   <>
-                    <EditableSourceCell
-                      job={job}
-                      vehicles={vehicles}
-                      suppliers={suppliers}
-                      selectedSource={jobSource}
-                      isEditing={
-                        activeCell?.jobId === job.id &&
-                        activeCell?.field === "source"
-                      }
-                      onStartEdit={() => onStartEdit(job.id, "source")}
-                      onSelect={(val) => {
-                        setJobSource(job.id, val);
-                        onCancelEdit();
-                      }}
-                      onCancel={onCancelEdit}
-                      cellRef={setCellRef(job.id, "source")}
-                      locked={isJobLocked}
-                    />
-                    <EditableVehicleCell
-                      job={job}
-                      vehicles={vehicles}
-                      selectedSource={jobSource}
-                      isEditing={
-                        activeCell?.jobId === job.id &&
-                        activeCell?.field === "vehicle"
-                      }
-                      onStartEdit={() => onStartEdit(job.id, "vehicle")}
-                      onSelect={(val) =>
-                        onInlineAssign(job, "vehicle", val)
-                      }
-                      onCancel={onCancelEdit}
-                      cellRef={setCellRef(job.id, "vehicle")}
-                      locked={isJobLocked}
-                    />
-                    <EditablePersonCell
-                      job={job}
-                      field="driver"
-                      resources={drivers}
-                      selectedSource={jobSource}
-                      isEditing={
-                        activeCell?.jobId === job.id &&
-                        activeCell?.field === "driver"
-                      }
-                      onStartEdit={() => onStartEdit(job.id, "driver")}
-                      onSelect={(val) =>
-                        onInlineAssign(job, "driver", val)
-                      }
-                      onExternalDriver={(name, phone) =>
-                        onInlineAssign(job, "driver", `__external__:${name}:${phone}`)
-                      }
-                      onCancel={onCancelEdit}
-                      cellRef={setCellRef(job.id, "driver")}
-                      locked={isJobLocked}
-                    />
-                    <EditablePersonCell
-                      job={job}
-                      field="rep"
-                      resources={reps}
-                      isEditing={
-                        activeCell?.jobId === job.id &&
-                        activeCell?.field === "rep"
-                      }
-                      onStartEdit={() => onStartEdit(job.id, "rep")}
-                      onSelect={(val) =>
-                        onInlineAssign(job, "rep", val)
-                      }
-                      onCancel={onCancelEdit}
-                      cellRef={setCellRef(job.id, "rep")}
-                      locked={isJobLocked}
-                    />
+                    {canAssignVehicle ? (
+                      <EditableSourceCell
+                        job={job}
+                        vehicles={vehicles}
+                        suppliers={suppliers}
+                        selectedSource={jobSource}
+                        isEditing={
+                          activeCell?.jobId === job.id &&
+                          activeCell?.field === "source"
+                        }
+                        onStartEdit={() => onStartEdit(job.id, "source")}
+                        onSelect={(val) => {
+                          setJobSource(job.id, val);
+                          onCancelEdit();
+                        }}
+                        onCancel={onCancelEdit}
+                        cellRef={setCellRef(job.id, "source")}
+                        locked={isJobLocked}
+                      />
+                    ) : (
+                      <TableCell className="text-sm text-muted-foreground">—</TableCell>
+                    )}
+                    {canAssignVehicle ? (
+                      <EditableVehicleCell
+                        job={job}
+                        vehicles={vehicles}
+                        selectedSource={jobSource}
+                        isEditing={
+                          activeCell?.jobId === job.id &&
+                          activeCell?.field === "vehicle"
+                        }
+                        onStartEdit={() => onStartEdit(job.id, "vehicle")}
+                        onSelect={(val) =>
+                          onInlineAssign(job, "vehicle", val)
+                        }
+                        onCancel={onCancelEdit}
+                        cellRef={setCellRef(job.id, "vehicle")}
+                        locked={isJobLocked}
+                      />
+                    ) : (
+                      <TableCell className="text-sm">
+                        {job.assignment?.vehicle ? (
+                          <Badge variant="outline" className="border-zinc-500/30 text-zinc-600 dark:text-zinc-400">
+                            {job.assignment.vehicle.plateNumber}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/60 text-xs">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {canAssignVehicle ? (
+                      <EditablePersonCell
+                        job={job}
+                        field="driver"
+                        resources={drivers}
+                        selectedSource={jobSource}
+                        isEditing={
+                          activeCell?.jobId === job.id &&
+                          activeCell?.field === "driver"
+                        }
+                        onStartEdit={() => onStartEdit(job.id, "driver")}
+                        onSelect={(val) =>
+                          onInlineAssign(job, "driver", val)
+                        }
+                        onExternalDriver={(name, phone) =>
+                          onInlineAssign(job, "driver", `__external__:${name}:${phone}`)
+                        }
+                        onCancel={onCancelEdit}
+                        cellRef={setCellRef(job.id, "driver")}
+                        locked={isJobLocked}
+                      />
+                    ) : (
+                      <TableCell className="text-sm text-muted-foreground">
+                        {job.assignment?.driver?.name || job.assignment?.externalDriverName || "—"}
+                      </TableCell>
+                    )}
+                    {canAssignRep ? (
+                      <EditablePersonCell
+                        job={job}
+                        field="rep"
+                        resources={reps}
+                        isEditing={
+                          activeCell?.jobId === job.id &&
+                          activeCell?.field === "rep"
+                        }
+                        onStartEdit={() => onStartEdit(job.id, "rep")}
+                        onSelect={(val) =>
+                          onInlineAssign(job, "rep", val)
+                        }
+                        onCancel={onCancelEdit}
+                        cellRef={setCellRef(job.id, "rep")}
+                        locked={isJobLocked}
+                        allowWithoutAssignment={!canAssignVehicle}
+                      />
+                    ) : (
+                      <TableCell className="text-sm text-muted-foreground">
+                        {job.assignment?.rep?.name || "—"}
+                      </TableCell>
+                    )}
                     <EditableRemarksCell
                       job={job}
                       isEditing={
@@ -1023,6 +1105,8 @@ function JobGrid({
                       cellRef={setCellRef(job.id, "remarks")}
                       locked={isJobLocked}
                     />
+                    <ExtrasCell job={job} />
+                    <CollectionCells job={job} />
                   </>
                 ) : (
                   <>
@@ -1076,6 +1160,8 @@ function JobGrid({
                         <span className="text-xs">{job.assignment.remarks}</span>
                       ) : "—"}
                     </TableCell>
+                    <ExtrasCell job={job} />
+                    <CollectionCells job={job} />
                   </>
                 )}
               </TableRow>
@@ -1180,9 +1266,19 @@ export default function DispatchPage() {
 
       if (dayRes.status === "fulfilled") {
         const d = dayRes.value.data?.data || dayRes.value.data;
-        setArrivals(d.arrivals || []);
-        setDepartures(d.departures || []);
-        setCityTransfers(d.cityJobs || d.cityTransfers || []);
+        const byArrivalTime = (a: Job, b: Job) => {
+          const ta = a.flight?.arrivalTime ? new Date(a.flight.arrivalTime).getTime() : Infinity;
+          const tb = b.flight?.arrivalTime ? new Date(b.flight.arrivalTime).getTime() : Infinity;
+          return ta - tb;
+        };
+        const byPickUpTime = (a: Job, b: Job) => {
+          const ta = a.pickUpTime ? new Date(a.pickUpTime).getTime() : Infinity;
+          const tb = b.pickUpTime ? new Date(b.pickUpTime).getTime() : Infinity;
+          return ta - tb;
+        };
+        setArrivals((d.arrivals || []).slice().sort(byArrivalTime));
+        setDepartures((d.departures || []).slice().sort(byPickUpTime));
+        setCityTransfers((d.cityJobs || d.cityTransfers || []).slice().sort(byPickUpTime));
       }
       if (sRes.status === "fulfilled") {
         const s = sRes.value.data?.data || sRes.value.data;
@@ -1296,6 +1392,43 @@ export default function DispatchPage() {
 
     // Handle "none" selection for optional fields
     const actualValue = value === "__none__" ? null : value;
+
+    // For rep field on unassigned jobs (rep-only assign): POST with repId only
+    if (!job.assignment && field === "rep" && actualValue) {
+      saveSnapshot();
+      const repRes = reps.find((r) => r.id === actualValue);
+      const found = findJobList(job.id);
+      if (found) {
+        updateJobInList(found[1], job.id, (j) => ({
+          ...j,
+          status: "ASSIGNED",
+          assignment: {
+            id: "__pending__",
+            vehicleId: null,
+            driverId: null,
+            repId: actualValue,
+            vehicle: undefined,
+            driver: undefined,
+            rep: repRes ? { name: repRes.name } : undefined,
+          },
+        }));
+      }
+      try {
+        await api.post("/dispatch/assign", {
+          trafficJobId: job.id,
+          repId: actualValue,
+        });
+        toast.success(t("dispatch.repUpdated"));
+        fetchDay();
+      } catch (err: unknown) {
+        rollback();
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          t("dispatch.assignmentFailed");
+        toast.error(msg);
+      }
+      return;
+    }
 
     // For vehicle field on unassigned jobs: full assign (POST)
     if (!job.assignment && field === "vehicle" && actualValue) {
@@ -1483,8 +1616,13 @@ export default function DispatchPage() {
   const dialogIsSupplier = dialogSupplier && dialogSupplier !== "owned";
 
   const handleDialogSave = async () => {
-    if (!dialogJob || !dialogVehicle) {
+    if (!dialogJob) return;
+    if (canAssignVehicle && !dialogVehicle) {
       toast.error(t("dispatch.vehicleRequired"));
+      return;
+    }
+    if (!canAssignVehicle && !dialogRep) {
+      toast.error(t("dispatch.repRequired"));
       return;
     }
     setDialogSaving(true);
@@ -1522,8 +1660,8 @@ export default function DispatchPage() {
         // New assign
         const payload: Record<string, string | null> = {
           trafficJobId: dialogJob.id,
-          vehicleId: dialogVehicle,
         };
+        if (dialogVehicle) payload.vehicleId = dialogVehicle;
         if (dialogIsSupplier) {
           if (dialogExternalDriverName) payload.externalDriverName = dialogExternalDriverName;
           if (dialogExternalDriverPhone) payload.externalDriverPhone = dialogExternalDriverPhone;
@@ -1599,6 +1737,8 @@ export default function DispatchPage() {
   const isPast48h = new Date() > new Date(date.getTime() + FORTY_EIGHT_HOURS_MS);
   const dispatcherLocked = isDispatcher && isPast48h;
   const canUnlock = usePermission("dispatch.assignment.unlock48h");
+  const canAssignVehicle = usePermission("dispatch.assignment.assignVehicle");
+  const canAssignRep = usePermission("dispatch.assignment.assignRep");
 
   const handleToggleLock = async (jobId: string, shouldUnlock: boolean) => {
     try {
@@ -1639,6 +1779,8 @@ export default function DispatchPage() {
     showLockColumn,
     canUnlock: canUnlock && isPast48h,
     onToggleLock: handleToggleLock,
+    canAssignVehicle,
+    canAssignRep,
   };
 
   return (
@@ -1900,112 +2042,111 @@ export default function DispatchPage() {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Truck className="h-4 w-4" /> {t("dispatch.vehicleSource")}
-              </div>
-              <Select
-                value={dialogSupplier}
-                onValueChange={(val) => {
-                  setDialogSupplier(val);
-                  setDialogVehicle(""); // reset vehicle when source changes
-                  setDialogDriver(""); // reset driver when source changes
-                }}
-              >
-                <SelectTrigger className="border-border bg-card text-foreground">
-                  <SelectValue placeholder={t("dispatch.selectSource")} />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover text-foreground">
-                  <SelectItem value="owned" className="font-medium">
-                    {t("dispatch.ownedVehicles")} ({vehicles.filter((v) => !v.supplierId).length})
-                  </SelectItem>
-                  {suppliers.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.tradeName || s.legalName} ({s.vehicleCount})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Car className="h-4 w-4" /> {t("dispatch.vehicle")} *
-              </div>
-              <Select
-                value={dialogVehicle}
-                onValueChange={setDialogVehicle}
-              >
-                <SelectTrigger className="border-border bg-card text-foreground">
-                  <SelectValue placeholder={t("dispatch.selectVehicle")} />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover text-foreground">
-                  {dialogFilteredVehicles.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noVehiclesAvailable")}</div>
-                  ) : (
-                    dialogFilteredVehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.plateNumber} — {v.vehicleType?.name} (
-                        {v.vehicleType?.seatCapacity} {t("dispatch.seats")})
+            {canAssignVehicle && (
+              <>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Truck className="h-4 w-4" /> {t("dispatch.vehicleSource")}
+                  </div>
+                  <Select
+                    value={dialogSupplier}
+                    onValueChange={(val) => {
+                      setDialogSupplier(val);
+                      setDialogVehicle("");
+                      setDialogDriver("");
+                    }}
+                  >
+                    <SelectTrigger className="border-border bg-card text-foreground">
+                      <SelectValue placeholder={t("dispatch.selectSource")} />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-foreground">
+                      <SelectItem value="owned" className="font-medium">
+                        {t("dispatch.ownedVehicles")} ({vehicles.filter((v) => !v.supplierId).length})
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" /> {t("dispatch.driver")}
-              </div>
-              {dialogIsSupplier ? (
-                <div className="space-y-2">
-                  <Input
-                    placeholder={t("dispatch.externalDriverName")}
-                    value={dialogExternalDriverName}
-                    onChange={(e) => setDialogExternalDriverName(e.target.value)}
-                    className="border-border bg-card text-foreground"
-                  />
-                  <Input
-                    placeholder={t("dispatch.externalDriverPhone")}
-                    value={dialogExternalDriverPhone}
-                    onChange={(e) => setDialogExternalDriverPhone(e.target.value)}
-                    className="border-border bg-card text-foreground"
-                  />
+                      {suppliers.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.tradeName || s.legalName} ({s.vehicleCount})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <Select
-                  value={dialogDriver}
-                  onValueChange={setDialogDriver}
-                >
-                  <SelectTrigger className="border-border bg-card text-foreground">
-                    <SelectValue placeholder={t("dispatch.selectDriver")} />
-                  </SelectTrigger>
-                  <SelectContent className="border-border bg-popover text-foreground">
-                    {(() => {
-                      const filtered = dialogSupplier === "owned"
-                        ? drivers.filter((d) => !d.supplierId)
-                        : dialogSupplier
-                          ? drivers.filter((d) => d.supplierId === dialogSupplier)
-                          : drivers;
-                      return filtered.length === 0 ? (
-                        <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noDriversAvailable")}</div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Car className="h-4 w-4" /> {t("dispatch.vehicle")} *
+                  </div>
+                  <Select value={dialogVehicle} onValueChange={setDialogVehicle}>
+                    <SelectTrigger className="border-border bg-card text-foreground">
+                      <SelectValue placeholder={t("dispatch.selectVehicle")} />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-foreground">
+                      {dialogFilteredVehicles.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noVehiclesAvailable")}</div>
                       ) : (
-                        filtered.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>
-                            {d.name}
+                        dialogFilteredVehicles.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.plateNumber} — {v.vehicleType?.name} (
+                            {v.vehicleType?.seatCapacity} {t("dispatch.seats")})
                           </SelectItem>
                         ))
-                      );
-                    })()}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4" /> {t("dispatch.driver")}
+                  </div>
+                  {dialogIsSupplier ? (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder={t("dispatch.externalDriverName")}
+                        value={dialogExternalDriverName}
+                        onChange={(e) => setDialogExternalDriverName(e.target.value)}
+                        className="border-border bg-card text-foreground"
+                      />
+                      <Input
+                        placeholder={t("dispatch.externalDriverPhone")}
+                        value={dialogExternalDriverPhone}
+                        onChange={(e) => setDialogExternalDriverPhone(e.target.value)}
+                        className="border-border bg-card text-foreground"
+                      />
+                    </div>
+                  ) : (
+                    <Select value={dialogDriver} onValueChange={setDialogDriver}>
+                      <SelectTrigger className="border-border bg-card text-foreground">
+                        <SelectValue placeholder={t("dispatch.selectDriver")} />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-popover text-foreground">
+                        {(() => {
+                          const filtered = dialogSupplier === "owned"
+                            ? drivers.filter((d) => !d.supplierId)
+                            : dialogSupplier
+                              ? drivers.filter((d) => d.supplierId === dialogSupplier)
+                              : drivers;
+                          return filtered.length === 0 ? (
+                            <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noDriversAvailable")}</div>
+                          ) : (
+                            filtered.map((d) => (
+                              <SelectItem key={d.id} value={d.id}>
+                                {d.name}
+                              </SelectItem>
+                            ))
+                          );
+                        })()}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </>
+            )}
+
+            {canAssignRep && (
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <UserCheck className="h-4 w-4" /> {t("dispatch.rep")}
+                <UserCheck className="h-4 w-4" /> {t("dispatch.rep")}{!canAssignVehicle && " *"}
               </div>
               <Select value={dialogRep} onValueChange={setDialogRep}>
                 <SelectTrigger className="border-border bg-card text-foreground">
@@ -2020,6 +2161,7 @@ export default function DispatchPage() {
                 </SelectContent>
               </Select>
             </div>
+            )}
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

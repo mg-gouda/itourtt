@@ -1016,7 +1016,7 @@ model TrafficFlight {
 model TrafficAssignment {
   id           String          @id @default(uuid())
   trafficJobId String          @unique @map("traffic_job_id")
-  vehicleId    String          @map("vehicle_id")
+  vehicleId    String?         @map("vehicle_id")
   driverId     String?         @map("driver_id")
   repId        String?         @map("rep_id")
   assignedById String          @map("assigned_by_id")
@@ -1031,7 +1031,7 @@ model TrafficAssignment {
   updatedAt           DateTime        @updatedAt @map("updated_at")
 
   trafficJob       TrafficJob       @relation(fields: [trafficJobId], references: [id])
-  vehicle          Vehicle          @relation(fields: [vehicleId], references: [id])
+  vehicle          Vehicle?         @relation(fields: [vehicleId], references: [id])
   driver           Driver?          @relation(fields: [driverId], references: [id])
   rep              Rep?             @relation(fields: [repId], references: [id])
   assignedBy       User             @relation("AssignedBy", fields: [assignedById], references: [id])
@@ -1445,8 +1445,7 @@ model UserNotification {
 model NoShowEvidence {
   id             String   @id @default(uuid())
   trafficJobId   String   @map("traffic_job_id")
-  imageUrl1      String   @map("image_url_1")
-  imageUrl2      String   @map("image_url_2")
+  imageUrls      String[] @map("image_urls")
   gpsLatitude    Decimal  @map("gps_latitude") @db.Decimal(10, 7)
   gpsLongitude   Decimal  @map("gps_longitude") @db.Decimal(10, 7)
   gpsMapLink     String   @map("gps_map_link")

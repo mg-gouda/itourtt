@@ -95,7 +95,7 @@ export class DriverPortalController {
   @Patch('jobs/:jobId/status')
   async updateJobStatus(
     @CurrentUser('id') userId: string,
-    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Param('jobId') jobId: string,
     @Body() dto: UpdateJobStatusDto,
   ) {
     const result = await this.driverPortalService.updateJobStatus(
@@ -111,7 +111,7 @@ export class DriverPortalController {
   @Patch('jobs/:jobId/collection')
   async markCollected(
     @CurrentUser('id') userId: string,
-    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Param('jobId') jobId: string,
     @Body() dto: MarkCollectedDto,
   ) {
     const result = await this.driverPortalService.markCollected(userId, jobId, dto.collected);
@@ -119,35 +119,29 @@ export class DriverPortalController {
   }
 
   @Post('jobs/:jobId/no-show')
-  @UseInterceptors(FilesInterceptor('images', 2, { storage: noShowStorage }))
+  @UseInterceptors(FilesInterceptor('images', 10, { storage: noShowStorage }))
   async submitNoShow(
     @CurrentUser('id') userId: string,
-    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Param('jobId') jobId: string,
     @UploadedFiles() files: Express.Multer.File[],
     @Body() body: { latitude: string; longitude: string },
   ) {
-    if (!files || files.length < 2) {
-      throw new BadRequestException(
-        'Two images are required for no-show evidence',
-      );
+    if (!files || files.length < 1) {
+      throw new BadRequestException('At least one image is required for no-show evidence');
     }
 
-    const imageUrl1 = '/uploads/no-show/' + files[0].filename;
-    const imageUrl2 = '/uploads/no-show/' + files[1].filename;
+    const imageUrls = files.map(f => '/uploads/no-show/' + f.filename);
     const latitude = parseFloat(body.latitude);
     const longitude = parseFloat(body.longitude);
 
     if (isNaN(latitude) || isNaN(longitude)) {
-      throw new BadRequestException(
-        'Valid GPS coordinates are required',
-      );
+      throw new BadRequestException('Valid GPS coordinates are required');
     }
 
     const result = await this.driverPortalService.submitNoShow(
       userId,
       jobId,
-      imageUrl1,
-      imageUrl2,
+      imageUrls,
       latitude,
       longitude,
     );

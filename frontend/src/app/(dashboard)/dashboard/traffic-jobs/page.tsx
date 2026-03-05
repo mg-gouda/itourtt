@@ -10,6 +10,9 @@ import {
   Filter,
   Plus,
   Printer,
+  MapPin,
+  ExternalLink,
+  Image,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -48,11 +51,13 @@ interface TrafficJob {
   id: string;
   internalRef: string;
   agentRef: string | null;
+  customerJobId: string | null;
   bookingChannel: "ONLINE" | "B2B";
   serviceType: string;
   jobDate: string;
   createdAt: string;
   status: string;
+  bookingStatus: string;
   adultCount: number;
   childCount: number;
   paxCount: number;
@@ -66,6 +71,15 @@ interface TrafficJob {
   babySeatQty: number;
   wheelChair: boolean;
   wheelChairQty: number;
+  printSign: boolean;
+  transferPrice: number | null;
+  transferPriceCurrency: string;
+  collectionRequired: boolean;
+  collectionAmount: number | null;
+  collectionCurrency: string;
+  requestedVehicleType?: { name: string } | null;
+  custRepName: string | null;
+  custRepMobile: string | null;
   agent?: { legalName: string } | null;
   customer?: { legalName: string } | null;
   originAirport?: { name: string; code: string } | null;
@@ -76,13 +90,24 @@ interface TrafficJob {
   destinationHotel?: { name: string } | null;
   fromZone?: { name: string } | null;
   toZone?: { name: string } | null;
-  flight?: { flightNo: string; terminal?: string; arrivalTime?: string } | null;
+  flight?: { flightNo: string; carrier?: string; terminal?: string; arrivalTime?: string; departureTime?: string } | null;
   createdBy?: { id: string; name: string } | null;
   assignment?: {
     vehicle?: { plateNumber: string };
     driver?: { name: string };
     rep?: { name: string };
+    driverStatus?: string;
+    repStatus?: string;
   } | null;
+  noShowEvidence?: {
+    id: string;
+    imageUrls: string[];
+    gpsLatitude: number | string;
+    gpsLongitude: number | string;
+    gpsMapLink: string;
+    submittedBy: string;
+    createdAt: string;
+  }[];
 }
 
 const statusColors: Record<string, string> = {
@@ -92,6 +117,20 @@ const statusColors: Record<string, string> = {
   COMPLETED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
   CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
   NO_SHOW: "bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30",
+};
+
+const bookingStatusColors: Record<string, string> = {
+  NEW: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  UPDATED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
+  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
+};
+
+const portalStatusColors: Record<string, string> = {
+  PENDING:     "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30",
+  IN_PROGRESS: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
+  COMPLETED:   "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  CANCELLED:   "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
+  NO_SHOW:     "bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30",
 };
 
 export default function TrafficJobsPage() {
@@ -105,6 +144,7 @@ export default function TrafficJobsPage() {
   const [generatingSigns, setGeneratingSigns] = useState(false);
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [signDate, setSignDate] = useState(localDateStr(new Date()));
+  const [evidenceJob, setEvidenceJob] = useState<TrafficJob | null>(null);
 
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
@@ -278,10 +318,20 @@ export default function TrafficJobsPage() {
                 <TableHead className="text-white text-xs">{t("jobs.flightNumber")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.terminal")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.arrivalTime")}</TableHead>
+                <TableHead className="text-white text-xs">{t("jobs.departureTime")}</TableHead>
+                <TableHead className="text-white text-xs">{t("jobs.carrier")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.extras")}</TableHead>
+                <TableHead className="text-white text-xs">{t("jobs.printSign")}</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.notes")}</TableHead>
                 <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                <SortableHeader label="Bkg Status" sortKey="bookingStatus" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                <TableHead className="text-white text-xs">Driver Status</TableHead>
+                <TableHead className="text-white text-xs">Rep Status</TableHead>
+                <TableHead className="text-white text-xs">Veh. Type</TableHead>
+                <TableHead className="text-white text-xs">Transfer Price</TableHead>
+                <TableHead className="text-white text-xs">Collection</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
+                <TableHead className="text-white text-xs">Cust. Rep</TableHead>
                 <TableHead className="text-white text-xs">{t("jobs.userLog")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -289,7 +339,11 @@ export default function TrafficJobsPage() {
               {sortedData.map((job, idx) => (
                 <TableRow
                   key={job.id}
-                  className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                  className={`border-border cursor-pointer transition-colors hover:bg-primary/10 ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("[data-no-show]")) return;
+                    router.push(`/dashboard/traffic-jobs/${job.bookingChannel === "ONLINE" ? "online" : "b2b"}?edit=${job.id}`);
+                  }}
                 >
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                     {formatDate(job.createdAt)}
@@ -297,9 +351,10 @@ export default function TrafficJobsPage() {
                   <TableCell className="text-foreground font-mono text-xs whitespace-nowrap">
                     {job.internalRef}
                     {job.agentRef && (
-                      <span className="ml-1 text-muted-foreground">
-                        ({job.agentRef})
-                      </span>
+                      <span className="ml-1 text-muted-foreground">({job.agentRef})</span>
+                    )}
+                    {job.customerJobId && (
+                      <span className="ml-1 text-muted-foreground">#{job.customerJobId}</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -365,33 +420,113 @@ export default function TrafficJobsPage() {
                       : "\u2014"}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                    {job.flight?.departureTime
+                      ? new Date(job.flight.departureTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
+                      : "\u2014"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                    {job.flight?.carrier || "\u2014"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                     {[
                       job.boosterSeat && `Booster x${job.boosterSeatQty}`,
                       job.babySeat && `Baby x${job.babySeatQty}`,
                       job.wheelChair && `WC x${job.wheelChairQty}`,
                     ].filter(Boolean).join(", ") || "\u2014"}
                   </TableCell>
+                  <TableCell className="text-muted-foreground text-xs text-center">
+                    {job.printSign ? (
+                      <span className="text-emerald-500">✓</span>
+                    ) : "\u2014"}
+                  </TableCell>
                   <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
                     {job.notes || "\u2014"}
                   </TableCell>
                   <TableCell>
+                    {job.status === "NO_SHOW" ? (
+                      <Badge
+                        data-no-show="true"
+                        variant="outline"
+                        className={`text-xs cursor-pointer hover:underline ${statusColors[job.status] || ""}`}
+                        title="Click to view no-show evidence"
+                        onClick={() => setEvidenceJob(job)}
+                      >
+                        NO SHOW
+                        {(job.noShowEvidence?.length ?? 0) > 0 && (
+                          <Image className="ml-1 inline h-3 w-3 opacity-70" />
+                        )}
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${statusColors[job.status] || ""}`}
+                      >
+                        {job.status.replace(/_/g, " ")}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <Badge
                       variant="outline"
-                      className={`text-xs ${statusColors[job.status] || ""}`}
+                      className={`text-xs ${bookingStatusColors[job.bookingStatus] || ""}`}
                     >
-                      {job.status.replace("_", " ")}
+                      {job.bookingStatus || "\u2014"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {job.assignment?.driverStatus ? (
+                      <Badge
+                        variant="outline"
+                        data-no-show={job.assignment.driverStatus === "NO_SHOW" ? "true" : undefined}
+                        className={`text-xs ${portalStatusColors[job.assignment.driverStatus] || ""} ${job.assignment.driverStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}`}
+                        title={job.assignment.driverStatus === "NO_SHOW" ? "Click to view no-show evidence" : undefined}
+                        onClick={job.assignment.driverStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
+                      >
+                        {job.assignment.driverStatus.replace(/_/g, " ")}
+                      </Badge>
+                    ) : "\u2014"}
+                  </TableCell>
+                  <TableCell>
+                    {job.assignment?.repStatus ? (
+                      <Badge
+                        variant="outline"
+                        data-no-show={job.assignment.repStatus === "NO_SHOW" ? "true" : undefined}
+                        className={`text-xs ${portalStatusColors[job.assignment.repStatus] || ""} ${job.assignment.repStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}`}
+                        title={job.assignment.repStatus === "NO_SHOW" ? "Click to view no-show evidence" : undefined}
+                        onClick={job.assignment.repStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
+                      >
+                        {job.assignment.repStatus.replace(/_/g, " ")}
+                      </Badge>
+                    ) : "\u2014"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                    {job.requestedVehicleType?.name || "\u2014"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                    {job.transferPrice
+                      ? `${job.transferPrice} ${job.transferPriceCurrency}`
+                      : "\u2014"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                    {job.collectionRequired && job.collectionAmount
+                      ? `${job.collectionAmount} ${job.collectionCurrency}`
+                      : "\u2014"}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {job.assignment ? (
                       <span>
                         {job.assignment.vehicle?.plateNumber || "\u2014"}
-                        {job.assignment.driver &&
-                          ` / ${job.assignment.driver.name}`}
+                        {job.assignment.driver && ` / ${job.assignment.driver.name}`}
+                        {job.assignment.rep && ` / ${job.assignment.rep.name}`}
                       </span>
                     ) : (
                       t("dispatch.unassigned")
                     )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    {job.custRepName
+                      ? `${job.custRepName}${job.custRepMobile ? ` (${job.custRepMobile})` : ""}`
+                      : "\u2014"}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {job.createdBy?.name || "\u2014"}
@@ -440,6 +575,65 @@ export default function TrafficJobsPage() {
                 <Printer className="h-4 w-4" />
               )}
               {generatingSigns ? t("jobs.generatingSigns") : t("jobs.printSigns")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* No-Show Evidence Modal */}
+      <Dialog open={!!evidenceJob} onOpenChange={(o) => !o && setEvidenceJob(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="h-4 w-4 text-muted-foreground" />
+              No-Show Evidence — {evidenceJob?.internalRef}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-2 max-h-[70vh] overflow-y-auto">
+            {(evidenceJob?.noShowEvidence ?? []).length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-6">No evidence submitted yet.</p>
+            )}
+            {(evidenceJob?.noShowEvidence ?? []).map((ev, i) => {
+              const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+              return (
+              <div key={ev.id} className="rounded-lg border border-border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-foreground">
+                    Submitted by <span className="text-primary">{ev.submittedBy}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(ev.createdAt).toLocaleString(locale, { timeZone: "Africa/Cairo" })}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(ev.imageUrls ?? []).map((url, j) => {
+                    const fullUrl = url.startsWith("http") ? url : `${apiBase}${url}`;
+                    return (
+                      <a key={j} href={fullUrl} target="_blank" rel="noopener noreferrer"
+                        className="block overflow-hidden rounded-md border border-border hover:opacity-80 transition-opacity">
+                        <img src={fullUrl} alt={`Evidence ${i + 1}-${j + 1}`}
+                          className="h-40 w-full object-cover" />
+                      </a>
+                    );
+                  })}
+                </div>
+                <a
+                  href={ev.gpsMapLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-400"
+                >
+                  <MapPin className="h-3.5 w-3.5" />
+                  GPS: {Number(ev.gpsLatitude).toFixed(6)}, {Number(ev.gpsLongitude).toFixed(6)}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEvidenceJob(null)} className="border-border">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

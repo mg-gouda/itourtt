@@ -474,9 +474,9 @@ function JobCard({
           >
             {repStatus.replace("_", " ")}
           </Badge>
-          {(job.agent || job.customer) && (
+          {job.agentRef && (
             <span className="ml-auto text-xs text-muted-foreground">
-              {job.agent?.legalName || job.customer?.legalName}
+              {job.agentRef}
             </span>
           )}
         </div>

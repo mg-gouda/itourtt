@@ -60,10 +60,11 @@ export class DispatchController {
   @Delete('assignments/:id')
   async unassignJob(
     @Param('id') id: string,
+    @CurrentUser('id') userId: string,
     @CurrentUser('role') userRole: string,
     @CurrentUser('roleSlug') roleSlug: string,
   ) {
-    const result = await this.dispatchService.unassignJob(id, userRole, roleSlug);
+    const result = await this.dispatchService.unassignJob(id, userId, userRole, roleSlug);
     return new ApiResponse(result, 'Job unassigned successfully');
   }
 

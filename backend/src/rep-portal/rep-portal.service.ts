@@ -215,12 +215,17 @@ export class RepPortalService {
   async submitNoShow(
     userId: string,
     jobId: string,
-    imageUrl1: string,
-    imageUrl2: string,
+    imageUrls: string[],
     latitude: number,
     longitude: number,
   ) {
-    const repId = await this.resolveRepId(userId);
+    const rep = await this.prisma.rep.findFirst({
+      where: { userId, deletedAt: null },
+      include: { user: { select: { name: true } } },
+    });
+    if (!rep) throw new ForbiddenException('No rep profile linked to this account');
+    const repId = rep.id;
+    const submittedByLabel = `REP-${rep.user?.name ?? 'Unknown'}`;
 
     const assignment = await this.prisma.trafficAssignment.findFirst({
       where: {
@@ -267,12 +272,11 @@ export class RepPortalService {
       await tx.noShowEvidence.create({
         data: {
           trafficJobId: jobId,
-          imageUrl1,
-          imageUrl2,
+          imageUrls,
           gpsLatitude: latitude,
           gpsLongitude: longitude,
           gpsMapLink,
-          submittedBy: 'REP',
+          submittedBy: submittedByLabel,
           submittedById: repId,
         },
       });

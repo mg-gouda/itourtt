@@ -6,7 +6,6 @@ import {
   Body,
   Query,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { SupplierPortalService } from './supplier-portal.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -46,7 +45,7 @@ export class SupplierPortalController {
   @Patch('jobs/:jobId/complete')
   async completeJob(
     @CurrentUser('id') userId: string,
-    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Param('jobId') jobId: string,
     @Body() dto: CompleteJobDto,
   ) {
     const result = await this.supplierPortalService.completeJob(userId, jobId, dto.notes);

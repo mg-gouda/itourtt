@@ -143,6 +143,75 @@ export class NotificationsService {
   }
 
   /**
+   * Notify all online (booking) users when a dispatcher performs an action.
+   * Fire-and-forget — caller should `.catch()` to avoid blocking.
+   */
+  async notifyDispatchAction(
+    jobId: string,
+    actorUserId: string,
+    action: 'ASSIGNED' | 'REASSIGNED' | 'UNASSIGNED',
+    details: {
+      vehiclePlate?: string;
+      driverName?: string;
+      repName?: string;
+    },
+  ): Promise<void> {
+    const job = await this.prisma.trafficJob.findUnique({
+      where: { id: jobId },
+      select: { internalRef: true, serviceType: true, jobDate: true },
+    });
+    if (!job) return;
+
+    const actor = await this.prisma.user.findUnique({
+      where: { id: actorUserId },
+      select: { name: true },
+    });
+
+    // Notify all active users with traffic-jobs permission, excluding the actor
+    const recipients = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        id: { not: actorUserId },
+        OR: [
+          {
+            roleRef: {
+              permissions: { some: { permissionKey: 'traffic-jobs' } },
+            },
+          },
+          { role: 'ADMIN' },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (recipients.length === 0) return;
+
+    const actionLabel = action === 'ASSIGNED' ? 'Assigned' : action === 'REASSIGNED' ? 'Reassigned' : 'Unassigned';
+    const title = `Dispatch – Job ${actionLabel}: ${job.internalRef}`;
+
+    const parts: string[] = [];
+    if (details.vehiclePlate) parts.push(`Vehicle: ${details.vehiclePlate}`);
+    if (details.driverName)   parts.push(`Driver: ${details.driverName}`);
+    if (details.repName)       parts.push(`Rep: ${details.repName}`);
+    const detailStr = parts.length ? ` — ${parts.join(' / ')}` : '';
+    const message = `${job.serviceType} on ${job.jobDate.toISOString().split('T')[0]}${detailStr} (by ${actor?.name || 'Dispatcher'})`;
+
+    await this.prisma.userNotification.createMany({
+      data: recipients.map((r) => ({
+        userId: r.id,
+        title,
+        message,
+        type: 'JOB_ASSIGNED' as const,
+        trafficJobId: jobId,
+        metadata: { action, ...details },
+      })),
+    });
+
+    this.logger.log(`Dispatch ${action} notification sent to ${recipients.length} users for job ${job.internalRef}`);
+  }
+
+  /**
    * List notifications for a user (latest 50) with unread count.
    */
   async getUserNotifications(userId: string) {

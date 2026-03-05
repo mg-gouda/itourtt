@@ -53,6 +53,7 @@ export class TrafficJobsService {
         rep: true,
       },
     },
+    noShowEvidence: true,
   };
 
   async findAll(filter: JobFilterDto) {
