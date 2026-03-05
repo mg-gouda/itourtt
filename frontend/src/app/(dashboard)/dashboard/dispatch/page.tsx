@@ -1225,7 +1225,11 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
         ?.assignment?.driver?.name ??
       data.jobs.find((j) => j.assignment?.externalDriverName)?.assignment?.externalDriverName ??
       null;
-    // Conflict: any two consecutive jobs with times < CONFLICT_WINDOW_MS apart
+
+    const multiJob = sorted.length > 1;
+    // hasUnverifiable: vehicle has 2+ jobs and at least one is missing time data
+    const hasUnverifiable = multiJob && sorted.some((j) => !getJobTime(j));
+    // hasConflict: any two consecutive jobs with known times < CONFLICT_WINDOW_MS apart
     let hasConflict = false;
     for (let i = 0; i < sorted.length - 1; i++) {
       const t1 = getJobTime(sorted[i]);
@@ -1235,18 +1239,21 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
         break;
       }
     }
-    return { vid, ...data, driverName, jobs: sorted, hasConflict };
+    return { vid, ...data, driverName, jobs: sorted, hasConflict, hasUnverifiable };
   });
 
-  // Sort vehicles: conflicts first, then by plate
+  // Sort: confirmed conflicts first, then unverifiable, then clean
   entries.sort((a, b) => {
-    if (a.hasConflict !== b.hasConflict) return a.hasConflict ? -1 : 1;
+    const rank = (e: typeof entries[0]) => (e.hasConflict ? 0 : e.hasUnverifiable ? 1 : 2);
+    const diff = rank(a) - rank(b);
+    if (diff !== 0) return diff;
     return a.plate.localeCompare(b.plate);
   });
 
   if (entries.length === 0) return null;
 
   const conflictCount = entries.filter((e) => e.hasConflict).length;
+  const unverifiableCount = entries.filter((e) => !e.hasConflict && e.hasUnverifiable).length;
 
   const serviceColors: Record<string, string> = {
     ARR: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -1275,6 +1282,11 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
               ⚠ {conflictCount} {t("dispatch.conflictLabel")}
             </span>
           )}
+          {unverifiableCount > 0 && (
+            <span className="rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 px-2 py-0.5 text-xs font-semibold">
+              ? {unverifiableCount} {t("dispatch.unverifiableLabel")}
+            </span>
+          )}
           <span className="text-muted-foreground/50 text-xs">
             {collapsed ? "▸" : "▾"}
           </span>
@@ -1283,12 +1295,14 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
 
       {!collapsed && (
         <div className="flex gap-3 overflow-x-auto pb-2 pt-0.5">
-          {entries.map(({ vid, plate, typeName, driverName, jobs: vjobs, hasConflict }) => (
+          {entries.map(({ vid, plate, typeName, driverName, jobs: vjobs, hasConflict, hasUnverifiable }) => (
             <div
               key={vid}
               className={`flex-shrink-0 w-52 rounded-lg border bg-card p-3 space-y-2 transition-colors ${
                 hasConflict
                   ? "border-red-500/60 bg-red-950/10"
+                  : hasUnverifiable
+                  ? "border-amber-500/50 bg-amber-950/10"
                   : "border-border"
               }`}
             >
@@ -1306,6 +1320,9 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                   </span>
                   {hasConflict && (
                     <span className="text-[10px] font-bold text-red-400">⚠ {t("dispatch.conflict")}</span>
+                  )}
+                  {!hasConflict && hasUnverifiable && (
+                    <span className="text-[10px] font-bold text-amber-400">? {t("dispatch.noTime")}</span>
                   )}
                 </div>
               </div>
@@ -1327,12 +1344,16 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                     !!jobTime &&
                     !!prevTime &&
                     Math.abs(jobTime.getTime() - prevTime.getTime()) < CONFLICT_WINDOW_MS;
+                  // Amber: no time data but vehicle has multiple jobs
+                  const isUnknownTime = !jobTime && vjobs.length > 1;
                   return (
                     <div
                       key={job.id}
                       className={`rounded px-2 py-1 text-[11px] space-y-0.5 ${
                         isConflictWithPrev
                           ? "bg-red-500/15 border border-red-500/30"
+                          : isUnknownTime
+                          ? "bg-amber-500/10 border border-amber-500/25"
                           : "bg-muted/40"
                       }`}
                     >
@@ -1344,8 +1365,8 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                         >
                           {job.serviceType}
                         </span>
-                        <span className="font-mono text-muted-foreground text-[10px]">
-                          {jobTime ? fmtTime(jobTime.toISOString(), locale) : "—"}
+                        <span className={`font-mono text-[10px] ${!jobTime && vjobs.length > 1 ? "text-amber-400" : "text-muted-foreground"}`}>
+                          {jobTime ? fmtTime(jobTime.toISOString(), locale) : "no time"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
