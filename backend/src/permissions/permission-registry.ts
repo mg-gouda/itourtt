@@ -257,6 +257,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'finance.exports.payments', labelKey: 'permissions.finance.exports.payments' },
           { key: 'finance.exports.journals', labelKey: 'permissions.finance.exports.journals' },
           { key: 'finance.exports.collections', labelKey: 'permissions.finance.exports.collections' },
+          { key: 'finance.odooExport', labelKey: 'permissions.finance.odooExport' },
         ],
       },
     ],

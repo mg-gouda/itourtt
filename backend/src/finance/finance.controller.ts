@@ -14,6 +14,7 @@ import {
 import type { Response } from 'express';
 import { FinanceService } from './finance.service.js';
 import { InvoiceExportService } from './invoice-export.service.js';
+import { OdooExportService } from './odoo-export.service.js';
 import { CreateDriverFeeDto } from './dto/create-driver-fee.dto.js';
 import { CreateRepFeeDto } from './dto/create-rep-fee.dto.js';
 import { CreateSupplierCostDto } from './dto/create-supplier-cost.dto.js';
@@ -68,6 +69,7 @@ export class FinanceController {
   constructor(
     private readonly financeService: FinanceService,
     private readonly invoiceExportService: InvoiceExportService,
+    private readonly odooExportService: OdooExportService,
   ) {}
 
   // ─── Driver Fees ─────────────────────────────
@@ -293,5 +295,84 @@ export class FinanceController {
     }
     const result = await this.financeService.liquidateCollection(jobId, dto.receiptNo.trim(), userId);
     return new ApiResponse(result, 'Collection liquidated successfully');
+  }
+
+  // ─── Odoo ERP Exports ─────────────────────────
+
+  @Get('odoo/partners')
+  @Permissions('finance.odooExport')
+  async odooPartners(@Res() res: Response) {
+    const buffer = await this.odooExportService.exportPartners();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="odoo_res_partner.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('odoo/customer-invoices')
+  @Permissions('finance.odooExport')
+  async odooCustomerInvoices(
+    @Query('dateFrom') dateFrom: string | undefined,
+    @Query('dateTo') dateTo: string | undefined,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.odooExportService.exportCustomerInvoices(dateFrom, dateTo);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="odoo_customer_invoices.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('odoo/vendor-bills')
+  @Permissions('finance.odooExport')
+  async odooVendorBills(
+    @Query('dateFrom') dateFrom: string | undefined,
+    @Query('dateTo') dateTo: string | undefined,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.odooExportService.exportVendorBills(dateFrom, dateTo);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="odoo_vendor_bills.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('odoo/payments')
+  @Permissions('finance.odooExport')
+  async odooPayments(
+    @Query('dateFrom') dateFrom: string | undefined,
+    @Query('dateTo') dateTo: string | undefined,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.odooExportService.exportPayments(dateFrom, dateTo);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="odoo_payments.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('odoo/all-in-one')
+  @Permissions('finance.odooExport')
+  async odooAllInOne(
+    @Query('dateFrom') dateFrom: string | undefined,
+    @Query('dateTo') dateTo: string | undefined,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.odooExportService.exportAllInOne(dateFrom, dateTo);
+    const date = new Date().toISOString().slice(0, 10);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="odoo_export_${date}.xlsx"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
   }
 }

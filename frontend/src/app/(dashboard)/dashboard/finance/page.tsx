@@ -601,10 +601,25 @@ export default function FinancePage() {
 
   /* ─── Odoo export ─────────────────────────── */
 
+  const [odooDateFrom, setOdooDateFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return localDateStr(d);
+  });
+  const [odooDateTo, setOdooDateTo] = useState(localDateStr(new Date()));
+  const [odooExporting, setOdooExporting] = useState<string | null>(null);
+
   const exportOdoo = async (type: string) => {
+    setOdooExporting(type);
     try {
-      const { data } = await api.get(`/export/odoo/${type}`, {
+      const params: Record<string, string> = {};
+      if (type !== "partners") {
+        if (odooDateFrom) params.dateFrom = odooDateFrom;
+        if (odooDateTo) params.dateTo = odooDateTo;
+      }
+      const { data } = await api.get(`/finance/odoo/${type}`, {
         responseType: "blob",
+        params,
       });
       const url = URL.createObjectURL(data);
       const a = document.createElement("a");
@@ -612,9 +627,11 @@ export default function FinancePage() {
       a.download = `odoo-${type}-${localDateStr(new Date())}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`${type} ${t("finance.exportDownloaded")}`);
+      toast.success(t("finance.exportDownloaded") || "Export downloaded");
     } catch {
-      toast.error(t("finance.exportNotAvailable"));
+      toast.error(t("finance.exportNotAvailable") || "Export failed");
+    } finally {
+      setOdooExporting(null);
     }
   };
 
@@ -1068,42 +1085,71 @@ export default function FinancePage() {
 
         {/* ─── Exports Tab ──────────────────── */}
         <TabsContent value="exports">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { key: "customers", label: t("finance.exportCustomers") },
-              { key: "suppliers", label: t("finance.exportSuppliers") },
-              { key: "invoices", label: t("finance.exportInvoices") },
-              { key: "vendor-bills", label: t("finance.exportVendorBills") },
-              { key: "payments", label: t("finance.exportPayments") },
-              { key: "journals", label: t("finance.exportJournals") },
-              { key: "collections", label: t("finance.collections") || "Collections" },
-            ].map((exp) => (
-              <Card
-                key={exp.key}
-                className="flex items-center justify-between border-border bg-card p-4"
-              >
-                <div className="flex items-center gap-3">
-                  <FileSpreadsheet className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {exp.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t("finance.xlsxFormat")}
-                    </p>
-                  </div>
+          <div className="space-y-4">
+            {/* Date range filter */}
+            <Card className="border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground mb-3">
+                {t("finance.odooDateRangeNote") || "Date range applies to invoices, bills and payments exports"}
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">{t("common.dateFrom") || "Date From"}</Label>
+                  <Input
+                    type="date"
+                    value={odooDateFrom}
+                    onChange={(e) => setOdooDateFrom(e.target.value)}
+                    className="h-8 text-sm w-40"
+                  />
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => exportOdoo(exp.key)}
-                  className="gap-1 text-muted-foreground hover:text-foreground"
+                <div className="space-y-1">
+                  <Label className="text-xs">{t("common.dateTo") || "Date To"}</Label>
+                  <Input
+                    type="date"
+                    value={odooDateTo}
+                    onChange={(e) => setOdooDateTo(e.target.value)}
+                    className="h-8 text-sm w-40"
+                  />
+                </div>
+              </div>
+            </Card>
+
+            {/* Export cards */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { key: "partners", label: t("finance.odooExportPartners") || "res.partner (Agents & Suppliers)", desc: t("finance.odooExportPartnersDesc") || "All partners for Odoo import" },
+                { key: "customer-invoices", label: t("finance.odooExportCustomerInvoices") || "account.move — Customer Invoices", desc: t("finance.odooExportInvoicesDesc") || "Posted & paid agent invoices" },
+                { key: "vendor-bills", label: t("finance.odooExportVendorBills") || "account.move — Vendor Bills", desc: t("finance.odooExportBillsDesc") || "Posted supplier costs" },
+                { key: "payments", label: t("finance.odooExportPayments") || "account.payment", desc: t("finance.odooExportPaymentsDesc") || "Recorded payments" },
+                { key: "all-in-one", label: t("finance.odooExportAllInOne") || "Full Odoo Export (All Sheets)", desc: t("finance.odooExportAllDesc") || "Single workbook with all 4 sheets" },
+              ].map((exp) => (
+                <Card
+                  key={exp.key}
+                  className={`flex items-center justify-between border-border bg-card p-4 ${exp.key === "all-in-one" ? "border-emerald-500/50 bg-emerald-500/5" : ""}`}
                 >
-                  <Download className="h-4 w-4" />
-                  {t("common.export")}
-                </Button>
-              </Card>
-            ))}
+                  <div className="flex items-center gap-3">
+                    <FileSpreadsheet className={`h-5 w-5 ${exp.key === "all-in-one" ? "text-emerald-500" : "text-emerald-600 dark:text-emerald-400"}`} />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{exp.label}</p>
+                      <p className="text-xs text-muted-foreground">{exp.desc}</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => exportOdoo(exp.key)}
+                    disabled={odooExporting === exp.key}
+                    className="gap-1 text-muted-foreground hover:text-foreground shrink-0"
+                  >
+                    {odooExporting === exp.key ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {t("common.export")}
+                  </Button>
+                </Card>
+              ))}
+            </div>
           </div>
         </TabsContent>
 
