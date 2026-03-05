@@ -1174,6 +1174,197 @@ function JobGrid({
 }
 
 // ────────────────────────────────────────────
+// VehicleFleetOverview
+// ────────────────────────────────────────────
+
+const CONFLICT_WINDOW_MS = 120 * 60 * 1000; // 2 hours
+
+function getJobTime(job: Job): Date | null {
+  const iso =
+    job.serviceType === "ARR"
+      ? (job.flight?.arrivalTime ?? job.pickUpTime)
+      : (job.pickUpTime ?? job.flight?.departureTime ?? job.flight?.arrivalTime);
+  if (!iso) return null;
+  return new Date(iso);
+}
+
+function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
+  const t = useT();
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Group assigned jobs by vehicleId
+  const vehicleMap = new Map<
+    string,
+    { plate: string; typeName: string; driverName: string | null; jobs: Job[] }
+  >();
+
+  for (const job of jobs) {
+    if (!job.assignment?.vehicleId || !job.assignment.vehicle) continue;
+    const vid = job.assignment.vehicleId;
+    if (!vehicleMap.has(vid)) {
+      vehicleMap.set(vid, {
+        plate: job.assignment.vehicle.plateNumber,
+        typeName: job.assignment.vehicle.vehicleType?.name ?? "—",
+        driverName: job.assignment.driver?.name ?? job.assignment.externalDriverName ?? null,
+        jobs: [],
+      });
+    }
+    vehicleMap.get(vid)!.jobs.push(job);
+  }
+
+  // Sort each vehicle's jobs by time; also resolve driverName from any job
+  const entries = Array.from(vehicleMap.entries()).map(([vid, data]) => {
+    const sorted = [...data.jobs].sort((a, b) => {
+      const ta = getJobTime(a)?.getTime() ?? 0;
+      const tb = getJobTime(b)?.getTime() ?? 0;
+      return ta - tb;
+    });
+    // Use first non-null driver name found
+    const driverName =
+      data.jobs.find((j) => j.assignment?.driver?.name || j.assignment?.externalDriverName)
+        ?.assignment?.driver?.name ??
+      data.jobs.find((j) => j.assignment?.externalDriverName)?.assignment?.externalDriverName ??
+      null;
+    // Conflict: any two consecutive jobs with times < CONFLICT_WINDOW_MS apart
+    let hasConflict = false;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const t1 = getJobTime(sorted[i]);
+      const t2 = getJobTime(sorted[i + 1]);
+      if (t1 && t2 && Math.abs(t2.getTime() - t1.getTime()) < CONFLICT_WINDOW_MS) {
+        hasConflict = true;
+        break;
+      }
+    }
+    return { vid, ...data, driverName, jobs: sorted, hasConflict };
+  });
+
+  // Sort vehicles: conflicts first, then by plate
+  entries.sort((a, b) => {
+    if (a.hasConflict !== b.hasConflict) return a.hasConflict ? -1 : 1;
+    return a.plate.localeCompare(b.plate);
+  });
+
+  if (entries.length === 0) return null;
+
+  const conflictCount = entries.filter((e) => e.hasConflict).length;
+
+  const serviceColors: Record<string, string> = {
+    ARR: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    DEP: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    CITY: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    EXCURSION: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    ROUND_TRIP: "bg-teal-500/20 text-teal-400 border-teal-500/30",
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Section header */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Car className="h-4 w-4" />
+          {t("dispatch.fleetOverview")}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal">
+            {entries.length} {t("dispatch.vehicles")}
+          </span>
+          {conflictCount > 0 && (
+            <span className="rounded-full bg-red-500/20 border border-red-500/30 text-red-400 px-2 py-0.5 text-xs font-semibold">
+              ⚠ {conflictCount} {t("dispatch.conflictLabel")}
+            </span>
+          )}
+          <span className="text-muted-foreground/50 text-xs">
+            {collapsed ? "▸" : "▾"}
+          </span>
+        </button>
+      </div>
+
+      {!collapsed && (
+        <div className="flex gap-3 overflow-x-auto pb-2 pt-0.5">
+          {entries.map(({ vid, plate, typeName, driverName, jobs: vjobs, hasConflict }) => (
+            <div
+              key={vid}
+              className={`flex-shrink-0 w-52 rounded-lg border bg-card p-3 space-y-2 transition-colors ${
+                hasConflict
+                  ? "border-red-500/60 bg-red-950/10"
+                  : "border-border"
+              }`}
+            >
+              {/* Card header */}
+              <div className="flex items-start justify-between gap-1">
+                <div>
+                  <div className="font-mono font-semibold text-sm text-foreground leading-tight">
+                    {plate}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">{typeName}</div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    {vjobs.length} {vjobs.length === 1 ? t("dispatch.tripSingle") : t("dispatch.tripPlural")}
+                  </span>
+                  {hasConflict && (
+                    <span className="text-[10px] font-bold text-red-400">⚠ {t("dispatch.conflict")}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Driver */}
+              {driverName && (
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground border-t border-border pt-2">
+                  <Users className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{driverName}</span>
+                </div>
+              )}
+
+              {/* Trip list */}
+              <div className="space-y-1 border-t border-border pt-2">
+                {vjobs.map((job, idx) => {
+                  const jobTime = getJobTime(job);
+                  const prevTime = idx > 0 ? getJobTime(vjobs[idx - 1]) : null;
+                  const isConflictWithPrev =
+                    !!jobTime &&
+                    !!prevTime &&
+                    Math.abs(jobTime.getTime() - prevTime.getTime()) < CONFLICT_WINDOW_MS;
+                  return (
+                    <div
+                      key={job.id}
+                      className={`rounded px-2 py-1 text-[11px] space-y-0.5 ${
+                        isConflictWithPrev
+                          ? "bg-red-500/15 border border-red-500/30"
+                          : "bg-muted/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className={`rounded border px-1 py-0.5 text-[10px] font-semibold ${
+                            serviceColors[job.serviceType] ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30"
+                          }`}
+                        >
+                          {job.serviceType}
+                        </span>
+                        <span className="font-mono text-muted-foreground text-[10px]">
+                          {jobTime ? fmtTime(jobTime.toISOString(), locale) : "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-foreground/80 truncate font-mono">{job.internalRef}</span>
+                        <span className="text-muted-foreground ml-1 flex-shrink-0">{job.paxCount}p</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────
 // Main Component
 // ────────────────────────────────────────────
 
@@ -1874,6 +2065,14 @@ export default function DispatchPage() {
             {t("dispatch.clickCells")} &middot; {t("dispatch.clickRefDialog")}
           </div>
         </div>
+
+        {/* Fleet Overview */}
+        {!loading && (
+          <VehicleFleetOverview
+            jobs={[...arrivals, ...departures, ...cityTransfers]}
+            locale={locale}
+          />
+        )}
 
         {dispatcherLocked && (
           <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-600 dark:text-amber-400">
