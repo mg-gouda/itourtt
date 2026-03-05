@@ -425,6 +425,31 @@ export class TrafficJobsService {
         });
       }
 
+      // Auto-generate DriverTripFee when job is completed with driver + zones
+      if (
+        newStatus === 'COMPLETED' &&
+        updatedJob.assignment?.driverId &&
+        updatedJob.fromZoneId &&
+        updatedJob.toZoneId
+      ) {
+        const driverId = updatedJob.assignment.driverId;
+        const existingDriverFee = await tx.driverTripFee.findFirst({
+          where: { driverId, trafficJobId: id },
+        });
+        if (!existingDriverFee) {
+          await tx.driverTripFee.create({
+            data: {
+              driverId,
+              trafficJobId: id,
+              fromZoneId: updatedJob.fromZoneId,
+              toZoneId: updatedJob.toZoneId,
+              amount: 0,
+              currency: 'EGP',
+            },
+          });
+        }
+      }
+
       // Auto-generate RepFee when an ARR job is completed with a rep assigned
       if (
         newStatus === 'COMPLETED' &&

@@ -38,6 +38,20 @@ export class AuthController {
     return this.authService.refresh(refreshDto.refreshToken);
   }
 
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() body: { email: string }) {
+    await this.authService.forgotPassword(body.email ?? '');
+    return { message: 'If this email is registered, a reset link has been sent.' };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() body: { email: string; token: string; newPassword: string }) {
+    await this.authService.resetPassword(body.email, body.token, body.newPassword);
+    return { message: 'Password has been reset successfully. Please log in.' };
+  }
+
   @Post('device-token')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

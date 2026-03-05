@@ -2,20 +2,29 @@ import {
   Injectable,
   UnauthorizedException,
   ForbiddenException,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EmailService } from '../email/email.service.js';
 import type { AuthResponseDto } from './dto/auth-response.dto.js';
 import type { User } from '../../generated/prisma/client.js';
 
+const RESET_TOKEN_EXPIRY_MINUTES = 60;
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
@@ -208,6 +217,80 @@ export class AuthService {
    */
   async comparePassword(plaintext: string, hash: string): Promise<boolean> {
     return bcrypt.compare(plaintext, hash);
+  }
+
+  /**
+   * Initiate password reset: generate a token and send it by email.
+   * Always returns success to prevent user enumeration.
+   */
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || !user.isActive || user.deletedAt) {
+      // Return silently — don't reveal whether the email exists
+      return;
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiry = new Date(Date.now() + RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken: tokenHash, passwordResetExpiry: expiry },
+    });
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    const resetLink = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+
+    const html = `
+      <h2>Password Reset Request</h2>
+      <p>Hi ${user.name},</p>
+      <p>You requested a password reset. Click the link below to set a new password. This link expires in ${RESET_TOKEN_EXPIRY_MINUTES} minutes.</p>
+      <p><a href="${resetLink}" style="background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;">Reset Password</a></p>
+      <p>If you didn't request this, please ignore this email.</p>
+      <p style="color:#888;font-size:12px;">iTourTT — Transport & Traffic Management</p>
+    `;
+
+    try {
+      await (this.emailService as any).send(email, 'Password Reset — iTourTT', html);
+    } catch (err) {
+      this.logger.error(`Failed to send password reset email to ${email}: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * Complete password reset: verify token, update password, invalidate token.
+   */
+  async resetPassword(email: string, rawToken: string, newPassword: string): Promise<void> {
+    if (!newPassword || newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || !user.passwordResetToken || !user.passwordResetExpiry) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (new Date() > user.passwordResetExpiry) {
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    if (tokenHash !== user.passwordResetToken) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await this.hashPassword(newPassword);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+        refreshToken: null, // Invalidate all sessions
+      },
+    });
   }
 
   /**
