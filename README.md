@@ -1,4 +1,4 @@
-# iTourTT - Transport & Traffic Management System — v2.1.0
+# iTourTT - Transport & Traffic Management System — v3.0.0
 
 A production-grade, full-stack enterprise transport, traffic, and accounting system built for Egypt-based transfer operations. Fully compatible with Odoo ERP — no customization required on the Odoo side.
 
@@ -97,9 +97,44 @@ iTourTT manages the complete lifecycle of transport operations: from booking tra
 - Excel export across all modules
 - Odoo-ready accounting export format
 
+### Driver & Rep Detail Pages
+- Full profile page per driver: Profile, Vehicles (assign/unassign + primary), Trip Fees (date-filtered history), Account (portal login / password reset)
+- Full profile page per rep: Profile, Zones (assign/unassign coverage areas), Fees (date-filtered history), Account
+- Trip fee and rep fee history endpoints with date-range filtering and total summaries
+
+### WhatsApp Notifications (3-Template System)
+- Three independent message templates, each with its own trigger:
+  - **Booking Confirmation** — fires immediately when a traffic job is created
+  - **Driver Assigned** — fires when a driver is assigned in the Dispatch Console
+  - **Day-Before Reminder** — fires on a configurable schedule (days before + hour + minute, Cairo time)
+- Each template independently enabled/disabled with body editor, variable chips, and live preview
+- Per-minute cron ensures minute-accurate scheduled delivery
+- Deduplication: same template never sent twice to same phone for same job
+- Shared media attachment (image/PDF) sent with every message
+
+### Odoo ERP Exports
+- Five one-click Excel exports directly importable into Odoo with no customization:
+  - Partners (res.partner) — agents and suppliers
+  - Customer Invoices (account.move)
+  - Vendor Bills (account.move)
+  - Payments (account.payment)
+  - All-in-One combined export
+- External ID system (`itour_agent_<id>`, `itour_inv_<id>`) for idempotent re-imports
+- Optional date-range filtering for invoice/payment exports
+
+### Invoice Scheduler
+- Automatic draft invoice generation per agent based on their configured invoice cycle
+- Supports WEEKLY (day of week), BIWEEKLY (every even ISO week), MONTHLY (day of month)
+- Runs daily at 01:00 Cairo time
+
+### Password Reset
+- Forgot Password flow: email link with time-limited SHA-256 hashed token (60-minute expiry)
+- Reset Password page with show/hide password toggle and auto-redirect on success
+- Integrated with email notification system
+
 ### Built-in Help Center
-- Comprehensive user manual for all 17 system modules
-- Searchable documentation with step-by-step instructions
+- Comprehensive user manual for all 19 system modules (including Guest Bookings and Public Prices)
+- Searchable documentation with step-by-step instructions and tips in English and Arabic
 - Accessible via the header help icon
 
 ### Internationalization
