@@ -22,6 +22,8 @@ import {
   BookOpen,
   ListOrdered,
   Lightbulb,
+  Globe,
+  Tag,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
@@ -75,6 +77,8 @@ const sections: HelpSection[] = [
   { id: "users", icon: ShieldCheck, titleKey: "help.users.title", overviewKey: "help.users.overview", stepsKey: "help.users.steps", tipsKey: "help.users.tips" },
   { id: "company", icon: Building, titleKey: "help.company.title", overviewKey: "help.company.overview", stepsKey: "help.company.steps", tipsKey: "help.company.tips" },
   { id: "whatsapp", icon: MessageCircle, titleKey: "help.whatsapp.title", overviewKey: "help.whatsapp.overview", stepsKey: "help.whatsapp.steps", tipsKey: "help.whatsapp.tips" },
+  { id: "guest-bookings", icon: Globe, titleKey: "help.guestBookings.title", overviewKey: "help.guestBookings.overview", stepsKey: "help.guestBookings.steps", tipsKey: "help.guestBookings.tips" },
+  { id: "public-prices", icon: Tag, titleKey: "help.publicPrices.title", overviewKey: "help.publicPrices.overview", stepsKey: "help.publicPrices.steps", tipsKey: "help.publicPrices.tips" },
 ];
 
 // ─── Main Page ──────────────────────────────────────────────
