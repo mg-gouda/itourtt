@@ -11,6 +11,7 @@ import { JobFilterDto } from './dto/job-filter.dto.js';
 import { UpdateStatusDto } from './dto/update-status.dto.js';
 import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { WhatsappNotificationsService } from '../whatsapp-notifications/whatsapp-notifications.service.js';
 
 type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
@@ -30,6 +31,7 @@ export class TrafficJobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly whatsappService: WhatsappNotificationsService,
   ) {}
 
   private readonly jobInclude = {
@@ -152,7 +154,7 @@ export class TrafficJobsService {
 
     const internalRef = await this.generateInternalRef();
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const job = await tx.trafficJob.create({
         data: {
           internalRef,
@@ -219,6 +221,11 @@ export class TrafficJobsService {
 
       return job;
     });
+
+    // WhatsApp booking confirmation (fire-and-forget, after transaction commits)
+    this.whatsappService.triggerJobCreated(result.id).catch(() => {});
+
+    return result;
   }
 
   async update(id: string, dto: UpdateJobDto, userId: string) {

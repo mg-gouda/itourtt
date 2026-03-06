@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateWhatsappSettingsDto {
   @IsOptional()
@@ -19,15 +19,5 @@ export class UpdateWhatsappSettingsDto {
 
   @IsOptional()
   @IsString()
-  messageTemplate?: string;
-
-  @IsOptional()
-  @IsString()
   mediaUrl?: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(23)
-  sendHour?: number;
 }

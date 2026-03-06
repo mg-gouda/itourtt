@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   UserCheck,
   Plus,
@@ -15,6 +16,7 @@ import {
   FileUp,
   FileSpreadsheet,
   AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -64,6 +66,7 @@ interface RepsResponse {
 
 export default function RepsPage() {
   const t = useT();
+  const router = useRouter();
   const [reps, setReps] = useState<Rep[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -653,6 +656,15 @@ export default function RepsPage() {
                     </button>
                   </TableCell>
                   <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 text-muted-foreground hover:text-foreground"
+                      onClick={() => router.push(`/dashboard/reps/${rep.id}`)}
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      {t("common.view")}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Patch,
   Post,
   Query,
@@ -15,6 +16,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { WhatsappNotificationsService } from './whatsapp-notifications.service.js';
 import { UpdateWhatsappSettingsDto } from './dto/update-whatsapp-settings.dto.js';
+import { UpdateWhatsappTemplateDto } from './dto/update-whatsapp-template.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -72,6 +74,21 @@ export class WhatsappNotificationsController {
   @Permissions('whatsapp.testSend')
   async sendTestMessage(@Body('phone') phone: string) {
     return this.whatsappService.sendTestMessage(phone);
+  }
+
+  @Get('templates')
+  @Permissions('whatsapp.settings')
+  async getTemplates() {
+    return this.whatsappService.getTemplates();
+  }
+
+  @Patch('templates/:id')
+  @Permissions('whatsapp.settings.editSettings')
+  async updateTemplate(
+    @Param('id') id: string,
+    @Body() dto: UpdateWhatsappTemplateDto,
+  ) {
+    return this.whatsappService.updateTemplate(id, dto);
   }
 
   @Post('upload-media')

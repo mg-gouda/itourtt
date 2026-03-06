@@ -205,4 +205,15 @@ export class DriversController {
     const result = await this.driversService.resetPassword(id, dto.password);
     return new ApiResponse(result, 'Password reset successfully');
   }
+
+  @Get(':id/trip-fees')
+  @Permissions('drivers')
+  async getTripFees(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const result = await this.driversService.getTripFees(id, from, to);
+    return new ApiResponse(result);
+  }
 }

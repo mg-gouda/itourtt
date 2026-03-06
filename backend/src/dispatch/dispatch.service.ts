@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { WhatsappNotificationsService } from '../whatsapp-notifications/whatsapp-notifications.service.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
 import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import type { ServiceType, JobStatus } from '../../generated/prisma/client.js';
@@ -26,6 +27,7 @@ export class DispatchService {
     private readonly emailService: EmailService,
     private readonly pushService: PushNotificationsService,
     private readonly notificationsService: NotificationsService,
+    private readonly whatsappService: WhatsappNotificationsService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -277,6 +279,11 @@ export class DispatchService {
       );
     }
 
+    // WhatsApp: trigger driver assigned (fire-and-forget)
+    if (assignment.driverId) {
+      this.whatsappService.triggerDriverAssigned(dto.trafficJobId).catch(() => {});
+    }
+
     // Notify online users about the dispatch action (fire-and-forget)
     this.notificationsService.notifyDispatchAction(
       dto.trafficJobId,
@@ -488,6 +495,11 @@ export class DispatchService {
         `${updated.trafficJob.internalRef} - ${updated.trafficJob.serviceType}`,
         { jobId: updated.trafficJobId, type: 'JOB_ASSIGNED' },
       ).catch(() => {});
+    }
+
+    // WhatsApp: trigger driver assigned on reassignment (fire-and-forget)
+    if (dto.driverId && dto.driverId !== existing.driverId) {
+      this.whatsappService.triggerDriverAssigned(updated.trafficJobId).catch(() => {});
     }
 
     // Notify online users about the reassignment (fire-and-forget)

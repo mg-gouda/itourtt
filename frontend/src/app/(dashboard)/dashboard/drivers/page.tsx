@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   Plus,
@@ -15,6 +16,7 @@ import {
   UserPlus,
   KeyRound,
   Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -84,6 +86,7 @@ function formatDate(dateStr: string | null): string {
 export default function DriversPage() {
   const t = useT();
   const locale = useLocaleId();
+  const router = useRouter();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -762,6 +765,15 @@ export default function DriversPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => router.push(`/dashboard/drivers/${driver.id}`)}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          {t("common.view")}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"

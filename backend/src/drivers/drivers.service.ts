@@ -61,6 +61,40 @@ export class DriversService {
     return driver;
   }
 
+  async getTripFees(driverId: string, from?: string, to?: string) {
+    const where: Record<string, unknown> = { driverId };
+    if (from || to) {
+      const dateFilter: Record<string, Date> = {};
+      if (from) dateFilter.gte = new Date(from);
+      if (to) {
+        const toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+        dateFilter.lte = toDate;
+      }
+      where.createdAt = dateFilter;
+    }
+
+    const fees = await this.prisma.driverTripFee.findMany({
+      where,
+      include: {
+        trafficJob: {
+          select: {
+            id: true,
+            internalRef: true,
+            serviceType: true,
+            jobDate: true,
+          },
+        },
+        fromZone: { select: { id: true, name: true } },
+        toZone: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const totalAmount = fees.reduce((sum, f) => sum + Number(f.amount), 0);
+    return { fees, totalAmount, count: fees.length };
+  }
+
   async create(dto: CreateDriverDto) {
     return this.prisma.driver.create({
       data: {

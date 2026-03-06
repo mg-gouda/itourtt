@@ -196,4 +196,15 @@ export class RepsController {
     const result = await this.repsService.resetPassword(id, dto.password);
     return new ApiResponse(result, 'Password reset successfully');
   }
+
+  @Get(':id/fees')
+  @Permissions('reps')
+  async getFees(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const result = await this.repsService.getFees(id, from, to);
+    return new ApiResponse(result);
+  }
 }

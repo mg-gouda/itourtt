@@ -3,9 +3,10 @@ import { DispatchController } from './dispatch.controller.js';
 import { DispatchService } from './dispatch.service.js';
 import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
+import { WhatsappNotificationsModule } from '../whatsapp-notifications/whatsapp-notifications.module.js';
 
 @Module({
-  imports: [EmailModule, NotificationsModule],
+  imports: [EmailModule, NotificationsModule, WhatsappNotificationsModule],
   controllers: [DispatchController],
   providers: [DispatchService],
   exports: [DispatchService],

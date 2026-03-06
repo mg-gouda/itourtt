@@ -110,6 +110,12 @@ enum InvoiceCycleType {
   MONTHLY
 }
 
+enum WaTriggerType {
+  JOB_CREATED
+  DRIVER_ASSIGNED
+  SCHEDULED
+}
+
 enum JournalType {
   SALE
   PURCHASE
@@ -1300,15 +1306,30 @@ model CompanySettings {
 // WHATSAPP SETTINGS (singleton)
 // ─────────────────────────────────────────────
 
+model WhatsappTemplate {
+  id           String        @id @default(uuid())
+  name         String
+  triggerType  WaTriggerType @map("trigger_type")
+  isEnabled    Boolean       @default(false) @map("is_enabled")
+  templateBody String        @map("template_body")
+  daysBefore   Int?          @map("days_before")
+  sendHour     Int?          @map("send_hour")
+  sendMinute   Int?          @map("send_minute")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  logs WhatsappNotificationLog[]
+
+  @@map("whatsapp_templates")
+}
+
 model WhatsappSettings {
   id               String   @id @default(uuid())
   isEnabled        Boolean  @default(false) @map("is_enabled")
   twilioAccountSid String?  @map("twilio_account_sid")
   twilioAuthToken  String?  @map("twilio_auth_token")
   whatsappFrom     String?  @map("whatsapp_from")
-  messageTemplate  String?  @map("message_template")
   mediaUrl         String?  @map("media_url")
-  sendHour         Int      @default(9) @map("send_hour")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -1345,17 +1366,20 @@ enum WhatsappNotificationStatus {
 }
 
 model WhatsappNotificationLog {
-  id             String                      @id @default(uuid())
-  trafficJobId   String                      @map("traffic_job_id")
-  recipientPhone String                      @map("recipient_phone")
-  messageSid     String?                     @map("message_sid")
+  id             String                     @id @default(uuid())
+  trafficJobId   String                     @map("traffic_job_id")
+  recipientPhone String                     @map("recipient_phone")
+  templateId     String?                    @map("template_id")
+  templateName   String?                    @map("template_name")
+  messageSid     String?                    @map("message_sid")
   status         WhatsappNotificationStatus
-  errorMessage   String?                     @map("error_message")
-  sentAt         DateTime                    @default(now()) @map("sent_at")
+  errorMessage   String?                    @map("error_message")
+  sentAt         DateTime                   @default(now()) @map("sent_at")
 
-  trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
+  trafficJob TrafficJob        @relation(fields: [trafficJobId], references: [id])
+  template   WhatsappTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
-  @@unique([trafficJobId, recipientPhone])
+  @@unique([trafficJobId, recipientPhone, templateId])
   @@map("whatsapp_notification_logs")
 }
 
