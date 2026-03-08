@@ -1,5 +1,7 @@
 # iTourTT - Transport & Traffic Management System — v3.1.0
 
+> **PROPRIETARY SOFTWARE** — This project is **not open source**. All rights reserved. Viewing the source code does not grant permission to use, copy, modify, or distribute it. See [LICENSE](LICENSE) for details. Unauthorized use will be prosecuted.
+
 A production-grade, full-stack enterprise transport, traffic, and accounting system built for Egypt-based transfer operations. Fully compatible with Odoo ERP — no customization required on the Odoo side.
 
 ## Live Environments
