@@ -1,4 +1,4 @@
-# iTourTT - Transport & Traffic Management System — v3.0.0
+# iTourTT - Transport & Traffic Management System — v3.1.0
 
 A production-grade, full-stack enterprise transport, traffic, and accounting system built for Egypt-based transfer operations. Fully compatible with Odoo ERP — no customization required on the Odoo side.
 
@@ -20,7 +20,7 @@ iTourTT manages the complete lifecycle of transport operations: from booking tra
 | **Frontend** | Next.js 16 (App Router), TypeScript, Tailwind CSS, shadcn/ui |
 | **Backend** | NestJS, TypeScript, REST APIs, JWT + Refresh Tokens |
 | **Database** | PostgreSQL 16, Prisma ORM, UUID primary keys |
-| **Infrastructure** | Docker, Docker Compose |
+| **Infrastructure** | k3s (Kubernetes), Docker, cert-manager + Let's Encrypt SSL |
 | **Timezone** | Africa/Cairo |
 
 ## Key Features
@@ -76,7 +76,8 @@ iTourTT manages the complete lifecycle of transport operations: from booking tra
 
 ### Permissions & Security
 - Role-Based Access Control (RBAC) with granular permission tree
-- Roles: `super_admin`, `online_manager`, `online_operator`, `dispatch_manager`, `dispatch_operator`, `financial_controller`, `transportation_accountant`, `management`
+- 13 system roles: Admin, Dispatcher, Accountant, Agent Manager, Viewer, Rep, Driver, Online Operator, Dispatch Operator, Online Manager, Dispatch Manager, FC, Transportation Accountant
+- **Permission-based dispatch**: Online Operators can only assign reps; Dispatch Operators can only assign vehicles/drivers — enforced at both API and UI level
 - Permission-based UI rendering (sidebar, pages, actions, columns)
 - JWT authentication with refresh token rotation
 
@@ -264,6 +265,21 @@ All endpoints follow REST conventions with JWT authentication:
 - All mutating endpoints are audit-logged automatically
 
 ## Changelog
+
+### v3.1.0 — 2026-03-09
+- **Permission-based dispatch**: Separated rep assignment from vehicle/driver assignment with granular permission enforcement — Online Operators assign reps only, Dispatch Operators assign vehicles/drivers only
+- Switched dispatch controller from role-based guards (`@Roles`) to permission-based guards (`@Permissions`)
+- 6 new system roles: Online Operator, Dispatch Operator, Online Manager, Dispatch Manager, FC, Transportation Accountant
+- Fixed no_show_evidence table schema (image_urls array, decimal GPS, NOT NULL constraints)
+- Infrastructure migrated to k3s (Kubernetes) with cert-manager + Let's Encrypt SSL
+- Separate production and training namespaces on single-node k3s cluster
+
+### v3.0.0 — 2026-03-08
+- Bump to v3.0.0
+- Login page version reads from package.json (`NEXT_PUBLIC_APP_VERSION`)
+- Added missing i18n keys (forgotPassword)
+- Added missing DB tables (device_tokens, customer_import_templates, job_import_logs)
+- Help documentation expanded for all 19 modules
 
 ### v2.1.0 — 2026-03-06
 - Split assignment: dispatchers assign vehicle+driver, online operators assign rep independently
