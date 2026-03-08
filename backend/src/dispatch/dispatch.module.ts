@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DispatchController } from './dispatch.controller.js';
 import { DispatchService } from './dispatch.service.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { WhatsappNotificationsModule } from '../whatsapp-notifications/whatsapp-notifications.module.js';
@@ -8,7 +9,7 @@ import { WhatsappNotificationsModule } from '../whatsapp-notifications/whatsapp-
 @Module({
   imports: [EmailModule, NotificationsModule, WhatsappNotificationsModule],
   controllers: [DispatchController],
-  providers: [DispatchService],
+  providers: [DispatchService, PermissionsGuard],
   exports: [DispatchService],
 })
 export class DispatchModule {}

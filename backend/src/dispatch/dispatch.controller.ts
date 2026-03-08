@@ -15,18 +15,19 @@ import { DispatchDayDto } from './dto/dispatch-day.dto.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
 import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
-import { Roles } from '../common/decorators/roles.decorator.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 
 @Controller('dispatch')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN', 'MANAGER', 'DISPATCHER')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Permissions('dispatch')
 export class DispatchController {
-  constructor(private readonly dispatchService: DispatchService) {}
+  constructor(
+    private readonly dispatchService: DispatchService,
+    private readonly permissionsGuard: PermissionsGuard,
+  ) {}
 
   @Get('day')
   async getDayView(@Query() query: DispatchDayDto) {
@@ -41,7 +42,8 @@ export class DispatchController {
     @CurrentUser('role') userRole: string,
     @CurrentUser('roleSlug') roleSlug: string,
   ) {
-    const assignment = await this.dispatchService.assignJob(dto, userId, userRole, roleSlug);
+    const userPermissions = await this.permissionsGuard.getUserPermissions(userId);
+    const assignment = await this.dispatchService.assignJob(dto, userId, userRole, roleSlug, userPermissions);
     return new ApiResponse(assignment, 'Job assigned successfully');
   }
 
@@ -53,7 +55,8 @@ export class DispatchController {
     @CurrentUser('role') userRole: string,
     @CurrentUser('roleSlug') roleSlug: string,
   ) {
-    const assignment = await this.dispatchService.reassignJob(id, dto, userId, userRole, roleSlug);
+    const userPermissions = await this.permissionsGuard.getUserPermissions(userId);
+    const assignment = await this.dispatchService.reassignJob(id, dto, userId, userRole, roleSlug, userPermissions);
     return new ApiResponse(assignment, 'Job reassigned successfully');
   }
 
@@ -103,7 +106,6 @@ export class DispatchController {
   }
 
   @Post('jobs/:id/unlock')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('dispatch.assignment.unlock48h')
   async unlockJob(
     @Param('id') id: string,
@@ -114,7 +116,6 @@ export class DispatchController {
   }
 
   @Post('jobs/:id/lock')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('dispatch.assignment.unlock48h')
   async lockJob(@Param('id') id: string) {
     const result = await this.dispatchService.lockJob(id);

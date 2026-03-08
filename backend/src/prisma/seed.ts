@@ -119,15 +119,17 @@ async function main() {
           defaultKeys = allPermissionKeys.filter((k) =>
             k.startsWith('dashboard') || k.startsWith('traffic-jobs') ||
             k.startsWith('agents') || k.startsWith('customers') ||
-            k.startsWith('locations') || k.startsWith('guest-bookings'),
+            k.startsWith('locations') || k.startsWith('guest-bookings') ||
+            k === 'dispatch' || k === 'dispatch.assignment.assignRep',
           );
           break;
         case 'dispatch-operator':
           defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('dispatch') ||
+            (k.startsWith('dashboard') || k.startsWith('dispatch') ||
             k.startsWith('traffic-jobs') || k.startsWith('vehicles') ||
             k.startsWith('drivers') || k.startsWith('reps') ||
-            k.startsWith('locations'),
+            k.startsWith('locations')) &&
+            k !== 'dispatch.assignment.assignRep',
           );
           break;
         case 'online-manager':

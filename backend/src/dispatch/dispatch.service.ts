@@ -95,7 +95,24 @@ export class DispatchService {
   // ASSIGN JOB
   // ─────────────────────────────────────────────
 
-  async assignJob(dto: AssignJobDto, userId: string, userRole?: string, roleSlug?: string) {
+  async assignJob(dto: AssignJobDto, userId: string, userRole?: string, roleSlug?: string, userPermissions?: Set<string>) {
+    // Permission-based field validation
+    if (userPermissions) {
+      const canVehicle = userPermissions.has('dispatch.assignment.assignVehicle');
+      const canDriver = userPermissions.has('dispatch.assignment.assignDriver');
+      const canRep = userPermissions.has('dispatch.assignment.assignRep');
+
+      if (dto.vehicleId && !canVehicle) {
+        throw new ForbiddenException('You do not have permission to assign vehicles');
+      }
+      if (dto.driverId && !canDriver) {
+        throw new ForbiddenException('You do not have permission to assign drivers');
+      }
+      if (dto.repId && !canRep) {
+        throw new ForbiddenException('You do not have permission to assign reps');
+      }
+    }
+
     // Must provide at least vehicle or rep
     if (!dto.vehicleId && !dto.repId) {
       throw new BadRequestException('Either vehicleId or repId must be provided');
@@ -202,7 +219,7 @@ export class DispatchService {
       const created = await tx.trafficAssignment.create({
         data: {
           trafficJobId: dto.trafficJobId,
-          vehicleId: dto.vehicleId,
+          vehicleId: dto.vehicleId ?? null,
           driverId: dto.driverId ?? null,
           repId: dto.repId ?? null,
           externalDriverName: dto.externalDriverName ?? null,
@@ -326,13 +343,30 @@ export class DispatchService {
   // REASSIGN JOB
   // ─────────────────────────────────────────────
 
-  async reassignJob(assignmentId: string, dto: ReassignJobDto, userId: string, userRole?: string, roleSlug?: string) {
+  async reassignJob(assignmentId: string, dto: ReassignJobDto, userId: string, userRole?: string, roleSlug?: string, userPermissions?: Set<string>) {
     if (!dto.vehicleId && !dto.driverId && !dto.repId
         && dto.externalDriverName === undefined && dto.externalDriverPhone === undefined
         && dto.remarks === undefined) {
       throw new BadRequestException(
         'At least one field must be provided',
       );
+    }
+
+    // Permission-based field validation
+    if (userPermissions) {
+      const canVehicle = userPermissions.has('dispatch.assignment.assignVehicle');
+      const canDriver = userPermissions.has('dispatch.assignment.assignDriver');
+      const canRep = userPermissions.has('dispatch.assignment.assignRep');
+
+      if (dto.vehicleId && !canVehicle) {
+        throw new ForbiddenException('You do not have permission to assign vehicles');
+      }
+      if (dto.driverId && !canDriver) {
+        throw new ForbiddenException('You do not have permission to assign drivers');
+      }
+      if (dto.repId && !canRep) {
+        throw new ForbiddenException('You do not have permission to assign reps');
+      }
     }
 
     const existing = await this.prisma.trafficAssignment.findUnique({
