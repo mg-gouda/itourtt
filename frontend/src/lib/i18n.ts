@@ -131,6 +131,7 @@ const translations: Record<Locale, Record<string, string>> = {
     // ── Login ──extra
     "login.system": "Transport & Traffic System",
     "login.version": "iTour Transport & Traffic v1.0",
+    "login.forgotPassword": "Forgot password?",
 
     // ── Drivers ──
     "drivers.title": "Drivers",
@@ -1505,6 +1506,7 @@ const translations: Record<Locale, Record<string, string>> = {
     // ── Login ──extra
     "login.system": "\u0646\u0638\u0627\u0645 \u0627\u0644\u0646\u0642\u0644 \u0648\u0627\u0644\u0645\u0631\u0648\u0631",
     "login.version": "\u0622\u064A \u062A\u0648\u0631 \u0644\u0644\u0646\u0642\u0644 \u0648\u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u0625\u0635\u062F\u0627\u0631 1.0",
+    "login.forgotPassword": "\u0647\u0644 \u0646\u0633\u064A\u062A \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631\u061F",
 
     // ── Drivers ──
     "drivers.title": "\u0627\u0644\u0633\u0627\u0626\u0642\u0648\u0646",

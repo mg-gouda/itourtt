@@ -154,7 +154,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-4 text-center text-xs text-white/30">
-          {t("login.version")}
+          iTour Transport &amp; Traffic v{process.env.NEXT_PUBLIC_APP_VERSION}
         </p>
       </div>
     </div>
