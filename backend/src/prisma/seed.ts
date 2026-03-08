@@ -59,6 +59,12 @@ async function main() {
       { name: 'Viewer', slug: 'viewer', description: 'Read-only access to all modules' },
       { name: 'Rep', slug: 'rep', description: 'Field representative portal user' },
       { name: 'Driver', slug: 'driver', description: 'Driver portal user' },
+      { name: 'Online Operator', slug: 'online-operator', description: 'Handles online booking operations' },
+      { name: 'Dispatch Operator', slug: 'dispatch-operator', description: 'Handles dispatch operations' },
+      { name: 'Online Manager', slug: 'online-manager', description: 'Manages online booking team and operations' },
+      { name: 'Dispatch Manager', slug: 'dispatch-manager', description: 'Manages dispatch team and operations' },
+      { name: 'FC', slug: 'fc', description: 'Financial controller with oversight of all finance operations' },
+      { name: 'Transportation Accountant', slug: 'transportation-accountant', description: 'Handles transportation-specific accounting and costs' },
     ];
 
     for (const roleData of systemRoles) {
@@ -107,6 +113,55 @@ async function main() {
         case 'viewer':
           defaultKeys = pageKeys.filter((k) =>
             k !== 'users' && k !== 'company' && k !== 'whatsapp',
+          );
+          break;
+        case 'online-operator':
+          defaultKeys = allPermissionKeys.filter((k) =>
+            k.startsWith('dashboard') || k.startsWith('traffic-jobs') ||
+            k.startsWith('agents') || k.startsWith('customers') ||
+            k.startsWith('locations') || k.startsWith('guest-bookings'),
+          );
+          break;
+        case 'dispatch-operator':
+          defaultKeys = allPermissionKeys.filter((k) =>
+            k.startsWith('dashboard') || k.startsWith('dispatch') ||
+            k.startsWith('traffic-jobs') || k.startsWith('vehicles') ||
+            k.startsWith('drivers') || k.startsWith('reps') ||
+            k.startsWith('locations'),
+          );
+          break;
+        case 'online-manager':
+          defaultKeys = allPermissionKeys.filter((k) =>
+            k.startsWith('dashboard') || k.startsWith('traffic-jobs') ||
+            k.startsWith('agents') || k.startsWith('customers') ||
+            k.startsWith('locations') || k.startsWith('guest-bookings') ||
+            k.startsWith('reports') || k.startsWith('activity-logs'),
+          );
+          break;
+        case 'dispatch-manager':
+          defaultKeys = allPermissionKeys.filter((k) =>
+            k.startsWith('dashboard') || k.startsWith('dispatch') ||
+            k.startsWith('traffic-jobs') || k.startsWith('vehicles') ||
+            k.startsWith('drivers') || k.startsWith('reps') ||
+            k.startsWith('locations') || k.startsWith('suppliers') ||
+            k.startsWith('reports') || k.startsWith('activity-logs'),
+          );
+          break;
+        case 'fc':
+          defaultKeys = allPermissionKeys.filter((k) =>
+            k.startsWith('dashboard') || k.startsWith('finance') ||
+            k.startsWith('reports') || k.startsWith('agents') ||
+            k.startsWith('customers') || k.startsWith('suppliers') ||
+            k.startsWith('drivers') || k.startsWith('reps') ||
+            k.startsWith('activity-logs'),
+          );
+          break;
+        case 'transportation-accountant':
+          defaultKeys = allPermissionKeys.filter((k) =>
+            k.startsWith('dashboard') || k.startsWith('finance') ||
+            k.startsWith('reports') || k.startsWith('suppliers') ||
+            k.startsWith('drivers') || k.startsWith('vehicles') ||
+            k.startsWith('activity-logs'),
           );
           break;
       }
