@@ -15,7 +15,6 @@ import { AssignJobDto } from './dto/assign-job.dto.js';
 import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import type { ServiceType, JobStatus } from '../../generated/prisma/client.js';
 
-const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
 const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
 @Injectable()
@@ -681,7 +680,7 @@ export class DispatchService {
 
   /**
    * Flight-aware rep availability. Returns reps that can work the target job
-   * based on same-flight sharing and 3-hour gap rules.
+   * based on same-flight sharing rules.
    * Returns empty for Excursion jobs (no rep assignment on Excursion).
    */
   async getAvailableReps(date: string, jobId?: string) {
@@ -750,17 +749,7 @@ export class DispatchService {
           continue;
         }
 
-        // Different flight: need 3-hour gap
-        if (targetTime === null || existingTime === null) {
-          blocked = true;
-          break;
-        }
-
-        const gap = Math.abs(targetTime.getTime() - existingTime.getTime());
-        if (gap < THREE_HOURS_MS) {
-          blocked = true;
-          break;
-        }
+        // Different flight: always allowed (no time gap restriction)
       }
       if (blocked) busyRepIds.push(repId);
     }
@@ -883,7 +872,7 @@ export class DispatchService {
   /**
    * Validate rep availability with flight-aware rules.
    * Same flight number + time → allowed (rep can handle multiple jobs on same flight).
-   * Different flight → 3-hour gap required.
+   * Different flight → always allowed.
    */
   private async validateRepAvailability(
     repId: string,
@@ -926,22 +915,7 @@ export class DispatchService {
         continue;
       }
 
-      // No time reference → block
-      if (targetTime === null || existingTime === null) {
-        throw new ConflictException(
-          `Rep is already assigned to job ${a.trafficJob.internalRef} on this date.`,
-        );
-      }
-
-      // Different flight: 3-hour gap check
-      const gap = Math.abs(targetTime.getTime() - existingTime.getTime());
-      if (gap < THREE_HOURS_MS) {
-        const nextAvailable = new Date(existingTime.getTime() + THREE_HOURS_MS);
-        throw new ConflictException(
-          `Rep is assigned to flight ${existingFlight?.flightNo ?? 'N/A'} at ${existingTime.toISOString().slice(11, 16)}. ` +
-          `Minimum 3-hour gap required. Next available: ${nextAvailable.toISOString().slice(11, 16)}.`,
-        );
-      }
+      // Different flight: always allowed (no time gap restriction)
     }
   }
 }
