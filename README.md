@@ -1,4 +1,4 @@
-# iTourTT - Transport & Traffic Management System — v3.1.0
+# iTourTT - Transport & Traffic Management System — v3.1.1
 
 > **PROPRIETARY SOFTWARE** — This project is **not open source**. All rights reserved. Viewing the source code does not grant permission to use, copy, modify, or distribute it. See [LICENSE](LICENSE) for details. Unauthorized use will be prosecuted.
 
@@ -267,6 +267,9 @@ All endpoints follow REST conventions with JWT authentication:
 - All mutating endpoints are audit-logged automatically
 
 ## Changelog
+
+### v3.1.1 — 2026-03-09
+- Removed 3-hour gap rule for rep assignment — reps can now be assigned to multiple jobs on different flights without time restrictions
 
 ### v3.1.0 — 2026-03-09
 - **Permission-based dispatch**: Separated rep assignment from vehicle/driver assignment with granular permission enforcement — Online Operators assign reps only, Dispatch Operators assign vehicles/drivers only
