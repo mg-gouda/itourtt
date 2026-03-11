@@ -213,9 +213,7 @@ export class AiParserService {
     serviceType?: string,
   ): string {
     const serviceTypes = [
-      'ARR', 'DEP', 'EXCURSION', 'ROUND_TRIP', 'ONE_WAY_GOING',
-      'ONE_WAY_RETURN', 'OVER_DAY', 'TRANSFER', 'CITY_TOUR',
-      'COLLECTING_ONE_WAY', 'COLLECTING_ROUND_TRIP', 'EXPRESS_SHOPPING',
+      'ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER',
     ];
 
     let prompt = `You are a document parser for a transport company in Egypt. Extract all transfer/transport jobs from the following document.
@@ -242,7 +240,7 @@ For each job, extract these fields as a JSON object:
 RULES:
 - For ARR (arrival) jobs: origin is usually an airport, destination is a hotel/zone
 - For DEP (departure) jobs: origin is usually a hotel/zone, destination is an airport
-- If the document lists transfers without specifying ARR/DEP, use "TRANSFER"
+- If the document lists transfers without specifying ARR/DEP, use "ONE_WAY_TRANSFER"
 - Parse all dates to YYYY-MM-DD format
 - Parse all times to HH:MM 24-hour format
 - If adult count is not specified, assume 1
@@ -329,7 +327,7 @@ Do not include any explanatory text, markdown formatting, or code fences outside
     let confidence = 1.0;
 
     // Validate required fields
-    const serviceType = raw.serviceType || 'TRANSFER';
+    const serviceType = raw.serviceType || 'ONE_WAY_TRANSFER';
     const jobDate = raw.jobDate || '';
     const adultCount = parseInt(raw.adultCount) || 1;
     const childCount = parseInt(raw.childCount) || 0;

@@ -817,7 +817,7 @@ export class VehiclesService {
       return {
         id: v.id,
         plateNumber: v.plateNumber,
-        vehicleType: v.vehicleType?.name,
+        vehicleTypeName: v.vehicleType?.name,
         ownership: v.ownership,
         isActive: v.isActive,
         licenseExpiryDate: c?.licenseExpiryDate,

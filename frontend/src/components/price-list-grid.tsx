@@ -91,16 +91,9 @@ export interface PriceListGridProps {
 const SERVICE_TYPE_OPTIONS = [
   { value: "ARR", label: "Arrival" },
   { value: "DEP", label: "Departure" },
-  { value: "ROUND_TRIP", label: "Round Trip (2-Way)" },
-  { value: "ONE_WAY_GOING", label: "One Way Going" },
-  { value: "ONE_WAY_RETURN", label: "One Way Return" },
-  { value: "OVER_DAY", label: "Over Day Trip" },
-  { value: "TRANSFER", label: "Long Distance Transfer" },
-  { value: "CITY_TOUR", label: "City Tour" },
-  { value: "COLLECTING_ONE_WAY", label: "Collecting One Way" },
-  { value: "COLLECTING_ROUND_TRIP", label: "Collecting Round Trip" },
-  { value: "EXPRESS_SHOPPING", label: "Express Shopping" },
-  { value: "EXCURSION", label: "Excursion" },
+  { value: "DAY_TOUR", label: "Day Tour" },
+  { value: "ONE_WAY_TRANSFER", label: "One Way Transfer" },
+  { value: "TWO_WAY_TRANSFER", label: "2 Way Transfer" },
 ];
 
 function getServiceTypeLabel(value: string): string {

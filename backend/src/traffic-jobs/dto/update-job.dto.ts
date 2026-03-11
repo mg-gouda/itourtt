@@ -27,7 +27,7 @@ export class UpdateJobDto {
   customerId?: string;
 
   @IsOptional()
-  @IsIn(['ARR', 'DEP', 'EXCURSION', 'ROUND_TRIP', 'ONE_WAY_GOING', 'ONE_WAY_RETURN', 'OVER_DAY', 'TRANSFER', 'CITY_TOUR', 'COLLECTING_ONE_WAY', 'COLLECTING_ROUND_TRIP', 'EXPRESS_SHOPPING'])
+  @IsIn(['ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER'])
   serviceType?: string;
 
   @IsOptional()
@@ -156,6 +156,15 @@ export class UpdateJobDto {
   @IsOptional()
   @IsDateString()
   custRepMeetingTime?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  priceAmount?: number;
+
+  @IsOptional()
+  @IsIn(['EGP', 'USD', 'EUR', 'GBP', 'SAR'])
+  priceCurrency?: string;
 
   @IsOptional()
   @ValidateNested()

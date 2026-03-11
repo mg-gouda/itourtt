@@ -28,6 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -46,6 +47,7 @@ import { localDateStr } from "@/lib/utils";
 
 interface Supplier {
   id: string;
+  supplierType: "COMPANY" | "INDIVIDUAL";
   legalName: string;
   tradeName: string;
   taxId: string;
@@ -54,6 +56,8 @@ interface Supplier {
   country: string;
   phone: string;
   email: string;
+  mobileNumber: string;
+  nationalIdImage: string | null;
   userId?: string | null;
   user?: { id: string; email: string; name: string; role: string; isActive: boolean } | null;
   isActive: boolean;
@@ -119,6 +123,7 @@ export default function SuppliersPage() {
   const [accountPassword, setAccountPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
+  const [supplierTab, setSupplierTab] = useState<"COMPANY" | "INDIVIDUAL">("COMPANY");
   const [legalName, setLegalName] = useState("");
   const [tradeName, setTradeName] = useState("");
   const [taxId, setTaxId] = useState("");
@@ -127,6 +132,12 @@ export default function SuppliersPage() {
   const [country, setCountry] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  // Individual supplier fields
+  const [indName, setIndName] = useState("");
+  const [indMobile, setIndMobile] = useState("");
+  const [indEmail, setIndEmail] = useState("");
+  const [indNationalIdFile, setIndNationalIdFile] = useState<File | null>(null);
+  const nationalIdRef = useRef<HTMLInputElement>(null);
 
   const fetchSuppliers = useCallback(async (p = page) => {
     try {
@@ -210,6 +221,7 @@ export default function SuppliersPage() {
   }
 
   function resetForm() {
+    setSupplierTab("COMPANY");
     setLegalName("");
     setTradeName("");
     setTaxId("");
@@ -218,6 +230,11 @@ export default function SuppliersPage() {
     setCountry("");
     setPhone("");
     setEmail("");
+    setIndName("");
+    setIndMobile("");
+    setIndEmail("");
+    setIndNationalIdFile(null);
+    if (nationalIdRef.current) nationalIdRef.current.value = "";
   }
 
   function openDialog() {
@@ -270,31 +287,69 @@ export default function SuppliersPage() {
   }
 
   async function handleSubmit() {
-    if (!legalName.trim()) {
-      toast.error(t("suppliers.legalNameRequired"));
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      await api.post("/suppliers", {
-        legalName: legalName.trim(),
-        tradeName: tradeName.trim(),
-        taxId: taxId.trim(),
-        address: address.trim(),
-        city: city.trim(),
-        country: country.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-      });
-      toast.success(t("suppliers.created"));
-      setDialogOpen(false);
-      resetForm();
-      fetchSuppliers();
-    } catch {
-      toast.error(t("suppliers.failedCreate"));
-    } finally {
-      setSubmitting(false);
+    if (supplierTab === "COMPANY") {
+      if (!legalName.trim()) {
+        toast.error(t("suppliers.legalNameRequired"));
+        return;
+      }
+      try {
+        setSubmitting(true);
+        await api.post("/suppliers", {
+          supplierType: "COMPANY",
+          legalName: legalName.trim(),
+          tradeName: tradeName.trim(),
+          taxId: taxId.trim(),
+          address: address.trim(),
+          city: city.trim(),
+          country: country.trim(),
+          phone: phone.trim(),
+          email: email.trim(),
+        });
+        toast.success(t("suppliers.created"));
+        setDialogOpen(false);
+        resetForm();
+        fetchSuppliers();
+      } catch {
+        toast.error(t("suppliers.failedCreate"));
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      // Individual
+      if (!indName.trim()) {
+        toast.error("Name is required");
+        return;
+      }
+      if (!indMobile.trim()) {
+        toast.error("Mobile number is required");
+        return;
+      }
+      try {
+        setSubmitting(true);
+        const res = await api.post("/suppliers", {
+          supplierType: "INDIVIDUAL",
+          legalName: indName.trim(),
+          mobileNumber: indMobile.trim(),
+          email: indEmail.trim() || undefined,
+        });
+        const newId = res.data?.data?.id || res.data?.id;
+        // Upload national ID if provided
+        if (indNationalIdFile && newId) {
+          const formData = new FormData();
+          formData.append("file", indNationalIdFile);
+          await api.post(`/suppliers/${newId}/national-id`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }
+        toast.success(t("suppliers.created"));
+        setDialogOpen(false);
+        resetForm();
+        fetchSuppliers();
+      } catch {
+        toast.error(t("suppliers.failedCreate"));
+      } finally {
+        setSubmitting(false);
+      }
     }
   }
 
@@ -588,6 +643,7 @@ export default function SuppliersPage() {
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
+                  <TableHead className="text-white text-xs">Type</TableHead>
                   <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <TableHead className="text-white text-xs">{t("agents.taxId")}</TableHead>
@@ -612,6 +668,11 @@ export default function SuppliersPage() {
                       checked={selectedIds.has(supplier.id)}
                       onCheckedChange={() => toggleSelect(supplier.id)}
                     />
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {supplier.supplierType === "INDIVIDUAL" ? "Individual" : "Company"}
+                    </Badge>
                   </TableCell>
                   <TableCell className="font-medium text-foreground">
                     {supplier.legalName}
@@ -709,119 +770,178 @@ export default function SuppliersPage() {
         </>
       )}
 
-      {/* Add Supplier Dialog */}
+      {/* Add Supplier Dialog (Tabbed: Company / Individual) */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="border-border bg-popover text-foreground sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-foreground">{t("suppliers.addSupplier")}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="legalName" className="text-muted-foreground">
-                {t("agents.legalName")} *
-              </Label>
-              <Input
-                id="legalName"
-                value={legalName}
-                onChange={(e) => setLegalName(e.target.value)}
-                placeholder="Company legal name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+          <Tabs value={supplierTab} onValueChange={(v) => setSupplierTab(v as "COMPANY" | "INDIVIDUAL")} className="w-full">
+            <TabsList className="bg-muted w-full">
+              <TabsTrigger value="COMPANY" className="flex-1">Company</TabsTrigger>
+              <TabsTrigger value="INDIVIDUAL" className="flex-1">Individual</TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="tradeName" className="text-muted-foreground">
-                {t("agents.tradeName")}
-              </Label>
-              <Input
-                id="tradeName"
-                value={tradeName}
-                onChange={(e) => setTradeName(e.target.value)}
-                placeholder="Trade / brand name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {/* Company Tab */}
+            <TabsContent value="COMPANY">
+              <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="legalName" className="text-muted-foreground">
+                    {t("agents.legalName")} *
+                  </Label>
+                  <Input
+                    id="legalName"
+                    value={legalName}
+                    onChange={(e) => setLegalName(e.target.value)}
+                    placeholder="Company legal name"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tradeName" className="text-muted-foreground">
+                    {t("agents.tradeName")}
+                  </Label>
+                  <Input
+                    id="tradeName"
+                    value={tradeName}
+                    onChange={(e) => setTradeName(e.target.value)}
+                    placeholder="Trade / brand name"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="taxId" className="text-muted-foreground">
+                    {t("agents.taxId")}
+                  </Label>
+                  <Input
+                    id="taxId"
+                    value={taxId}
+                    onChange={(e) => setTaxId(e.target.value)}
+                    placeholder="Tax registration number"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-muted-foreground">
+                    {t("agents.phone")}
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+20 xxx xxx xxxx"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-muted-foreground">
+                    {t("common.email")}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="contact@company.com"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="text-muted-foreground">
+                    {t("locations.city")}
+                  </Label>
+                  <Input
+                    id="city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country" className="text-muted-foreground">
+                    {t("locations.country")}
+                  </Label>
+                  <Input
+                    id="country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="Country"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="address" className="text-muted-foreground">
+                    {t("agents.address")}
+                  </Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Full street address"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
+            </TabsContent>
 
-            <div className="space-y-2">
-              <Label htmlFor="taxId" className="text-muted-foreground">
-                {t("agents.taxId")}
-              </Label>
-              <Input
-                id="taxId"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                placeholder="Tax registration number"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-muted-foreground">
-                {t("agents.phone")}
-              </Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+20 xxx xxx xxxx"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-muted-foreground">
-                {t("common.email")}
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="contact@company.com"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="city" className="text-muted-foreground">
-                {t("locations.city")}
-              </Label>
-              <Input
-                id="city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="country" className="text-muted-foreground">
-                {t("locations.country")}
-              </Label>
-              <Input
-                id="country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder="Country"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="address" className="text-muted-foreground">
-                {t("agents.address")}
-              </Label>
-              <Input
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Full street address"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-          </div>
+            {/* Individual Tab */}
+            <TabsContent value="INDIVIDUAL">
+              <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="indName" className="text-muted-foreground">
+                    Name *
+                  </Label>
+                  <Input
+                    id="indName"
+                    value={indName}
+                    onChange={(e) => setIndName(e.target.value)}
+                    placeholder="Full name"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="indMobile" className="text-muted-foreground">
+                    Mobile *
+                  </Label>
+                  <Input
+                    id="indMobile"
+                    value={indMobile}
+                    onChange={(e) => setIndMobile(e.target.value)}
+                    placeholder="+20 100 000 0000"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="indEmail" className="text-muted-foreground">
+                    {t("common.email")}
+                  </Label>
+                  <Input
+                    id="indEmail"
+                    type="email"
+                    value={indEmail}
+                    onChange={(e) => setIndEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="indNationalId" className="text-muted-foreground">
+                    National ID (upload copy)
+                  </Label>
+                  <Input
+                    id="indNationalId"
+                    ref={nationalIdRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setIndNationalIdFile(e.target.files?.[0] || null)}
+                    className="border-border bg-card text-foreground file:text-muted-foreground"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
             <Button

@@ -81,7 +81,7 @@ export class DispatchService {
         ],
       }),
       this.prisma.trafficJob.findMany({
-        where: { ...baseWhere, serviceType: 'EXCURSION' as ServiceType },
+        where: { ...baseWhere, serviceType: { notIn: ['ARR', 'DEP'] as ServiceType[] } },
         include: baseInclude,
         orderBy: { createdAt: 'asc' },
       }),
@@ -196,10 +196,10 @@ export class DispatchService {
 
     // 6. Validate rep with flight-aware rules
     if (dto.repId) {
-      // Reps cannot be assigned to Excursion (CITY) jobs
-      if (job.serviceType === ('EXCURSION' as ServiceType)) {
+      // Reps can only be assigned to ARR/DEP jobs
+      if (job.serviceType !== ('ARR' as ServiceType) && job.serviceType !== ('DEP' as ServiceType)) {
         throw new BadRequestException(
-          'Rep assignment is not available for Excursion jobs.',
+          'Rep assignment is only available for Arrival and Departure jobs.',
         );
       }
       const rep = await this.prisma.rep.findFirst({
@@ -439,9 +439,9 @@ export class DispatchService {
 
     // Rep validation with flight-aware rules
     if (dto.repId) {
-      if (job.serviceType === ('EXCURSION' as ServiceType)) {
+      if (job.serviceType !== ('ARR' as ServiceType) && job.serviceType !== ('DEP' as ServiceType)) {
         throw new BadRequestException(
-          'Rep assignment is not available for Excursion jobs.',
+          'Rep assignment is only available for Arrival and Departure jobs.',
         );
       }
       const rep = await this.prisma.rep.findFirst({
@@ -681,7 +681,7 @@ export class DispatchService {
   /**
    * Flight-aware rep availability. Returns reps that can work the target job
    * based on same-flight sharing rules.
-   * Returns empty for Excursion jobs (no rep assignment on Excursion).
+   * Returns empty for non-ARR/DEP jobs (rep assignment only for Arrival/Departure).
    */
   async getAvailableReps(date: string, jobId?: string) {
     const jobDate = new Date(date);
@@ -698,8 +698,8 @@ export class DispatchService {
       include: { flight: true },
     });
 
-    // No rep assignment on Excursion jobs
-    if (!targetJob || targetJob.serviceType === ('EXCURSION' as ServiceType)) {
+    // No rep assignment on non-ARR/DEP jobs
+    if (!targetJob || targetJob.serviceType !== ('ARR' as ServiceType) && targetJob.serviceType !== ('DEP' as ServiceType)) {
       return [];
     }
 
@@ -834,7 +834,7 @@ export class DispatchService {
 
   /**
    * Get the reference time for a job. ARR → arrivalTime, DEP → departureTime or pickUpTime.
-   * Excursion → null.
+   * Non-ARR/DEP → null.
    */
   private getJobReferenceTime(
     job: { serviceType: string; pickUpTime?: Date | null; flight?: { arrivalTime?: Date | null; departureTime?: Date | null } | null },

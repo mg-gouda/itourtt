@@ -1,6 +1,6 @@
 // ─── Enums ──────────────────────────────────────────────────────
 export type UserRole = 'ADMIN' | 'DISPATCHER' | 'ACCOUNTANT' | 'AGENT_MANAGER' | 'VIEWER' | 'REP' | 'DRIVER' | 'SUPPLIER';
-export type ServiceType = 'ARR' | 'DEP' | 'EXCURSION' | 'ROUND_TRIP' | 'ONE_WAY_GOING' | 'ONE_WAY_RETURN' | 'OVER_DAY' | 'TRANSFER' | 'CITY_TOUR' | 'COLLECTING_ONE_WAY' | 'COLLECTING_ROUND_TRIP' | 'EXPRESS_SHOPPING';
+export type ServiceType = 'ARR' | 'DEP' | 'DAY_TOUR' | 'ONE_WAY_TRANSFER' | 'TWO_WAY_TRANSFER';
 export type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type PortalJobStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type VehicleOwnership = 'OWNED' | 'RENTED' | 'CONTRACTED';

@@ -28,16 +28,9 @@ enum UserRole {
 enum ServiceType {
   ARR
   DEP
-  EXCURSION
-  ROUND_TRIP
-  ONE_WAY_GOING
-  ONE_WAY_RETURN
-  OVER_DAY
-  TRANSFER
-  CITY_TOUR
-  COLLECTING_ONE_WAY
-  COLLECTING_ROUND_TRIP
-  EXPRESS_SHOPPING
+  DAY_TOUR
+  ONE_WAY_TRANSFER
+  TWO_WAY_TRANSFER
 }
 
 enum JobStatus {
@@ -828,16 +821,27 @@ model PaymentTransaction {
 // SUPPLIERS
 // ─────────────────────────────────────────────
 
+enum SupplierType {
+  COMPANY
+  INDIVIDUAL
+}
+
 model Supplier {
-  id         String    @id @default(uuid())
-  legalName  String    @map("legal_name")
-  tradeName  String?   @map("trade_name")
-  taxId      String?   @map("tax_id")
-  address    String?
-  city       String?
-  country    String?
-  phone      String?
-  email      String?
+  id           String       @id @default(uuid())
+  supplierType SupplierType @default(COMPANY) @map("supplier_type")
+  legalName    String       @map("legal_name")
+  tradeName    String?      @map("trade_name")
+  taxId        String?      @map("tax_id")
+  address      String?
+  city         String?
+  country      String?
+  phone        String?
+  email        String?
+
+  // Individual supplier fields
+  mobileNumber    String?  @map("mobile_number")
+  nationalIdImage String?  @map("national_id_image")
+
   userId     String?   @unique @map("user_id")
   isActive   Boolean   @default(true) @map("is_active")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -940,6 +944,10 @@ model TrafficJob {
   transferPrice          Decimal?     @db.Decimal(15, 2) @map("transfer_price")
   transferPriceCurrency  Currency     @default(EGP) @map("transfer_price_currency")
   requestedVehicleTypeId String?      @map("requested_vehicle_type_id")
+
+  // Job price (final price for invoicing)
+  priceAmount            Decimal?     @db.Decimal(15, 2) @map("price_amount")
+  priceCurrency          Currency?    @map("price_currency") @default(EGP)
 
   // Customer rep meeting fields (B2B)
   custRepName         String?    @map("cust_rep_name")

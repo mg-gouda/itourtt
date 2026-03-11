@@ -108,6 +108,15 @@ interface TrafficJobOption {
   internalRef: string;
   serviceDate: string;
   serviceType: string;
+  route?: string;
+  vehicleType?: string;
+  defaultTransferPrice?: number;
+  defaultDriverTip?: number;
+}
+
+interface CustomerJobOverride {
+  transferPrice: string;
+  driverTip: string;
 }
 
 interface Invoice {
@@ -283,6 +292,7 @@ export default function FinancePage() {
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
+  const [customerJobOverrides, setCustomerJobOverrides] = useState<Record<string, CustomerJobOverride>>({});
   const [issueDate, setIssueDate] = useState(
     localDateStr(new Date())
   );
@@ -688,8 +698,10 @@ export default function FinancePage() {
         (jobRes.value.data.data || []).map((j: any) => ({
           id: j.id,
           internalRef: j.internalRef,
-          serviceDate: j.serviceDate,
+          serviceDate: j.serviceDate || j.jobDate,
           serviceType: j.serviceType,
+          route: `${j.fromZone?.name || j.originAirport?.code || '?'} → ${j.toZone?.name || j.destinationAirport?.code || '?'}`,
+          vehicleType: j.assignment?.vehicle?.vehicleType?.name || '',
         }))
       );
     }
@@ -742,9 +754,14 @@ export default function FinancePage() {
   }
 
   function toggleJobSelection(jobId: string) {
-    setSelectedJobIds((prev) =>
-      prev.includes(jobId) ? prev.filter((id) => id !== jobId) : [...prev, jobId]
-    );
+    setSelectedJobIds((prev) => {
+      if (prev.includes(jobId)) {
+        setCustomerJobOverrides((o) => { const { [jobId]: _, ...rest } = o; return rest; });
+        return prev.filter((id) => id !== jobId);
+      }
+      setCustomerJobOverrides((o) => ({ ...o, [jobId]: { transferPrice: "", driverTip: "" } }));
+      return [...prev, jobId];
+    });
   }
 
   // ─── Agent invoice: job fetch workflow ───────
@@ -924,12 +941,24 @@ export default function FinancePage() {
       }
       setCreateSubmitting(true);
       try {
-        await api.post("/finance/customer-invoices/generate", {
+        const hasOverrides = Object.values(customerJobOverrides).some(
+          (o) => o.transferPrice !== "" || o.driverTip !== ""
+        );
+        const payload: Record<string, unknown> = {
           customerId: selectedCustomerId,
-          trafficJobIds: selectedJobIds,
           issueDate,
           dueDate: dueDate || undefined,
-        });
+        };
+        if (hasOverrides) {
+          payload.jobs = selectedJobIds.map((id) => ({
+            trafficJobId: id,
+            ...(customerJobOverrides[id]?.transferPrice !== "" && { transferPrice: parseFloat(customerJobOverrides[id].transferPrice) }),
+            ...(customerJobOverrides[id]?.driverTip !== "" && { driverTip: parseFloat(customerJobOverrides[id].driverTip) }),
+          }));
+        } else {
+          payload.trafficJobIds = selectedJobIds;
+        }
+        await api.post("/finance/customer-invoices/generate", payload);
         toast.success(t("finance.customerInvoicesGenerated"));
         setCreateOpen(false);
         fetchInvoices();
@@ -2082,7 +2111,7 @@ export default function FinancePage() {
                   {jobOptions.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No completed jobs found</p>
                   ) : (
-                    <div className="max-h-60 overflow-y-auto border border-border rounded-md">
+                    <div className="max-h-80 overflow-y-auto border border-border rounded-md">
                       <Table>
                         <TableHeader>
                           <TableRow className="border-border bg-muted/50">
@@ -2090,18 +2119,24 @@ export default function FinancePage() {
                             <TableHead className="text-xs">Ref</TableHead>
                             <TableHead className="text-xs">{t("common.date")}</TableHead>
                             <TableHead className="text-xs">{t("jobs.serviceType")}</TableHead>
+                            <TableHead className="text-xs">{t("dispatch.route") || "Route"}</TableHead>
+                            <TableHead className="text-xs">{t("finance.transferPrice") || "Transfer Price"}</TableHead>
+                            <TableHead className="text-xs">{t("finance.driverTip") || "Driver Tip"}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {jobOptions.map((job) => (
+                          {jobOptions.map((job) => {
+                            const isSelected = selectedJobIds.includes(job.id);
+                            const override = customerJobOverrides[job.id];
+                            return (
                             <TableRow
                               key={job.id}
-                              className={`border-border cursor-pointer ${selectedJobIds.includes(job.id) ? "bg-primary/10" : ""}`}
+                              className={`border-border cursor-pointer ${isSelected ? "bg-primary/10" : ""}`}
                               onClick={() => toggleJobSelection(job.id)}
                             >
                               <TableCell>
                                 <Checkbox
-                                  checked={selectedJobIds.includes(job.id)}
+                                  checked={isSelected}
                                   onCheckedChange={() => toggleJobSelection(job.id)}
                                 />
                               </TableCell>
@@ -2112,8 +2147,48 @@ export default function FinancePage() {
                               <TableCell className="text-xs text-muted-foreground">
                                 {job.serviceType}
                               </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {job.route || "\u2014"}
+                              </TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                {isSelected ? (
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={override?.transferPrice ?? ""}
+                                    onChange={(e) => setCustomerJobOverrides((prev) => ({
+                                      ...prev,
+                                      [job.id]: { ...prev[job.id], transferPrice: e.target.value },
+                                    }))}
+                                    placeholder="Auto"
+                                    className="h-7 w-24 text-xs border-border bg-card"
+                                  />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">\u2014</span>
+                                )}
+                              </TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                {isSelected ? (
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={override?.driverTip ?? ""}
+                                    onChange={(e) => setCustomerJobOverrides((prev) => ({
+                                      ...prev,
+                                      [job.id]: { ...prev[job.id], driverTip: e.target.value },
+                                    }))}
+                                    placeholder="Auto"
+                                    className="h-7 w-24 text-xs border-border bg-card"
+                                  />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">\u2014</span>
+                                )}
+                              </TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>

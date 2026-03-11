@@ -149,16 +149,9 @@ export default function TrafficJobsPage() {
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
     DEP: t("serviceType.DEP"),
-    EXCURSION: t("serviceType.EXCURSION"),
-    ROUND_TRIP: t("serviceType.ROUND_TRIP"),
-    ONE_WAY_GOING: t("serviceType.ONE_WAY_GOING"),
-    ONE_WAY_RETURN: t("serviceType.ONE_WAY_RETURN"),
-    OVER_DAY: t("serviceType.OVER_DAY"),
-    TRANSFER: t("serviceType.TRANSFER"),
-    CITY_TOUR: t("serviceType.CITY_TOUR"),
-    COLLECTING_ONE_WAY: t("serviceType.COLLECTING_ONE_WAY"),
-    COLLECTING_ROUND_TRIP: t("serviceType.COLLECTING_ROUND_TRIP"),
-    EXPRESS_SHOPPING: t("serviceType.EXPRESS_SHOPPING"),
+    DAY_TOUR: t("serviceType.DAY_TOUR"),
+    ONE_WAY_TRANSFER: t("serviceType.ONE_WAY_TRANSFER"),
+    TWO_WAY_TRANSFER: t("serviceType.TWO_WAY_TRANSFER"),
   };
 
   const fetchJobs = useCallback(async () => {

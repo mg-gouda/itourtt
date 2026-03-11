@@ -436,7 +436,7 @@ export class ExportService {
 
     const baseWhere = { jobDate, deletedAt: null };
 
-    const [arrivals, departures, excursions] = await Promise.all([
+    const [arrivals, departures, otherJobs] = await Promise.all([
       this.prisma.trafficJob.findMany({
         where: { ...baseWhere, serviceType: 'ARR' as any },
         include: baseInclude,
@@ -448,7 +448,7 @@ export class ExportService {
         orderBy: [{ flight: { departureTime: 'asc' } }, { createdAt: 'asc' }],
       }),
       this.prisma.trafficJob.findMany({
-        where: { ...baseWhere, serviceType: 'EXCURSION' as any },
+        where: { ...baseWhere, serviceType: { in: ['DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER'] as any } },
         include: baseInclude,
         orderBy: { createdAt: 'asc' },
       }),
@@ -537,7 +537,7 @@ export class ExportService {
 
     addSheet('Arrivals', arrivals);
     addSheet('Departures', departures);
-    addSheet('Excursions', excursions);
+    addSheet('Other Services', otherJobs);
 
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     return Buffer.from(buf);

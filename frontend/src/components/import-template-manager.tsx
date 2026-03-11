@@ -43,9 +43,7 @@ interface ImportTemplate {
 }
 
 const SERVICE_TYPES = [
-  "ARR", "DEP", "EXCURSION", "ROUND_TRIP", "ONE_WAY_GOING",
-  "ONE_WAY_RETURN", "OVER_DAY", "TRANSFER", "CITY_TOUR",
-  "COLLECTING_ONE_WAY", "COLLECTING_ROUND_TRIP", "EXPRESS_SHOPPING",
+  "ARR", "DEP", "DAY_TOUR", "ONE_WAY_TRANSFER", "TWO_WAY_TRANSFER",
 ];
 
 const FILE_TYPE_ICON: Record<string, React.ReactNode> = {

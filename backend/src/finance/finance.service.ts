@@ -753,8 +753,20 @@ export class FinanceService {
       throw new NotFoundException(`Customer with ID "${dto.customerId}" not found`);
     }
 
+    // Support both old format (trafficJobIds) and new format (jobs with overrides)
+    const jobIds = dto.jobs
+      ? dto.jobs.map((j) => j.trafficJobId)
+      : dto.trafficJobIds || [];
+
+    const overrideMap = new Map<string, { transferPrice?: number; driverTip?: number }>();
+    if (dto.jobs) {
+      for (const j of dto.jobs) {
+        overrideMap.set(j.trafficJobId, { transferPrice: j.transferPrice, driverTip: j.driverTip });
+      }
+    }
+
     const jobs = await this.prisma.trafficJob.findMany({
-      where: { id: { in: dto.trafficJobIds }, deletedAt: null },
+      where: { id: { in: jobIds }, deletedAt: null },
       include: {
         fromZone: true,
         toZone: true,
@@ -785,23 +797,37 @@ export class FinanceService {
       if (!vehicleTypeId) continue;
 
       const prices = priceMap.get(`${job.serviceType}-${job.fromZoneId}-${job.toZoneId}-${vehicleTypeId}`);
-      if (!prices) continue;
+      const override = overrideMap.get(job.id);
+
+      // Use override if provided, otherwise fall back to price list
+      const transferPrice = override?.transferPrice !== undefined ? override.transferPrice : (prices?.transferPrice || 0);
+      const driverTip = override?.driverTip !== undefined ? override.driverTip : (prices?.driverTip || 0);
+
+      if (transferPrice === 0 && driverTip === 0) continue;
 
       const routeDescription = `${job.fromZone?.name || 'Unknown'} → ${job.toZone?.name || 'Unknown'}`;
       const vehicleName = job.assignment?.vehicle?.vehicleType?.name || 'Vehicle';
 
-      if (prices.transferPrice > 0) {
+      // Save override price back to TrafficJob
+      if (override?.transferPrice !== undefined) {
+        await this.prisma.trafficJob.update({
+          where: { id: job.id },
+          data: { priceAmount: override.transferPrice },
+        });
+      }
+
+      if (transferPrice > 0) {
         transferLines.push({
           trafficJobId: job.id,
           description: `Transfer: ${routeDescription} (${vehicleName}) - ${job.internalRef || job.id}`,
-          amount: prices.transferPrice,
+          amount: transferPrice,
         });
       }
-      if (prices.driverTip > 0) {
+      if (driverTip > 0) {
         driverTipLines.push({
           trafficJobId: job.id,
           description: `Driver Tip: ${routeDescription} (${vehicleName}) - ${job.internalRef || job.id}`,
-          amount: prices.driverTip,
+          amount: driverTip,
         });
       }
     }

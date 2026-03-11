@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import {
   CalendarClock,
@@ -18,6 +18,8 @@ import {
   Lock,
   LockOpen,
   DollarSign,
+  Search,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -686,7 +688,7 @@ function SummaryFooter({
             </span>
           </span>
           <span>
-            {t("dispatch.excursionLabel")}{" "}
+            {t("dispatch.otherLabel")}{" "}
             <span className="font-medium text-foreground">
               {cityTransfers.length}
             </span>
@@ -1258,9 +1260,9 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
   const serviceColors: Record<string, string> = {
     ARR: "bg-blue-500/20 text-blue-400 border-blue-500/30",
     DEP: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    CITY: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    EXCURSION: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    ROUND_TRIP: "bg-teal-500/20 text-teal-400 border-teal-500/30",
+    DAY_TOUR: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    ONE_WAY_TRANSFER: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    TWO_WAY_TRANSFER: "bg-teal-500/20 text-teal-400 border-teal-500/30",
   };
 
   return (
@@ -1441,9 +1443,9 @@ function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
   const serviceColors: Record<string, string> = {
     ARR: "bg-blue-500/20 text-blue-400 border-blue-500/30",
     DEP: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    CITY: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    EXCURSION: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    ROUND_TRIP: "bg-teal-500/20 text-teal-400 border-teal-500/30",
+    DAY_TOUR: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    ONE_WAY_TRANSFER: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    TWO_WAY_TRANSFER: "bg-teal-500/20 text-teal-400 border-teal-500/30",
   };
 
   return (
@@ -1605,6 +1607,32 @@ export default function DispatchPage() {
   const [dialogExternalDriverPhone, setDialogExternalDriverPhone] = useState("");
   const [dialogRemarks, setDialogRemarks] = useState("");
   const [dialogSaving, setDialogSaving] = useState(false);
+
+  // Search filter
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filterJobs = useCallback((jobs: Job[], query: string) => {
+    if (!query.trim()) return jobs;
+    const q = query.toLowerCase();
+    return jobs.filter((job) => {
+      const ref = job.internalRef?.toLowerCase() || "";
+      const agentRef = job.agentRef?.toLowerCase() || "";
+      const driverName = job.assignment?.driver?.name?.toLowerCase() || "";
+      const externalDriver = job.assignment?.externalDriverName?.toLowerCase() || "";
+      const repName = job.assignment?.rep?.name?.toLowerCase() || "";
+      return (
+        ref.includes(q) ||
+        agentRef.includes(q) ||
+        driverName.includes(q) ||
+        externalDriver.includes(q) ||
+        repName.includes(q)
+      );
+    });
+  }, []);
+
+  const filteredArrivals = useMemo(() => filterJobs(arrivals, searchQuery), [arrivals, searchQuery, filterJobs]);
+  const filteredDepartures = useMemo(() => filterJobs(departures, searchQuery), [departures, searchQuery, filterJobs]);
+  const filteredCityTransfers = useMemo(() => filterJobs(cityTransfers, searchQuery), [cityTransfers, searchQuery, filterJobs]);
 
   // Derive initial car sources from existing vehicle assignments
   useEffect(() => {
@@ -2283,6 +2311,27 @@ export default function DispatchPage() {
           </div>
         )}
 
+        {/* Search filter */}
+        {!loading && (
+          <div className="relative max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+            <Input
+              placeholder={t("dispatch.searchPlaceholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-8 pr-8 border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/60" />
@@ -2300,19 +2349,19 @@ export default function DispatchPage() {
                 value="arrivals"
                 className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
               >
-                {t("dispatch.arrivals")} ({arrivals.length})
+                {t("dispatch.arrivals")} ({filteredArrivals.length})
               </TabsTrigger>
               <TabsTrigger
                 value="departures"
                 className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
               >
-                {t("dispatch.departures")} ({departures.length})
+                {t("dispatch.departures")} ({filteredDepartures.length})
               </TabsTrigger>
               <TabsTrigger
                 value="city"
                 className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
               >
-                {t("dispatch.excursion")} ({cityTransfers.length})
+                {t("dispatch.other")} ({filteredCityTransfers.length})
               </TabsTrigger>
             </TabsList>
 
@@ -2320,10 +2369,10 @@ export default function DispatchPage() {
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div>
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Plane className="h-4 w-4" /> {t("dispatch.arrivals")} ({arrivals.length})
+                    <Plane className="h-4 w-4" /> {t("dispatch.arrivals")} ({filteredArrivals.length})
                   </h3>
                   <JobGrid
-                    jobs={arrivals}
+                    jobs={filteredArrivals}
                     title="Arrival"
                     icon={Plane}
                     {...gridProps}
@@ -2332,10 +2381,10 @@ export default function DispatchPage() {
                 <div>
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <PlaneTakeoff className="h-4 w-4" /> {t("dispatch.departures")} (
-                    {departures.length})
+                    {filteredDepartures.length})
                   </h3>
                   <JobGrid
-                    jobs={departures}
+                    jobs={filteredDepartures}
                     title="Departure"
                     icon={PlaneTakeoff}
                     showPickUpTime
@@ -2343,15 +2392,15 @@ export default function DispatchPage() {
                   />
                 </div>
               </div>
-              {cityTransfers.length > 0 && (
+              {filteredCityTransfers.length > 0 && (
                 <div className="mt-4">
                   <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Bus className="h-4 w-4" /> {t("dispatch.excursion")} (
-                    {cityTransfers.length})
+                    <Bus className="h-4 w-4" /> {t("dispatch.other")} (
+                    {filteredCityTransfers.length})
                   </h3>
                   <JobGrid
-                    jobs={cityTransfers}
-                    title="Excursion"
+                    jobs={filteredCityTransfers}
+                    title="Other"
                     icon={Bus}
                     {...gridProps}
                   />
@@ -2361,7 +2410,7 @@ export default function DispatchPage() {
 
             <TabsContent value="arrivals">
               <JobGrid
-                jobs={arrivals}
+                jobs={filteredArrivals}
                 title="Arrival"
                 icon={Plane}
                 {...gridProps}
@@ -2370,7 +2419,7 @@ export default function DispatchPage() {
 
             <TabsContent value="departures">
               <JobGrid
-                jobs={departures}
+                jobs={filteredDepartures}
                 title="Departure"
                 icon={PlaneTakeoff}
                 showPickUpTime
@@ -2380,8 +2429,8 @@ export default function DispatchPage() {
 
             <TabsContent value="city">
               <JobGrid
-                jobs={cityTransfers}
-                title="Excursion"
+                jobs={filteredCityTransfers}
+                title="Other"
                 icon={Bus}
                 {...gridProps}
               />

@@ -127,16 +127,9 @@ describe('theme colors', () => {
     const requiredTypes = [
       'ARR',
       'DEP',
-      'EXCURSION',
-      'ROUND_TRIP',
-      'ONE_WAY_GOING',
-      'ONE_WAY_RETURN',
-      'OVER_DAY',
-      'TRANSFER',
-      'CITY_TOUR',
-      'COLLECTING_ONE_WAY',
-      'COLLECTING_ROUND_TRIP',
-      'EXPRESS_SHOPPING',
+      'DAY_TOUR',
+      'ONE_WAY_TRANSFER',
+      'TWO_WAY_TRANSFER',
     ];
 
     it('defines colors for all service types', () => {

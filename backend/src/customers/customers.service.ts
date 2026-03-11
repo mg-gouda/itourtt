@@ -10,25 +10,15 @@ import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 import type { Currency, ServiceType } from '../../generated/prisma/enums.js';
 
 const VALID_SERVICE_TYPES = new Set([
-  'ARR', 'DEP', 'EXCURSION', 'ROUND_TRIP', 'ONE_WAY_GOING', 'ONE_WAY_RETURN',
-  'OVER_DAY', 'TRANSFER', 'CITY_TOUR', 'COLLECTING_ONE_WAY',
-  'COLLECTING_ROUND_TRIP', 'EXPRESS_SHOPPING',
+  'ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER',
 ]);
 
 const SERVICE_TYPE_LABELS: [string, string][] = [
   ['ARR', 'Airport Arrival'],
   ['DEP', 'Airport Departure'],
-  ['EXCURSION', 'Excursion'],
-  ['ROUND_TRIP', 'Round Trip (2-Way)'],
-  ['ONE_WAY_GOING', 'One Way Going'],
-  ['ONE_WAY_RETURN', 'One Way Return'],
-  ['OVER_DAY', 'Over Day Trip'],
-  ['TRANSFER', 'Long Distance Transfer'],
-  ['CITY_TOUR', 'City Tour'],
-  ['COLLECTING_ONE_WAY', 'Collecting One Way'],
-  ['COLLECTING_ROUND_TRIP', 'Collecting Round Trip'],
-  ['EXPRESS_SHOPPING', 'Express Shopping'],
-  ['EXCURSION', 'Excursion / Named Tour'],
+  ['DAY_TOUR', 'Day Tour'],
+  ['ONE_WAY_TRANSFER', 'One Way Transfer'],
+  ['TWO_WAY_TRANSFER', 'Two Way Transfer'],
 ];
 
 @Injectable()

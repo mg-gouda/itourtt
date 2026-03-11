@@ -32,10 +32,11 @@ const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api`;
 const STEPS = ['Search', 'Details', 'Payment', 'Confirmation'];
 
 const SERVICE_TYPES = [
-  { value: 'ARR', label: 'Arrival Transfer' },
-  { value: 'DEP', label: 'Departure Transfer' },
-  { value: 'EXCURSION', label: 'Excursion' },
-  { value: 'CITY', label: 'City Transfer' },
+  { value: 'ARR', label: 'Arrival' },
+  { value: 'DEP', label: 'Departure' },
+  { value: 'DAY_TOUR', label: 'Day Tour' },
+  { value: 'ONE_WAY_TRANSFER', label: 'One Way Transfer' },
+  { value: 'TWO_WAY_TRANSFER', label: '2 Way Transfer' },
 ];
 
 interface LocationNode {

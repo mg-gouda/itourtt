@@ -50,7 +50,7 @@ export class TrafficJobsService {
     createdBy: { select: { id: true, name: true } },
     assignment: {
       include: {
-        vehicle: true,
+        vehicle: { include: { vehicleType: true, supplier: { select: { id: true, legalName: true, tradeName: true } } } },
         driver: true,
         rep: true,
       },
@@ -193,6 +193,8 @@ export class TrafficJobsService {
           transferPrice: dto.transferPrice ?? null,
           transferPriceCurrency: dto.transferPriceCurrency as any ?? 'EGP',
           requestedVehicleTypeId: dto.requestedVehicleTypeId ?? null,
+          priceAmount: dto.priceAmount ?? null,
+          priceCurrency: dto.priceCurrency as any ?? 'EGP',
           custRepName: dto.custRepName ?? null,
           custRepMobile: dto.custRepMobile ?? null,
           custRepMeetingPoint: dto.custRepMeetingPoint ?? null,
@@ -297,6 +299,8 @@ export class TrafficJobsService {
     if (dto.transferPrice !== undefined) changedFields.push('transferPrice');
     if (dto.transferPriceCurrency !== undefined) changedFields.push('transferPriceCurrency');
     if (dto.requestedVehicleTypeId !== undefined) changedFields.push('requestedVehicleTypeId');
+    if (dto.priceAmount !== undefined) changedFields.push('priceAmount');
+    if (dto.priceCurrency !== undefined) changedFields.push('priceCurrency');
     if (hasOriginUpdate) changedFields.push('originAirportId', 'originZoneId', 'originHotelId');
     if (hasDestUpdate) changedFields.push('destinationAirportId', 'destinationZoneId', 'destinationHotelId');
     if (dto.flight) changedFields.push('flight');
@@ -339,6 +343,8 @@ export class TrafficJobsService {
       if (dto.transferPrice !== undefined) data.transferPrice = dto.transferPrice ?? null;
       if (dto.transferPriceCurrency !== undefined) data.transferPriceCurrency = dto.transferPriceCurrency;
       if (dto.requestedVehicleTypeId !== undefined) data.requestedVehicleTypeId = dto.requestedVehicleTypeId || null;
+      if (dto.priceAmount !== undefined) data.priceAmount = dto.priceAmount ?? null;
+      if (dto.priceCurrency !== undefined) data.priceCurrency = dto.priceCurrency;
       if (dto.custRepName !== undefined) data.custRepName = dto.custRepName;
       if (dto.custRepMobile !== undefined) data.custRepMobile = dto.custRepMobile;
       if (dto.custRepMeetingPoint !== undefined) data.custRepMeetingPoint = dto.custRepMeetingPoint;

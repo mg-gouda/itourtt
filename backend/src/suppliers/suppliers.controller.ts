@@ -450,4 +450,28 @@ export class SuppliersController {
     const result = await this.suppliersService.resetPassword(id, dto.password);
     return new ApiResponse(result, 'Password reset successfully');
   }
+
+  // ─── National ID Upload ─────────────────────────────────
+
+  @Post(':id/national-id')
+  @Permissions('suppliers.table.editButton')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadNationalId(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: any,
+  ) {
+    if (!file) {
+      return new ApiResponse(null, 'No file uploaded');
+    }
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const uploadDir = path.join(process.cwd(), 'uploads', 'national-ids');
+    await fs.mkdir(uploadDir, { recursive: true });
+    const ext = path.extname(file.originalname) || '.jpg';
+    const filename = `${id}${ext}`;
+    await fs.writeFile(path.join(uploadDir, filename), file.buffer);
+    const imageUrl = `/uploads/national-ids/${filename}`;
+    await this.suppliersService.update(id, { nationalIdImage: imageUrl } as any);
+    return new ApiResponse({ url: imageUrl }, 'National ID uploaded');
+  }
 }

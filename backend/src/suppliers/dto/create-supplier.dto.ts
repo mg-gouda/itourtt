@@ -3,9 +3,14 @@ import {
   IsString,
   IsOptional,
   IsEmail,
+  IsIn,
 } from 'class-validator';
 
 export class CreateSupplierDto {
+  @IsOptional()
+  @IsIn(['COMPANY', 'INDIVIDUAL'])
+  supplierType?: 'COMPANY' | 'INDIVIDUAL';
+
   @IsNotEmpty()
   @IsString()
   legalName!: string;
@@ -37,4 +42,13 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  // Individual supplier fields
+  @IsOptional()
+  @IsString()
+  mobileNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  nationalIdImage?: string;
 }

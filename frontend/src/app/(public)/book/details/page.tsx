@@ -24,8 +24,9 @@ const STEPS = ['Search', 'Details', 'Payment', 'Confirmation'];
 const SERVICE_LABELS: Record<string, string> = {
   ARR: 'Arrival Transfer',
   DEP: 'Departure Transfer',
-  EXCURSION: 'Excursion',
-  CITY: 'City Transfer',
+  DAY_TOUR: 'Day Tour',
+  ONE_WAY_TRANSFER: 'One Way Transfer',
+  TWO_WAY_TRANSFER: 'Two Way Transfer',
 };
 
 export default function BookDetailsPage() {

@@ -319,6 +319,16 @@ export default function ReportsPage() {
   // Vehicle Compliance
   const [complianceData, setComplianceData] = useState<ComplianceReportItem[]>([]);
   const [complianceLoading, setComplianceLoading] = useState(false);
+  const [complianceOwnershipFilter, setComplianceOwnershipFilter] = useState("ALL");
+  const [complianceTypeFilter, setComplianceTypeFilter] = useState("ALL");
+
+  // Derived: filtered compliance data and unique vehicle types
+  const complianceVehicleTypes = Array.from(new Set(complianceData.map((v) => v.vehicleTypeName).filter(Boolean))).sort();
+  const filteredComplianceData = complianceData.filter((v) => {
+    if (complianceOwnershipFilter !== "ALL" && v.ownership !== complianceOwnershipFilter) return false;
+    if (complianceTypeFilter !== "ALL" && v.vehicleTypeName !== complianceTypeFilter) return false;
+    return true;
+  });
 
   // Sortable hooks for each report table
   const dispatchSort = useSortable(dispatchData?.jobs || []);
@@ -326,7 +336,7 @@ export default function ReportsPage() {
   const agentSort = useSortable(agentData?.invoices || []);
   const repFeeSort = useSortable(repFeeData?.reps || []);
   const revenueSort = useSortable(revenueData?.byAgent || []);
-  const complianceSort = useSortable(complianceData);
+  const complianceSort = useSortable(filteredComplianceData);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -1419,7 +1429,7 @@ export default function ReportsPage() {
         {/* ─── VEHICLE COMPLIANCE ─── */}
         <TabsContent value="compliance" className="space-y-4">
           <Card className="border-border bg-card p-4">
-            <div className="flex items-end gap-3">
+            <div className="flex items-end gap-3 flex-wrap">
               <Button
                 size="sm"
                 className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -1431,6 +1441,28 @@ export default function ReportsPage() {
               </Button>
               {complianceData.length > 0 && (
                 <>
+                  <Select value={complianceOwnershipFilter} onValueChange={setComplianceOwnershipFilter}>
+                    <SelectTrigger className="w-[160px] h-8">
+                      <SelectValue placeholder={t("vehicles.ownership")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">{t("common.all")} Ownership</SelectItem>
+                      <SelectItem value="OWNED">Owned</SelectItem>
+                      <SelectItem value="RENTED">Rented</SelectItem>
+                      <SelectItem value="CONTRACTED">External License</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={complianceTypeFilter} onValueChange={setComplianceTypeFilter}>
+                    <SelectTrigger className="w-[160px] h-8">
+                      <SelectValue placeholder={t("vehicles.type")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">{t("common.all")} Types</SelectItem>
+                      {complianceVehicleTypes.map((vt) => (
+                        <SelectItem key={vt} value={vt}>{vt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button variant="outline" size="sm" onClick={exportComplianceExcel} className="gap-1.5 border-border text-foreground">
                     <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
                   </Button>
@@ -1450,15 +1482,15 @@ export default function ReportsPage() {
             <>
               {/* Stat Cards */}
               <div className="flex gap-1.5 flex-wrap">
-                <StatCard label={t("reports.totalVehicles")} value={complianceData.length} />
+                <StatCard label={t("reports.totalVehicles")} value={filteredComplianceData.length} />
                 <StatCard
                   label={t("reports.withInsurance")}
-                  value={complianceData.filter((v) => v.hasInsurance).length}
+                  value={filteredComplianceData.filter((v) => v.hasInsurance).length}
                   color="text-emerald-600 dark:text-emerald-400"
                 />
                 <StatCard
                   label={t("reports.permitWarnings")}
-                  value={complianceData.filter((v) => {
+                  value={filteredComplianceData.filter((v) => {
                     if (!v.temporaryPermitExpiryDate) return false;
                     const exp = new Date(v.temporaryPermitExpiryDate);
                     const now = new Date();
@@ -1470,7 +1502,7 @@ export default function ReportsPage() {
                 />
                 <StatCard
                   label={t("reports.permitsExpired")}
-                  value={complianceData.filter((v) => {
+                  value={filteredComplianceData.filter((v) => {
                     if (!v.temporaryPermitExpiryDate) return false;
                     return new Date(v.temporaryPermitExpiryDate) < new Date();
                   }).length}
@@ -1818,8 +1850,8 @@ export default function ReportsPage() {
               <tr><th>Plate</th><th>Type</th><th>Ownership</th><th>License Expiry</th><th>Insurance</th><th>Insurance Expiry</th><th className="text-right">Annual Payment</th><th className="text-right">Total Fees</th></tr>
             </thead>
             <tbody>
-              {complianceData.map((v) => (
-                <tr key={v.vehicleId}>
+              {complianceData.map((v, idx) => (
+                <tr key={v.vehicleId || idx}>
                   <td>{v.plateNumber}</td>
                   <td>{v.vehicleTypeName}</td>
                   <td>{v.ownership}</td>

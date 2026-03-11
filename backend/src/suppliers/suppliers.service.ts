@@ -12,24 +12,15 @@ import { BulkPriceListDto, PriceItemDto } from './dto/supplier-price-list.dto.js
 import type { Currency, ServiceType, VehicleOwnership } from '../../generated/prisma/enums.js';
 
 const VALID_SERVICE_TYPES = new Set([
-  'ARR', 'DEP', 'EXCURSION', 'ROUND_TRIP', 'ONE_WAY_GOING', 'ONE_WAY_RETURN',
-  'OVER_DAY', 'TRANSFER', 'CITY_TOUR', 'COLLECTING_ONE_WAY',
-  'COLLECTING_ROUND_TRIP', 'EXPRESS_SHOPPING',
+  'ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER',
 ]);
 
 const SERVICE_TYPE_LABELS: [string, string][] = [
   ['ARR', 'Airport Arrival'],
   ['DEP', 'Airport Departure'],
-  ['EXCURSION', 'Excursion'],
-  ['ROUND_TRIP', 'Round Trip (2-Way)'],
-  ['ONE_WAY_GOING', 'One Way Going'],
-  ['ONE_WAY_RETURN', 'One Way Return'],
-  ['OVER_DAY', 'Over Day Trip'],
-  ['TRANSFER', 'Long Distance Transfer'],
-  ['CITY_TOUR', 'City Tour'],
-  ['COLLECTING_ONE_WAY', 'Collecting One Way'],
-  ['COLLECTING_ROUND_TRIP', 'Collecting Round Trip'],
-  ['EXPRESS_SHOPPING', 'Express Shopping'],
+  ['DAY_TOUR', 'Day Tour'],
+  ['ONE_WAY_TRANSFER', 'One Way Transfer'],
+  ['TWO_WAY_TRANSFER', 'Two Way Transfer'],
 ];
 
 @Injectable()
@@ -100,6 +91,7 @@ export class SuppliersService {
   async create(dto: CreateSupplierDto) {
     return this.prisma.supplier.create({
       data: {
+        supplierType: (dto.supplierType as any) || 'COMPANY',
         legalName: dto.legalName,
         tradeName: dto.tradeName,
         taxId: dto.taxId,
@@ -108,6 +100,8 @@ export class SuppliersService {
         country: dto.country,
         phone: dto.phone,
         email: dto.email,
+        mobileNumber: dto.mobileNumber,
+        nationalIdImage: dto.nationalIdImage,
       },
     });
   }
@@ -124,6 +118,7 @@ export class SuppliersService {
     return this.prisma.supplier.update({
       where: { id },
       data: {
+        ...(dto.supplierType !== undefined && { supplierType: dto.supplierType as any }),
         legalName: dto.legalName,
         tradeName: dto.tradeName,
         taxId: dto.taxId,
@@ -132,6 +127,8 @@ export class SuppliersService {
         country: dto.country,
         phone: dto.phone,
         email: dto.email,
+        mobileNumber: dto.mobileNumber,
+        nationalIdImage: dto.nationalIdImage,
       },
     });
   }

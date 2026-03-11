@@ -45,8 +45,8 @@ describe('i18n', () => {
     it('translates service types', () => {
       expect(t('serviceType.ARR')).toBe('Arrival');
       expect(t('serviceType.DEP')).toBe('Departure');
-      expect(t('serviceType.EXCURSION')).toBe('Excursion');
-      expect(t('serviceType.CITY_TOUR')).toBe('City Tour');
+      expect(t('serviceType.DAY_TOUR')).toBe('Day Tour');
+      expect(t('serviceType.ONE_WAY_TRANSFER')).toBe('One Way Transfer');
     });
   });
 

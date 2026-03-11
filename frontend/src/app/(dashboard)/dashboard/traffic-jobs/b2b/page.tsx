@@ -39,6 +39,28 @@ import { B2BJobImportModal } from "@/components/b2b-job-import-modal";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
+import { usePermission } from "@/hooks/use-permission";
+
+interface SupplierResource {
+  id: string;
+  legalName: string;
+  tradeName: string | null;
+  vehicleCount: number;
+}
+
+interface VehicleResource {
+  id: string;
+  plateNumber: string;
+  vehicleType?: { name: string; seatCapacity: number };
+  supplierId?: string | null;
+}
+
+interface PersonResource {
+  id: string;
+  name: string;
+  mobileNumber?: string;
+  supplierId?: string | null;
+}
 
 /* ─────────── types ─────────── */
 
@@ -82,6 +104,8 @@ interface TrafficJob {
   custRepMobile: string | null;
   custRepMeetingPoint: string | null;
   custRepMeetingTime: string | null;
+  priceAmount: number | null;
+  priceCurrency: string | null;
   customer?: { legalName: string } | null;
   originAirport?: { name: string; code: string } | null;
   originZone?: { name: string } | null;
@@ -93,7 +117,12 @@ interface TrafficJob {
   toZone?: { name: string } | null;
   flight?: { flightNo: string; terminal?: string; arrivalTime?: string; departureTime?: string } | null;
   assignment?: {
-    vehicle?: { plateNumber: string };
+    id: string;
+    vehicleId: string | null;
+    driverId: string | null;
+    externalDriverName?: string | null;
+    externalDriverPhone?: string | null;
+    vehicle?: { plateNumber: string; supplierId?: string | null; vehicleType?: { name: string; seatCapacity: number } };
     driver?: { name: string };
     rep?: { name: string };
   } | null;
@@ -128,8 +157,7 @@ interface FormState {
   customerJobId: string;
   serviceType: string;
   jobDate: string;
-  adultCount: string;
-  childCount: string;
+  paxCount: string;
   originAirportId: string;
   originZoneId: string;
   originHotelId: string;
@@ -144,10 +172,16 @@ interface FormState {
   custRepMobile: string;
   custRepMeetingPoint: string;
   custRepMeetingTime: string;
+  priceAmount: string;
+  priceCurrency: string;
   flightNo: string;
   terminal: string;
   arrivalTime: string;
   departureTime: string;
+  assignSource: string;
+  assignVehicleId: string;
+  assignDriverId: string;
+  assignRepId: string;
 }
 
 const defaultForm: FormState = {
@@ -156,8 +190,7 @@ const defaultForm: FormState = {
   customerJobId: "",
   serviceType: "ARR",
   jobDate: localDateStr(new Date()),
-  adultCount: "1",
-  childCount: "0",
+  paxCount: "1",
   originAirportId: "",
   originZoneId: "",
   originHotelId: "",
@@ -172,10 +205,16 @@ const defaultForm: FormState = {
   custRepMobile: "",
   custRepMeetingPoint: "",
   custRepMeetingTime: "",
+  priceAmount: "",
+  priceCurrency: "EGP",
   flightNo: "",
   terminal: "",
   arrivalTime: "",
   departureTime: "",
+  assignSource: "owned",
+  assignVehicleId: "",
+  assignDriverId: "",
+  assignRepId: "",
 };
 
 /* ─────────── component ─────────── */
@@ -189,6 +228,11 @@ export default function B2BJobPage() {
   const formRef = useRef<HTMLDivElement>(null);
   const autoEditLoadedRef = useRef(false);
 
+  const canAssignVehicle = usePermission("dispatch.assignment.assignVehicle");
+  const canAssignDriver = usePermission("dispatch.assignment.assignDriver");
+  const canAssignRep = usePermission("dispatch.assignment.assignRep");
+  const canAssign = canAssignVehicle || canAssignDriver || canAssignRep;
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,40 +241,51 @@ export default function B2BJobPage() {
   const [filterBookingStatus, setFilterBookingStatus] = useState<string>("ALL");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<FormState>({ ...defaultForm });
+  const [suppliers, setSuppliers] = useState<SupplierResource[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleResource[]>([]);
+  const [drivers, setDrivers] = useState<PersonResource[]>([]);
+  const [reps, setReps] = useState<PersonResource[]>([]);
+  const [jobSources, setJobSources] = useState<Record<string, string>>({});
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
     DEP: t("serviceType.DEP"),
-    EXCURSION: t("serviceType.EXCURSION"),
-    ROUND_TRIP: t("serviceType.ROUND_TRIP"),
-    ONE_WAY_GOING: t("serviceType.ONE_WAY_GOING"),
-    ONE_WAY_RETURN: t("serviceType.ONE_WAY_RETURN"),
-    OVER_DAY: t("serviceType.OVER_DAY"),
-    TRANSFER: t("serviceType.TRANSFER"),
-    CITY_TOUR: t("serviceType.CITY_TOUR"),
-    COLLECTING_ONE_WAY: t("serviceType.COLLECTING_ONE_WAY"),
-    COLLECTING_ROUND_TRIP: t("serviceType.COLLECTING_ROUND_TRIP"),
-    EXPRESS_SHOPPING: t("serviceType.EXPRESS_SHOPPING"),
+    DAY_TOUR: t("serviceType.DAY_TOUR"),
+    ONE_WAY_TRANSFER: t("serviceType.ONE_WAY_TRANSFER"),
+    TWO_WAY_TRANSFER: t("serviceType.TWO_WAY_TRANSFER"),
   };
 
   const updateForm = useCallback((updates: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  /* ── Fetch customers ── */
+  /* ── Fetch customers + assignment resources ── */
   useEffect(() => {
-    async function fetchCustomers() {
+    async function fetchResources() {
       try {
-        const { data } = await api.get("/customers");
-        setCustomers(Array.isArray(data) ? data : data.data || []);
+        const [custRes, supRes, vehRes, drvRes, repRes] = await Promise.allSettled([
+          api.get("/customers"),
+          canAssign ? api.get("/dispatch/available-suppliers") : Promise.resolve({ data: [] }),
+          canAssignVehicle ? api.get("/dispatch/available-vehicles", { params: { date: form.jobDate } }) : Promise.resolve({ data: [] }),
+          canAssignDriver ? api.get("/dispatch/available-drivers", { params: { date: form.jobDate } }) : Promise.resolve({ data: [] }),
+          canAssignRep ? api.get("/dispatch/available-reps", { params: { date: form.jobDate } }) : Promise.resolve({ data: [] }),
+        ]);
+        if (custRes.status === "fulfilled") {
+          const d = custRes.value.data;
+          setCustomers(Array.isArray(d) ? d : d.data || []);
+        }
+        if (supRes.status === "fulfilled") { const d = supRes.value.data; setSuppliers(Array.isArray(d) ? d : d.data || []); }
+        if (vehRes.status === "fulfilled") { const d = vehRes.value.data; setVehicles(Array.isArray(d) ? d : d.data || []); }
+        if (drvRes.status === "fulfilled") { const d = drvRes.value.data; setDrivers(Array.isArray(d) ? d : d.data || []); }
+        if (repRes.status === "fulfilled") { const d = repRes.value.data; setReps(Array.isArray(d) ? d : d.data || []); }
       } catch {
         /* non-critical */
       }
     }
-    fetchCustomers();
-  }, []);
+    fetchResources();
+  }, [canAssign, canAssignVehicle, canAssignDriver, canAssignRep]);
 
   /* ── Fetch B2B jobs ── */
   const fetchJobs = useCallback(async () => {
@@ -283,8 +338,7 @@ export default function B2BJobPage() {
       customerJobId: job.customerJobId || "",
       serviceType: job.serviceType,
       jobDate: job.jobDate?.split("T")[0] || "",
-      adultCount: String(job.adultCount),
-      childCount: String(job.childCount),
+      paxCount: String(job.paxCount),
       originAirportId: job.originAirportId || "",
       originZoneId: job.originZoneId || "",
       originHotelId: job.originHotelId || "",
@@ -299,10 +353,16 @@ export default function B2BJobPage() {
       custRepMobile: job.custRepMobile || "",
       custRepMeetingPoint: job.custRepMeetingPoint || "",
       custRepMeetingTime,
+      priceAmount: job.priceAmount != null ? String(job.priceAmount) : "",
+      priceCurrency: job.priceCurrency || "EGP",
       flightNo: job.flight?.flightNo || "",
       terminal: job.flight?.terminal || "",
       arrivalTime,
       departureTime,
+      assignSource: job.assignment?.vehicle?.supplierId || "owned",
+      assignVehicleId: job.assignment?.vehicleId || "",
+      assignDriverId: job.assignment?.driverId || "",
+      assignRepId: job.assignment?.rep ? reps.find((r) => r.name === job.assignment?.rep?.name)?.id || "" : "",
     });
   };
 
@@ -315,6 +375,11 @@ export default function B2BJobPage() {
   const handleSave = async () => {
     if (!form.customerId) {
       toast.error(t("jobs.customerRequired"));
+      return;
+    }
+
+    if (!form.jobDate) {
+      toast.error(t("jobs.dateRequired") || "Service date is required");
       return;
     }
 
@@ -332,12 +397,16 @@ export default function B2BJobPage() {
         customerId: form.customerId,
         serviceType: form.serviceType,
         jobDate: form.jobDate,
-        adultCount: parseInt(form.adultCount) || 1,
-        childCount: parseInt(form.childCount) || 0,
+        adultCount: parseInt(form.paxCount) || 1,
+        childCount: 0,
         bookingStatus: form.bookingStatus,
       };
 
       if (form.customerJobId.trim()) payload.customerJobId = form.customerJobId.trim();
+      if (form.priceAmount) {
+        payload.priceAmount = parseFloat(form.priceAmount);
+        payload.priceCurrency = form.priceCurrency || "EGP";
+      }
 
       if (form.originAirportId) payload.originAirportId = form.originAirportId;
       if (form.originZoneId) payload.originZoneId = form.originZoneId;
@@ -374,10 +443,41 @@ export default function B2BJobPage() {
             // Job may already be in a terminal state — booking status still saved
           }
         }
+        // Update assignment if changed
+        const hasAssignFields = form.assignVehicleId || form.assignDriverId || form.assignRepId;
+        if (hasAssignFields) {
+          const job = jobs.find((j) => j.id === editingJobId);
+          const assignPayload: Record<string, string | boolean> = {};
+          if (form.assignVehicleId) assignPayload.vehicleId = form.assignVehicleId;
+          if (form.assignDriverId) assignPayload.driverId = form.assignDriverId;
+          if (form.assignRepId) assignPayload.repId = form.assignRepId;
+          try {
+            if (job?.assignment) {
+              await api.patch(`/dispatch/assignments/${job.assignment.id}`, assignPayload);
+            } else {
+              await api.post("/dispatch/assign", { trafficJobId: editingJobId, ...assignPayload });
+            }
+          } catch {
+            // Assignment update failed but job was saved — non-blocking
+          }
+        }
         toast.success(t("jobs.updated") || "Job updated successfully");
       } else {
         const { bookingStatus, ...createPayload } = payload;
-        await api.post("/traffic-jobs", createPayload);
+        const { data: newJob } = await api.post("/traffic-jobs", createPayload);
+        // Assign vehicle/driver/rep if selected
+        const hasAssignFields = form.assignVehicleId || form.assignDriverId || form.assignRepId;
+        if (hasAssignFields && newJob?.id) {
+          const assignPayload: Record<string, string | boolean> = { trafficJobId: newJob.id };
+          if (form.assignVehicleId) assignPayload.vehicleId = form.assignVehicleId;
+          if (form.assignDriverId) assignPayload.driverId = form.assignDriverId;
+          if (form.assignRepId) assignPayload.repId = form.assignRepId;
+          try {
+            await api.post("/dispatch/assign", assignPayload);
+          } catch {
+            // Assignment failed but job was created — non-blocking
+          }
+        }
         toast.success(t("jobs.created"));
       }
 
@@ -392,6 +492,98 @@ export default function B2BJobPage() {
       toast.error(msg);
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* ── Assignment handlers ── */
+  const handleAssignVehicle = async (job: TrafficJob, vehicleId: string) => {
+    try {
+      if (job.assignment) {
+        await api.patch(`/dispatch/assignments/${job.assignment.id}`, { vehicleId });
+      } else {
+        await api.post("/dispatch/assign", { trafficJobId: job.id, vehicleId });
+      }
+      toast.success(t("dispatch.vehicleAssigned") || "Vehicle assigned");
+      fetchJobs();
+    } catch (err: unknown) {
+      const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
+      if (resp?.status === 409 && resp?.data?.message?.includes("Vehicle type mismatch")) {
+        if (window.confirm(resp.data.message + "\n\nAssign anyway?")) {
+          try {
+            if (job.assignment) {
+              await api.patch(`/dispatch/assignments/${job.assignment.id}`, { vehicleId, allowTypeMismatch: true });
+            } else {
+              await api.post("/dispatch/assign", { trafficJobId: job.id, vehicleId, allowTypeMismatch: true });
+            }
+            toast.success(t("dispatch.vehicleAssigned") || "Vehicle assigned");
+            fetchJobs();
+          } catch {
+            toast.error(t("dispatch.assignmentFailed") || "Assignment failed");
+          }
+          return;
+        }
+      }
+      toast.error(resp?.data?.message || t("dispatch.assignmentFailed") || "Assignment failed");
+    }
+  };
+
+  const handleAssignDriver = async (job: TrafficJob, driverId: string) => {
+    try {
+      if (job.assignment) {
+        await api.patch(`/dispatch/assignments/${job.assignment.id}`, { driverId });
+      } else {
+        await api.post("/dispatch/assign", { trafficJobId: job.id, driverId });
+      }
+      toast.success(t("dispatch.driverAssigned") || "Driver assigned");
+      fetchJobs();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || t("dispatch.assignmentFailed") || "Assignment failed";
+      toast.error(msg);
+    }
+  };
+
+  const handleAssignRep = async (job: TrafficJob, repId: string) => {
+    try {
+      if (job.assignment) {
+        await api.patch(`/dispatch/assignments/${job.assignment.id}`, { repId });
+      } else {
+        await api.post("/dispatch/assign", { trafficJobId: job.id, repId });
+      }
+      toast.success(t("dispatch.repUpdated") || "Rep assigned");
+      fetchJobs();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || t("dispatch.assignmentFailed") || "Assignment failed";
+      toast.error(msg);
+    }
+  };
+
+  // Derive source per job from assignment vehicle
+  const getJobSource = (job: TrafficJob): string => {
+    if (jobSources[job.id]) return jobSources[job.id];
+    if (job.assignment?.vehicle?.supplierId) return job.assignment.vehicle.supplierId;
+    return "owned";
+  };
+
+  // Filter vehicles by selected source
+  const getFilteredVehicles = (source: string): VehicleResource[] => {
+    if (source === "owned") return vehicles.filter((v) => !v.supplierId);
+    return vehicles.filter((v) => v.supplierId === source);
+  };
+
+  // Filter drivers by source (owned drivers only show for owned source)
+  const getFilteredDrivers = (source: string): PersonResource[] => {
+    if (source === "owned") return drivers.filter((d) => !d.supplierId);
+    return drivers; // For suppliers, show all drivers (supplier drivers + owned)
+  };
+
+  const handleUnassign = async (job: TrafficJob) => {
+    if (!job.assignment || !window.confirm("Remove assignment?")) return;
+    try {
+      await api.delete(`/dispatch/assignments/${job.assignment.id}`);
+      toast.success("Assignment removed");
+      fetchJobs();
+    } catch {
+      toast.error("Failed to remove assignment");
     }
   };
 
@@ -486,12 +678,13 @@ export default function B2BJobPage() {
               </Select>
             </div>
             <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.serviceDate")}</Label>
+              <Label className="text-muted-foreground text-xs">{t("jobs.serviceDate")} *</Label>
               <Input
                 type="date"
                 value={form.jobDate}
                 onChange={(e) => updateForm({ jobDate: e.target.value })}
-                className="border-border bg-card text-foreground h-9"
+                className={cn("border-border bg-card text-foreground h-9", !form.jobDate && "border-red-500")}
+                required
               />
             </div>
             {form.serviceType !== "ARR" && (
@@ -512,29 +705,19 @@ export default function B2BJobPage() {
               </div>
             )}
             <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.adults")}</Label>
+              <Label className="text-muted-foreground text-xs">{t("dispatch.pax") || "Pax"}</Label>
               <Input
                 type="number"
                 min="1"
-                value={form.adultCount}
-                onChange={(e) => updateForm({ adultCount: e.target.value })}
+                value={form.paxCount}
+                onChange={(e) => updateForm({ paxCount: e.target.value })}
                 className="border-border bg-card text-foreground h-9"
               />
             </div>
           </div>
 
-          {/* Row 2: Children + Origin + Destination + Flight Info (inline when ARR/DEP) */}
-          <div className="grid grid-cols-5 gap-3">
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.children")}</Label>
-              <Input
-                type="number"
-                min="0"
-                value={form.childCount}
-                onChange={(e) => updateForm({ childCount: e.target.value })}
-                className="border-border bg-card text-foreground h-9"
-              />
-            </div>
+          {/* Row 2: Origin + Destination + Flight Info + Arrival/Departure Time */}
+          <div className={`grid gap-3 ${showFlightFields ? "grid-cols-5" : "grid-cols-2"}`}>
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.origin")}</Label>
               <LocationCombobox
@@ -581,52 +764,56 @@ export default function B2BJobPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
                   />
                 </div>
+                <div className="min-w-0 space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">
+                    {form.serviceType === "ARR" ? t("jobs.arrivalTime") : t("jobs.departureTime")}
+                  </Label>
+                  <Input
+                    value={form.serviceType === "ARR" ? form.arrivalTime : form.departureTime}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/[^0-9:]/g, "");
+                      const current = form.serviceType === "ARR" ? form.arrivalTime : form.departureTime;
+                      if (v.length === 2 && !v.includes(":") && current.length < v.length) v += ":";
+                      if (v.length > 5) v = v.slice(0, 5);
+                      updateForm(form.serviceType === "ARR" ? { arrivalTime: v } : { departureTime: v });
+                    }}
+                    placeholder="HH:MM"
+                    maxLength={5}
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
+                  />
+                </div>
               </>
             )}
           </div>
 
-          {/* Row 3: Arrival/Departure Time (only when ARR/DEP) */}
-          {showFlightFields && (
-            <div className="grid grid-cols-5 gap-3">
-              {form.serviceType === "ARR" && (
-                <div className="min-w-0 space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{t("jobs.arrivalTime")}</Label>
-                  <Input
-                    value={form.arrivalTime}
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/[^0-9:]/g, "");
-                      if (v.length === 2 && !v.includes(":") && form.arrivalTime.length < v.length) v += ":";
-                      if (v.length > 5) v = v.slice(0, 5);
-                      updateForm({ arrivalTime: v });
-                    }}
-                    placeholder="HH:MM"
-                    maxLength={5}
-                    className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
-                  />
-                </div>
-              )}
-              {form.serviceType === "DEP" && (
-                <div className="min-w-0 space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{t("jobs.departureTime")}</Label>
-                  <Input
-                    value={form.departureTime}
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/[^0-9:]/g, "");
-                      if (v.length === 2 && !v.includes(":") && form.departureTime.length < v.length) v += ":";
-                      if (v.length > 5) v = v.slice(0, 5);
-                      updateForm({ departureTime: v });
-                    }}
-                    placeholder="HH:MM"
-                    maxLength={5}
-                    className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
-                  />
-                </div>
-              )}
+          {/* Row 4: Price + Customer Rep Meeting Fields */}
+          <div className="grid grid-cols-6 gap-3">
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">{t("jobs.price") || "Price"}</Label>
+              <div className="flex gap-1">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.priceAmount}
+                  onChange={(e) => updateForm({ priceAmount: e.target.value })}
+                  placeholder="0.00"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 flex-1"
+                />
+                <Select value={form.priceCurrency} onValueChange={(v) => updateForm({ priceCurrency: v })}>
+                  <SelectTrigger className="w-[70px] border-border bg-card text-foreground h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover text-foreground">
+                    <SelectItem value="EGP">EGP</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="SAR">SAR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          )}
-
-          {/* Row 4: Customer Rep Meeting Fields */}
-          <div className="grid grid-cols-5 gap-3">
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.custRepName")}</Label>
               <Input
@@ -670,7 +857,82 @@ export default function B2BJobPage() {
             </div>
           </div>
 
-          {/* Row 5: Notes + Submit */}
+          {/* Row 5: Assignment — Source, Vehicle, Driver, Rep */}
+          {canAssign && (
+            <div className="grid grid-cols-4 gap-3">
+              {canAssignVehicle && (
+                <div className="min-w-0 space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("dispatch.source") || "Car Source"}</Label>
+                  <Select value={form.assignSource} onValueChange={(v) => updateForm({ assignSource: v, assignVehicleId: "", assignDriverId: "" })}>
+                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-foreground">
+                      <SelectItem value="owned">Owned ({vehicles.filter((v) => !v.supplierId).length})</SelectItem>
+                      {suppliers.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.tradeName || s.legalName} ({s.vehicleCount})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {canAssignVehicle && (
+                <div className="min-w-0 space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("dispatch.vehicle") || "Vehicle"}</Label>
+                  <Select value={form.assignVehicleId} onValueChange={(v) => updateForm({ assignVehicleId: v })}>
+                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                      <SelectValue placeholder="Select vehicle..." />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-foreground">
+                      {getFilteredVehicles(form.assignSource).map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.plateNumber} {v.vehicleType?.name ? `(${v.vehicleType.name})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {canAssignDriver && (
+                <div className="min-w-0 space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("dispatch.driver") || "Driver"}</Label>
+                  <Select value={form.assignDriverId} onValueChange={(v) => updateForm({ assignDriverId: v })}>
+                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                      <SelectValue placeholder="Select driver..." />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-foreground">
+                      {getFilteredDrivers(form.assignSource).map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {canAssignRep && (
+                <div className="min-w-0 space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("dispatch.rep") || "Rep"}</Label>
+                  <Select value={form.assignRepId} onValueChange={(v) => updateForm({ assignRepId: v })}>
+                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                      <SelectValue placeholder="Select rep..." />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-foreground">
+                      {reps.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Row 6: Notes + Submit */}
           <div className="flex items-center gap-3">
             <div className="flex-1 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
@@ -778,6 +1040,7 @@ export default function B2BJobPage() {
                   <TableHead className="text-white text-xs">{t("dispatch.pax")}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.extras") || "Extras"}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.notes") || "Notes"}</TableHead>
+                  <TableHead className="text-white text-xs">{t("jobs.price") || "Price"}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
                   <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
                   <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
@@ -820,9 +1083,6 @@ export default function B2BJobPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
                         {job.paxCount}
-                        <span className="ml-1 text-muted-foreground/60">
-                          ({job.adultCount}A{job.childCount > 0 && `+${job.childCount}C`})
-                        </span>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
                         {(() => {
@@ -835,6 +1095,11 @@ export default function B2BJobPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
                         {job.notes || "\u2014"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {job.priceAmount != null ? (
+                          <span>{Number(job.priceAmount).toLocaleString()} <span className="text-muted-foreground/60">{job.priceCurrency || "EGP"}</span></span>
+                        ) : "\u2014"}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`text-xs ${bookingStatusColors[job.bookingStatus] || ""}`}>
@@ -851,6 +1116,7 @@ export default function B2BJobPage() {
                           <span>
                             {job.assignment.vehicle?.plateNumber || "\u2014"}
                             {job.assignment.driver && ` / ${job.assignment.driver.name}`}
+                            {job.assignment.rep && ` / ${job.assignment.rep.name}`}
                           </span>
                         ) : (
                           t("dispatch.unassigned")
