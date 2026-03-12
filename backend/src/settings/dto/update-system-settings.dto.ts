@@ -23,4 +23,8 @@ export class UpdateSystemSettingsDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @IsOptional()
+  @IsString()
+  googleMapsApiKey?: string;
 }

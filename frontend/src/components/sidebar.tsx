@@ -70,8 +70,15 @@ export const navigation: NavItem[] = [
   { type: "separator" },
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
   { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3, permissionKey: "reports" },
-  { type: "link", nameKey: "sidebar.guestBookings", href: "/dashboard/guest-bookings", icon: Globe, permissionKey: "guest-bookings" },
-  { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
+  {
+    type: "group",
+    nameKey: "sidebar.b2cWebsite",
+    icon: Globe,
+    children: [
+      { type: "link", nameKey: "sidebar.websiteCms", href: "/dashboard/website", icon: Palette, permissionKey: "company" },
+      { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
+    ],
+  },
   { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },
   { type: "link", nameKey: "sidebar.activityLog", href: "/dashboard/activity-log", icon: ClipboardList, permissionKey: "activity-logs" },
   { type: "separator" },

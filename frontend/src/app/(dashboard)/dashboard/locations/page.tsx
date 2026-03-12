@@ -17,6 +17,9 @@ import {
   AlertTriangle,
   Search,
   X,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -248,6 +251,12 @@ export default function LocationsPage() {
     errors: string[];
   }>({ open: false, imported: 0, errors: [] });
 
+  // Google Maps API Key
+  const [googleMapsKey, setGoogleMapsKey] = useState("");
+  const [googleMapsKeyLoading, setGoogleMapsKeyLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+
   // Expanded state keyed by "level-id"
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -287,6 +296,30 @@ export default function LocationsPage() {
   useEffect(() => {
     fetchTree();
   }, [fetchTree]);
+
+  // ─── Fetch Google Maps API Key ─────────────────────────────
+  useEffect(() => {
+    api
+      .get("/settings/system")
+      .then(({ data }) => {
+        const raw = data.data ?? data;
+        setGoogleMapsKey(raw.googleMapsApiKey ?? "");
+      })
+      .catch(() => {})
+      .finally(() => setGoogleMapsKeyLoading(false));
+  }, []);
+
+  async function handleSaveGoogleMapsKey() {
+    setSavingKey(true);
+    try {
+      await api.patch("/settings/system", { googleMapsApiKey: googleMapsKey });
+      toast.success("Google Maps API key saved");
+    } catch {
+      toast.error("Failed to save Google Maps API key");
+    } finally {
+      setSavingKey(false);
+    }
+  }
 
   // ─── Toggle expansion ──────────────────────────────────────
   function toggle(key: string) {
@@ -571,6 +604,49 @@ export default function LocationsPage() {
         accept=".xlsx,.xls"
         onChange={handleImportFile}
       />
+
+      {/* Google Maps API Key */}
+      {isAdmin && (
+        <Card className="border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <KeyRound className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Google Maps API Key
+              </Label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type={showKey ? "text" : "password"}
+                    placeholder={googleMapsKeyLoading ? "Loading..." : "Enter your Google Maps API key..."}
+                    value={googleMapsKey}
+                    onChange={(e) => setGoogleMapsKey(e.target.value)}
+                    disabled={googleMapsKeyLoading}
+                    className="border-border bg-background pr-9 text-foreground placeholder:text-muted-foreground/50 font-mono text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey((v) => !v)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSaveGoogleMapsKey}
+                  disabled={savingKey || googleMapsKeyLoading}
+                >
+                  {savingKey ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground/60">
+                Required for Google Places autocomplete in the booking widget. Get a key from Google Cloud Console.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Search filter */}
       <div className="relative">

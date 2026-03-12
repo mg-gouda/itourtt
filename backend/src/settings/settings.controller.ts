@@ -16,6 +16,7 @@ import { SettingsService } from './settings.service.js';
 import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
+import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto.js';
 import { EmailService } from '../email/email.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -167,5 +168,74 @@ export class SettingsController {
   async sendTestEmail(@Body() body: { email: string }) {
     await this.emailService.sendTestEmail(body.email);
     return { success: true };
+  }
+
+  // ──────────────────────────────────────────────
+  // GET /settings/website — retrieve website CMS settings (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Get('website')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async getWebsiteSettings() {
+    return this.settingsService.getWebsiteSettings();
+  }
+
+  // ──────────────────────────────────────────────
+  // PATCH /settings/website — update website CMS settings (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Patch('website')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async updateWebsiteSettings(@Body() dto: UpdateWebsiteSettingsDto) {
+    return this.settingsService.updateWebsiteSettings(dto);
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/website/logo — upload website logo (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Post('website/logo')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.uploadLogo')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  async uploadSiteLogo(@UploadedFile() file: any /* Express.Multer.File */) {
+    const url = '/uploads/' + file.filename;
+    await this.settingsService.updateSiteLogo(url);
+    return { url };
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/website/favicon — upload website favicon (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Post('website/favicon')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.uploadFavicon')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  async uploadSiteFavicon(@UploadedFile() file: any /* Express.Multer.File */) {
+    const url = '/uploads/' + file.filename;
+    await this.settingsService.updateSiteFavicon(url);
+    return { url };
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/website/hero-image — upload hero background image (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Post('website/hero-image')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  async uploadHeroImage(@UploadedFile() file: any /* Express.Multer.File */) {
+    const url = '/uploads/' + file.filename;
+    await this.settingsService.updateHeroImage(url);
+    return { url };
   }
 }

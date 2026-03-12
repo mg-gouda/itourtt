@@ -1280,14 +1280,15 @@ model JournalLine {
 // ─────────────────────────────────────────────
 
 model SystemSettings {
-  id           String   @id @default(uuid())
-  theme        String   @default("dark")
-  primaryColor String   @default("#3b82f6") @map("primary_color")
-  accentColor  String   @default("#8b5cf6") @map("accent_color")
-  fontFamily   String   @default("Geist") @map("font_family")
-  language     String   @default("en")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  theme            String   @default("dark")
+  primaryColor     String   @default("#3b82f6") @map("primary_color")
+  accentColor      String   @default("#8b5cf6") @map("accent_color")
+  fontFamily       String   @default("Geist") @map("font_family")
+  language         String   @default("en")
+  googleMapsApiKey String?  @map("google_maps_api_key")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
 }
@@ -1510,4 +1511,69 @@ model DeviceToken {
   @@unique([userId, token])
   @@index([userId])
   @@map("device_tokens")
+}
+
+// ─────────────────────────────────────────────
+// WEBSITE SETTINGS (B2C CMS - singleton)
+// ─────────────────────────────────────────────
+
+model WebsiteSettings {
+  id                 String   @id @default(uuid())
+
+  // ── Site Identity ──
+  siteName           String   @default("iTour Transfers") @map("site_name")
+  siteLogoUrl        String?  @map("site_logo_url")
+  siteFaviconUrl     String?  @map("site_favicon_url")
+
+  // ── Typography ──
+  fontFamily         String   @default("Inter") @map("font_family")
+
+  // ── Color Theme ──
+  primaryColor       String   @default("#3b82f6") @map("primary_color")
+  accentColor        String   @default("#8b5cf6") @map("accent_color")
+  heroGradientFrom   String   @default("#1a1a2e") @map("hero_gradient_from")
+  heroGradientTo     String   @default("#0f3460") @map("hero_gradient_to")
+  navBgColor         String   @default("#1a1a2e") @map("nav_bg_color")
+  footerBgColor      String   @default("#1a1a2e") @map("footer_bg_color")
+
+  // ── Header/Footer Presets ──
+  headerPreset       String   @default("default") @map("header_preset")
+  footerPreset       String   @default("default") @map("footer_preset")
+
+  // ── Hero Section Content ──
+  heroTitle          String   @default("Book Your Airport Transfer") @map("hero_title")
+  heroSubtitle       String   @default("Safe, comfortable, and reliable private transfers across Egypt.") @map("hero_subtitle")
+  heroCta1Text       String   @default("Book Now") @map("hero_cta1_text")
+  heroCta2Text       String   @default("Track a Booking") @map("hero_cta2_text")
+  heroImageUrl       String?  @map("hero_image_url")
+
+  // ── Features Section ──
+  featuresEnabled    Boolean  @default(true) @map("features_enabled")
+  featuresTitle      String   @default("Why Choose Us?") @map("features_title")
+  featuresJson       Json?    @map("features_json")
+
+  // ── Contact Info ──
+  contactEmail       String?  @map("contact_email")
+  contactPhone       String?  @map("contact_phone")
+  contactWhatsapp    String?  @map("contact_whatsapp")
+  socialFacebook     String?  @map("social_facebook")
+  socialInstagram    String?  @map("social_instagram")
+  socialTwitter      String?  @map("social_twitter")
+
+  // ── Bank Payment ──
+  bankPaymentEnabled Boolean  @default(false) @map("bank_payment_enabled")
+  bankPaymentMessage String   @default("Bank payment integration coming soon!") @map("bank_payment_message")
+
+  // ── SEO ──
+  metaTitle          String?  @map("meta_title")
+  metaDescription    String?  @map("meta_description")
+
+  // ── Menu Links ──
+  navLinksJson       Json?    @map("nav_links_json")
+
+  // ── Audit ──
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("website_settings")
 }

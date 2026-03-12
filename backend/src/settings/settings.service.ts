@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
+import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto.js';
 import { validateLicenseKey, type LicenseStatus } from '../common/license.util.js';
 
 /** Default values returned when no row exists yet. */
@@ -12,6 +13,7 @@ const SYSTEM_DEFAULTS = {
   accentColor: '#8b5cf6',
   fontFamily: 'Geist',
   language: 'en',
+  googleMapsApiKey: null as string | null,
 };
 
 const EMAIL_DEFAULTS = {
@@ -31,6 +33,40 @@ const COMPANY_DEFAULTS = {
   faviconUrl: null,
   reportHeaderHtml: null,
   reportFooterHtml: null,
+};
+
+const WEBSITE_DEFAULTS = {
+  siteName: 'iTour Transfers',
+  siteLogoUrl: null as string | null,
+  siteFaviconUrl: null as string | null,
+  fontFamily: 'Inter',
+  primaryColor: '#3b82f6',
+  accentColor: '#8b5cf6',
+  heroGradientFrom: '#1a1a2e',
+  heroGradientTo: '#0f3460',
+  navBgColor: '#1a1a2e',
+  footerBgColor: '#1a1a2e',
+  headerPreset: 'default',
+  footerPreset: 'default',
+  heroTitle: 'Book Your Airport Transfer',
+  heroSubtitle: 'Safe, comfortable, and reliable private transfers across Egypt.',
+  heroCta1Text: 'Book Now',
+  heroCta2Text: 'Track a Booking',
+  heroImageUrl: null as string | null,
+  featuresEnabled: true,
+  featuresTitle: 'Why Choose Us?',
+  featuresJson: null as any,
+  contactEmail: null as string | null,
+  contactPhone: null as string | null,
+  contactWhatsapp: null as string | null,
+  socialFacebook: null as string | null,
+  socialInstagram: null as string | null,
+  socialTwitter: null as string | null,
+  bankPaymentEnabled: false,
+  bankPaymentMessage: 'Bank payment integration coming soon!',
+  metaTitle: null as string | null,
+  metaDescription: null as string | null,
+  navLinksJson: null as any,
 };
 
 @Injectable()
@@ -61,6 +97,7 @@ export class SettingsService {
           ...(dto.accentColor !== undefined && { accentColor: dto.accentColor }),
           ...(dto.fontFamily !== undefined && { fontFamily: dto.fontFamily }),
           ...(dto.language !== undefined && { language: dto.language }),
+          ...(dto.googleMapsApiKey !== undefined && { googleMapsApiKey: dto.googleMapsApiKey || null }),
         },
       });
     }
@@ -72,6 +109,7 @@ export class SettingsService {
         accentColor: dto.accentColor ?? SYSTEM_DEFAULTS.accentColor,
         fontFamily: dto.fontFamily ?? SYSTEM_DEFAULTS.fontFamily,
         language: dto.language ?? SYSTEM_DEFAULTS.language,
+        googleMapsApiKey: dto.googleMapsApiKey ?? SYSTEM_DEFAULTS.googleMapsApiKey,
       },
     });
   }
@@ -220,5 +258,147 @@ export class SettingsService {
   async getEmailSettingsRaw() {
     const settings = await this.prisma.emailSettings.findFirst();
     return settings ?? EMAIL_DEFAULTS;
+  }
+
+  // ──────────────────────────────────────────────
+  // WEBSITE SETTINGS (B2C CMS)
+  // ──────────────────────────────────────────────
+
+  async getWebsiteSettings() {
+    const settings = await this.prisma.websiteSettings.findFirst();
+    if (!settings) {
+      return WEBSITE_DEFAULTS;
+    }
+    return settings;
+  }
+
+  async updateWebsiteSettings(dto: UpdateWebsiteSettingsDto) {
+    const existing = await this.prisma.websiteSettings.findFirst();
+
+    const data: Record<string, unknown> = {};
+    if (dto.siteName !== undefined) data.siteName = dto.siteName;
+    if (dto.fontFamily !== undefined) data.fontFamily = dto.fontFamily;
+    if (dto.primaryColor !== undefined) data.primaryColor = dto.primaryColor;
+    if (dto.accentColor !== undefined) data.accentColor = dto.accentColor;
+    if (dto.heroGradientFrom !== undefined) data.heroGradientFrom = dto.heroGradientFrom;
+    if (dto.heroGradientTo !== undefined) data.heroGradientTo = dto.heroGradientTo;
+    if (dto.navBgColor !== undefined) data.navBgColor = dto.navBgColor;
+    if (dto.footerBgColor !== undefined) data.footerBgColor = dto.footerBgColor;
+    if (dto.headerPreset !== undefined) data.headerPreset = dto.headerPreset;
+    if (dto.footerPreset !== undefined) data.footerPreset = dto.footerPreset;
+    if (dto.heroTitle !== undefined) data.heroTitle = dto.heroTitle;
+    if (dto.heroSubtitle !== undefined) data.heroSubtitle = dto.heroSubtitle;
+    if (dto.heroCta1Text !== undefined) data.heroCta1Text = dto.heroCta1Text;
+    if (dto.heroCta2Text !== undefined) data.heroCta2Text = dto.heroCta2Text;
+    if (dto.heroImageUrl !== undefined) data.heroImageUrl = dto.heroImageUrl || null;
+    if (dto.featuresEnabled !== undefined) data.featuresEnabled = dto.featuresEnabled;
+    if (dto.featuresTitle !== undefined) data.featuresTitle = dto.featuresTitle;
+    if (dto.featuresJson !== undefined) data.featuresJson = dto.featuresJson;
+    if (dto.contactEmail !== undefined) data.contactEmail = dto.contactEmail || null;
+    if (dto.contactPhone !== undefined) data.contactPhone = dto.contactPhone || null;
+    if (dto.contactWhatsapp !== undefined) data.contactWhatsapp = dto.contactWhatsapp || null;
+    if (dto.socialFacebook !== undefined) data.socialFacebook = dto.socialFacebook || null;
+    if (dto.socialInstagram !== undefined) data.socialInstagram = dto.socialInstagram || null;
+    if (dto.socialTwitter !== undefined) data.socialTwitter = dto.socialTwitter || null;
+    if (dto.bankPaymentEnabled !== undefined) data.bankPaymentEnabled = dto.bankPaymentEnabled;
+    if (dto.bankPaymentMessage !== undefined) data.bankPaymentMessage = dto.bankPaymentMessage;
+    if (dto.metaTitle !== undefined) data.metaTitle = dto.metaTitle || null;
+    if (dto.metaDescription !== undefined) data.metaDescription = dto.metaDescription || null;
+    if (dto.navLinksJson !== undefined) data.navLinksJson = dto.navLinksJson;
+
+    if (existing) {
+      return this.prisma.websiteSettings.update({
+        where: { id: existing.id },
+        data,
+      });
+    }
+
+    return this.prisma.websiteSettings.create({
+      data: {
+        siteName: dto.siteName ?? WEBSITE_DEFAULTS.siteName,
+        fontFamily: dto.fontFamily ?? WEBSITE_DEFAULTS.fontFamily,
+        primaryColor: dto.primaryColor ?? WEBSITE_DEFAULTS.primaryColor,
+        accentColor: dto.accentColor ?? WEBSITE_DEFAULTS.accentColor,
+        heroGradientFrom: dto.heroGradientFrom ?? WEBSITE_DEFAULTS.heroGradientFrom,
+        heroGradientTo: dto.heroGradientTo ?? WEBSITE_DEFAULTS.heroGradientTo,
+        navBgColor: dto.navBgColor ?? WEBSITE_DEFAULTS.navBgColor,
+        footerBgColor: dto.footerBgColor ?? WEBSITE_DEFAULTS.footerBgColor,
+        headerPreset: dto.headerPreset ?? WEBSITE_DEFAULTS.headerPreset,
+        footerPreset: dto.footerPreset ?? WEBSITE_DEFAULTS.footerPreset,
+        heroTitle: dto.heroTitle ?? WEBSITE_DEFAULTS.heroTitle,
+        heroSubtitle: dto.heroSubtitle ?? WEBSITE_DEFAULTS.heroSubtitle,
+        heroCta1Text: dto.heroCta1Text ?? WEBSITE_DEFAULTS.heroCta1Text,
+        heroCta2Text: dto.heroCta2Text ?? WEBSITE_DEFAULTS.heroCta2Text,
+        heroImageUrl: dto.heroImageUrl ?? WEBSITE_DEFAULTS.heroImageUrl,
+        featuresEnabled: dto.featuresEnabled ?? WEBSITE_DEFAULTS.featuresEnabled,
+        featuresTitle: dto.featuresTitle ?? WEBSITE_DEFAULTS.featuresTitle,
+        featuresJson: dto.featuresJson ?? WEBSITE_DEFAULTS.featuresJson,
+        contactEmail: dto.contactEmail ?? WEBSITE_DEFAULTS.contactEmail,
+        contactPhone: dto.contactPhone ?? WEBSITE_DEFAULTS.contactPhone,
+        contactWhatsapp: dto.contactWhatsapp ?? WEBSITE_DEFAULTS.contactWhatsapp,
+        socialFacebook: dto.socialFacebook ?? WEBSITE_DEFAULTS.socialFacebook,
+        socialInstagram: dto.socialInstagram ?? WEBSITE_DEFAULTS.socialInstagram,
+        socialTwitter: dto.socialTwitter ?? WEBSITE_DEFAULTS.socialTwitter,
+        bankPaymentEnabled: dto.bankPaymentEnabled ?? WEBSITE_DEFAULTS.bankPaymentEnabled,
+        bankPaymentMessage: dto.bankPaymentMessage ?? WEBSITE_DEFAULTS.bankPaymentMessage,
+        metaTitle: dto.metaTitle ?? WEBSITE_DEFAULTS.metaTitle,
+        metaDescription: dto.metaDescription ?? WEBSITE_DEFAULTS.metaDescription,
+        navLinksJson: dto.navLinksJson ?? WEBSITE_DEFAULTS.navLinksJson,
+      },
+    });
+  }
+
+  async updateSiteLogo(fileUrl: string) {
+    const existing = await this.prisma.websiteSettings.findFirst();
+
+    if (existing) {
+      return this.prisma.websiteSettings.update({
+        where: { id: existing.id },
+        data: { siteLogoUrl: fileUrl },
+      });
+    }
+
+    return this.prisma.websiteSettings.create({
+      data: {
+        siteName: WEBSITE_DEFAULTS.siteName,
+        siteLogoUrl: fileUrl,
+      },
+    });
+  }
+
+  async updateSiteFavicon(fileUrl: string) {
+    const existing = await this.prisma.websiteSettings.findFirst();
+
+    if (existing) {
+      return this.prisma.websiteSettings.update({
+        where: { id: existing.id },
+        data: { siteFaviconUrl: fileUrl },
+      });
+    }
+
+    return this.prisma.websiteSettings.create({
+      data: {
+        siteName: WEBSITE_DEFAULTS.siteName,
+        siteFaviconUrl: fileUrl,
+      },
+    });
+  }
+
+  async updateHeroImage(fileUrl: string) {
+    const existing = await this.prisma.websiteSettings.findFirst();
+
+    if (existing) {
+      return this.prisma.websiteSettings.update({
+        where: { id: existing.id },
+        data: { heroImageUrl: fileUrl },
+      });
+    }
+
+    return this.prisma.websiteSettings.create({
+      data: {
+        siteName: WEBSITE_DEFAULTS.siteName,
+        heroImageUrl: fileUrl,
+      },
+    });
   }
 }

@@ -41,6 +41,12 @@ import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
 import { usePermission } from "@/hooks/use-permission";
 
+interface VehicleTypeResource {
+  id: string;
+  name: string;
+  seatCapacity: number;
+}
+
 interface SupplierResource {
   id: string;
   legalName: string;
@@ -120,6 +126,7 @@ interface TrafficJob {
     id: string;
     vehicleId: string | null;
     driverId: string | null;
+    repId?: string | null;
     externalDriverName?: string | null;
     externalDriverPhone?: string | null;
     vehicle?: { plateNumber: string; supplierId?: string | null; vehicleType?: { name: string; seatCapacity: number } };
@@ -182,6 +189,9 @@ interface FormState {
   assignVehicleId: string;
   assignDriverId: string;
   assignRepId: string;
+  externalVehicleType: string;
+  externalDriverName: string;
+  externalDriverMobile: string;
 }
 
 const defaultForm: FormState = {
@@ -215,6 +225,9 @@ const defaultForm: FormState = {
   assignVehicleId: "",
   assignDriverId: "",
   assignRepId: "",
+  externalVehicleType: "",
+  externalDriverName: "",
+  externalDriverMobile: "",
 };
 
 /* ─────────── component ─────────── */
@@ -245,6 +258,7 @@ export default function B2BJobPage() {
   const [vehicles, setVehicles] = useState<VehicleResource[]>([]);
   const [drivers, setDrivers] = useState<PersonResource[]>([]);
   const [reps, setReps] = useState<PersonResource[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeResource[]>([]);
   const [jobSources, setJobSources] = useState<Record<string, string>>({});
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -265,12 +279,13 @@ export default function B2BJobPage() {
   useEffect(() => {
     async function fetchResources() {
       try {
-        const [custRes, supRes, vehRes, drvRes, repRes] = await Promise.allSettled([
+        const [custRes, supRes, vehRes, drvRes, repRes, vtRes] = await Promise.allSettled([
           api.get("/customers"),
           canAssign ? api.get("/dispatch/available-suppliers") : Promise.resolve({ data: [] }),
           canAssignVehicle ? api.get("/dispatch/available-vehicles", { params: { date: form.jobDate } }) : Promise.resolve({ data: [] }),
           canAssignDriver ? api.get("/dispatch/available-drivers", { params: { date: form.jobDate } }) : Promise.resolve({ data: [] }),
           canAssignRep ? api.get("/dispatch/available-reps", { params: { date: form.jobDate } }) : Promise.resolve({ data: [] }),
+          api.get("/vehicles/types"),
         ]);
         if (custRes.status === "fulfilled") {
           const d = custRes.value.data;
@@ -280,6 +295,7 @@ export default function B2BJobPage() {
         if (vehRes.status === "fulfilled") { const d = vehRes.value.data; setVehicles(Array.isArray(d) ? d : d.data || []); }
         if (drvRes.status === "fulfilled") { const d = drvRes.value.data; setDrivers(Array.isArray(d) ? d : d.data || []); }
         if (repRes.status === "fulfilled") { const d = repRes.value.data; setReps(Array.isArray(d) ? d : d.data || []); }
+        if (vtRes.status === "fulfilled") { const d = vtRes.value.data; setVehicleTypes(Array.isArray(d) ? d : d.data || []); }
       } catch {
         /* non-critical */
       }
@@ -359,10 +375,13 @@ export default function B2BJobPage() {
       terminal: job.flight?.terminal || "",
       arrivalTime,
       departureTime,
-      assignSource: job.assignment?.vehicle?.supplierId || "owned",
+      assignSource: job.assignment?.vehicle?.supplierId || (job.assignment?.externalDriverName ? "__supplier__" : "owned"),
       assignVehicleId: job.assignment?.vehicleId || "",
       assignDriverId: job.assignment?.driverId || "",
       assignRepId: job.assignment?.rep ? reps.find((r) => r.name === job.assignment?.rep?.name)?.id || "" : "",
+      externalVehicleType: "",
+      externalDriverName: job.assignment?.externalDriverName || "",
+      externalDriverMobile: job.assignment?.externalDriverPhone || "",
     });
   };
 
@@ -432,6 +451,27 @@ export default function B2BJobPage() {
         };
       }
 
+      // Build assignment payload based on source type
+      const buildAssignPayload = (): Record<string, string | boolean> | null => {
+        const ap: Record<string, string | boolean> = {};
+        const supplierMode = form.assignSource !== "owned";
+
+        if (supplierMode) {
+          // Supplier: external driver name/phone, no vehicleId/driverId
+          if (form.externalDriverName.trim()) ap.externalDriverName = form.externalDriverName.trim();
+          if (form.externalDriverMobile.trim()) ap.externalDriverPhone = form.externalDriverMobile.trim();
+        } else {
+          // Owned: select from company vehicles/drivers
+          if (form.assignVehicleId) ap.vehicleId = form.assignVehicleId;
+          if (form.assignDriverId) ap.driverId = form.assignDriverId;
+        }
+
+        // Rep — skip if "N/A"
+        if (form.assignRepId && form.assignRepId !== "__NA__") ap.repId = form.assignRepId;
+
+        return Object.keys(ap).length > 0 ? ap : null;
+      };
+
       if (editingJobId) {
         const { bookingChannel, ...updatePayload } = payload;
         await api.patch(`/traffic-jobs/${editingJobId}`, updatePayload);
@@ -444,13 +484,9 @@ export default function B2BJobPage() {
           }
         }
         // Update assignment if changed
-        const hasAssignFields = form.assignVehicleId || form.assignDriverId || form.assignRepId;
-        if (hasAssignFields) {
+        const assignPayload = buildAssignPayload();
+        if (assignPayload) {
           const job = jobs.find((j) => j.id === editingJobId);
-          const assignPayload: Record<string, string | boolean> = {};
-          if (form.assignVehicleId) assignPayload.vehicleId = form.assignVehicleId;
-          if (form.assignDriverId) assignPayload.driverId = form.assignDriverId;
-          if (form.assignRepId) assignPayload.repId = form.assignRepId;
           try {
             if (job?.assignment) {
               await api.patch(`/dispatch/assignments/${job.assignment.id}`, assignPayload);
@@ -466,14 +502,10 @@ export default function B2BJobPage() {
         const { bookingStatus, ...createPayload } = payload;
         const { data: newJob } = await api.post("/traffic-jobs", createPayload);
         // Assign vehicle/driver/rep if selected
-        const hasAssignFields = form.assignVehicleId || form.assignDriverId || form.assignRepId;
-        if (hasAssignFields && newJob?.id) {
-          const assignPayload: Record<string, string | boolean> = { trafficJobId: newJob.id };
-          if (form.assignVehicleId) assignPayload.vehicleId = form.assignVehicleId;
-          if (form.assignDriverId) assignPayload.driverId = form.assignDriverId;
-          if (form.assignRepId) assignPayload.repId = form.assignRepId;
+        const assignPayload = buildAssignPayload();
+        if (assignPayload && newJob?.id) {
           try {
-            await api.post("/dispatch/assign", assignPayload);
+            await api.post("/dispatch/assign", { trafficJobId: newJob.id, ...assignPayload });
           } catch {
             // Assignment failed but job was created — non-blocking
           }
@@ -570,11 +602,12 @@ export default function B2BJobPage() {
     return vehicles.filter((v) => v.supplierId === source);
   };
 
-  // Filter drivers by source (owned drivers only show for owned source)
-  const getFilteredDrivers = (source: string): PersonResource[] => {
-    if (source === "owned") return drivers.filter((d) => !d.supplierId);
-    return drivers; // For suppliers, show all drivers (supplier drivers + owned)
+  // Filter drivers by source (owned drivers only for owned source)
+  const getFilteredDrivers = (): PersonResource[] => {
+    return drivers.filter((d) => !d.supplierId);
   };
+
+  const isSupplierSource = form.assignSource !== "owned";
 
   const handleUnassign = async (job: TrafficJob) => {
     if (!job.assignment || !window.confirm("Remove assignment?")) return;
@@ -859,11 +892,11 @@ export default function B2BJobPage() {
 
           {/* Row 5: Assignment — Source, Vehicle, Driver, Rep */}
           {canAssign && (
-            <div className="grid grid-cols-4 gap-3">
+            <div className={`grid gap-3 ${isSupplierSource ? "grid-cols-5" : "grid-cols-4"}`}>
               {canAssignVehicle && (
                 <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("dispatch.source") || "Car Source"}</Label>
-                  <Select value={form.assignSource} onValueChange={(v) => updateForm({ assignSource: v, assignVehicleId: "", assignDriverId: "" })}>
+                  <Select value={form.assignSource} onValueChange={(v) => updateForm({ assignSource: v, assignVehicleId: "", assignDriverId: "", externalVehicleType: "", externalDriverName: "", externalDriverMobile: "" })}>
                     <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
                       <SelectValue />
                     </SelectTrigger>
@@ -878,7 +911,9 @@ export default function B2BJobPage() {
                   </Select>
                 </div>
               )}
-              {canAssignVehicle && (
+
+              {/* ── Owned: Vehicle select ── */}
+              {canAssignVehicle && !isSupplierSource && (
                 <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("dispatch.vehicle") || "Vehicle"}</Label>
                   <Select value={form.assignVehicleId} onValueChange={(v) => updateForm({ assignVehicleId: v })}>
@@ -886,7 +921,7 @@ export default function B2BJobPage() {
                       <SelectValue placeholder="Select vehicle..." />
                     </SelectTrigger>
                     <SelectContent className="border-border bg-popover text-foreground">
-                      {getFilteredVehicles(form.assignSource).map((v) => (
+                      {getFilteredVehicles("owned").map((v) => (
                         <SelectItem key={v.id} value={v.id}>
                           {v.plateNumber} {v.vehicleType?.name ? `(${v.vehicleType.name})` : ""}
                         </SelectItem>
@@ -895,7 +930,28 @@ export default function B2BJobPage() {
                   </Select>
                 </div>
               )}
-              {canAssignDriver && (
+
+              {/* ── Supplier: Car type select ── */}
+              {canAssignVehicle && isSupplierSource && (
+                <div className="min-w-0 space-y-1.5">
+                  <Label className="text-muted-foreground text-xs">{t("dispatch.carType") || "Car Type"}</Label>
+                  <Select value={form.externalVehicleType} onValueChange={(v) => updateForm({ externalVehicleType: v })}>
+                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
+                      <SelectValue placeholder={t("dispatch.carType") || "Car Type"} />
+                    </SelectTrigger>
+                    <SelectContent className="border-border bg-popover text-foreground">
+                      {vehicleTypes.map((vt) => (
+                        <SelectItem key={vt.id} value={vt.name}>
+                          {vt.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* ── Owned: Driver select ── */}
+              {canAssignDriver && !isSupplierSource && (
                 <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("dispatch.driver") || "Driver"}</Label>
                   <Select value={form.assignDriverId} onValueChange={(v) => updateForm({ assignDriverId: v })}>
@@ -903,7 +959,7 @@ export default function B2BJobPage() {
                       <SelectValue placeholder="Select driver..." />
                     </SelectTrigger>
                     <SelectContent className="border-border bg-popover text-foreground">
-                      {getFilteredDrivers(form.assignSource).map((d) => (
+                      {getFilteredDrivers().map((d) => (
                         <SelectItem key={d.id} value={d.id}>
                           {d.name}
                         </SelectItem>
@@ -912,6 +968,33 @@ export default function B2BJobPage() {
                   </Select>
                 </div>
               )}
+
+              {/* ── Supplier: Driver name + mobile text fields ── */}
+              {canAssignDriver && isSupplierSource && (
+                <>
+                  <div className="min-w-0 space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">{t("dispatch.driverName") || "Driver Name"}</Label>
+                    <Input
+                      value={form.externalDriverName}
+                      onChange={(e) => updateForm({ externalDriverName: e.target.value })}
+                      placeholder="Driver name..."
+                      className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">{t("dispatch.driverMobile") || "Driver Mobile"}</Label>
+                    <Input
+                      type="tel"
+                      value={form.externalDriverMobile}
+                      onChange={(e) => updateForm({ externalDriverMobile: e.target.value })}
+                      placeholder="+20 xxx xxx xxxx"
+                      className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* ── Rep (both modes): with N/A option ── */}
               {canAssignRep && (
                 <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("dispatch.rep") || "Rep"}</Label>
@@ -920,6 +1003,7 @@ export default function B2BJobPage() {
                       <SelectValue placeholder="Select rep..." />
                     </SelectTrigger>
                     <SelectContent className="border-border bg-popover text-foreground">
+                      <SelectItem value="__NA__">N/A</SelectItem>
                       {reps.map((r) => (
                         <SelectItem key={r.id} value={r.id}>
                           {r.name}
@@ -1114,8 +1198,8 @@ export default function B2BJobPage() {
                       <TableCell className="text-xs text-muted-foreground">
                         {job.assignment ? (
                           <span>
-                            {job.assignment.vehicle?.plateNumber || "\u2014"}
-                            {job.assignment.driver && ` / ${job.assignment.driver.name}`}
+                            {job.assignment.vehicle?.plateNumber || job.assignment.externalDriverName || "\u2014"}
+                            {job.assignment.driver ? ` / ${job.assignment.driver.name}` : job.assignment.externalDriverName ? ` / ${job.assignment.externalDriverPhone || ""}` : ""}
                             {job.assignment.rep && ` / ${job.assignment.rep.name}`}
                           </span>
                         ) : (

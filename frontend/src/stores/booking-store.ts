@@ -13,6 +13,10 @@ interface BookingState {
   serviceType: string;
   fromZoneId: string;
   toZoneId: string;
+  fromPlaceName: string;
+  fromPlaceId: string;
+  toPlaceName: string;
+  toPlaceId: string;
   hotelId: string;
   originAirportId: string;
   destinationAirportId: string;
@@ -49,6 +53,10 @@ const initialState = {
   serviceType: '',
   fromZoneId: '',
   toZoneId: '',
+  fromPlaceName: '',
+  fromPlaceId: '',
+  toPlaceName: '',
+  toPlaceId: '',
   hotelId: '',
   originAirportId: '',
   destinationAirportId: '',

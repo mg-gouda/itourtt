@@ -1,18 +1,17 @@
-'use client';
+import { fetchSiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/site-settings';
+import { WebsiteShell } from '../w/website-shell';
 
-import { PublicNavbar } from '@/components/public/navbar';
-import { PublicFooter } from '@/components/public/footer';
-
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
-      <PublicNavbar />
-      <main className="flex-1">{children}</main>
-      <PublicFooter />
-    </div>
-  );
+  let settings = DEFAULT_SITE_SETTINGS;
+  try {
+    settings = await fetchSiteSettings();
+  } catch {
+    // Use defaults
+  }
+
+  return <WebsiteShell settings={settings}>{children}</WebsiteShell>;
 }

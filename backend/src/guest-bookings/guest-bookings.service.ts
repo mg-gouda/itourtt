@@ -113,12 +113,6 @@ export class GuestBookingsService {
       );
     }
 
-    if (booking.paymentMethod === 'ONLINE' && booking.paymentStatus !== 'PAID') {
-      throw new BadRequestException(
-        `Cannot convert online-payment booking with payment status "${booking.paymentStatus}". Payment must be PAID first.`,
-      );
-    }
-
     // Generate internalRef using the same pattern as traffic-jobs service
     const internalRef = await this.generateInternalRef();
 

@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { PublicApiController } from './public-api.controller.js';
 import { PublicApiService } from './public-api.service.js';
 import { EmailModule } from '../email/email.module.js';
+import { GuestBookingsModule } from '../guest-bookings/guest-bookings.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { EmailModule } from '../email/email.module.js';
       },
     ]),
     EmailModule,
+    GuestBookingsModule,
   ],
   controllers: [PublicApiController],
   providers: [

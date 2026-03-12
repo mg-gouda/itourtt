@@ -418,8 +418,8 @@ export function PriceListGrid({
               setNewFromZone(id);
               setNewFromZoneName(name || "");
             }}
-            types={["ZONE", "AIRPORT"]}
-            placeholder="Select origin..."
+            types={["ZONE"]}
+            placeholder="Select origin zone..."
           />
         </div>
         <ChevronRight className="mb-2 h-5 w-5 text-muted-foreground" />
@@ -431,8 +431,8 @@ export function PriceListGrid({
               setNewToZone(id);
               setNewToZoneName(name || "");
             }}
-            types={["ZONE", "AIRPORT"]}
-            placeholder="Select destination..."
+            types={["ZONE"]}
+            placeholder="Select destination zone..."
           />
         </div>
         <Button

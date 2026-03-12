@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
+import { GuestBookingsService } from '../guest-bookings/guest-bookings.service.js';
 import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import {
@@ -23,7 +24,59 @@ export class PublicApiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly guestBookingsService: GuestBookingsService,
   ) {}
+
+  // ─── Google Maps API Key ─────────────────────────────────
+
+  async getGoogleMapsKey() {
+    const settings = await this.prisma.systemSettings.findFirst();
+    return { apiKey: settings?.googleMapsApiKey ?? null };
+  }
+
+  // ─── Website Settings (public CMS) ────────────────────────
+
+  async getWebsiteSettings() {
+    const settings = await this.prisma.websiteSettings.findFirst();
+    if (!settings) {
+      return {
+        siteName: 'iTour Transfers',
+        siteLogoUrl: null,
+        siteFaviconUrl: null,
+        fontFamily: 'Inter',
+        primaryColor: '#3b82f6',
+        accentColor: '#8b5cf6',
+        heroGradientFrom: '#1a1a2e',
+        heroGradientTo: '#0f3460',
+        navBgColor: '#1a1a2e',
+        footerBgColor: '#1a1a2e',
+        headerPreset: 'default',
+        footerPreset: 'default',
+        heroTitle: 'Book Your Airport Transfer',
+        heroSubtitle: 'Safe, comfortable, and reliable private transfers across Egypt.',
+        heroCta1Text: 'Book Now',
+        heroCta2Text: 'Track a Booking',
+        heroImageUrl: null,
+        featuresEnabled: true,
+        featuresTitle: 'Why Choose Us?',
+        featuresJson: null,
+        contactEmail: null,
+        contactPhone: null,
+        contactWhatsapp: null,
+        socialFacebook: null,
+        socialInstagram: null,
+        socialTwitter: null,
+        bankPaymentEnabled: false,
+        bankPaymentMessage: 'Bank payment integration coming soon!',
+        metaTitle: null,
+        metaDescription: null,
+        navLinksJson: null,
+      };
+    }
+    // Return all fields except internal id and audit timestamps
+    const { id, createdAt, updatedAt, ...publicFields } = settings;
+    return publicFields;
+  }
 
   // ─── Location Tree ──────────────────────────────────────
 
@@ -306,6 +359,23 @@ export class PublicApiService {
       .catch((err) =>
         this.logger.error(`Failed to send confirmation email: ${err.message}`),
       );
+
+    // Auto-convert to traffic job so it appears in dispatch & traffic jobs pool
+    // For PAY_ON_ARRIVAL: convert immediately
+    // For ONLINE: convert immediately (payment tracking stays on GuestBooking record)
+    try {
+      // Use a system user ID for auto-conversion; find first admin
+      const systemUser = await this.prisma.user.findFirst({
+        where: { role: 'ADMIN', isActive: true },
+        select: { id: true },
+      });
+      if (systemUser) {
+        await this.guestBookingsService.convertToJob(booking.id, systemUser.id);
+        this.logger.log(`Auto-converted guest booking ${booking.bookingRef} to traffic job`);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to auto-convert booking ${booking.bookingRef}: ${err.message}`);
+    }
 
     return {
       bookingRef: booking.bookingRef,

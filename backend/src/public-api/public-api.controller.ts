@@ -15,6 +15,18 @@ import { ApiResponse } from '../common/dto/api-response.dto.js';
 export class PublicApiController {
   constructor(private readonly publicApiService: PublicApiService) {}
 
+  @Get('website-settings')
+  async getWebsiteSettings() {
+    const result = await this.publicApiService.getWebsiteSettings();
+    return new ApiResponse(result);
+  }
+
+  @Get('google-maps-key')
+  async getGoogleMapsKey() {
+    const result = await this.publicApiService.getGoogleMapsKey();
+    return new ApiResponse(result);
+  }
+
   @Get('locations')
   async getLocations() {
     const result = await this.publicApiService.getLocationTree();
