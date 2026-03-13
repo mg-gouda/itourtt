@@ -792,20 +792,23 @@ export class FinanceService {
     const driverTipLines: Array<{ trafficJobId: string; description: string; amount: number }> = [];
 
     for (const job of jobs) {
-      if (!job.fromZoneId || !job.toZoneId) continue;
       const vehicleTypeId = job.assignment?.vehicle?.vehicleTypeId;
-      if (!vehicleTypeId) continue;
 
-      const prices = priceMap.get(`${job.serviceType}-${job.fromZoneId}-${job.toZoneId}-${vehicleTypeId}`);
+      // Try price list lookup when zone and vehicle data is available
+      let prices: { transferPrice: number; driverTip: number } | undefined;
+      if (job.fromZoneId && job.toZoneId && vehicleTypeId) {
+        prices = priceMap.get(`${job.serviceType}-${job.fromZoneId}-${job.toZoneId}-${vehicleTypeId}`);
+      }
+
       const override = overrideMap.get(job.id);
 
       // Use override if provided, otherwise fall back to price list
       const transferPrice = override?.transferPrice !== undefined ? override.transferPrice : (prices?.transferPrice || 0);
       const driverTip = override?.driverTip !== undefined ? override.driverTip : (prices?.driverTip || 0);
 
-      if (transferPrice === 0 && driverTip === 0) continue;
-
-      const routeDescription = `${job.fromZone?.name || 'Unknown'} → ${job.toZone?.name || 'Unknown'}`;
+      const fromName = job.fromZone?.name || 'Origin';
+      const toName = job.toZone?.name || 'Destination';
+      const routeDescription = `${fromName} → ${toName}`;
       const vehicleName = job.assignment?.vehicle?.vehicleType?.name || 'Vehicle';
 
       // Save override price back to TrafficJob
