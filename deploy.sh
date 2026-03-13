@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-USAGE="Usage: $0 [production|training|all]"
+USAGE="Usage: $0 [production|training|travelplan|all]"
 ENV="${1:-all}"
 
-if [[ "$ENV" != "production" && "$ENV" != "training" && "$ENV" != "all" ]]; then
+if [[ "$ENV" != "production" && "$ENV" != "training" && "$ENV" != "travelplan" && "$ENV" != "all" ]]; then
   echo "$USAGE"
   exit 1
 fi
@@ -60,7 +60,12 @@ if [[ "$ENV" == "training" || "$ENV" == "all" ]]; then
   deploy_env "itour-training" "Training"
 fi
 
+if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
+  deploy_env "itour-travelplan" "TravelPlan"
+fi
+
 echo ""
 echo "=== Deployment complete ==="
-echo "Production: https://fulvago.itourtt.cloud"
-echo "Training:   https://tranning.itourtt.cloud"
+echo "Production:  https://fulvago.itourtt.cloud"
+echo "Training:    https://tranning.itourtt.cloud"
+echo "TravelPlan:  https://travelplan.itourtt.cloud"
