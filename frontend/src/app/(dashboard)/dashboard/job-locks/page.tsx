@@ -158,7 +158,7 @@ export default function JobLocksPage() {
               {t("jobLocks.tabs.supplier")}
             </TabsTrigger>
             <TabsTrigger value="edit">
-              {t("jobLocks.tabs.edit") || "B2B Edit"}
+              {t("jobLocks.tabs.edit")}
             </TabsTrigger>
           </TabsList>
 
