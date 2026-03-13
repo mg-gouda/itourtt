@@ -168,6 +168,32 @@ const translations: Record<Locale, Record<string, string>> = {
     "footer.about":
       "Professional airport transfer and transportation services across Egypt.",
 
+    // Features
+    "features.subtitle": "Trusted by thousands of travelers every year for reliable, comfortable transfers",
+    "features.supportTitle": "24/7 Customer Support",
+    "features.supportDesc": "Our dedicated support team is available around the clock to assist you with any questions or changes to your booking.",
+    "features.meetGreetTitle": "Meet & Greet Service",
+    "features.meetGreetDesc": "Your driver will meet you at arrivals with a name sign, help with luggage, and escort you to your vehicle.",
+    "features.driversTitle": "Professional Drivers",
+    "features.driversDesc": "Licensed, experienced, and vetted drivers with modern, well-maintained vehicles for a safe and comfortable ride.",
+    "features.flightTitle": "Flight Monitoring",
+    "features.flightDesc": "We track your flight in real-time and adjust pickup times automatically for delays or early arrivals.",
+    "features.noFeesTitle": "No Hidden Fees",
+    "features.noFeesDesc": "The price you see is the price you pay. No surge pricing, no unexpected charges, and free cancellation up to 24h before.",
+    "features.paymentTitle": "Secure Payment",
+    "features.paymentDesc": "Pay securely online or choose to pay your driver on arrival. All transactions are encrypted and protected.",
+
+    // Testimonials
+    "testimonial.1.quote": "Excellent service from start to finish. The driver was waiting for us at arrivals and the vehicle was immaculate.",
+    "testimonial.1.name": "Sarah M.",
+    "testimonial.1.location": "London, UK",
+    "testimonial.2.quote": "We booked a day tour to the Pyramids. The driver was friendly, knowledgeable, and made our trip unforgettable.",
+    "testimonial.2.name": "Marco R.",
+    "testimonial.2.location": "Rome, Italy",
+    "testimonial.3.quote": "Very professional. Flight was delayed by 2 hours but they tracked it and the driver was still there. Highly recommend!",
+    "testimonial.3.name": "James K.",
+    "testimonial.3.location": "Sydney, Australia",
+
     // Common
     "common.loading": "Loading...",
     "common.error": "Something went wrong",
@@ -287,6 +313,32 @@ const translations: Record<Locale, Record<string, string>> = {
     "footer.rights": "جميع الحقوق محفوظة.",
     "footer.about":
       "خدمات نقل احترافية من وإلى المطار في جميع أنحاء مصر.",
+
+    // Features
+    "features.subtitle": "موثوق من آلاف المسافرين سنوياً لخدمات نقل موثوقة ومريحة",
+    "features.supportTitle": "دعم العملاء على مدار الساعة",
+    "features.supportDesc": "فريق الدعم المخصص لدينا متاح على مدار الساعة لمساعدتك في أي استفسارات أو تغييرات على حجزك.",
+    "features.meetGreetTitle": "خدمة الاستقبال والترحيب",
+    "features.meetGreetDesc": "سيقابلك السائق عند بوابة الوصول بلافتة تحمل اسمك، ويساعدك في الأمتعة، ويرافقك إلى سيارتك.",
+    "features.driversTitle": "سائقون محترفون",
+    "features.driversDesc": "سائقون مرخصون وذوو خبرة مع مركبات حديثة وجيدة الصيانة لرحلة آمنة ومريحة.",
+    "features.flightTitle": "مراقبة الرحلات الجوية",
+    "features.flightDesc": "نتتبع رحلتك في الوقت الفعلي ونعدّل أوقات الاستلام تلقائياً عند التأخير أو الوصول المبكر.",
+    "features.noFeesTitle": "بدون رسوم خفية",
+    "features.noFeesDesc": "السعر الذي تراه هو السعر الذي تدفعه. بدون تسعير متغير أو رسوم غير متوقعة، مع إلغاء مجاني حتى 24 ساعة قبل الموعد.",
+    "features.paymentTitle": "دفع آمن",
+    "features.paymentDesc": "ادفع بأمان عبر الإنترنت أو اختر الدفع للسائق عند الوصول. جميع المعاملات مشفرة ومحمية.",
+
+    // Testimonials
+    "testimonial.1.quote": "خدمة ممتازة من البداية إلى النهاية. كان السائق ينتظرنا عند بوابة الوصول والسيارة كانت نظيفة تماماً.",
+    "testimonial.1.name": "سارة م.",
+    "testimonial.1.location": "لندن، المملكة المتحدة",
+    "testimonial.2.quote": "حجزنا جولة يومية إلى الأهرامات. كان السائق ودوداً ومطلعاً وجعل رحلتنا لا تُنسى.",
+    "testimonial.2.name": "ماركو ر.",
+    "testimonial.2.location": "روما، إيطاليا",
+    "testimonial.3.quote": "احترافية عالية. تأخرت رحلتنا ساعتين لكنهم تتبعوها وكان السائق لا يزال في انتظارنا. أنصح بشدة!",
+    "testimonial.3.name": "جيمس ك.",
+    "testimonial.3.location": "سيدني، أستراليا",
 
     // Common
     "common.loading": "جارٍ التحميل...",
@@ -410,6 +462,32 @@ const translations: Record<Locale, Record<string, string>> = {
     "footer.rights": "Alle Rechte vorbehalten.",
     "footer.about":
       "Professionelle Flughafentransfer- und Transportdienste in ganz Ägypten.",
+
+    // Features
+    "features.subtitle": "Jährlich von Tausenden Reisenden für zuverlässige, komfortable Transfers vertraut",
+    "features.supportTitle": "24/7 Kundenservice",
+    "features.supportDesc": "Unser engagiertes Support-Team steht Ihnen rund um die Uhr bei Fragen oder Änderungen Ihrer Buchung zur Verfügung.",
+    "features.meetGreetTitle": "Meet & Greet Service",
+    "features.meetGreetDesc": "Ihr Fahrer erwartet Sie am Ankunftsgate mit einem Namensschild, hilft beim Gepäck und begleitet Sie zum Fahrzeug.",
+    "features.driversTitle": "Professionelle Fahrer",
+    "features.driversDesc": "Lizenzierte, erfahrene und geprüfte Fahrer mit modernen, gepflegten Fahrzeugen für eine sichere und komfortable Fahrt.",
+    "features.flightTitle": "Flugüberwachung",
+    "features.flightDesc": "Wir verfolgen Ihren Flug in Echtzeit und passen die Abholzeiten automatisch bei Verspätungen oder frühen Ankünften an.",
+    "features.noFeesTitle": "Keine versteckten Gebühren",
+    "features.noFeesDesc": "Der angezeigte Preis ist der Preis, den Sie zahlen. Keine Aufpreise, keine unerwarteten Kosten und kostenlose Stornierung bis 24h vorher.",
+    "features.paymentTitle": "Sichere Zahlung",
+    "features.paymentDesc": "Bezahlen Sie sicher online oder wählen Sie die Zahlung beim Fahrer bei Ankunft. Alle Transaktionen sind verschlüsselt und geschützt.",
+
+    // Testimonials
+    "testimonial.1.quote": "Exzellenter Service von Anfang bis Ende. Der Fahrer wartete am Ankunftsgate auf uns und das Fahrzeug war makellos.",
+    "testimonial.1.name": "Sarah M.",
+    "testimonial.1.location": "London, UK",
+    "testimonial.2.quote": "Wir haben eine Tagestour zu den Pyramiden gebucht. Der Fahrer war freundlich, kompetent und hat unsere Reise unvergesslich gemacht.",
+    "testimonial.2.name": "Marco R.",
+    "testimonial.2.location": "Rom, Italien",
+    "testimonial.3.quote": "Sehr professionell. Unser Flug hatte 2 Stunden Verspätung, aber sie haben ihn verfolgt und der Fahrer war trotzdem da. Sehr empfehlenswert!",
+    "testimonial.3.name": "James K.",
+    "testimonial.3.location": "Sydney, Australien",
 
     // Common
     "common.loading": "Wird geladen...",
@@ -538,6 +616,32 @@ const translations: Record<Locale, Record<string, string>> = {
     "footer.about":
       "Services professionnels de transfert aéroport et de transport dans toute l'Égypte.",
 
+    // Features
+    "features.subtitle": "Approuvé chaque année par des milliers de voyageurs pour des transferts fiables et confortables",
+    "features.supportTitle": "Support client 24h/24 et 7j/7",
+    "features.supportDesc": "Notre équipe d'assistance dédiée est disponible à tout moment pour vous aider avec vos questions ou modifications de réservation.",
+    "features.meetGreetTitle": "Service d'accueil personnalisé",
+    "features.meetGreetDesc": "Votre chauffeur vous attendra aux arrivées avec une pancarte à votre nom, vous aidera avec vos bagages et vous escortera jusqu'au véhicule.",
+    "features.driversTitle": "Chauffeurs professionnels",
+    "features.driversDesc": "Des chauffeurs agréés, expérimentés et vérifiés avec des véhicules modernes et bien entretenus pour un trajet sûr et confortable.",
+    "features.flightTitle": "Suivi des vols",
+    "features.flightDesc": "Nous suivons votre vol en temps réel et ajustons automatiquement les horaires de prise en charge en cas de retard ou d'arrivée anticipée.",
+    "features.noFeesTitle": "Aucun frais caché",
+    "features.noFeesDesc": "Le prix affiché est le prix que vous payez. Pas de tarification dynamique, pas de frais imprévus, et annulation gratuite jusqu'à 24h avant.",
+    "features.paymentTitle": "Paiement sécurisé",
+    "features.paymentDesc": "Payez en ligne en toute sécurité ou choisissez de payer votre chauffeur à l'arrivée. Toutes les transactions sont cryptées et protégées.",
+
+    // Testimonials
+    "testimonial.1.quote": "Un service excellent du début à la fin. Le chauffeur nous attendait aux arrivées et le véhicule était impeccable.",
+    "testimonial.1.name": "Sarah M.",
+    "testimonial.1.location": "Londres, Royaume-Uni",
+    "testimonial.2.quote": "Nous avons réservé une excursion d'une journée aux Pyramides. Le chauffeur était sympathique, compétent et a rendu notre voyage inoubliable.",
+    "testimonial.2.name": "Marco R.",
+    "testimonial.2.location": "Rome, Italie",
+    "testimonial.3.quote": "Très professionnel. Notre vol avait 2 heures de retard mais ils l'ont suivi et le chauffeur était toujours là. Je recommande vivement !",
+    "testimonial.3.name": "James K.",
+    "testimonial.3.location": "Sydney, Australie",
+
     // Common
     "common.loading": "Chargement...",
     "common.error": "Une erreur est survenue",
@@ -664,6 +768,32 @@ const translations: Record<Locale, Record<string, string>> = {
     "footer.rights": "Tutti i diritti riservati.",
     "footer.about":
       "Servizi professionali di transfer aeroportuale e trasporto in tutto l'Egitto.",
+
+    // Features
+    "features.subtitle": "Scelto ogni anno da migliaia di viaggiatori per trasferimenti affidabili e confortevoli",
+    "features.supportTitle": "Assistenza clienti 24/7",
+    "features.supportDesc": "Il nostro team di supporto dedicato è disponibile in qualsiasi momento per assisterti con domande o modifiche alla prenotazione.",
+    "features.meetGreetTitle": "Servizio Meet & Greet",
+    "features.meetGreetDesc": "Il tuo autista ti aspetterà agli arrivi con un cartello con il tuo nome, ti aiuterà con i bagagli e ti accompagnerà al veicolo.",
+    "features.driversTitle": "Autisti professionisti",
+    "features.driversDesc": "Autisti autorizzati, esperti e verificati con veicoli moderni e ben mantenuti per un viaggio sicuro e confortevole.",
+    "features.flightTitle": "Monitoraggio voli",
+    "features.flightDesc": "Monitoriamo il tuo volo in tempo reale e regoliamo automaticamente gli orari di ritiro in caso di ritardi o arrivi anticipati.",
+    "features.noFeesTitle": "Nessun costo nascosto",
+    "features.noFeesDesc": "Il prezzo che vedi è il prezzo che paghi. Nessun sovrapprezzo, nessun costo imprevisto e cancellazione gratuita fino a 24 ore prima.",
+    "features.paymentTitle": "Pagamento sicuro",
+    "features.paymentDesc": "Paga in sicurezza online o scegli di pagare l'autista all'arrivo. Tutte le transazioni sono crittografate e protette.",
+
+    // Testimonials
+    "testimonial.1.quote": "Servizio eccellente dall'inizio alla fine. L'autista ci aspettava agli arrivi e il veicolo era impeccabile.",
+    "testimonial.1.name": "Sarah M.",
+    "testimonial.1.location": "Londra, Regno Unito",
+    "testimonial.2.quote": "Abbiamo prenotato un tour giornaliero alle Piramidi. L'autista era cordiale, competente e ha reso il nostro viaggio indimenticabile.",
+    "testimonial.2.name": "Marco R.",
+    "testimonial.2.location": "Roma, Italia",
+    "testimonial.3.quote": "Molto professionale. Il nostro volo era in ritardo di 2 ore ma l'hanno monitorato e l'autista era ancora lì. Altamente raccomandato!",
+    "testimonial.3.name": "James K.",
+    "testimonial.3.location": "Sydney, Australia",
 
     // Common
     "common.loading": "Caricamento...",
@@ -793,6 +923,32 @@ const translations: Record<Locale, Record<string, string>> = {
     "footer.about":
       "Professionele luchthaven­transfer- en vervoersdiensten door heel Egypte.",
 
+    // Features
+    "features.subtitle": "Jaarlijks vertrouwd door duizenden reizigers voor betrouwbare, comfortabele transfers",
+    "features.supportTitle": "24/7 Klantenservice",
+    "features.supportDesc": "Ons toegewijde supportteam staat dag en nacht klaar om u te helpen met vragen of wijzigingen aan uw boeking.",
+    "features.meetGreetTitle": "Meet & Greet Service",
+    "features.meetGreetDesc": "Uw chauffeur staat u op te wachten bij de aankomsthal met een naambordje, helpt met bagage en begeleidt u naar het voertuig.",
+    "features.driversTitle": "Professionele chauffeurs",
+    "features.driversDesc": "Gecertificeerde, ervaren en geverifieerde chauffeurs met moderne, goed onderhouden voertuigen voor een veilige en comfortabele rit.",
+    "features.flightTitle": "Vluchten volgen",
+    "features.flightDesc": "We volgen uw vlucht in realtime en passen de ophaaltijden automatisch aan bij vertragingen of vroege aankomsten.",
+    "features.noFeesTitle": "Geen verborgen kosten",
+    "features.noFeesDesc": "De prijs die u ziet, is de prijs die u betaalt. Geen extra toeslagen, geen onverwachte kosten en gratis annulering tot 24 uur van tevoren.",
+    "features.paymentTitle": "Veilig betalen",
+    "features.paymentDesc": "Betaal veilig online of kies ervoor om uw chauffeur bij aankomst te betalen. Alle transacties zijn versleuteld en beschermd.",
+
+    // Testimonials
+    "testimonial.1.quote": "Uitstekende service van begin tot eind. De chauffeur stond ons op te wachten bij de aankomst en het voertuig was onberispelijk.",
+    "testimonial.1.name": "Sarah M.",
+    "testimonial.1.location": "Londen, VK",
+    "testimonial.2.quote": "We hebben een dagtour naar de Piramides geboekt. De chauffeur was vriendelijk, deskundig en maakte onze reis onvergetelijk.",
+    "testimonial.2.name": "Marco R.",
+    "testimonial.2.location": "Rome, Italië",
+    "testimonial.3.quote": "Zeer professioneel. Onze vlucht had 2 uur vertraging maar ze volgden het en de chauffeur was er nog steeds. Sterk aanbevolen!",
+    "testimonial.3.name": "James K.",
+    "testimonial.3.location": "Sydney, Australië",
+
     // Common
     "common.loading": "Laden...",
     "common.error": "Er is iets misgegaan",
@@ -920,6 +1076,32 @@ const translations: Record<Locale, Record<string, string>> = {
     "footer.rights": "Все права защищены.",
     "footer.about":
       "Профессиональные трансферные и транспортные услуги по всему Египту.",
+
+    // Features
+    "features.subtitle": "Ежегодно нам доверяют тысячи путешественников для надёжных и комфортных трансферов",
+    "features.supportTitle": "Поддержка 24/7",
+    "features.supportDesc": "Наша команда поддержки доступна круглосуточно, чтобы помочь вам с любыми вопросами или изменениями в бронировании.",
+    "features.meetGreetTitle": "Встреча и приветствие",
+    "features.meetGreetDesc": "Водитель встретит вас в зоне прилёта с табличкой с вашим именем, поможет с багажом и проводит до автомобиля.",
+    "features.driversTitle": "Профессиональные водители",
+    "features.driversDesc": "Лицензированные, опытные и проверенные водители с современными, ухоженными автомобилями для безопасной и комфортной поездки.",
+    "features.flightTitle": "Мониторинг рейсов",
+    "features.flightDesc": "Мы отслеживаем ваш рейс в реальном времени и автоматически корректируем время подачи при задержках или раннем прибытии.",
+    "features.noFeesTitle": "Без скрытых платежей",
+    "features.noFeesDesc": "Цена, которую вы видите — это цена, которую вы платите. Без наценок, без неожиданных расходов и бесплатная отмена за 24 часа.",
+    "features.paymentTitle": "Безопасная оплата",
+    "features.paymentDesc": "Оплачивайте безопасно онлайн или выберите оплату водителю по прибытии. Все транзакции зашифрованы и защищены.",
+
+    // Testimonials
+    "testimonial.1.quote": "Отличный сервис от начала до конца. Водитель ждал нас у выхода, а автомобиль был безупречен.",
+    "testimonial.1.name": "Сара М.",
+    "testimonial.1.location": "Лондон, Великобритания",
+    "testimonial.2.quote": "Мы заказали дневной тур к Пирамидам. Водитель был дружелюбным, знающим и сделал нашу поездку незабываемой.",
+    "testimonial.2.name": "Марко Р.",
+    "testimonial.2.location": "Рим, Италия",
+    "testimonial.3.quote": "Очень профессионально. Наш рейс задержался на 2 часа, но они отслеживали его и водитель всё равно был на месте. Настоятельно рекомендую!",
+    "testimonial.3.name": "Джеймс К.",
+    "testimonial.3.location": "Сидней, Австралия",
 
     // Common
     "common.loading": "Загрузка...",

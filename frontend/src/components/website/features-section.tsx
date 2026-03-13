@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { SiteSettings, FeatureItem } from '@/lib/site-settings';
+import { useWT } from '@/lib/website-i18n';
 
 interface FeaturesSectionProps {
   settings: SiteSettings;
@@ -41,60 +42,33 @@ const COLOR_MAP: Record<string, { bg: string; text: string }> = {
   pink: { bg: 'bg-pink-100', text: 'text-pink-600' },
 };
 
-// ── Default features ──
+// ── Default feature keys (translated via i18n) ──
 
-const DEFAULT_FEATURES: FeatureItem[] = [
-  {
-    icon: 'headphones',
-    title: '24/7 Customer Support',
-    description:
-      'Our dedicated support team is available around the clock to assist you with any questions or changes to your booking.',
-    color: 'blue',
-  },
-  {
-    icon: 'star',
-    title: 'Meet & Greet Service',
-    description:
-      'Your driver will meet you at arrivals with a name sign, help with luggage, and escort you to your vehicle.',
-    color: 'green',
-  },
-  {
-    icon: 'shield',
-    title: 'Professional Drivers',
-    description:
-      'Licensed, experienced, and vetted drivers with modern, well-maintained vehicles for a safe and comfortable ride.',
-    color: 'purple',
-  },
-  {
-    icon: 'plane',
-    title: 'Flight Monitoring',
-    description:
-      'We track your flight in real-time and adjust pickup times automatically for delays or early arrivals.',
-    color: 'indigo',
-  },
-  {
-    icon: 'clock',
-    title: 'No Hidden Fees',
-    description:
-      'The price you see is the price you pay. No surge pricing, no unexpected charges, and free cancellation up to 24h before.',
-    color: 'amber',
-  },
-  {
-    icon: 'credit-card',
-    title: 'Secure Payment',
-    description:
-      'Pay securely online or choose to pay your driver on arrival. All transactions are encrypted and protected.',
-    color: 'teal',
-  },
+const DEFAULT_FEATURE_KEYS = [
+  { icon: 'headphones', titleKey: 'features.supportTitle', descKey: 'features.supportDesc', color: 'blue' },
+  { icon: 'star', titleKey: 'features.meetGreetTitle', descKey: 'features.meetGreetDesc', color: 'green' },
+  { icon: 'shield', titleKey: 'features.driversTitle', descKey: 'features.driversDesc', color: 'purple' },
+  { icon: 'plane', titleKey: 'features.flightTitle', descKey: 'features.flightDesc', color: 'indigo' },
+  { icon: 'clock', titleKey: 'features.noFeesTitle', descKey: 'features.noFeesDesc', color: 'amber' },
+  { icon: 'credit-card', titleKey: 'features.paymentTitle', descKey: 'features.paymentDesc', color: 'teal' },
 ];
 
 export function FeaturesSection({ settings }: FeaturesSectionProps) {
+  const t = useWT();
+
   if (!settings.featuresEnabled) return null;
 
-  const features: FeatureItem[] =
-    settings.featuresJson && Array.isArray(settings.featuresJson) && settings.featuresJson.length > 0
-      ? settings.featuresJson
-      : DEFAULT_FEATURES;
+  const hasCmsFeatures =
+    settings.featuresJson && Array.isArray(settings.featuresJson) && settings.featuresJson.length > 0;
+
+  const features: FeatureItem[] = hasCmsFeatures
+    ? settings.featuresJson!
+    : DEFAULT_FEATURE_KEYS.map((f) => ({
+        icon: f.icon,
+        title: t(f.titleKey),
+        description: t(f.descKey),
+        color: f.color,
+      }));
 
   return (
     <section className="bg-white px-4 py-16 sm:py-24">
@@ -105,7 +79,7 @@ export function FeaturesSection({ settings }: FeaturesSectionProps) {
             {settings.featuresTitle}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-gray-500">
-            Trusted by thousands of travelers every year for reliable, comfortable transfers
+            {t('features.subtitle')}
           </p>
         </div>
 

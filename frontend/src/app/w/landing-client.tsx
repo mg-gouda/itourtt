@@ -131,22 +131,19 @@ export function WebsiteLandingClient({ settings }: LandingClientProps) {
           <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
             {[
               {
-                quote:
-                  'Excellent service from start to finish. The driver was waiting for us at arrivals and the vehicle was immaculate.',
-                name: 'Sarah M.',
-                location: 'London, UK',
+                quote: t('testimonial.1.quote'),
+                name: t('testimonial.1.name'),
+                location: t('testimonial.1.location'),
               },
               {
-                quote:
-                  'We booked a day tour to the Pyramids. The driver was friendly, knowledgeable, and made our trip unforgettable.',
-                name: 'Marco R.',
-                location: 'Rome, Italy',
+                quote: t('testimonial.2.quote'),
+                name: t('testimonial.2.name'),
+                location: t('testimonial.2.location'),
               },
               {
-                quote:
-                  'Very professional. Flight was delayed by 2 hours but they tracked it and the driver was still there. Highly recommend!',
-                name: 'James K.',
-                location: 'Sydney, Australia',
+                quote: t('testimonial.3.quote'),
+                name: t('testimonial.3.name'),
+                location: t('testimonial.3.location'),
               },
             ].map((testimonial) => (
               <div
