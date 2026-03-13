@@ -20,11 +20,16 @@ deploy_env() {
 
   # Build backend image
   echo ">> Building backend image..."
-  docker build -t itourtt-backend:3.2.0 backend -q
+  docker build --no-cache -t itourtt-backend:3.2.0 backend -q
 
   # Build frontend image
   echo ">> Building frontend image..."
-  docker build -t itourtt-frontend:3.2.0 frontend -q
+  docker build --no-cache -t itourtt-frontend:3.2.0 frontend -q
+
+  # Import images into k3s containerd
+  echo ">> Importing images into k3s..."
+  docker save itourtt-backend:3.2.0 | k3s ctr images import -
+  docker save itourtt-frontend:3.2.0 | k3s ctr images import -
 
   # Run database migrations
   echo ">> Running database migrations..."
