@@ -224,6 +224,7 @@ model User {
   driverUnlockedJobs TrafficJob[]       @relation("JobDriverUnlockedBy")
   repUnlockedJobs   TrafficJob[]        @relation("JobRepUnlockedBy")
   supplierUnlockedJobs TrafficJob[]     @relation("JobSupplierUnlockedBy")
+  editUnlockedJobs   TrafficJob[]      @relation("JobEditUnlockedBy")
   assignments       TrafficAssignment[] @relation("AssignedBy")
   rep               Rep?
   driver            Driver?
@@ -971,6 +972,10 @@ model TrafficJob {
   supplierUnlockedAt   DateTime? @map("supplier_unlocked_at")
   supplierUnlockedById String?   @map("supplier_unlocked_by_id")
 
+  // B2B edit 1-week lock override
+  editUnlockedAt       DateTime? @map("edit_unlocked_at")
+  editUnlockedById     String?   @map("edit_unlocked_by_id")
+
   createdById     String         @map("created_by_id")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
@@ -982,6 +987,7 @@ model TrafficJob {
   driverUnlockedBy   User?     @relation("JobDriverUnlockedBy", fields: [driverUnlockedById], references: [id])
   repUnlockedBy      User?     @relation("JobRepUnlockedBy", fields: [repUnlockedById], references: [id])
   supplierUnlockedBy User?     @relation("JobSupplierUnlockedBy", fields: [supplierUnlockedById], references: [id])
+  editUnlockedBy     User?     @relation("JobEditUnlockedBy", fields: [editUnlockedById], references: [id])
   originAirport      Airport?  @relation("JobOriginAirport", fields: [originAirportId], references: [id])
   originZone         Zone?     @relation("JobOriginZone", fields: [originZoneId], references: [id])
   originHotel        Hotel?    @relation("JobOriginHotel", fields: [originHotelId], references: [id])

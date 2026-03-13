@@ -21,7 +21,7 @@ import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { localDateStr } from "@/lib/utils";
 
-type LockTab = "dispatcher" | "driver" | "rep" | "supplier";
+type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit";
 
 interface JobLockItem {
   id: string;
@@ -67,6 +67,8 @@ function getEntityName(job: JobLockItem, tab: LockTab): string {
       return job.assignment.rep?.name || "-";
     case "supplier":
       return job.assignment.vehicle?.supplier?.legalName || "-";
+    case "edit":
+      return job.agent?.legalName || job.customer?.legalName || "-";
     default:
       return "-";
   }
@@ -155,6 +157,9 @@ export default function JobLocksPage() {
             <TabsTrigger value="supplier">
               {t("jobLocks.tabs.supplier")}
             </TabsTrigger>
+            <TabsTrigger value="edit">
+              {t("jobLocks.tabs.edit") || "B2B Edit"}
+            </TabsTrigger>
           </TabsList>
 
           {/* Filters */}
@@ -207,7 +212,7 @@ export default function JobLocksPage() {
           </div>
 
           {/* Table content (same for all tabs) */}
-          {["dispatcher", "driver", "rep", "supplier"].map((tab) => (
+          {["dispatcher", "driver", "rep", "supplier", "edit"].map((tab) => (
             <TabsContent key={tab} value={tab}>
               <JobLocksTable
                 jobs={jobs}

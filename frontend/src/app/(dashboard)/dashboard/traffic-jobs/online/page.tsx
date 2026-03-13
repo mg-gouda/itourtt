@@ -89,6 +89,7 @@ interface TrafficJob {
   wheelChairQty: number;
   printSign: boolean;
   createdAt: string;
+  editUnlockedAt: string | null;
   agentId: string | null;
   originAirportId: string | null;
   originZoneId: string | null;
@@ -128,9 +129,10 @@ const bookingStatusColors: Record<string, string> = {
   CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
 };
 
-function isJobLocked(createdAt: string): boolean {
-  const created = new Date(createdAt);
-  const oneWeekLater = new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000);
+function isJobLocked(jobDate: string, editUnlockedAt?: string | null): boolean {
+  if (editUnlockedAt) return false; // explicitly unlocked
+  const serviceDate = new Date(jobDate);
+  const oneWeekLater = new Date(serviceDate.getTime() + 7 * 24 * 60 * 60 * 1000);
   return new Date() > oneWeekLater;
 }
 
@@ -301,7 +303,7 @@ export default function OnlineJobPage() {
 
   /* ── Select job for editing ── */
   const handleSelectJob = (job: TrafficJob) => {
-    if (isJobLocked(job.createdAt)) return;
+    if (isJobLocked(job.jobDate, job.editUnlockedAt)) return;
 
     setEditingJobId(job.id);
 
@@ -982,7 +984,7 @@ export default function OnlineJobPage() {
               </TableHeader>
               <TableBody>
                 {sortedData.map((job, idx) => {
-                  const locked = isJobLocked(job.createdAt);
+                  const locked = isJobLocked(job.jobDate, job.editUnlockedAt);
                   const isSelected = editingJobId === job.id;
                   return (
                     <TableRow

@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateJobDto } from './dto/create-job.dto.js';
@@ -230,14 +231,16 @@ export class TrafficJobsService {
     return result;
   }
 
-  async update(id: string, dto: UpdateJobDto, userId: string) {
+  async update(id: string, dto: UpdateJobDto, userId: string, userRole?: string) {
     const job = await this.findOne(id);
 
-    // 1-week lock check
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    if (job.createdAt < oneWeekAgo) {
-      throw new BadRequestException('Job is locked after 1 week and cannot be edited');
+    // 1-week edit lock: blocks editing 7 days after the service date
+    // Admin and Manager roles bypass this lock
+    if (userRole !== 'ADMIN' && userRole !== 'MANAGER') {
+      const oneWeekAfterService = new Date(job.jobDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      if (new Date() > oneWeekAfterService && !job.editUnlockedAt) {
+        throw new ForbiddenException('Job is locked after 1 week from the service date and cannot be edited');
+      }
     }
 
     // Validate origin if any origin field is provided

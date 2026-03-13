@@ -543,6 +543,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'job-locks.driver', labelKey: 'permissions.jobLocks.driver' },
       { key: 'job-locks.rep', labelKey: 'permissions.jobLocks.rep' },
       { key: 'job-locks.supplier', labelKey: 'permissions.jobLocks.supplier' },
+      { key: 'job-locks.edit', labelKey: 'permissions.jobLocks.edit' },
     ],
   },
 

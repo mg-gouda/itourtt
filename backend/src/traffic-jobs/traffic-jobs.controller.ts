@@ -73,8 +73,9 @@ export class TrafficJobsController {
     @Param('id') id: string,
     @Body() dto: UpdateJobDto,
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
   ) {
-    const job = await this.trafficJobsService.update(id, dto, userId);
+    const job = await this.trafficJobsService.update(id, dto, userId, userRole);
     return new ApiResponse(job, 'Traffic job updated successfully');
   }
 

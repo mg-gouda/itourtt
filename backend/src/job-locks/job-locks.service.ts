@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-type LockTab = 'dispatcher' | 'driver' | 'rep' | 'supplier';
+type LockTab = 'dispatcher' | 'driver' | 'rep' | 'supplier' | 'edit';
 
 @Injectable()
 export class JobLocksService {
@@ -45,6 +45,7 @@ export class JobLocksService {
         driverUnlockedAt: true,
         repUnlockedAt: true,
         supplierUnlockedAt: true,
+        editUnlockedAt: true,
         agent: { select: { legalName: true } },
         customer: { select: { legalName: true } },
         fromZone: { select: { name: true } },
@@ -108,6 +109,7 @@ export class JobLocksService {
       driver: 'driverUnlockedAt',
       rep: 'repUnlockedAt',
       supplier: 'supplierUnlockedAt',
+      edit: 'editUnlockedAt',
     };
     return map[tab];
   }
@@ -119,6 +121,7 @@ export class JobLocksService {
       driver: { driverUnlockedAt: now, driverUnlockedById: userId },
       rep: { repUnlockedAt: now, repUnlockedById: userId },
       supplier: { supplierUnlockedAt: now, supplierUnlockedById: userId },
+      edit: { editUnlockedAt: now, editUnlockedById: userId },
     };
     return map[tab];
   }
@@ -129,6 +132,7 @@ export class JobLocksService {
       driver: { driverUnlockedAt: null, driverUnlockedById: null },
       rep: { repUnlockedAt: null, repUnlockedById: null },
       supplier: { supplierUnlockedAt: null, supplierUnlockedById: null },
+      edit: { editUnlockedAt: null, editUnlockedById: null },
     };
     return map[tab];
   }

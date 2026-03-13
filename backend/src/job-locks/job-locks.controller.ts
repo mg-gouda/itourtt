@@ -138,4 +138,34 @@ export class JobLocksController {
     const result = await this.jobLocksService.lockJob('supplier', id);
     return new ApiResponse(result, 'Job locked for supplier');
   }
+
+  // ─── EDIT (B2B 1-week lock) ───
+
+  @Get('edit')
+  @Permissions('job-locks.edit')
+  async getEditJobs(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Query('search') search?: string,
+  ) {
+    const result = await this.jobLocksService.findJobs('edit', dateFrom, dateTo, search);
+    return new ApiResponse(result);
+  }
+
+  @Post('edit/:id/unlock')
+  @Permissions('job-locks.edit')
+  async unlockEdit(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    const result = await this.jobLocksService.unlockJob('edit', id, userId);
+    return new ApiResponse(result, 'Job unlocked for editing');
+  }
+
+  @Post('edit/:id/lock')
+  @Permissions('job-locks.edit')
+  async lockEdit(@Param('id') id: string) {
+    const result = await this.jobLocksService.lockJob('edit', id);
+    return new ApiResponse(result, 'Job locked for editing');
+  }
 }
