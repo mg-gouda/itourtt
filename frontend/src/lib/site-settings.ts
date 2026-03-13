@@ -133,9 +133,12 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
     const json = await res.json();
     const data = json.data ?? json;
 
-    // Prefix backend-hosted file URLs so they resolve on the frontend
+    // For /uploads/ URLs: in production the ingress serves them from the same
+    // domain, so keep them as relative paths. Only prefix in local dev where
+    // the backend runs on a different port.
+    const PUBLIC_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
     const prefixUrl = (url: string | null): string | null =>
-      url && url.startsWith('/uploads/') ? `${API_BASE}${url}` : url;
+      url && url.startsWith('/uploads/') ? `${PUBLIC_URL}${url}` : url;
 
     return {
       ...DEFAULT_SITE_SETTINGS,
