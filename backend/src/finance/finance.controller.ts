@@ -229,6 +229,20 @@ export class FinanceController {
     return new ApiResponse(customers);
   }
 
+  @Get('customer-jobs')
+  @Permissions('finance.invoices')
+  async getCustomerJobsForInvoice(
+    @Query('customerId', ParseUUIDPipe) customerId: string,
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+  ) {
+    if (!dateFrom || !dateTo) {
+      throw new BadRequestException('dateFrom and dateTo query parameters are required');
+    }
+    const jobs = await this.financeService.getCustomerJobsForInvoice(customerId, dateFrom, dateTo);
+    return new ApiResponse(jobs);
+  }
+
   @Get('agent-jobs')
   @Permissions('finance.invoices')
   async getAgentJobsForInvoice(

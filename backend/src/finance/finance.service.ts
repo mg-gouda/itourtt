@@ -1026,6 +1026,74 @@ export class FinanceService {
     });
   }
 
+  async getCustomerJobsForInvoice(customerId: string, dateFrom: string, dateTo: string) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: customerId, deletedAt: null },
+    });
+    if (!customer) {
+      throw new NotFoundException(`Customer with ID "${customerId}" not found`);
+    }
+
+    const [jobs, priceItems] = await Promise.all([
+      this.prisma.trafficJob.findMany({
+        where: {
+          customerId,
+          status: 'COMPLETED' as any,
+          deletedAt: null,
+          jobDate: {
+            gte: new Date(dateFrom),
+            lte: new Date(dateTo),
+          },
+          invoiceLines: { none: {} },
+        },
+        include: {
+          fromZone: { select: { id: true, name: true } },
+          toZone: { select: { id: true, name: true } },
+          originAirport: { select: { id: true, code: true, name: true } },
+          destinationAirport: { select: { id: true, code: true, name: true } },
+          originHotel: { select: { id: true, name: true } },
+          destinationHotel: { select: { id: true, name: true } },
+          flight: { select: { flightNo: true, carrier: true } },
+          assignment: {
+            include: {
+              vehicle: {
+                include: { vehicleType: { select: { id: true, name: true } } },
+              },
+            },
+          },
+        },
+        orderBy: { jobDate: 'asc' },
+      }),
+      this.prisma.customerPriceItem.findMany({
+        where: { customerId },
+      }),
+    ]);
+
+    // Build price map: serviceType-fromZoneId-toZoneId-vehicleTypeId → priceItem
+    const priceMap = new Map<string, typeof priceItems[0]>();
+    for (const item of priceItems) {
+      const key = `${item.serviceType}-${item.fromZoneId}-${item.toZoneId}-${item.vehicleTypeId}`;
+      priceMap.set(key, item);
+    }
+
+    return jobs.map((job: any) => {
+      const vehicleTypeId = job.assignment?.vehicle?.vehicleType?.id;
+      let suggestedTransferPrice = 0;
+      let suggestedDriverTip = 0;
+
+      if (job.fromZoneId && job.toZoneId && vehicleTypeId) {
+        const key = `${job.serviceType}-${job.fromZoneId}-${job.toZoneId}-${vehicleTypeId}`;
+        const priceItem = priceMap.get(key);
+        if (priceItem) {
+          suggestedTransferPrice = Number(priceItem.transferPrice);
+          suggestedDriverTip = Number(priceItem.driverTip);
+        }
+      }
+
+      return { ...job, suggestedTransferPrice, suggestedDriverTip };
+    });
+  }
+
   async getAgentJobsForInvoice(agentId: string, dateFrom: string, dateTo: string) {
     const agent = await this.prisma.agent.findFirst({
       where: { id: agentId, deletedAt: null },

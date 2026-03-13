@@ -314,6 +314,13 @@ export default function FinancePage() {
   const [jobsFetching, setJobsFetching] = useState(false);
   const [jobsFetched, setJobsFetched] = useState(false);
 
+  // Customer invoice: job fetch workflow
+  const [customerJobDateFrom, setCustomerJobDateFrom] = useState("");
+  const [customerJobDateTo, setCustomerJobDateTo] = useState("");
+  const [customerFetchedJobs, setCustomerFetchedJobs] = useState<any[]>([]);
+  const [customerJobsFetching, setCustomerJobsFetching] = useState(false);
+  const [customerJobsFetched, setCustomerJobsFetched] = useState(false);
+
   // Collections
   const [collections, setCollections] = useState<CollectionJob[]>([]);
   const [collectionsLoading, setCollectionsLoading] = useState(false);
@@ -655,6 +662,9 @@ export default function FinancePage() {
     setSelectedJobIds([]);
     setFetchedJobs([]);
     setJobsFetched(false);
+    setCustomerFetchedJobs([]);
+    setCustomerJobsFetched(false);
+    setCustomerJobOverrides({});
     setCreateLines([
       { description: "", quantity: 1, unitPrice: 0, taxRate: 0, taxAmount: 0, lineTotal: 0 },
     ]);
@@ -668,12 +678,13 @@ export default function FinancePage() {
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     setAgentJobDateFrom(localDateStr(firstOfMonth));
     setAgentJobDateTo(localDateStr(now));
+    setCustomerJobDateFrom(localDateStr(firstOfMonth));
+    setCustomerJobDateTo(localDateStr(now));
 
     setOptionsLoading(true);
-    const [agentRes, customerRes, jobRes] = await Promise.allSettled([
+    const [agentRes, customerRes] = await Promise.allSettled([
       api.get("/finance/agent-options"),
       api.get("/finance/customer-options"),
-      api.get("/traffic-jobs?status=COMPLETED&limit=500"),
     ]);
     if (agentRes.status === "fulfilled") {
       setAgentOptions(
@@ -690,18 +701,6 @@ export default function FinancePage() {
           id: c.id,
           legalName: c.legalName,
           creditDays: c.creditDays,
-        }))
-      );
-    }
-    if (jobRes.status === "fulfilled") {
-      setJobOptions(
-        (jobRes.value.data.data || []).map((j: any) => ({
-          id: j.id,
-          internalRef: j.internalRef,
-          serviceDate: j.serviceDate || j.jobDate,
-          serviceType: j.serviceType,
-          route: `${j.fromZone?.name || j.originAirport?.code || '?'} → ${j.toZone?.name || j.destinationAirport?.code || '?'}`,
-          vehicleType: j.assignment?.vehicle?.vehicleType?.name || '',
         }))
       );
     }
@@ -825,6 +824,49 @@ export default function FinancePage() {
     );
   }
 
+  async function fetchCustomerJobs() {
+    if (!selectedCustomerId) {
+      toast.error(t("finance.selectCustomer"));
+      return;
+    }
+    if (!customerJobDateFrom || !customerJobDateTo) {
+      toast.error(t("finance.selectDateRange"));
+      return;
+    }
+    setCustomerJobsFetching(true);
+    try {
+      const { data } = await api.get(
+        `/finance/customer-jobs?customerId=${selectedCustomerId}&dateFrom=${customerJobDateFrom}&dateTo=${customerJobDateTo}`
+      );
+      const jobs = (data.data || []).map((j: any) => ({
+        ...j,
+        selected: true,
+        transferPrice: j.suggestedTransferPrice || 0,
+        driverTip: j.suggestedDriverTip || 0,
+      }));
+      setCustomerFetchedJobs(jobs);
+      setCustomerJobsFetched(true);
+      if (jobs.length === 0) {
+        toast.info(t("finance.noJobsFound"));
+      }
+    } catch {
+      toast.error(t("finance.failedFetchJobs"));
+    } finally {
+      setCustomerJobsFetching(false);
+    }
+  }
+
+  function toggleCustomerJob(jobId: string) {
+    setCustomerFetchedJobs((prev) =>
+      prev.map((j) => (j.id === jobId ? { ...j, selected: !j.selected } : j))
+    );
+  }
+
+  function toggleAllCustomerJobs() {
+    const allSelected = customerFetchedJobs.every((j) => j.selected);
+    setCustomerFetchedJobs((prev) => prev.map((j) => ({ ...j, selected: !allSelected })));
+  }
+
   async function downloadInvoicePdf(invoiceId: string) {
     try {
       const { data } = await api.get(`/finance/invoices/${invoiceId}/pdf`, {
@@ -935,29 +977,23 @@ export default function FinancePage() {
         toast.error(t("finance.selectCustomer"));
         return;
       }
-      if (selectedJobIds.length === 0) {
+      const selectedCustomerJobs = customerFetchedJobs.filter((j) => j.selected);
+      if (selectedCustomerJobs.length === 0) {
         toast.error(t("finance.noJobsSelected"));
         return;
       }
       setCreateSubmitting(true);
       try {
-        const hasOverrides = Object.values(customerJobOverrides).some(
-          (o) => o.transferPrice !== "" || o.driverTip !== ""
-        );
         const payload: Record<string, unknown> = {
           customerId: selectedCustomerId,
           issueDate,
           dueDate: dueDate || undefined,
+          jobs: selectedCustomerJobs.map((j) => ({
+            trafficJobId: j.id,
+            transferPrice: j.transferPrice,
+            driverTip: j.driverTip,
+          })),
         };
-        if (hasOverrides) {
-          payload.jobs = selectedJobIds.map((id) => ({
-            trafficJobId: id,
-            ...(customerJobOverrides[id]?.transferPrice !== "" && { transferPrice: parseFloat(customerJobOverrides[id].transferPrice) }),
-            ...(customerJobOverrides[id]?.driverTip !== "" && { driverTip: parseFloat(customerJobOverrides[id].driverTip) }),
-          }));
-        } else {
-          payload.trafficJobIds = selectedJobIds;
-        }
         await api.post("/finance/customer-invoices/generate", payload);
         toast.success(t("finance.customerInvoicesGenerated"));
         setCreateOpen(false);
@@ -2052,153 +2088,192 @@ export default function FinancePage() {
                 </>
               )}
 
-              {/* Customer mode: entity selector + dates */}
+              {/* Customer mode: entity selector + date range + fetch */}
               {createType === "customer" && (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">{t("finance.selectCustomer")} *</Label>
-                    <Select
-                      value={selectedCustomerId}
-                      onValueChange={(v) => {
-                        setSelectedCustomerId(v);
-                        const cust = customerOptions.find((c) => c.id === v);
-                        if (cust?.creditDays) {
-                          const d = new Date(issueDate);
-                          d.setDate(d.getDate() + cust.creditDays);
-                          setDueDate(localDateStr(d));
-                        }
-                      }}
+                <>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 items-end">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">{t("finance.selectCustomer")} *</Label>
+                      <Select
+                        value={selectedCustomerId}
+                        onValueChange={(v) => {
+                          setSelectedCustomerId(v);
+                          setCustomerFetchedJobs([]);
+                          setCustomerJobsFetched(false);
+                          const cust = customerOptions.find((c) => c.id === v);
+                          if (cust?.creditDays) {
+                            const d = new Date(issueDate);
+                            d.setDate(d.getDate() + cust.creditDays);
+                            setDueDate(localDateStr(d));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={t("finance.selectCustomer")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customerOptions.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.legalName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">{t("finance.jobPeriodFrom")}</Label>
+                      <Input
+                        className="h-9"
+                        type="date"
+                        value={customerJobDateFrom}
+                        onChange={(e) => setCustomerJobDateFrom(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">{t("finance.jobPeriodTo")}</Label>
+                      <Input
+                        className="h-9"
+                        type="date"
+                        value={customerJobDateTo}
+                        onChange={(e) => setCustomerJobDateTo(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      className="h-9 gap-1.5 text-xs"
+                      onClick={fetchCustomerJobs}
+                      disabled={customerJobsFetching || !selectedCustomerId}
                     >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder={t("finance.selectCustomer")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customerOptions.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.legalName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {customerJobsFetching ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <FileSpreadsheet className="h-3.5 w-3.5" />
+                      )}
+                      {t("finance.fetchJobs")}
+                    </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">{t("finance.issueDate")} *</Label>
-                      <Input
-                        className="h-9"
-                        type="date"
-                        value={issueDate}
-                        onChange={(e) => setIssueDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">{t("finance.dueDate")} *</Label>
-                      <Input
-                        className="h-9"
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              {/* Customer mode: job selection */}
-              {createType === "customer" && (
-                <div className="space-y-3 border-t border-border pt-3">
-                  <h4 className="text-sm font-medium text-foreground">{t("finance.selectJobs")} *</h4>
-                  {jobOptions.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No completed jobs found</p>
-                  ) : (
-                    <div className="max-h-80 overflow-y-auto border border-border rounded-md">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="border-border bg-muted/50">
-                            <TableHead className="text-xs w-10"></TableHead>
-                            <TableHead className="text-xs">Ref</TableHead>
-                            <TableHead className="text-xs">{t("common.date")}</TableHead>
-                            <TableHead className="text-xs">{t("jobs.serviceType")}</TableHead>
-                            <TableHead className="text-xs">{t("dispatch.route") || "Route"}</TableHead>
-                            <TableHead className="text-xs">{t("finance.transferPrice") || "Transfer Price"}</TableHead>
-                            <TableHead className="text-xs">{t("finance.driverTip") || "Driver Tip"}</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {jobOptions.map((job) => {
-                            const isSelected = selectedJobIds.includes(job.id);
-                            const override = customerJobOverrides[job.id];
-                            return (
-                            <TableRow
-                              key={job.id}
-                              className={`border-border cursor-pointer ${isSelected ? "bg-primary/10" : ""}`}
-                              onClick={() => toggleJobSelection(job.id)}
-                            >
-                              <TableCell>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={() => toggleJobSelection(job.id)}
-                                />
-                              </TableCell>
-                              <TableCell className="text-xs font-mono">{job.internalRef}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">
-                                {formatDate(job.serviceDate)}
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">
-                                {job.serviceType}
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">
-                                {job.route || "\u2014"}
-                              </TableCell>
-                              <TableCell onClick={(e) => e.stopPropagation()}>
-                                {isSelected ? (
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={override?.transferPrice ?? ""}
-                                    onChange={(e) => setCustomerJobOverrides((prev) => ({
-                                      ...prev,
-                                      [job.id]: { ...prev[job.id], transferPrice: e.target.value },
-                                    }))}
-                                    placeholder="Auto"
-                                    className="h-7 w-24 text-xs border-border bg-card"
+                  {/* Fetched customer jobs table */}
+                  {customerJobsFetched && (
+                    <div className="space-y-3 border-t border-border pt-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-foreground">
+                          {customerFetchedJobs.filter((j) => j.selected).length} / {customerFetchedJobs.length} {t("finance.jobsSelected")}
+                        </h4>
+                      </div>
+
+                      {customerFetchedJobs.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-4 text-center">
+                          {t("finance.noJobsFound")}
+                        </p>
+                      ) : (
+                        <div className="max-h-80 overflow-y-auto border border-border rounded-md">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="border-border bg-muted/50">
+                                <TableHead className="text-xs w-10">
+                                  <Checkbox
+                                    checked={customerFetchedJobs.length > 0 && customerFetchedJobs.every((j) => j.selected)}
+                                    onCheckedChange={toggleAllCustomerJobs}
                                   />
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">\u2014</span>
-                                )}
-                              </TableCell>
-                              <TableCell onClick={(e) => e.stopPropagation()}>
-                                {isSelected ? (
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={override?.driverTip ?? ""}
-                                    onChange={(e) => setCustomerJobOverrides((prev) => ({
-                                      ...prev,
-                                      [job.id]: { ...prev[job.id], driverTip: e.target.value },
-                                    }))}
-                                    placeholder="Auto"
-                                    className="h-7 w-24 text-xs border-border bg-card"
-                                  />
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">\u2014</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                                </TableHead>
+                                <TableHead className="text-xs">Ref</TableHead>
+                                <TableHead className="text-xs">{t("common.date")}</TableHead>
+                                <TableHead className="text-xs">{t("jobs.serviceType")}</TableHead>
+                                <TableHead className="text-xs">{t("finance.route") || "Route"}</TableHead>
+                                <TableHead className="text-xs">{t("finance.vehicleType")}</TableHead>
+                                <TableHead className="text-xs w-28">{t("finance.transferPrice") || "Transfer Price"} *</TableHead>
+                                <TableHead className="text-xs w-28">{t("finance.driverTip") || "Driver Tip"}</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {customerFetchedJobs.map((job) => {
+                                const route =
+                                  (job.originAirport?.code || job.fromZone?.name || job.originHotel?.name || "?") +
+                                  " \u2192 " +
+                                  (job.destinationAirport?.code || job.toZone?.name || job.destinationHotel?.name || "?");
+                                return (
+                                  <TableRow
+                                    key={job.id}
+                                    className={`border-border cursor-pointer ${job.selected ? "bg-primary/10" : ""}`}
+                                    onClick={() => toggleCustomerJob(job.id)}
+                                  >
+                                    <TableCell>
+                                      <Checkbox
+                                        checked={job.selected}
+                                        onCheckedChange={() => toggleCustomerJob(job.id)}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="text-xs font-mono">{job.internalRef}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {formatDate(job.jobDate)}
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {job.serviceType}
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {route}
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {job.assignment?.vehicle?.vehicleType?.name || "\u2014"}
+                                    </TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={job.transferPrice}
+                                        onChange={(e) => setCustomerFetchedJobs((prev) =>
+                                          prev.map((j) => j.id === job.id ? { ...j, transferPrice: parseFloat(e.target.value) || 0 } : j)
+                                        )}
+                                        className="h-7 w-24 text-xs border-border bg-card"
+                                      />
+                                    </TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={job.driverTip}
+                                        onChange={(e) => setCustomerFetchedJobs((prev) =>
+                                          prev.map((j) => j.id === job.id ? { ...j, driverTip: parseFloat(e.target.value) || 0 } : j)
+                                        )}
+                                        className="h-7 w-24 text-xs border-border bg-card"
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
                     </div>
                   )}
-                  {selectedJobIds.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedJobIds.length} job(s) selected
-                    </p>
+
+                  {/* Issue/due dates */}
+                  {customerJobsFetched && customerFetchedJobs.some((j) => j.selected) && (
+                    <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">{t("finance.issueDate")} *</Label>
+                        <Input
+                          className="h-9"
+                          type="date"
+                          value={issueDate}
+                          onChange={(e) => setIssueDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">{t("finance.dueDate")} *</Label>
+                        <Input
+                          className="h-9"
+                          type="date"
+                          value={dueDate}
+                          onChange={(e) => setDueDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
                   )}
-                </div>
+                </>
               )}
             </div>
           )}
