@@ -1012,6 +1012,20 @@ export class FinanceService {
     });
   }
 
+  async getCustomerOptions() {
+    return this.prisma.customer.findMany({
+      where: { isActive: true, deletedAt: null },
+      select: {
+        id: true,
+        legalName: true,
+        tradeName: true,
+        currency: true,
+        creditDays: true,
+      },
+      orderBy: { legalName: 'asc' },
+    });
+  }
+
   async getAgentJobsForInvoice(agentId: string, dateFrom: string, dateTo: string) {
     const agent = await this.prisma.agent.findFirst({
       where: { id: agentId, deletedAt: null },

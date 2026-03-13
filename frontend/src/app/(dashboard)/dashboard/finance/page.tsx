@@ -672,7 +672,7 @@ export default function FinancePage() {
     setOptionsLoading(true);
     const [agentRes, customerRes, jobRes] = await Promise.allSettled([
       api.get("/finance/agent-options"),
-      api.get("/customers?limit=200"),
+      api.get("/finance/customer-options"),
       api.get("/traffic-jobs?status=COMPLETED&limit=500"),
     ]);
     if (agentRes.status === "fulfilled") {

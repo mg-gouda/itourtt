@@ -222,6 +222,13 @@ export class FinanceController {
     return new ApiResponse(agents);
   }
 
+  @Get('customer-options')
+  @Permissions('finance.invoices')
+  async getCustomerOptions() {
+    const customers = await this.financeService.getCustomerOptions();
+    return new ApiResponse(customers);
+  }
+
   @Get('agent-jobs')
   @Permissions('finance.invoices')
   async getAgentJobsForInvoice(
