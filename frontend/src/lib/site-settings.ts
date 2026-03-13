@@ -2,7 +2,14 @@
 // Fetches configurable site settings from the public API.
 // Falls back to sensible defaults when the API is unreachable.
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+// For SSR (server components), use the internal k8s service URL if available.
+// NEXT_PUBLIC_API_URL is baked at build time and may not resolve inside the pod.
+const API_BASE =
+  (typeof window === 'undefined'
+    ? process.env.INTERNAL_API_URL
+    : undefined) ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  'http://localhost:3001';
 const PUBLIC_API = `${API_BASE}/api/public`;
 
 // ── TypeScript interface matching the WebsiteSettings model ──
@@ -116,6 +123,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
   try {
     const res = await fetch(`${PUBLIC_API}/website-settings`, {
       next: { revalidate: 60 }, // ISR: revalidate every 60s
+      signal: AbortSignal.timeout(5000), // 5s timeout to prevent SSR hangs
     });
 
     if (!res.ok) {

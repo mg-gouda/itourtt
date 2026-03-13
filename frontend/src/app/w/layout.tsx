@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { fetchSiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/site-settings';
 import { WebsiteShell } from './website-shell';
 
+export const dynamic = 'force-dynamic';
+
 // ── Dynamic metadata from site settings ──
 
 export async function generateMetadata(): Promise<Metadata> {

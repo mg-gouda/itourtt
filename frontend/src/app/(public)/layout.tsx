@@ -1,6 +1,8 @@
 import { fetchSiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/site-settings';
 import { WebsiteShell } from '../w/website-shell';
 
+export const dynamic = 'force-dynamic';
+
 export default async function PublicLayout({
   children,
 }: {
