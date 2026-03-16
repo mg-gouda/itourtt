@@ -138,6 +138,9 @@ export default function SuppliersPage() {
   const [indEmail, setIndEmail] = useState("");
   const [indNationalIdFile, setIndNationalIdFile] = useState<File | null>(null);
   const nationalIdRef = useRef<HTMLInputElement>(null);
+  // Car types
+  const [vehicleTypes, setVehicleTypes] = useState<{ id: string; name: string; seatCapacity: number }[]>([]);
+  const [selectedCarTypeIds, setSelectedCarTypeIds] = useState<Set<string>>(new Set());
 
   const fetchSuppliers = useCallback(async (p = page) => {
     try {
@@ -159,6 +162,13 @@ export default function SuppliersPage() {
     setSelectedIds(new Set());
     fetchSuppliers(page);
   }, [page]);
+
+  // Fetch vehicle types once
+  useEffect(() => {
+    api.get("/vehicles/types").then((res) => {
+      setVehicleTypes(res.data.data || res.data || []);
+    }).catch(() => {});
+  }, []);
 
   async function handleToggleStatus(id: string) {
     try {
@@ -252,6 +262,11 @@ export default function SuppliersPage() {
     setCountry(supplier.country || "");
     setPhone(supplier.phone || "");
     setEmail(supplier.email || "");
+    // Load car types for this supplier
+    api.get(`/suppliers/${supplier.id}/car-types`).then((res) => {
+      const types = res.data.data || res.data || [];
+      setSelectedCarTypeIds(new Set(types.map((t: { id: string }) => t.id)));
+    }).catch(() => setSelectedCarTypeIds(new Set()));
     setEditDialogOpen(true);
   }
 
@@ -264,16 +279,21 @@ export default function SuppliersPage() {
 
     try {
       setSubmitting(true);
-      await api.put(`/suppliers/${editingSupplier.id}`, {
-        legalName: legalName.trim(),
-        tradeName: tradeName.trim(),
-        taxId: taxId.trim(),
-        address: address.trim(),
-        city: city.trim(),
-        country: country.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-      });
+      await Promise.all([
+        api.put(`/suppliers/${editingSupplier.id}`, {
+          legalName: legalName.trim(),
+          tradeName: tradeName.trim() || undefined,
+          taxId: taxId.trim() || undefined,
+          address: address.trim() || undefined,
+          city: city.trim() || undefined,
+          country: country.trim() || undefined,
+          phone: phone.trim() || undefined,
+          email: email.trim() || undefined,
+        }),
+        api.put(`/suppliers/${editingSupplier.id}/car-types`, {
+          vehicleTypeIds: Array.from(selectedCarTypeIds),
+        }),
+      ]);
       toast.success(t("suppliers.updated"));
       setEditDialogOpen(false);
       setEditingSupplier(null);
@@ -1157,6 +1177,34 @@ export default function SuppliersPage() {
                 placeholder="Full street address"
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
+            </div>
+
+            {/* Car Types */}
+            <div className="col-span-2 space-y-2">
+              <Label className="text-muted-foreground">Car Types</Label>
+              <div className="grid grid-cols-2 gap-2 rounded-md border border-border p-2">
+                {vehicleTypes.length === 0 ? (
+                  <span className="col-span-2 text-xs text-muted-foreground">No car types available</span>
+                ) : (
+                  vehicleTypes.map((vt) => (
+                    <label key={vt.id} className="flex items-center gap-2 cursor-pointer select-none">
+                      <Checkbox
+                        checked={selectedCarTypeIds.has(vt.id)}
+                        onCheckedChange={() => {
+                          setSelectedCarTypeIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(vt.id)) next.delete(vt.id);
+                            else next.add(vt.id);
+                            return next;
+                          });
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">{vt.name} <span className="text-muted-foreground">({vt.seatCapacity} seats)</span></span>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 

@@ -51,6 +51,7 @@ enum BookingStatus {
 enum PortalJobStatus {
   PENDING
   IN_PROGRESS
+  IN_PLACE
   COMPLETED
   CANCELLED
   NO_SHOW
@@ -362,6 +363,7 @@ model VehicleType {
   publicPrices      PublicPriceItem[]
   guestBookings     GuestBooking[]
   requestedByJobs   TrafficJob[] @relation("JobRequestedVehicleType")
+  supplierCarTypes  SupplierCarType[]
 
   @@map("vehicle_types")
 }
@@ -854,8 +856,22 @@ model Supplier {
   drivers       Driver[]
   tripPrices    SupplierTripPrice[]
   supplierCosts SupplierCost[]
+  carTypes      SupplierCarType[]
 
   @@map("suppliers")
+}
+
+model SupplierCarType {
+  id            String   @id @default(uuid())
+  supplierId    String   @map("supplier_id")
+  vehicleTypeId String   @map("vehicle_type_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  supplier    Supplier    @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  vehicleType VehicleType @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, vehicleTypeId])
+  @@map("supplier_car_types")
 }
 
 model SupplierTripPrice {
@@ -1008,6 +1024,7 @@ model TrafficJob {
   repNotifications      RepNotification[]
   driverNotifications   DriverNotification[]
   noShowEvidence        NoShowEvidence[]
+  inPlaceEvidence       InPlaceEvidence[]
   whatsappLogs          WhatsappNotificationLog[]
   userNotifications     UserNotification[]
 
@@ -1498,6 +1515,27 @@ model NoShowEvidence {
 
   @@unique([trafficJobId, submittedBy])
   @@map("no_show_evidence")
+}
+
+// ─────────────────────────────────────────────
+// IN-PLACE EVIDENCE
+// ─────────────────────────────────────────────
+
+model InPlaceEvidence {
+  id             String   @id @default(uuid())
+  trafficJobId   String   @map("traffic_job_id")
+  imageUrls      String[] @map("image_urls")
+  gpsLatitude    Decimal  @map("gps_latitude") @db.Decimal(10, 7)
+  gpsLongitude   Decimal  @map("gps_longitude") @db.Decimal(10, 7)
+  gpsMapLink     String   @map("gps_map_link")
+  submittedBy    String   @map("submitted_by")
+  submittedById  String   @map("submitted_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  trafficJob     TrafficJob @relation(fields: [trafficJobId], references: [id])
+
+  @@unique([trafficJobId, submittedBy])
+  @@map("in_place_evidence")
 }
 
 // ─────────────────────────────────────────────

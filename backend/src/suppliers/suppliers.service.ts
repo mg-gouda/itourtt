@@ -78,6 +78,10 @@ export class SuppliersService {
             vehicleType: true,
           },
         },
+        carTypes: {
+          include: { vehicleType: true },
+          orderBy: { vehicleType: { name: 'asc' } },
+        },
       },
     });
 
@@ -1225,5 +1229,34 @@ export class SuppliersService {
     }
 
     return { imported: items.length, errors };
+  }
+
+  // ── Supplier Car Types ──
+
+  async getCarTypes(supplierId: string) {
+    const rows = await this.prisma.supplierCarType.findMany({
+      where: { supplierId },
+      include: { vehicleType: true },
+      orderBy: { vehicleType: { name: 'asc' } },
+    });
+    return rows.map((r) => r.vehicleType);
+  }
+
+  async setCarTypes(supplierId: string, vehicleTypeIds: string[]) {
+    // Verify supplier exists
+    const supplier = await this.prisma.supplier.findUnique({ where: { id: supplierId } });
+    if (!supplier) throw new NotFoundException('Supplier not found');
+
+    // Replace all car types in a transaction
+    await this.prisma.$transaction([
+      this.prisma.supplierCarType.deleteMany({ where: { supplierId } }),
+      ...vehicleTypeIds.map((vehicleTypeId) =>
+        this.prisma.supplierCarType.create({
+          data: { supplierId, vehicleTypeId },
+        }),
+      ),
+    ]);
+
+    return this.getCarTypes(supplierId);
   }
 }

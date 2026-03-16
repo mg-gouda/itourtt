@@ -12,7 +12,9 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN npm run build
+# Bake version from package.json into the client bundle
+ENV NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
+RUN export NEXT_PUBLIC_APP_VERSION=$(node -p "require('./package.json').version") && npm run build
 
 # ── Production stage ──
 FROM node:20-alpine AS runner

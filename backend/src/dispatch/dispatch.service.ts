@@ -630,12 +630,10 @@ export class DispatchService {
       where: {
         deletedAt: null,
         isActive: true,
-        vehicles: {
-          some: {
-            deletedAt: null,
-            isActive: true,
-          },
-        },
+        OR: [
+          { vehicles: { some: { deletedAt: null, isActive: true } } },
+          { carTypes: { some: {} } },
+        ],
       },
       select: {
         id: true,
@@ -646,6 +644,7 @@ export class DispatchService {
             vehicles: {
               where: { deletedAt: null, isActive: true },
             },
+            carTypes: true,
           },
         },
       },
@@ -657,6 +656,7 @@ export class DispatchService {
       legalName: s.legalName,
       tradeName: s.tradeName,
       vehicleCount: s._count.vehicles,
+      carTypeCount: s._count.carTypes,
     }));
   }
 

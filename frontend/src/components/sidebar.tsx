@@ -48,6 +48,7 @@ export interface NavLink {
   href: string;
   icon: React.ElementType;
   permissionKey?: string;
+  featureFlag?: string;
 }
 
 export interface NavSeparator {
@@ -66,6 +67,7 @@ export type NavItem = NavLink | NavSeparator | NavGroup;
 export const navigation: NavItem[] = [
   { type: "link", nameKey: "sidebar.dashboard", href: "/dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
   { type: "link", nameKey: "sidebar.dispatch", href: "/dashboard/dispatch", icon: CalendarClock, permissionKey: "dispatch" },
+  { type: "link", nameKey: "sidebar.carDispatch", href: "/dashboard/car-dispatch", icon: Car, permissionKey: "dispatch", featureFlag: "NEXT_PUBLIC_ENABLE_CAR_DISPATCH" },
   { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase, permissionKey: "traffic-jobs" },
   { type: "separator" },
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
@@ -112,8 +114,14 @@ export function Sidebar() {
   const { has: hasPerm, isLoaded: permsLoaded } = usePermissionsStore();
   const { logoUrl, faviconUrl } = useCompanyStore();
 
-  // Filter navigation based on permissions (hide items user can't access)
+  // Feature flags — must use static keys for Next.js inlining
+  const featureFlags: Record<string, boolean> = {
+    NEXT_PUBLIC_ENABLE_CAR_DISPATCH: process.env.NEXT_PUBLIC_ENABLE_CAR_DISPATCH === "true",
+  };
+
+  // Filter navigation based on permissions and feature flags
   const canAccess = (item: NavLink): boolean => {
+    if (item.featureFlag && !featureFlags[item.featureFlag]) return false;
     if (!permsLoaded || !item.permissionKey) return true;
     return hasPerm(item.permissionKey);
   };

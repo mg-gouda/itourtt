@@ -474,4 +474,23 @@ export class SuppliersController {
     await this.suppliersService.update(id, { nationalIdImage: imageUrl } as any);
     return new ApiResponse({ url: imageUrl }, 'National ID uploaded');
   }
+
+  // ── Supplier Car Types ──
+
+  @Get(':id/car-types')
+  @Permissions('suppliers')
+  async getCarTypes(@Param('id') id: string) {
+    return new ApiResponse(await this.suppliersService.getCarTypes(id));
+  }
+
+  @Put(':id/car-types')
+  @Permissions('suppliers.table.editButton')
+  async setCarTypes(
+    @Param('id') id: string,
+    @Body() body: { vehicleTypeIds: string[] },
+  ) {
+    return new ApiResponse(
+      await this.suppliersService.setCarTypes(id, body.vehicleTypeIds),
+    );
+  }
 }

@@ -29,9 +29,13 @@ import {
   Briefcase,
   ChevronLeft,
   ChevronRight,
+  MapPinCheck,
+  MessageSquarePlus,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
+import { InPlaceEvidenceDialog } from "@/components/in-place-evidence-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
@@ -99,6 +103,7 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
   ASSIGNED: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   IN_PROGRESS: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+  IN_PLACE: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   COMPLETED: "bg-green-500/10 text-green-400 border-green-500/20",
   CANCELLED: "bg-red-500/10 text-red-400 border-red-500/20",
   NO_SHOW: "bg-gray-500/10 text-gray-400 border-gray-500/20",
@@ -125,6 +130,18 @@ export default function RepDashboardPage() {
     jobId: string;
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
+  const [inPlaceDialog, setInPlaceDialog] = useState<{
+    open: boolean;
+    jobId: string;
+    jobRef: string;
+  }>({ open: false, jobId: "", jobRef: "" });
+  const [updateDialog, setUpdateDialog] = useState<{
+    open: boolean;
+    jobId: string;
+    jobRef: string;
+  }>({ open: false, jobId: "", jobRef: "" });
+  const [updateMessage, setUpdateMessage] = useState("");
+  const [sendingUpdate, setSendingUpdate] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
 
   const shiftDate = (days: number) => {
@@ -169,6 +186,10 @@ export default function RepDashboardPage() {
       setNoShowDialog({ open: true, jobId, jobRef });
       return;
     }
+    if (status === "IN_PLACE") {
+      setInPlaceDialog({ open: true, jobId, jobRef });
+      return;
+    }
     setConfirmDialog({ open: true, jobId, jobRef, status });
   };
 
@@ -192,6 +213,26 @@ export default function RepDashboardPage() {
       toast.error(message);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleSendUpdate = async () => {
+    if (!updateMessage.trim()) return;
+    setSendingUpdate(true);
+    try {
+      await api.post(`/rep-portal/jobs/${updateDialog.jobId}/update`, {
+        message: updateMessage.trim(),
+      });
+      toast.success(t("portal.updateSent"));
+      setUpdateDialog({ open: false, jobId: "", jobRef: "" });
+      setUpdateMessage("");
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || t("portal.updateFailed");
+      toast.error(message);
+    } finally {
+      setSendingUpdate(false);
     }
   };
 
@@ -298,6 +339,10 @@ export default function RepDashboardPage() {
                     key={job.id}
                     job={job}
                     onStatusChange={handleStatusChange}
+                    onUpdate={(jobId, jobRef) => {
+                      setUpdateMessage("");
+                      setUpdateDialog({ open: true, jobId, jobRef });
+                    }}
                     formatTime={formatTime}
                   />
                 ))}
@@ -316,6 +361,10 @@ export default function RepDashboardPage() {
                     key={job.id}
                     job={job}
                     onStatusChange={handleStatusChange}
+                    onUpdate={(jobId, jobRef) => {
+                      setUpdateMessage("");
+                      setUpdateDialog({ open: true, jobId, jobRef });
+                    }}
                     formatTime={formatTime}
                   />
                 ))}
@@ -435,6 +484,65 @@ export default function RepDashboardPage() {
         portalApiBase="/rep-portal"
         onSuccess={fetchJobs}
       />
+
+      {/* In Place Evidence Dialog */}
+      <InPlaceEvidenceDialog
+        open={inPlaceDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setInPlaceDialog({ open: false, jobId: "", jobRef: "" });
+        }}
+        jobId={inPlaceDialog.jobId}
+        jobRef={inPlaceDialog.jobRef}
+        portalApiBase="/rep-portal"
+        onSuccess={fetchJobs}
+      />
+
+      {/* Rep Update Dialog */}
+      <Dialog
+        open={updateDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUpdateDialog({ open: false, jobId: "", jobRef: "" });
+            setUpdateMessage("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("portal.sendUpdate")}</DialogTitle>
+            <DialogDescription>
+              {t("portal.sendUpdateDesc")}{" "}
+              <span className="font-semibold">{updateDialog.jobRef}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={updateMessage}
+            onChange={(e) => setUpdateMessage(e.target.value)}
+            placeholder={t("portal.updatePlaceholder")}
+            rows={4}
+            className="resize-none"
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setUpdateDialog({ open: false, jobId: "", jobRef: "" });
+                setUpdateMessage("");
+              }}
+              disabled={sendingUpdate}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleSendUpdate}
+              disabled={!updateMessage.trim() || sendingUpdate}
+            >
+              {sendingUpdate && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("portal.sendUpdateBtn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -442,10 +550,12 @@ export default function RepDashboardPage() {
 function JobCard({
   job,
   onStatusChange,
+  onUpdate,
   formatTime,
 }: {
   job: RepJob;
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
+  onUpdate: (jobId: string, jobRef: string) => void;
   formatTime: (iso: string | null) => string | null;
 }) {
   const t = useT();
@@ -554,37 +664,61 @@ function JobCard({
         )}
 
         {/* Action buttons */}
-        {!isTerminal && (
-          <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-            <Button
-              size="sm"
-              variant="default"
-              className="gap-1.5"
-              onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {t("portal.complete")}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-orange-400 hover:text-orange-300"
-              onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
-            >
-              <UserX className="h-3.5 w-3.5" />
-              {t("portal.noShow")}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-destructive hover:text-destructive"
-              onClick={() => onStatusChange(job.id, job.internalRef, "CANCELLED")}
-            >
-              <XCircle className="h-3.5 w-3.5" />
-              {t("portal.cancelJob")}
-            </Button>
-          </div>
-        )}
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+          {!isTerminal && (
+            <>
+              {repStatus === "PENDING" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-emerald-400 hover:text-emerald-300"
+                  onClick={() => onStatusChange(job.id, job.internalRef, "IN_PLACE")}
+                >
+                  <MapPinCheck className="h-3.5 w-3.5" />
+                  {t("portal.inPlace")}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="default"
+                className="gap-1.5"
+                onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {t("portal.complete")}
+              </Button>
+              {repStatus === "PENDING" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-orange-400 hover:text-orange-300"
+                  onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
+                >
+                  <UserX className="h-3.5 w-3.5" />
+                  {t("portal.noShow")}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-destructive hover:text-destructive"
+                onClick={() => onStatusChange(job.id, job.internalRef, "CANCELLED")}
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                {t("portal.cancelJob")}
+              </Button>
+            </>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-blue-400 hover:text-blue-300"
+            onClick={() => onUpdate(job.id, job.internalRef)}
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5" />
+            {t("portal.update")}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

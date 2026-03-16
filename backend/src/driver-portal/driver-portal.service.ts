@@ -286,6 +286,12 @@ export class DriverPortalService {
         },
       });
 
+      // Update the traffic job status itself to NO_SHOW
+      await tx.trafficJob.update({
+        where: { id: jobId },
+        data: { status: 'NO_SHOW' as any },
+      });
+
       await tx.noShowEvidence.create({
         data: {
           trafficJobId: jobId,

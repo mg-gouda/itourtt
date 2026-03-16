@@ -114,7 +114,7 @@ function FieldCard({
   );
 }
 
-/* ─── Google Maps Script Loader ─── */
+/* ─── Google Maps Script Loader (async) ─── */
 function useGoogleMaps(apiKey: string) {
   const [loaded, setLoaded] = useState(false);
 
@@ -136,7 +136,7 @@ function useGoogleMaps(apiKey: string) {
       return;
     }
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
     script.async = true;
     script.onload = () => setLoaded(true);
     document.head.appendChild(script);
@@ -145,7 +145,7 @@ function useGoogleMaps(apiKey: string) {
   return loaded;
 }
 
-/* ─── Places Autocomplete ─── */
+/* ─── Places Autocomplete (new AutocompleteSuggestion API with fallback) ─── */
 function PlacesAutocomplete({
   value,
   onChange,
@@ -163,14 +163,20 @@ function PlacesAutocomplete({
     Array<{ place_id: string; description: string }>
   >([]);
   const [open, setOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const serviceRef = useRef<any>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  // Track which API is available
+  const apiModeRef = useRef<'new' | 'legacy' | null>(null);
 
   useEffect(() => {
-    if (mapsLoaded && !serviceRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      serviceRef.current = new (window as any).google.maps.places.AutocompleteService();
+    if (!mapsLoaded) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const g = (window as any).google?.maps?.places;
+    // Prefer legacy AutocompleteService — it works with the standard Places API.
+    // The new AutocompleteSuggestion requires "Places API (New)" enabled separately.
+    if (g?.AutocompleteService) {
+      apiModeRef.current = 'legacy';
+    } else if (g?.AutocompleteSuggestion) {
+      apiModeRef.current = 'new';
     }
   }, [mapsLoaded]);
 
@@ -187,21 +193,49 @@ function PlacesAutocomplete({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleInput = (text: string) => {
+  const handleInput = async (text: string) => {
     onChange(text);
-    if (!text || text.length < 2 || !serviceRef.current) {
+    if (!text || text.length < 2 || !apiModeRef.current) {
       setPredictions([]);
       setOpen(false);
       return;
     }
-    serviceRef.current.getPlacePredictions(
-      { input: text },
+
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (results: any[] | null) => {
-        setPredictions(results || []);
-        setOpen((results?.length ?? 0) > 0);
-      },
-    );
+      const g = (window as any).google.maps.places;
+
+      if (apiModeRef.current === 'new') {
+        // New AutocompleteSuggestion API
+        const { suggestions } = await g.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+          input: text,
+          language: 'en',
+        });
+        const results = (suggestions || []).map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (s: any) => ({
+            place_id: s.placePrediction?.placeId || '',
+            description: s.placePrediction?.text?.text || '',
+          }),
+        );
+        setPredictions(results);
+        setOpen(results.length > 0);
+      } else {
+        // Legacy AutocompleteService fallback
+        const service = new g.AutocompleteService();
+        service.getPlacePredictions(
+          { input: text },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (results: any[] | null) => {
+            setPredictions(results || []);
+            setOpen((results?.length ?? 0) > 0);
+          },
+        );
+      }
+    } catch {
+      setPredictions([]);
+      setOpen(false);
+    }
   };
 
   return (

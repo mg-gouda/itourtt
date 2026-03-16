@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { Logger } from '@nestjs/common';
 
 type RepJobStatus = 'COMPLETED' | 'CANCELLED';
 
@@ -12,7 +13,8 @@ const REP_ALLOWED_STATUSES: RepJobStatus[] = ['COMPLETED', 'CANCELLED'];
 const REP_TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
 const REP_VALID_TRANSITIONS: Record<string, string[]> = {
-  PENDING: ['COMPLETED', 'CANCELLED'],
+  PENDING: ['IN_PLACE', 'COMPLETED', 'CANCELLED'],
+  IN_PLACE: ['COMPLETED', 'CANCELLED'],
   COMPLETED: [],
   CANCELLED: [],
   NO_SHOW: [],
@@ -22,6 +24,8 @@ const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
 @Injectable()
 export class RepPortalService {
+  private readonly logger = new Logger(RepPortalService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   private readonly jobInclude = {
@@ -250,9 +254,9 @@ export class RepPortalService {
       );
     }
 
-    if (currentStatus !== 'PENDING') {
+    if (currentStatus !== 'PENDING' && currentStatus !== 'IN_PLACE') {
       throw new BadRequestException(
-        `Cannot change rep status from "${currentStatus}"`,
+        `Cannot submit no-show from "${currentStatus}"`,
       );
     }
 
@@ -267,6 +271,12 @@ export class RepPortalService {
             include: this.jobInclude,
           },
         },
+      });
+
+      // Update the traffic job status itself to NO_SHOW
+      await tx.trafficJob.update({
+        where: { id: jobId },
+        data: { status: 'NO_SHOW' as any },
       });
 
       await tx.noShowEvidence.create({
@@ -299,6 +309,158 @@ export class RepPortalService {
         repStatus: updated.repStatus,
       };
     });
+  }
+
+  async submitInPlace(
+    userId: string,
+    jobId: string,
+    imageUrls: string[],
+    latitude: number,
+    longitude: number,
+  ) {
+    const rep = await this.prisma.rep.findFirst({
+      where: { userId, deletedAt: null },
+      include: { user: { select: { name: true } } },
+    });
+    if (!rep) throw new ForbiddenException('No rep profile linked to this account');
+    const repId = rep.id;
+    const submittedByLabel = `REP-${rep.user?.name ?? 'Unknown'}`;
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: {
+        repId,
+        trafficJobId: jobId,
+      },
+      include: {
+        trafficJob: true,
+      },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Job not found or not assigned to you');
+    }
+
+    this.checkRepTimelock(assignment.trafficJob);
+
+    const currentStatus = assignment.repStatus;
+    if (currentStatus !== 'PENDING') {
+      throw new BadRequestException(
+        `Cannot mark as In Place from "${currentStatus}"`,
+      );
+    }
+
+    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.trafficAssignment.update({
+        where: { id: assignment.id },
+        data: { repStatus: 'IN_PLACE' as any },
+        include: {
+          trafficJob: {
+            include: this.jobInclude,
+          },
+        },
+      });
+
+      await tx.inPlaceEvidence.create({
+        data: {
+          trafficJobId: jobId,
+          imageUrls,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+          submittedBy: submittedByLabel,
+          submittedById: repId,
+        },
+      });
+
+      await tx.statusChangeLog.create({
+        data: {
+          assignmentId: assignment.id,
+          changedBy: 'REP',
+          changedById: repId,
+          previousStatus: currentStatus as any,
+          newStatus: 'IN_PLACE' as any,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+        },
+      });
+
+      return {
+        ...updated.trafficJob,
+        repStatus: updated.repStatus,
+      };
+    });
+  }
+
+  async submitUpdate(
+    userId: string,
+    jobId: string,
+    message: string,
+  ) {
+    const rep = await this.prisma.rep.findFirst({
+      where: { userId, deletedAt: null },
+      include: { user: { select: { name: true } } },
+    });
+    if (!rep) throw new ForbiddenException('No rep profile linked to this account');
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: {
+        repId: rep.id,
+        trafficJobId: jobId,
+      },
+      include: {
+        trafficJob: { select: { internalRef: true, serviceType: true, jobDate: true } },
+      },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Job not found or not assigned to you');
+    }
+
+    const repName = rep.user?.name ?? rep.name;
+    const job = assignment.trafficJob;
+    const title = `Rep Update: ${job.internalRef}`;
+    const notifMessage = `${repName} — ${message}`;
+
+    // Find all users with traffic-jobs or dispatch permission (Traffic & Dispatch operators/managers)
+    const recipients = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        OR: [
+          {
+            roleRef: {
+              permissions: {
+                some: { permissionKey: { in: ['traffic-jobs', 'dispatch'] } },
+              },
+            },
+          },
+          { role: 'ADMIN' },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (recipients.length > 0) {
+      await this.prisma.userNotification.createMany({
+        data: recipients.map((r) => ({
+          userId: r.id,
+          title,
+          message: notifMessage,
+          type: 'GENERAL' as const,
+          trafficJobId: jobId,
+          metadata: { repName, repUpdate: message },
+        })),
+      });
+
+      this.logger.log(
+        `Rep update notification sent to ${recipients.length} users for job ${job.internalRef}`,
+      );
+    }
+
+    return { success: true, recipientCount: recipients.length };
   }
 
   async getNotifications(userId: string) {

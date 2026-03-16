@@ -29,9 +29,24 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const inPlaceUploadsDir = path.join(process.cwd(), 'uploads', 'in-place');
+if (!fs.existsSync(inPlaceUploadsDir)) {
+  fs.mkdirSync(inPlaceUploadsDir, { recursive: true });
+}
+
 const noShowStorage = diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, uploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  },
+});
+
+const inPlaceStorage = diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, inPlaceUploadsDir);
   },
   filename: (_req, file, cb) => {
     const uniqueName = Date.now() + '-' + file.originalname;
@@ -127,6 +142,53 @@ export class RepPortalController {
       longitude,
     );
     return new ApiResponse(result, 'No-show evidence submitted');
+  }
+
+  @Post('jobs/:jobId/in-place')
+  @UseInterceptors(FilesInterceptor('images', 2, { storage: inPlaceStorage }))
+  async submitInPlace(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { latitude: string; longitude: string },
+  ) {
+    if (!files || files.length < 2) {
+      throw new BadRequestException('Exactly 2 images are required for in-place evidence');
+    }
+
+    const imageUrls = files.map(f => '/uploads/in-place/' + f.filename);
+    const latitude = parseFloat(body.latitude);
+    const longitude = parseFloat(body.longitude);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      throw new BadRequestException('Valid GPS coordinates are required');
+    }
+
+    const result = await this.repPortalService.submitInPlace(
+      userId,
+      jobId,
+      imageUrls,
+      latitude,
+      longitude,
+    );
+    return new ApiResponse(result, 'In-place evidence submitted');
+  }
+
+  @Post('jobs/:jobId/update')
+  async submitUpdate(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Body() body: { message: string },
+  ) {
+    if (!body.message || !body.message.trim()) {
+      throw new BadRequestException('Message is required');
+    }
+    const result = await this.repPortalService.submitUpdate(
+      userId,
+      jobId,
+      body.message.trim(),
+    );
+    return new ApiResponse(result, 'Update submitted');
   }
 
   @Get('notifications')

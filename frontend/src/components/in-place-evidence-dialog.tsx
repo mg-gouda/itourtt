@@ -11,11 +11,11 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Camera, MapPin, AlertCircle, X, Plus } from "lucide-react";
+import { Loader2, Camera, MapPin, AlertCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 
-const MAX_IMAGES = 10;
+const REQUIRED_IMAGES = 2;
 
 /** Burn date/time + GPS text onto an image via canvas, return a new File */
 function stampImage(
@@ -33,7 +33,6 @@ function stampImage(
 
       ctx.drawImage(img, 0, 0);
 
-      // Build stamp lines
       const now = new Date();
       const dateLine = now.toLocaleString("en-GB", {
         timeZone: "Africa/Cairo",
@@ -49,7 +48,6 @@ function stampImage(
         ? `GPS: ${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)}`
         : "GPS: unavailable";
 
-      // Scale font to image size (roughly 2% of width, min 14px, max 48px)
       const fontSize = Math.max(14, Math.min(48, Math.round(img.width * 0.02)));
       ctx.font = `bold ${fontSize}px monospace`;
       ctx.textBaseline = "bottom";
@@ -58,21 +56,18 @@ function stampImage(
       const lineHeight = fontSize * 1.3;
       const padding = fontSize * 0.5;
 
-      // Measure max text width
       let maxWidth = 0;
       for (const line of lines) {
         const w = ctx.measureText(line).width;
         if (w > maxWidth) maxWidth = w;
       }
 
-      // Draw semi-transparent background at bottom-left
       const bgHeight = lines.length * lineHeight + padding * 2;
       const bgWidth = maxWidth + padding * 2;
       const bgY = img.height - bgHeight;
       ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
       ctx.fillRect(0, bgY, bgWidth, bgHeight);
 
-      // Draw text
       ctx.fillStyle = "#FFD700";
       lines.forEach((line, i) => {
         ctx.fillText(line, padding, bgY + padding + (i + 1) * lineHeight);
@@ -94,12 +89,12 @@ function stampImage(
   });
 }
 
-interface NoShowEvidenceDialogProps {
+interface InPlaceEvidenceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   jobId: string;
   jobRef: string;
-  portalApiBase: string; // e.g. "/rep-portal" or "/driver-portal"
+  portalApiBase: string;
   onSuccess: () => void;
 }
 
@@ -108,14 +103,14 @@ interface ImageSlot {
   preview: string;
 }
 
-export function NoShowEvidenceDialog({
+export function InPlaceEvidenceDialog({
   open,
   onOpenChange,
   jobId,
   jobRef,
   portalApiBase,
   onSuccess,
-}: NoShowEvidenceDialogProps) {
+}: InPlaceEvidenceDialogProps) {
   const t = useT();
   const [images, setImages] = useState<ImageSlot[]>([]);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
@@ -124,7 +119,6 @@ export function NoShowEvidenceDialog({
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Capture GPS on dialog open
   useEffect(() => {
     if (!open) {
       setImages([]);
@@ -173,22 +167,21 @@ export function NoShowEvidenceDialog({
 
   const handleFilesSelected = async (files: FileList | null) => {
     if (!files) return;
-    const remaining = MAX_IMAGES - images.length;
+    const remaining = REQUIRED_IMAGES - images.length;
     const newFiles = Array.from(files).slice(0, remaining);
 
     for (const file of newFiles) {
       try {
         const { stamped, preview } = await stampImage(file, gps);
         setImages((prev) => {
-          if (prev.length >= MAX_IMAGES) return prev;
+          if (prev.length >= REQUIRED_IMAGES) return prev;
           return [...prev, { file: stamped, preview }];
         });
       } catch {
-        // Fallback: use original file without stamp
         const reader = new FileReader();
         reader.onload = () => {
           setImages((prev) => {
-            if (prev.length >= MAX_IMAGES) return prev;
+            if (prev.length >= REQUIRED_IMAGES) return prev;
             return [...prev, { file, preview: reader.result as string }];
           });
         };
@@ -201,10 +194,10 @@ export function NoShowEvidenceDialog({
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = images.length >= 1 && gps && !submitting;
+  const canSubmit = images.length === REQUIRED_IMAGES && gps && !submitting;
 
   const handleSubmit = async () => {
-    if (images.length < 1 || !gps) return;
+    if (images.length < REQUIRED_IMAGES || !gps) return;
 
     setSubmitting(true);
     try {
@@ -213,17 +206,17 @@ export function NoShowEvidenceDialog({
       formData.append("latitude", gps.lat.toString());
       formData.append("longitude", gps.lng.toString());
 
-      await api.post(`${portalApiBase}/jobs/${jobId}/no-show`, formData, {
+      await api.post(`${portalApiBase}/jobs/${jobId}/in-place`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success(`Job ${jobRef} marked as NO SHOW with evidence`);
+      toast.success(t("inPlace.success").replace("{ref}", jobRef));
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t("noShow.failedSubmit");
+          ?.message || t("inPlace.failedSubmit");
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -234,10 +227,10 @@ export function NoShowEvidenceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("noShow.title")}</DialogTitle>
+          <DialogTitle>{t("inPlace.title")}</DialogTitle>
           <DialogDescription>
-            {t("noShow.markJob")} <span className="font-semibold">{jobRef}</span> {t("noShow.asNoShow")}{" "}
-            {t("noShow.uploadPhotos")}
+            {t("inPlace.markJob")} <span className="font-semibold">{jobRef}</span> {t("inPlace.asInPlace")}{" "}
+            {t("inPlace.uploadPhotos")}
           </DialogDescription>
         </DialogHeader>
 
@@ -245,7 +238,7 @@ export function NoShowEvidenceDialog({
           {/* Images */}
           <div>
             <label className="text-sm font-medium text-foreground">
-              {t("noShow.photo1")?.replace("1", "")}Photos ({images.length}/{MAX_IMAGES})
+              {t("inPlace.photos")} ({images.length}/{REQUIRED_IMAGES})
             </label>
             <input
               ref={fileInputRef}
@@ -260,10 +253,9 @@ export function NoShowEvidenceDialog({
               }}
             />
 
-            {/* Image grid */}
-            <div className="mt-1 grid grid-cols-3 gap-2">
+            <div className="mt-1 grid grid-cols-2 gap-2">
               {images.map((img, i) => (
-                <div key={i} className="relative h-24 rounded-lg overflow-hidden border border-border">
+                <div key={i} className="relative h-32 rounded-lg overflow-hidden border border-border">
                   <img
                     src={img.preview}
                     alt={`Evidence ${i + 1}`}
@@ -279,23 +271,14 @@ export function NoShowEvidenceDialog({
                 </div>
               ))}
 
-              {images.length < MAX_IMAGES && (
+              {images.length < REQUIRED_IMAGES && (
                 <div
-                  className="flex h-24 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-primary/50"
+                  className="flex h-32 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-primary/50"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <div className="flex flex-col items-center gap-1 text-muted-foreground">
-                    {images.length === 0 ? (
-                      <>
-                        <Camera className="h-5 w-5" />
-                        <span className="text-[10px]">{t("noShow.tapToTakePhoto")}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-5 w-5" />
-                        <span className="text-[10px]">Add more</span>
-                      </>
-                    )}
+                    <Camera className="h-5 w-5" />
+                    <span className="text-[10px]">{t("inPlace.tapToTakePhoto")}</span>
                   </div>
                 </div>
               )}
@@ -351,12 +334,12 @@ export function NoShowEvidenceDialog({
             {t("common.cancel")}
           </Button>
           <Button
-            variant="destructive"
             onClick={handleSubmit}
             disabled={!canSubmit}
+            className="bg-emerald-600 hover:bg-emerald-700"
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t("noShow.submit")}
+            {t("inPlace.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

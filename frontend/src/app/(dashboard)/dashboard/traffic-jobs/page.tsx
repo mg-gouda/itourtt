@@ -145,6 +145,10 @@ export default function TrafficJobsPage() {
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [signDate, setSignDate] = useState(localDateStr(new Date()));
   const [evidenceJob, setEvidenceJob] = useState<TrafficJob | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 100;
 
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
@@ -156,16 +160,24 @@ export default function TrafficJobsPage() {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = { page: String(page), limit: String(limit) };
       if (filterStatus !== "ALL") params.status = filterStatus;
       const { data } = await api.get("/traffic-jobs", { params });
-      setJobs(Array.isArray(data) ? data : data.data || []);
+      if (Array.isArray(data)) {
+        setJobs(data);
+        setTotalPages(1);
+        setTotal(data.length);
+      } else {
+        setJobs(data.data || []);
+        setTotalPages(data.meta?.totalPages || 1);
+        setTotal(data.meta?.total || 0);
+      }
     } catch {
       toast.error(t("jobs.failedLoad"));
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, [filterStatus, page]);
 
   useEffect(() => {
     fetchJobs();
@@ -262,7 +274,7 @@ export default function TrafficJobsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
             <SelectTrigger className="w-36 border-border bg-card text-foreground">
               <SelectValue />
             </SelectTrigger>
@@ -528,6 +540,38 @@ export default function TrafficJobsPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 0 && (
+          <div className="flex items-center justify-between pt-4">
+            <p className="text-sm text-muted-foreground">
+              {t("common.showing") || "Showing"} {filtered.length} of {total} {t("jobs.title")?.toLowerCase() || "jobs"}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="border-border"
+              >
+                {t("common.previous") || "Previous"}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {page} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="border-border"
+              >
+                {t("common.next") || "Next"}
+              </Button>
+            </div>
           </div>
         )}
       </div>
