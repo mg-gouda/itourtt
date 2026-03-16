@@ -1611,28 +1611,57 @@ export default function DispatchPage() {
   // Search filter
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filterJobs = useCallback((jobs: Job[], query: string) => {
-    if (!query.trim()) return jobs;
-    const q = query.toLowerCase();
+  // Agent / Customer filter
+  const [filterAgentCustomer, setFilterAgentCustomer] = useState<string>("ALL");
+
+  // Derive unique agent/customer options from loaded jobs
+  const agentCustomerOptions = useMemo(() => {
+    const allJobs = [...arrivals, ...departures, ...cityTransfers];
+    const map = new Map<string, string>();
+    for (const job of allJobs) {
+      if (job.bookingChannel === "ONLINE" && job.agent?.legalName) {
+        map.set(`agent:${job.agent.legalName}`, job.agent.legalName);
+      } else if (job.bookingChannel === "B2B" && job.customer?.legalName) {
+        map.set(`customer:${job.customer.legalName}`, job.customer.legalName);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [arrivals, departures, cityTransfers]);
+
+  const filterJobs = useCallback((jobs: Job[], query: string, agentCustomerKey: string) => {
     return jobs.filter((job) => {
-      const ref = job.internalRef?.toLowerCase() || "";
-      const agentRef = job.agentRef?.toLowerCase() || "";
-      const driverName = job.assignment?.driver?.name?.toLowerCase() || "";
-      const externalDriver = job.assignment?.externalDriverName?.toLowerCase() || "";
-      const repName = job.assignment?.rep?.name?.toLowerCase() || "";
-      return (
-        ref.includes(q) ||
-        agentRef.includes(q) ||
-        driverName.includes(q) ||
-        externalDriver.includes(q) ||
-        repName.includes(q)
-      );
+      // Agent/Customer filter
+      if (agentCustomerKey !== "ALL") {
+        const jobKey = job.bookingChannel === "ONLINE"
+          ? `agent:${job.agent?.legalName || ""}`
+          : `customer:${job.customer?.legalName || ""}`;
+        if (jobKey !== agentCustomerKey) return false;
+      }
+      // Text search filter
+      if (query.trim()) {
+        const q = query.toLowerCase();
+        const ref = job.internalRef?.toLowerCase() || "";
+        const agentRef = job.agentRef?.toLowerCase() || "";
+        const driverName = job.assignment?.driver?.name?.toLowerCase() || "";
+        const externalDriver = job.assignment?.externalDriverName?.toLowerCase() || "";
+        const repName = job.assignment?.rep?.name?.toLowerCase() || "";
+        if (
+          !ref.includes(q) &&
+          !agentRef.includes(q) &&
+          !driverName.includes(q) &&
+          !externalDriver.includes(q) &&
+          !repName.includes(q)
+        ) return false;
+      }
+      return true;
     });
   }, []);
 
-  const filteredArrivals = useMemo(() => filterJobs(arrivals, searchQuery), [arrivals, searchQuery, filterJobs]);
-  const filteredDepartures = useMemo(() => filterJobs(departures, searchQuery), [departures, searchQuery, filterJobs]);
-  const filteredCityTransfers = useMemo(() => filterJobs(cityTransfers, searchQuery), [cityTransfers, searchQuery, filterJobs]);
+  const filteredArrivals = useMemo(() => filterJobs(arrivals, searchQuery, filterAgentCustomer), [arrivals, searchQuery, filterAgentCustomer, filterJobs]);
+  const filteredDepartures = useMemo(() => filterJobs(departures, searchQuery, filterAgentCustomer), [departures, searchQuery, filterAgentCustomer, filterJobs]);
+  const filteredCityTransfers = useMemo(() => filterJobs(cityTransfers, searchQuery, filterAgentCustomer), [cityTransfers, searchQuery, filterAgentCustomer, filterJobs]);
 
   // Derive initial car sources from existing vehicle assignments
   useEffect(() => {
@@ -2338,32 +2367,49 @@ export default function DispatchPage() {
           </div>
         ) : (
           <Tabs defaultValue="split" className="space-y-4">
-            <TabsList className="bg-card border border-border">
-              <TabsTrigger
-                value="split"
-                className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-              >
-                {t("dispatch.splitView")}
-              </TabsTrigger>
-              <TabsTrigger
-                value="arrivals"
-                className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-              >
-                {t("dispatch.arrivals")} ({filteredArrivals.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="departures"
-                className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-              >
-                {t("dispatch.departures")} ({filteredDepartures.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="city"
-                className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-              >
-                {t("dispatch.other")} ({filteredCityTransfers.length})
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-3">
+              <TabsList className="bg-card border border-border">
+                <TabsTrigger
+                  value="split"
+                  className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+                >
+                  {t("dispatch.splitView")}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="arrivals"
+                  className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+                >
+                  {t("dispatch.arrivals")} ({filteredArrivals.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="departures"
+                  className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+                >
+                  {t("dispatch.departures")} ({filteredDepartures.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="city"
+                  className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+                >
+                  {t("dispatch.other")} ({filteredCityTransfers.length})
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Agent / Customer filter */}
+              <Select value={filterAgentCustomer} onValueChange={setFilterAgentCustomer}>
+                <SelectTrigger className="w-52 h-9 border-border bg-card text-foreground text-sm">
+                  <SelectValue placeholder={t("dispatch.filterByAgentCustomer") || "Agent / Customer"} />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-popover text-foreground max-h-60">
+                  <SelectItem value="ALL">{t("dispatch.allAgentsCustomers") || "All Agents / Customers"}</SelectItem>
+                  {agentCustomerOptions.map((opt) => (
+                    <SelectItem key={opt.key} value={opt.key}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <TabsContent value="split">
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

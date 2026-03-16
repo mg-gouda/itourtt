@@ -233,8 +233,13 @@ export default function OnlineJobPage() {
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [filterBookingStatus, setFilterBookingStatus] = useState<string>("ALL");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [form, setForm] = useState<FormState>({ ...defaultForm });
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 20;
 
   const serviceTypeLabels: Record<string, string> = {
     ARR: t("serviceType.ARR"),
@@ -270,19 +275,42 @@ export default function OnlineJobPage() {
     fetchVehicleTypes();
   }, []);
 
+  /* ── Debounce search ── */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   /* ── Fetch ONLINE jobs ── */
   const fetchJobs = useCallback(async () => {
     try {
-      const params: Record<string, string> = { bookingChannel: "ONLINE" };
+      setLoading(true);
+      const params: Record<string, string> = {
+        bookingChannel: "ONLINE",
+        page: String(page),
+        limit: String(limit),
+      };
       if (filterStatus !== "ALL") params.status = filterStatus;
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       const { data } = await api.get("/traffic-jobs", { params });
-      setJobs(Array.isArray(data) ? data : data.data || []);
+      if (Array.isArray(data)) {
+        setJobs(data);
+        setTotalPages(1);
+        setTotal(data.length);
+      } else {
+        setJobs(data.data || []);
+        setTotalPages(data.meta?.totalPages || 1);
+        setTotal(data.meta?.total || 0);
+      }
     } catch {
       toast.error(t("jobs.failedLoad"));
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, [filterStatus, page, debouncedSearch]);
 
   useEffect(() => {
     fetchJobs();
@@ -486,14 +514,7 @@ export default function OnlineJobPage() {
 
   const filtered = jobs.filter((j) => {
     if (filterBookingStatus !== "ALL" && j.bookingStatus !== filterBookingStatus) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      j.internalRef?.toLowerCase().includes(q) ||
-      j.agentRef?.toLowerCase().includes(q) ||
-      j.agent?.legalName?.toLowerCase().includes(q) ||
-      j.clientName?.toLowerCase().includes(q)
-    );
+    return true;
   });
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
@@ -917,7 +938,7 @@ export default function OnlineJobPage() {
           </div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
               <SelectTrigger className="w-36 border-border bg-card text-foreground">
                 <SelectValue />
               </SelectTrigger>
@@ -931,7 +952,7 @@ export default function OnlineJobPage() {
                 <SelectItem value="NO_SHOW">{t("jobs.noShow")}</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterBookingStatus} onValueChange={setFilterBookingStatus}>
+            <Select value={filterBookingStatus} onValueChange={(v) => { setFilterBookingStatus(v); setPage(1); }}>
               <SelectTrigger className="w-36 border-border bg-card text-foreground">
                 <SelectValue />
               </SelectTrigger>
@@ -1096,6 +1117,38 @@ export default function OnlineJobPage() {
             </Table>
           )}
         </Card>
+
+        {/* Pagination */}
+        {!loading && totalPages > 0 && (
+          <div className="flex items-center justify-between pt-4">
+            <p className="text-sm text-muted-foreground">
+              {t("common.showing") || "Showing"} {filtered.length} of {total} {t("jobs.title")?.toLowerCase() || "jobs"}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="border-border"
+              >
+                {t("common.previous") || "Previous"}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {page} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="border-border"
+              >
+                {t("common.next") || "Next"}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

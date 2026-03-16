@@ -60,7 +60,7 @@ export class TrafficJobsService {
   };
 
   async findAll(filter: JobFilterDto) {
-    const { page = 1, limit = 20, date, status, agentId, serviceType, bookingChannel } = filter;
+    const { page = 1, limit = 20, date, status, agentId, serviceType, bookingChannel, search } = filter;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = { deletedAt: null };
@@ -79,6 +79,14 @@ export class TrafficJobsService {
     }
     if (bookingChannel) {
       where.bookingChannel = bookingChannel;
+    }
+    if (search) {
+      where.OR = [
+        { internalRef: { contains: search, mode: 'insensitive' } },
+        { agentRef: { contains: search, mode: 'insensitive' } },
+        { clientName: { contains: search, mode: 'insensitive' } },
+        { agent: { legalName: { contains: search, mode: 'insensitive' } } },
+      ];
     }
 
     const [data, total] = await Promise.all([
