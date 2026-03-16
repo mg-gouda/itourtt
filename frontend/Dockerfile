@@ -12,6 +12,10 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+# Feature flag: Car Dispatch (baked into client bundle at build time)
+ARG NEXT_PUBLIC_ENABLE_CAR_DISPATCH
+ENV NEXT_PUBLIC_ENABLE_CAR_DISPATCH=${NEXT_PUBLIC_ENABLE_CAR_DISPATCH}
+
 # Bake version from package.json into the client bundle
 ENV NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
 RUN export NEXT_PUBLIC_APP_VERSION=$(node -p "require('./package.json').version") && npm run build
