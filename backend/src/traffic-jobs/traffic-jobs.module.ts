@@ -3,9 +3,10 @@ import { TrafficJobsController } from './traffic-jobs.controller.js';
 import { TrafficJobsService } from './traffic-jobs.service.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { WhatsappNotificationsModule } from '../whatsapp-notifications/whatsapp-notifications.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
 
 @Module({
-  imports: [NotificationsModule, WhatsappNotificationsModule],
+  imports: [NotificationsModule, WhatsappNotificationsModule, SettingsModule],
   controllers: [TrafficJobsController],
   providers: [TrafficJobsService],
   exports: [TrafficJobsService],

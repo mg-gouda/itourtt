@@ -20,6 +20,7 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  Navigation,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -39,6 +40,10 @@ import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { useAuthStore } from "@/stores/auth-store";
 import { localDateStr } from "@/lib/utils";
+import {
+  GooglePlacesAutocomplete,
+  type PlaceResult,
+} from "@/components/google-places-autocomplete";
 
 // ─── Types ──────────────────────────────────────────────────────
 interface HotelNode {
@@ -271,6 +276,22 @@ export default function LocationsPage() {
   const [formCode, setFormCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Google Places autocomplete for add dialog
+  const [formPlace, setFormPlace] = useState<PlaceResult | null>(null);
+
+  // Batch geocode state
+  const [batchGeocoding, setBatchGeocoding] = useState(false);
+  const [batchResult, setBatchResult] = useState<{
+    open: boolean;
+    resolved: number;
+    needsReview: Array<{
+      type: string;
+      id: string;
+      name: string;
+      candidates: PlaceResult[];
+    }>;
+  }>({ open: false, resolved: 0, needsReview: [] });
+
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
@@ -402,6 +423,7 @@ export default function LocationsPage() {
     setDialog({ open: true, level, parentId, parentLabel });
     setFormName("");
     setFormCode("");
+    setFormPlace(null);
   }
 
   // ─── Submit new location ──────────────────────────────────
@@ -418,12 +440,17 @@ export default function LocationsPage() {
 
     setSubmitting(true);
     try {
-      const payload: Record<string, string> = { name: formName.trim() };
+      const payload: Record<string, any> = { name: formName.trim() };
       if (config.hasCode) {
         payload.code = formCode.trim().toUpperCase();
       }
       if (config.parentKey && dialog.parentId) {
         payload[config.parentKey] = dialog.parentId;
+      }
+      if (formPlace) {
+        payload.latitude = formPlace.lat;
+        payload.longitude = formPlace.lng;
+        payload.placeId = formPlace.placeId;
       }
 
       await api.post(config.endpoint, payload);
@@ -541,6 +568,55 @@ export default function LocationsPage() {
     }
   }
 
+  // ─── Batch Geocode ────────────────────────────────────────
+  async function handleBatchGeocode() {
+    setBatchGeocoding(true);
+    try {
+      const { data } = await api.post("/locations/batch-geocode");
+      const result = data.data || data;
+      setBatchResult({
+        open: true,
+        resolved: result.resolved,
+        needsReview: result.needsReview || [],
+      });
+      if (result.resolved > 0) {
+        fetchTree();
+      }
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to run batch geocode";
+      toast.error(message);
+    } finally {
+      setBatchGeocoding(false);
+    }
+  }
+
+  async function handlePickCandidate(
+    type: string,
+    id: string,
+    candidate: PlaceResult,
+  ) {
+    try {
+      await api.patch(`/locations/${type}/${id}/coordinates`, {
+        latitude: candidate.lat,
+        longitude: candidate.lng,
+        placeId: candidate.placeId,
+      });
+      toast.success("Coordinates updated");
+      // Remove from review list
+      setBatchResult((prev) => ({
+        ...prev,
+        resolved: prev.resolved + 1,
+        needsReview: prev.needsReview.filter(
+          (item) => !(item.type === type && item.id === id)
+        ),
+      }));
+    } catch {
+      toast.error("Failed to update coordinates");
+    }
+  }
+
   // ─── Render ───────────────────────────────────────────────
   const currentConfig = LEVEL_CONFIG[dialog.level];
 
@@ -589,6 +665,22 @@ export default function LocationsPage() {
             )}
             {t("common.export")}
           </Button>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleBatchGeocode}
+              disabled={batchGeocoding}
+            >
+              {batchGeocoding ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Navigation className="h-4 w-4" />
+              )}
+              Resolve Coordinates
+            </Button>
+          )}
           <Button size="sm" className="gap-1.5" onClick={() => openAdd("country", "", "")}>
             <Plus className="h-4 w-4" />
             {t("locations.addCountry")}
@@ -887,6 +979,35 @@ export default function LocationsPage() {
                 />
               </div>
             )}
+
+            {/* Google Places autocomplete for coordinates */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">
+                Location on Google Maps
+                <span className="ml-1 text-xs text-muted-foreground/60">(optional)</span>
+              </Label>
+              <GooglePlacesAutocomplete
+                value={formPlace}
+                onChange={(place) => {
+                  setFormPlace(place);
+                  // Auto-fill name if empty
+                  if (place && !formName.trim()) {
+                    setFormName(place.name);
+                  }
+                }}
+                type={dialog.level}
+                placeholder={`Search for ${dialog.level} on Google Maps...`}
+              />
+              {formPlace && (
+                <p className="text-xs text-muted-foreground">
+                  <MapPin className="inline h-3 w-3 mr-1" />
+                  {formPlace.lat.toFixed(5)}, {formPlace.lng.toFixed(5)}
+                  <span className="ml-2 text-muted-foreground/60">
+                    {formPlace.formattedAddress}
+                  </span>
+                </p>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
@@ -1001,6 +1122,94 @@ export default function LocationsPage() {
             <Button
               onClick={() =>
                 setImportResult({ open: false, imported: 0, errors: [] })
+              }
+            >
+              {t("common.close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Batch geocode results dialog ──────────────────────── */}
+      <Dialog
+        open={batchResult.open}
+        onOpenChange={(open) => {
+          if (!open) setBatchResult({ open: false, resolved: 0, needsReview: [] });
+        }}
+      >
+        <DialogContent className="border-border bg-popover text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Navigation className="h-5 w-5" />
+              Batch Geocode Results
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15">
+                <MapPin className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {batchResult.resolved} locations resolved automatically
+                </p>
+                {batchResult.needsReview.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {batchResult.needsReview.length} locations need manual review
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {batchResult.needsReview.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase">
+                  Needs Manual Review
+                </p>
+                {batchResult.needsReview.map((item) => (
+                  <div
+                    key={`${item.type}-${item.id}`}
+                    className="rounded-lg border border-border bg-muted/30 p-3"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] uppercase"
+                      >
+                        {item.type}
+                      </Badge>
+                      <span className="text-sm font-medium text-foreground">
+                        {item.name}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {item.candidates.map((c) => (
+                        <button
+                          key={c.placeId}
+                          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent"
+                          onClick={() =>
+                            handlePickCandidate(item.type, item.id, c)
+                          }
+                        >
+                          <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="flex-1 truncate">
+                            {c.name} — {c.formattedAddress}
+                          </span>
+                          <span className="shrink-0 text-muted-foreground">
+                            Select
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() =>
+                setBatchResult({ open: false, resolved: 0, needsReview: [] })
               }
             >
               {t("common.close")}

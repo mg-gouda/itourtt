@@ -49,6 +49,7 @@ interface RepJob {
   status: string;
   repStatus: string;
   paxCount: number;
+  pickUpTime: string | null;
   notes: string | null;
   custRepName: string | null;
   custRepMobile: string | null;
@@ -593,22 +594,28 @@ function JobCard({
           )}
         </div>
 
-        {/* Flight info */}
-        {job.flight && (
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
+        {/* Time info: driver arrival/pickup time + flight info */}
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+          {job.serviceType === "ARR" && job.flight?.arrivalTime && (
+            <span className="flex items-center gap-1 font-medium text-blue-400">
+              <Clock className="h-3.5 w-3.5" />
+              {t("portal.driverArrival") || "Driver arrives"}: {formatTime(job.flight.arrivalTime)}
+            </span>
+          )}
+          {job.serviceType !== "ARR" && job.pickUpTime && (
+            <span className="flex items-center gap-1 font-medium text-orange-400">
+              <Clock className="h-3.5 w-3.5" />
+              {t("portal.driverPickup") || "Driver pickup"}: {formatTime(job.pickUpTime)}
+            </span>
+          )}
+          {job.flight && (
+            <span className="flex items-center gap-1 text-muted-foreground">
               <Plane className="h-3.5 w-3.5" />
               {job.flight.carrier} {job.flight.flightNo}
+              {job.flight.terminal && <span className="ml-1">T{job.flight.terminal}</span>}
             </span>
-            {job.flight.terminal && <span>T{job.flight.terminal}</span>}
-            {flightTime && (
-              <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                {flightTime}
-              </span>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Route */}
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">

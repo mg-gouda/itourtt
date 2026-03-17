@@ -3,9 +3,10 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { Logger } from '@nestjs/common';
+import { resolveRepGeofenceTarget, isWithinGeofence } from '../common/geofence.util.js';
 
 type RepJobStatus = 'COMPLETED' | 'CANCELLED';
 
@@ -29,6 +30,12 @@ export class RepPortalService {
   constructor(private readonly prisma: PrismaService) {}
 
   private readonly jobInclude = {
+    originAirport: true,
+    originZone: true,
+    originHotel: { include: { zone: true } },
+    destinationAirport: true,
+    destinationZone: true,
+    destinationHotel: { include: { zone: true } },
     fromZone: true,
     toZone: true,
     flight: true,
@@ -165,7 +172,13 @@ export class RepPortalService {
         trafficJobId: jobId,
       },
       include: {
-        trafficJob: true,
+        trafficJob: {
+          include: {
+            originAirport: true,
+            originZone: true,
+            originHotel: { include: { zone: true } },
+          },
+        },
       },
     });
 
@@ -174,6 +187,7 @@ export class RepPortalService {
     }
 
     this.checkRepTimelock(assignment.trafficJob);
+    this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
 
     const currentStatus = assignment.repStatus;
     const allowed = REP_VALID_TRANSITIONS[currentStatus] || [];
@@ -237,7 +251,13 @@ export class RepPortalService {
         trafficJobId: jobId,
       },
       include: {
-        trafficJob: true,
+        trafficJob: {
+          include: {
+            originAirport: true,
+            originZone: true,
+            originHotel: { include: { zone: true } },
+          },
+        },
       },
     });
 
@@ -246,6 +266,7 @@ export class RepPortalService {
     }
 
     this.checkRepTimelock(assignment.trafficJob);
+    this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
 
     const currentStatus = assignment.repStatus;
     if (REP_TERMINAL_STATUSES.includes(currentStatus)) {
@@ -332,7 +353,13 @@ export class RepPortalService {
         trafficJobId: jobId,
       },
       include: {
-        trafficJob: true,
+        trafficJob: {
+          include: {
+            originAirport: true,
+            originZone: true,
+            originHotel: { include: { zone: true } },
+          },
+        },
       },
     });
 
@@ -341,6 +368,7 @@ export class RepPortalService {
     }
 
     this.checkRepTimelock(assignment.trafficJob);
+    this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
 
     const currentStatus = assignment.repStatus;
     if (currentStatus !== 'PENDING') {
@@ -547,6 +575,20 @@ export class RepPortalService {
     if (new Date() > cutoff) {
       throw new ForbiddenException(
         'Reps cannot update job status more than 48 hours after the service date.',
+      );
+    }
+  }
+
+  private checkRepGeofence(job: any, latitude: number, longitude: number) {
+    const target = resolveRepGeofenceTarget(job);
+    if (!target) {
+      throw new BadRequestException(
+        'Location coordinates not configured. Contact admin.',
+      );
+    }
+    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, 500)) {
+      throw new BadRequestException(
+        'You must be within 500m of the location to perform this action.',
       );
     }
   }

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateZoneDto {
   @IsNotEmpty()
@@ -8,4 +8,16 @@ export class CreateZoneDto {
   @IsNotEmpty()
   @IsString()
   cityId!: string;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsString()
+  placeId?: string;
 }

@@ -4,6 +4,7 @@ import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import { getAllPermissionKeys } from '../permissions/permission-registry.js';
+import { seedEgyptLocations } from './seed-egypt-locations.js';
 
 async function main() {
   const pool = new pg.Pool({
@@ -182,120 +183,8 @@ async function main() {
 
     console.log('System roles and permissions seeded.');
 
-    // Create a default country (Egypt)
-    const egypt = await prisma.country.upsert({
-      where: { code: 'EG' },
-      update: {},
-      create: {
-        name: 'Egypt',
-        code: 'EG',
-      },
-    });
-
-    console.log(`Country created: ${egypt.name} (${egypt.id})`);
-
-    // Create Cairo International Airport
-    const cairoCodes = await prisma.airport.findFirst({
-      where: { code: 'CAI' },
-    });
-
-    if (!cairoCodes) {
-      const airport = await prisma.airport.create({
-        data: {
-          name: 'Cairo International Airport',
-          code: 'CAI',
-          countryId: egypt.id,
-        },
-      });
-      console.log(`Airport created: ${airport.name} (${airport.id})`);
-
-      const cairo = await prisma.city.create({
-        data: {
-          name: 'Cairo',
-          airportId: airport.id,
-        },
-      });
-      console.log(`City created: ${cairo.name} (${cairo.id})`);
-
-      const zones = ['Giza', 'Maadi', 'Heliopolis', 'Downtown', 'Nasr City'];
-      for (const zoneName of zones) {
-        const zone = await prisma.zone.create({
-          data: {
-            name: zoneName,
-            cityId: cairo.id,
-          },
-        });
-        console.log(`Zone created: ${zone.name} (${zone.id})`);
-      }
-    } else {
-      console.log('Airport CAI already exists, skipping location seed');
-    }
-
-    // Create Hurghada Airport
-    const hrgCodes = await prisma.airport.findFirst({
-      where: { code: 'HRG' },
-    });
-
-    if (!hrgCodes) {
-      const hrgAirport = await prisma.airport.create({
-        data: {
-          name: 'Hurghada International Airport',
-          code: 'HRG',
-          countryId: egypt.id,
-        },
-      });
-
-      const hurghada = await prisma.city.create({
-        data: {
-          name: 'Hurghada',
-          airportId: hrgAirport.id,
-        },
-      });
-
-      const hrgZones = ['Sahl Hasheesh', 'El Gouna', 'Makadi Bay', 'Hurghada Center'];
-      for (const zoneName of hrgZones) {
-        await prisma.zone.create({
-          data: {
-            name: zoneName,
-            cityId: hurghada.id,
-          },
-        });
-      }
-      console.log('Hurghada locations seeded');
-    }
-
-    // Create Sharm El Sheikh Airport
-    const sshCodes = await prisma.airport.findFirst({
-      where: { code: 'SSH' },
-    });
-
-    if (!sshCodes) {
-      const sshAirport = await prisma.airport.create({
-        data: {
-          name: 'Sharm El Sheikh International Airport',
-          code: 'SSH',
-          countryId: egypt.id,
-        },
-      });
-
-      const sharm = await prisma.city.create({
-        data: {
-          name: 'Sharm El Sheikh',
-          airportId: sshAirport.id,
-        },
-      });
-
-      const sshZones = ['Naama Bay', 'Shark Bay', 'Nabq Bay', 'Old Market'];
-      for (const zoneName of sshZones) {
-        await prisma.zone.create({
-          data: {
-            name: zoneName,
-            cityId: sharm.id,
-          },
-        });
-      }
-      console.log('Sharm El Sheikh locations seeded');
-    }
+    // ─── SEED EGYPT LOCATIONS WITH COORDINATES ───
+    await seedEgyptLocations(prisma);
 
     // Create sample vehicle types
     const sedanType = await prisma.vehicleType.upsert({

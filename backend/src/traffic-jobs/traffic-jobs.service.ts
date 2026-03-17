@@ -13,6 +13,7 @@ import { UpdateStatusDto } from './dto/update-status.dto.js';
 import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { WhatsappNotificationsService } from '../whatsapp-notifications/whatsapp-notifications.service.js';
+import { SettingsService } from '../settings/settings.service.js';
 
 type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
@@ -33,6 +34,7 @@ export class TrafficJobsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly whatsappService: WhatsappNotificationsService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   private readonly jobInclude = {
@@ -137,6 +139,15 @@ export class TrafficJobsService {
         } catch (e) {
           if (e instanceof BadRequestException) throw e;
         }
+      }
+
+      // Check agentRef uniqueness
+      const existing = await this.prisma.trafficJob.findFirst({
+        where: { agentRef: dto.agentRef, deletedAt: null },
+        select: { id: true, internalRef: true },
+      });
+      if (existing) {
+        throw new BadRequestException(`Agent reference "${dto.agentRef}" is already used by job ${existing.internalRef}`);
       }
     } else {
       if (!dto.customerId) throw new BadRequestException('Customer is required for B2B bookings');
@@ -248,6 +259,17 @@ export class TrafficJobsService {
       const oneWeekAfterService = new Date(job.jobDate.getTime() + 7 * 24 * 60 * 60 * 1000);
       if (new Date() > oneWeekAfterService && !job.editUnlockedAt) {
         throw new ForbiddenException('Job is locked after 1 week from the service date and cannot be edited');
+      }
+    }
+
+    // Check agentRef uniqueness on update (if changed)
+    if (dto.agentRef !== undefined && dto.agentRef !== job.agentRef && dto.agentRef) {
+      const duplicate = await this.prisma.trafficJob.findFirst({
+        where: { agentRef: dto.agentRef, deletedAt: null, id: { not: id } },
+        select: { id: true, internalRef: true },
+      });
+      if (duplicate) {
+        throw new BadRequestException(`Agent reference "${dto.agentRef}" is already used by job ${duplicate.internalRef}`);
       }
     }
 
@@ -529,12 +551,23 @@ export class TrafficJobsService {
     });
   }
 
-  private async generateInternalRef(): Promise<string> {
-    const prefix = 'ITT';
+  /**
+   * Derive an abbreviation from the company name by taking the first letter
+   * of each word, uppercased. e.g. "iTour TT" → "ITT", "Travel Plan" → "TP".
+   */
+  private deriveAbbreviation(companyName: string): string {
+    const words = companyName.trim().split(/\s+/);
+    return words.map((w) => w.charAt(0).toUpperCase()).join('');
+  }
 
-    // Find all refs matching the new format ITT-NNNN (exactly one dash + digits)
+  private async generateInternalRef(): Promise<string> {
+    const company = await this.settingsService.getCompanySettings();
+    const prefix = this.deriveAbbreviation(company.companyName);
+
+    // Find the highest existing sequence for this prefix (PREFIX-NNNN)
     const jobs = await this.prisma.$queryRawUnsafe<{ internal_ref: string }[]>(
-      `SELECT internal_ref FROM traffic_jobs WHERE internal_ref ~ '^ITT-[0-9]+$' ORDER BY internal_ref DESC LIMIT 1`,
+      `SELECT internal_ref FROM traffic_jobs WHERE internal_ref ~ $1 ORDER BY internal_ref DESC LIMIT 1`,
+      `^${prefix}-[0-9]+$`,
     );
 
     let nextSeq = 1;

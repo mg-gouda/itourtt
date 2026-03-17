@@ -49,6 +49,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import {
+  GooglePlacesAutocomplete,
+  type PlaceResult,
+} from "@/components/google-places-autocomplete";
 
 interface LocationResult {
   id: string;
@@ -115,6 +119,7 @@ export function LocationCombobox({
   const [zones, setZones] = useState<ZoneOption[]>([]);
   const [cities, setCities] = useState<CityOption[]>([]);
   const [loadingParents, setLoadingParents] = useState(false);
+  const [addPlace, setAddPlace] = useState<PlaceResult | null>(null);
 
   const searchLocations = useCallback(
     async (q: string) => {
@@ -150,13 +155,28 @@ export function LocationCombobox({
     return () => clearTimeout(timer);
   }, [query, open, searchLocations]);
 
-  // Resolve selected value on mount
+  // Resolve selected value by fetching from API when value changes
   useEffect(() => {
-    if (value && !selected) {
-      searchLocations("").then(() => {
-        // Try to find in results
-      });
+    if (!value) {
+      setSelected(null);
+      return;
     }
+    // If already resolved, skip
+    if (selected?.id === value) return;
+    // Try to find in current results first
+    const found = results.find((r) => r.id === value);
+    if (found) {
+      setSelected(found);
+      return;
+    }
+    // Fetch by ID from the search endpoint
+    api.get("/locations/search", { params: { q: "", types: types?.join(",") || "" } })
+      .then(({ data }) => {
+        const all: LocationResult[] = Array.isArray(data) ? data : data.data || [];
+        const match = all.find((r) => r.id === value);
+        if (match) setSelected(match);
+      })
+      .catch(() => {});
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update selected when results change and we have a value
@@ -211,6 +231,7 @@ export function LocationCombobox({
     setAddType("hotel");
     setAddName(query); // Pre-fill with search query
     setAddParentId("");
+    setAddPlace(null);
     setAddOpen(true);
   }
 
@@ -233,10 +254,16 @@ export function LocationCombobox({
       const endpoint =
         addType === "hotel" ? "/locations/hotels" : "/locations/zones";
       const parentKey = addType === "hotel" ? "zoneId" : "cityId";
-      const { data } = await api.post(endpoint, {
+      const payload: Record<string, any> = {
         name: addName.trim(),
         [parentKey]: addParentId,
-      });
+      };
+      if (addPlace) {
+        payload.latitude = addPlace.lat;
+        payload.longitude = addPlace.lng;
+        payload.placeId = addPlace.placeId;
+      }
+      const { data } = await api.post(endpoint, payload);
 
       const created = data.data || data;
       const locType = addType === "hotel" ? "HOTEL" : "ZONE";
@@ -494,6 +521,30 @@ export function LocationCombobox({
                         ))}
                   </SelectContent>
                 </Select>
+              )}
+            </div>
+
+            {/* Google Places for coordinates */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">
+                Location on Google Maps
+                <span className="ml-1 text-xs text-muted-foreground/60">(optional)</span>
+              </Label>
+              <GooglePlacesAutocomplete
+                value={addPlace}
+                onChange={(place) => {
+                  setAddPlace(place);
+                  if (place && !addName.trim()) {
+                    setAddName(place.name);
+                  }
+                }}
+                type={addType}
+                placeholder={`Search for ${addType} on Google Maps...`}
+              />
+              {addPlace && (
+                <p className="text-xs text-muted-foreground">
+                  {addPlace.lat.toFixed(5)}, {addPlace.lng.toFixed(5)}
+                </p>
               )}
             </div>
           </div>

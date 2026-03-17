@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Param,
@@ -11,11 +12,13 @@ import {
   UseInterceptors,
   UploadedFile,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { LocationsService } from './locations.service.js';
+import { GeocodingService } from '../common/geocoding.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -31,7 +34,10 @@ import { CreateHotelDto } from './dto/create-hotel.dto.js';
 @Controller('locations')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class LocationsController {
-  constructor(private readonly locationsService: LocationsService) {}
+  constructor(
+    private readonly locationsService: LocationsService,
+    private readonly geocodingService: GeocodingService,
+  ) {}
 
   // ─── Export / Import ──────────────────────────────────────
 
@@ -75,6 +81,54 @@ export class LocationsController {
       ? `Imported ${result.imported} locations with ${result.errors.length} errors`
       : `Successfully imported ${result.imported} locations`;
     return new ApiResponse(result, message);
+  }
+
+  // ─── Google Places Search ────────────────────────────────
+
+  @Get('places-search')
+  @Permissions('locations')
+  async placesSearch(
+    @Query('q') q: string,
+    @Query('type') type?: string,
+  ) {
+    if (!q || q.trim().length < 2) {
+      throw new BadRequestException('Query must be at least 2 characters');
+    }
+    const results = await this.geocodingService.searchPlaces(q.trim(), type);
+    return new ApiResponse(results);
+  }
+
+  // ─── Batch Geocode ─────────────────────────────────────
+
+  @Post('batch-geocode')
+  @Roles('ADMIN')
+  @Permissions('locations')
+  async batchGeocode() {
+    const result = await this.locationsService.batchGeocode();
+    return new ApiResponse(result);
+  }
+
+  // ─── Update Location Coordinates ────────────────────────
+
+  @Patch(':level/:id/coordinates')
+  @Roles('ADMIN')
+  @Permissions('locations')
+  async updateCoordinates(
+    @Param('level') level: string,
+    @Param('id') id: string,
+    @Body() body: { latitude: number; longitude: number; placeId?: string },
+  ) {
+    if (body.latitude == null || body.longitude == null) {
+      throw new BadRequestException('latitude and longitude are required');
+    }
+    const result = await this.locationsService.updateLocationCoordinates(
+      level,
+      id,
+      body.latitude,
+      body.longitude,
+      body.placeId,
+    );
+    return new ApiResponse(result);
   }
 
   // ─── Search ──────────────────────────────────────────────

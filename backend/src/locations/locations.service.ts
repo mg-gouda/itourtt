@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { GeocodingService } from '../common/geocoding.service.js';
 import { CreateCountryDto } from './dto/create-country.dto.js';
 import { CreateAirportDto } from './dto/create-airport.dto.js';
 import { CreateCityDto } from './dto/create-city.dto.js';
@@ -10,7 +11,12 @@ import { CreateHotelDto } from './dto/create-hotel.dto.js';
 
 @Injectable()
 export class LocationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(LocationsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly geocoding: GeocodingService,
+  ) {}
 
   // ─── Search ──────────────────────────────────────────────
 
@@ -155,6 +161,9 @@ export class LocationsService {
       data: {
         name: dto.name,
         code: dto.code.toUpperCase(),
+        ...(dto.latitude != null && { latitude: dto.latitude }),
+        ...(dto.longitude != null && { longitude: dto.longitude }),
+        ...(dto.placeId && { placeId: dto.placeId }),
       },
     });
   }
@@ -189,6 +198,9 @@ export class LocationsService {
         name: dto.name,
         code: dto.code.toUpperCase(),
         countryId: dto.countryId,
+        ...(dto.latitude != null && { latitude: dto.latitude }),
+        ...(dto.longitude != null && { longitude: dto.longitude }),
+        ...(dto.placeId && { placeId: dto.placeId }),
       },
       include: { country: true },
     });
@@ -223,6 +235,9 @@ export class LocationsService {
       data: {
         name: dto.name,
         airportId: dto.airportId,
+        ...(dto.latitude != null && { latitude: dto.latitude }),
+        ...(dto.longitude != null && { longitude: dto.longitude }),
+        ...(dto.placeId && { placeId: dto.placeId }),
       },
       include: { airport: true },
     });
@@ -259,6 +274,9 @@ export class LocationsService {
       data: {
         name: dto.name,
         cityId: dto.cityId,
+        ...(dto.latitude != null && { latitude: dto.latitude }),
+        ...(dto.longitude != null && { longitude: dto.longitude }),
+        ...(dto.placeId && { placeId: dto.placeId }),
       },
       include: { city: true },
     });
@@ -295,6 +313,9 @@ export class LocationsService {
         zoneId: dto.zoneId,
         address: dto.address,
         stars: dto.stars,
+        ...(dto.latitude != null && { latitude: dto.latitude }),
+        ...(dto.longitude != null && { longitude: dto.longitude }),
+        ...(dto.placeId && { placeId: dto.placeId }),
       },
       include: { zone: true },
     });
@@ -743,5 +764,108 @@ export class LocationsService {
     }
 
     return { imported, errors };
+  }
+
+  // ──────────────────────────────────────────────
+  // UPDATE COORDINATES for a single location
+  // ──────────────────────────────────────────────
+
+  async updateLocationCoordinates(
+    level: string,
+    id: string,
+    latitude: number,
+    longitude: number,
+    placeId?: string,
+  ) {
+    const data: any = { latitude, longitude };
+    if (placeId) data.placeId = placeId;
+
+    switch (level) {
+      case 'country':
+        return this.prisma.country.update({ where: { id }, data });
+      case 'airport':
+        return this.prisma.airport.update({ where: { id }, data });
+      case 'city':
+        return this.prisma.city.update({ where: { id }, data });
+      case 'zone':
+        return this.prisma.zone.update({ where: { id }, data });
+      case 'hotel':
+        return this.prisma.hotel.update({ where: { id }, data });
+      default:
+        throw new BadRequestException(`Unknown location level: ${level}`);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // BATCH GEOCODE – resolve missing coordinates
+  // ──────────────────────────────────────────────
+
+  async batchGeocode(): Promise<{
+    resolved: number;
+    needsReview: Array<{ type: string; id: string; name: string; candidates: Array<{ placeId: string; name: string; formattedAddress: string; lat: number; lng: number }> }>;
+  }> {
+    let resolved = 0;
+    const needsReview: Array<{ type: string; id: string; name: string; candidates: any[] }> = [];
+
+    // Gather all locations without coordinates
+    const [airports, cities, zones, hotels] = await Promise.all([
+      this.prisma.airport.findMany({
+        where: { deletedAt: null, latitude: null },
+        select: { id: true, name: true, code: true },
+      }),
+      this.prisma.city.findMany({
+        where: { deletedAt: null, latitude: null },
+        select: { id: true, name: true },
+      }),
+      this.prisma.zone.findMany({
+        where: { deletedAt: null, latitude: null },
+        select: { id: true, name: true },
+      }),
+      this.prisma.hotel.findMany({
+        where: { deletedAt: null, latitude: null },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    const items: Array<{ type: string; id: string; name: string; searchQuery: string; googleType?: string }> = [];
+
+    for (const a of airports) {
+      items.push({ type: 'airport', id: a.id, name: a.name, searchQuery: `${a.name} airport`, googleType: 'airport' });
+    }
+    for (const c of cities) {
+      items.push({ type: 'city', id: c.id, name: c.name, searchQuery: `${c.name} city`, googleType: 'city' });
+    }
+    for (const z of zones) {
+      items.push({ type: 'zone', id: z.id, name: z.name, searchQuery: z.name, googleType: 'zone' });
+    }
+    for (const h of hotels) {
+      items.push({ type: 'hotel', id: h.id, name: h.name, searchQuery: h.name, googleType: 'hotel' });
+    }
+
+    for (const item of items) {
+      try {
+        const results = await this.geocoding.searchPlaces(item.searchQuery, item.googleType);
+
+        if (results.length === 1) {
+          // High confidence – auto-resolve
+          const r = results[0];
+          await this.updateLocationCoordinates(item.type, item.id, r.lat, r.lng, r.placeId);
+          resolved++;
+        } else if (results.length > 1) {
+          // Ambiguous – flag for review
+          needsReview.push({
+            type: item.type,
+            id: item.id,
+            name: item.name,
+            candidates: results.slice(0, 5),
+          });
+        }
+        // else: no results found, skip
+      } catch (err: any) {
+        this.logger.warn(`Batch geocode failed for ${item.type} "${item.name}": ${err.message}`);
+      }
+    }
+
+    return { resolved, needsReview };
   }
 }

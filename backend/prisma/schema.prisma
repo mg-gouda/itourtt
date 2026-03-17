@@ -245,6 +245,9 @@ model Country {
   id        String    @id @default(uuid())
   name      String    @unique
   code      String    @unique @db.VarChar(3)
+  latitude  Decimal?  @db.Decimal(10, 7)
+  longitude Decimal?  @db.Decimal(10, 7)
+  placeId   String?   @map("google_place_id")
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -260,6 +263,9 @@ model Airport {
   name      String
   code      String    @unique @db.VarChar(10)
   countryId String    @map("country_id")
+  latitude  Decimal?  @db.Decimal(10, 7)
+  longitude Decimal?  @db.Decimal(10, 7)
+  placeId   String?   @map("google_place_id")
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -280,6 +286,9 @@ model City {
   id        String    @id @default(uuid())
   name      String
   airportId String    @map("airport_id")
+  latitude  Decimal?  @db.Decimal(10, 7)
+  longitude Decimal?  @db.Decimal(10, 7)
+  placeId   String?   @map("google_place_id")
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -295,6 +304,9 @@ model Zone {
   id        String    @id @default(uuid())
   name      String
   cityId    String    @map("city_id")
+  latitude  Decimal?  @db.Decimal(10, 7)
+  longitude Decimal?  @db.Decimal(10, 7)
+  placeId   String?   @map("google_place_id")
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -329,7 +341,10 @@ model Hotel {
   name      String
   zoneId    String    @map("zone_id")
   address   String?
-  stars     Int?     
+  stars     Int?
+  latitude  Decimal?  @db.Decimal(10, 7)
+  longitude Decimal?  @db.Decimal(10, 7)
+  placeId   String?   @map("google_place_id")
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")

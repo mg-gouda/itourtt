@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { resolveDriverGeofenceTarget, isWithinGeofence } from '../common/geofence.util.js';
 
 type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
@@ -26,6 +27,12 @@ export class DriverPortalService {
   constructor(private readonly prisma: PrismaService) {}
 
   private readonly jobInclude = {
+    originAirport: true,
+    originZone: true,
+    originHotel: { include: { zone: true } },
+    destinationAirport: true,
+    destinationZone: true,
+    destinationHotel: { include: { zone: true } },
     fromZone: true,
     toZone: true,
     flight: true,
@@ -145,7 +152,13 @@ export class DriverPortalService {
         trafficJobId: jobId,
       },
       include: {
-        trafficJob: true,
+        trafficJob: {
+          include: {
+            originAirport: true,
+            originZone: true,
+            originHotel: { include: { zone: true } },
+          },
+        },
       },
     });
 
@@ -154,6 +167,7 @@ export class DriverPortalService {
     }
 
     this.checkDriverTimelock(assignment.trafficJob);
+    this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
 
     const currentStatus = assignment.driverStatus;
     const allowed = DRIVER_VALID_TRANSITIONS[currentStatus] || [];
@@ -250,7 +264,13 @@ export class DriverPortalService {
         trafficJobId: jobId,
       },
       include: {
-        trafficJob: true,
+        trafficJob: {
+          include: {
+            originAirport: true,
+            originZone: true,
+            originHotel: { include: { zone: true } },
+          },
+        },
       },
     });
 
@@ -259,6 +279,7 @@ export class DriverPortalService {
     }
 
     this.checkDriverTimelock(assignment.trafficJob);
+    this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
 
     const currentStatus = assignment.driverStatus;
     if (DRIVER_TERMINAL_STATUSES.includes(currentStatus)) {
@@ -403,6 +424,20 @@ export class DriverPortalService {
     if (new Date() > cutoff) {
       throw new ForbiddenException(
         'Drivers cannot update job status more than 48 hours after the service date.',
+      );
+    }
+  }
+
+  private checkDriverGeofence(job: any, latitude: number, longitude: number) {
+    const target = resolveDriverGeofenceTarget(job);
+    if (!target) {
+      throw new BadRequestException(
+        'Location coordinates not configured. Contact admin.',
+      );
+    }
+    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, 500)) {
+      throw new BadRequestException(
+        'You must be within 500m of the location to perform this action.',
       );
     }
   }
