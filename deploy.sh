@@ -67,6 +67,10 @@ deploy_env() {
   echo ">> Syncing database schema..."
   kubectl exec -n "$ns" deployment/backend -- npx prisma db push --accept-data-loss 2>&1 || true
 
+  # Run seed (upserts — safe to re-run)
+  echo ">> Running database seed..."
+  kubectl exec -n "$ns" deployment/backend -- node dist/src/prisma/seed.js 2>&1 || true
+
   # Restart backend
   echo ">> Rolling out backend..."
   kubectl rollout restart deployment/backend -n "$ns"
