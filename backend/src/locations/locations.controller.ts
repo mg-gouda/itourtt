@@ -30,6 +30,11 @@ import { CreateAirportDto } from './dto/create-airport.dto.js';
 import { CreateCityDto } from './dto/create-city.dto.js';
 import { CreateZoneDto } from './dto/create-zone.dto.js';
 import { CreateHotelDto } from './dto/create-hotel.dto.js';
+import { UpdateCountryDto } from './dto/update-country.dto.js';
+import { UpdateAirportDto } from './dto/update-airport.dto.js';
+import { UpdateCityDto } from './dto/update-city.dto.js';
+import { UpdateZoneDto } from './dto/update-zone.dto.js';
+import { UpdateHotelDto } from './dto/update-hotel.dto.js';
 
 @Controller('locations')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
@@ -226,6 +231,43 @@ export class LocationsController {
   @Permissions('locations.hotels.addButton')
   createHotel(@Body() dto: CreateHotelDto) {
     return this.locationsService.createHotel(dto);
+  }
+
+  // ─── Update ─────────────────────────────────────────────────
+
+  @Patch('countries/:id')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('locations.countries.addButton')
+  updateCountry(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCountryDto) {
+    return this.locationsService.updateCountry(id, dto);
+  }
+
+  @Patch('airports/:id')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('locations.airports.addButton')
+  updateAirport(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateAirportDto) {
+    return this.locationsService.updateAirport(id, dto);
+  }
+
+  @Patch('cities/:id')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('locations.cities.addButton')
+  updateCity(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCityDto) {
+    return this.locationsService.updateCity(id, dto);
+  }
+
+  @Patch('zones/:id')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('locations.zones.addButton')
+  updateZone(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateZoneDto) {
+    return this.locationsService.updateZone(id, dto);
+  }
+
+  @Patch('hotels/:id')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('locations.hotels.addButton')
+  updateHotel(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateHotelDto) {
+    return this.locationsService.updateHotel(id, dto);
   }
 
   // ─── Delete ─────────────────────────────────────────────────

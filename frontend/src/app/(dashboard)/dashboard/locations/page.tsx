@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
   Navigation,
+  Pencil,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -154,6 +155,7 @@ function TreeRow({
   onToggle,
   onAddChild,
   childLabel,
+  onEdit,
   onDelete,
 }: {
   icon: React.ElementType;
@@ -165,6 +167,7 @@ function TreeRow({
   onToggle: () => void;
   onAddChild?: () => void;
   childLabel?: string;
+  onEdit?: () => void;
   onDelete?: () => void;
 }) {
   const paddingLeft = depth * 20;
@@ -204,6 +207,20 @@ function TreeRow({
         </button>
       )}
 
+      {/* Edit button (visible on hover) */}
+      {onEdit && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          title="Edit"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       {/* Delete button (visible on hover, before name) */}
       {onDelete && (
         <button
@@ -211,7 +228,7 @@ function TreeRow({
             e.stopPropagation();
             onDelete();
           }}
-          title={childLabel}
+          title="Delete"
           className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -291,6 +308,19 @@ export default function LocationsPage() {
       candidates: PlaceResult[];
     }>;
   }>({ open: false, resolved: 0, needsReview: [] });
+
+  // Edit dialog
+  const [editDialog, setEditDialog] = useState<{
+    open: boolean;
+    level: LocationLevel;
+    id: string;
+    name: string;
+    code: string;
+  }>({ open: false, level: "country", id: "", name: "", code: "" });
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
+  const [editPlace, setEditPlace] = useState<PlaceResult | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -468,6 +498,50 @@ export default function LocationsPage() {
   }
 
   // ─── Delete handler ─────────────────────────────────────────
+  function openEdit(level: LocationLevel, id: string, name: string, code?: string) {
+    setEditDialog({ open: true, level, id, name, code: code || "" });
+    setEditName(name);
+    setEditCode(code || "");
+    setEditPlace(null);
+  }
+
+  async function handleEditSubmit() {
+    if (!editName.trim()) {
+      toast.error(t("locations.nameRequired"));
+      return;
+    }
+    const config = LEVEL_CONFIG[editDialog.level];
+    if (config.hasCode && !editCode.trim()) {
+      toast.error(t("locations.codeRequired"));
+      return;
+    }
+
+    setEditSubmitting(true);
+    try {
+      const payload: Record<string, any> = { name: editName.trim() };
+      if (config.hasCode) {
+        payload.code = editCode.trim().toUpperCase();
+      }
+      if (editPlace) {
+        payload.latitude = editPlace.lat;
+        payload.longitude = editPlace.lng;
+        payload.placeId = editPlace.placeId;
+      }
+
+      await api.patch(`${config.endpoint}/${editDialog.id}`, payload);
+      toast.success(`${t(config.label)} updated`);
+      setEditDialog((prev) => ({ ...prev, open: false }));
+      await fetchTree();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to update";
+      toast.error(message);
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
   function confirmDelete(level: LocationLevel, id: string, name: string) {
     setDeleteDialog({ open: true, level, id, name });
   }
@@ -805,6 +879,7 @@ export default function LocationsPage() {
                       openAdd("airport", country.id, country.name)
                     }
                     childLabel={t("locations.airport")}
+                    onEdit={() => openEdit("country", country.id, country.name, country.code)}
                     onDelete={isAdmin ? () =>
                       confirmDelete("country", country.id, country.name)
                     : undefined}
@@ -830,6 +905,7 @@ export default function LocationsPage() {
                               openAdd("city", airport.id, airport.name)
                             }
                             childLabel={t("locations.city")}
+                            onEdit={() => openEdit("airport", airport.id, airport.name, airport.code)}
                             onDelete={isAdmin ? () =>
                               confirmDelete("airport", airport.id, airport.name)
                             : undefined}
@@ -854,6 +930,7 @@ export default function LocationsPage() {
                                       openAdd("zone", city.id, city.name)
                                     }
                                     childLabel={t("locations.zone")}
+                                    onEdit={() => openEdit("city", city.id, city.name)}
                                     onDelete={isAdmin ? () =>
                                       confirmDelete("city", city.id, city.name)
                                     : undefined}
@@ -884,6 +961,7 @@ export default function LocationsPage() {
                                               )
                                             }
                                             childLabel={t("locations.hotel")}
+                                            onEdit={() => openEdit("zone", zone.id, zone.name)}
                                             onDelete={isAdmin ? () =>
                                               confirmDelete(
                                                 "zone",
@@ -904,6 +982,7 @@ export default function LocationsPage() {
                                                 hasChildren={false}
                                                 expanded={false}
                                                 onToggle={() => {}}
+                                                onEdit={() => openEdit("hotel", hotel.id, hotel.name)}
                                                 onDelete={isAdmin ? () =>
                                                   confirmDelete(
                                                     "hotel",
@@ -1025,6 +1104,82 @@ export default function LocationsPage() {
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {t("common.create")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Edit dialog ─────────────────────────────────────── */}
+      <Dialog
+        open={editDialog.open}
+        onOpenChange={(open) => setEditDialog((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent className="border-border bg-popover text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Edit {t(LEVEL_CONFIG[editDialog.level].label)}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">{t("common.name")}</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="border-border bg-card text-foreground"
+                onKeyDown={(e) => { if (e.key === "Enter") handleEditSubmit(); }}
+              />
+            </div>
+
+            {LEVEL_CONFIG[editDialog.level].hasCode && (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">{t("locations.code")}</Label>
+                <Input
+                  value={editCode}
+                  onChange={(e) => setEditCode(e.target.value)}
+                  maxLength={editDialog.level === "country" ? 3 : 10}
+                  className="border-border bg-card text-foreground uppercase"
+                  onKeyDown={(e) => { if (e.key === "Enter") handleEditSubmit(); }}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">
+                Location on Google Maps
+                <span className="ml-1 text-xs text-muted-foreground/60">(optional)</span>
+              </Label>
+              <GooglePlacesAutocomplete
+                value={editPlace}
+                onChange={(place) => setEditPlace(place)}
+                type={editDialog.level}
+                placeholder={`Search for ${editDialog.level} on Google Maps...`}
+              />
+              {editPlace && (
+                <p className="text-xs text-muted-foreground">
+                  <MapPin className="inline h-3 w-3 mr-1" />
+                  {editPlace.lat.toFixed(5)}, {editPlace.lng.toFixed(5)}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDialog((prev) => ({ ...prev, open: false }))}
+              className="border-border text-muted-foreground hover:text-foreground"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleEditSubmit}
+              disabled={editSubmitting}
+              className="gap-1.5"
+            >
+              {editSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,4 @@
-# iTourTT - Transport & Traffic Management System — v3.1.1
+# iTourTT - Transport & Traffic Management System — v3.3.0
 
 > **PROPRIETARY SOFTWARE** — This project is **not open source**. All rights reserved. Viewing the source code does not grant permission to use, copy, modify, or distribute it. See [LICENSE](LICENSE) for details. Unauthorized use will be prosecuted.
 
@@ -10,6 +10,7 @@ A production-grade, full-stack enterprise transport, traffic, and accounting sys
 |---|---|
 | Production (Fulvago) | https://fulvago.itourtt.cloud |
 | Training | https://tranning.itourtt.cloud |
+| TravelPlan | https://travelplan.itourtt.cloud |
 
 ## Overview
 
@@ -54,6 +55,18 @@ iTourTT manages the complete lifecycle of transport operations: from booking tra
 - Country -> Airport -> City -> Zone -> Hotel
 - Zones as the fundamental pricing unit
 - All route pricing is zone-to-zone
+- **Google Maps verified coordinates** on all locations (lat/lng/placeId)
+- Google Places autocomplete for location creation and editing
+- Batch geocode tool for resolving existing locations without coordinates
+- Full CRUD: create, edit (rename, update coordinates), and soft-delete
+- Pre-seeded with 7 Egyptian airports, 12 cities, 32 zones, 107 hotels
+
+### Geofencing
+- **500m radius geofence enforcement** on driver and rep portal status changes
+- Drivers must be within 500m of the airport (ARR) or hotel/zone (DEP/CITY) to complete/cancel/no-show
+- Reps must be within 500m of the airport to submit status updates
+- Clear error messages when outside geofence or when location coordinates are missing
+- Haversine distance calculation for accurate GPS proximity checks
 
 ### Fleet Management
 - Vehicle types with seat capacity enforcement
@@ -267,6 +280,16 @@ All endpoints follow REST conventions with JWT authentication:
 - All mutating endpoints are audit-logged automatically
 
 ## Changelog
+
+### v3.3.0 — 2026-03-17
+- **Geofencing**: 500m radius enforcement on driver and rep portal status changes (complete, cancel, no-show, in-place) — must be physically near the job's location
+- **Google Maps verified locations**: All location models (Country, Airport, City, Zone, Hotel) now store latitude, longitude, and Google Place ID
+- **Google Places autocomplete**: Integrated into all location creation and editing dialogs — search Google Maps, pick a result, coordinates auto-filled
+- **Location editing**: Full edit support for all location levels (rename, update code, change coordinates via Google Places)
+- **Batch geocode**: Admin tool to auto-resolve coordinates for existing locations without GPS data, with manual review for ambiguous results
+- **Egypt location seed**: Comprehensive seed with 7 airports, 12 cities, 32 zones, and 107 hotels — all with verified Google Maps coordinates
+- Haversine distance utility for accurate geofence calculations
+- Deploy script now runs database seed on every deployment
 
 ### v3.1.1 — 2026-03-09
 - Removed 3-hour gap rule for rep assignment — reps can now be assigned to multiple jobs on different flights without time restrictions

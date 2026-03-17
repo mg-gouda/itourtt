@@ -8,6 +8,11 @@ import { CreateAirportDto } from './dto/create-airport.dto.js';
 import { CreateCityDto } from './dto/create-city.dto.js';
 import { CreateZoneDto } from './dto/create-zone.dto.js';
 import { CreateHotelDto } from './dto/create-hotel.dto.js';
+import { UpdateCountryDto } from './dto/update-country.dto.js';
+import { UpdateAirportDto } from './dto/update-airport.dto.js';
+import { UpdateCityDto } from './dto/update-city.dto.js';
+import { UpdateZoneDto } from './dto/update-zone.dto.js';
+import { UpdateHotelDto } from './dto/update-hotel.dto.js';
 
 @Injectable()
 export class LocationsService {
@@ -316,6 +321,115 @@ export class LocationsService {
         ...(dto.latitude != null && { latitude: dto.latitude }),
         ...(dto.longitude != null && { longitude: dto.longitude }),
         ...(dto.placeId && { placeId: dto.placeId }),
+      },
+      include: { zone: true },
+    });
+  }
+
+  // ─── Update Methods ──────────────────────────────────────
+
+  async updateCountry(id: string, dto: UpdateCountryDto) {
+    const country = await this.prisma.country.findUnique({ where: { id, deletedAt: null } });
+    if (!country) throw new NotFoundException(`Country with id ${id} not found`);
+
+    return this.prisma.country.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.code !== undefined && { code: dto.code.toUpperCase() }),
+        ...(dto.latitude !== undefined && { latitude: dto.latitude }),
+        ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+        ...(dto.placeId !== undefined && { placeId: dto.placeId }),
+      },
+    });
+  }
+
+  async updateAirport(id: string, dto: UpdateAirportDto) {
+    const airport = await this.prisma.airport.findUnique({ where: { id, deletedAt: null } });
+    if (!airport) throw new NotFoundException(`Airport with id ${id} not found`);
+
+    if (dto.countryId) {
+      const country = await this.prisma.country.findUnique({ where: { id: dto.countryId, deletedAt: null } });
+      if (!country) throw new NotFoundException(`Country with id ${dto.countryId} not found`);
+    }
+
+    return this.prisma.airport.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.code !== undefined && { code: dto.code.toUpperCase() }),
+        ...(dto.countryId !== undefined && { countryId: dto.countryId }),
+        ...(dto.latitude !== undefined && { latitude: dto.latitude }),
+        ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+        ...(dto.placeId !== undefined && { placeId: dto.placeId }),
+      },
+      include: { country: true },
+    });
+  }
+
+  async updateCity(id: string, dto: UpdateCityDto) {
+    const city = await this.prisma.city.findUnique({ where: { id, deletedAt: null } });
+    if (!city) throw new NotFoundException(`City with id ${id} not found`);
+
+    if (dto.airportId) {
+      const airport = await this.prisma.airport.findUnique({ where: { id: dto.airportId, deletedAt: null } });
+      if (!airport) throw new NotFoundException(`Airport with id ${dto.airportId} not found`);
+    }
+
+    return this.prisma.city.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.airportId !== undefined && { airportId: dto.airportId }),
+        ...(dto.latitude !== undefined && { latitude: dto.latitude }),
+        ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+        ...(dto.placeId !== undefined && { placeId: dto.placeId }),
+      },
+      include: { airport: true },
+    });
+  }
+
+  async updateZone(id: string, dto: UpdateZoneDto) {
+    const zone = await this.prisma.zone.findUnique({ where: { id, deletedAt: null } });
+    if (!zone) throw new NotFoundException(`Zone with id ${id} not found`);
+
+    if (dto.cityId) {
+      const city = await this.prisma.city.findUnique({ where: { id: dto.cityId, deletedAt: null } });
+      if (!city) throw new NotFoundException(`City with id ${dto.cityId} not found`);
+    }
+
+    return this.prisma.zone.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.cityId !== undefined && { cityId: dto.cityId }),
+        ...(dto.latitude !== undefined && { latitude: dto.latitude }),
+        ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+        ...(dto.placeId !== undefined && { placeId: dto.placeId }),
+      },
+      include: { city: true },
+    });
+  }
+
+  async updateHotel(id: string, dto: UpdateHotelDto) {
+    const hotel = await this.prisma.hotel.findUnique({ where: { id, deletedAt: null } });
+    if (!hotel) throw new NotFoundException(`Hotel with id ${id} not found`);
+
+    if (dto.zoneId) {
+      const zone = await this.prisma.zone.findUnique({ where: { id: dto.zoneId, deletedAt: null } });
+      if (!zone) throw new NotFoundException(`Zone with id ${dto.zoneId} not found`);
+    }
+
+    return this.prisma.hotel.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.zoneId !== undefined && { zoneId: dto.zoneId }),
+        ...(dto.address !== undefined && { address: dto.address }),
+        ...(dto.stars !== undefined && { stars: dto.stars }),
+        ...(dto.latitude !== undefined && { latitude: dto.latitude }),
+        ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+        ...(dto.placeId !== undefined && { placeId: dto.placeId }),
       },
       include: { zone: true },
     });
