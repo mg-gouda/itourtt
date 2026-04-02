@@ -165,6 +165,17 @@ export class TrafficJobsService {
       throw new BadRequestException('Exactly one destination (airport, zone, or hotel) must be provided');
     }
 
+    // Validate customerJobId uniqueness
+    if (dto.customerJobId) {
+      const existing = await this.prisma.trafficJob.findFirst({
+        where: { customerJobId: dto.customerJobId, deletedAt: null },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new BadRequestException(`Customer Job ID "${dto.customerJobId}" is already in use`);
+      }
+    }
+
     const childCount = dto.childCount ?? 0;
     const paxCount = dto.adultCount + childCount;
 
@@ -305,6 +316,17 @@ export class TrafficJobsService {
     const toZoneId = (hasDestUpdate)
       ? await this.resolveZoneFromFKs(destAirportId, destZoneId, destHotelId)
       : undefined;
+
+    // Validate customerJobId uniqueness on update
+    if (dto.customerJobId && dto.customerJobId !== job.customerJobId) {
+      const existing = await this.prisma.trafficJob.findFirst({
+        where: { customerJobId: dto.customerJobId, deletedAt: null, id: { not: id } },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new BadRequestException(`Customer Job ID "${dto.customerJobId}" is already in use`);
+      }
+    }
 
     // Recalculate pax if counts changed
     const adultCount = dto.adultCount ?? job.adultCount;

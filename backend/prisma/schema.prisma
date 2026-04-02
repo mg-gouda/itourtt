@@ -1043,6 +1043,7 @@ model TrafficJob {
   whatsappLogs          WhatsappNotificationLog[]
   userNotifications     UserNotification[]
 
+  @@unique([customerJobId])
   @@index([jobDate])
   @@index([agentId])
   @@index([customerId])

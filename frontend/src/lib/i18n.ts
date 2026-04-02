@@ -888,6 +888,16 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.permitsExpired": "Permits Expired",
     "reports.noComplianceData": "No compliance data",
     "reports.failedCompliance": "Failed to load compliance report",
+    "reports.jobStatus": "Job Status",
+    "reports.failedJobStatus": "Failed to load job status report",
+    "reports.noJobStatusData": "No job status data. Select filters and click Generate.",
+    "reports.trsfReference": "TRSF Reference",
+    "reports.agentRef": "Agent Ref",
+    "reports.applicationPrice": "Application Price",
+    "reports.repJobStatus": "Rep Job Status",
+    "reports.driverJobStatus": "Driver Job Status",
+    "reports.statusFilter": "Status",
+    "reports.allStatuses": "All Statuses",
 
     // ── Users ──
     "users.title": "Users",
@@ -2310,6 +2320,16 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.permitsExpired": "تصاريح منتهية",
     "reports.noComplianceData": "لا توجد بيانات إدارة المركبة",
     "reports.failedCompliance": "فشل تحميل تقرير إدارة بيانات المركبة",
+    "reports.jobStatus": "حالة المهمة",
+    "reports.failedJobStatus": "فشل تحميل تقرير حالة المهمة",
+    "reports.noJobStatusData": "لا توجد بيانات. حدد الفلاتر واضغط إنشاء.",
+    "reports.trsfReference": "مرجع النقل",
+    "reports.agentRef": "مرجع الوكيل",
+    "reports.applicationPrice": "سعر التطبيق",
+    "reports.repJobStatus": "حالة مهمة المندوب",
+    "reports.driverJobStatus": "حالة مهمة السائق",
+    "reports.statusFilter": "الحالة",
+    "reports.allStatuses": "جميع الحالات",
 
     // ── Users ──
     "users.title": "\u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u0648\u0646",

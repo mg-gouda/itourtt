@@ -14,6 +14,7 @@ import {
   Printer,
   ShieldCheck,
   AlertTriangle,
+  ClipboardList,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -217,6 +218,22 @@ interface ComplianceReportItem {
   balanceRemaining: number | null;
 }
 
+interface JobStatusReport {
+  from: string;
+  to: string;
+  totalJobs: number;
+  jobs: Array<{
+    id: string;
+    internalRef: string;
+    agentRef: string | null;
+    priceAmount: number | null;
+    priceCurrency: string | null;
+    status: string;
+    repJobStatus: string | null;
+    driverJobStatus: string | null;
+  }>;
+}
+
 interface Agent {
   id: string;
   legalName: string;
@@ -240,6 +257,8 @@ const statusColors: Record<string, string> = {
   IN_PROGRESS: "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30",
   COMPLETED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
   CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
+  NO_SHOW: "bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30",
+  IN_PLACE: "bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/30",
   DRAFT: "bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border-zinc-500/30",
   POSTED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
   PAID: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
@@ -285,6 +304,7 @@ export default function ReportsPage() {
   const canRepFees = usePermission("reports.repFees");
   const canRevenue = usePermission("reports.revenue");
   const canVehicleCompliance = usePermission("reports.vehicleCompliance");
+  const canJobStatus = usePermission("reports.jobStatus");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -330,6 +350,14 @@ export default function ReportsPage() {
   const [complianceOwnershipFilter, setComplianceOwnershipFilter] = useState("ALL");
   const [complianceTypeFilter, setComplianceTypeFilter] = useState("ALL");
 
+  // Job Status
+  const [jobStatusFrom, setJobStatusFrom] = useState(thirtyDaysAgo);
+  const [jobStatusTo, setJobStatusTo] = useState(today);
+  const [jobStatusFilter, setJobStatusFilter] = useState("ALL");
+  const [jobStatusData, setJobStatusData] = useState<JobStatusReport | null>(null);
+  const [jobStatusLoading, setJobStatusLoading] = useState(false);
+  const jobStatusPrintRef = useRef<HTMLDivElement>(null);
+
   // Derived: filtered compliance data and unique vehicle types
   const complianceVehicleTypes = Array.from(new Set(complianceData.map((v) => v.vehicleTypeName).filter(Boolean))).sort();
   const filteredComplianceData = complianceData.filter((v) => {
@@ -345,6 +373,7 @@ export default function ReportsPage() {
   const repFeeSort = useSortable(repFeeData?.reps || []);
   const revenueSort = useSortable(revenueData?.byAgent || []);
   const complianceSort = useSortable(filteredComplianceData);
+  const jobStatusSort = useSortable(jobStatusData?.jobs || []);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -444,6 +473,23 @@ export default function ReportsPage() {
       setComplianceLoading(false);
     }
   };
+
+  const fetchJobStatus = async () => {
+    setJobStatusLoading(true);
+    try {
+      const statusParam = jobStatusFilter !== "ALL" ? `&status=${jobStatusFilter}` : "";
+      const { data } = await api.get(
+        `/reports/job-status?from=${jobStatusFrom}&to=${jobStatusTo}${statusParam}`
+      );
+      setJobStatusData(data.data || data);
+    } catch {
+      toast.error(t("reports.failedJobStatus"));
+    } finally {
+      setJobStatusLoading(false);
+    }
+  };
+
+  const exportJobStatusPdf = () => printFromRef(jobStatusPrintRef, `Job Status Report - ${jobStatusFrom} to ${jobStatusTo}`);
 
   const exportRepFeesExcel = async () => {
     try {
@@ -654,7 +700,8 @@ export default function ReportsPage() {
         canAgentStatement ? "agent" :
         canRepFees ? "rep-fees" :
         canRevenue ? "revenue" :
-        canVehicleCompliance ? "compliance" : "dispatch"
+        canVehicleCompliance ? "compliance" :
+        canJobStatus ? "job-status" : "dispatch"
       } className="space-y-4">
         <TabsList className="bg-card border border-border">
           {canDailyDispatch && (
@@ -709,6 +756,15 @@ export default function ReportsPage() {
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               {t("reports.vehicleCompliance")}
+            </TabsTrigger>
+          )}
+          {canJobStatus && (
+            <TabsTrigger
+              value="job-status"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              {t("reports.jobStatus")}
             </TabsTrigger>
           )}
         </TabsList>
@@ -1609,6 +1665,135 @@ export default function ReportsPage() {
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <ShieldCheck className="mb-2 h-8 w-8" />
               <p className="text-sm">{t("reports.noComplianceData")}</p>
+            </div>
+          )}
+        </TabsContent>}
+
+        {/* ─── JOB STATUS REPORT ─── */}
+        {canJobStatus && <TabsContent value="job-status" className="space-y-4">
+          <Card className="border-border bg-card p-4">
+            <div className="flex items-end gap-3 flex-wrap">
+              <div>
+                <Label className="text-muted-foreground text-xs">{t("reports.statusFilter")}</Label>
+                <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
+                  <SelectTrigger className="mt-1 w-44 border-border bg-card text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">{t("reports.allStatuses")}</SelectItem>
+                    <SelectItem value="PENDING">Pending</SelectItem>
+                    <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    <SelectItem value="NO_SHOW">No Show</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
+                <Input
+                  type="date"
+                  value={jobStatusFrom}
+                  onChange={(e) => setJobStatusFrom(e.target.value)}
+                  className="mt-1 w-44 border-border bg-card text-foreground"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                <Input
+                  type="date"
+                  value={jobStatusTo}
+                  onChange={(e) => setJobStatusTo(e.target.value)}
+                  className="mt-1 w-44 border-border bg-card text-foreground"
+                />
+              </div>
+              <Button
+                onClick={fetchJobStatus}
+                disabled={jobStatusLoading}
+                className="gap-1.5"
+              >
+                {jobStatusLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                {t("reports.generate")}
+              </Button>
+              {jobStatusData && (
+                <Button variant="outline" onClick={exportJobStatusPdf} className="gap-1.5 border-border text-foreground">
+                  <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                </Button>
+              )}
+            </div>
+          </Card>
+
+          {jobStatusData ? (
+            <>
+              <div className="grid grid-cols-4 gap-1.5">
+                <StatCard label={t("reports.totalJobs")} value={jobStatusData.totalJobs} />
+                <StatCard
+                  label="Completed"
+                  value={jobStatusData.jobs.filter((j) => j.status === "COMPLETED").length}
+                  color="text-emerald-600 dark:text-emerald-400"
+                />
+                <StatCard
+                  label="Pending"
+                  value={jobStatusData.jobs.filter((j) => j.status === "PENDING").length}
+                  color="text-amber-600 dark:text-amber-400"
+                />
+                <StatCard
+                  label="Cancelled"
+                  value={jobStatusData.jobs.filter((j) => j.status === "CANCELLED").length}
+                  color="text-red-600 dark:text-red-400"
+                />
+              </div>
+
+              <div ref={jobStatusPrintRef}>
+                <div className="rounded-md border border-border overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+                        <SortableHeader label={t("reports.trsfReference")} sortKey="internalRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("reports.agentRef")} sortKey="agentRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("reports.applicationPrice")} sortKey="priceAmount" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} className="text-right" />
+                        <SortableHeader label={t("common.status")} sortKey="status" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("reports.repJobStatus")} sortKey="repJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("reports.driverJobStatus")} sortKey="driverJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jobStatusSort.sortedData.map((job) => (
+                        <TableRow key={job.id} className="border-border hover:bg-muted/30">
+                          <TableCell className="font-mono text-sm text-foreground">{job.internalRef}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{job.agentRef || "\u2014"}</TableCell>
+                          <TableCell className="text-right font-mono text-sm text-foreground">
+                            {job.priceAmount != null ? `${fmt(job.priceAmount, locale)} ${job.priceCurrency || ""}` : "\u2014"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={statusColors[job.status] || ""}>{job.status}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {job.repJobStatus ? (
+                              <Badge variant="outline" className={statusColors[job.repJobStatus] || ""}>{job.repJobStatus}</Badge>
+                            ) : "\u2014"}
+                          </TableCell>
+                          <TableCell>
+                            {job.driverJobStatus ? (
+                              <Badge variant="outline" className={statusColors[job.driverJobStatus] || ""}>{job.driverJobStatus}</Badge>
+                            ) : "\u2014"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <ClipboardList className="mb-2 h-8 w-8" />
+              <p className="text-sm">{t("reports.noJobStatusData")}</p>
             </div>
           )}
         </TabsContent>}

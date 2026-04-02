@@ -90,6 +90,7 @@ interface LocationOption {
 interface JobRow {
   uid: string; // local row key
   customerId: string;
+  customerJobId: string; // customer's own job/booking reference
   bookingNumber: string; // auto-generated after save
   description: string; // origin → destination
   pickUpTime: string; // HH:mm
@@ -141,6 +142,7 @@ function newJobRow(): JobRow {
   return {
     uid: crypto.randomUUID(),
     customerId: "",
+    customerJobId: "",
     bookingNumber: "",
     description: "",
     pickUpTime: "",
@@ -490,6 +492,7 @@ function CarDispatchContent() {
       const toJobRow = (j: any): JobRow => ({
         uid: j.id,
         customerId: j.customerId || "",
+        customerJobId: j.customerJobId || "",
         bookingNumber: j.internalRef || "",
         description: "",
         pickUpTime: j.pickUpTime ? new Date(j.pickUpTime).toTimeString().slice(0, 5) : "",
@@ -528,6 +531,16 @@ function CarDispatchContent() {
           return { ...card, jobs: [...existingRows, ...unsavedRows] };
         })
       );
+
+      // Auto-select owned vehicles that have jobs on this date
+      const vehicleIdsWithJobs = new Set(Object.keys(jobsByVehicle));
+      if (vehicleIdsWithJobs.size > 0) {
+        setSelectedOwnedIds((prev) => {
+          const next = new Set(prev);
+          for (const vId of vehicleIdsWithJobs) next.add(vId);
+          return next;
+        });
+      }
     } catch {
       // Dispatch day endpoint may fail on dev environments with schema drift — silently skip
     }
@@ -666,6 +679,7 @@ function CarDispatchContent() {
         adultCount: parseInt(job.paxCount) || 1,
         childCount: 0,
         customerId: job.customerId || undefined,
+        customerJobId: job.customerJobId?.trim() || undefined,
         custRepName: job.custRepName || undefined,
         custRepMobile: job.custRepMobile || undefined,
         boosterSeat: job.boosterSeat,
@@ -1043,12 +1057,11 @@ function VehicleCard({
                 <tr className="bg-muted/50">
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Customer</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Booking #</th>
+                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Cust. Job ID</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Origin</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Destination</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Time</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">{isSupplier ? "Driver Name & Phone" : "Driver"}</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Extras</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Collection</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Cust. Rep</th>
                   {!isSupplier && <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Extra Driver</th>}
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Type</th>
@@ -1132,6 +1145,17 @@ function JobRowComponent({
         )}
       </td>
 
+      {/* Customer Job ID */}
+      <td className={cell}>
+        <Input
+          value={job.customerJobId}
+          onChange={(e) => onUpdate("customerJobId", e.target.value)}
+          placeholder="Cust. Job ID..."
+          className="h-7 rounded-none border-0 shadow-none text-xs"
+          disabled={job.saved}
+        />
+      </td>
+
       {/* Origin Zone */}
       <td className={cell}>
         <ComboSelect
@@ -1200,105 +1224,6 @@ function JobRowComponent({
             className="h-7 rounded-none border-0 shadow-none"
           />
         )}
-      </td>
-
-      {/* Extras */}
-      <td className={cn(cell, "px-1 py-0.5")}>
-        <div className="flex flex-col gap-0">
-          <label className="flex items-center gap-1 cursor-pointer">
-            <Checkbox
-              checked={job.boosterSeat}
-              onCheckedChange={(v) => {
-                onUpdate("boosterSeat", !!v);
-                if (!v) onUpdate("boosterSeatQty", 0);
-                else if (job.boosterSeatQty === 0) onUpdate("boosterSeatQty", 1);
-              }}
-              disabled={job.saved}
-              className="h-3 w-3"
-            />
-            <span className="text-[10px]">Booster</span>
-            {job.boosterSeat && (
-              <input
-                type="number"
-                min={1}
-                value={job.boosterSeatQty}
-                onChange={(e) => onUpdate("boosterSeatQty", parseInt(e.target.value) || 0)}
-                className="h-4 w-7 border border-border bg-transparent text-[10px] text-center rounded-none px-0"
-                disabled={job.saved}
-              />
-            )}
-          </label>
-          <label className="flex items-center gap-1 cursor-pointer">
-            <Checkbox
-              checked={job.babySeat}
-              onCheckedChange={(v) => {
-                onUpdate("babySeat", !!v);
-                if (!v) onUpdate("babySeatQty", 0);
-                else if (job.babySeatQty === 0) onUpdate("babySeatQty", 1);
-              }}
-              disabled={job.saved}
-              className="h-3 w-3"
-            />
-            <span className="text-[10px]">Baby</span>
-            {job.babySeat && (
-              <input
-                type="number"
-                min={1}
-                value={job.babySeatQty}
-                onChange={(e) => onUpdate("babySeatQty", parseInt(e.target.value) || 0)}
-                className="h-4 w-7 border border-border bg-transparent text-[10px] text-center rounded-none px-0"
-                disabled={job.saved}
-              />
-            )}
-          </label>
-          <label className="flex items-center gap-1 cursor-pointer">
-            <Checkbox
-              checked={job.wheelChair}
-              onCheckedChange={(v) => {
-                onUpdate("wheelChair", !!v);
-                if (!v) onUpdate("wheelChairQty", 0);
-                else if (job.wheelChairQty === 0) onUpdate("wheelChairQty", 1);
-              }}
-              disabled={job.saved}
-              className="h-3 w-3"
-            />
-            <span className="text-[10px]">WC</span>
-            {job.wheelChair && (
-              <input
-                type="number"
-                min={1}
-                value={job.wheelChairQty}
-                onChange={(e) => onUpdate("wheelChairQty", parseInt(e.target.value) || 0)}
-                className="h-4 w-7 border border-border bg-transparent text-[10px] text-center rounded-none px-0"
-                disabled={job.saved}
-              />
-            )}
-          </label>
-        </div>
-      </td>
-
-      {/* Collection */}
-      <td className={cell}>
-        <div className="flex">
-          <input
-            type="number"
-            value={job.collectionAmount}
-            onChange={(e) => onUpdate("collectionAmount", e.target.value)}
-            placeholder="0"
-            className="h-7 w-[60px] border-0 border-r border-border bg-transparent px-1 text-xs focus:outline-none"
-            disabled={job.saved}
-          />
-          <select
-            value={job.collectionCurrency}
-            onChange={(e) => onUpdate("collectionCurrency", e.target.value)}
-            disabled={job.saved}
-            className="h-7 w-[55px] border-0 bg-transparent px-0.5 text-[10px] focus:outline-none"
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
       </td>
 
       {/* Customer Rep */}

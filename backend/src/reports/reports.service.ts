@@ -484,4 +484,51 @@ export class ReportsService {
       byAgent: agents,
     };
   }
+
+  // ─────────────────────────────────────────────
+  // JOB STATUS REPORT
+  // ─────────────────────────────────────────────
+
+  async jobStatusReport(from: string, to: string, status?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const where: Record<string, unknown> = {
+      jobDate: { gte: fromDate, lte: toDate },
+      deletedAt: null,
+    };
+    if (status && status !== 'ALL') {
+      where.status = status;
+    }
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: {
+        agent: { select: { legalName: true, tradeName: true } },
+        assignment: {
+          select: {
+            driverStatus: true,
+            repStatus: true,
+          },
+        },
+      },
+      orderBy: { jobDate: 'asc' },
+    });
+
+    return {
+      from,
+      to,
+      totalJobs: jobs.length,
+      jobs: jobs.map((j) => ({
+        id: j.id,
+        internalRef: j.internalRef,
+        agentRef: j.agentRef,
+        priceAmount: j.priceAmount ? Number(j.priceAmount) : null,
+        priceCurrency: j.priceCurrency,
+        status: j.status,
+        repJobStatus: j.assignment?.repStatus || null,
+        driverJobStatus: j.assignment?.driverStatus || null,
+      })),
+    };
+  }
 }

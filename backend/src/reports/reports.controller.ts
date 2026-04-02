@@ -24,6 +24,18 @@ class DateRangeQueryDto {
   to!: string;
 }
 
+class JobStatusQueryDto {
+  @IsString()
+  from!: string;
+
+  @IsString()
+  to!: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+}
+
 class DayQueryDto {
   @IsString()
   date!: string;
@@ -100,6 +112,22 @@ export class ReportsController {
     const result = await this.reportsService.revenueReport(
       query.from,
       query.to,
+    );
+    return new ApiResponse(result);
+  }
+
+  @Get('job-status')
+  @Permissions('reports.jobStatus')
+  async jobStatusReport(@Query() query: JobStatusQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException(
+        'from and to query parameters are required',
+      );
+    }
+    const result = await this.reportsService.jobStatusReport(
+      query.from,
+      query.to,
+      query.status,
     );
     return new ApiResponse(result);
   }
