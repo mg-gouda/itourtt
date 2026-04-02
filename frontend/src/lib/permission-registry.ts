@@ -133,6 +133,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'agents.table.toggleStatus', labelKey: 'permissions.agents.table.toggleStatus' },
         ],
       },
+      { key: 'agents.export', labelKey: 'permissions.agents.export' },
+      { key: 'agents.downloadTemplate', labelKey: 'permissions.agents.downloadTemplate' },
+      { key: 'agents.import', labelKey: 'permissions.agents.import' },
       {
         key: 'agents.form',
         labelKey: 'permissions.agents.form',
@@ -166,6 +169,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'customers.table.toggleStatus', labelKey: 'permissions.customers.table.toggleStatus' },
         ],
       },
+      { key: 'customers.export', labelKey: 'permissions.customers.export' },
+      { key: 'customers.downloadTemplate', labelKey: 'permissions.customers.downloadTemplate' },
+      { key: 'customers.import', labelKey: 'permissions.customers.import' },
       {
         key: 'customers.form',
         labelKey: 'permissions.customers.form',
@@ -252,6 +258,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'finance.exports.payments', labelKey: 'permissions.finance.exports.payments' },
           { key: 'finance.exports.journals', labelKey: 'permissions.finance.exports.journals' },
           { key: 'finance.exports.collections', labelKey: 'permissions.finance.exports.collections' },
+          { key: 'finance.odooExport', labelKey: 'permissions.finance.odooExport' },
         ],
       },
     ],
@@ -398,6 +405,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'suppliers.table.resetPassword', labelKey: 'permissions.suppliers.table.resetPassword' },
         ],
       },
+      { key: 'suppliers.export', labelKey: 'permissions.suppliers.export' },
+      { key: 'suppliers.downloadTemplate', labelKey: 'permissions.suppliers.downloadTemplate' },
+      { key: 'suppliers.import', labelKey: 'permissions.suppliers.import' },
       {
         key: 'suppliers.form',
         labelKey: 'permissions.suppliers.form',
@@ -460,6 +470,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'locations.hotels.deleteButton', labelKey: 'permissions.locations.hotels.deleteButton' },
         ],
       },
+      { key: 'locations.export', labelKey: 'permissions.locations.export' },
+      { key: 'locations.downloadTemplate', labelKey: 'permissions.locations.downloadTemplate' },
+      { key: 'locations.import', labelKey: 'permissions.locations.import' },
     ],
   },
 
@@ -531,6 +544,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'job-locks.driver', labelKey: 'permissions.jobLocks.driver' },
       { key: 'job-locks.rep', labelKey: 'permissions.jobLocks.rep' },
       { key: 'job-locks.supplier', labelKey: 'permissions.jobLocks.supplier' },
+      { key: 'job-locks.edit', labelKey: 'permissions.jobLocks.edit' },
     ],
   },
 

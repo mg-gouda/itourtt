@@ -71,6 +71,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
               { key: 'traffic-jobs.online.form.route', labelKey: 'permissions.trafficJobs.online.form.route' },
               { key: 'traffic-jobs.online.form.flightInfo', labelKey: 'permissions.trafficJobs.online.form.flightInfo' },
               { key: 'traffic-jobs.online.form.extras', labelKey: 'permissions.trafficJobs.online.form.extras' },
+              { key: 'traffic-jobs.online.form.requestedVehicleType', labelKey: 'permissions.trafficJobs.online.form.requestedVehicleType' },
               { key: 'traffic-jobs.online.form.notes', labelKey: 'permissions.trafficJobs.online.form.notes' },
               { key: 'traffic-jobs.online.form.printSign', labelKey: 'permissions.trafficJobs.online.form.printSign' },
             ],
