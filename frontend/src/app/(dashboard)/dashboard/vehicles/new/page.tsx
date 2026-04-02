@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 
 interface VehicleType {
   id: string;
@@ -30,6 +31,14 @@ const COLORS = ["White", "Black", "Silver", "Gray", "Red", "Blue", "Green", "Yel
 export default function AddVehiclePage() {
   const t = useT();
   const router = useRouter();
+  const canPlateNumber = usePermission("vehicles.form.plateNumber");
+  const canVehicleType = usePermission("vehicles.form.vehicleType");
+  const canColor = usePermission("vehicles.form.color");
+  const canBrand = usePermission("vehicles.form.brand");
+  const canModel = usePermission("vehicles.form.model");
+  const canMakeYear = usePermission("vehicles.form.makeYear");
+  const canLuggageCapacity = usePermission("vehicles.form.luggageCapacity");
+  const canOwnership = usePermission("vehicles.form.ownership");
 
   const [types, setTypes] = useState<VehicleType[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -115,6 +124,7 @@ export default function AddVehiclePage() {
 
       <Card className="border-border bg-card">
         <CardContent className="pt-6 space-y-4">
+          {canPlateNumber && (
           <div className="space-y-2">
             <Label htmlFor="plate-number" className="text-muted-foreground">
               {t("vehicles.plateNumber")}
@@ -127,7 +137,9 @@ export default function AddVehiclePage() {
               className="border-border bg-card text-foreground placeholder:text-muted-foreground"
             />
           </div>
+          )}
 
+          {canVehicleType && (
           <div className="space-y-2">
             <Label htmlFor="vehicle-type" className="text-muted-foreground">
               {t("vehicles.type")}
@@ -149,7 +161,9 @@ export default function AddVehiclePage() {
               </SelectContent>
             </Select>
           </div>
+          )}
 
+          {canOwnership && (
           <div className="space-y-2">
             <Label htmlFor="ownership" className="text-muted-foreground">
               {t("vehicles.ownership")}
@@ -171,7 +185,9 @@ export default function AddVehiclePage() {
               </SelectContent>
             </Select>
           </div>
+          )}
 
+          {canColor && (
           <div className="space-y-2">
             <Label htmlFor="color" className="text-muted-foreground">
               {t("vehicles.color")}
@@ -193,8 +209,10 @@ export default function AddVehiclePage() {
               </SelectContent>
             </Select>
           </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {canBrand && (
             <div className="space-y-2">
               <Label htmlFor="car-brand" className="text-muted-foreground">
                 {t("vehicles.carBrand")}
@@ -207,6 +225,8 @@ export default function AddVehiclePage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
+            {canModel && (
             <div className="space-y-2">
               <Label htmlFor="car-model" className="text-muted-foreground">
                 {t("vehicles.carModel")}
@@ -219,6 +239,8 @@ export default function AddVehiclePage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
+            {canMakeYear && (
             <div className="space-y-2">
               <Label htmlFor="make-year" className="text-muted-foreground">
                 {t("vehicles.makeYear")}
@@ -234,6 +256,8 @@ export default function AddVehiclePage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
+            {canLuggageCapacity && (
             <div className="space-y-2">
               <Label htmlFor="luggage-capacity" className="text-muted-foreground">
                 {t("vehicles.luggageCapacity")}
@@ -248,6 +272,7 @@ export default function AddVehiclePage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border">

@@ -50,6 +50,7 @@ import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCompanyStore } from "@/stores/company-store";
+import { usePermission } from "@/hooks/use-permission";
 
 // ────────────────────────────────────────────
 // Types
@@ -277,6 +278,13 @@ export default function ReportsPage() {
   const locale = useLocaleId();
   const { user } = useAuthStore();
   const { logoUrl, companyName } = useCompanyStore();
+
+  const canDailyDispatch = usePermission("reports.dailyDispatch");
+  const canDriverTrips = usePermission("reports.driverTrips");
+  const canAgentStatement = usePermission("reports.agentStatement");
+  const canRepFees = usePermission("reports.repFees");
+  const canRevenue = usePermission("reports.revenue");
+  const canVehicleCompliance = usePermission("reports.vehicleCompliance");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -640,54 +648,73 @@ export default function ReportsPage() {
         description={t("reports.description")}
       />
 
-      <Tabs defaultValue="dispatch" className="space-y-4">
+      <Tabs defaultValue={
+        canDailyDispatch ? "dispatch" :
+        canDriverTrips ? "drivers" :
+        canAgentStatement ? "agent" :
+        canRepFees ? "rep-fees" :
+        canRevenue ? "revenue" :
+        canVehicleCompliance ? "compliance" : "dispatch"
+      } className="space-y-4">
         <TabsList className="bg-card border border-border">
-          <TabsTrigger
-            value="dispatch"
-            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-          >
-            <CalendarDays className="h-3.5 w-3.5" />
-            {t("reports.dailyDispatch")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="drivers"
-            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-          >
-            <Car className="h-3.5 w-3.5" />
-            {t("reports.driverTrips")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="agent"
-            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-          >
-            <Building2 className="h-3.5 w-3.5" />
-            {t("reports.agentStatement")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="rep-fees"
-            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-          >
-            <UserCheck className="h-3.5 w-3.5" />
-            {t("reports.repFees")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="revenue"
-            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-          >
-            <DollarSign className="h-3.5 w-3.5" />
-            {t("reports.revenue")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="compliance"
-            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            {t("reports.vehicleCompliance")}
-          </TabsTrigger>
+          {canDailyDispatch && (
+            <TabsTrigger
+              value="dispatch"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              {t("reports.dailyDispatch")}
+            </TabsTrigger>
+          )}
+          {canDriverTrips && (
+            <TabsTrigger
+              value="drivers"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <Car className="h-3.5 w-3.5" />
+              {t("reports.driverTrips")}
+            </TabsTrigger>
+          )}
+          {canAgentStatement && (
+            <TabsTrigger
+              value="agent"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              {t("reports.agentStatement")}
+            </TabsTrigger>
+          )}
+          {canRepFees && (
+            <TabsTrigger
+              value="rep-fees"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              {t("reports.repFees")}
+            </TabsTrigger>
+          )}
+          {canRevenue && (
+            <TabsTrigger
+              value="revenue"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <DollarSign className="h-3.5 w-3.5" />
+              {t("reports.revenue")}
+            </TabsTrigger>
+          )}
+          {canVehicleCompliance && (
+            <TabsTrigger
+              value="compliance"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {t("reports.vehicleCompliance")}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ─── DAILY DISPATCH SUMMARY ─── */}
-        <TabsContent value="dispatch" className="space-y-4">
+        {canDailyDispatch && <TabsContent value="dispatch" className="space-y-4">
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3">
               <div>
@@ -807,10 +834,10 @@ export default function ReportsPage() {
               </div>
             </>
           )}
-        </TabsContent>
+        </TabsContent>}
 
         {/* ─── DRIVER TRIP REPORT ─── */}
-        <TabsContent value="drivers" className="space-y-4">
+        {canDriverTrips && <TabsContent value="drivers" className="space-y-4">
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3">
               <div>
@@ -923,10 +950,10 @@ export default function ReportsPage() {
               </div>
             </>
           )}
-        </TabsContent>
+        </TabsContent>}
 
         {/* ─── AGENT STATEMENT ─── */}
-        <TabsContent value="agent" className="space-y-4">
+        {canAgentStatement && <TabsContent value="agent" className="space-y-4">
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3 flex-wrap">
               <div className="min-w-48">
@@ -1111,10 +1138,10 @@ export default function ReportsPage() {
               </div>
             </>
           )}
-        </TabsContent>
+        </TabsContent>}
 
         {/* ─── REP FEES REPORT ─── */}
-        <TabsContent value="rep-fees" className="space-y-4">
+        {canRepFees && <TabsContent value="rep-fees" className="space-y-4">
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3 flex-wrap">
               <div>
@@ -1246,10 +1273,10 @@ export default function ReportsPage() {
               </div>
             </>
           )}
-        </TabsContent>
+        </TabsContent>}
 
         {/* ─── REVENUE REPORT ─── */}
-        <TabsContent value="revenue" className="space-y-4">
+        {canRevenue && <TabsContent value="revenue" className="space-y-4">
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3">
               <div>
@@ -1424,10 +1451,10 @@ export default function ReportsPage() {
               </div>
             </>
           )}
-        </TabsContent>
+        </TabsContent>}
 
         {/* ─── VEHICLE COMPLIANCE ─── */}
-        <TabsContent value="compliance" className="space-y-4">
+        {canVehicleCompliance && <TabsContent value="compliance" className="space-y-4">
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3 flex-wrap">
               <Button
@@ -1584,7 +1611,7 @@ export default function ReportsPage() {
               <p className="text-sm">{t("reports.noComplianceData")}</p>
             </div>
           )}
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
 
       {/* ─── REP FEE DETAIL MODAL ─── */}

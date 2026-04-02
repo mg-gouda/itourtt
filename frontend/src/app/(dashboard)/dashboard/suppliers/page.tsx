@@ -40,6 +40,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
@@ -76,6 +77,16 @@ interface SuppliersResponse {
 export default function SuppliersPage() {
   const t = useT();
   const router = useRouter();
+  const canAddSupplier = usePermission("suppliers.addButton");
+  const canEditSupplier = usePermission("suppliers.table.editButton");
+  const canDeleteSupplier = usePermission("suppliers.table.deleteButton");
+  const canToggleStatus = usePermission("suppliers.table.toggleStatus");
+  const canCreateAccount = usePermission("suppliers.table.createAccount");
+  const canResetPassword = usePermission("suppliers.table.resetPassword");
+  const canFormLegalName = usePermission("suppliers.form.legalName");
+  const canFormTradeName = usePermission("suppliers.form.tradeName");
+  const canFormTaxId = usePermission("suppliers.form.taxId");
+  const canFormContactInfo = usePermission("suppliers.form.contactInfo");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -554,10 +565,12 @@ export default function SuppliersPage() {
             )}
             {t("common.export")}
           </Button>
+          {canAddSupplier && (
           <Button size="sm" className="gap-1.5" onClick={openDialog}>
             <Plus className="h-4 w-4" />
             {t("suppliers.addSupplier")}
           </Button>
+          )}
         </div>
       </div>
 
@@ -585,6 +598,7 @@ export default function SuppliersPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Add your first supplier to get started.
           </p>
+          {canAddSupplier && (
           <Button
             size="sm"
             className="mt-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -593,6 +607,7 @@ export default function SuppliersPage() {
             <Plus className="h-4 w-4" />
             {t("suppliers.addSupplier")}
           </Button>
+          )}
         </div>
       ) : (
         <>
@@ -718,6 +733,7 @@ export default function SuppliersPage() {
                         <Badge variant="outline" className="text-xs">
                           {supplier.user?.email}
                         </Badge>
+                        {canResetPassword && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -727,8 +743,9 @@ export default function SuppliersPage() {
                           <KeyRound className="h-3.5 w-3.5" />
                           {t("common.reset")}
                         </Button>
+                        )}
                       </div>
-                    ) : (
+                    ) : canCreateAccount ? (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -738,9 +755,12 @@ export default function SuppliersPage() {
                         <UserPlus className="h-3.5 w-3.5" />
                         Create Account
                       </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
+                    {canToggleStatus ? (
                     <button onClick={() => handleToggleStatus(supplier.id)} className="cursor-pointer">
                       {supplier.isActive ? (
                         <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
@@ -752,6 +772,17 @@ export default function SuppliersPage() {
                         </Badge>
                       )}
                     </button>
+                    ) : (
+                      supplier.isActive ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                          {t("common.active")}
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">
+                          {t("common.inactive")}
+                        </Badge>
+                      )
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -764,6 +795,7 @@ export default function SuppliersPage() {
                         <Eye className="h-3.5 w-3.5" />
                         {t("common.view")}
                       </Button>
+                      {canEditSupplier && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -772,6 +804,8 @@ export default function SuppliersPage() {
                       >
                         {t("common.edit")}
                       </Button>
+                      )}
+                      {canDeleteSupplier && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -780,6 +814,7 @@ export default function SuppliersPage() {
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -806,6 +841,7 @@ export default function SuppliersPage() {
             {/* Company Tab */}
             <TabsContent value="COMPANY">
               <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
+                {canFormLegalName && (
                 <div className="space-y-2">
                   <Label htmlFor="legalName" className="text-muted-foreground">
                     {t("agents.legalName")} *
@@ -818,6 +854,8 @@ export default function SuppliersPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+                )}
+                {canFormTradeName && (
                 <div className="space-y-2">
                   <Label htmlFor="tradeName" className="text-muted-foreground">
                     {t("agents.tradeName")}
@@ -830,6 +868,8 @@ export default function SuppliersPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+                )}
+                {canFormTaxId && (
                 <div className="space-y-2">
                   <Label htmlFor="taxId" className="text-muted-foreground">
                     {t("agents.taxId")}
@@ -842,6 +882,8 @@ export default function SuppliersPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+                )}
+                {canFormContactInfo && (
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-muted-foreground">
                     {t("agents.phone")}
@@ -854,6 +896,8 @@ export default function SuppliersPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+                )}
+                {canFormContactInfo && (
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-muted-foreground">
                     {t("common.email")}
@@ -867,6 +911,8 @@ export default function SuppliersPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+                )}
+                {canFormContactInfo && (
                 <div className="space-y-2">
                   <Label htmlFor="city" className="text-muted-foreground">
                     {t("locations.city")}
@@ -879,6 +925,8 @@ export default function SuppliersPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+                )}
+                {canFormContactInfo && (
                 <div className="space-y-2">
                   <Label htmlFor="country" className="text-muted-foreground">
                     {t("locations.country")}
@@ -891,6 +939,8 @@ export default function SuppliersPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+                )}
+                {canFormContactInfo && (
                 <div className="col-span-2 space-y-2">
                   <Label htmlFor="address" className="text-muted-foreground">
                     {t("agents.address")}
@@ -903,6 +953,7 @@ export default function SuppliersPage() {
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+                )}
               </div>
             </TabsContent>
 
@@ -1074,6 +1125,7 @@ export default function SuppliersPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
+            {canFormLegalName && (
             <div className="space-y-2">
               <Label htmlFor="edit-legalName" className="text-muted-foreground">
                 {t("agents.legalName")} *
@@ -1086,7 +1138,9 @@ export default function SuppliersPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
 
+            {canFormTradeName && (
             <div className="space-y-2">
               <Label htmlFor="edit-tradeName" className="text-muted-foreground">
                 {t("agents.tradeName")}
@@ -1099,7 +1153,9 @@ export default function SuppliersPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
 
+            {canFormTaxId && (
             <div className="space-y-2">
               <Label htmlFor="edit-taxId" className="text-muted-foreground">
                 {t("agents.taxId")}
@@ -1112,7 +1168,9 @@ export default function SuppliersPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
 
+            {canFormContactInfo && (
             <div className="space-y-2">
               <Label htmlFor="edit-phone" className="text-muted-foreground">
                 {t("agents.phone")}
@@ -1125,7 +1183,9 @@ export default function SuppliersPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
 
+            {canFormContactInfo && (
             <div className="space-y-2">
               <Label htmlFor="edit-email" className="text-muted-foreground">
                 {t("common.email")}
@@ -1139,7 +1199,9 @@ export default function SuppliersPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
 
+            {canFormContactInfo && (
             <div className="space-y-2">
               <Label htmlFor="edit-city" className="text-muted-foreground">
                 {t("locations.city")}
@@ -1152,7 +1214,9 @@ export default function SuppliersPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
 
+            {canFormContactInfo && (
             <div className="space-y-2">
               <Label htmlFor="edit-country" className="text-muted-foreground">
                 {t("locations.country")}
@@ -1165,7 +1229,9 @@ export default function SuppliersPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
 
+            {canFormContactInfo && (
             <div className="col-span-2 space-y-2">
               <Label htmlFor="edit-address" className="text-muted-foreground">
                 {t("agents.address")}
@@ -1178,6 +1244,7 @@ export default function SuppliersPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            )}
 
             {/* Car Types */}
             <div className="col-span-2 space-y-2">

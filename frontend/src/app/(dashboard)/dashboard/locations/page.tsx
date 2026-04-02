@@ -40,6 +40,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { useAuthStore } from "@/stores/auth-store";
+import { usePermission } from "@/hooks/use-permission";
 import { localDateStr } from "@/lib/utils";
 import {
   GooglePlacesAutocomplete,
@@ -259,6 +260,22 @@ export default function LocationsPage() {
   const t = useT();
   const { user } = useAuthStore();
   const isAdmin = user?.role === "ADMIN";
+
+  // Permission checks
+  const canAddCountry = usePermission("locations.countries.addButton");
+  const canEditCountry = usePermission("locations.countries.editButton");
+  const canAddAirport = usePermission("locations.airports.addButton");
+  const canEditAirport = usePermission("locations.airports.editButton");
+  const canDeleteAirport = usePermission("locations.airports.deleteButton");
+  const canAddCity = usePermission("locations.cities.addButton");
+  const canEditCity = usePermission("locations.cities.editButton");
+  const canDeleteCity = usePermission("locations.cities.deleteButton");
+  const canAddZone = usePermission("locations.zones.addButton");
+  const canEditZone = usePermission("locations.zones.editButton");
+  const canDeleteZone = usePermission("locations.zones.deleteButton");
+  const canAddHotel = usePermission("locations.hotels.addButton");
+  const canEditHotel = usePermission("locations.hotels.editButton");
+  const canDeleteHotel = usePermission("locations.hotels.deleteButton");
   const [countries, setCountries] = useState<CountryNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -755,10 +772,12 @@ export default function LocationsPage() {
               Resolve Coordinates
             </Button>
           )}
-          <Button size="sm" className="gap-1.5" onClick={() => openAdd("country", "", "")}>
-            <Plus className="h-4 w-4" />
-            {t("locations.addCountry")}
-          </Button>
+          {canAddCountry && (
+            <Button size="sm" className="gap-1.5" onClick={() => openAdd("country", "", "")}>
+              <Plus className="h-4 w-4" />
+              {t("locations.addCountry")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -875,11 +894,11 @@ export default function LocationsPage() {
                     hasChildren={country.airports.length > 0}
                     expanded={countryExpanded}
                     onToggle={() => toggle(countryKey)}
-                    onAddChild={() =>
+                    onAddChild={canAddAirport ? () =>
                       openAdd("airport", country.id, country.name)
-                    }
+                    : undefined}
                     childLabel={t("locations.airport")}
-                    onEdit={() => openEdit("country", country.id, country.name, country.code)}
+                    onEdit={canEditCountry ? () => openEdit("country", country.id, country.name, country.code) : undefined}
                     onDelete={isAdmin ? () =>
                       confirmDelete("country", country.id, country.name)
                     : undefined}
@@ -901,12 +920,12 @@ export default function LocationsPage() {
                             hasChildren={airport.cities.length > 0}
                             expanded={airportExpanded}
                             onToggle={() => toggle(airportKey)}
-                            onAddChild={() =>
+                            onAddChild={canAddCity ? () =>
                               openAdd("city", airport.id, airport.name)
-                            }
+                            : undefined}
                             childLabel={t("locations.city")}
-                            onEdit={() => openEdit("airport", airport.id, airport.name, airport.code)}
-                            onDelete={isAdmin ? () =>
+                            onEdit={canEditAirport ? () => openEdit("airport", airport.id, airport.name, airport.code) : undefined}
+                            onDelete={canDeleteAirport ? () =>
                               confirmDelete("airport", airport.id, airport.name)
                             : undefined}
                           />
@@ -926,12 +945,12 @@ export default function LocationsPage() {
                                     hasChildren={city.zones.length > 0}
                                     expanded={cityExpanded}
                                     onToggle={() => toggle(cityKey)}
-                                    onAddChild={() =>
+                                    onAddChild={canAddZone ? () =>
                                       openAdd("zone", city.id, city.name)
-                                    }
+                                    : undefined}
                                     childLabel={t("locations.zone")}
-                                    onEdit={() => openEdit("city", city.id, city.name)}
-                                    onDelete={isAdmin ? () =>
+                                    onEdit={canEditCity ? () => openEdit("city", city.id, city.name) : undefined}
+                                    onDelete={canDeleteCity ? () =>
                                       confirmDelete("city", city.id, city.name)
                                     : undefined}
                                   />
@@ -953,16 +972,16 @@ export default function LocationsPage() {
                                             }
                                             expanded={zoneExpanded}
                                             onToggle={() => toggle(zoneKey)}
-                                            onAddChild={() =>
+                                            onAddChild={canAddHotel ? () =>
                                               openAdd(
                                                 "hotel",
                                                 zone.id,
                                                 zone.name
                                               )
-                                            }
+                                            : undefined}
                                             childLabel={t("locations.hotel")}
-                                            onEdit={() => openEdit("zone", zone.id, zone.name)}
-                                            onDelete={isAdmin ? () =>
+                                            onEdit={canEditZone ? () => openEdit("zone", zone.id, zone.name) : undefined}
+                                            onDelete={canDeleteZone ? () =>
                                               confirmDelete(
                                                 "zone",
                                                 zone.id,
@@ -982,8 +1001,8 @@ export default function LocationsPage() {
                                                 hasChildren={false}
                                                 expanded={false}
                                                 onToggle={() => {}}
-                                                onEdit={() => openEdit("hotel", hotel.id, hotel.name)}
-                                                onDelete={isAdmin ? () =>
+                                                onEdit={canEditHotel ? () => openEdit("hotel", hotel.id, hotel.name) : undefined}
+                                                onDelete={canDeleteHotel ? () =>
                                                   confirmDelete(
                                                     "hotel",
                                                     hotel.id,

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
@@ -64,6 +65,15 @@ interface VehiclesResponse {
 export default function VehiclesPage() {
   const t = useT();
   const router = useRouter();
+  const canAddType = usePermission("vehicles.types.addButton");
+  const canEditType = usePermission("vehicles.types.editButton");
+  const canAddVehicle = usePermission("vehicles.addButton");
+  const canEditVehicle = usePermission("vehicles.table.editButton");
+  const canDeleteVehicle = usePermission("vehicles.table.deleteButton");
+  const canToggleStatus = usePermission("vehicles.table.toggleStatus");
+  const canImport = usePermission("vehicles.import");
+  const canExport = usePermission("vehicles.export");
+  const canDownloadTemplate = usePermission("vehicles.downloadTemplate");
   const [activeTab, setActiveTab] = useState("types");
 
   // Vehicle Types state
@@ -360,6 +370,7 @@ export default function VehiclesPage() {
             <p className="text-sm text-muted-foreground">
               {t("vehicles.typesDescription")}
             </p>
+            {canAddType && (
             <Button
               size="sm"
               className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -368,6 +379,7 @@ export default function VehiclesPage() {
               <Plus className="h-4 w-4" />
               {t("vehicles.addType")}
             </Button>
+            )}
           </div>
 
           {typesLoading ? (
@@ -410,6 +422,7 @@ export default function VehiclesPage() {
                         {type.seatCapacity} {t("vehicles.seats")}
                       </TableCell>
                       <TableCell className="text-right">
+                        {canEditType && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -418,6 +431,7 @@ export default function VehiclesPage() {
                         >
                           {t("common.edit")}
                         </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -435,6 +449,7 @@ export default function VehiclesPage() {
               {t("vehicles.vehiclesDescription")}
             </p>
             <div className="flex items-center gap-2">
+              {canDownloadTemplate && (
               <Button
                 variant="outline"
                 size="sm"
@@ -444,6 +459,8 @@ export default function VehiclesPage() {
                 <FileDown className="h-4 w-4" />
                 {t("common.template")}
               </Button>
+              )}
+              {canImport && (
               <Button
                 variant="outline"
                 size="sm"
@@ -458,6 +475,8 @@ export default function VehiclesPage() {
                 )}
                 {t("common.import")}
               </Button>
+              )}
+              {canExport && (
               <Button
                 variant="outline"
                 size="sm"
@@ -472,6 +491,8 @@ export default function VehiclesPage() {
                 )}
                 {t("common.export")}
               </Button>
+              )}
+              {canAddVehicle && (
               <Button
                 size="sm"
                 className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -480,6 +501,7 @@ export default function VehiclesPage() {
                 <Plus className="h-4 w-4" />
                 {t("vehicles.addVehicle")}
               </Button>
+              )}
             </div>
           </div>
 
@@ -562,6 +584,7 @@ export default function VehiclesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        {canToggleStatus ? (
                         <button onClick={() => handleToggleStatus(vehicle.id)} className="cursor-pointer">
                           {vehicle.isActive ? (
                             <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30 transition-colors">
@@ -573,8 +596,20 @@ export default function VehiclesPage() {
                             </Badge>
                           )}
                         </button>
+                        ) : (
+                          vehicle.isActive ? (
+                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                              {t("common.active")}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">
+                              {t("common.inactive")}
+                            </Badge>
+                          )
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
+                        {canEditVehicle && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -583,6 +618,8 @@ export default function VehiclesPage() {
                         >
                           {t("common.edit")}
                         </Button>
+                        )}
+                        {canDeleteVehicle && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -591,6 +628,7 @@ export default function VehiclesPage() {
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

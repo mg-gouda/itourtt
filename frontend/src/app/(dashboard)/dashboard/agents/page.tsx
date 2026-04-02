@@ -34,6 +34,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
@@ -82,6 +83,20 @@ const INITIAL_FORM = {
 export default function AgentsPage() {
   const t = useT();
   const router = useRouter();
+
+  // Permission checks
+  const canAdd = usePermission("agents.addButton");
+  const canEdit = usePermission("agents.table.editButton");
+  const canDelete = usePermission("agents.table.deleteButton");
+  const canToggleStatus = usePermission("agents.table.toggleStatus");
+  const canLegalName = usePermission("agents.form.legalName");
+  const canTradeName = usePermission("agents.form.tradeName");
+  const canTaxId = usePermission("agents.form.taxId");
+  const canContactInfo = usePermission("agents.form.contactInfo");
+  const canCurrency = usePermission("agents.form.currency");
+  const canRefPattern = usePermission("agents.form.refPattern");
+  const canCreditLimit = usePermission("agents.form.creditLimit");
+  const canCreditDays = usePermission("agents.form.creditDays");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -436,10 +451,12 @@ export default function AgentsPage() {
             )}
             {t("common.export")}
           </Button>
-          <Button size="sm" className="gap-1.5" onClick={openDialog}>
-            <Plus className="h-4 w-4" />
-            {t("agents.addAgent")}
-          </Button>
+          {canAdd && (
+            <Button size="sm" className="gap-1.5" onClick={openDialog}>
+              <Plus className="h-4 w-4" />
+              {t("agents.addAgent")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -460,14 +477,16 @@ export default function AgentsPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Building2 className="h-10 w-10 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground">{t("agents.noAgents")}</p>
-          <Button
-            size="sm"
-            className="mt-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={openDialog}
-          >
-            <Plus className="h-4 w-4" />
-            {t("agents.addAgent")}
-          </Button>
+          {canAdd && (
+            <Button
+              size="sm"
+              className="mt-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={openDialog}
+            >
+              <Plus className="h-4 w-4" />
+              {t("agents.addAgent")}
+            </Button>
+          )}
         </div>
       ) : (
         <>
@@ -481,15 +500,17 @@ export default function AgentsPage() {
               <span className="text-sm text-foreground font-medium">
                 {selectedIds.size} selected
               </span>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-1.5"
-                onClick={openBulkDeleteDialog}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete Selected
-              </Button>
+              {canDelete && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={openBulkDeleteDialog}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete Selected
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -556,36 +577,52 @@ export default function AgentsPage() {
                     {agent.currency}
                   </TableCell>
                   <TableCell>
-                    <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(agent.id); }} className="cursor-pointer">
-                      {agent.isActive ? (
-                        <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
+                    {canToggleStatus ? (
+                      <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(agent.id); }} className="cursor-pointer">
+                        {agent.isActive ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
+                            {t("common.active")}
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/30 transition-colors">
+                            {t("common.inactive")}
+                          </Badge>
+                        )}
+                      </button>
+                    ) : (
+                      agent.isActive ? (
+                        <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
                           {t("common.active")}
                         </Badge>
                       ) : (
-                        <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/30 transition-colors">
+                        <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30">
                           {t("common.inactive")}
                         </Badge>
-                      )}
-                    </button>
+                      )
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={(e) => { e.stopPropagation(); openEditDialog(agent); }}
-                      >
-                        {t("common.edit")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
-                        onClick={(e) => { e.stopPropagation(); openDeleteDialog(agent); }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={(e) => { e.stopPropagation(); openEditDialog(agent); }}
+                        >
+                          {t("common.edit")}
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+                          onClick={(e) => { e.stopPropagation(); openDeleteDialog(agent); }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -604,158 +641,174 @@ export default function AgentsPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="legalName" className="text-muted-foreground">
-                {t("agents.legalName")} *
-              </Label>
-              <Input
-                id="legalName"
-                value={legalName}
-                onChange={(e) => setLegalName(e.target.value)}
-                placeholder="Full legal name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canLegalName && (
+              <div className="space-y-2">
+                <Label htmlFor="legalName" className="text-muted-foreground">
+                  {t("agents.legalName")} *
+                </Label>
+                <Input
+                  id="legalName"
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  placeholder="Full legal name"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="tradeName" className="text-muted-foreground">
-                {t("agents.tradeName")}
-              </Label>
-              <Input
-                id="tradeName"
-                value={tradeName}
-                onChange={(e) => setTradeName(e.target.value)}
-                placeholder="Trade / brand name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canTradeName && (
+              <div className="space-y-2">
+                <Label htmlFor="tradeName" className="text-muted-foreground">
+                  {t("agents.tradeName")}
+                </Label>
+                <Input
+                  id="tradeName"
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  placeholder="Trade / brand name"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="taxId" className="text-muted-foreground">
-                {t("agents.taxId")}
-              </Label>
-              <Input
-                id="taxId"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                placeholder="Tax registration number"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canTaxId && (
+              <div className="space-y-2">
+                <Label htmlFor="taxId" className="text-muted-foreground">
+                  {t("agents.taxId")}
+                </Label>
+                <Input
+                  id="taxId"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  placeholder="Tax registration number"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-muted-foreground">
-                {t("agents.phone")}
-              </Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+20 xxx xxx xxxx"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canContactInfo && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-muted-foreground">
+                    {t("agents.phone")}
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+20 xxx xxx xxxx"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-muted-foreground">
-                {t("common.email")}
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="agent@example.com"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-muted-foreground">
+                    {t("common.email")}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="agent@example.com"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="city" className="text-muted-foreground">
-                {t("locations.city")}
-              </Label>
-              <Input
-                id="city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="text-muted-foreground">
+                    {t("locations.city")}
+                  </Label>
+                  <Input
+                    id="city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="country" className="text-muted-foreground">
-                {t("locations.country")}
-              </Label>
-              <Input
-                id="country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder="Country"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country" className="text-muted-foreground">
+                    {t("locations.country")}
+                  </Label>
+                  <Input
+                    id="country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="Country"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="currency" className="text-muted-foreground">
-                Currency
-              </Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-full border-border bg-card text-foreground">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover">
-                  {CURRENCIES.map((cur) => (
-                    <SelectItem
-                      key={cur}
-                      value={cur}
-                      className="text-foreground focus:bg-accent focus:text-accent-foreground"
-                    >
-                      {cur}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="address" className="text-muted-foreground">
+                    {t("agents.address")}
+                  </Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Full street address"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </>
+            )}
 
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="address" className="text-muted-foreground">
-                {t("agents.address")}
-              </Label>
-              <Input
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Full street address"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canCurrency && (
+              <div className="space-y-2">
+                <Label htmlFor="currency" className="text-muted-foreground">
+                  Currency
+                </Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-full border-border bg-card text-foreground">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover">
+                    {CURRENCIES.map((cur) => (
+                      <SelectItem
+                        key={cur}
+                        value={cur}
+                        className="text-foreground focus:bg-accent focus:text-accent-foreground"
+                      >
+                        {cur}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="refPattern" className="text-muted-foreground">
-                {t("agents.refPattern")}
-              </Label>
-              <Input
-                id="refPattern"
-                value={refPattern}
-                onChange={(e) => setRefPattern(e.target.value)}
-                placeholder="e.g. ^INT-\d+$"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground font-mono text-sm"
-              />
-            </div>
+            {canRefPattern && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="refPattern" className="text-muted-foreground">
+                    {t("agents.refPattern")}
+                  </Label>
+                  <Input
+                    id="refPattern"
+                    value={refPattern}
+                    onChange={(e) => setRefPattern(e.target.value)}
+                    placeholder="e.g. ^INT-\d+$"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground font-mono text-sm"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="refExample" className="text-muted-foreground">
-                {t("agents.refExample")}
-              </Label>
-              <Input
-                id="refExample"
-                value={refExample}
-                onChange={(e) => setRefExample(e.target.value)}
-                placeholder="e.g. INT-3550321"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="refExample" className="text-muted-foreground">
+                    {t("agents.refExample")}
+                  </Label>
+                  <Input
+                    id="refExample"
+                    value={refExample}
+                    onChange={(e) => setRefExample(e.target.value)}
+                    placeholder="e.g. INT-3550321"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
@@ -792,192 +845,214 @@ export default function AgentsPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="edit-legalName" className="text-muted-foreground">
-                {t("agents.legalName")} *
-              </Label>
-              <Input
-                id="edit-legalName"
-                value={legalName}
-                onChange={(e) => setLegalName(e.target.value)}
-                placeholder="Full legal name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canLegalName && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-legalName" className="text-muted-foreground">
+                  {t("agents.legalName")} *
+                </Label>
+                <Input
+                  id="edit-legalName"
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  placeholder="Full legal name"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-tradeName" className="text-muted-foreground">
-                {t("agents.tradeName")}
-              </Label>
-              <Input
-                id="edit-tradeName"
-                value={tradeName}
-                onChange={(e) => setTradeName(e.target.value)}
-                placeholder="Trade / brand name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canTradeName && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-tradeName" className="text-muted-foreground">
+                  {t("agents.tradeName")}
+                </Label>
+                <Input
+                  id="edit-tradeName"
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  placeholder="Trade / brand name"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-taxId" className="text-muted-foreground">
-                {t("agents.taxId")}
-              </Label>
-              <Input
-                id="edit-taxId"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                placeholder="Tax registration number"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canTaxId && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-taxId" className="text-muted-foreground">
+                  {t("agents.taxId")}
+                </Label>
+                <Input
+                  id="edit-taxId"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  placeholder="Tax registration number"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone" className="text-muted-foreground">
-                {t("agents.phone")}
-              </Label>
-              <Input
-                id="edit-phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+20 xxx xxx xxxx"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-email" className="text-muted-foreground">
-                {t("common.email")}
-              </Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="agent@example.com"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-city" className="text-muted-foreground">
-                {t("locations.city")}
-              </Label>
-              <Input
-                id="edit-city"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-country" className="text-muted-foreground">
-                {t("locations.country")}
-              </Label>
-              <Input
-                id="edit-country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder="Country"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-currency" className="text-muted-foreground">
-                Currency
-              </Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-full border-border bg-card text-foreground">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover">
-                  {CURRENCIES.map((cur) => (
-                    <SelectItem
-                      key={cur}
-                      value={cur}
-                      className="text-foreground focus:bg-accent focus:text-accent-foreground"
-                    >
-                      {cur}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="edit-address" className="text-muted-foreground">
-                {t("agents.address")}
-              </Label>
-              <Input
-                id="edit-address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Full street address"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-refPattern" className="text-muted-foreground">
-                {t("agents.refPattern")}
-              </Label>
-              <Input
-                id="edit-refPattern"
-                value={refPattern}
-                onChange={(e) => setRefPattern(e.target.value)}
-                placeholder="e.g. ^INT-\d+$"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground font-mono text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-refExample" className="text-muted-foreground">
-                {t("agents.refExample")}
-              </Label>
-              <Input
-                id="edit-refExample"
-                value={refExample}
-                onChange={(e) => setRefExample(e.target.value)}
-                placeholder="e.g. INT-3550321"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="col-span-2 border-t border-border pt-3 mt-1">
-              <p className="text-sm font-medium text-foreground mb-3">{t("finance.creditStatus")}</p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {canContactInfo && (
+              <>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-creditLimit" className="text-muted-foreground">
-                    {t("agents.creditLimit")}
+                  <Label htmlFor="edit-phone" className="text-muted-foreground">
+                    {t("agents.phone")}
                   </Label>
                   <Input
-                    id="edit-creditLimit"
-                    type="number"
-                    min={0}
-                    value={creditLimit}
-                    onChange={(e) => setCreditLimit(Number(e.target.value) || 0)}
-                    placeholder="0"
+                    id="edit-phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+20 xxx xxx xxxx"
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="edit-creditDays" className="text-muted-foreground">
-                    {t("agents.creditDays")}
+                  <Label htmlFor="edit-email" className="text-muted-foreground">
+                    {t("common.email")}
                   </Label>
                   <Input
-                    id="edit-creditDays"
-                    type="number"
-                    min={0}
-                    value={creditDays}
-                    onChange={(e) => setCreditDays(Number(e.target.value) || 0)}
-                    placeholder="0"
+                    id="edit-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="agent@example.com"
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-city" className="text-muted-foreground">
+                    {t("locations.city")}
+                  </Label>
+                  <Input
+                    id="edit-city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-country" className="text-muted-foreground">
+                    {t("locations.country")}
+                  </Label>
+                  <Input
+                    id="edit-country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="Country"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="edit-address" className="text-muted-foreground">
+                    {t("agents.address")}
+                  </Label>
+                  <Input
+                    id="edit-address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Full street address"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </>
+            )}
+
+            {canCurrency && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-currency" className="text-muted-foreground">
+                  Currency
+                </Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-full border-border bg-card text-foreground">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover">
+                    {CURRENCIES.map((cur) => (
+                      <SelectItem
+                        key={cur}
+                        value={cur}
+                        className="text-foreground focus:bg-accent focus:text-accent-foreground"
+                      >
+                        {cur}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {canRefPattern && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-refPattern" className="text-muted-foreground">
+                    {t("agents.refPattern")}
+                  </Label>
+                  <Input
+                    id="edit-refPattern"
+                    value={refPattern}
+                    onChange={(e) => setRefPattern(e.target.value)}
+                    placeholder="e.g. ^INT-\d+$"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground font-mono text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-refExample" className="text-muted-foreground">
+                    {t("agents.refExample")}
+                  </Label>
+                  <Input
+                    id="edit-refExample"
+                    value={refExample}
+                    onChange={(e) => setRefExample(e.target.value)}
+                    placeholder="e.g. INT-3550321"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </>
+            )}
+
+            {(canCreditLimit || canCreditDays) && (
+              <div className="col-span-2 border-t border-border pt-3 mt-1">
+                <p className="text-sm font-medium text-foreground mb-3">{t("finance.creditStatus")}</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {canCreditLimit && (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-creditLimit" className="text-muted-foreground">
+                        {t("agents.creditLimit")}
+                      </Label>
+                      <Input
+                        id="edit-creditLimit"
+                        type="number"
+                        min={0}
+                        value={creditLimit}
+                        onChange={(e) => setCreditLimit(Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                      />
+                    </div>
+                  )}
+                  {canCreditDays && (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-creditDays" className="text-muted-foreground">
+                        {t("agents.creditDays")}
+                      </Label>
+                      <Input
+                        id="edit-creditDays"
+                        type="number"
+                        min={0}
+                        value={creditDays}
+                        onChange={(e) => setCreditDays(Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           <DialogFooter>

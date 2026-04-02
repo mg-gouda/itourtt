@@ -39,6 +39,7 @@ import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import { localDateStr } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ interface User {
 // ─── Main Page ──────────────────────────────────────────────────
 export default function ActivityLogPage() {
   const t = useT();
+  const canExport = usePermission("activity-logs.export");
 
   // State
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -276,20 +278,22 @@ export default function ActivityLogPage() {
           title={t("activityLog.title")}
           description={t("activityLog.description")}
         />
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-1.5"
-          onClick={handleExport}
-          disabled={exporting || !generated}
-        >
-          {exporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          {t("activityLog.export")}
-        </Button>
+        {canExport && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={handleExport}
+            disabled={exporting || !generated}
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {t("activityLog.export")}
+          </Button>
+        )}
       </div>
 
       {/* ─── Filters ─────────────────────────────────────────── */}

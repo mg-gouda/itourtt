@@ -42,6 +42,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 
 interface GuestBooking {
   id: string;
@@ -91,6 +92,8 @@ const paymentStatusColors: Record<string, string> = {
 
 export default function GuestBookingsPage() {
   const t = useT();
+  const canConvert = usePermission("guest-bookings.convert");
+  const canCancel = usePermission("guest-bookings.cancel");
   const [bookings, setBookings] = useState<GuestBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -290,7 +293,7 @@ export default function GuestBookingsPage() {
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
-                      {b.bookingStatus === "CONFIRMED" && (
+                      {canConvert && b.bookingStatus === "CONFIRMED" && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -493,28 +496,32 @@ export default function GuestBookingsPage() {
               <div className="flex items-center gap-2 pt-2">
                 {selectedBooking.bookingStatus === "CONFIRMED" && (
                   <>
-                    <Button
-                      onClick={() => handleConvert(selectedBooking.id)}
-                      disabled={
-                        converting === selectedBooking.id ||
-                        (selectedBooking.paymentMethod === "ONLINE" &&
-                          selectedBooking.paymentStatus !== "PAID")
-                      }
-                    >
-                      {converting === selectedBooking.id ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <ArrowRightLeft className="mr-2 h-4 w-4" />
-                      )}
-                      Convert to Traffic Job
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleCancel(selectedBooking.id)}
-                    >
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Cancel Booking
-                    </Button>
+                    {canConvert && (
+                      <Button
+                        onClick={() => handleConvert(selectedBooking.id)}
+                        disabled={
+                          converting === selectedBooking.id ||
+                          (selectedBooking.paymentMethod === "ONLINE" &&
+                            selectedBooking.paymentStatus !== "PAID")
+                        }
+                      >
+                        {converting === selectedBooking.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <ArrowRightLeft className="mr-2 h-4 w-4" />
+                        )}
+                        Convert to Traffic Job
+                      </Button>
+                    )}
+                    {canCancel && (
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleCancel(selectedBooking.id)}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Cancel Booking
+                      </Button>
+                    )}
                   </>
                 )}
                 {selectedBooking.bookingStatus === "CONVERTED" &&

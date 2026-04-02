@@ -12,6 +12,7 @@ import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
+import { usePermission } from "@/hooks/use-permission";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -33,6 +34,9 @@ interface LicenseStatus {
 
 export default function CompanyPage() {
   const t = useT();
+  const canEditSettings = usePermission("company.editSettings");
+  const canUploadLogo = usePermission("company.uploadLogo");
+  const canUploadFavicon = usePermission("company.uploadFavicon");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -149,6 +153,7 @@ export default function CompanyPage() {
               onChange={(e) => setCompanyName(e.target.value)}
               className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
               placeholder="Company name"
+              disabled={!canEditSettings}
             />
           </div>
 
@@ -178,20 +183,22 @@ export default function CompanyPage() {
                     if (file) handleUploadLogo(file);
                   }}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={uploadingLogo}
-                  onClick={() => logoInput.current?.click()}
-                  className="gap-1.5"
-                >
-                  {uploadingLogo ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ImageIcon className="h-4 w-4" />
-                  )}
-                  {t("company.uploadLogo")}
-                </Button>
+                {canUploadLogo && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingLogo}
+                    onClick={() => logoInput.current?.click()}
+                    className="gap-1.5"
+                  >
+                    {uploadingLogo ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-4 w-4" />
+                    )}
+                    {t("company.uploadLogo")}
+                  </Button>
+                )}
                 <p className="mt-1 text-xs text-muted-foreground/60">{t("company.logoHint")}</p>
               </div>
             </div>
@@ -223,20 +230,22 @@ export default function CompanyPage() {
                     if (file) handleUploadFavicon(file);
                   }}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={uploadingFavicon}
-                  onClick={() => faviconInput.current?.click()}
-                  className="gap-1.5"
-                >
-                  {uploadingFavicon ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileImage className="h-4 w-4" />
-                  )}
-                  {t("company.uploadFavicon")}
-                </Button>
+                {canUploadFavicon && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingFavicon}
+                    onClick={() => faviconInput.current?.click()}
+                    className="gap-1.5"
+                  >
+                    {uploadingFavicon ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileImage className="h-4 w-4" />
+                    )}
+                    {t("company.uploadFavicon")}
+                  </Button>
+                )}
                 <p className="mt-1 text-xs text-muted-foreground/60">
                   {t("company.faviconHint")}
                 </p>
@@ -372,16 +381,18 @@ export default function CompanyPage() {
       </Card>
 
       {/* Save */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={submitting}
-          className="gap-1.5"
-        >
-          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {t("common.saveChanges")}
-        </Button>
-      </div>
+      {canEditSettings && (
+        <div className="flex justify-end">
+          <Button
+            onClick={handleSave}
+            disabled={submitting}
+            className="gap-1.5"
+          >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {t("common.saveChanges")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

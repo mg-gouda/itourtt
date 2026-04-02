@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import {
   Loader2,
   Send,
@@ -339,6 +340,9 @@ function TemplateCard({ template, onSave }: TemplateCardProps) {
 
 export default function WhatsAppPage() {
   const t = useT();
+  const canEditSettings = usePermission("whatsapp.settings.editSettings");
+  const canTestSend = usePermission("whatsapp.testSend");
+  const canUploadMedia = usePermission("whatsapp.uploadMedia");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -492,6 +496,7 @@ export default function WhatsAppPage() {
               checked={isEnabled}
               onCheckedChange={setIsEnabled}
               id="wa-enabled"
+              disabled={!canEditSettings}
             />
             <Label htmlFor="wa-enabled" className="text-foreground/70">
               {t("whatsapp.enableNotifications")}
@@ -558,20 +563,22 @@ export default function WhatsAppPage() {
               accept="image/*,.pdf,.doc,.docx"
               onChange={handleFileUpload}
             />
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 shrink-0"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              {t("whatsapp.uploadFile")}
-            </Button>
+            {canUploadMedia && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 shrink-0"
+                disabled={uploading}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {t("whatsapp.uploadFile")}
+              </Button>
+            )}
           </div>
           {mediaUrl && (
             <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
@@ -589,12 +596,14 @@ export default function WhatsAppPage() {
       </Card>
 
       {/* Save settings button */}
-      <div className="flex justify-end">
-        <Button onClick={handleSaveSettings} disabled={submitting}>
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t("common.saveChanges")}
-        </Button>
-      </div>
+      {canEditSettings && (
+        <div className="flex justify-end">
+          <Button onClick={handleSaveSettings} disabled={submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t("common.saveChanges")}
+          </Button>
+        </div>
+      )}
 
       {/* Section — Message Templates */}
       <div>
@@ -630,19 +639,21 @@ export default function WhatsAppPage() {
               className="border-border bg-muted/50 text-foreground mt-1"
             />
           </div>
-          <Button
-            onClick={handleTestSend}
-            disabled={testSending || !testPhone.trim()}
-            size="sm"
-            className="gap-1.5 shrink-0"
-          >
-            {testSending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            {t("whatsapp.sendTest")}
-          </Button>
+          {canTestSend && (
+            <Button
+              onClick={handleTestSend}
+              disabled={testSending || !testPhone.trim()}
+              size="sm"
+              className="gap-1.5 shrink-0"
+            >
+              {testSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {t("whatsapp.sendTest")}
+            </Button>
+          )}
         </div>
       </Card>
 

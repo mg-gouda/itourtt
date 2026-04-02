@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { LocationCombobox } from "@/components/location-combobox";
 import api from "@/lib/api";
+import { usePermission } from "@/hooks/use-permission";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
 import { SortableHeader } from "@/components/sortable-header";
@@ -220,6 +221,19 @@ export default function OnlineJobPage() {
   const t = useT();
   const locale = useLocaleId();
   const router = useRouter();
+  const canEditVehicleType = usePermission("traffic-jobs.online.form.requestedVehicleType");
+  const canCreate = usePermission("traffic-jobs.online.createJob");
+  const canProvider = usePermission("traffic-jobs.online.form.provider");
+  const canAgentRef = usePermission("traffic-jobs.online.form.agentRef");
+  const canServiceType = usePermission("traffic-jobs.online.form.serviceType");
+  const canDateTime = usePermission("traffic-jobs.online.form.dateTime");
+  const canClientInfo = usePermission("traffic-jobs.online.form.clientInfo");
+  const canPaxCount = usePermission("traffic-jobs.online.form.paxCount");
+  const canRoute = usePermission("traffic-jobs.online.form.route");
+  const canFlightInfo = usePermission("traffic-jobs.online.form.flightInfo");
+  const canExtras = usePermission("traffic-jobs.online.form.extras");
+  const canNotes = usePermission("traffic-jobs.online.form.notes");
+  const canStatusFilter = usePermission("traffic-jobs.online.table.statusFilter");
   const searchParams = useSearchParams();
   const editParam = searchParams.get("edit");
   const formRef = useRef<HTMLDivElement>(null);
@@ -560,6 +574,7 @@ export default function OnlineJobPage() {
                 </SelectContent>
               </Select>
             </div>
+            {canProvider && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.transferProvider")} *</Label>
               <Select value={form.agentId} onValueChange={(v) => updateForm({ agentId: v, agentRef: "" })}>
@@ -573,6 +588,8 @@ export default function OnlineJobPage() {
                 </SelectContent>
               </Select>
             </div>
+            )}
+            {canAgentRef && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.agentRef")} *</Label>
               <Input
@@ -590,6 +607,8 @@ export default function OnlineJobPage() {
                 </p>
               )}
             </div>
+            )}
+            {canServiceType && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>
               <Select value={form.serviceType} onValueChange={(v) => updateForm({ serviceType: v })}>
@@ -603,6 +622,9 @@ export default function OnlineJobPage() {
                 </SelectContent>
               </Select>
             </div>
+            )}
+            {canDateTime && (
+            <>
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceDate")}</Label>
               <Input
@@ -629,10 +651,14 @@ export default function OnlineJobPage() {
                 />
               </div>
             )}
+            </>
+            )}
           </div>
 
           {/* Line 2: Client Lead Name + Client Mobile + Adults + Children */}
           <div className="grid grid-cols-4 gap-3">
+            {canClientInfo && (
+            <>
             <div className="space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.clientName")} *</Label>
               <Input
@@ -651,6 +677,10 @@ export default function OnlineJobPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
               />
             </div>
+            </>
+            )}
+            {canPaxCount && (
+            <>
             <div className="space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.adults")}</Label>
               <Input
@@ -671,10 +701,14 @@ export default function OnlineJobPage() {
                 className="border-border bg-card text-foreground h-9"
               />
             </div>
+            </>
+            )}
           </div>
 
           {/* Line 3: Origin + Destination + Flight Info */}
           <div className="grid grid-cols-5 gap-3">
+            {canRoute && (
+            <>
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.origin")}</Label>
               <LocationCombobox
@@ -701,7 +735,9 @@ export default function OnlineJobPage() {
                 placeholder={t("jobs.searchDestination")}
               />
             </div>
-            {showFlightFields && (
+            </>
+            )}
+            {canFlightInfo && showFlightFields && (
               <>
                 <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("jobs.flightNo")}</Label>
@@ -760,6 +796,7 @@ export default function OnlineJobPage() {
           </div>
 
           {/* Line 4: Extras */}
+          {canExtras && (
           <div className="grid grid-cols-5 gap-3">
             <div className="min-w-0 flex items-center">
               <label className="flex items-center gap-2 text-sm text-foreground">
@@ -848,6 +885,7 @@ export default function OnlineJobPage() {
               </label>
             </div>
           </div>
+          )}
 
           {/* Line 5: Transfer Price + Requested Vehicle Type */}
           <div className="grid grid-cols-5 gap-3">
@@ -875,6 +913,7 @@ export default function OnlineJobPage() {
                 </Select>
               </div>
             </div>
+            {canEditVehicleType && (
             <div className="space-y-1.5">
               <Label className="text-muted-foreground text-xs">Requested Vehicle Type</Label>
               <Select value={form.requestedVehicleTypeId} onValueChange={(v) => updateForm({ requestedVehicleTypeId: v === "__none__" ? "" : v })}>
@@ -889,10 +928,12 @@ export default function OnlineJobPage() {
                 </SelectContent>
               </Select>
             </div>
+            )}
           </div>
 
           {/* Line 6: Notes + Submit */}
           <div className="flex items-center gap-3">
+            {canNotes && (
             <div className="flex-1 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
               <Input
@@ -902,6 +943,7 @@ export default function OnlineJobPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
               />
             </div>
+            )}
             {editingJobId && (
               <Button
                 variant="outline"
@@ -912,6 +954,7 @@ export default function OnlineJobPage() {
                 {t("common.cancel") || "Cancel"}
               </Button>
             )}
+            {canCreate && (
             <Button
               onClick={handleSave}
               disabled={saving}
@@ -920,6 +963,7 @@ export default function OnlineJobPage() {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {editingJobId ? (t("jobs.updateJob") || "Update Job") : t("jobs.createJob")}
             </Button>
+            )}
           </div>
         </div>
       </Card>
@@ -938,6 +982,7 @@ export default function OnlineJobPage() {
           </div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
+            {canStatusFilter && (
             <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
               <SelectTrigger className="w-36 border-border bg-card text-foreground">
                 <SelectValue />
@@ -952,6 +997,7 @@ export default function OnlineJobPage() {
                 <SelectItem value="NO_SHOW">{t("jobs.noShow")}</SelectItem>
               </SelectContent>
             </Select>
+            )}
             <Select value={filterBookingStatus} onValueChange={(v) => { setFilterBookingStatus(v); setPage(1); }}>
               <SelectTrigger className="w-36 border-border bg-card text-foreground">
                 <SelectValue />

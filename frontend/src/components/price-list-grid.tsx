@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LocationCombobox } from "@/components/location-combobox";
+import { usePermission } from "@/hooks/use-permission";
 import { toast } from "sonner";
 
 // ─── Types ─────────────────────────────────────
@@ -112,6 +113,14 @@ export function PriceListGrid({
   onImport,
   onRefresh,
 }: PriceListGridProps) {
+  // Permission checks
+  const canAddRoute = usePermission("customers.detail.priceList.addRoute");
+  const canEditPrice = usePermission("customers.detail.priceList.editPrice");
+  const canDeleteRoute = usePermission("customers.detail.priceList.deleteRoute");
+  const canImport = usePermission("customers.detail.priceList.import");
+  const canDownloadTemplate = usePermission("customers.detail.priceList.downloadTemplate");
+  const canSaveAll = usePermission("customers.detail.priceList.saveAll");
+
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -341,7 +350,7 @@ export function PriceListGrid({
       <div className="flex items-center justify-between">
         <h3 className="text-foreground text-lg font-semibold">Price List</h3>
         <div className="flex items-center gap-2">
-          {onDownloadTemplate && (
+          {onDownloadTemplate && canDownloadTemplate && (
             <Button
               variant="outline"
               onClick={onDownloadTemplate}
@@ -351,7 +360,7 @@ export function PriceListGrid({
               Template
             </Button>
           )}
-          {onImport && (
+          {onImport && canImport && (
             <label>
               <Button
                 variant="outline"
@@ -378,23 +387,25 @@ export function PriceListGrid({
               />
             </label>
           )}
-          <Button
-            onClick={savePriceList}
-            disabled={saving || !hasDirty}
-            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Save All
-          </Button>
+          {canSaveAll && (
+            <Button
+              onClick={savePriceList}
+              disabled={saving || !hasDirty}
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save All
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Add Route */}
-      <div className="flex items-end gap-4 rounded-lg border border-border bg-muted/50 p-4">
+      {canAddRoute && <div className="flex items-end gap-4 rounded-lg border border-border bg-muted/50 p-4">
         <div className="w-52 space-y-2">
           <span className="text-sm text-muted-foreground">Service Type</span>
           <Select value={newServiceType} onValueChange={setNewServiceType}>
@@ -443,7 +454,7 @@ export function PriceListGrid({
           <Plus className="h-4 w-4" />
           Add Route
         </Button>
-      </div>
+      </div>}
 
       {/* Grid */}
       {routes.length === 0 ? (
@@ -534,23 +545,28 @@ export function PriceListGrid({
                             step="0.01"
                             value={priceData.price || ""}
                             onChange={(e) =>
-                              handlePriceChange(
-                                route.key,
-                                vt.id,
-                                "price",
-                                e.target.value
-                              )
+                              canEditPrice
+                                ? handlePriceChange(
+                                    route.key,
+                                    vt.id,
+                                    "price",
+                                    e.target.value
+                                  )
+                                : undefined
                             }
                             onKeyDown={(e) =>
-                              handleCellKeyDown(e, routeIdx, vtIdx, "price")
+                              canEditPrice
+                                ? handleCellKeyDown(e, routeIdx, vtIdx, "price")
+                                : undefined
                             }
+                            readOnly={!canEditPrice}
                             data-cell={`${routeIdx}-${vtIdx}-price`}
                             placeholder="0"
                             className={`h-8 w-20 text-center text-sm rounded-md border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring px-2 ${
                               priceData.dirty
                                 ? "border-blue-500/50 bg-blue-500/5"
                                 : "border-border"
-                            }`}
+                            } ${!canEditPrice ? "opacity-60 cursor-not-allowed" : ""}`}
                           />
                         </TableCell>
                         <TableCell className="p-1">
@@ -560,42 +576,49 @@ export function PriceListGrid({
                             step="0.01"
                             value={priceData.driverTip || ""}
                             onChange={(e) =>
-                              handlePriceChange(
-                                route.key,
-                                vt.id,
-                                "driverTip",
-                                e.target.value
-                              )
+                              canEditPrice
+                                ? handlePriceChange(
+                                    route.key,
+                                    vt.id,
+                                    "driverTip",
+                                    e.target.value
+                                  )
+                                : undefined
                             }
                             onKeyDown={(e) =>
-                              handleCellKeyDown(e, routeIdx, vtIdx, "tip")
+                              canEditPrice
+                                ? handleCellKeyDown(e, routeIdx, vtIdx, "tip")
+                                : undefined
                             }
+                            readOnly={!canEditPrice}
                             data-cell={`${routeIdx}-${vtIdx}-tip`}
                             placeholder="0"
                             className={`h-8 w-20 text-center text-sm rounded-md border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-ring px-2 ${
                               priceData.dirty
                                 ? "border-blue-500/50 bg-blue-500/5"
                                 : "border-border"
-                            }`}
+                            } ${!canEditPrice ? "opacity-60 cursor-not-allowed" : ""}`}
                           />
                         </TableCell>
                       </Fragment>
                     );
                   })}
                   <TableCell className="p-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeRoute(route.key)}
-                      disabled={deletingRoute === route.key}
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      {deletingRoute === route.key ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    {canDeleteRoute && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeRoute(route.key)}
+                        disabled={deletingRoute === route.key}
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        {deletingRoute === route.key ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

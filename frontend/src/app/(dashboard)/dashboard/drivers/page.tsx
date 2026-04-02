@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import { formatDate as utilsFormatDate , localDateStr } from "@/lib/utils";
 
 interface Driver {
@@ -87,6 +88,20 @@ export default function DriversPage() {
   const t = useT();
   const locale = useLocaleId();
   const router = useRouter();
+  const canAddDriver = usePermission("drivers.addButton");
+  const canEditDriver = usePermission("drivers.table.editButton");
+  const canDeleteDriver = usePermission("drivers.table.deleteButton");
+  const canToggleStatus = usePermission("drivers.table.toggleStatus");
+  const canUploadAttachment = usePermission("drivers.table.uploadAttachment");
+  const canCreateAccount = usePermission("drivers.table.createAccount");
+  const canResetPassword = usePermission("drivers.table.resetPassword");
+  const canImport = usePermission("drivers.import");
+  const canExport = usePermission("drivers.export");
+  const canDownloadTemplate = usePermission("drivers.downloadTemplate");
+  const canFormName = usePermission("drivers.form.name");
+  const canFormMobile = usePermission("drivers.form.mobile");
+  const canFormLicenseNumber = usePermission("drivers.form.licenseNumber");
+  const canFormLicenseExpiry = usePermission("drivers.form.licenseExpiry");
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -474,6 +489,7 @@ export default function DriversPage() {
 
   const driverFormFields = (
     <div className="space-y-4 py-2">
+      {canFormName && (
       <div className="space-y-2">
         <Label htmlFor="driver-name" className="text-muted-foreground">
           {t("common.name")} *
@@ -486,7 +502,9 @@ export default function DriversPage() {
           className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
         />
       </div>
+      )}
 
+      {canFormMobile && (
       <div className="space-y-2">
         <Label htmlFor="driver-mobile" className="text-muted-foreground">
           {t("drivers.mobileNumber")} *
@@ -499,7 +517,9 @@ export default function DriversPage() {
           className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
         />
       </div>
+      )}
 
+      {canFormLicenseNumber && (
       <div className="space-y-2">
         <Label htmlFor="driver-license" className="text-muted-foreground">
           {t("drivers.licenseNumber")}
@@ -512,7 +532,9 @@ export default function DriversPage() {
           className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
         />
       </div>
+      )}
 
+      {canFormLicenseExpiry && (
       <div className="space-y-2">
         <Label htmlFor="driver-expiry" className="text-muted-foreground">
           {t("drivers.licenseExpiryDate")}
@@ -525,6 +547,7 @@ export default function DriversPage() {
           className="border-border bg-muted/50 text-foreground"
         />
       </div>
+      )}
 
     </div>
   );
@@ -537,6 +560,7 @@ export default function DriversPage() {
           description={t("drivers.description")}
         />
         <div className="flex items-center gap-2">
+          {canDownloadTemplate && (
           <Button
             variant="outline"
             size="sm"
@@ -546,6 +570,8 @@ export default function DriversPage() {
             <FileDown className="h-4 w-4" />
             {t("common.template")}
           </Button>
+          )}
+          {canImport && (
           <Button
             variant="outline"
             size="sm"
@@ -560,6 +586,8 @@ export default function DriversPage() {
             )}
             {t("common.import")}
           </Button>
+          )}
+          {canExport && (
           <Button
             variant="outline"
             size="sm"
@@ -574,10 +602,13 @@ export default function DriversPage() {
             )}
             {t("common.export")}
           </Button>
+          )}
+          {canAddDriver && (
           <Button size="sm" className="gap-1.5" onClick={openAddDialog}>
             <Plus className="h-4 w-4" />
             {t("drivers.addDriver")}
           </Button>
+          )}
         </div>
       </div>
 
@@ -607,10 +638,12 @@ export default function DriversPage() {
           <p className="mt-3 text-sm text-muted-foreground">
             {t("drivers.noDrivers")}
           </p>
+          {canAddDriver && (
           <Button size="sm" className="mt-4 gap-1.5" onClick={openAddDialog}>
             <Plus className="h-4 w-4" />
             {t("drivers.addDriver")}
           </Button>
+          )}
         </div>
       ) : (
         <>
@@ -705,7 +738,7 @@ export default function DriversPage() {
                           <Download className="h-3.5 w-3.5" />
                           {t("common.view")}
                         </a>
-                      ) : (
+                      ) : canUploadAttachment ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -720,6 +753,8 @@ export default function DriversPage() {
                           )}
                           {t("common.upload")}
                         </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -728,6 +763,7 @@ export default function DriversPage() {
                           <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20">
                             {driver.user?.email ?? "Linked"}
                           </Badge>
+                          {canResetPassword && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -737,8 +773,9 @@ export default function DriversPage() {
                             <KeyRound className="h-3.5 w-3.5" />
                             {t("common.reset")}
                           </Button>
+                          )}
                         </div>
-                      ) : (
+                      ) : canCreateAccount ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -748,9 +785,12 @@ export default function DriversPage() {
                           <UserPlus className="h-3.5 w-3.5" />
                           {t("drivers.createAccount")}
                         </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell>
+                      {canToggleStatus ? (
                       <button onClick={() => handleToggleStatus(driver.id)} className="cursor-pointer">
                         {driver.isActive ? (
                           <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
@@ -762,6 +802,17 @@ export default function DriversPage() {
                           </Badge>
                         )}
                       </button>
+                      ) : (
+                        driver.isActive ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                            {t("common.active")}
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">
+                            {t("common.inactive")}
+                          </Badge>
+                        )
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -774,6 +825,7 @@ export default function DriversPage() {
                           <ExternalLink className="h-3.5 w-3.5" />
                           {t("common.view")}
                         </Button>
+                        {canEditDriver && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -783,6 +835,8 @@ export default function DriversPage() {
                           <Pencil className="h-3.5 w-3.5" />
                           {t("common.edit")}
                         </Button>
+                        )}
+                        {canDeleteDriver && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -792,6 +846,7 @@ export default function DriversPage() {
                           <Trash2 className="h-3.5 w-3.5" />
                           {t("common.delete")}
                         </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

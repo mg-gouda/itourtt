@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 
 interface ImportTemplate {
   id: string;
@@ -58,6 +59,8 @@ interface ImportTemplateManagerProps {
 
 export function ImportTemplateManager({ customerId }: ImportTemplateManagerProps) {
   const t = useT();
+  const canUpload = usePermission("customers.detail.importTemplates.upload");
+  const canDeleteTemplate = usePermission("customers.detail.importTemplates.delete");
   const [templates, setTemplates] = useState<ImportTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -130,15 +133,17 @@ export function ImportTemplateManager({ customerId }: ImportTemplateManagerProps
         <CardTitle className="text-foreground">
           {t("importTemplates.title") || "Import Templates"}
         </CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 border-border"
-          onClick={() => setDialogOpen(true)}
-        >
-          <Upload className="h-4 w-4" />
-          {t("importTemplates.upload") || "Upload Template"}
-        </Button>
+        {canUpload && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-border"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            {t("importTemplates.upload") || "Upload Template"}
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -186,14 +191,16 @@ export function ImportTemplateManager({ customerId }: ImportTemplateManagerProps
                       {new Date(tmpl.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                        onClick={() => handleDelete(tmpl.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canDeleteTemplate && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                          onClick={() => handleDelete(tmpl.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

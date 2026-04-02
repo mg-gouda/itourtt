@@ -48,6 +48,7 @@ import { PERMISSION_REGISTRY } from "@/lib/permission-registry";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
+import { usePermission } from "@/hooks/use-permission";
 
 // ─── Types ──────────────────────────────────────────────────────
 interface User {
@@ -81,6 +82,17 @@ interface RoleDetail extends Role {
 // ─── Main Page ──────────────────────────────────────────────────
 export default function UsersPage() {
   const t = useT();
+
+  // Permission checks
+  const canAddUser = usePermission("users.addButton");
+  const canEditUser = usePermission("users.table.editButton");
+  const canChangeRole = usePermission("users.table.changeRole");
+  const canDeactivateUser = usePermission("users.table.deactivate");
+  const canAddRole = usePermission("users.roles.addButton");
+  const canEditRole = usePermission("users.roles.editButton");
+  const canDeleteRole = usePermission("users.roles.deleteButton");
+  const canEditPermissions = usePermission("users.roles.editPermissions");
+
   const [activeTab, setActiveTab] = useState("users");
 
   // ─── Users tab state ──────────────────────────────────────────
@@ -425,17 +437,19 @@ export default function UsersPage() {
             <p className="text-sm text-muted-foreground">
               {t("users.usersDescription")}
             </p>
-            <Button
-              size="sm"
-              className="gap-1.5"
-              onClick={() => {
-                resetForm();
-                setAddDialogOpen(true);
-              }}
-            >
-              <UserPlus className="h-4 w-4" />
-              {t("users.addUser")}
-            </Button>
+            {canAddUser && (
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={() => {
+                  resetForm();
+                  setAddDialogOpen(true);
+                }}
+              >
+                <UserPlus className="h-4 w-4" />
+                {t("users.addUser")}
+              </Button>
+            )}
           </div>
 
           {usersLoading ? (
@@ -511,15 +525,17 @@ export default function UsersPage() {
                           {formatDate(user.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-foreground"
-                            onClick={() => openEdit(user)}
-                          >
-                            {t("common.edit")}
-                          </Button>
-                          {user.isActive && (
+                          {canEditUser && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-foreground"
+                              onClick={() => openEdit(user)}
+                            >
+                              {t("common.edit")}
+                            </Button>
+                          )}
+                          {canDeactivateUser && user.isActive && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -558,14 +574,16 @@ export default function UsersPage() {
               <Card className="border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-foreground">Roles</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0"
-                    onClick={openCreateRole}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  {canAddRole && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={openCreateRole}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
 
                 {rolesLoading ? (
@@ -608,24 +626,28 @@ export default function UsersPage() {
                         </div>
                         {!role.isSystem && selectedRoleId === role.id && (
                           <div className="flex shrink-0 gap-0.5">
-                            <button
-                              className="p-1 rounded hover:bg-background"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditRole(role);
-                              }}
-                            >
-                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                            </button>
-                            <button
-                              className="p-1 rounded hover:bg-background"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteRole(role.id);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3 text-red-500/70" />
-                            </button>
+                            {canEditRole && (
+                              <button
+                                className="p-1 rounded hover:bg-background"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditRole(role);
+                                }}
+                              >
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                            )}
+                            {canDeleteRole && (
+                              <button
+                                className="p-1 rounded hover:bg-background"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteRole(role.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3 text-red-500/70" />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -672,15 +694,17 @@ export default function UsersPage() {
                             Discard
                           </Button>
                         )}
-                        <Button
-                          size="sm"
-                          disabled={!permsDirty || permsSaving || roleDetail.slug === "admin"}
-                          onClick={handleSavePermissions}
-                          className="gap-1.5"
-                        >
-                          {permsSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                          Save Permissions
-                        </Button>
+                        {canEditPermissions && (
+                          <Button
+                            size="sm"
+                            disabled={!permsDirty || permsSaving || roleDetail.slug === "admin"}
+                            onClick={handleSavePermissions}
+                            className="gap-1.5"
+                          >
+                            {permsSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                            Save Permissions
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -820,28 +844,30 @@ export default function UsersPage() {
                 className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-foreground/70">{t("common.role")}</Label>
-              <Select
-                value={formRoleId}
-                onValueChange={setFormRoleId}
-              >
-                <SelectTrigger className="border-border bg-muted/50 text-foreground">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover text-popover-foreground">
-                  {roleOptions.map((r) => (
-                    <SelectItem
-                      key={r.id}
-                      value={r.id}
-                      className="focus:bg-accent focus:text-accent-foreground"
-                    >
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canChangeRole && (
+              <div className="space-y-2">
+                <Label className="text-foreground/70">{t("common.role")}</Label>
+                <Select
+                  value={formRoleId}
+                  onValueChange={setFormRoleId}
+                >
+                  <SelectTrigger className="border-border bg-muted/50 text-foreground">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover text-popover-foreground">
+                    {roleOptions.map((r) => (
+                      <SelectItem
+                        key={r.id}
+                        value={r.id}
+                        className="focus:bg-accent focus:text-accent-foreground"
+                      >
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-foreground/70">{t("common.password")}</Label>
               <Input

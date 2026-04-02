@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
@@ -67,6 +68,19 @@ interface RepsResponse {
 export default function RepsPage() {
   const t = useT();
   const router = useRouter();
+  const canAddRep = usePermission("reps.addButton");
+  const canEditRep = usePermission("reps.table.editButton");
+  const canDeleteRep = usePermission("reps.table.deleteButton");
+  const canToggleStatus = usePermission("reps.table.toggleStatus");
+  const canUploadAttachment = usePermission("reps.table.uploadAttachment");
+  const canCreateAccount = usePermission("reps.table.createAccount");
+  const canResetPassword = usePermission("reps.table.resetPassword");
+  const canImport = usePermission("reps.import");
+  const canExport = usePermission("reps.export");
+  const canDownloadTemplate = usePermission("reps.downloadTemplate");
+  const canFormName = usePermission("reps.form.name");
+  const canFormMobile = usePermission("reps.form.mobile");
+  const canFormFeePerFlight = usePermission("reps.form.feePerFlight");
   const [reps, setReps] = useState<Rep[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -415,6 +429,7 @@ export default function RepsPage() {
 
   const repFormFields = (
     <div className="space-y-4 py-2">
+      {canFormName && (
       <div className="space-y-2">
         <Label htmlFor="rep-name" className="text-muted-foreground">
           {t("common.name")} *
@@ -427,6 +442,8 @@ export default function RepsPage() {
           className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
         />
       </div>
+      )}
+      {canFormMobile && (
       <div className="space-y-2">
         <Label htmlFor="rep-mobile" className="text-muted-foreground">
           {t("drivers.mobileNumber")} *
@@ -439,6 +456,8 @@ export default function RepsPage() {
           className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
         />
       </div>
+      )}
+      {canFormFeePerFlight && (
       <div className="space-y-2">
         <Label htmlFor="rep-fee" className="text-muted-foreground">
           {t("reps.feePerFlight")} (EGP)
@@ -454,6 +473,7 @@ export default function RepsPage() {
           className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
         />
       </div>
+      )}
     </div>
   );
 
@@ -465,6 +485,7 @@ export default function RepsPage() {
           description={t("reps.description")}
         />
         <div className="flex items-center gap-2">
+          {canDownloadTemplate && (
           <Button
             variant="outline"
             size="sm"
@@ -474,6 +495,8 @@ export default function RepsPage() {
             <FileDown className="h-4 w-4" />
             {t("common.template")}
           </Button>
+          )}
+          {canImport && (
           <Button
             variant="outline"
             size="sm"
@@ -488,6 +511,8 @@ export default function RepsPage() {
             )}
             {t("common.import")}
           </Button>
+          )}
+          {canExport && (
           <Button
             variant="outline"
             size="sm"
@@ -502,10 +527,13 @@ export default function RepsPage() {
             )}
             {t("common.export")}
           </Button>
+          )}
+          {canAddRep && (
           <Button size="sm" className="gap-1.5" onClick={openAddDialog}>
             <Plus className="h-4 w-4" />
             {t("reps.addRep")}
           </Button>
+          )}
         </div>
       </div>
 
@@ -540,10 +568,12 @@ export default function RepsPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             {t("reps.addNew")}
           </p>
+          {canAddRep && (
           <Button size="sm" className="mt-4 gap-1.5" onClick={openAddDialog}>
             <Plus className="h-4 w-4" />
             {t("reps.addRep")}
           </Button>
+          )}
         </div>
       ) : (
         <>
@@ -597,7 +627,7 @@ export default function RepsPage() {
                         <Download className="h-3.5 w-3.5" />
                         {t("common.view")}
                       </a>
-                    ) : (
+                    ) : canUploadAttachment ? (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -612,6 +642,8 @@ export default function RepsPage() {
                         )}
                         {t("common.upload")}
                       </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -620,6 +652,7 @@ export default function RepsPage() {
                         <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20">
                           {rep.user?.email ?? "Linked"}
                         </Badge>
+                        {canResetPassword && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -629,8 +662,9 @@ export default function RepsPage() {
                           <KeyRound className="h-3.5 w-3.5" />
                           {t("common.reset")}
                         </Button>
+                        )}
                       </div>
-                    ) : (
+                    ) : canCreateAccount ? (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -640,9 +674,12 @@ export default function RepsPage() {
                         <UserPlus className="h-3.5 w-3.5" />
                         {t("reps.createAccount")}
                       </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
+                    {canToggleStatus ? (
                     <button onClick={() => handleToggleStatus(rep.id)} className="cursor-pointer">
                       {rep.isActive ? (
                         <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
@@ -654,8 +691,20 @@ export default function RepsPage() {
                         </Badge>
                       )}
                     </button>
+                    ) : (
+                      rep.isActive ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                          {t("common.active")}
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">
+                          {t("common.inactive")}
+                        </Badge>
+                      )
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
+                    {canEditRep && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -665,6 +714,8 @@ export default function RepsPage() {
                       <ExternalLink className="h-3.5 w-3.5" />
                       {t("common.view")}
                     </Button>
+                    )}
+                    {canEditRep && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -674,6 +725,8 @@ export default function RepsPage() {
                       <Pencil className="h-3.5 w-3.5" />
                       {t("common.edit")}
                     </Button>
+                    )}
+                    {canDeleteRep && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -682,6 +735,7 @@ export default function RepsPage() {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

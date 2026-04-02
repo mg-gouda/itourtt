@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import { localDateStr } from "@/lib/utils";
 
 type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit";
@@ -76,6 +77,17 @@ function getEntityName(job: JobLockItem, tab: LockTab): string {
 
 export default function JobLocksPage() {
   const t = useT();
+  const canLockDispatcher = usePermission("job-locks.dispatcher");
+  const canLockDriver = usePermission("job-locks.driver");
+  const canLockRep = usePermission("job-locks.rep");
+  const canLockSupplier = usePermission("job-locks.supplier");
+  const lockPermissions: Record<LockTab, boolean> = {
+    dispatcher: canLockDispatcher,
+    driver: canLockDriver,
+    rep: canLockRep,
+    supplier: canLockSupplier,
+    edit: canLockDispatcher, // edit tab uses dispatcher permission as fallback
+  };
   const defaults = getDefaultDateRange();
   const [activeTab, setActiveTab] = useState<LockTab>("dispatcher");
   const [dateFrom, setDateFrom] = useState(defaults.dateFrom);
@@ -220,6 +232,7 @@ export default function JobLocksPage() {
                 loading={loading}
                 toggling={toggling}
                 onToggleLock={handleToggleLock}
+                canToggle={lockPermissions[tab as LockTab]}
                 t={t}
               />
             </TabsContent>
@@ -236,6 +249,7 @@ function JobLocksTable({
   loading,
   toggling,
   onToggleLock,
+  canToggle,
   t,
 }: {
   jobs: JobLockItem[];
@@ -243,6 +257,7 @@ function JobLocksTable({
   loading: boolean;
   toggling: string | null;
   onToggleLock: (job: JobLockItem) => void;
+  canToggle: boolean;
   t: (key: string) => string;
 }) {
   if (loading) {
@@ -290,22 +305,32 @@ function JobLocksTable({
             return (
               <TableRow key={job.id}>
                 <TableCell>
-                  <button
-                    onClick={() => onToggleLock(job)}
-                    disabled={isToggling}
-                    className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted"
-                    title={
-                      job.isUnlocked ? t("jobLocks.lock") : t("jobLocks.unlock")
-                    }
-                  >
-                    {isToggling ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : job.isUnlocked ? (
-                      <LockOpen className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Lock className="h-4 w-4 text-amber-500" />
-                    )}
-                  </button>
+                  {canToggle ? (
+                    <button
+                      onClick={() => onToggleLock(job)}
+                      disabled={isToggling}
+                      className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted"
+                      title={
+                        job.isUnlocked ? t("jobLocks.lock") : t("jobLocks.unlock")
+                      }
+                    >
+                      {isToggling ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : job.isUnlocked ? (
+                        <LockOpen className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Lock className="h-4 w-4 text-amber-500" />
+                      )}
+                    </button>
+                  ) : (
+                    <div className="flex h-8 w-8 items-center justify-center">
+                      {job.isUnlocked ? (
+                        <LockOpen className="h-4 w-4 text-green-500/50" />
+                      ) : (
+                        <Lock className="h-4 w-4 text-amber-500/50" />
+                      )}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="font-mono text-xs">
                   {job.internalRef}

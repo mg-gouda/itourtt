@@ -1423,6 +1423,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "permissions.customers.detail.importTemplates.upload": "Upload Templates",
     "permissions.customers.detail.importTemplates.delete": "Delete Templates",
     "permissions.trafficJobs.b2b.importJobs": "Import Jobs from File",
+    "permissions.trafficJobs.online.form.requestedVehicleType": "Requested Vehicle Type",
   },
 
   ar: {
@@ -2844,6 +2845,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "permissions.customers.detail.importTemplates.upload": "رفع القوالب",
     "permissions.customers.detail.importTemplates.delete": "حذف القوالب",
     "permissions.trafficJobs.b2b.importJobs": "استيراد الرحلات من ملف",
+    "permissions.trafficJobs.online.form.requestedVehicleType": "نوع المركبة المطلوبة",
   },
 };
 

@@ -47,6 +47,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT, useLocaleId } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 import { localDateStr } from "@/lib/utils";
 
 interface Customer {
@@ -94,6 +95,20 @@ export default function CustomersPage() {
   const t = useT();
   const locale = useLocaleId();
   const router = useRouter();
+
+  // Permission checks
+  const canAdd = usePermission("customers.addButton");
+  const canEdit = usePermission("customers.table.editButton");
+  const canDelete = usePermission("customers.table.deleteButton");
+  const canView = usePermission("customers.table.viewButton");
+  const canToggleStatus = usePermission("customers.table.toggleStatus");
+  const canLegalName = usePermission("customers.form.legalName");
+  const canTradeName = usePermission("customers.form.tradeName");
+  const canTaxId = usePermission("customers.form.taxId");
+  const canContactInfo = usePermission("customers.form.contactInfo");
+  const canCurrency = usePermission("customers.form.currency");
+  const canCreditLimit = usePermission("customers.form.creditLimit");
+  const canCreditDays = usePermission("customers.form.creditDays");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -445,10 +460,12 @@ export default function CustomersPage() {
             )}
             {t("common.export")}
           </Button>
-          <Button size="sm" className="gap-1.5" onClick={openDialog}>
-            <Plus className="h-4 w-4" />
-            {t("customers.addCustomer")}
-          </Button>
+          {canAdd && (
+            <Button size="sm" className="gap-1.5" onClick={openDialog}>
+              <Plus className="h-4 w-4" />
+              {t("customers.addCustomer")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -469,14 +486,16 @@ export default function CustomersPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Users className="h-10 w-10 text-muted-foreground/40" />
           <p className="mt-3 text-sm text-muted-foreground">{t("customers.noCustomers")}</p>
-          <Button
-            size="sm"
-            className="mt-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={openDialog}
-          >
-            <Plus className="h-4 w-4" />
-            {t("customers.addCustomer")}
-          </Button>
+          {canAdd && (
+            <Button
+              size="sm"
+              className="mt-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={openDialog}
+            >
+              <Plus className="h-4 w-4" />
+              {t("customers.addCustomer")}
+            </Button>
+          )}
         </div>
       ) : (
         <>
@@ -490,15 +509,17 @@ export default function CustomersPage() {
               <span className="text-sm text-foreground font-medium">
                 {selectedIds.size} selected
               </span>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-1.5"
-                onClick={openBulkDeleteDialog}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete Selected
-              </Button>
+              {canDelete && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={openBulkDeleteDialog}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete Selected
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -566,45 +587,63 @@ export default function CustomersPage() {
                     {customer.creditDays != null ? `${customer.creditDays} days` : "-"}
                   </TableCell>
                   <TableCell>
-                    <button onClick={() => handleToggleStatus(customer.id)} className="cursor-pointer">
-                      {customer.isActive ? (
-                        <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
+                    {canToggleStatus ? (
+                      <button onClick={() => handleToggleStatus(customer.id)} className="cursor-pointer">
+                        {customer.isActive ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
+                            {t("common.active")}
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/30 transition-colors">
+                            {t("common.inactive")}
+                          </Badge>
+                        )}
+                      </button>
+                    ) : (
+                      customer.isActive ? (
+                        <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
                           {t("common.active")}
                         </Badge>
                       ) : (
-                        <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/30 transition-colors">
+                        <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30">
                           {t("common.inactive")}
                         </Badge>
-                      )}
-                    </button>
+                      )
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/dashboard/customers/${customer.id}`)}
-                        className="gap-1.5 text-muted-foreground hover:text-foreground"
-                      >
-                        <Eye className="h-4 w-4" />
-                        {t("common.view")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => openEditDialog(customer)}
-                      >
-                        {t("common.edit")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
-                        onClick={() => openDeleteDialog(customer)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {canView && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/customers/${customer.id}`)}
+                          className="gap-1.5 text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="h-4 w-4" />
+                          {t("common.view")}
+                        </Button>
+                      )}
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => openEditDialog(customer)}
+                        >
+                          {t("common.edit")}
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+                          onClick={() => openDeleteDialog(customer)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -623,84 +662,94 @@ export default function CustomersPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="legalName" className="text-muted-foreground">
-                {t("customers.legalName")} *
-              </Label>
-              <Input
-                id="legalName"
-                value={legalName}
-                onChange={(e) => setLegalName(e.target.value)}
-                placeholder="Full legal name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canLegalName && (
+              <div className="space-y-2">
+                <Label htmlFor="legalName" className="text-muted-foreground">
+                  {t("customers.legalName")} *
+                </Label>
+                <Input
+                  id="legalName"
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  placeholder="Full legal name"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="tradeName" className="text-muted-foreground">
-                {t("agents.tradeName")}
-              </Label>
-              <Input
-                id="tradeName"
-                value={tradeName}
-                onChange={(e) => setTradeName(e.target.value)}
-                placeholder="Trade / brand name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canTradeName && (
+              <div className="space-y-2">
+                <Label htmlFor="tradeName" className="text-muted-foreground">
+                  {t("agents.tradeName")}
+                </Label>
+                <Input
+                  id="tradeName"
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  placeholder="Trade / brand name"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="taxId" className="text-muted-foreground">
-                {t("agents.taxId")}
-              </Label>
-              <Input
-                id="taxId"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                placeholder="Tax registration number"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canTaxId && (
+              <div className="space-y-2">
+                <Label htmlFor="taxId" className="text-muted-foreground">
+                  {t("agents.taxId")}
+                </Label>
+                <Input
+                  id="taxId"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  placeholder="Tax registration number"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="contactPerson" className="text-muted-foreground">
-                {t("agents.contactPerson")}
-              </Label>
-              <Input
-                id="contactPerson"
-                value={contactPerson}
-                onChange={(e) => setContactPerson(e.target.value)}
-                placeholder="Primary contact name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canContactInfo && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="contactPerson" className="text-muted-foreground">
+                    {t("agents.contactPerson")}
+                  </Label>
+                  <Input
+                    id="contactPerson"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    placeholder="Primary contact name"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-muted-foreground">
-                {t("agents.phone")}
-              </Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+20 xxx xxx xxxx"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-muted-foreground">
+                    {t("agents.phone")}
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+20 xxx xxx xxxx"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-muted-foreground">
-                {t("common.email")}
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="customer@example.com"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-muted-foreground">
+                    {t("common.email")}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="customer@example.com"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="city" className="text-muted-foreground">
@@ -728,57 +777,63 @@ export default function CustomersPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="currency" className="text-muted-foreground">
-                Currency
-              </Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-full border-border bg-card text-foreground">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover">
-                  {CURRENCIES.map((cur) => (
-                    <SelectItem
-                      key={cur}
-                      value={cur}
-                      className="text-foreground focus:bg-accent focus:text-accent-foreground"
-                    >
-                      {cur}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canCurrency && (
+              <div className="space-y-2">
+                <Label htmlFor="currency" className="text-muted-foreground">
+                  Currency
+                </Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-full border-border bg-card text-foreground">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover">
+                    {CURRENCIES.map((cur) => (
+                      <SelectItem
+                        key={cur}
+                        value={cur}
+                        className="text-foreground focus:bg-accent focus:text-accent-foreground"
+                      >
+                        {cur}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="creditLimit" className="text-muted-foreground">
-                {t("agents.creditLimit")}
-              </Label>
-              <Input
-                id="creditLimit"
-                type="number"
-                min="0"
-                value={creditLimit}
-                onChange={(e) => setCreditLimit(e.target.value)}
-                placeholder="0"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canCreditLimit && (
+              <div className="space-y-2">
+                <Label htmlFor="creditLimit" className="text-muted-foreground">
+                  {t("agents.creditLimit")}
+                </Label>
+                <Input
+                  id="creditLimit"
+                  type="number"
+                  min="0"
+                  value={creditLimit}
+                  onChange={(e) => setCreditLimit(e.target.value)}
+                  placeholder="0"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="creditDays" className="text-muted-foreground">
-                {t("agents.creditDays")}
-              </Label>
-              <Input
-                id="creditDays"
-                type="number"
-                min="0"
-                value={creditDays}
-                onChange={(e) => setCreditDays(e.target.value)}
-                placeholder="30"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canCreditDays && (
+              <div className="space-y-2">
+                <Label htmlFor="creditDays" className="text-muted-foreground">
+                  {t("agents.creditDays")}
+                </Label>
+                <Input
+                  id="creditDays"
+                  type="number"
+                  min="0"
+                  value={creditDays}
+                  onChange={(e) => setCreditDays(e.target.value)}
+                  placeholder="30"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
             <div className="col-span-2 space-y-2">
               <Label htmlFor="address" className="text-muted-foreground">
@@ -828,84 +883,94 @@ export default function CustomersPage() {
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="edit-legalName" className="text-muted-foreground">
-                {t("customers.legalName")} *
-              </Label>
-              <Input
-                id="edit-legalName"
-                value={legalName}
-                onChange={(e) => setLegalName(e.target.value)}
-                placeholder="Full legal name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canLegalName && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-legalName" className="text-muted-foreground">
+                  {t("customers.legalName")} *
+                </Label>
+                <Input
+                  id="edit-legalName"
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  placeholder="Full legal name"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-tradeName" className="text-muted-foreground">
-                {t("agents.tradeName")}
-              </Label>
-              <Input
-                id="edit-tradeName"
-                value={tradeName}
-                onChange={(e) => setTradeName(e.target.value)}
-                placeholder="Trade / brand name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canTradeName && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-tradeName" className="text-muted-foreground">
+                  {t("agents.tradeName")}
+                </Label>
+                <Input
+                  id="edit-tradeName"
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  placeholder="Trade / brand name"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-taxId" className="text-muted-foreground">
-                {t("agents.taxId")}
-              </Label>
-              <Input
-                id="edit-taxId"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                placeholder="Tax registration number"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canTaxId && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-taxId" className="text-muted-foreground">
+                  {t("agents.taxId")}
+                </Label>
+                <Input
+                  id="edit-taxId"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  placeholder="Tax registration number"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-contactPerson" className="text-muted-foreground">
-                {t("agents.contactPerson")}
-              </Label>
-              <Input
-                id="edit-contactPerson"
-                value={contactPerson}
-                onChange={(e) => setContactPerson(e.target.value)}
-                placeholder="Primary contact name"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canContactInfo && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-contactPerson" className="text-muted-foreground">
+                    {t("agents.contactPerson")}
+                  </Label>
+                  <Input
+                    id="edit-contactPerson"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    placeholder="Primary contact name"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone" className="text-muted-foreground">
-                {t("agents.phone")}
-              </Label>
-              <Input
-                id="edit-phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+20 xxx xxx xxxx"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone" className="text-muted-foreground">
+                    {t("agents.phone")}
+                  </Label>
+                  <Input
+                    id="edit-phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+20 xxx xxx xxxx"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-email" className="text-muted-foreground">
-                {t("common.email")}
-              </Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="customer@example.com"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email" className="text-muted-foreground">
+                    {t("common.email")}
+                  </Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="customer@example.com"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="edit-city" className="text-muted-foreground">
@@ -933,57 +998,63 @@ export default function CustomersPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-currency" className="text-muted-foreground">
-                Currency
-              </Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-full border-border bg-card text-foreground">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover">
-                  {CURRENCIES.map((cur) => (
-                    <SelectItem
-                      key={cur}
-                      value={cur}
-                      className="text-foreground focus:bg-accent focus:text-accent-foreground"
-                    >
-                      {cur}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canCurrency && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-currency" className="text-muted-foreground">
+                  Currency
+                </Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-full border-border bg-card text-foreground">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover">
+                    {CURRENCIES.map((cur) => (
+                      <SelectItem
+                        key={cur}
+                        value={cur}
+                        className="text-foreground focus:bg-accent focus:text-accent-foreground"
+                      >
+                        {cur}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-creditLimit" className="text-muted-foreground">
-                {t("agents.creditLimit")}
-              </Label>
-              <Input
-                id="edit-creditLimit"
-                type="number"
-                min="0"
-                value={creditLimit}
-                onChange={(e) => setCreditLimit(e.target.value)}
-                placeholder="0"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canCreditLimit && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-creditLimit" className="text-muted-foreground">
+                  {t("agents.creditLimit")}
+                </Label>
+                <Input
+                  id="edit-creditLimit"
+                  type="number"
+                  min="0"
+                  value={creditLimit}
+                  onChange={(e) => setCreditLimit(e.target.value)}
+                  placeholder="0"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-creditDays" className="text-muted-foreground">
-                {t("agents.creditDays")}
-              </Label>
-              <Input
-                id="edit-creditDays"
-                type="number"
-                min="0"
-                value={creditDays}
-                onChange={(e) => setCreditDays(e.target.value)}
-                placeholder="30"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            {canCreditDays && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-creditDays" className="text-muted-foreground">
+                  {t("agents.creditDays")}
+                </Label>
+                <Input
+                  id="edit-creditDays"
+                  type="number"
+                  min="0"
+                  value={creditDays}
+                  onChange={(e) => setCreditDays(e.target.value)}
+                  placeholder="30"
+                  className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
+            )}
 
             <div className="col-span-2 space-y-2">
               <Label htmlFor="edit-address" className="text-muted-foreground">

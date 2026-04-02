@@ -2182,6 +2182,7 @@ export default function DispatchPage() {
   const canUnlock = usePermission("dispatch.assignment.unlock48h");
   const canAssignVehicle = usePermission("dispatch.assignment.assignVehicle");
   const canAssignRep = usePermission("dispatch.assignment.assignRep");
+  const canExport = usePermission("dispatch.exportButton");
 
   const handleToggleLock = async (jobId: string, shouldUnlock: boolean) => {
     try {
@@ -2287,16 +2288,18 @@ export default function DispatchPage() {
             <ChevronRight className="h-4 w-4" />
           </Button>
           <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportExcel}
-              disabled={exporting || loading}
-              className="gap-1.5 text-muted-foreground"
-            >
-              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {t("dispatch.exportExcel")}
-            </Button>
+            {canExport && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportExcel}
+                disabled={exporting || loading}
+                className="gap-1.5 text-muted-foreground"
+              >
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {t("dispatch.exportExcel")}
+              </Button>
+            )}
           </div>
         </div>
 

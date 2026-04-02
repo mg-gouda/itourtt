@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { usePermission } from "@/hooks/use-permission";
 import api from "@/lib/api";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -14,6 +15,8 @@ import { useT } from "@/lib/i18n";
 
 export default function PublicPricesPage() {
   const t = useT();
+  const canBulkSave = usePermission("public-prices.bulk");
+  const canDelete = usePermission("public-prices.delete");
   const [items, setItems] = useState<PriceGridItem[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<PriceGridVehicleType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,8 +100,8 @@ export default function PublicPricesPage() {
         items={items}
         vehicleTypes={vehicleTypes}
         priceFieldName="price"
-        onSave={handleSave}
-        onDeleteRoute={handleDelete}
+        onSave={canBulkSave ? handleSave : async () => { toast.error("No permission"); }}
+        onDeleteRoute={canDelete ? handleDelete : async () => { toast.error("No permission"); }}
         onRefresh={fetchData}
       />
     </div>

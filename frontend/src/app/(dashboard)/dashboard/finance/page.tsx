@@ -59,6 +59,7 @@ import { formatDate , localDateStr } from "@/lib/utils";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
+import { usePermission } from "@/hooks/use-permission";
 
 /* ─── Types ─────────────────────────────────── */
 
@@ -254,6 +255,25 @@ function getCollectionStatus(c: CollectionJob): string {
 export default function FinancePage() {
   const t = useT();
   const locale = useLocaleId();
+
+  // Permissions
+  const canCreateInvoice = usePermission("finance.invoices.addButton");
+  const canEditLines = usePermission("finance.invoices.detail.editLines");
+  const canAddLine = usePermission("finance.invoices.detail.addLine");
+  const canDeleteLine = usePermission("finance.invoices.detail.deleteLine");
+  const canPostInvoice = usePermission("finance.invoices.detail.postButton");
+  const canCancelInvoice = usePermission("finance.invoices.detail.cancelButton");
+  const canApplyVat = usePermission("finance.invoices.detail.applyVat");
+  const canRecordPayment = usePermission("finance.invoices.recordPayment");
+  const canAddPayment = usePermission("finance.payments.addButton");
+  const canDeletePayment = usePermission("finance.payments.deleteButton");
+  const canExportCustomers = usePermission("finance.exports.customers");
+  const canExportSuppliers = usePermission("finance.exports.suppliers");
+  const canExportInvoices = usePermission("finance.exports.invoices");
+  const canExportVendorBills = usePermission("finance.exports.vendorBills");
+  const canExportPayments = usePermission("finance.exports.payments");
+  const canExportJournals = usePermission("finance.exports.journals");
+  const canExportCollections = usePermission("finance.exports.collections");
 
   // Invoice list
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -1019,7 +1039,7 @@ export default function FinancePage() {
       <PageHeader
         title={t("finance.title")}
         description={t("finance.description")}
-        action={{ label: t("finance.createInvoice"), onClick: openCreateDialog }}
+        action={canCreateInvoice ? { label: t("finance.createInvoice"), onClick: openCreateDialog } : undefined}
       />
 
       <Tabs defaultValue="invoices" className="space-y-4">
@@ -1127,7 +1147,7 @@ export default function FinancePage() {
                           </Badge>
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          {inv.status !== "PAID" && inv.status !== "CANCELLED" && (
+                          {canRecordPayment && inv.status !== "PAID" && inv.status !== "CANCELLED" && (
                             <Button
                               size="sm"
                               variant="ghost"
@@ -1181,12 +1201,12 @@ export default function FinancePage() {
             {/* Export cards */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { key: "partners", label: t("finance.odooExportPartners") || "res.partner (Agents & Suppliers)", desc: t("finance.odooExportPartnersDesc") || "All partners for Odoo import" },
-                { key: "customer-invoices", label: t("finance.odooExportCustomerInvoices") || "account.move — Customer Invoices", desc: t("finance.odooExportInvoicesDesc") || "Posted & paid agent invoices" },
-                { key: "vendor-bills", label: t("finance.odooExportVendorBills") || "account.move — Vendor Bills", desc: t("finance.odooExportBillsDesc") || "Posted supplier costs" },
-                { key: "payments", label: t("finance.odooExportPayments") || "account.payment", desc: t("finance.odooExportPaymentsDesc") || "Recorded payments" },
-                { key: "all-in-one", label: t("finance.odooExportAllInOne") || "Full Odoo Export (All Sheets)", desc: t("finance.odooExportAllDesc") || "Single workbook with all 4 sheets" },
-              ].map((exp) => (
+                (canExportCustomers || canExportSuppliers) && { key: "partners", label: t("finance.odooExportPartners") || "res.partner (Agents & Suppliers)", desc: t("finance.odooExportPartnersDesc") || "All partners for Odoo import" },
+                canExportInvoices && { key: "customer-invoices", label: t("finance.odooExportCustomerInvoices") || "account.move — Customer Invoices", desc: t("finance.odooExportInvoicesDesc") || "Posted & paid agent invoices" },
+                canExportVendorBills && { key: "vendor-bills", label: t("finance.odooExportVendorBills") || "account.move — Vendor Bills", desc: t("finance.odooExportBillsDesc") || "Posted supplier costs" },
+                canExportPayments && { key: "payments", label: t("finance.odooExportPayments") || "account.payment", desc: t("finance.odooExportPaymentsDesc") || "Recorded payments" },
+                (canExportInvoices || canExportVendorBills || canExportPayments) && { key: "all-in-one", label: t("finance.odooExportAllInOne") || "Full Odoo Export (All Sheets)", desc: t("finance.odooExportAllDesc") || "Single workbook with all 4 sheets" },
+              ].filter((x): x is { key: string; label: string; desc: string } => !!x).map((exp) => (
                 <Card
                   key={exp.key}
                   className={`flex items-center justify-between border-border bg-card p-4 ${exp.key === "all-in-one" ? "border-emerald-500/50 bg-emerald-500/5" : ""}`}
@@ -1489,7 +1509,7 @@ export default function FinancePage() {
                   <h3 className="text-sm font-medium text-foreground">
                     {t("finance.lineItems")}
                   </h3>
-                  {detail.status === "DRAFT" && !editingLines && (
+                  {canEditLines && detail.status === "DRAFT" && !editingLines && (
                     <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={startEditing}>
                       <Pencil className="h-3.5 w-3.5" />
                       {t("finance.editLines")}
@@ -1499,16 +1519,18 @@ export default function FinancePage() {
 
                 {editingLines ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Checkbox
-                        id="apply-vat"
-                        checked={allVat}
-                        onCheckedChange={(c) => applyVat(!!c)}
-                      />
-                      <Label htmlFor="apply-vat" className="text-xs text-muted-foreground cursor-pointer">
-                        {t("finance.applyVat")}
-                      </Label>
-                    </div>
+                    {canApplyVat && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <Checkbox
+                          id="apply-vat"
+                          checked={allVat}
+                          onCheckedChange={(c) => applyVat(!!c)}
+                        />
+                        <Label htmlFor="apply-vat" className="text-xs text-muted-foreground cursor-pointer">
+                          {t("finance.applyVat")}
+                        </Label>
+                      </div>
+                    )}
 
                     {editLines.map((line, idx) => (
                       <div key={idx} className="grid grid-cols-12 gap-2 items-end">
@@ -1559,27 +1581,31 @@ export default function FinancePage() {
                           {fmtNum(line.lineTotal, locale)}
                         </div>
                         <div className="col-span-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-red-500"
-                            onClick={() => removeLine(idx)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          {canDeleteLine && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-red-500"
+                              onClick={() => removeLine(idx)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1 text-xs"
-                      onClick={addLine}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      {t("finance.addLine")}
-                    </Button>
+                    {canAddLine && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs"
+                        onClick={addLine}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        {t("finance.addLine")}
+                      </Button>
+                    )}
 
                     {/* Preview totals */}
                     <div className="border-t border-border pt-2 mt-2 space-y-1">
@@ -1654,7 +1680,7 @@ export default function FinancePage() {
                   <h3 className="text-sm font-medium text-foreground">
                     {t("finance.payments")}
                   </h3>
-                  {detail.status !== "PAID" && detail.status !== "CANCELLED" && (
+                  {canRecordPayment && detail.status !== "PAID" && detail.status !== "CANCELLED" && (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -1711,24 +1737,28 @@ export default function FinancePage() {
           ) : null}
 
           {/* Sheet footer actions */}
-          {detail && detail.status === "DRAFT" && !editingLines && (
+          {detail && detail.status === "DRAFT" && !editingLines && (canPostInvoice || canCancelInvoice) && (
             <SheetFooter className="border-t border-border">
               <div className="flex gap-2 w-full justify-end">
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="text-xs"
-                  onClick={() => updateStatus("CANCELLED")}
-                >
-                  {t("finance.cancelInvoice")}
-                </Button>
-                <Button
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => updateStatus("POSTED")}
-                >
-                  {t("finance.postInvoice")}
-                </Button>
+                {canCancelInvoice && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="text-xs"
+                    onClick={() => updateStatus("CANCELLED")}
+                  >
+                    {t("finance.cancelInvoice")}
+                  </Button>
+                )}
+                {canPostInvoice && (
+                  <Button
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => updateStatus("POSTED")}
+                  >
+                    {t("finance.postInvoice")}
+                  </Button>
+                )}
               </div>
             </SheetFooter>
           )}
@@ -1945,22 +1975,24 @@ export default function FinancePage() {
                         <h4 className="text-sm font-medium text-foreground">
                           {fetchedJobs.filter((j) => j.selected).length} / {fetchedJobs.length} {t("finance.jobsSelected")}
                         </h4>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="create-vat"
-                              checked={createAllVat}
-                              onCheckedChange={(c) => {
-                                // createAllVat is derived, so we toggle via applyCreateVat
-                                // For fetched jobs mode, we just need the checkbox state
-                                applyCreateVat(!!c);
-                              }}
-                            />
-                            <Label htmlFor="create-vat" className="text-xs text-muted-foreground cursor-pointer">
-                              {t("finance.applyVat")}
-                            </Label>
+                        {canApplyVat && (
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="create-vat"
+                                checked={createAllVat}
+                                onCheckedChange={(c) => {
+                                  // createAllVat is derived, so we toggle via applyCreateVat
+                                  // For fetched jobs mode, we just need the checkbox state
+                                  applyCreateVat(!!c);
+                                }}
+                              />
+                              <Label htmlFor="create-vat" className="text-xs text-muted-foreground cursor-pointer">
+                                {t("finance.applyVat")}
+                              </Label>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                       {fetchedJobs.length === 0 ? (

@@ -248,6 +248,18 @@ export default function B2BJobPage() {
   const canAssignRep = usePermission("dispatch.assignment.assignRep");
   const canAssign = canAssignVehicle || canAssignDriver || canAssignRep;
 
+  const canCreateB2B = usePermission("traffic-jobs.b2b.createJob");
+  const canCustomer = usePermission("traffic-jobs.b2b.form.customer");
+  const canB2BServiceType = usePermission("traffic-jobs.b2b.form.serviceType");
+  const canB2BDateTime = usePermission("traffic-jobs.b2b.form.dateTime");
+  const canB2BPaxCount = usePermission("traffic-jobs.b2b.form.paxCount");
+  const canB2BRoute = usePermission("traffic-jobs.b2b.form.route");
+  const canB2BFlightInfo = usePermission("traffic-jobs.b2b.form.flightInfo");
+  const canB2BMeetingInfo = usePermission("traffic-jobs.b2b.form.meetingInfo");
+  const canB2BNotes = usePermission("traffic-jobs.b2b.form.notes");
+  const canB2BStatusFilter = usePermission("traffic-jobs.b2b.table.statusFilter");
+  const canB2BImport = usePermission("traffic-jobs.b2b.importJobs");
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -674,6 +686,7 @@ export default function B2BJobPage() {
                 </SelectContent>
               </Select>
             </div>
+            {canCustomer && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.customer")} *</Label>
               <Select value={form.customerId} onValueChange={(v) => updateForm({ customerId: v })}>
@@ -690,6 +703,7 @@ export default function B2BJobPage() {
                 </SelectContent>
               </Select>
             </div>
+            )}
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.customerJobId") || "Customer Job ID"}</Label>
               <Input
@@ -699,6 +713,7 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
               />
             </div>
+            {canB2BServiceType && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>
               <Select value={form.serviceType} onValueChange={(v) => updateForm({ serviceType: v })}>
@@ -712,6 +727,9 @@ export default function B2BJobPage() {
                 </SelectContent>
               </Select>
             </div>
+            )}
+            {canB2BDateTime && (
+            <>
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceDate")} *</Label>
               <Input
@@ -739,6 +757,9 @@ export default function B2BJobPage() {
                 />
               </div>
             )}
+            </>
+            )}
+            {canB2BPaxCount && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("dispatch.pax") || "Pax"}</Label>
               <Input
@@ -749,10 +770,13 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground h-9"
               />
             </div>
+            )}
           </div>
 
           {/* Row 2: Origin + Destination + Flight Info + Arrival/Departure Time */}
           <div className={`grid gap-3 ${showFlightFields ? "grid-cols-5" : "grid-cols-2"}`}>
+            {canB2BRoute && (
+            <>
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.origin")}</Label>
               <LocationCombobox
@@ -779,7 +803,9 @@ export default function B2BJobPage() {
                 placeholder={t("jobs.searchDestination")}
               />
             </div>
-            {showFlightFields && (
+            </>
+            )}
+            {canB2BFlightInfo && showFlightFields && (
               <>
                 <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("jobs.flightNo")}</Label>
@@ -849,6 +875,8 @@ export default function B2BJobPage() {
                 </Select>
               </div>
             </div>
+            {canB2BMeetingInfo && (
+            <>
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.custRepName")}</Label>
               <Input
@@ -890,6 +918,8 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
               />
             </div>
+            </>
+            )}
           </div>
 
           {/* Row 5: Assignment — Source, Vehicle, Driver, Rep */}
@@ -1020,6 +1050,7 @@ export default function B2BJobPage() {
 
           {/* Row 6: Notes + Submit */}
           <div className="flex items-center gap-3">
+            {canB2BNotes && (
             <div className="flex-1 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
               <Input
@@ -1029,6 +1060,7 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
               />
             </div>
+            )}
             {editingJobId && (
               <Button
                 variant="outline"
@@ -1039,6 +1071,7 @@ export default function B2BJobPage() {
                 {t("common.cancel") || "Cancel"}
               </Button>
             )}
+            {canCreateB2B && (
             <Button
               onClick={handleSave}
               disabled={saving}
@@ -1047,6 +1080,7 @@ export default function B2BJobPage() {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {editingJobId ? (t("jobs.updateJob") || "Update Job") : t("jobs.createJob")}
             </Button>
+            )}
           </div>
         </div>
       </Card>
@@ -1065,6 +1099,7 @@ export default function B2BJobPage() {
           </div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
+            {canB2BStatusFilter && (
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-36 border-border bg-card text-foreground">
                 <SelectValue />
@@ -1079,6 +1114,7 @@ export default function B2BJobPage() {
                 <SelectItem value="NO_SHOW">{t("jobs.noShow")}</SelectItem>
               </SelectContent>
             </Select>
+            )}
             <Select value={filterBookingStatus} onValueChange={setFilterBookingStatus}>
               <SelectTrigger className="w-36 border-border bg-card text-foreground">
                 <SelectValue />
@@ -1091,6 +1127,7 @@ export default function B2BJobPage() {
               </SelectContent>
             </Select>
           </div>
+          {canB2BImport && (
           <Button
             variant="outline"
             className="gap-1.5 border-border ml-auto"
@@ -1099,6 +1136,7 @@ export default function B2BJobPage() {
             <Upload className="h-4 w-4" />
             {t("jobImport.title") || "Import Jobs"}
           </Button>
+          )}
         </div>
 
         <div>

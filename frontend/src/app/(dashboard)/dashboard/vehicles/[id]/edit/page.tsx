@@ -21,6 +21,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
 
 interface VehicleType {
   id: string;
@@ -49,6 +50,14 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const t = useT();
   const router = useRouter();
+  const canPlateNumber = usePermission("vehicles.form.plateNumber");
+  const canVehicleType = usePermission("vehicles.form.vehicleType");
+  const canColor = usePermission("vehicles.form.color");
+  const canBrand = usePermission("vehicles.form.brand");
+  const canModel = usePermission("vehicles.form.model");
+  const canMakeYear = usePermission("vehicles.form.makeYear");
+  const canLuggageCapacity = usePermission("vehicles.form.luggageCapacity");
+  const canOwnership = usePermission("vehicles.form.ownership");
 
   const [types, setTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -368,10 +377,13 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
 
             {/* Details Tab */}
             <TabsContent value="details" className="mt-4 space-y-4">
+              {canPlateNumber && (
               <div className="space-y-2">
                 <Label htmlFor="edit-plate-number" className="text-muted-foreground">{t("vehicles.plateNumber")}</Label>
                 <Input id="edit-plate-number" placeholder="e.g. ABC-1234" value={plateNumber} onChange={(e) => setPlateNumber(e.target.value)} className="border-border bg-card text-foreground placeholder:text-muted-foreground" />
               </div>
+              )}
+              {canVehicleType && (
               <div className="space-y-2">
                 <Label htmlFor="edit-vehicle-type" className="text-muted-foreground">{t("vehicles.type")}</Label>
                 <Select value={vehicleTypeId} onValueChange={setVehicleTypeId}>
@@ -381,6 +393,8 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                   </SelectContent>
                 </Select>
               </div>
+              )}
+              {canOwnership && (
               <div className="space-y-2">
                 <Label htmlFor="edit-ownership" className="text-muted-foreground">{t("vehicles.ownership")}</Label>
                 <Select value={ownership} onValueChange={setOwnership}>
@@ -392,6 +406,8 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                   </SelectContent>
                 </Select>
               </div>
+              )}
+              {canColor && (
               <div className="space-y-2">
                 <Label htmlFor="edit-color" className="text-muted-foreground">{t("vehicles.color")}</Label>
                 <Select value={color} onValueChange={setColor}>
@@ -401,23 +417,32 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                   </SelectContent>
                 </Select>
               </div>
+              )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {canBrand && (
                 <div className="space-y-2">
                   <Label htmlFor="edit-car-brand" className="text-muted-foreground">{t("vehicles.carBrand")}</Label>
                   <Input id="edit-car-brand" placeholder="e.g. Toyota" value={carBrand} onChange={(e) => setCarBrand(e.target.value)} className="border-border bg-card text-foreground placeholder:text-muted-foreground" />
                 </div>
+                )}
+                {canModel && (
                 <div className="space-y-2">
                   <Label htmlFor="edit-car-model" className="text-muted-foreground">{t("vehicles.carModel")}</Label>
                   <Input id="edit-car-model" placeholder="e.g. Hiace" value={carModel} onChange={(e) => setCarModel(e.target.value)} className="border-border bg-card text-foreground placeholder:text-muted-foreground" />
                 </div>
+                )}
+                {canMakeYear && (
                 <div className="space-y-2">
                   <Label htmlFor="edit-make-year" className="text-muted-foreground">{t("vehicles.makeYear")}</Label>
                   <Input id="edit-make-year" type="number" min={1900} max={2100} placeholder="e.g. 2023" value={makeYear} onChange={(e) => setMakeYear(e.target.value)} className="border-border bg-card text-foreground placeholder:text-muted-foreground" />
                 </div>
+                )}
+                {canLuggageCapacity && (
                 <div className="space-y-2">
                   <Label htmlFor="edit-luggage-capacity" className="text-muted-foreground">{t("vehicles.luggageCapacity")}</Label>
                   <Input id="edit-luggage-capacity" type="number" min={0} placeholder="e.g. 4" value={luggageCapacity} onChange={(e) => setLuggageCapacity(e.target.value)} className="border-border bg-card text-foreground placeholder:text-muted-foreground" />
                 </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-border">
