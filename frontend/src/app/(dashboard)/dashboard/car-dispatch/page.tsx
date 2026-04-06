@@ -73,6 +73,7 @@ interface Driver {
   id: string;
   name: string;
   mobileNumber: string;
+  isActive: boolean;
 }
 
 interface Supplier {
