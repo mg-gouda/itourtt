@@ -1321,7 +1321,7 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
   // Group assigned jobs by vehicleId
   const vehicleMap = new Map<
     string,
-    { plate: string; typeName: string; driverName: string | null; jobs: Job[] }
+    { plate: string; typeName: string; jobs: Job[] }
   >();
 
   for (const job of jobs) {
@@ -1331,26 +1331,19 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
       vehicleMap.set(vid, {
         plate: job.assignment.vehicle.plateNumber,
         typeName: job.assignment.vehicle.vehicleType?.name ?? "—",
-        driverName: job.assignment.driver?.name ?? job.assignment.externalDriverName ?? null,
         jobs: [],
       });
     }
     vehicleMap.get(vid)!.jobs.push(job);
   }
 
-  // Sort each vehicle's jobs by time; also resolve driverName from any job
+  // Sort each vehicle's jobs by time
   const entries = Array.from(vehicleMap.entries()).map(([vid, data]) => {
     const sorted = [...data.jobs].sort((a, b) => {
       const ta = getJobTime(a)?.getTime() ?? 0;
       const tb = getJobTime(b)?.getTime() ?? 0;
       return ta - tb;
     });
-    // Use first non-null driver name found
-    const driverName =
-      data.jobs.find((j) => j.assignment?.driver?.name || j.assignment?.externalDriverName)
-        ?.assignment?.driver?.name ??
-      data.jobs.find((j) => j.assignment?.externalDriverName)?.assignment?.externalDriverName ??
-      null;
 
     const multiJob = sorted.length > 1;
     // hasUnverifiable: vehicle has 2+ jobs and at least one is missing time data
@@ -1365,7 +1358,7 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
         break;
       }
     }
-    return { vid, ...data, driverName, jobs: sorted, hasConflict, hasUnverifiable };
+    return { vid, ...data, jobs: sorted, hasConflict, hasUnverifiable };
   });
 
   // Sort: confirmed conflicts first, then unverifiable, then clean
@@ -1421,7 +1414,7 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
 
       {!collapsed && (
         <div className="flex gap-3 overflow-x-auto pb-2 pt-0.5">
-          {entries.map(({ vid, plate, typeName, driverName, jobs: vjobs, hasConflict, hasUnverifiable }) => (
+          {entries.map(({ vid, plate, typeName, jobs: vjobs, hasConflict, hasUnverifiable }) => (
             <div
               key={vid}
               className={`flex-shrink-0 w-52 rounded-lg border bg-card p-3 space-y-2 transition-colors ${
@@ -1453,14 +1446,6 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                 </div>
               </div>
 
-              {/* Driver */}
-              {driverName && (
-                <div className="flex items-center gap-1 text-[11px] text-muted-foreground border-t border-border pt-2">
-                  <Users className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">{driverName}</span>
-                </div>
-              )}
-
               {/* Trip list */}
               <div className="space-y-1 border-t border-border pt-2">
                 {vjobs.map((job, idx) => {
@@ -1470,8 +1455,9 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                     !!jobTime &&
                     !!prevTime &&
                     Math.abs(jobTime.getTime() - prevTime.getTime()) < CONFLICT_WINDOW_MS;
-                  // Amber: no time data but vehicle has multiple jobs
                   const isUnknownTime = !jobTime && vjobs.length > 1;
+                  const jobDriver =
+                    job.assignment?.driver?.name ?? job.assignment?.externalDriverName ?? null;
                   return (
                     <div
                       key={job.id}
@@ -1499,6 +1485,12 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                         <span className="text-foreground/80 truncate font-mono">{job.internalRef}</span>
                         <span className="text-muted-foreground ml-1 flex-shrink-0">{job.paxCount}p</span>
                       </div>
+                      {jobDriver && (
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground pt-0.5">
+                          <Users className="h-2.5 w-2.5 flex-shrink-0" />
+                          <span className="truncate">{jobDriver}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -48,6 +48,9 @@ interface RepJob {
   jobDate: string;
   status: string;
   repStatus: string;
+  bookingChannel: string | null;
+  clientName: string | null;
+  clientMobile: string | null;
   paxCount: number;
   pickUpTime: string | null;
   notes: string | null;
@@ -649,6 +652,19 @@ function JobCard({
           )}
         </div>
 
+        {/* Online client info */}
+        {job.bookingChannel === "ONLINE" && (job.clientName || job.clientMobile) && (
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-md border border-blue-500/20 bg-blue-500/5 px-2.5 py-1.5 text-xs">
+            <span className="text-blue-400 font-medium">Online Client:</span>
+            {job.clientName && <span className="text-foreground font-semibold">{job.clientName}</span>}
+            {job.clientMobile && (
+              <a href={`tel:${job.clientMobile}`} className="text-blue-400 underline">
+                {job.clientMobile}
+              </a>
+            )}
+          </div>
+        )}
+
         {/* Customer Rep Meeting Info */}
         {(job.custRepName || job.custRepMobile || job.custRepMeetingPoint || job.custRepMeetingTime) && (
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -674,7 +690,7 @@ function JobCard({
         <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
           {!isTerminal && (
             <>
-              {repStatus === "PENDING" && (
+              {repStatus === "PENDING" && job.serviceType !== "DEP" && (
                 <Button
                   size="sm"
                   variant="outline"

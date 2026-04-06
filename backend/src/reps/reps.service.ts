@@ -17,7 +17,7 @@ export class RepsService {
     const { page = 1, limit = 20 } = pagination;
     const skip = (page - 1) * limit;
 
-    const where = { deletedAt: null };
+    const where = { deletedAt: null, isActive: true };
 
     const [data, total] = await Promise.all([
       this.prisma.rep.findMany({

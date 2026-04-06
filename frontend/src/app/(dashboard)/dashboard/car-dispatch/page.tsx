@@ -414,7 +414,7 @@ function CarDispatchContent() {
       setOwnedVehicles(owned);
       setCustomers(custRes.data.data || custRes.data);
       setDrivers(
-        (drvRes.data.data || drvRes.data).filter((d: Driver) => d)
+        (drvRes.data.data || drvRes.data).filter((d: Driver) => d.isActive)
       );
       setSuppliers(supRes.data.data || supRes.data || []);
       setVehicleTypes(typRes.data.data || typRes.data || []);

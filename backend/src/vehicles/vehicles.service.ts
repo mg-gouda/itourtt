@@ -46,7 +46,7 @@ export class VehiclesService {
   async findAllVehicles(page: number, limit: number, vehicleTypeId?: string) {
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { deletedAt: null };
+    const where: Record<string, unknown> = { deletedAt: null, isActive: true };
     if (vehicleTypeId) {
       where.vehicleTypeId = vehicleTypeId;
     }

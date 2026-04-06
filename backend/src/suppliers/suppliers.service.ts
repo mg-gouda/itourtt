@@ -32,7 +32,7 @@ export class SuppliersService {
   async findAll(page: number, limit: number, isActive?: boolean) {
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { deletedAt: null };
+    const where: Record<string, unknown> = { deletedAt: null, isActive: true };
     if (isActive !== undefined) {
       where.isActive = isActive;
     }
@@ -275,6 +275,7 @@ export class SuppliersService {
     const where: Record<string, unknown> = {
       supplierId,
       deletedAt: null,
+      isActive: true,
     };
 
     if (vehicleTypeId) {
@@ -417,6 +418,7 @@ export class SuppliersService {
     const where = {
       supplierId,
       deletedAt: null,
+      isActive: true,
     };
 
     const [data, total] = await Promise.all([
