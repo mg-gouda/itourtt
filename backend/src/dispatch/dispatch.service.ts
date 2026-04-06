@@ -609,20 +609,23 @@ export class DispatchService {
       select: { vehicleId: true },
     });
 
-    const busyVehicleIds = busyAssignments.map((a) => a.vehicleId).filter((id): id is string => id !== null);
+    const busyVehicleIds = new Set(
+      busyAssignments.map((a) => a.vehicleId).filter((id): id is string => id !== null),
+    );
 
-    return this.prisma.vehicle.findMany({
+    const vehicles = await this.prisma.vehicle.findMany({
       where: {
         deletedAt: null,
         isActive: true,
         ...(supplierId ? { supplierId } : {}),
-        ...(busyVehicleIds.length > 0 && {
-          id: { notIn: busyVehicleIds },
-        }),
       },
       include: { vehicleType: true, supplier: { select: { id: true, legalName: true, tradeName: true } } },
-      orderBy: { plateNumber: 'asc' },
+      orderBy: [{ plateNumber: 'asc' }],
     });
+
+    // Return all vehicles; mark busy ones so the UI can show a conflict indicator.
+    // The backend intentionally allows assigning a vehicle to multiple jobs on the same day.
+    return vehicles.map((v) => ({ ...v, isBusy: busyVehicleIds.has(v.id) }));
   }
 
   async getAvailableSuppliers() {

@@ -8,11 +8,13 @@ import {
   Languages,
   Palette,
   Loader2,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -69,6 +71,7 @@ export default function StylingPage() {
   const [language, setLanguage] = useState("en");
   const [primaryColor, setPrimaryColor] = useState("#3b82f6");
   const [accentColor, setAccentColor] = useState("#8b5cf6");
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -81,6 +84,7 @@ export default function StylingPage() {
         setLanguage(data.language ?? "en");
         setPrimaryColor(data.primaryColor ?? "#3b82f6");
         setAccentColor(data.accentColor ?? "#8b5cf6");
+        setGoogleMapsApiKey(data.googleMapsApiKey ?? "");
       })
       .catch(() => {})
       .finally(() => setLoading(false));

@@ -758,15 +758,13 @@ export default function ReportsPage() {
               {t("reports.vehicleCompliance")}
             </TabsTrigger>
           )}
-          {canJobStatus && (
-            <TabsTrigger
-              value="job-status"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              {t("reports.jobStatus")}
-            </TabsTrigger>
-          )}
+          <TabsTrigger
+            value="job-status"
+            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            {t("reports.jobStatus")}
+          </TabsTrigger>
         </TabsList>
 
         {/* ─── DAILY DISPATCH SUMMARY ─── */}
@@ -1670,7 +1668,7 @@ export default function ReportsPage() {
         </TabsContent>}
 
         {/* ─── JOB STATUS REPORT ─── */}
-        {canJobStatus && <TabsContent value="job-status" className="space-y-4">
+        <TabsContent value="job-status" className="space-y-4">
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3 flex-wrap">
               <div>
@@ -1753,7 +1751,7 @@ export default function ReportsPage() {
                 <div className="rounded-md border border-border overflow-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border bg-muted/50 hover:bg-muted/50">
+                      <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                         <SortableHeader label={t("reports.trsfReference")} sortKey="internalRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.agentRef")} sortKey="agentRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.applicationPrice")} sortKey="priceAmount" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} className="text-right" />
@@ -1796,7 +1794,7 @@ export default function ReportsPage() {
               <p className="text-sm">{t("reports.noJobStatusData")}</p>
             </div>
           )}
-        </TabsContent>}
+        </TabsContent>
       </Tabs>
 
       {/* ─── REP FEE DETAIL MODAL ─── */}

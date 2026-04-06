@@ -20,6 +20,8 @@ import {
   DollarSign,
   Search,
   X,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -50,7 +65,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { formatDate } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -134,6 +149,7 @@ interface VehicleResource {
   vehicleType?: { name: string; seatCapacity: number };
   supplierId?: string | null;
   supplier?: { id: string; legalName: string; tradeName?: string | null } | null;
+  isBusy?: boolean;
 }
 
 interface PersonResource {
@@ -173,6 +189,136 @@ function fmtTime(iso: string | undefined, locale = "en-US") {
   if (!iso) return "";
   const d = new Date(iso);
   return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+// ────────────────────────────────────────────
+// Searchable Select Components
+// ────────────────────────────────────────────
+
+interface SelectOption {
+  id: string;
+  label: string;
+  sublabel?: string;
+  isBusy?: boolean;
+}
+
+/** Compact searchable dropdown for inline table cells */
+function InlineSearchSelect({
+  currentId,
+  options,
+  onSelect,
+  onClose,
+  placeholder,
+}: {
+  currentId: string;
+  options: SelectOption[];
+  onSelect: (id: string) => void;
+  onClose: () => void;
+  placeholder: string;
+}) {
+  const selected = options.find((o) => o.id === currentId);
+
+  return (
+    <Popover open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <PopoverTrigger asChild>
+        <button className="h-7 w-full rounded-sm border border-border bg-secondary px-2 text-xs text-left flex items-center justify-between focus:outline-none">
+          <span className={cn("truncate", !selected && "text-muted-foreground")}>
+            {selected ? selected.label : placeholder}
+          </span>
+          <ChevronDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0 z-50" align="start" sideOffset={2}>
+        <Command>
+          <CommandInput placeholder="Search..." className="h-8 text-xs" />
+          <CommandList className="max-h-52">
+            <CommandEmpty className="text-xs py-2 text-center text-muted-foreground">No results</CommandEmpty>
+            <CommandGroup>
+              {options.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={o.label}
+                  onSelect={() => { onSelect(o.id); onClose(); }}
+                  className="text-xs"
+                >
+                  <Check className={cn("mr-2 h-3 w-3 shrink-0", currentId === o.id ? "opacity-100" : "opacity-0")} />
+                  <span className={cn(o.isBusy && "text-orange-500 dark:text-orange-400")}>{o.label}</span>
+                  {o.sublabel && (
+                    <span className="ml-auto text-muted-foreground shrink-0">{o.sublabel}</span>
+                  )}
+                  {o.isBusy && (
+                    <span className="ml-1 shrink-0 text-[10px] font-medium text-orange-500 dark:text-orange-400">●</span>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Full-width searchable combobox for dialog forms */
+function DialogSearchSelect({
+  value,
+  options,
+  onSelect,
+  placeholder,
+  emptyMessage,
+}: {
+  value: string;
+  options: SelectOption[];
+  onSelect: (id: string) => void;
+  placeholder: string;
+  emptyMessage?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between border-border bg-card text-foreground font-normal"
+        >
+          <span className={cn("truncate", !selected && "text-muted-foreground")}>
+            {selected ? selected.label : placeholder}
+          </span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-full p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search..." />
+          <CommandList className="max-h-52">
+            <CommandEmpty>{emptyMessage || "No results"}</CommandEmpty>
+            <CommandGroup>
+              {options.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={o.label}
+                  onSelect={() => { onSelect(o.id); setOpen(false); }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4 shrink-0", value === o.id ? "opacity-100" : "opacity-0")} />
+                  <span className={cn(o.isBusy && "text-orange-500 dark:text-orange-400")}>{o.label}</span>
+                  {o.sublabel && (
+                    <span className="ml-auto text-xs text-muted-foreground shrink-0">{o.sublabel}</span>
+                  )}
+                  {o.isBusy && (
+                    <Badge variant="outline" className="ml-2 shrink-0 border-orange-500/40 text-orange-500 text-[10px] px-1">busy</Badge>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 // ────────────────────────────────────────────
@@ -320,32 +466,21 @@ function EditableVehicleCell({
   }
 
   if (isEditing) {
+    const vehicleOptions: SelectOption[] = filteredVehicles.map((v) => ({
+      id: v.id,
+      label: `${v.plateNumber} — ${v.vehicleType?.name ?? ""}`,
+      sublabel: v.vehicleType?.seatCapacity ? `${v.vehicleType.seatCapacity} seats` : undefined,
+      isBusy: v.isBusy,
+    }));
     return (
       <TableCell ref={cellRef} className="p-1">
-        <Select
-          defaultOpen
-          value={job.assignment?.vehicleId || ""}
-          onValueChange={(val) => onSelect(val)}
-          onOpenChange={(open) => {
-            if (!open) onCancel();
-          }}
-        >
-          <SelectTrigger className="h-7 w-full border-border bg-secondary text-foreground text-xs">
-            <SelectValue placeholder={t("dispatch.select")} />
-          </SelectTrigger>
-          <SelectContent className="border-border bg-popover text-foreground max-h-60">
-            {filteredVehicles.length === 0 ? (
-              <div className="px-2 py-1.5 text-xs text-muted-foreground">{t("dispatch.noVehiclesAvailable")}</div>
-            ) : (
-              filteredVehicles.map((v) => (
-                <SelectItem key={v.id} value={v.id} className="text-xs">
-                  {v.plateNumber} — {v.vehicleType?.name} (
-                  {v.vehicleType?.seatCapacity})
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
+        <InlineSearchSelect
+          currentId={job.assignment?.vehicleId || ""}
+          options={vehicleOptions}
+          onSelect={onSelect}
+          onClose={onCancel}
+          placeholder={t("dispatch.select")}
+        />
       </TableCell>
     );
   }
@@ -436,34 +571,23 @@ function EditablePersonCell({
   }
 
   if (isEditing && canEdit) {
+    const personOptions: SelectOption[] = [
+      { id: "__none__", label: t("dispatch.none") },
+      ...filteredResources.map((r) => ({
+        id: r.id,
+        label: r.name,
+        sublabel: r.mobileNumber,
+      })),
+    ];
     return (
       <TableCell ref={cellRef} className="p-1">
-        <Select
-          defaultOpen
-          value={currentId || ""}
-          onValueChange={(val) => onSelect(val)}
-          onOpenChange={(open) => {
-            if (!open) onCancel();
-          }}
-        >
-          <SelectTrigger className="h-7 w-full border-border bg-secondary text-foreground text-xs">
-            <SelectValue placeholder={t("dispatch.select")} />
-          </SelectTrigger>
-          <SelectContent className="border-border bg-popover text-foreground max-h-60">
-            <SelectItem value="__none__" className="text-xs text-muted-foreground">
-              {t("dispatch.none")}
-            </SelectItem>
-            {filteredResources.length === 0 ? (
-              <div className="px-2 py-1.5 text-xs text-muted-foreground">{t("dispatch.noDriversAvailable")}</div>
-            ) : (
-              filteredResources.map((r) => (
-                <SelectItem key={r.id} value={r.id} className="text-xs">
-                  {r.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
+        <InlineSearchSelect
+          currentId={currentId || ""}
+          options={personOptions}
+          onSelect={onSelect}
+          onClose={onCancel}
+          placeholder={t("dispatch.select")}
+        />
       </TableCell>
     );
   }
@@ -2576,23 +2700,18 @@ export default function DispatchPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Car className="h-4 w-4" /> {t("dispatch.vehicle")} *
                   </div>
-                  <Select value={dialogVehicle} onValueChange={setDialogVehicle}>
-                    <SelectTrigger className="border-border bg-card text-foreground">
-                      <SelectValue placeholder={t("dispatch.selectVehicle")} />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-foreground">
-                      {dialogFilteredVehicles.length === 0 ? (
-                        <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noVehiclesAvailable")}</div>
-                      ) : (
-                        dialogFilteredVehicles.map((v) => (
-                          <SelectItem key={v.id} value={v.id}>
-                            {v.plateNumber} — {v.vehicleType?.name} (
-                            {v.vehicleType?.seatCapacity} {t("dispatch.seats")})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <DialogSearchSelect
+                    value={dialogVehicle}
+                    options={dialogFilteredVehicles.map((v) => ({
+                      id: v.id,
+                      label: `${v.plateNumber} — ${v.vehicleType?.name ?? ""}`,
+                      sublabel: v.vehicleType?.seatCapacity ? `${v.vehicleType.seatCapacity} ${t("dispatch.seats")}` : undefined,
+                      isBusy: v.isBusy,
+                    }))}
+                    onSelect={setDialogVehicle}
+                    placeholder={t("dispatch.selectVehicle")}
+                    emptyMessage={t("dispatch.noVehiclesAvailable")}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -2615,29 +2734,20 @@ export default function DispatchPage() {
                       />
                     </div>
                   ) : (
-                    <Select value={dialogDriver} onValueChange={setDialogDriver}>
-                      <SelectTrigger className="border-border bg-card text-foreground">
-                        <SelectValue placeholder={t("dispatch.selectDriver")} />
-                      </SelectTrigger>
-                      <SelectContent className="border-border bg-popover text-foreground">
-                        {(() => {
-                          const filtered = dialogSupplier === "owned"
-                            ? drivers.filter((d) => !d.supplierId)
-                            : dialogSupplier
-                              ? drivers.filter((d) => d.supplierId === dialogSupplier)
-                              : drivers;
-                          return filtered.length === 0 ? (
-                            <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("dispatch.noDriversAvailable")}</div>
-                          ) : (
-                            filtered.map((d) => (
-                              <SelectItem key={d.id} value={d.id}>
-                                {d.name}
-                              </SelectItem>
-                            ))
-                          );
-                        })()}
-                      </SelectContent>
-                    </Select>
+                    <DialogSearchSelect
+                      value={dialogDriver}
+                      options={(() => {
+                        const filtered = dialogSupplier === "owned"
+                          ? drivers.filter((d) => !d.supplierId)
+                          : dialogSupplier
+                            ? drivers.filter((d) => d.supplierId === dialogSupplier)
+                            : drivers;
+                        return filtered.map((d) => ({ id: d.id, label: d.name, sublabel: d.mobileNumber }));
+                      })()}
+                      onSelect={setDialogDriver}
+                      placeholder={t("dispatch.selectDriver")}
+                      emptyMessage={t("dispatch.noDriversAvailable")}
+                    />
                   )}
                 </div>
               </>
@@ -2648,18 +2758,12 @@ export default function DispatchPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <UserCheck className="h-4 w-4" /> {t("dispatch.rep")}{!canAssignVehicle && " *"}
               </div>
-              <Select value={dialogRep} onValueChange={setDialogRep}>
-                <SelectTrigger className="border-border bg-card text-foreground">
-                  <SelectValue placeholder={t("dispatch.selectRep")} />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-popover text-foreground">
-                  {reps.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DialogSearchSelect
+                value={dialogRep}
+                options={reps.map((r) => ({ id: r.id, label: r.name, sublabel: r.mobileNumber }))}
+                onSelect={setDialogRep}
+                placeholder={t("dispatch.selectRep")}
+              />
             </div>
             )}
 
