@@ -43,14 +43,13 @@ import {
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
-import { PermissionTree } from "@/components/permission-tree";
-import { PERMISSION_REGISTRY } from "@/lib/permission-registry";
+import { PermissionMatrix } from "@/components/permission-matrix";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
 import { usePermission } from "@/hooks/use-permission";
 
-// ─── Types ──────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 interface User {
   id: string;
   email: string;
@@ -79,26 +78,26 @@ interface RoleDetail extends Role {
   permissionKeys: string[];
 }
 
-// ─── Main Page ──────────────────────────────────────────────────
+// ─── Main Page ──────────────────────────────────────────────────────────────
 export default function UsersPage() {
   const t = useT();
 
   // Permission checks
-  const canAddUser = usePermission("users.addButton");
-  const canEditUser = usePermission("users.table.editButton");
-  const canChangeRole = usePermission("users.table.changeRole");
-  const canDeactivateUser = usePermission("users.table.deactivate");
-  const canAddRole = usePermission("users.roles.addButton");
-  const canEditRole = usePermission("users.roles.editButton");
-  const canDeleteRole = usePermission("users.roles.deleteButton");
+  const canAddUser         = usePermission("users.addButton");
+  const canEditUser        = usePermission("users.table.editButton");
+  const canChangeRole      = usePermission("users.table.changeRole");
+  const canDeactivateUser  = usePermission("users.table.deactivate");
+  const canAddRole         = usePermission("users.roles.addButton");
+  const canEditRole        = usePermission("users.roles.editButton");
+  const canDeleteRole      = usePermission("users.roles.deleteButton");
   const canEditPermissions = usePermission("users.roles.editPermissions");
 
   const [activeTab, setActiveTab] = useState("users");
 
-  // ─── Users tab state ──────────────────────────────────────────
-  const [users, setUsers] = useState<User[]>([]);
+  // ─── Users tab state ────────────────────────────────────────────────────
+  const [users, setUsers]           = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch]         = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
 
   const filtered = useMemo(() => {
@@ -106,9 +105,7 @@ export default function UsersPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
-        (u) =>
-          u.name.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q),
+        (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
       );
     }
     if (roleFilter !== "ALL") {
@@ -119,33 +116,33 @@ export default function UsersPage() {
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
 
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen]   = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formName, setFormName] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formPassword, setFormPassword] = useState("");
-  const [formRoleId, setFormRoleId] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [editingUser, setEditingUser]       = useState<User | null>(null);
+  const [formName, setFormName]             = useState("");
+  const [formEmail, setFormEmail]           = useState("");
+  const [formPassword, setFormPassword]     = useState("");
+  const [formRoleId, setFormRoleId]         = useState("");
+  const [submitting, setSubmitting]         = useState(false);
 
-  // ─── Roles & Permissions tab state ────────────────────────────
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
+  // ─── Roles & Permissions tab state ──────────────────────────────────────
+  const [roles, setRoles]                   = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading]     = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
-  const [roleDetail, setRoleDetail] = useState<RoleDetail | null>(null);
+  const [roleDetail, setRoleDetail]         = useState<RoleDetail | null>(null);
   const [roleDetailLoading, setRoleDetailLoading] = useState(false);
-  const [grantedKeys, setGrantedKeys] = useState<Set<string>>(new Set());
-  const [permsDirty, setPermsDirty] = useState(false);
-  const [permsSaving, setPermsSaving] = useState(false);
+  const [grantedKeys, setGrantedKeys]       = useState<Set<string>>(new Set());
+  const [permsDirty, setPermsDirty]         = useState(false);
+  const [permsSaving, setPermsSaving]       = useState(false);
 
   // Role create/edit dialog
-  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
-  const [roleDialogMode, setRoleDialogMode] = useState<"create" | "edit">("create");
-  const [roleFormName, setRoleFormName] = useState("");
+  const [roleDialogOpen, setRoleDialogOpen]   = useState(false);
+  const [roleDialogMode, setRoleDialogMode]   = useState<"create" | "edit">("create");
+  const [roleFormName, setRoleFormName]       = useState("");
   const [roleFormDescription, setRoleFormDescription] = useState("");
-  const [roleSubmitting, setRoleSubmitting] = useState(false);
+  const [roleSubmitting, setRoleSubmitting]   = useState(false);
 
-  // ─── Fetch users ──────────────────────────────────────────────
+  // ─── Fetch users ─────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
@@ -153,15 +150,15 @@ export default function UsersPage() {
       setUsers(Array.isArray(data.data) ? data.data : []);
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t("users.failedLoadUsers");
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        t("users.failedLoadUsers");
       toast.error(message);
     } finally {
       setUsersLoading(false);
     }
   }, [t]);
 
-  // ─── Fetch roles ──────────────────────────────────────────────
+  // ─── Fetch roles ──────────────────────────────────────────────────────────
   const fetchRoles = useCallback(async () => {
     setRolesLoading(true);
     try {
@@ -174,7 +171,7 @@ export default function UsersPage() {
     }
   }, []);
 
-  // ─── Fetch role detail ────────────────────────────────────────
+  // ─── Fetch role detail ────────────────────────────────────────────────────
   const fetchRoleDetail = useCallback(async (roleId: string) => {
     setRoleDetailLoading(true);
     try {
@@ -189,28 +186,19 @@ export default function UsersPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => { fetchRoles(); }, [fetchRoles]);
 
   useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
-
-  useEffect(() => {
-    if (selectedRoleId) {
-      fetchRoleDetail(selectedRoleId);
-    }
+    if (selectedRoleId) fetchRoleDetail(selectedRoleId);
   }, [selectedRoleId, fetchRoleDetail]);
 
   // Auto-select first role
   useEffect(() => {
-    if (roles.length > 0 && !selectedRoleId) {
-      setSelectedRoleId(roles[0].id);
-    }
+    if (roles.length > 0 && !selectedRoleId) setSelectedRoleId(roles[0].id);
   }, [roles, selectedRoleId]);
 
-  // ─── Create user ──────────────────────────────────────────────
+  // ─── Create user ──────────────────────────────────────────────────────────
   async function handleCreate() {
     if (!formName.trim() || !formEmail.trim() || !formPassword.trim()) {
       toast.error(t("users.allFieldsRequired"));
@@ -231,15 +219,15 @@ export default function UsersPage() {
       fetchUsers();
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t("users.failedCreateUser");
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        t("users.failedCreateUser");
       toast.error(message);
     } finally {
       setSubmitting(false);
     }
   }
 
-  // ─── Edit user ────────────────────────────────────────────────
+  // ─── Edit user ────────────────────────────────────────────────────────────
   function openEdit(user: User) {
     setEditingUser(user);
     setFormName(user.name);
@@ -263,9 +251,7 @@ export default function UsersPage() {
         });
       }
       if (formPassword.trim()) {
-        await api.patch(`/users/${editingUser.id}/password`, {
-          newPassword: formPassword.trim(),
-        });
+        await api.patch(`/users/${editingUser.id}/password`, { newPassword: formPassword.trim() });
       }
       toast.success(t("users.userUpdated"));
       setEditDialogOpen(false);
@@ -273,15 +259,15 @@ export default function UsersPage() {
       fetchUsers();
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t("users.failedUpdateUser");
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        t("users.failedUpdateUser");
       toast.error(message);
     } finally {
       setSubmitting(false);
     }
   }
 
-  // ─── Deactivate user ─────────────────────────────────────────
+  // ─── Deactivate user ──────────────────────────────────────────────────────
   async function handleDeactivate(id: string) {
     try {
       await api.delete(`/users/${id}`);
@@ -292,21 +278,13 @@ export default function UsersPage() {
     }
   }
 
-  // ─── Permission tree toggle ───────────────────────────────────
-  function handlePermToggle(key: string, on: boolean) {
-    setGrantedKeys((prev) => {
-      const next = new Set(prev);
-      if (on) {
-        next.add(key);
-      } else {
-        next.delete(key);
-      }
-      return next;
-    });
+  // ─── Permission matrix change ─────────────────────────────────────────────
+  function handlePermissionsChange(next: Set<string>) {
+    setGrantedKeys(next);
     setPermsDirty(true);
   }
 
-  // ─── Save permissions for selected role ───────────────────────
+  // ─── Save permissions ─────────────────────────────────────────────────────
   async function handleSavePermissions() {
     if (!selectedRoleId) return;
     setPermsSaving(true);
@@ -316,18 +294,18 @@ export default function UsersPage() {
       });
       toast.success("Permissions saved successfully");
       setPermsDirty(false);
-      fetchRoles(); // refresh counts
+      fetchRoles();
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to save permissions";
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to save permissions";
       toast.error(message);
     } finally {
       setPermsSaving(false);
     }
   }
 
-  // ─── Seed defaults ────────────────────────────────────────────
+  // ─── Seed defaults ────────────────────────────────────────────────────────
   async function handleSeedDefaults() {
     try {
       await api.post("/permissions/seed");
@@ -339,7 +317,7 @@ export default function UsersPage() {
     }
   }
 
-  // ─── Role CRUD ────────────────────────────────────────────────
+  // ─── Role CRUD ────────────────────────────────────────────────────────────
   function openCreateRole() {
     setRoleDialogMode("create");
     setRoleFormName("");
@@ -355,10 +333,7 @@ export default function UsersPage() {
   }
 
   async function handleRoleSubmit() {
-    if (!roleFormName.trim()) {
-      toast.error("Role name is required");
-      return;
-    }
+    if (!roleFormName.trim()) { toast.error("Role name is required"); return; }
     setRoleSubmitting(true);
     try {
       if (roleDialogMode === "create") {
@@ -379,8 +354,8 @@ export default function UsersPage() {
       fetchRoles();
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to save role";
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to save role";
       toast.error(message);
     } finally {
       setRoleSubmitting(false);
@@ -395,32 +370,22 @@ export default function UsersPage() {
       fetchRoles();
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to delete role";
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to delete role";
       toast.error(message);
     }
   }
 
   function resetForm() {
-    setFormName("");
-    setFormEmail("");
-    setFormPassword("");
-    setFormRoleId("");
-    setEditingUser(null);
+    setFormName(""); setFormEmail(""); setFormPassword(""); setFormRoleId(""); setEditingUser(null);
   }
 
-  // ─── Build role options for user dialogs ──────────────────────
-  const roleOptions = useMemo(() => {
-    return roles.filter((r) => r.isActive);
-  }, [roles]);
+  const roleOptions = useMemo(() => roles.filter((r) => r.isActive), [roles]);
 
-  // ─── Render ───────────────────────────────────────────────────
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t("users.title")}
-        description={t("users.description")}
-      />
+      <PageHeader title={t("users.title")} description={t("users.description")} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="border-border bg-muted">
@@ -431,21 +396,12 @@ export default function UsersPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ─── Tab 1: Users ─────────────────────────────────────── */}
+        {/* ─── Tab 1: Users ─────────────────────────────────── */}
         <TabsContent value="users" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {t("users.usersDescription")}
-            </p>
+            <p className="text-sm text-muted-foreground">{t("users.usersDescription")}</p>
             {canAddUser && (
-              <Button
-                size="sm"
-                className="gap-1.5"
-                onClick={() => {
-                  resetForm();
-                  setAddDialogOpen(true);
-                }}
-              >
+              <Button size="sm" className="gap-1.5" onClick={() => { resetForm(); setAddDialogOpen(true); }}>
                 <UserPlus className="h-4 w-4" />
                 {t("users.addUser")}
               </Button>
@@ -468,12 +424,12 @@ export default function UsersPage() {
                 onSearchChange={setSearch}
                 placeholder={t("common.search") + "..."}
                 statusOptions={[
-                  { value: "ALL", label: t("common.all") },
-                  { value: "ADMIN", label: "Admin" },
-                  { value: "DISPATCHER", label: "Dispatcher" },
-                  { value: "ACCOUNTANT", label: "Accountant" },
+                  { value: "ALL",           label: t("common.all") },
+                  { value: "ADMIN",         label: "Admin" },
+                  { value: "DISPATCHER",    label: "Dispatcher" },
+                  { value: "ACCOUNTANT",    label: "Accountant" },
                   { value: "AGENT_MANAGER", label: "Agent Manager" },
-                  { value: "VIEWER", label: "Viewer" },
+                  { value: "VIEWER",        label: "Viewer" },
                 ]}
                 statusValue={roleFilter}
                 onStatusChange={setRoleFilter}
@@ -483,14 +439,12 @@ export default function UsersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                      <SortableHeader label={t("common.name")} sortKey="name" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <SortableHeader label={t("common.email")} sortKey="email" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <SortableHeader label={t("common.role")} sortKey="role" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <SortableHeader label={t("common.name")}   sortKey="name"      currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <SortableHeader label={t("common.email")}  sortKey="email"     currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
+                      <SortableHeader label={t("common.role")}   sortKey="role"      currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                       <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
                       <TableHead className="text-white text-xs">{t("users.created")}</TableHead>
-                      <TableHead className="text-right text-white text-xs">
-                        {t("common.actions")}
-                      </TableHead>
+                      <TableHead className="text-right text-white text-xs">{t("common.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -499,12 +453,8 @@ export default function UsersPage() {
                         key={user.id}
                         className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        <TableCell className="font-medium text-foreground">
-                          {user.name}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {user.email}
-                        </TableCell>
+                        <TableCell className="font-medium text-foreground">{user.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{user.email}</TableCell>
                         <TableCell>
                           <Badge variant="secondary">
                             {user.roleRef?.name || t(`role.${user.role}`)}
@@ -512,36 +462,20 @@ export default function UsersPage() {
                         </TableCell>
                         <TableCell>
                           {user.isActive ? (
-                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                              {t("common.active")}
-                            </Badge>
+                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">{t("common.active")}</Badge>
                           ) : (
-                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">
-                              {t("common.inactive")}
-                            </Badge>
+                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">{t("common.inactive")}</Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(user.createdAt)}
-                        </TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
                         <TableCell className="text-right">
                           {canEditUser && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-muted-foreground hover:text-foreground"
-                              onClick={() => openEdit(user)}
-                            >
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => openEdit(user)}>
                               {t("common.edit")}
                             </Button>
                           )}
                           {canDeactivateUser && user.isActive && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-500/70 hover:text-red-500"
-                              onClick={() => handleDeactivate(user.id)}
-                            >
+                            <Button variant="ghost" size="sm" className="text-red-500/70 hover:text-red-500" onClick={() => handleDeactivate(user.id)}>
                               {t("users.deactivate")}
                             </Button>
                           )}
@@ -555,32 +489,25 @@ export default function UsersPage() {
           )}
         </TabsContent>
 
-        {/* ─── Tab 2: Roles & Permissions (Tree View) ─────────── */}
+        {/* ─── Tab 2: Roles & Permissions (Matrix) ──────────── */}
         <TabsContent value="permissions" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Manage roles and assign granular permissions per page, button, and field.
+              Toggle sections ON/OFF to control visibility. When ON, use the CRUD checkboxes to fine-tune access.
             </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleSeedDefaults}>
-                Seed Defaults
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" onClick={handleSeedDefaults}>
+              Seed Defaults
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-            {/* Left: Role List */}
+            {/* Left: Role list */}
             <div className="lg:col-span-3">
               <Card className="border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-foreground">Roles</h3>
                   {canAddRole && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={openCreateRole}
-                    >
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={openCreateRole}>
                       <Plus className="h-4 w-4" />
                     </Button>
                   )}
@@ -608,14 +535,9 @@ export default function UsersPage() {
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium truncate">
-                              {role.name}
-                            </span>
+                            <span className="text-sm font-medium truncate">{role.name}</span>
                             {role.isSystem && (
-                              <Badge
-                                variant="outline"
-                                className="text-[9px] px-1 py-0 h-4 shrink-0"
-                              >
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
                                 System
                               </Badge>
                             )}
@@ -629,10 +551,7 @@ export default function UsersPage() {
                             {canEditRole && (
                               <button
                                 className="p-1 rounded hover:bg-background"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditRole(role);
-                                }}
+                                onClick={(e) => { e.stopPropagation(); openEditRole(role); }}
                               >
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                               </button>
@@ -640,10 +559,7 @@ export default function UsersPage() {
                             {canDeleteRole && (
                               <button
                                 className="p-1 rounded hover:bg-background"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteRole(role.id);
-                                }}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteRole(role.id); }}
                               >
                                 <Trash2 className="h-3 w-3 text-red-500/70" />
                               </button>
@@ -657,7 +573,7 @@ export default function UsersPage() {
               </Card>
             </div>
 
-            {/* Right: Permission Tree */}
+            {/* Right: Permission Matrix */}
             <div className="lg:col-span-9">
               <Card className="border-border bg-card p-4">
                 {!selectedRoleId ? (
@@ -671,15 +587,12 @@ export default function UsersPage() {
                   </div>
                 ) : roleDetail ? (
                   <div className="space-y-4">
+                    {/* Header */}
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-base font-medium text-foreground">
-                          {roleDetail.name}
-                        </h3>
+                        <h3 className="text-base font-medium text-foreground">{roleDetail.name}</h3>
                         {roleDetail.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {roleDetail.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{roleDetail.description}</p>
                         )}
                       </div>
                       <div className="flex gap-2">
@@ -687,9 +600,7 @@ export default function UsersPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              if (selectedRoleId) fetchRoleDetail(selectedRoleId);
-                            }}
+                            onClick={() => { if (selectedRoleId) fetchRoleDetail(selectedRoleId); }}
                           >
                             Discard
                           </Button>
@@ -714,11 +625,23 @@ export default function UsersPage() {
                       </div>
                     )}
 
-                    <div className="max-h-[calc(100vh-320px)] overflow-y-auto pr-1">
-                      <PermissionTree
-                        registry={PERMISSION_REGISTRY}
+                    {/* Legend */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-md bg-muted/30 px-3 py-2 text-[10px]">
+                      <span className="text-emerald-500 font-medium">Create</span>
+                      <span className="text-blue-400 font-medium">Read</span>
+                      <span className="text-amber-400 font-medium">Update</span>
+                      <span className="text-red-400 font-medium">Delete</span>
+                      <span className="text-purple-400 font-medium">Export</span>
+                      <span className="text-cyan-400 font-medium">Import</span>
+                      <span className="text-orange-400 font-medium">Actions</span>
+                      <span className="ml-auto text-muted-foreground italic">Toggle section ON to expand controls</span>
+                    </div>
+
+                    {/* Matrix */}
+                    <div className="max-h-[calc(100vh-340px)] overflow-y-auto pr-1 space-y-1">
+                      <PermissionMatrix
                         granted={grantedKeys}
-                        onToggle={handlePermToggle}
+                        onChange={handlePermissionsChange}
                         disabled={roleDetail.slug === "admin"}
                       />
                     </div>
@@ -730,83 +653,40 @@ export default function UsersPage() {
         </TabsContent>
       </Tabs>
 
-      {/* ─── Add User Dialog ─────────────────────────────────────── */}
-      <Dialog
-        open={addDialogOpen}
-        onOpenChange={(open) => {
-          setAddDialogOpen(open);
-          if (!open) resetForm();
-        }}
-      >
+      {/* ─── Add User Dialog ──────────────────────────────────── */}
+      <Dialog open={addDialogOpen} onOpenChange={(open) => { setAddDialogOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("users.addUser")}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{t("users.addUser")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label className="text-foreground/70">{t("common.name")}</Label>
-              <Input
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Full name"
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-              />
+              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Full name" className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50" />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground/70">{t("common.email")}</Label>
-              <Input
-                type="email"
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-                placeholder="user@example.com"
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-              />
+              <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="user@example.com" className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50" />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground/70">{t("common.password")}</Label>
-              <Input
-                type="password"
-                value={formPassword}
-                onChange={(e) => setFormPassword(e.target.value)}
-                placeholder="Min 6 characters"
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-              />
+              <Input type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="Min 6 characters" className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50" />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground/70">{t("common.role")}</Label>
-              <Select
-                value={formRoleId}
-                onValueChange={setFormRoleId}
-              >
+              <Select value={formRoleId} onValueChange={setFormRoleId}>
                 <SelectTrigger className="border-border bg-muted/50 text-foreground">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-popover-foreground">
                   {roleOptions.map((r) => (
-                    <SelectItem
-                      key={r.id}
-                      value={r.id}
-                      className="focus:bg-accent focus:text-accent-foreground"
-                    >
-                      {r.name}
-                    </SelectItem>
+                    <SelectItem key={r.id} value={r.id} className="focus:bg-accent focus:text-accent-foreground">{r.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setAddDialogOpen(false)}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={submitting}
-              className="gap-1.5"
-            >
+            <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleCreate} disabled={submitting} className="gap-1.5">
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {t("common.create")}
             </Button>
@@ -814,55 +694,29 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Edit User Dialog ────────────────────────────────────── */}
-      <Dialog
-        open={editDialogOpen}
-        onOpenChange={(open) => {
-          setEditDialogOpen(open);
-          if (!open) resetForm();
-        }}
-      >
+      {/* ─── Edit User Dialog ─────────────────────────────────── */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("users.editUser")}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{t("users.editUser")}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label className="text-foreground/70">{t("common.name")}</Label>
-              <Input
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-              />
+              <Input value={formName} onChange={(e) => setFormName(e.target.value)} className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50" />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground/70">{t("common.email")}</Label>
-              <Input
-                type="email"
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-              />
+              <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50" />
             </div>
             {canChangeRole && (
               <div className="space-y-2">
                 <Label className="text-foreground/70">{t("common.role")}</Label>
-                <Select
-                  value={formRoleId}
-                  onValueChange={setFormRoleId}
-                >
+                <Select value={formRoleId} onValueChange={setFormRoleId}>
                   <SelectTrigger className="border-border bg-muted/50 text-foreground">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent className="border-border bg-popover text-popover-foreground">
                     {roleOptions.map((r) => (
-                      <SelectItem
-                        key={r.id}
-                        value={r.id}
-                        className="focus:bg-accent focus:text-accent-foreground"
-                      >
-                        {r.name}
-                      </SelectItem>
+                      <SelectItem key={r.id} value={r.id} className="focus:bg-accent focus:text-accent-foreground">{r.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -870,27 +724,12 @@ export default function UsersPage() {
             )}
             <div className="space-y-2">
               <Label className="text-foreground/70">{t("common.password")}</Label>
-              <Input
-                type="password"
-                value={formPassword}
-                onChange={(e) => setFormPassword(e.target.value)}
-                placeholder="Leave blank to keep current"
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-              />
+              <Input type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="Leave blank to keep current" className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50" />
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setEditDialogOpen(false)}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onClick={handleEdit}
-              disabled={submitting}
-              className="gap-1.5"
-            >
+            <Button variant="ghost" onClick={() => setEditDialogOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleEdit} disabled={submitting} className="gap-1.5">
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {t("common.save")}
             </Button>
@@ -898,48 +737,25 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Role Create/Edit Dialog ─────────────────────────────── */}
-      <Dialog
-        open={roleDialogOpen}
-        onOpenChange={(open) => {
-          setRoleDialogOpen(open);
-        }}
-      >
+      {/* ─── Role Create/Edit Dialog ──────────────────────────── */}
+      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {roleDialogMode === "create" ? "Create Role" : "Edit Role"}
-            </DialogTitle>
+            <DialogTitle>{roleDialogMode === "create" ? "Create Role" : "Edit Role"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label className="text-foreground/70">Role Name</Label>
-              <Input
-                value={roleFormName}
-                onChange={(e) => setRoleFormName(e.target.value)}
-                placeholder="e.g. Senior Accountant"
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-              />
+              <Input value={roleFormName} onChange={(e) => setRoleFormName(e.target.value)} placeholder="e.g. Senior Accountant" className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50" />
             </div>
             <div className="space-y-2">
               <Label className="text-foreground/70">Description</Label>
-              <Input
-                value={roleFormDescription}
-                onChange={(e) => setRoleFormDescription(e.target.value)}
-                placeholder="Optional description"
-                className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-              />
+              <Input value={roleFormDescription} onChange={(e) => setRoleFormDescription(e.target.value)} placeholder="Optional description" className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setRoleDialogOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onClick={handleRoleSubmit}
-              disabled={roleSubmitting}
-              className="gap-1.5"
-            >
+            <Button variant="ghost" onClick={() => setRoleDialogOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={handleRoleSubmit} disabled={roleSubmitting} className="gap-1.5">
               {roleSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {roleDialogMode === "create" ? t("common.create") : t("common.save")}
             </Button>
