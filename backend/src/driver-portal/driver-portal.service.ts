@@ -1,11 +1,12 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { resolveDriverGeofenceTarget, isWithinGeofence } from '../common/geofence.util.js';
+import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
 
 type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
@@ -24,6 +25,8 @@ const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
 @Injectable()
 export class DriverPortalService {
+  private readonly logger = new Logger(DriverPortalService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   private readonly jobInclude = {
@@ -431,13 +434,14 @@ export class DriverPortalService {
   private checkDriverGeofence(job: any, latitude: number, longitude: number) {
     const target = resolveDriverGeofenceTarget(job);
     if (!target) {
-      throw new BadRequestException(
-        'Location coordinates not configured. Contact admin.',
-      );
+      // No coordinates configured for this job's location — skip check
+      return;
     }
-    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, 500)) {
-      throw new BadRequestException(
-        'You must be within 500m of the location to perform this action.',
+    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, 2000)) {
+      // Outside 2km — log for audit but do not block the driver
+      const dist = Math.round(haversineDistance(latitude, longitude, target.lat, target.lng));
+      this.logger.warn(
+        `Driver geofence miss on job ${job.id}: driver at (${latitude},${longitude}) is ${dist}m from target (${target.lat},${target.lng})`,
       );
     }
   }
