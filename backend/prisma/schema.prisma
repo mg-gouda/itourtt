@@ -1042,6 +1042,7 @@ model TrafficJob {
   driverNotifications   DriverNotification[]
   noShowEvidence        NoShowEvidence[]
   inPlaceEvidence       InPlaceEvidence[]
+  completedEvidence     CompletedEvidence[]
   repJobScore           RepJobScore?
   whatsappLogs          WhatsappNotificationLog[]
   userNotifications     UserNotification[]
@@ -1555,6 +1556,27 @@ model InPlaceEvidence {
 
   @@unique([trafficJobId, submittedBy])
   @@map("in_place_evidence")
+}
+
+// ─────────────────────────────────────────────
+// COMPLETED EVIDENCE
+// ─────────────────────────────────────────────
+
+model CompletedEvidence {
+  id             String   @id @default(uuid())
+  trafficJobId   String   @map("traffic_job_id")
+  imageUrls      String[] @map("image_urls")
+  gpsLatitude    Decimal  @map("gps_latitude") @db.Decimal(10, 7)
+  gpsLongitude   Decimal  @map("gps_longitude") @db.Decimal(10, 7)
+  gpsMapLink     String   @map("gps_map_link")
+  submittedBy    String   @map("submitted_by")
+  submittedById  String   @map("submitted_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  trafficJob     TrafficJob @relation(fields: [trafficJobId], references: [id])
+
+  @@unique([trafficJobId, submittedBy])
+  @@map("completed_evidence")
 }
 
 // ─────────────────────────────────────────────

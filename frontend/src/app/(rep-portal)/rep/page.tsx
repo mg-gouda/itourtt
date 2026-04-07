@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { InPlaceEvidenceDialog } from "@/components/in-place-evidence-dialog";
+import { CompletedEvidenceDialog } from "@/components/completed-evidence-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
@@ -139,6 +140,11 @@ export default function RepDashboardPage() {
     jobId: string;
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
+  const [completedDialog, setCompletedDialog] = useState<{
+    open: boolean;
+    jobId: string;
+    jobRef: string;
+  }>({ open: false, jobId: "", jobRef: "" });
   const [updateDialog, setUpdateDialog] = useState<{
     open: boolean;
     jobId: string;
@@ -192,6 +198,10 @@ export default function RepDashboardPage() {
     }
     if (status === "IN_PLACE") {
       setInPlaceDialog({ open: true, jobId, jobRef });
+      return;
+    }
+    if (status === "COMPLETED") {
+      setCompletedDialog({ open: true, jobId, jobRef });
       return;
     }
     setConfirmDialog({ open: true, jobId, jobRef, status });
@@ -497,6 +507,18 @@ export default function RepDashboardPage() {
         }}
         jobId={inPlaceDialog.jobId}
         jobRef={inPlaceDialog.jobRef}
+        portalApiBase="/rep-portal"
+        onSuccess={fetchJobs}
+      />
+
+      {/* Completed Evidence Dialog */}
+      <CompletedEvidenceDialog
+        open={completedDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setCompletedDialog({ open: false, jobId: "", jobRef: "" });
+        }}
+        jobId={completedDialog.jobId}
+        jobRef={completedDialog.jobRef}
         portalApiBase="/rep-portal"
         onSuccess={fetchJobs}
       />

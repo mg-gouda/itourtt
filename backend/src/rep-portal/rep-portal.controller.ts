@@ -34,6 +34,11 @@ if (!fs.existsSync(inPlaceUploadsDir)) {
   fs.mkdirSync(inPlaceUploadsDir, { recursive: true });
 }
 
+const completedUploadsDir = path.join(process.cwd(), 'uploads', 'completed');
+if (!fs.existsSync(completedUploadsDir)) {
+  fs.mkdirSync(completedUploadsDir, { recursive: true });
+}
+
 const noShowStorage = diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, uploadsDir);
@@ -47,6 +52,16 @@ const noShowStorage = diskStorage({
 const inPlaceStorage = diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, inPlaceUploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  },
+});
+
+const completedStorage = diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, completedUploadsDir);
   },
   filename: (_req, file, cb) => {
     const uniqueName = Date.now() + '-' + file.originalname;
@@ -172,6 +187,36 @@ export class RepPortalController {
       longitude,
     );
     return new ApiResponse(result, 'In-place evidence submitted');
+  }
+
+  @Post('jobs/:jobId/completed')
+  @UseInterceptors(FilesInterceptor('images', 10, { storage: completedStorage }))
+  async submitCompleted(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { latitude: string; longitude: string },
+  ) {
+    if (!files || files.length < 1) {
+      throw new BadRequestException('At least one image is required for completed evidence');
+    }
+
+    const imageUrls = files.map(f => '/uploads/completed/' + f.filename);
+    const latitude = parseFloat(body.latitude);
+    const longitude = parseFloat(body.longitude);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      throw new BadRequestException('Valid GPS coordinates are required');
+    }
+
+    const result = await this.repPortalService.submitCompleted(
+      userId,
+      jobId,
+      imageUrls,
+      latitude,
+      longitude,
+    );
+    return new ApiResponse(result, 'Completed evidence submitted');
   }
 
   @Post('jobs/:jobId/update')

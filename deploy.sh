@@ -14,7 +14,7 @@ cd /opt/itour
 # ── Build shared backend image (same for all environments) ──
 echo ""
 echo ">> Building backend image..."
-docker build --no-cache -t itourtt-backend:3.3.7 backend -q
+docker build --no-cache -t itourtt-backend:3.3.8 backend -q
 
 # ── Build frontend images (per-environment feature flags) ──
 # Production & Training: Car Dispatch enabled
@@ -34,19 +34,19 @@ if $needs_car_dispatch; then
   echo ">> Building frontend image (with Car Dispatch)..."
   docker build --no-cache \
     --build-arg NEXT_PUBLIC_ENABLE_CAR_DISPATCH=true \
-    -t itourtt-frontend:3.3.7-cardispatch frontend -q
-  docker save itourtt-frontend:3.3.7-cardispatch | k3s ctr images import -
+    -t itourtt-frontend:3.3.8-cardispatch frontend -q
+  docker save itourtt-frontend:3.3.8-cardispatch | k3s ctr images import -
 fi
 
 if $needs_standard; then
   echo ">> Building frontend image (standard)..."
-  docker build --no-cache -t itourtt-frontend:3.3.7 frontend -q
-  docker save itourtt-frontend:3.3.7 | k3s ctr images import -
+  docker build --no-cache -t itourtt-frontend:3.3.8 frontend -q
+  docker save itourtt-frontend:3.3.8 | k3s ctr images import -
 fi
 
 # Import backend image into k3s
 echo ">> Importing backend image into k3s..."
-docker save itourtt-backend:3.3.7 | k3s ctr images import -
+docker save itourtt-backend:3.3.8 | k3s ctr images import -
 
 deploy_env() {
   local ns="$1"
@@ -57,7 +57,7 @@ deploy_env() {
   echo "=== Deploying $label ($ns) ==="
 
   # Point frontend deployment to the correct image tag
-  kubectl set image deployment/backend backend=itourtt-backend:3.3.7 -n "$ns"
+  kubectl set image deployment/backend backend=itourtt-backend:3.3.8 -n "$ns"
   kubectl set image deployment/frontend frontend=itourtt-frontend:${frontend_tag} -n "$ns"
 
   # Run database migrations
@@ -86,15 +86,15 @@ deploy_env() {
 }
 
 if [[ "$ENV" == "production" || "$ENV" == "all" ]]; then
-  deploy_env "itour-production" "Production" "3.3.7-cardispatch"
+  deploy_env "itour-production" "Production" "3.3.8-cardispatch"
 fi
 
 if [[ "$ENV" == "training" || "$ENV" == "all" ]]; then
-  deploy_env "itour-training" "Training" "3.3.7-cardispatch"
+  deploy_env "itour-training" "Training" "3.3.8-cardispatch"
 fi
 
 if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
-  deploy_env "itour-travelplan" "TravelPlan" "3.3.7"
+  deploy_env "itour-travelplan" "TravelPlan" "3.3.8"
 fi
 
 echo ""

@@ -422,6 +422,92 @@ export class RepPortalService {
     });
   }
 
+  async submitCompleted(
+    userId: string,
+    jobId: string,
+    imageUrls: string[],
+    latitude: number,
+    longitude: number,
+  ) {
+    const rep = await this.prisma.rep.findFirst({
+      where: { userId, deletedAt: null },
+      include: { user: { select: { name: true } } },
+    });
+    if (!rep) throw new ForbiddenException('No rep profile linked to this account');
+    const repId = rep.id;
+    const submittedByLabel = `REP-${rep.user?.name ?? 'Unknown'}`;
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { repId, trafficJobId: jobId },
+      include: {
+        trafficJob: {
+          include: {
+            originAirport: true,
+            originZone: true,
+            originHotel: { include: { zone: true } },
+          },
+        },
+      },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Job not found or not assigned to you');
+    }
+
+    this.checkRepTimelock(assignment.trafficJob);
+    this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
+
+    const currentStatus = assignment.repStatus;
+    const allowed = REP_VALID_TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes('COMPLETED')) {
+      throw new BadRequestException(
+        `Cannot mark as Completed from "${currentStatus}"`,
+      );
+    }
+
+    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.trafficAssignment.update({
+        where: { id: assignment.id },
+        data: { repStatus: 'COMPLETED' as any },
+        include: { trafficJob: { include: this.jobInclude } },
+      });
+
+      await tx.trafficJob.update({
+        where: { id: jobId },
+        data: { status: 'COMPLETED' as any },
+      });
+
+      await tx.completedEvidence.create({
+        data: {
+          trafficJobId: jobId,
+          imageUrls,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+          submittedBy: submittedByLabel,
+          submittedById: repId,
+        },
+      });
+
+      await tx.statusChangeLog.create({
+        data: {
+          assignmentId: assignment.id,
+          changedBy: 'REP',
+          changedById: repId,
+          previousStatus: currentStatus as any,
+          newStatus: 'COMPLETED' as any,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+        },
+      });
+
+      return { ...updated.trafficJob, repStatus: updated.repStatus };
+    });
+  }
+
   async submitUpdate(
     userId: string,
     jobId: string,
