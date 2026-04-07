@@ -1,8 +1,11 @@
 import {
   Controller,
   Get,
+  Put,
   Query,
   Param,
+  Body,
+  Request,
   UseGuards,
   ParseUUIDPipe,
   BadRequestException,
@@ -14,7 +17,7 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 class DateRangeQueryDto {
   @IsString()
@@ -39,6 +42,20 @@ class JobStatusQueryDto {
 class DayQueryDto {
   @IsString()
   date!: string;
+}
+
+class UpsertRepScoreDto {
+  @IsBoolean()
+  attendance!: boolean;
+
+  @IsBoolean()
+  appearance!: boolean;
+
+  @IsBoolean()
+  work!: boolean;
+
+  @IsBoolean()
+  review!: boolean;
 }
 
 @Controller('reports')
@@ -112,6 +129,21 @@ export class ReportsController {
     const result = await this.reportsService.revenueReport(
       query.from,
       query.to,
+    );
+    return new ApiResponse(result);
+  }
+
+  @Put('rep-score/:jobId')
+  @Permissions('reports.repFees')
+  async upsertRepScore(
+    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Body() body: UpsertRepScoreDto,
+    @Request() req: any,
+  ) {
+    const result = await this.reportsService.upsertRepScore(
+      jobId,
+      req.user.id,
+      body,
     );
     return new ApiResponse(result);
   }

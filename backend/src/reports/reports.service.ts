@@ -1,6 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { JobStatus, ServiceType } from '../../generated/prisma/client.js';
+
+function calcRepScore(s: {
+  attendance: boolean;
+  appearance: boolean;
+  work: boolean;
+  review: boolean;
+}): number {
+  return (
+    (s.attendance ? 20 : 0) +
+    (s.appearance ? 15 : 0) +
+    (s.work ? 30 : 0) +
+    (s.review ? 35 : 0)
+  );
+}
+
+function scoreToFeeAndEval(total: number): { fee: number; evaluation: string } {
+  if (total >= 90) return { fee: 50, evaluation: 'Excellent' };
+  if (total >= 75) return { fee: 40, evaluation: 'Good' };
+  if (total >= 61) return { fee: 30, evaluation: 'Average' };
+  return { fee: 20, evaluation: 'Poor' };
+}
 
 @Injectable()
 export class ReportsService {
@@ -286,6 +307,10 @@ export class ReportsService {
             flight: true,
             agent: true,
             repFees: true,
+            repJobScore: true,
+            inPlaceEvidence: {
+              select: { imageUrls: true, gpsMapLink: true, createdAt: true },
+            },
           },
         },
       },
@@ -324,10 +349,27 @@ export class ReportsService {
           ? feePerFlight
           : 0;
 
+      const rjs = a.trafficJob.repJobScore;
+      const scoreTotal = rjs ? calcRepScore(rjs) : null;
+      const feeAndEval = scoreTotal !== null ? scoreToFeeAndEval(scoreTotal) : null;
+
       const feeEntry = {
         id: existingFee?.id || a.id,
         amount,
         status: existingFee ? 'POSTED' : a.trafficJob.status,
+        repStatus: a.repStatus,
+        inPlaceEvidence: a.trafficJob.inPlaceEvidence,
+        repJobScore: rjs
+          ? {
+              attendance: rjs.attendance,
+              appearance: rjs.appearance,
+              work: rjs.work,
+              review: rjs.review,
+              total: scoreTotal,
+              fee: feeAndEval?.fee ?? null,
+              evaluation: feeAndEval?.evaluation ?? null,
+            }
+          : null,
         trafficJob: a.trafficJob,
       };
 
@@ -363,6 +405,60 @@ export class ReportsService {
       totalFlights,
       reps,
     };
+  }
+
+  // ─────────────────────────────────────────────
+  // UPSERT REP SCORE
+  // ─────────────────────────────────────────────
+
+  async upsertRepScore(
+    jobId: string,
+    scoredById: string,
+    data: {
+      attendance: boolean;
+      appearance: boolean;
+      work: boolean;
+      review: boolean;
+    },
+  ) {
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { trafficJobId: jobId, repId: { not: null } },
+      include: { trafficJob: { select: { serviceType: true } } },
+    });
+    if (!assignment?.repId) {
+      throw new NotFoundException(`No rep assignment found for job ${jobId}`);
+    }
+
+    const repId = assignment.repId;
+    const isArr = assignment.trafficJob.serviceType === 'ARR';
+
+    await this.prisma.repJobScore.upsert({
+      where: { trafficJobId: jobId },
+      update: { ...data, scoredById },
+      create: { trafficJobId: jobId, repId, scoredById, ...data },
+    });
+
+    if (isArr) {
+      const total = calcRepScore(data);
+      const { fee } = scoreToFeeAndEval(total);
+
+      const existingFee = await this.prisma.repFee.findFirst({
+        where: { trafficJobId: jobId, repId },
+      });
+
+      if (existingFee) {
+        await this.prisma.repFee.update({
+          where: { id: existingFee.id },
+          data: { amount: fee },
+        });
+      } else {
+        await this.prisma.repFee.create({
+          data: { trafficJobId: jobId, repId, amount: fee, currency: 'EGP' },
+        });
+      }
+    }
+
+    return { ok: true };
   }
 
   // ─────────────────────────────────────────────

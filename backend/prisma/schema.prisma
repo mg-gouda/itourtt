@@ -233,6 +233,7 @@ model User {
   activityLogs      ActivityLog[]
   notifications     UserNotification[]
   deviceTokens      DeviceToken[]
+  repScoresGiven    RepJobScore[]      @relation("RepScoreScoredBy")
 
   @@map("users")
 }
@@ -512,6 +513,7 @@ model Rep {
   repZones      RepZone[]
   assignments   TrafficAssignment[]
   repFees       RepFee[]
+  repJobScores  RepJobScore[]
   notifications RepNotification[]
 
   @@map("reps")
@@ -1040,6 +1042,7 @@ model TrafficJob {
   driverNotifications   DriverNotification[]
   noShowEvidence        NoShowEvidence[]
   inPlaceEvidence       InPlaceEvidence[]
+  repJobScore           RepJobScore?
   whatsappLogs          WhatsappNotificationLog[]
   userNotifications     UserNotification[]
 
@@ -1552,6 +1555,29 @@ model InPlaceEvidence {
 
   @@unique([trafficJobId, submittedBy])
   @@map("in_place_evidence")
+}
+
+// ─────────────────────────────────────────────
+// REP JOB SCORING
+// ─────────────────────────────────────────────
+
+model RepJobScore {
+  id           String   @id @default(uuid())
+  trafficJobId String   @unique @map("traffic_job_id")
+  repId        String   @map("rep_id")
+  attendance   Boolean  @default(false)   // 20 pts — In Place evidence
+  appearance   Boolean  @default(false)   // 15 pts — In Place evidence
+  work         Boolean  @default(false)   // 30 pts — Completed status
+  review       Boolean  @default(false)   // 35 pts — manual
+  scoredById   String   @map("scored_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
+  rep          Rep        @relation(fields: [repId], references: [id])
+  scoredBy     User       @relation("RepScoreScoredBy", fields: [scoredById], references: [id])
+
+  @@map("rep_job_scores")
 }
 
 // ─────────────────────────────────────────────

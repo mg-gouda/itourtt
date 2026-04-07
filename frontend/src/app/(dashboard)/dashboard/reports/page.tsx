@@ -149,6 +149,16 @@ interface RevenueReport {
   }>;
 }
 
+interface RepJobScore {
+  attendance: boolean;
+  appearance: boolean;
+  work: boolean;
+  review: boolean;
+  total: number | null;
+  fee: number | null;
+  evaluation: string | null;
+}
+
 interface RepFeeReport {
   date: string;
   grandTotal: number;
@@ -163,6 +173,9 @@ interface RepFeeReport {
       id: string;
       amount: number;
       status: string;
+      repStatus: string | null;
+      inPlaceEvidence: { imageUrls: string[]; gpsMapLink: string | null; createdAt: string } | null;
+      repJobScore: RepJobScore | null;
       trafficJob: {
         id: string;
         internalRef: string;
@@ -337,6 +350,9 @@ export default function ReportsPage() {
   const [repFeeLoading, setRepFeeLoading] = useState(false);
   const [selectedRep, setSelectedRep] = useState<RepFeeReportRep | null>(null);
   const [repModalOpen, setRepModalOpen] = useState(false);
+  // scoreEdits: jobId → { attendance, appearance, work, review }
+  const [scoreEdits, setScoreEdits] = useState<Record<string, RepJobScore>>({});
+  const [scoreSaving, setScoreSaving] = useState<Record<string, boolean>>({});
   const printRef = useRef<HTMLDivElement>(null);
   const dispatchPrintRef = useRef<HTMLDivElement>(null);
   const driverPrintRef = useRef<HTMLDivElement>(null);
@@ -459,6 +475,52 @@ export default function ReportsPage() {
       toast.error(t("reports.failedRepFees"));
     } finally {
       setRepFeeLoading(false);
+    }
+  };
+
+  const saveRepScore = async (
+    jobId: string,
+    score: { attendance: boolean; appearance: boolean; work: boolean; review: boolean },
+  ) => {
+    setScoreSaving((s) => ({ ...s, [jobId]: true }));
+    try {
+      await api.put(`/reports/rep-score/${jobId}`, score);
+      // Recompute the score locally
+      const total =
+        (score.attendance ? 20 : 0) +
+        (score.appearance ? 15 : 0) +
+        (score.work ? 30 : 0) +
+        (score.review ? 35 : 0);
+      let fee = 20, evaluation = "Poor";
+      if (total >= 90) { fee = 50; evaluation = "Excellent"; }
+      else if (total >= 75) { fee = 40; evaluation = "Good"; }
+      else if (total >= 61) { fee = 30; evaluation = "Average"; }
+      const newScore: RepJobScore = { ...score, total, fee, evaluation };
+      setScoreEdits((s) => ({ ...s, [jobId]: newScore }));
+      // Patch repFeeData so the summary totals update
+      setRepFeeData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          reps: prev.reps.map((r) => ({
+            ...r,
+            fees: r.fees.map((f) =>
+              f.trafficJob.id === jobId
+                ? { ...f, amount: f.trafficJob.serviceType === "ARR" ? fee : f.amount, repJobScore: newScore }
+                : f,
+            ),
+            totalAmount: r.fees.reduce((sum, f) => {
+              if (f.trafficJob.serviceType !== "ARR") return sum;
+              const amt = f.trafficJob.id === jobId ? fee : Number(f.amount);
+              return sum + amt;
+            }, 0),
+          })),
+        };
+      });
+    } catch {
+      toast.error("Failed to save score");
+    } finally {
+      setScoreSaving((s) => ({ ...s, [jobId]: false }));
     }
   };
 
@@ -1283,6 +1345,14 @@ export default function ReportsPage() {
                             className="text-primary hover:underline font-medium text-sm text-left"
                             onClick={() => {
                               setSelectedRep(rep);
+                              // Pre-populate scoreEdits from existing scores
+                              const initialEdits: Record<string, RepJobScore> = {};
+                              for (const fee of rep.fees) {
+                                if (fee.repJobScore) {
+                                  initialEdits[fee.trafficJob.id] = fee.repJobScore;
+                                }
+                              }
+                              setScoreEdits(initialEdits);
                               setRepModalOpen(true);
                             }}
                           >
@@ -1805,7 +1875,7 @@ export default function ReportsPage() {
           if (!open) setSelectedRep(null);
         }}
       >
-        <DialogContent className="max-h-[85vh] overflow-y-auto border-border bg-popover text-foreground sm:max-w-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-border bg-popover text-foreground sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {selectedRep?.repName} &mdash; {repFeeDate}
@@ -1829,6 +1899,7 @@ export default function ReportsPage() {
                       </span>
                     )}
                   </div>
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
@@ -1840,56 +1911,143 @@ export default function ReportsPage() {
                         <TableHead className="text-white text-xs">Route</TableHead>
                         <TableHead className="text-white text-xs">{t("locations.hotel")}</TableHead>
                         <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                        <TableHead className="text-white text-xs text-right">
-                          {t("reports.fee")}
-                        </TableHead>
+                        <TableHead className="text-white text-xs text-center">Att<br/><span className="text-[10px] font-normal opacity-75">20pt</span></TableHead>
+                        <TableHead className="text-white text-xs text-center">App<br/><span className="text-[10px] font-normal opacity-75">15pt</span></TableHead>
+                        <TableHead className="text-white text-xs text-center">Work<br/><span className="text-[10px] font-normal opacity-75">30pt</span></TableHead>
+                        <TableHead className="text-white text-xs text-center">Rev<br/><span className="text-[10px] font-normal opacity-75">35pt</span></TableHead>
+                        <TableHead className="text-white text-xs text-right">Score</TableHead>
+                        <TableHead className="text-white text-xs text-right">Fee</TableHead>
+                        <TableHead className="text-white text-xs">Eval</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {group.jobs.map((fee, idx) => (
-                        <TableRow
-                          key={fee.id}
-                          className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
-                        >
-                          <TableCell className="text-foreground font-mono text-xs">
-                            {fee.trafficJob.internalRef}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={
-                                fee.trafficJob.serviceType === "ARR"
-                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                                  : "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
-                              }
-                            >
-                              {fee.trafficJob.serviceType}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right text-muted-foreground">
-                            {fee.trafficJob.paxCount}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {(fee.trafficJob.originAirport?.code || fee.trafficJob.fromZone?.name || fee.trafficJob.originZone?.name || fee.trafficJob.originHotel?.name || "\u2014")}{" \u2192 "}{(fee.trafficJob.destinationAirport?.code || fee.trafficJob.toZone?.name || fee.trafficJob.destinationZone?.name || fee.trafficJob.destinationHotel?.name || "\u2014")}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {fee.trafficJob.hotel?.name || "\u2014"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={statusColors[fee.status] || ""}
-                            >
-                              {fee.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right text-foreground font-mono">
-                            {Number(fee.amount) > 0 ? fmt(Number(fee.amount), locale) : "\u2014"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {group.jobs.map((fee, idx) => {
+                        const jobId = fee.trafficJob.id;
+                        const isArr = fee.trafficJob.serviceType === "ARR";
+                        const hasInPlace = !!fee.inPlaceEvidence;
+                        const isCompleted = fee.repStatus === "COMPLETED" || fee.trafficJob.status === "COMPLETED";
+                        const currentScore = scoreEdits[jobId] ?? fee.repJobScore;
+                        const isSaving = scoreSaving[jobId] ?? false;
+
+                        const toggleScore = (field: "attendance" | "appearance" | "work" | "review", enabled: boolean) => {
+                          if (!enabled) return;
+                          const base = currentScore ?? { attendance: false, appearance: false, work: false, review: false, total: null, fee: null, evaluation: null };
+                          const next = { attendance: base.attendance, appearance: base.appearance, work: base.work, review: base.review, [field]: !base[field] };
+                          saveRepScore(jobId, next);
+                        };
+
+                        const evalColor =
+                          currentScore?.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                          currentScore?.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                          currentScore?.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                          currentScore?.evaluation === "Poor" ? "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20" : "";
+
+                        return (
+                          <TableRow
+                            key={fee.id}
+                            className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                          >
+                            <TableCell className="text-foreground font-mono text-xs">
+                              {fee.trafficJob.internalRef}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  isArr
+                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                    : "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
+                                }
+                              >
+                                {fee.trafficJob.serviceType}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right text-muted-foreground">
+                              {fee.trafficJob.paxCount}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                              {(fee.trafficJob.originAirport?.code || fee.trafficJob.fromZone?.name || fee.trafficJob.originZone?.name || fee.trafficJob.originHotel?.name || "\u2014")}{" \u2192 "}{(fee.trafficJob.destinationAirport?.code || fee.trafficJob.toZone?.name || fee.trafficJob.destinationZone?.name || fee.trafficJob.destinationHotel?.name || "\u2014")}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {fee.trafficJob.hotel?.name || "\u2014"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={statusColors[fee.status] || ""}
+                              >
+                                {fee.status}
+                              </Badge>
+                            </TableCell>
+                            {/* Attendance — requires inPlaceEvidence */}
+                            <TableCell className="text-center">
+                              <input
+                                type="checkbox"
+                                disabled={!hasInPlace || isSaving}
+                                checked={currentScore?.attendance ?? false}
+                                onChange={() => toggleScore("attendance", hasInPlace)}
+                                title={hasInPlace ? "Attendance (20pt)" : "Requires In Place evidence"}
+                                className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                              />
+                            </TableCell>
+                            {/* Appearance — requires inPlaceEvidence */}
+                            <TableCell className="text-center">
+                              <input
+                                type="checkbox"
+                                disabled={!hasInPlace || isSaving}
+                                checked={currentScore?.appearance ?? false}
+                                onChange={() => toggleScore("appearance", hasInPlace)}
+                                title={hasInPlace ? "Appearance (15pt)" : "Requires In Place evidence"}
+                                className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                              />
+                            </TableCell>
+                            {/* Work — requires COMPLETED status */}
+                            <TableCell className="text-center">
+                              <input
+                                type="checkbox"
+                                disabled={!isCompleted || isSaving}
+                                checked={currentScore?.work ?? false}
+                                onChange={() => toggleScore("work", isCompleted)}
+                                title={isCompleted ? "Work (30pt)" : "Requires COMPLETED status"}
+                                className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                              />
+                            </TableCell>
+                            {/* Review — always enabled */}
+                            <TableCell className="text-center">
+                              <input
+                                type="checkbox"
+                                disabled={isSaving}
+                                checked={currentScore?.review ?? false}
+                                onChange={() => toggleScore("review", true)}
+                                title="Review (35pt)"
+                                className="h-4 w-4 cursor-pointer accent-emerald-600"
+                              />
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-sm font-semibold">
+                              {isSaving ? (
+                                <Loader2 className="h-3 w-3 animate-spin inline" />
+                              ) : currentScore?.total !== undefined && currentScore.total !== null ? (
+                                <span>{currentScore.total}</span>
+                              ) : "\u2014"}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-sm">
+                              {currentScore?.fee !== undefined && currentScore.fee !== null
+                                ? `${currentScore.fee} EGP`
+                                : "\u2014"}
+                            </TableCell>
+                            <TableCell>
+                              {currentScore?.evaluation ? (
+                                <Badge variant="outline" className={evalColor}>
+                                  {currentScore.evaluation}
+                                </Badge>
+                              ) : "\u2014"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
+                  </div>
                 </div>
               ))}
 
