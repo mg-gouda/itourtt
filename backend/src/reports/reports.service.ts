@@ -582,6 +582,165 @@ export class ReportsService {
   }
 
   // ─────────────────────────────────────────────
+  // REP SCORE REPORT
+  // ─────────────────────────────────────────────
+
+  async repScoreReport(from: string, to: string, repId?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const scores = await this.prisma.repJobScore.findMany({
+      where: {
+        ...(repId ? { repId } : {}),
+        trafficJob: {
+          jobDate: { gte: fromDate, lte: toDate },
+          deletedAt: null,
+        },
+      },
+      include: {
+        rep: { select: { id: true, name: true } },
+        trafficJob: {
+          include: {
+            fromZone: { select: { name: true } },
+            toZone: { select: { name: true } },
+            originAirport: { select: { name: true, code: true } },
+            originZone: { select: { name: true } },
+            originHotel: { select: { name: true } },
+            destinationAirport: { select: { name: true, code: true } },
+            destinationZone: { select: { name: true } },
+            destinationHotel: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ trafficJob: { jobDate: 'asc' } }, { rep: { name: 'asc' } }],
+    });
+
+    const rows = scores.map((s) => {
+      const total = calcRepScore(s);
+      const { fee, evaluation } = scoreToFeeAndEval(total);
+      return {
+        jobId: s.trafficJobId,
+        internalRef: s.trafficJob.internalRef,
+        serviceType: s.trafficJob.serviceType,
+        paxCount: s.trafficJob.paxCount,
+        status: s.trafficJob.status,
+        repId: s.repId,
+        repName: s.rep.name,
+        fromZone: s.trafficJob.fromZone,
+        toZone: s.trafficJob.toZone,
+        originAirport: s.trafficJob.originAirport,
+        originZone: s.trafficJob.originZone,
+        originHotel: s.trafficJob.originHotel,
+        destinationAirport: s.trafficJob.destinationAirport,
+        destinationZone: s.trafficJob.destinationZone,
+        destinationHotel: s.trafficJob.destinationHotel,
+        attendance: s.attendance,
+        appearance: s.appearance,
+        work: s.work,
+        review: s.review,
+        total,
+        fee,
+        evaluation,
+      };
+    });
+
+    const totalScore = rows.reduce((sum, r) => sum + r.total, 0);
+    const avgScore = rows.length > 0 ? Math.round((totalScore / rows.length) * 10) / 10 : 0;
+
+    return { from, to, rows, totalScore, avgScore, count: rows.length };
+  }
+
+  // ─────────────────────────────────────────────
+  // EVIDENCE REPORT
+  // ─────────────────────────────────────────────
+
+  async evidenceReport(from: string, to: string, status?: string, agentId?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const where: Record<string, unknown> = {
+      jobDate: { gte: fromDate, lte: toDate },
+      deletedAt: null,
+    };
+    if (status && status !== 'ALL') where.status = status;
+    if (agentId) where.agentId = agentId;
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: {
+        agent: { select: { legalName: true } },
+        fromZone: { select: { name: true } },
+        toZone: { select: { name: true } },
+        originAirport: { select: { name: true, code: true } },
+        destinationAirport: { select: { name: true, code: true } },
+        originHotel: { select: { name: true } },
+        destinationHotel: { select: { name: true } },
+        flight: {
+          select: {
+            flightNo: true,
+            carrier: true,
+            terminal: true,
+            arrivalTime: true,
+            departureTime: true,
+          },
+        },
+        assignment: {
+          include: {
+            vehicle: { select: { plateNumber: true } },
+            driver: { select: { name: true } },
+            rep: { select: { name: true } },
+          },
+        },
+        noShowEvidence: {
+          select: { id: true, imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
+        },
+        inPlaceEvidence: {
+          select: { id: true, imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
+        },
+        completedEvidence: {
+          select: { id: true, imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
+        },
+      },
+      orderBy: { jobDate: 'asc' },
+    });
+
+    const rows = jobs.map((j) => ({
+      jobId: j.id,
+      internalRef: j.internalRef,
+      agentName: j.agent?.legalName ?? null,
+      agentRef: j.agentRef ?? null,
+      jobDate: j.jobDate,
+      serviceType: j.serviceType,
+      status: j.status,
+      paxCount: j.paxCount,
+      clientName: j.clientName ?? null,
+      fromZone: j.fromZone,
+      toZone: j.toZone,
+      originAirport: j.originAirport,
+      destinationAirport: j.destinationAirport,
+      originHotel: j.originHotel,
+      destinationHotel: j.destinationHotel,
+      flight: j.flight,
+      assignment: j.assignment
+        ? {
+            vehicle: j.assignment.vehicle,
+            driver: j.assignment.driver,
+            rep: j.assignment.rep,
+          }
+        : null,
+      noShowEvidence: j.noShowEvidence,
+      inPlaceEvidence: j.inPlaceEvidence,
+      completedEvidence: j.completedEvidence,
+      hasEvidence:
+        j.noShowEvidence.length > 0 ||
+        j.inPlaceEvidence.length > 0 ||
+        j.completedEvidence.length > 0,
+    }));
+
+    return { from, to, totalJobs: rows.length, rows };
+  }
+
+  // ─────────────────────────────────────────────
   // JOB STATUS REPORT
   // ─────────────────────────────────────────────
 

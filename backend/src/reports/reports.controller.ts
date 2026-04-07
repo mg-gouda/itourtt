@@ -39,9 +39,37 @@ class JobStatusQueryDto {
   status?: string;
 }
 
+class EvidenceQueryDto {
+  @IsString()
+  from!: string;
+
+  @IsString()
+  to!: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  agentId?: string;
+}
+
 class DayQueryDto {
   @IsString()
   date!: string;
+}
+
+class RepScoreQueryDto {
+  @IsString()
+  from!: string;
+
+  @IsString()
+  to!: string;
+
+  @IsOptional()
+  @IsString()
+  repId?: string;
 }
 
 class UpsertRepScoreDto {
@@ -144,6 +172,35 @@ export class ReportsController {
       jobId,
       req.user.id,
       body,
+    );
+    return new ApiResponse(result);
+  }
+
+  @Get('rep-score')
+  @Permissions('reports.repFees')
+  async repScoreReport(@Query() query: RepScoreQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.repScoreReport(
+      query.from,
+      query.to,
+      query.repId,
+    );
+    return new ApiResponse(result);
+  }
+
+  @Get('evidence')
+  @Permissions('reports.evidence')
+  async evidenceReport(@Query() query: EvidenceQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.evidenceReport(
+      query.from,
+      query.to,
+      query.status,
+      query.agentId,
     );
     return new ApiResponse(result);
   }

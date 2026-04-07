@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   ClipboardList,
+  Camera,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -211,6 +212,40 @@ interface RepFeeReportRep {
   fees: RepFeeReport["reps"][number]["fees"];
 }
 
+interface RepScoreRow {
+  jobId: string;
+  internalRef: string;
+  serviceType: string;
+  paxCount: number;
+  status: string;
+  repId: string;
+  repName: string;
+  fromZone: { name: string } | null;
+  toZone: { name: string } | null;
+  originAirport: { name: string; code: string } | null;
+  originZone: { name: string } | null;
+  originHotel: { name: string } | null;
+  destinationAirport: { name: string; code: string } | null;
+  destinationZone: { name: string } | null;
+  destinationHotel: { name: string } | null;
+  attendance: boolean;
+  appearance: boolean;
+  work: boolean;
+  review: boolean;
+  total: number;
+  fee: number;
+  evaluation: string;
+}
+
+interface RepScoreReport {
+  from: string;
+  to: string;
+  rows: RepScoreRow[];
+  totalScore: number;
+  avgScore: number;
+  count: number;
+}
+
 interface ComplianceReportItem {
   vehicleId: string;
   plateNumber: string;
@@ -245,6 +280,55 @@ interface JobStatusReport {
     repJobStatus: string | null;
     driverJobStatus: string | null;
   }>;
+}
+
+interface EvidenceItem {
+  id: string;
+  imageUrls: string[];
+  gpsMapLink: string;
+  submittedBy: string;
+  createdAt: string;
+}
+
+interface EvidenceReportRow {
+  jobId: string;
+  internalRef: string;
+  agentName: string | null;
+  agentRef: string | null;
+  jobDate: string;
+  serviceType: string;
+  status: string;
+  paxCount: number;
+  clientName: string | null;
+  fromZone: { name: string } | null;
+  toZone: { name: string } | null;
+  originAirport: { name: string; code: string } | null;
+  destinationAirport: { name: string; code: string } | null;
+  originHotel: { name: string } | null;
+  destinationHotel: { name: string } | null;
+  flight: {
+    flightNo: string;
+    carrier: string;
+    terminal: string | null;
+    arrivalTime: string | null;
+    departureTime: string | null;
+  } | null;
+  assignment: {
+    vehicle: { plateNumber: string } | null;
+    driver: { name: string } | null;
+    rep: { name: string } | null;
+  } | null;
+  noShowEvidence: EvidenceItem[];
+  inPlaceEvidence: EvidenceItem[];
+  completedEvidence: EvidenceItem[];
+  hasEvidence: boolean;
+}
+
+interface EvidenceReport {
+  from: string;
+  to: string;
+  totalJobs: number;
+  rows: EvidenceReportRow[];
 }
 
 interface Agent {
@@ -318,6 +402,7 @@ export default function ReportsPage() {
   const canRevenue = usePermission("reports.revenue");
   const canVehicleCompliance = usePermission("reports.vehicleCompliance");
   const canJobStatus = usePermission("reports.jobStatus");
+  const canEvidence = usePermission("reports.evidence");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -374,6 +459,23 @@ export default function ReportsPage() {
   const [jobStatusLoading, setJobStatusLoading] = useState(false);
   const jobStatusPrintRef = useRef<HTMLDivElement>(null);
 
+  // Rep Score
+  const [repScoreFrom, setRepScoreFrom] = useState(thirtyDaysAgo);
+  const [repScoreTo, setRepScoreTo] = useState(today);
+  const [repScoreRepId, setRepScoreRepId] = useState("ALL");
+  const [repList, setRepList] = useState<Array<{ id: string; name: string }>>([]);
+  const [repScoreData, setRepScoreData] = useState<RepScoreReport | null>(null);
+  const [repScoreLoading, setRepScoreLoading] = useState(false);
+  const repScorePrintRef = useRef<HTMLDivElement>(null);
+
+  // Evidence Report
+  const [evidenceFrom, setEvidenceFrom] = useState(thirtyDaysAgo);
+  const [evidenceTo, setEvidenceTo] = useState(today);
+  const [evidenceStatusFilter, setEvidenceStatusFilter] = useState("ALL");
+  const [evidenceAgentId, setEvidenceAgentId] = useState("ALL");
+  const [evidenceData, setEvidenceData] = useState<EvidenceReport | null>(null);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+
   // Derived: filtered compliance data and unique vehicle types
   const complianceVehicleTypes = Array.from(new Set(complianceData.map((v) => v.vehicleTypeName).filter(Boolean))).sort();
   const filteredComplianceData = complianceData.filter((v) => {
@@ -398,6 +500,17 @@ export default function ReportsPage() {
       .then(({ data }) => {
         const list = Array.isArray(data) ? data : data.data || [];
         setAgents(list);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load reps list for rep score filter
+  useEffect(() => {
+    api
+      .get("/reps")
+      .then(({ data }) => {
+        const list: Array<{ id: string; name: string }> = Array.isArray(data) ? data : data.data || [];
+        setRepList(list.map((r) => ({ id: r.id, name: r.name })));
       })
       .catch(() => {});
   }, []);
@@ -552,6 +665,133 @@ export default function ReportsPage() {
   };
 
   const exportJobStatusPdf = () => printFromRef(jobStatusPrintRef, `Job Status Report - ${jobStatusFrom} to ${jobStatusTo}`);
+
+  const fetchEvidenceReport = async () => {
+    setEvidenceLoading(true);
+    try {
+      const statusParam = evidenceStatusFilter !== "ALL" ? `&status=${evidenceStatusFilter}` : "";
+      const agentParam = evidenceAgentId !== "ALL" ? `&agentId=${evidenceAgentId}` : "";
+      const { data } = await api.get(
+        `/reports/evidence?from=${evidenceFrom}&to=${evidenceTo}${statusParam}${agentParam}`
+      );
+      setEvidenceData(data.data || data);
+    } catch {
+      toast.error("Failed to load evidence report");
+    } finally {
+      setEvidenceLoading(false);
+    }
+  };
+
+  const generateEvidencePdf = (row: EvidenceReportRow) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) { toast.error(t("reports.allowPopups")); return; }
+    const now = new Date().toLocaleString();
+    const userName = user?.name || "System";
+    const logoHtml = logoUrl
+      ? `<img src="${logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
+      : `<span style="font-size:18px;font-weight:700;">${companyName}</span>`;
+
+    const origin = row.originAirport
+      ? `${row.originAirport.name} (${row.originAirport.code})`
+      : row.originHotel?.name ?? row.fromZone?.name ?? "—";
+    const destination = row.destinationAirport
+      ? `${row.destinationAirport.name} (${row.destinationAirport.code})`
+      : row.destinationHotel?.name ?? row.toZone?.name ?? "—";
+
+    const renderEvidence = (items: EvidenceItem[], label: string) => {
+      if (!items.length) return "";
+      return items.map((ev) => `
+        <div class="ev-section">
+          <div class="ev-meta">
+            <strong>${label}</strong> &nbsp;|&nbsp;
+            Submitted by: ${ev.submittedBy} &nbsp;|&nbsp;
+            Date: ${new Date(ev.createdAt).toLocaleString()} &nbsp;|&nbsp;
+            ${ev.gpsMapLink ? `<a href="${ev.gpsMapLink}" target="_blank">GPS Map</a>` : "No GPS"}
+          </div>
+          <div class="img-grid">
+            ${ev.imageUrls.map((url) => `<img src="${url}" class="ev-img" />`).join("")}
+          </div>
+        </div>
+      `).join("");
+    };
+
+    const allEvidence =
+      renderEvidence(row.inPlaceEvidence, "In-Place Evidence") +
+      renderEvidence(row.noShowEvidence, "No-Show Evidence") +
+      renderEvidence(row.completedEvidence, "Completed Evidence");
+
+    printWindow.document.write(`
+      <html><head><title>Evidence – ${row.internalRef}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
+        .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111; }
+        .report-title { font-size: 20px; font-weight: 700; text-align: center; flex: 1; }
+        .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: #f0f0f0; padding: 5px 8px; margin: 16px 0 8px; border-left: 3px solid #333; }
+        .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 20px; margin-bottom: 12px; font-size: 12px; }
+        .detail-grid dt { color: #666; margin: 0; }
+        .detail-grid dd { font-weight: 600; margin: 0; }
+        .ev-section { margin-bottom: 20px; page-break-inside: avoid; }
+        .ev-meta { font-size: 12px; margin-bottom: 8px; padding: 6px 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
+        .ev-meta a { color: #1a56db; }
+        .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .ev-img { width: 100%; max-height: 220px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
+        .no-evidence { color: #888; font-style: italic; font-size: 13px; padding: 12px 0; }
+        .report-footer { display: flex; justify-content: space-between; margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #555; }
+        @media print { body { padding: 0; } .report-footer { position: fixed; bottom: 20px; left: 20px; right: 20px; } }
+      </style></head><body>
+      <div class="report-header">
+        <div>${logoHtml}</div>
+        <div class="report-title">Job Evidence Report</div>
+        <div style="width:160px;text-align:right;font-size:11px;color:#666;">${new Date(row.jobDate).toLocaleDateString()}</div>
+      </div>
+
+      <div class="section-title">Job Details</div>
+      <dl class="detail-grid">
+        <dt>Job Ref</dt><dd>${row.internalRef}</dd>
+        <dt>Agent Name</dt><dd>${row.agentName ?? "—"}</dd>
+        <dt>Agent Ref</dt><dd>${row.agentRef ?? "—"}</dd>
+        <dt>Date</dt><dd>${new Date(row.jobDate).toLocaleDateString()}</dd>
+        <dt>Service Type</dt><dd>${row.serviceType}</dd>
+        <dt>Status</dt><dd>${row.status}</dd>
+        <dt>Pax Count</dt><dd>${row.paxCount}</dd>
+        <dt>Client</dt><dd>${row.clientName ?? "—"}</dd>
+        <dt>Route</dt><dd>${origin} → ${destination}</dd>
+        <dt>Vehicle</dt><dd>${row.assignment?.vehicle?.plateNumber ?? "—"}</dd>
+        <dt>Driver</dt><dd>${row.assignment?.driver?.name ?? "—"}</dd>
+        <dt>Rep</dt><dd>${row.assignment?.rep?.name ?? "—"}</dd>
+        ${row.flight ? `<dt>Flight</dt><dd>${row.flight.carrier} ${row.flight.flightNo}${row.flight.terminal ? ` / T${row.flight.terminal}` : ""}</dd>` : ""}
+      </dl>
+
+      <div class="section-title">Evidence</div>
+      ${allEvidence || '<p class="no-evidence">No evidence submitted for this job.</p>'}
+
+      <div class="report-footer">
+        <span>Issued By: ${userName}</span>
+        <span>Issued on ${now}</span>
+      </div>
+      </body></html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  };
+
+  const fetchRepScore = async () => {
+    setRepScoreLoading(true);
+    try {
+      const repParam = repScoreRepId !== "ALL" ? `&repId=${repScoreRepId}` : "";
+      const { data } = await api.get(
+        `/reports/rep-score?from=${repScoreFrom}&to=${repScoreTo}${repParam}`
+      );
+      setRepScoreData(data.data || data);
+    } catch {
+      toast.error("Failed to load rep score report");
+    } finally {
+      setRepScoreLoading(false);
+    }
+  };
+
+  const exportRepScorePdf = () => printFromRef(repScorePrintRef, `Rep Score Report - ${repScoreFrom} to ${repScoreTo}`);
 
   const exportRepFeesExcel = async () => {
     try {
@@ -763,7 +1003,8 @@ export default function ReportsPage() {
         canRepFees ? "rep-fees" :
         canRevenue ? "revenue" :
         canVehicleCompliance ? "compliance" :
-        canJobStatus ? "job-status" : "dispatch"
+        canJobStatus ? "job-status" :
+        canEvidence ? "evidence" : "dispatch"
       } className="space-y-4">
         <TabsList className="bg-card border border-border">
           {canDailyDispatch && (
@@ -827,6 +1068,24 @@ export default function ReportsPage() {
             <ClipboardList className="h-3.5 w-3.5" />
             {t("reports.jobStatus")}
           </TabsTrigger>
+          {canRepFees && (
+            <TabsTrigger
+              value="rep-score"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              Rep Score
+            </TabsTrigger>
+          )}
+          {canEvidence && (
+            <TabsTrigger
+              value="evidence"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <Camera className="h-3.5 w-3.5" />
+              Evidence
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ─── DAILY DISPATCH SUMMARY ─── */}
@@ -1865,6 +2124,371 @@ export default function ReportsPage() {
             </div>
           )}
         </TabsContent>
+
+        {/* ─── REP SCORE REPORT ─── */}
+        {canRepFees && (
+          <TabsContent value="rep-score" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
+                  <Input
+                    type="date"
+                    value={repScoreFrom}
+                    onChange={(e) => setRepScoreFrom(e.target.value)}
+                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                  <Input
+                    type="date"
+                    value={repScoreTo}
+                    onChange={(e) => setRepScoreTo(e.target.value)}
+                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
+                  />
+                </div>
+                <div className="min-w-[180px]">
+                  <Label className="text-muted-foreground text-xs">Rep Name</Label>
+                  <Select value={repScoreRepId} onValueChange={setRepScoreRepId}>
+                    <SelectTrigger className="border-border bg-muted/50 mt-0.5 h-8 text-sm">
+                      <SelectValue placeholder="All Reps" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Reps</SelectItem>
+                      {repList.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" onClick={fetchRepScore} disabled={repScoreLoading} className="gap-1.5">
+                  {repScoreLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                  {t("common.search")}
+                </Button>
+                {repScoreData && (
+                  <Button size="sm" variant="outline" onClick={exportRepScorePdf} className="gap-1.5 ml-auto">
+                    <Printer className="h-3.5 w-3.5" />
+                    {t("reports.exportPdf")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            {repScoreLoading ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : repScoreData ? (
+              <Card className="border-border bg-card p-4">
+                {/* Summary row */}
+                <div className="mb-4 flex flex-wrap gap-4">
+                  <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Jobs Scored</p>
+                    <p className="text-lg font-bold text-foreground">{repScoreData.count}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Total Score</p>
+                    <p className="text-lg font-bold text-foreground">{repScoreData.totalScore}</p>
+                  </div>
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Average Score</p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{repScoreData.avgScore} / 100</p>
+                  </div>
+                </div>
+
+                {repScoreData.rows.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No scored jobs found for this period.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="text-xs">Job Ref</TableHead>
+                          <TableHead className="text-xs">Type</TableHead>
+                          <TableHead className="text-xs text-right">Pax</TableHead>
+                          <TableHead className="text-xs">Rep</TableHead>
+                          <TableHead className="text-xs">Route</TableHead>
+                          <TableHead className="text-xs">Hotel</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs text-center">Att<br /><span className="text-muted-foreground">20pt</span></TableHead>
+                          <TableHead className="text-xs text-center">App<br /><span className="text-muted-foreground">15pt</span></TableHead>
+                          <TableHead className="text-xs text-center">Work<br /><span className="text-muted-foreground">30pt</span></TableHead>
+                          <TableHead className="text-xs text-center">Rev<br /><span className="text-muted-foreground">35pt</span></TableHead>
+                          <TableHead className="text-xs text-right">Score</TableHead>
+                          <TableHead className="text-xs">Evaluation</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {repScoreData.rows.map((row, idx) => {
+                          const evalColor =
+                            row.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                            row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                            row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                            "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
+                          return (
+                            <TableRow
+                              key={row.jobId}
+                              className={idx % 2 === 0 ? "bg-muted/10" : ""}
+                            >
+                              <TableCell className="font-mono text-xs">{row.internalRef}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {row.serviceType}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{row.repName}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>
+                                  {row.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {row.attendance ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {row.appearance ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {row.work ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {row.review ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}
+                              </TableCell>
+                              <TableCell className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${evalColor}`}>
+                                  {row.evaluation}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                    {/* Footer totals */}
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3 px-1">
+                      <span className="text-sm text-muted-foreground">
+                        {repScoreData.count} job{repScoreData.count !== 1 ? "s" : ""} scored · Total {repScoreData.totalScore} pts
+                      </span>
+                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                        Average: {repScoreData.avgScore} / 100
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <UserCheck className="mb-2 h-8 w-8" />
+                <p className="text-sm">Select a date range and click Search to view rep scores.</p>
+              </div>
+            )}
+
+            {/* Hidden print content */}
+            {repScoreData && (
+              <div ref={repScorePrintRef} className="hidden">
+                <h1>Rep Score Report</h1>
+                <h2>Period: {repScoreFrom} to {repScoreTo}</h2>
+                <dl className="info-grid">
+                  <dt>Jobs Scored</dt><dd>{repScoreData.count}</dd>
+                  <dt>Total Score</dt><dd>{repScoreData.totalScore}</dd>
+                  <dt>Average Score</dt><dd>{repScoreData.avgScore} / 100</dd>
+                </dl>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Job Ref</th><th>Type</th><th>Pax</th><th>Rep</th><th>Route</th><th>Hotel</th><th>Status</th>
+                      <th>Att (20)</th><th>App (15)</th><th>Work (30)</th><th>Rev (35)</th><th>Score</th><th>Evaluation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {repScoreData.rows.map((row) => (
+                      <tr key={row.jobId}>
+                        <td>{row.internalRef}</td>
+                        <td>{row.serviceType}</td>
+                        <td className="text-right">{row.paxCount}</td>
+                        <td>{row.repName}</td>
+                        <td>{(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}</td>
+                        <td>{row.destinationHotel?.name || "—"}</td>
+                        <td>{row.status}</td>
+                        <td className="text-center">{row.attendance ? "✓" : "—"}</td>
+                        <td className="text-center">{row.appearance ? "✓" : "—"}</td>
+                        <td className="text-center">{row.work ? "✓" : "—"}</td>
+                        <td className="text-center">{row.review ? "✓" : "—"}</td>
+                        <td className="text-right">{row.total}</td>
+                        <td>{row.evaluation}</td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan={11}>Average Score ({repScoreData.count} jobs)</td>
+                      <td className="text-right">{repScoreData.avgScore}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabsContent>
+        )}
+
+        {/* ─── EVIDENCE REPORT ─── */}
+        {canEvidence && (
+          <TabsContent value="evidence" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
+                  <Input
+                    type="date"
+                    value={evidenceFrom}
+                    onChange={(e) => setEvidenceFrom(e.target.value)}
+                    className="mt-1 w-40 border-border bg-card text-foreground"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                  <Input
+                    type="date"
+                    value={evidenceTo}
+                    onChange={(e) => setEvidenceTo(e.target.value)}
+                    className="mt-1 w-40 border-border bg-card text-foreground"
+                  />
+                </div>
+                <div className="min-w-[160px]">
+                  <Label className="text-muted-foreground text-xs">{t("common.status")}</Label>
+                  <Select value={evidenceStatusFilter} onValueChange={setEvidenceStatusFilter}>
+                    <SelectTrigger className="mt-1 h-9 border-border bg-card text-foreground">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Statuses</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                      <SelectItem value="IN_PLACE">In Place</SelectItem>
+                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                      <SelectItem value="NO_SHOW">No Show</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="min-w-[200px]">
+                  <Label className="text-muted-foreground text-xs">Agent Name</Label>
+                  <Select value={evidenceAgentId} onValueChange={setEvidenceAgentId}>
+                    <SelectTrigger className="mt-1 h-9 border-border bg-card text-foreground">
+                      <SelectValue placeholder="All Agents" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Agents</SelectItem>
+                      {agents.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.legalName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={fetchEvidenceReport} disabled={evidenceLoading} className="gap-1.5">
+                  {evidenceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  {t("reports.generate")}
+                </Button>
+              </div>
+            </Card>
+
+            {evidenceLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : evidenceData ? (
+              <>
+                <div className="flex gap-1.5 flex-wrap">
+                  <StatCard label={t("reports.totalJobs")} value={evidenceData.totalJobs} />
+                  <StatCard
+                    label="With Evidence"
+                    value={evidenceData.rows.filter((r) => r.hasEvidence).length}
+                    color="text-emerald-600 dark:text-emerald-400"
+                  />
+                  <StatCard
+                    label="No Evidence"
+                    value={evidenceData.rows.filter((r) => !r.hasEvidence).length}
+                    color="text-amber-600 dark:text-amber-400"
+                  />
+                </div>
+                <div className="rounded-md border border-border overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                        <TableHead className="text-white text-xs">Job Ref</TableHead>
+                        <TableHead className="text-white text-xs">Agent Name</TableHead>
+                        <TableHead className="text-white text-xs">Agent Ref</TableHead>
+                        <TableHead className="text-white text-xs">Date</TableHead>
+                        <TableHead className="text-white text-xs">Type</TableHead>
+                        <TableHead className="text-white text-xs">Status</TableHead>
+                        <TableHead className="text-white text-xs">Evidence</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {evidenceData.rows.map((row, idx) => {
+                        const totalImages =
+                          row.inPlaceEvidence.reduce((s, e) => s + e.imageUrls.length, 0) +
+                          row.noShowEvidence.reduce((s, e) => s + e.imageUrls.length, 0) +
+                          row.completedEvidence.reduce((s, e) => s + e.imageUrls.length, 0);
+                        return (
+                          <TableRow
+                            key={row.jobId}
+                            className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                          >
+                            <TableCell className="font-mono text-sm text-foreground">{row.internalRef}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{row.agentName ?? "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{row.agentRef ?? "—"}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(row.jobDate)}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>{row.status}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {row.hasEvidence ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5 h-7 text-xs border-border text-foreground"
+                                  onClick={() => generateEvidencePdf(row)}
+                                >
+                                  <Camera className="h-3 w-3" />
+                                  {totalImages} photo{totalImages !== 1 ? "s" : ""}
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {evidenceData.rows.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
+                            No jobs found for the selected filters.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Camera className="mb-2 h-8 w-8" />
+                <p className="text-sm">Select filters and click Generate to view evidence report.</p>
+              </div>
+            )}
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* ─── REP FEE DETAIL MODAL ─── */}
@@ -2001,14 +2625,14 @@ export default function ReportsPage() {
                                 className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
                               />
                             </TableCell>
-                            {/* Work — requires COMPLETED status */}
+                            {/* Work — always enabled */}
                             <TableCell className="text-center">
                               <input
                                 type="checkbox"
-                                disabled={!isCompleted || isSaving}
+                                disabled={isSaving}
                                 checked={currentScore?.work ?? false}
-                                onChange={() => toggleScore("work", isCompleted)}
-                                title={isCompleted ? "Work (30pt)" : "Requires COMPLETED status"}
+                                onChange={() => toggleScore("work", true)}
+                                title="Work (30pt)"
                                 className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
                               />
                             </TableCell>

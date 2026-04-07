@@ -3,7 +3,6 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import { getAllPermissionKeys } from '../permissions/permission-registry.js';
 import { seedEgyptLocations } from './seed-egypt-locations.js';
 
 async function main() {
@@ -49,135 +48,530 @@ async function main() {
     console.log(`Super admin created: ${superAdmin.email} (${superAdmin.id})`);
 
     // ─── SEED SYSTEM ROLES ───
-    const allPermissionKeys = getAllPermissionKeys();
-    const pageKeys = allPermissionKeys.filter((k) => !k.includes('.'));
-
-    const systemRoles = [
-      { name: 'Admin', slug: 'admin', description: 'Full system access' },
-      { name: 'Dispatcher', slug: 'dispatcher', description: 'Controls traffic jobs and dispatch operations' },
-      { name: 'Accountant', slug: 'accountant', description: 'Handles finance and financial reports' },
-      { name: 'Agent Manager', slug: 'agent-manager', description: 'Manages agents, customers, and bookings' },
-      { name: 'Viewer', slug: 'viewer', description: 'Read-only access to all modules' },
-      { name: 'Rep', slug: 'rep', description: 'Field representative portal user' },
-      { name: 'Driver', slug: 'driver', description: 'Driver portal user' },
-      { name: 'Online Operator', slug: 'online-operator', description: 'Handles online booking operations' },
-      { name: 'Dispatch Operator', slug: 'dispatch-operator', description: 'Handles dispatch operations' },
-      { name: 'Online Manager', slug: 'online-manager', description: 'Manages online booking team and operations' },
-      { name: 'Dispatch Manager', slug: 'dispatch-manager', description: 'Manages dispatch team and operations' },
-      { name: 'FC', slug: 'fc', description: 'Financial controller with oversight of all finance operations' },
-      { name: 'Transportation Accountant', slug: 'transportation-accountant', description: 'Handles transportation-specific accounting and costs' },
+    // Permissions captured from production on 2026-04-07.
+    // Admin has no permission rows — full access is granted via role guard.
+    // Driver and Rep have no permissions — portal-only accounts.
+    const systemRoles: Array<{ name: string; slug: string; description: string; permissions: string[] }> = [
+      {
+        name: 'Admin',
+        slug: 'admin',
+        description: 'Full system access',
+        permissions: [],
+      },
+      {
+        name: 'Accountant',
+        slug: 'accountant',
+        description: 'Handles finance and financial reports',
+        permissions: [
+          'activity-logs','activity-logs.export',
+          'agents','agents.addButton','agents.downloadTemplate','agents.export','agents.form',
+          'agents.form.contactInfo','agents.form.creditDays','agents.form.creditLimit',
+          'agents.form.currency','agents.form.legalName','agents.form.refPattern',
+          'agents.form.taxId','agents.form.tradeName','agents.import','agents.table',
+          'agents.table.deleteButton','agents.table.editButton','agents.table.toggleStatus',
+          'customers','customers.addButton','customers.detail',
+          'customers.detail.importTemplates','customers.detail.importTemplates.delete',
+          'customers.detail.importTemplates.upload','customers.detail.priceList',
+          'customers.detail.priceList.addRoute','customers.detail.priceList.deleteRoute',
+          'customers.detail.priceList.downloadTemplate','customers.detail.priceList.editPrice',
+          'customers.detail.priceList.import','customers.detail.priceList.saveAll',
+          'customers.downloadTemplate','customers.export','customers.form',
+          'customers.form.contactInfo','customers.form.creditDays','customers.form.creditLimit',
+          'customers.form.currency','customers.form.legalName','customers.form.taxId',
+          'customers.form.tradeName','customers.import','customers.table',
+          'customers.table.deleteButton','customers.table.editButton',
+          'customers.table.toggleStatus','customers.table.viewButton',
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'finance','finance.exports','finance.exports.collections','finance.exports.customers',
+          'finance.exports.invoices','finance.exports.journals','finance.exports.payments',
+          'finance.exports.suppliers','finance.exports.vendorBills',
+          'finance.invoices','finance.invoices.addButton','finance.invoices.detail',
+          'finance.invoices.detail.addLine','finance.invoices.detail.applyVat',
+          'finance.invoices.detail.cancelButton','finance.invoices.detail.deleteLine',
+          'finance.invoices.detail.editLines','finance.invoices.detail.postButton',
+          'finance.invoices.recordPayment','finance.odooExport',
+          'finance.payments','finance.payments.addButton','finance.payments.deleteButton',
+          'reports','reports.agentStatement','reports.dailyDispatch','reports.driverTrips',
+          'reports.evidence','reports.jobStatus','reports.repFees','reports.revenue',
+          'reports.vehicleCompliance',
+          'suppliers','suppliers.addButton','suppliers.downloadTemplate','suppliers.export',
+          'suppliers.form','suppliers.form.contactInfo','suppliers.form.legalName',
+          'suppliers.form.taxId','suppliers.form.tradeName','suppliers.import','suppliers.table',
+          'suppliers.table.createAccount','suppliers.table.deleteButton',
+          'suppliers.table.editButton','suppliers.table.resetPassword',
+          'suppliers.table.toggleStatus',
+        ],
+      },
+      {
+        name: 'Agent Manager',
+        slug: 'agent-manager',
+        description: 'Manages agents, customers, and bookings',
+        permissions: [
+          'activity-logs','activity-logs.export',
+          'agents','agents.addButton','agents.downloadTemplate','agents.export','agents.form',
+          'agents.form.contactInfo','agents.form.creditDays','agents.form.creditLimit',
+          'agents.form.currency','agents.form.legalName','agents.form.refPattern',
+          'agents.form.taxId','agents.form.tradeName','agents.import','agents.table',
+          'agents.table.deleteButton','agents.table.editButton','agents.table.toggleStatus',
+          'customers','customers.addButton','customers.detail',
+          'customers.detail.importTemplates','customers.detail.importTemplates.delete',
+          'customers.detail.importTemplates.upload','customers.detail.priceList',
+          'customers.detail.priceList.addRoute','customers.detail.priceList.deleteRoute',
+          'customers.detail.priceList.downloadTemplate','customers.detail.priceList.editPrice',
+          'customers.detail.priceList.import','customers.detail.priceList.saveAll',
+          'customers.downloadTemplate','customers.export','customers.form',
+          'customers.form.contactInfo','customers.form.creditDays','customers.form.creditLimit',
+          'customers.form.currency','customers.form.legalName','customers.form.taxId',
+          'customers.form.tradeName','customers.import','customers.table',
+          'customers.table.deleteButton','customers.table.editButton',
+          'customers.table.toggleStatus','customers.table.viewButton',
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'traffic-jobs',
+          'traffic-jobs.b2b','traffic-jobs.b2b.createJob','traffic-jobs.b2b.form',
+          'traffic-jobs.b2b.form.customer','traffic-jobs.b2b.form.dateTime',
+          'traffic-jobs.b2b.form.flightInfo','traffic-jobs.b2b.form.meetingInfo',
+          'traffic-jobs.b2b.form.notes','traffic-jobs.b2b.form.paxCount',
+          'traffic-jobs.b2b.form.route','traffic-jobs.b2b.form.serviceType',
+          'traffic-jobs.b2b.importJobs','traffic-jobs.b2b.table',
+          'traffic-jobs.b2b.table.statusFilter',
+          'traffic-jobs.online','traffic-jobs.online.createJob','traffic-jobs.online.form',
+          'traffic-jobs.online.form.agentRef','traffic-jobs.online.form.clientInfo',
+          'traffic-jobs.online.form.dateTime','traffic-jobs.online.form.extras',
+          'traffic-jobs.online.form.flightInfo','traffic-jobs.online.form.notes',
+          'traffic-jobs.online.form.paxCount','traffic-jobs.online.form.printSign',
+          'traffic-jobs.online.form.provider','traffic-jobs.online.form.requestedVehicleType',
+          'traffic-jobs.online.form.route','traffic-jobs.online.form.serviceType',
+          'traffic-jobs.online.table','traffic-jobs.online.table.statusFilter',
+        ],
+      },
+      {
+        name: 'Dispatch Manager',
+        slug: 'dispatch-manager',
+        description: 'Manages dispatch team and operations',
+        permissions: [
+          'activity-logs','activity-logs.export',
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'dispatch','dispatch.assignment','dispatch.assignment.assignDriver',
+          'dispatch.assignment.assignRep','dispatch.assignment.assignVehicle',
+          'dispatch.assignment.changeStatus','dispatch.assignment.unassign',
+          'dispatch.assignment.unlock48h','dispatch.datePicker','dispatch.exportButton',
+          'dispatch.grid',
+          'drivers','drivers.addButton','drivers.downloadTemplate','drivers.export',
+          'drivers.form','drivers.form.licenseExpiry','drivers.form.licenseNumber',
+          'drivers.form.mobile','drivers.form.name','drivers.import','drivers.table',
+          'drivers.table.createAccount','drivers.table.deleteButton','drivers.table.editButton',
+          'drivers.table.resetPassword','drivers.table.toggleStatus',
+          'drivers.table.uploadAttachment',
+          'locations','locations.airports','locations.airports.addButton',
+          'locations.airports.deleteButton','locations.airports.editButton',
+          'locations.cities','locations.cities.addButton','locations.cities.deleteButton',
+          'locations.cities.editButton','locations.countries','locations.countries.addButton',
+          'locations.countries.editButton','locations.downloadTemplate','locations.export',
+          'locations.hotels','locations.hotels.addButton','locations.hotels.deleteButton',
+          'locations.hotels.editButton','locations.import','locations.zones',
+          'locations.zones.addButton','locations.zones.deleteButton','locations.zones.editButton',
+          'reports','reports.agentStatement','reports.dailyDispatch','reports.driverTrips',
+          'reports.evidence','reports.jobStatus','reports.repFees','reports.revenue',
+          'reports.vehicleCompliance',
+          'reps','reps.addButton','reps.downloadTemplate','reps.export','reps.form',
+          'reps.form.feePerFlight','reps.form.mobile','reps.form.name','reps.import',
+          'reps.table','reps.table.createAccount','reps.table.deleteButton',
+          'reps.table.editButton','reps.table.resetPassword','reps.table.toggleStatus',
+          'reps.table.uploadAttachment',
+          'suppliers','suppliers.addButton','suppliers.downloadTemplate','suppliers.export',
+          'suppliers.form','suppliers.form.contactInfo','suppliers.form.legalName',
+          'suppliers.form.taxId','suppliers.form.tradeName','suppliers.import','suppliers.table',
+          'suppliers.table.createAccount','suppliers.table.deleteButton',
+          'suppliers.table.editButton','suppliers.table.resetPassword',
+          'suppliers.table.toggleStatus',
+          'traffic-jobs',
+          'traffic-jobs.b2b','traffic-jobs.b2b.createJob','traffic-jobs.b2b.form',
+          'traffic-jobs.b2b.form.customer','traffic-jobs.b2b.form.dateTime',
+          'traffic-jobs.b2b.form.flightInfo','traffic-jobs.b2b.form.meetingInfo',
+          'traffic-jobs.b2b.form.notes','traffic-jobs.b2b.form.paxCount',
+          'traffic-jobs.b2b.form.route','traffic-jobs.b2b.form.serviceType',
+          'traffic-jobs.b2b.importJobs','traffic-jobs.b2b.table',
+          'traffic-jobs.b2b.table.statusFilter',
+          'traffic-jobs.online','traffic-jobs.online.createJob','traffic-jobs.online.form',
+          'traffic-jobs.online.form.agentRef','traffic-jobs.online.form.clientInfo',
+          'traffic-jobs.online.form.dateTime','traffic-jobs.online.form.extras',
+          'traffic-jobs.online.form.flightInfo','traffic-jobs.online.form.notes',
+          'traffic-jobs.online.form.paxCount','traffic-jobs.online.form.printSign',
+          'traffic-jobs.online.form.provider','traffic-jobs.online.form.requestedVehicleType',
+          'traffic-jobs.online.form.route','traffic-jobs.online.form.serviceType',
+          'traffic-jobs.online.table','traffic-jobs.online.table.statusFilter',
+          'vehicles','vehicles.addButton','vehicles.downloadTemplate','vehicles.export',
+          'vehicles.form','vehicles.form.brand','vehicles.form.color',
+          'vehicles.form.luggageCapacity','vehicles.form.makeYear','vehicles.form.model',
+          'vehicles.form.ownership','vehicles.form.plateNumber','vehicles.form.vehicleType',
+          'vehicles.import','vehicles.table','vehicles.table.deleteButton',
+          'vehicles.table.editButton','vehicles.table.toggleStatus',
+          'vehicles.types','vehicles.types.addButton','vehicles.types.editButton',
+        ],
+      },
+      {
+        name: 'Dispatch Operator',
+        slug: 'dispatch-operator',
+        description: 'Handles dispatch operations',
+        permissions: [
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'dispatch','dispatch.assignment','dispatch.assignment.assignDriver',
+          'dispatch.assignment.assignVehicle','dispatch.assignment.changeStatus',
+          'dispatch.assignment.unassign','dispatch.assignment.unlock48h',
+          'dispatch.datePicker','dispatch.exportButton','dispatch.grid',
+          'drivers','drivers.addButton','drivers.downloadTemplate','drivers.export',
+          'drivers.form','drivers.form.licenseExpiry','drivers.form.licenseNumber',
+          'drivers.form.mobile','drivers.form.name','drivers.import','drivers.table',
+          'drivers.table.createAccount','drivers.table.deleteButton','drivers.table.editButton',
+          'drivers.table.resetPassword','drivers.table.toggleStatus',
+          'drivers.table.uploadAttachment',
+          'locations','locations.airports','locations.airports.addButton',
+          'locations.airports.deleteButton','locations.airports.editButton',
+          'locations.cities','locations.cities.addButton','locations.cities.deleteButton',
+          'locations.cities.editButton','locations.countries','locations.countries.addButton',
+          'locations.countries.editButton','locations.downloadTemplate','locations.export',
+          'locations.hotels','locations.hotels.addButton','locations.hotels.deleteButton',
+          'locations.hotels.editButton','locations.import','locations.zones',
+          'locations.zones.addButton','locations.zones.deleteButton','locations.zones.editButton',
+          'reps','reps.addButton','reps.downloadTemplate','reps.export','reps.form',
+          'reps.form.feePerFlight','reps.form.mobile','reps.form.name','reps.import',
+          'reps.table','reps.table.createAccount','reps.table.deleteButton',
+          'reps.table.editButton','reps.table.resetPassword','reps.table.toggleStatus',
+          'reps.table.uploadAttachment',
+          'traffic-jobs',
+          'traffic-jobs.b2b','traffic-jobs.b2b.createJob','traffic-jobs.b2b.form',
+          'traffic-jobs.b2b.form.customer','traffic-jobs.b2b.form.dateTime',
+          'traffic-jobs.b2b.form.flightInfo','traffic-jobs.b2b.form.meetingInfo',
+          'traffic-jobs.b2b.form.notes','traffic-jobs.b2b.form.paxCount',
+          'traffic-jobs.b2b.form.route','traffic-jobs.b2b.form.serviceType',
+          'traffic-jobs.b2b.importJobs','traffic-jobs.b2b.table',
+          'traffic-jobs.b2b.table.statusFilter',
+          'traffic-jobs.online','traffic-jobs.online.createJob','traffic-jobs.online.form',
+          'traffic-jobs.online.form.agentRef','traffic-jobs.online.form.clientInfo',
+          'traffic-jobs.online.form.dateTime','traffic-jobs.online.form.extras',
+          'traffic-jobs.online.form.flightInfo','traffic-jobs.online.form.notes',
+          'traffic-jobs.online.form.paxCount','traffic-jobs.online.form.printSign',
+          'traffic-jobs.online.form.provider','traffic-jobs.online.form.requestedVehicleType',
+          'traffic-jobs.online.form.route','traffic-jobs.online.form.serviceType',
+          'traffic-jobs.online.table','traffic-jobs.online.table.statusFilter',
+          'vehicles','vehicles.addButton','vehicles.downloadTemplate','vehicles.export',
+          'vehicles.form','vehicles.form.brand','vehicles.form.color',
+          'vehicles.form.luggageCapacity','vehicles.form.makeYear','vehicles.form.model',
+          'vehicles.form.ownership','vehicles.form.plateNumber','vehicles.form.vehicleType',
+          'vehicles.import','vehicles.table','vehicles.table.deleteButton',
+          'vehicles.table.editButton','vehicles.table.toggleStatus',
+          'vehicles.types','vehicles.types.addButton','vehicles.types.editButton',
+        ],
+      },
+      {
+        name: 'Dispatcher',
+        slug: 'dispatcher',
+        description: 'Controls traffic jobs and dispatch operations',
+        permissions: [
+          'activity-logs','activity-logs.export',
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'dispatch','dispatch.assignment','dispatch.assignment.assignDriver',
+          'dispatch.assignment.assignRep','dispatch.assignment.assignVehicle',
+          'dispatch.assignment.changeStatus','dispatch.assignment.unassign',
+          'dispatch.assignment.unlock48h','dispatch.datePicker','dispatch.exportButton',
+          'dispatch.grid',
+          'drivers','drivers.addButton','drivers.downloadTemplate','drivers.export',
+          'drivers.form','drivers.form.licenseExpiry','drivers.form.licenseNumber',
+          'drivers.form.mobile','drivers.form.name','drivers.import','drivers.table',
+          'drivers.table.createAccount','drivers.table.deleteButton','drivers.table.editButton',
+          'drivers.table.resetPassword','drivers.table.toggleStatus',
+          'drivers.table.uploadAttachment',
+          'locations','locations.airports','locations.airports.addButton',
+          'locations.airports.deleteButton','locations.airports.editButton',
+          'locations.cities','locations.cities.addButton','locations.cities.deleteButton',
+          'locations.cities.editButton','locations.countries','locations.countries.addButton',
+          'locations.countries.editButton','locations.downloadTemplate','locations.export',
+          'locations.hotels','locations.hotels.addButton','locations.hotels.deleteButton',
+          'locations.hotels.editButton','locations.import','locations.zones',
+          'locations.zones.addButton','locations.zones.deleteButton','locations.zones.editButton',
+          'reps','reps.addButton','reps.downloadTemplate','reps.export','reps.form',
+          'reps.form.feePerFlight','reps.form.mobile','reps.form.name','reps.import',
+          'reps.table','reps.table.createAccount','reps.table.deleteButton',
+          'reps.table.editButton','reps.table.resetPassword','reps.table.toggleStatus',
+          'reps.table.uploadAttachment',
+          'reports','reports.agentStatement','reports.dailyDispatch','reports.driverTrips',
+          'reports.evidence','reports.jobStatus','reports.repFees','reports.revenue',
+          'reports.vehicleCompliance',
+          'traffic-jobs',
+          'traffic-jobs.b2b','traffic-jobs.b2b.createJob','traffic-jobs.b2b.form',
+          'traffic-jobs.b2b.form.customer','traffic-jobs.b2b.form.dateTime',
+          'traffic-jobs.b2b.form.flightInfo','traffic-jobs.b2b.form.meetingInfo',
+          'traffic-jobs.b2b.form.notes','traffic-jobs.b2b.form.paxCount',
+          'traffic-jobs.b2b.form.route','traffic-jobs.b2b.form.serviceType',
+          'traffic-jobs.b2b.importJobs','traffic-jobs.b2b.table',
+          'traffic-jobs.b2b.table.statusFilter',
+          'traffic-jobs.online','traffic-jobs.online.createJob','traffic-jobs.online.form',
+          'traffic-jobs.online.form.agentRef','traffic-jobs.online.form.clientInfo',
+          'traffic-jobs.online.form.dateTime','traffic-jobs.online.form.extras',
+          'traffic-jobs.online.form.flightInfo','traffic-jobs.online.form.notes',
+          'traffic-jobs.online.form.paxCount','traffic-jobs.online.form.printSign',
+          'traffic-jobs.online.form.provider','traffic-jobs.online.form.requestedVehicleType',
+          'traffic-jobs.online.form.route','traffic-jobs.online.form.serviceType',
+          'traffic-jobs.online.table','traffic-jobs.online.table.statusFilter',
+          'vehicles','vehicles.addButton','vehicles.downloadTemplate','vehicles.export',
+          'vehicles.form','vehicles.form.brand','vehicles.form.color',
+          'vehicles.form.luggageCapacity','vehicles.form.makeYear','vehicles.form.model',
+          'vehicles.form.ownership','vehicles.form.plateNumber','vehicles.form.vehicleType',
+          'vehicles.import','vehicles.table','vehicles.table.deleteButton',
+          'vehicles.table.editButton','vehicles.table.toggleStatus',
+          'vehicles.types','vehicles.types.addButton','vehicles.types.editButton',
+        ],
+      },
+      {
+        name: 'Driver',
+        slug: 'driver',
+        description: 'Driver portal user',
+        permissions: [],
+      },
+      {
+        name: 'FC',
+        slug: 'fc',
+        description: 'Financial controller with oversight of all finance operations',
+        permissions: [
+          'activity-logs','activity-logs.export',
+          'agents','agents.addButton','agents.downloadTemplate','agents.export','agents.form',
+          'agents.form.contactInfo','agents.form.creditDays','agents.form.creditLimit',
+          'agents.form.currency','agents.form.legalName','agents.form.refPattern',
+          'agents.form.taxId','agents.form.tradeName','agents.import','agents.table',
+          'agents.table.deleteButton','agents.table.editButton','agents.table.toggleStatus',
+          'customers','customers.addButton','customers.detail',
+          'customers.detail.importTemplates','customers.detail.importTemplates.delete',
+          'customers.detail.importTemplates.upload','customers.detail.priceList',
+          'customers.detail.priceList.addRoute','customers.detail.priceList.deleteRoute',
+          'customers.detail.priceList.downloadTemplate','customers.detail.priceList.editPrice',
+          'customers.detail.priceList.import','customers.detail.priceList.saveAll',
+          'customers.downloadTemplate','customers.export','customers.form',
+          'customers.form.contactInfo','customers.form.creditDays','customers.form.creditLimit',
+          'customers.form.currency','customers.form.legalName','customers.form.taxId',
+          'customers.form.tradeName','customers.import','customers.table',
+          'customers.table.deleteButton','customers.table.editButton',
+          'customers.table.toggleStatus','customers.table.viewButton',
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'drivers','drivers.addButton','drivers.downloadTemplate','drivers.export',
+          'drivers.form','drivers.form.licenseExpiry','drivers.form.licenseNumber',
+          'drivers.form.mobile','drivers.form.name','drivers.import','drivers.table',
+          'drivers.table.createAccount','drivers.table.deleteButton','drivers.table.editButton',
+          'drivers.table.resetPassword','drivers.table.toggleStatus',
+          'drivers.table.uploadAttachment',
+          'finance','finance.exports','finance.exports.collections','finance.exports.customers',
+          'finance.exports.invoices','finance.exports.journals','finance.exports.payments',
+          'finance.exports.suppliers','finance.exports.vendorBills',
+          'finance.invoices','finance.invoices.addButton','finance.invoices.detail',
+          'finance.invoices.detail.addLine','finance.invoices.detail.applyVat',
+          'finance.invoices.detail.cancelButton','finance.invoices.detail.deleteLine',
+          'finance.invoices.detail.editLines','finance.invoices.detail.postButton',
+          'finance.invoices.recordPayment','finance.odooExport',
+          'finance.payments','finance.payments.addButton','finance.payments.deleteButton',
+          'reports','reports.agentStatement','reports.dailyDispatch','reports.driverTrips',
+          'reports.evidence','reports.jobStatus','reports.repFees','reports.revenue',
+          'reports.vehicleCompliance',
+          'reps','reps.addButton','reps.downloadTemplate','reps.export','reps.form',
+          'reps.form.feePerFlight','reps.form.mobile','reps.form.name','reps.import',
+          'reps.table','reps.table.createAccount','reps.table.deleteButton',
+          'reps.table.editButton','reps.table.resetPassword','reps.table.toggleStatus',
+          'reps.table.uploadAttachment',
+          'suppliers','suppliers.addButton','suppliers.downloadTemplate','suppliers.export',
+          'suppliers.form','suppliers.form.contactInfo','suppliers.form.legalName',
+          'suppliers.form.taxId','suppliers.form.tradeName','suppliers.import','suppliers.table',
+          'suppliers.table.createAccount','suppliers.table.deleteButton',
+          'suppliers.table.editButton','suppliers.table.resetPassword',
+          'suppliers.table.toggleStatus',
+        ],
+      },
+      {
+        name: 'Online Manager',
+        slug: 'online-manager',
+        description: 'Manages online booking team and operations',
+        permissions: [
+          'activity-logs','activity-logs.export',
+          'agents','agents.addButton','agents.downloadTemplate','agents.export','agents.form',
+          'agents.form.contactInfo','agents.form.creditDays','agents.form.creditLimit',
+          'agents.form.currency','agents.form.legalName','agents.form.refPattern',
+          'agents.form.taxId','agents.form.tradeName','agents.import','agents.table',
+          'agents.table.deleteButton','agents.table.editButton','agents.table.toggleStatus',
+          'customers','customers.addButton','customers.detail',
+          'customers.detail.importTemplates','customers.detail.importTemplates.delete',
+          'customers.detail.importTemplates.upload','customers.detail.priceList',
+          'customers.detail.priceList.addRoute','customers.detail.priceList.deleteRoute',
+          'customers.detail.priceList.downloadTemplate','customers.detail.priceList.editPrice',
+          'customers.detail.priceList.import','customers.detail.priceList.saveAll',
+          'customers.downloadTemplate','customers.export','customers.form',
+          'customers.form.contactInfo','customers.form.creditDays','customers.form.creditLimit',
+          'customers.form.currency','customers.form.legalName','customers.form.taxId',
+          'customers.form.tradeName','customers.import','customers.table',
+          'customers.table.deleteButton','customers.table.editButton',
+          'customers.table.toggleStatus','customers.table.viewButton',
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'guest-bookings','guest-bookings.cancel','guest-bookings.convert',
+          'locations','locations.airports','locations.airports.addButton',
+          'locations.airports.deleteButton','locations.airports.editButton',
+          'locations.cities','locations.cities.addButton','locations.cities.deleteButton',
+          'locations.cities.editButton','locations.countries','locations.countries.addButton',
+          'locations.countries.editButton','locations.downloadTemplate','locations.export',
+          'locations.hotels','locations.hotels.addButton','locations.hotels.deleteButton',
+          'locations.hotels.editButton','locations.import','locations.zones',
+          'locations.zones.addButton','locations.zones.deleteButton','locations.zones.editButton',
+          'reports','reports.agentStatement','reports.dailyDispatch','reports.driverTrips',
+          'reports.evidence','reports.jobStatus','reports.repFees','reports.revenue',
+          'reports.vehicleCompliance',
+          'traffic-jobs',
+          'traffic-jobs.b2b','traffic-jobs.b2b.createJob','traffic-jobs.b2b.form',
+          'traffic-jobs.b2b.form.customer','traffic-jobs.b2b.form.dateTime',
+          'traffic-jobs.b2b.form.flightInfo','traffic-jobs.b2b.form.meetingInfo',
+          'traffic-jobs.b2b.form.notes','traffic-jobs.b2b.form.paxCount',
+          'traffic-jobs.b2b.form.route','traffic-jobs.b2b.form.serviceType',
+          'traffic-jobs.b2b.importJobs','traffic-jobs.b2b.table',
+          'traffic-jobs.b2b.table.statusFilter',
+          'traffic-jobs.online','traffic-jobs.online.createJob','traffic-jobs.online.form',
+          'traffic-jobs.online.form.agentRef','traffic-jobs.online.form.clientInfo',
+          'traffic-jobs.online.form.dateTime','traffic-jobs.online.form.extras',
+          'traffic-jobs.online.form.flightInfo','traffic-jobs.online.form.notes',
+          'traffic-jobs.online.form.paxCount','traffic-jobs.online.form.printSign',
+          'traffic-jobs.online.form.provider','traffic-jobs.online.form.requestedVehicleType',
+          'traffic-jobs.online.form.route','traffic-jobs.online.form.serviceType',
+          'traffic-jobs.online.table','traffic-jobs.online.table.statusFilter',
+        ],
+      },
+      {
+        name: 'Online Operator',
+        slug: 'online-operator',
+        description: 'Handles online booking operations',
+        permissions: [
+          'agents','agents.addButton','agents.downloadTemplate','agents.export','agents.form',
+          'agents.form.contactInfo','agents.form.creditDays','agents.form.creditLimit',
+          'agents.form.currency','agents.form.legalName','agents.form.refPattern',
+          'agents.form.taxId','agents.form.tradeName','agents.import','agents.table',
+          'agents.table.deleteButton','agents.table.editButton','agents.table.toggleStatus',
+          'customers','customers.addButton','customers.detail',
+          'customers.detail.importTemplates','customers.detail.importTemplates.delete',
+          'customers.detail.importTemplates.upload','customers.detail.priceList',
+          'customers.detail.priceList.addRoute','customers.detail.priceList.deleteRoute',
+          'customers.detail.priceList.downloadTemplate','customers.detail.priceList.editPrice',
+          'customers.detail.priceList.import','customers.detail.priceList.saveAll',
+          'customers.downloadTemplate','customers.export','customers.form',
+          'customers.form.contactInfo','customers.form.creditDays','customers.form.creditLimit',
+          'customers.form.currency','customers.form.legalName','customers.form.taxId',
+          'customers.form.tradeName','customers.import','customers.table',
+          'customers.table.deleteButton','customers.table.editButton',
+          'customers.table.toggleStatus','customers.table.viewButton',
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'dispatch','dispatch.assignment.assignRep',
+          'guest-bookings','guest-bookings.cancel','guest-bookings.convert',
+          'locations','locations.airports','locations.airports.addButton',
+          'locations.airports.deleteButton','locations.airports.editButton',
+          'locations.cities','locations.cities.addButton','locations.cities.deleteButton',
+          'locations.cities.editButton','locations.countries','locations.countries.addButton',
+          'locations.countries.editButton','locations.downloadTemplate','locations.export',
+          'locations.hotels','locations.hotels.addButton','locations.hotels.deleteButton',
+          'locations.hotels.editButton','locations.import','locations.zones',
+          'locations.zones.addButton','locations.zones.deleteButton','locations.zones.editButton',
+          'traffic-jobs',
+          'traffic-jobs.b2b','traffic-jobs.b2b.createJob','traffic-jobs.b2b.form',
+          'traffic-jobs.b2b.form.customer','traffic-jobs.b2b.form.dateTime',
+          'traffic-jobs.b2b.form.flightInfo','traffic-jobs.b2b.form.meetingInfo',
+          'traffic-jobs.b2b.form.notes','traffic-jobs.b2b.form.paxCount',
+          'traffic-jobs.b2b.form.route','traffic-jobs.b2b.form.serviceType',
+          'traffic-jobs.b2b.importJobs','traffic-jobs.b2b.table',
+          'traffic-jobs.b2b.table.statusFilter',
+          'traffic-jobs.online','traffic-jobs.online.createJob','traffic-jobs.online.form',
+          'traffic-jobs.online.form.agentRef','traffic-jobs.online.form.clientInfo',
+          'traffic-jobs.online.form.dateTime','traffic-jobs.online.form.extras',
+          'traffic-jobs.online.form.flightInfo','traffic-jobs.online.form.notes',
+          'traffic-jobs.online.form.paxCount','traffic-jobs.online.form.printSign',
+          'traffic-jobs.online.form.provider','traffic-jobs.online.form.requestedVehicleType',
+          'traffic-jobs.online.form.route','traffic-jobs.online.form.serviceType',
+          'traffic-jobs.online.table','traffic-jobs.online.table.statusFilter',
+        ],
+      },
+      {
+        name: 'Rep',
+        slug: 'rep',
+        description: 'Field representative portal user',
+        permissions: [],
+      },
+      {
+        name: 'Transportation Accountant',
+        slug: 'transportation-accountant',
+        description: 'Handles transportation-specific accounting and costs',
+        permissions: [
+          'activity-logs','activity-logs.export',
+          'dashboard','dashboard.recentJobs','dashboard.revenue','dashboard.stats',
+          'drivers','drivers.addButton','drivers.downloadTemplate','drivers.export',
+          'drivers.form','drivers.form.licenseExpiry','drivers.form.licenseNumber',
+          'drivers.form.mobile','drivers.form.name','drivers.import','drivers.table',
+          'drivers.table.createAccount','drivers.table.deleteButton','drivers.table.editButton',
+          'drivers.table.resetPassword','drivers.table.toggleStatus',
+          'drivers.table.uploadAttachment',
+          'finance','finance.exports','finance.exports.collections','finance.exports.customers',
+          'finance.exports.invoices','finance.exports.journals','finance.exports.payments',
+          'finance.exports.suppliers','finance.exports.vendorBills',
+          'finance.invoices','finance.invoices.addButton','finance.invoices.detail',
+          'finance.invoices.detail.addLine','finance.invoices.detail.applyVat',
+          'finance.invoices.detail.cancelButton','finance.invoices.detail.deleteLine',
+          'finance.invoices.detail.editLines','finance.invoices.detail.postButton',
+          'finance.invoices.recordPayment','finance.odooExport',
+          'finance.payments','finance.payments.addButton','finance.payments.deleteButton',
+          'reports','reports.agentStatement','reports.dailyDispatch','reports.driverTrips',
+          'reports.evidence','reports.jobStatus','reports.repFees','reports.revenue',
+          'reports.vehicleCompliance',
+          'suppliers','suppliers.addButton','suppliers.downloadTemplate','suppliers.export',
+          'suppliers.form','suppliers.form.contactInfo','suppliers.form.legalName',
+          'suppliers.form.taxId','suppliers.form.tradeName','suppliers.import','suppliers.table',
+          'suppliers.table.createAccount','suppliers.table.deleteButton',
+          'suppliers.table.editButton','suppliers.table.resetPassword',
+          'suppliers.table.toggleStatus',
+          'vehicles','vehicles.addButton','vehicles.downloadTemplate','vehicles.export',
+          'vehicles.form','vehicles.form.brand','vehicles.form.color',
+          'vehicles.form.luggageCapacity','vehicles.form.makeYear','vehicles.form.model',
+          'vehicles.form.ownership','vehicles.form.plateNumber','vehicles.form.vehicleType',
+          'vehicles.import','vehicles.table','vehicles.table.deleteButton',
+          'vehicles.table.editButton','vehicles.table.toggleStatus',
+          'vehicles.types','vehicles.types.addButton','vehicles.types.editButton',
+        ],
+      },
+      {
+        name: 'Viewer',
+        slug: 'viewer',
+        description: 'Read-only access to all modules',
+        permissions: [
+          'activity-logs','agents','customers','dashboard','dispatch','drivers',
+          'finance','guest-bookings','job-locks','locations','public-prices',
+          'reports','reps','suppliers','traffic-jobs','vehicles',
+        ],
+      },
     ];
 
     for (const roleData of systemRoles) {
       const role = await prisma.role.upsert({
         where: { slug: roleData.slug },
         update: { name: roleData.name, description: roleData.description },
-        create: { ...roleData, isSystem: true },
+        create: { name: roleData.name, slug: roleData.slug, description: roleData.description, isSystem: true },
       });
       console.log(`System role seeded: ${role.name} (${role.slug})`);
 
-      // Skip admin (always has full access in code)
+      // Assign admin users to admin role
       if (role.slug === 'admin') {
-        // Assign admin users to admin role
         await prisma.user.updateMany({
           where: { id: { in: [admin.id, superAdmin.id] } },
           data: { roleId: role.id },
         });
-        continue;
       }
 
-      let defaultKeys: string[] = [];
-      switch (role.slug) {
-        case 'dispatcher':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('dispatch') ||
-            k.startsWith('traffic-jobs') || k.startsWith('vehicles') ||
-            k.startsWith('drivers') || k.startsWith('reps') ||
-            k.startsWith('locations') || k.startsWith('activity-logs'),
-          );
-          break;
-        case 'accountant':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('finance') ||
-            k.startsWith('reports') || k.startsWith('agents') ||
-            k.startsWith('customers') || k.startsWith('suppliers') ||
-            k.startsWith('activity-logs'),
-          );
-          break;
-        case 'agent-manager':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('agents') ||
-            k.startsWith('customers') || k.startsWith('traffic-jobs') ||
-            k.startsWith('activity-logs'),
-          );
-          break;
-        case 'viewer':
-          defaultKeys = pageKeys.filter((k) =>
-            k !== 'users' && k !== 'company' && k !== 'whatsapp',
-          );
-          break;
-        case 'online-operator':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('traffic-jobs') ||
-            k.startsWith('agents') || k.startsWith('customers') ||
-            k.startsWith('locations') || k.startsWith('guest-bookings') ||
-            k === 'dispatch' || k === 'dispatch.assignment.assignRep',
-          );
-          break;
-        case 'dispatch-operator':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            (k.startsWith('dashboard') || k.startsWith('dispatch') ||
-            k.startsWith('traffic-jobs') || k.startsWith('vehicles') ||
-            k.startsWith('drivers') || k.startsWith('reps') ||
-            k.startsWith('locations')) &&
-            k !== 'dispatch.assignment.assignRep',
-          );
-          break;
-        case 'online-manager':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('traffic-jobs') ||
-            k.startsWith('agents') || k.startsWith('customers') ||
-            k.startsWith('locations') || k.startsWith('guest-bookings') ||
-            k.startsWith('reports') || k.startsWith('activity-logs'),
-          );
-          break;
-        case 'dispatch-manager':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('dispatch') ||
-            k.startsWith('traffic-jobs') || k.startsWith('vehicles') ||
-            k.startsWith('drivers') || k.startsWith('reps') ||
-            k.startsWith('locations') || k.startsWith('suppliers') ||
-            k.startsWith('reports') || k.startsWith('activity-logs'),
-          );
-          break;
-        case 'fc':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('finance') ||
-            k.startsWith('reports') || k.startsWith('agents') ||
-            k.startsWith('customers') || k.startsWith('suppliers') ||
-            k.startsWith('drivers') || k.startsWith('reps') ||
-            k.startsWith('activity-logs'),
-          );
-          break;
-        case 'transportation-accountant':
-          defaultKeys = allPermissionKeys.filter((k) =>
-            k.startsWith('dashboard') || k.startsWith('finance') ||
-            k.startsWith('reports') || k.startsWith('suppliers') ||
-            k.startsWith('drivers') || k.startsWith('vehicles') ||
-            k.startsWith('activity-logs'),
-          );
-          break;
-      }
-
-      if (defaultKeys.length > 0) {
-        // Clear existing and insert
-        await prisma.rolePermissionV2.deleteMany({ where: { roleId: role.id } });
-        for (const permissionKey of defaultKeys) {
-          await prisma.rolePermissionV2.create({
-            data: { roleId: role.id, permissionKey },
-          });
-        }
-        console.log(`  → Assigned ${defaultKeys.length} permissions to ${role.name}`);
+      if (roleData.permissions.length > 0) {
+        // Insert missing permissions; remove stale ones
+        await prisma.rolePermissionV2.createMany({
+          data: roleData.permissions.map((permissionKey) => ({ roleId: role.id, permissionKey })),
+          skipDuplicates: true,
+        });
+        await prisma.rolePermissionV2.deleteMany({
+          where: { roleId: role.id, permissionKey: { notIn: roleData.permissions } },
+        });
+        console.log(`  → Assigned ${roleData.permissions.length} permissions to ${role.name}`);
       }
     }
 
