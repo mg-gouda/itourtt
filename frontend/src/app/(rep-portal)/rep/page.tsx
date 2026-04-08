@@ -32,6 +32,7 @@ import {
   MapPinCheck,
   MessageSquarePlus,
 } from "lucide-react";
+import JobDetailModal from "@/components/job-detail-modal";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
@@ -123,6 +124,7 @@ export default function RepDashboardPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [jobDetailId, setJobDetailId] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     jobId: string;
@@ -357,6 +359,7 @@ export default function RepDashboardPage() {
                       setUpdateMessage("");
                       setUpdateDialog({ open: true, jobId, jobRef });
                     }}
+                    onViewDetail={setJobDetailId}
                     formatTime={formatTime}
                   />
                 ))}
@@ -379,6 +382,7 @@ export default function RepDashboardPage() {
                       setUpdateMessage("");
                       setUpdateDialog({ open: true, jobId, jobRef });
                     }}
+                    onViewDetail={setJobDetailId}
                     formatTime={formatTime}
                   />
                 ))}
@@ -569,6 +573,13 @@ export default function RepDashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <JobDetailModal
+        jobId={jobDetailId}
+        open={jobDetailId !== null}
+        onClose={() => setJobDetailId(null)}
+        apiBase="/rep-portal/jobs"
+      />
     </div>
   );
 }
@@ -577,11 +588,13 @@ function JobCard({
   job,
   onStatusChange,
   onUpdate,
+  onViewDetail,
   formatTime,
 }: {
   job: RepJob;
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
   onUpdate: (jobId: string, jobRef: string) => void;
+  onViewDetail: (jobId: string) => void;
   formatTime: (iso: string | null) => string | null;
 }) {
   const t = useT();
@@ -597,9 +610,13 @@ function JobCard({
       <CardContent className="p-4">
         {/* Top row: ref + badges */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-sm font-semibold text-foreground">
+          <button
+            type="button"
+            onClick={() => onViewDetail(job.id)}
+            className="font-mono text-sm font-semibold text-primary hover:underline"
+          >
             {job.internalRef}
-          </span>
+          </button>
           <Badge
             variant="outline"
             className={SERVICE_TYPE_COLORS[job.serviceType] || ""}
@@ -646,7 +663,7 @@ function JobCard({
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" />
-            {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "—"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "—"}
+            {job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—"} &rarr; {job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—"}
           </span>
         </div>
 

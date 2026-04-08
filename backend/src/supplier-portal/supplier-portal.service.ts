@@ -15,6 +15,12 @@ export class SupplierPortalService {
   private readonly jobInclude = {
     fromZone: true,
     toZone: true,
+    originHotel: { select: { name: true } },
+    destinationHotel: { select: { name: true } },
+    originZone: { select: { name: true } },
+    destinationZone: { select: { name: true } },
+    originAirport: { select: { code: true } },
+    destinationAirport: { select: { code: true } },
     flight: true,
     agent: { select: { legalName: true } },
     customer: { select: { legalName: true } },
@@ -140,5 +146,37 @@ export class SupplierPortalService {
         'Suppliers cannot update job status more than 48 hours after the service date.',
       );
     }
+  }
+
+  async findJobDetail(userId: string, jobId: string) {
+    const supplierId = await this.resolveSupplierId(userId);
+    const job = await this.prisma.trafficJob.findFirst({
+      where: { id: jobId, assignment: { vehicle: { supplierId } }, deletedAt: null },
+      include: {
+        agent: true,
+        customer: true,
+        originAirport: true,
+        originZone: true,
+        originHotel: { include: { zone: true } },
+        destinationAirport: true,
+        destinationZone: true,
+        destinationHotel: { include: { zone: true } },
+        fromZone: true,
+        toZone: true,
+        requestedVehicleType: true,
+        flight: true,
+        createdBy: { select: { id: true, name: true } },
+        assignment: {
+          include: {
+            vehicle: { include: { vehicleType: true, supplier: { select: { id: true, legalName: true, tradeName: true } } } },
+            driver: true,
+            rep: true,
+          },
+        },
+        noShowEvidence: true,
+      },
+    });
+    if (!job) throw new NotFoundException('Job not found or not assigned to your vehicles');
+    return job;
   }
 }

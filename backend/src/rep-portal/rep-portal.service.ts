@@ -679,4 +679,36 @@ export class RepPortalService {
       );
     }
   }
+
+  async findJobDetail(userId: string, jobId: string) {
+    const repId = await this.resolveRepId(userId);
+    const job = await this.prisma.trafficJob.findFirst({
+      where: { id: jobId, assignment: { repId }, deletedAt: null },
+      include: {
+        agent: true,
+        customer: true,
+        originAirport: true,
+        originZone: true,
+        originHotel: { include: { zone: true } },
+        destinationAirport: true,
+        destinationZone: true,
+        destinationHotel: { include: { zone: true } },
+        fromZone: true,
+        toZone: true,
+        requestedVehicleType: true,
+        flight: true,
+        createdBy: { select: { id: true, name: true } },
+        assignment: {
+          include: {
+            vehicle: { include: { vehicleType: true, supplier: { select: { id: true, legalName: true, tradeName: true } } } },
+            driver: true,
+            rep: true,
+          },
+        },
+        noShowEvidence: true,
+      },
+    });
+    if (!job) throw new NotFoundException('Job not found or not assigned to you');
+    return job;
+  }
 }

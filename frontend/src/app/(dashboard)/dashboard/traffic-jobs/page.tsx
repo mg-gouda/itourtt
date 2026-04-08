@@ -408,10 +408,10 @@ export default function TrafficJobsPage() {
                     {job.childCount}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.originAirport?.code || job.originAirport?.name || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"}
+                    {job.originAirport?.code || job.originAirport?.name || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "\u2014"}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.destinationAirport?.code || job.destinationAirport?.name || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
+                    {job.destinationAirport?.code || job.destinationAirport?.name || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "\u2014"}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                     {job.flight?.flightNo || "\u2014"}

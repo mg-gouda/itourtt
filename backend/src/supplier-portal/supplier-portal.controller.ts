@@ -42,6 +42,15 @@ export class SupplierPortalController {
     return new ApiResponse(result);
   }
 
+  @Get('jobs/:jobId')
+  async getJobDetail(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    const job = await this.supplierPortalService.findJobDetail(userId, jobId);
+    return new ApiResponse(job);
+  }
+
   @Patch('jobs/:jobId/complete')
   async completeJob(
     @CurrentUser('id') userId: string,

@@ -18,6 +18,7 @@ import {
   Camera,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import JobDetailModal from "@/components/job-detail-modal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -465,6 +466,7 @@ export default function ReportsPage() {
   const [jobStatusData, setJobStatusData] = useState<JobStatusReport | null>(null);
   const [jobStatusLoading, setJobStatusLoading] = useState(false);
   const jobStatusPrintRef = useRef<HTMLDivElement>(null);
+  const [jobDetailId, setJobDetailId] = useState<string | null>(null);
 
   // Rep Score
   const [repScoreFrom, setRepScoreFrom] = useState(thirtyDaysAgo);
@@ -2186,7 +2188,15 @@ export default function ReportsPage() {
                     <TableBody>
                       {jobStatusSort.sortedData.map((job) => (
                         <TableRow key={job.id} className="border-border hover:bg-muted/30">
-                            <TableCell className="font-mono text-sm text-foreground">{job.internalRef}</TableCell>
+                            <TableCell className="font-mono text-sm">
+                              <button
+                                type="button"
+                                onClick={() => setJobDetailId(job.id)}
+                                className="text-primary hover:underline font-mono text-sm"
+                              >
+                                {job.internalRef}
+                              </button>
+                            </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{job.agentRef || "\u2014"}</TableCell>
                           <TableCell className="text-sm text-foreground">{job.agentName || "\u2014"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(job.serviceDate).toLocaleDateString()}</TableCell>
@@ -3046,6 +3056,12 @@ export default function ReportsPage() {
           ))}
         </div>
       )}
+
+      <JobDetailModal
+        jobId={jobDetailId}
+        open={jobDetailId !== null}
+        onClose={() => setJobDetailId(null)}
+      />
     </div>
   );
 }

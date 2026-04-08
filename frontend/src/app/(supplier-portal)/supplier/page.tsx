@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { localDateStr } from "@/lib/utils";
+import JobDetailModal from "@/components/job-detail-modal";
 
 interface SupplierJob {
   id: string;
@@ -32,6 +33,12 @@ interface SupplierJob {
   supplierNotes: string | null;
   fromZone?: { name: string } | null;
   toZone?: { name: string } | null;
+  originAirport?: { code: string } | null;
+  destinationAirport?: { code: string } | null;
+  originHotel?: { name: string } | null;
+  destinationHotel?: { name: string } | null;
+  originZone?: { name: string } | null;
+  destinationZone?: { name: string } | null;
   flight?: { flightNo: string; carrier?: string; arrivalTime?: string; departureTime?: string } | null;
   assignment?: {
     vehicle?: { plateNumber: string; vehicleType?: { name: string } } | null;
@@ -44,6 +51,7 @@ export default function SupplierJobsPage() {
   const [date, setDate] = useState(() => localDateStr(new Date()));
   const [jobs, setJobs] = useState<SupplierJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [jobDetailId, setJobDetailId] = useState<string | null>(null);
   const [completing, setCompleting] = useState<string | null>(null);
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
 
@@ -126,7 +134,9 @@ export default function SupplierJobsPage() {
         <div className="space-y-3">
           {jobs.map((job) => {
             const isCompleted = job.supplierStatus === "COMPLETED";
-            const route = [job.fromZone?.name, job.toZone?.name].filter(Boolean).join(" → ");
+            const originLabel = job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—";
+            const destLabel = job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—";
+            const route = `${originLabel} → ${destLabel}`;
 
             return (
               <Card key={job.id} className="overflow-hidden">
@@ -134,9 +144,13 @@ export default function SupplierJobsPage() {
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs font-mono">
+                      <button
+                        type="button"
+                        onClick={() => setJobDetailId(job.id)}
+                        className="text-xs font-mono text-primary hover:underline border border-border rounded px-2 py-0.5"
+                      >
                         {job.internalRef}
-                      </Badge>
+                      </button>
                       <Badge
                         className={
                           isCompleted
@@ -236,6 +250,13 @@ export default function SupplierJobsPage() {
           })}
         </div>
       )}
+
+      <JobDetailModal
+        jobId={jobDetailId}
+        open={jobDetailId !== null}
+        onClose={() => setJobDetailId(null)}
+        apiBase="/supplier-portal/jobs"
+      />
     </div>
   );
 }

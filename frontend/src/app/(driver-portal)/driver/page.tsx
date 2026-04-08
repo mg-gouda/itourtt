@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
+import JobDetailModal from "@/components/job-detail-modal";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
@@ -125,6 +126,7 @@ export default function DriverDashboardPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [jobDetailId, setJobDetailId] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     jobId: string;
@@ -325,6 +327,7 @@ export default function DriverDashboardPage() {
                     job={job}
                     onStatusChange={handleStatusChange}
                     onMarkCollected={handleMarkCollected}
+                    onViewDetail={setJobDetailId}
                     collectingJobId={collectingJobId}
                     formatTime={formatTime}
                   />
@@ -345,6 +348,7 @@ export default function DriverDashboardPage() {
                     job={job}
                     onStatusChange={handleStatusChange}
                     onMarkCollected={handleMarkCollected}
+                    onViewDetail={setJobDetailId}
                     collectingJobId={collectingJobId}
                     formatTime={formatTime}
                   />
@@ -465,6 +469,13 @@ export default function DriverDashboardPage() {
         portalApiBase="/driver-portal"
         onSuccess={fetchJobs}
       />
+
+      <JobDetailModal
+        jobId={jobDetailId}
+        open={jobDetailId !== null}
+        onClose={() => setJobDetailId(null)}
+        apiBase="/driver-portal/jobs"
+      />
     </div>
   );
 }
@@ -473,12 +484,14 @@ function DriverJobCard({
   job,
   onStatusChange,
   onMarkCollected,
+  onViewDetail,
   collectingJobId,
   formatTime,
 }: {
   job: DriverJob;
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
   onMarkCollected: (jobId: string) => void;
+  onViewDetail: (jobId: string) => void;
   collectingJobId: string | null;
   formatTime: (iso: string | null) => string | null;
 }) {
@@ -495,9 +508,13 @@ function DriverJobCard({
       <CardContent className="p-4">
         {/* Top row: ref + badges */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-sm font-semibold text-foreground">
+          <button
+            type="button"
+            onClick={() => onViewDetail(job.id)}
+            className="font-mono text-sm font-semibold text-primary hover:underline"
+          >
             {job.internalRef}
-          </span>
+          </button>
           <Badge
             variant="outline"
             className={SERVICE_TYPE_COLORS[job.serviceType] || ""}
@@ -544,7 +561,7 @@ function DriverJobCard({
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" />
-            {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "—"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "—"}
+            {job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—"} &rarr; {job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—"}
           </span>
         </div>
 

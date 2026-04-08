@@ -1072,7 +1072,7 @@ function JobGrid({
                     : job.customer?.legalName || "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
-                  {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} → {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
+                  {job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "\u2014"} → {job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "\u2014"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-center">
                   <span className="flex items-center justify-center gap-0.5">
@@ -2635,7 +2635,7 @@ export default function DispatchPage() {
               <span>
                 {t("dispatch.routeLabel")}{" "}
                 <b className="text-foreground">
-                  {dialogJob?.originAirport?.code || dialogJob?.fromZone?.name || dialogJob?.originZone?.name || dialogJob?.originHotel?.name || "\u2014"} → {dialogJob?.destinationAirport?.code || dialogJob?.toZone?.name || dialogJob?.destinationZone?.name || dialogJob?.destinationHotel?.name || "\u2014"}
+                  {dialogJob?.originAirport?.code || dialogJob?.originHotel?.name || dialogJob?.originZone?.name || dialogJob?.fromZone?.name || "\u2014"} → {dialogJob?.destinationAirport?.code || dialogJob?.destinationHotel?.name || dialogJob?.destinationZone?.name || dialogJob?.toZone?.name || "\u2014"}
                 </b>
               </span>
             </div>
