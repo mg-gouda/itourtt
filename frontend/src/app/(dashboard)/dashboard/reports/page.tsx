@@ -274,11 +274,16 @@ interface JobStatusReport {
     id: string;
     internalRef: string;
     agentRef: string | null;
+    agentName: string | null;
+    serviceDate: string;
     priceAmount: number | null;
     priceCurrency: string | null;
     status: string;
     repJobStatus: string | null;
     driverJobStatus: string | null;
+    repName: string | null;
+    driverName: string | null;
+    driverEvidence: EvidenceItem[];
   }>;
 }
 
@@ -665,6 +670,86 @@ export default function ReportsPage() {
   };
 
   const exportJobStatusPdf = () => printFromRef(jobStatusPrintRef, `Job Status Report - ${jobStatusFrom} to ${jobStatusTo}`);
+
+  const downloadDriverEvidencePdf = (job: JobStatusReport["jobs"][number]) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const now = new Date().toLocaleString();
+    const userName = user?.name || "System";
+    const logoHtml = logoUrl
+      ? `<img src="${logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
+      : `<span style="font-size:18px;font-weight:700;">${companyName}</span>`;
+
+    const renderEvidence = (items: EvidenceItem[], label: string) => {
+      if (!items.length) return "";
+      return items.map((ev) => `
+        <div class="ev-section">
+          <div class="ev-meta">
+            <strong>${label}</strong> &nbsp;|&nbsp;
+            Submitted by: ${ev.submittedBy} &nbsp;|&nbsp;
+            Date: ${new Date(ev.createdAt).toLocaleString()} &nbsp;|&nbsp;
+            ${ev.gpsMapLink ? `<a href="${ev.gpsMapLink}" target="_blank">GPS Map</a>` : "No GPS"}
+          </div>
+          <div class="img-grid">
+            ${ev.imageUrls.map((url) => `<img src="${url}" class="ev-img" />`).join("")}
+          </div>
+        </div>
+      `).join("");
+    };
+
+    const evidenceHtml = renderEvidence(job.driverEvidence, "Driver In-Place Evidence");
+
+    printWindow.document.write(`
+      <html><head><title>Driver Evidence – ${job.internalRef}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
+        .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111; }
+        .report-title { font-size: 20px; font-weight: 700; text-align: center; flex: 1; }
+        .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: #f0f0f0; padding: 5px 8px; margin: 16px 0 8px; border-left: 3px solid #333; }
+        .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 20px; margin-bottom: 12px; font-size: 12px; }
+        .detail-grid dt { color: #666; margin: 0; }
+        .detail-grid dd { font-weight: 600; margin: 0; }
+        .ev-section { margin-bottom: 20px; page-break-inside: avoid; }
+        .ev-meta { font-size: 12px; margin-bottom: 8px; padding: 6px 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
+        .ev-meta a { color: #1a56db; }
+        .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .ev-img { width: 100%; max-height: 220px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
+        .no-evidence { color: #888; font-style: italic; font-size: 13px; padding: 12px 0; }
+        .report-footer { display: flex; justify-content: space-between; margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #555; }
+        @media print { body { padding: 0; } .report-footer { position: fixed; bottom: 20px; left: 20px; right: 20px; } }
+      </style></head><body>
+      <div class="report-header">
+        <div>${logoHtml}</div>
+        <div class="report-title">Driver Evidence Report</div>
+        <div style="width:160px;text-align:right;font-size:11px;color:#666;">${new Date(job.serviceDate).toLocaleDateString()}</div>
+      </div>
+
+      <div class="section-title">Job Details</div>
+      <dl class="detail-grid">
+        <dt>Job Ref</dt><dd>${job.internalRef}</dd>
+        <dt>Agent Name</dt><dd>${job.agentName ?? "—"}</dd>
+        <dt>Agent Ref</dt><dd>${job.agentRef ?? "—"}</dd>
+        <dt>Service Date</dt><dd>${new Date(job.serviceDate).toLocaleDateString()}</dd>
+        <dt>Driver</dt><dd>${job.driverName ?? "—"}</dd>
+        <dt>Rep</dt><dd>${job.repName ?? "—"}</dd>
+        <dt>Job Status</dt><dd>${job.status}</dd>
+        <dt>Driver Status</dt><dd>${job.driverJobStatus ?? "—"}</dd>
+        <dt>Rep Status</dt><dd>${job.repJobStatus ?? "—"}</dd>
+      </dl>
+
+      <div class="section-title">Driver Evidence</div>
+      ${evidenceHtml || '<p class="no-evidence">No driver evidence submitted for this job.</p>'}
+
+      <div class="report-footer">
+        <span>Issued By: ${userName}</span>
+        <span>Issued on ${now}</span>
+      </div>
+      </body></html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  };
 
   const fetchEvidenceReport = async () => {
     setEvidenceLoading(true);
@@ -2083,17 +2168,26 @@ export default function ReportsPage() {
                       <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
                         <SortableHeader label={t("reports.trsfReference")} sortKey="internalRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.agentRef")} sortKey="agentRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("agents.legalName")} sortKey="agentName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("jobs.serviceDate")} sortKey="serviceDate" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("dispatch.driverName")} sortKey="driverName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("reports.repName")} sortKey="repName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.applicationPrice")} sortKey="priceAmount" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} className="text-right" />
                         <SortableHeader label={t("common.status")} sortKey="status" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.repJobStatus")} sortKey="repJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.driverJobStatus")} sortKey="driverJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <TableHead className="text-muted-foreground font-semibold text-xs">{t("reports.driverEvidence")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {jobStatusSort.sortedData.map((job) => (
                         <TableRow key={job.id} className="border-border hover:bg-muted/30">
-                          <TableCell className="font-mono text-sm text-foreground">{job.internalRef}</TableCell>
+                            <TableCell className="font-mono text-sm text-foreground">{job.internalRef}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">{job.agentRef || "\u2014"}</TableCell>
+                          <TableCell className="text-sm text-foreground">{job.agentName || "\u2014"}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(job.serviceDate).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-sm text-foreground">{job.driverName || "\u2014"}</TableCell>
+                          <TableCell className="text-sm text-foreground">{job.repName || "\u2014"}</TableCell>
                           <TableCell className="text-right font-mono text-sm text-foreground">
                             {job.priceAmount != null ? `${fmt(job.priceAmount, locale)} ${job.priceCurrency || ""}` : "\u2014"}
                           </TableCell>
@@ -2109,6 +2203,20 @@ export default function ReportsPage() {
                             {job.driverJobStatus ? (
                               <Badge variant="outline" className={statusColors[job.driverJobStatus] || ""}>{job.driverJobStatus}</Badge>
                             ) : "\u2014"}
+                          </TableCell>
+                          <TableCell>
+                            {job.driverEvidence.length > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => downloadDriverEvidencePdf(job)}
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                                PDF
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">\u2014</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

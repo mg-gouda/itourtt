@@ -764,7 +764,12 @@ export class ReportsService {
           select: {
             driverStatus: true,
             repStatus: true,
+            driver: { select: { name: true } },
+            rep: { select: { name: true } },
           },
+        },
+        inPlaceEvidence: {
+          select: { id: true, imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
         },
       },
       orderBy: { jobDate: 'asc' },
@@ -778,11 +783,16 @@ export class ReportsService {
         id: j.id,
         internalRef: j.internalRef,
         agentRef: j.agentRef,
+        agentName: j.agent?.tradeName ?? j.agent?.legalName ?? null,
+        serviceDate: j.jobDate,
         priceAmount: j.priceAmount ? Number(j.priceAmount) : null,
         priceCurrency: j.priceCurrency,
         status: j.status,
         repJobStatus: j.assignment?.repStatus || null,
         driverJobStatus: j.assignment?.driverStatus || null,
+        repName: j.assignment?.rep?.name ?? null,
+        driverName: j.assignment?.driver?.name ?? null,
+        driverEvidence: j.inPlaceEvidence,
       })),
     };
   }

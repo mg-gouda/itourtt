@@ -896,6 +896,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.applicationPrice": "Application Price",
     "reports.repJobStatus": "Rep Job Status",
     "reports.driverJobStatus": "Driver Job Status",
+    "reports.driverEvidence": "Driver Evidence",
     "reports.statusFilter": "Status",
     "reports.allStatuses": "All Statuses",
 
@@ -2328,6 +2329,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.applicationPrice": "سعر التطبيق",
     "reports.repJobStatus": "حالة مهمة المندوب",
     "reports.driverJobStatus": "حالة مهمة السائق",
+    "reports.driverEvidence": "دليل السائق",
     "reports.statusFilter": "الحالة",
     "reports.allStatuses": "جميع الحالات",
 
