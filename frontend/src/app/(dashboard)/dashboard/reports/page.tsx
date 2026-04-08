@@ -276,6 +276,8 @@ interface JobStatusReport {
     agentRef: string | null;
     agentName: string | null;
     serviceDate: string;
+    serviceType: string;
+    time: string | null;
     priceAmount: number | null;
     priceCurrency: string | null;
     status: string;
@@ -2170,6 +2172,8 @@ export default function ReportsPage() {
                         <SortableHeader label={t("reports.agentRef")} sortKey="agentRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("agents.legalName")} sortKey="agentName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("jobs.serviceDate")} sortKey="serviceDate" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("jobs.serviceType")} sortKey="serviceType" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
+                        <SortableHeader label={t("jobs.time")} sortKey="time" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("dispatch.driverName")} sortKey="driverName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.repName")} sortKey="repName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.applicationPrice")} sortKey="priceAmount" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} className="text-right" />
@@ -2186,6 +2190,10 @@ export default function ReportsPage() {
                           <TableCell className="text-muted-foreground text-sm">{job.agentRef || "\u2014"}</TableCell>
                           <TableCell className="text-sm text-foreground">{job.agentName || "\u2014"}</TableCell>
                           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(job.serviceDate).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-sm text-foreground">{job.serviceType}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                            {job.time ? new Date(job.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "\u2014"}
+                          </TableCell>
                           <TableCell className="text-sm text-foreground">{job.driverName || "\u2014"}</TableCell>
                           <TableCell className="text-sm text-foreground">{job.repName || "\u2014"}</TableCell>
                           <TableCell className="text-right font-mono text-sm text-foreground">
