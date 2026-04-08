@@ -6,7 +6,7 @@ import { usePermissionsStore } from '@/stores/permissions-store';
  * Check if the current user has a specific permission.
  */
 export function usePermission(key: string): boolean {
-  return usePermissionsStore((s) => s.has)(key);
+  return usePermissionsStore((s) => s.has(key));
 }
 
 /**
@@ -16,8 +16,9 @@ export function usePermission(key: string): boolean {
 export function usePermissions(
   ...keys: string[]
 ): Record<string, boolean> {
-  const has = usePermissionsStore((s) => s.has);
-  const result: Record<string, boolean> = {};
-  for (const k of keys) result[k] = has(k);
-  return result;
+  return usePermissionsStore((s) => {
+    const result: Record<string, boolean> = {};
+    for (const k of keys) result[k] = s.has(k);
+    return result;
+  });
 }
