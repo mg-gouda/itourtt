@@ -106,7 +106,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function fmt(dt: string | null | undefined) {
   if (!dt) return null;
-  return new Date(dt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(dt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function fmtDate(dt: string | null | undefined) {
@@ -157,7 +157,7 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-mono text-base">
             {job?.internalRef ?? t("jobs.jobDetails")}
@@ -188,106 +188,109 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
               </Badge>
             </div>
 
-            {/* ── Basic info ── */}
-            <Section title={t("jobs.jobDetails")}>
-              <Row label={t("reports.trsfReference")} value={job.internalRef} />
-              <Row label={t("reports.agentRef")} value={job.agentRef} />
-              <Row label={t("agents.legalName")} value={job.agent?.tradeName ?? job.agent?.legalName} />
-              <Row label={t("jobs.serviceDate")} value={fmtDate(job.jobDate)} />
-              <Row label={t("jobs.pickUpTime")} value={fmt(job.pickUpTime)} />
-            </Section>
-
-            {/* ── Route ── */}
-            <Section title={t("dispatch.route")}>
-              <Row label={t("dispatch.origin")} value={originLabel} />
-              <Row label={t("dispatch.destination")} value={destLabel} />
-            </Section>
-
-            {/* ── Flight ── */}
-            {job.flight && (
-              <Section title={t("jobs.flightDetails")}>
-                <Row label={t("jobs.flightNo")} value={job.flight.flightNo} />
-                <Row label={t("jobs.carrier")} value={job.flight.carrier} />
-                <Row label={t("jobs.terminal")} value={job.flight.terminal} />
-                <Row label={t("jobs.arrivalTime")} value={fmt(job.flight.arrivalTime)} />
-                <Row label={t("jobs.departureTime")} value={fmt(job.flight.departureTime)} />
+            {/* ── Two-column grid ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* ── Basic info ── */}
+              <Section title={t("jobs.jobDetails")}>
+                <Row label={t("reports.trsfReference")} value={job.internalRef} />
+                <Row label={t("reports.agentRef")} value={job.agentRef} />
+                <Row label={t("agents.legalName")} value={job.agent?.tradeName ?? job.agent?.legalName} />
+                <Row label={t("jobs.serviceDate")} value={fmtDate(job.jobDate)} />
+                <Row label={t("jobs.pickUpTime")} value={fmt(job.pickUpTime)} />
               </Section>
-            )}
 
-            {/* ── Passenger ── */}
-            <Section title={t("jobs.passengerDetails")}>
-              <Row label={t("jobs.clientName")} value={job.clientName} />
-              <Row label={t("jobs.clientMobile")} value={job.clientMobile} />
-              <Row label={t("jobs.adults")} value={job.adultCount} />
-              <Row label={t("jobs.children")} value={job.childCount || null} />
-              <Row label={t("jobs.totalPax")} value={job.paxCount} />
-              {extras.length > 0 && (
-                <Row label={t("jobs.extras")} value={extras.join(", ")} />
+              {/* ── Route ── */}
+              <Section title={t("dispatch.route")}>
+                <Row label={t("dispatch.origin")} value={originLabel} />
+                <Row label={t("dispatch.destination")} value={destLabel} />
+              </Section>
+
+              {/* ── Flight ── */}
+              {job.flight && (
+                <Section title={t("jobs.flightDetails")}>
+                  <Row label={t("jobs.flightNo")} value={job.flight.flightNo} />
+                  <Row label={t("jobs.carrier")} value={job.flight.carrier} />
+                  <Row label={t("jobs.terminal")} value={job.flight.terminal} />
+                  <Row label={t("jobs.arrivalTime")} value={fmt(job.flight.arrivalTime)} />
+                  <Row label={t("jobs.departureTime")} value={fmt(job.flight.departureTime)} />
+                </Section>
               )}
-            </Section>
 
-            {/* ── Assignment ── */}
-            {job.assignment && (
-              <Section title={t("dispatch.assignment")}>
-                <Row
-                  label={t("vehicles.plateNumber")}
-                  value={
-                    job.assignment.vehicle
-                      ? `${job.assignment.vehicle.plateNumber}${job.assignment.vehicle.vehicleType ? ` — ${job.assignment.vehicle.vehicleType.name}` : ""}`
-                      : null
-                  }
-                />
-                <Row
-                  label={t("dispatch.supplier")}
-                  value={
-                    job.assignment.vehicle?.supplier?.tradeName ??
-                    job.assignment.vehicle?.supplier?.legalName
-                  }
-                />
-                <Row label={t("dispatch.driverName")} value={job.assignment.driver?.name} />
-                <Row label={t("common.mobile")} value={job.assignment.driver?.mobileNumber} />
-                <Row label={t("reports.repName")} value={job.assignment.rep?.name} />
-                <Row label={t("reports.driverJobStatus")} value={job.assignment.driverStatus} />
-                <Row label={t("reports.repJobStatus")} value={job.assignment.repStatus} />
-              </Section>
-            )}
-
-            {/* ── Pricing ── */}
-            {(job.priceAmount != null || job.transferPrice != null) && (
-              <Section title={t("jobs.pricing")}>
-                {job.transferPrice != null && (
-                  <Row
-                    label={t("jobs.transferPrice")}
-                    value={`${job.transferPrice} ${job.transferPriceCurrency ?? ""}`}
-                  />
-                )}
-                {job.priceAmount != null && (
-                  <Row
-                    label={t("reports.applicationPrice")}
-                    value={`${job.priceAmount} ${job.priceCurrency ?? ""}`}
-                  />
-                )}
-                {job.collectionRequired && (
-                  <Row
-                    label={t("jobs.collection")}
-                    value={`${job.collectionAmount ?? 0} ${job.collectionCurrency ?? ""}`}
-                  />
+              {/* ── Passenger ── */}
+              <Section title={t("jobs.passengerDetails")}>
+                <Row label={t("jobs.clientName")} value={job.clientName} />
+                <Row label={t("jobs.clientMobile")} value={job.clientMobile} />
+                <Row label={t("jobs.adults")} value={job.adultCount} />
+                <Row label={t("jobs.children")} value={job.childCount || null} />
+                <Row label={t("jobs.totalPax")} value={job.paxCount} />
+                {extras.length > 0 && (
+                  <Row label={t("jobs.extras")} value={extras.join(", ")} />
                 )}
               </Section>
-            )}
 
-            {/* ── Notes ── */}
+              {/* ── Assignment ── */}
+              {job.assignment && (
+                <Section title={t("dispatch.assignment")}>
+                  <Row
+                    label={t("vehicles.plateNumber")}
+                    value={
+                      job.assignment.vehicle
+                        ? `${job.assignment.vehicle.plateNumber}${job.assignment.vehicle.vehicleType ? ` — ${job.assignment.vehicle.vehicleType.name}` : ""}`
+                        : null
+                    }
+                  />
+                  <Row
+                    label={t("dispatch.supplier")}
+                    value={
+                      job.assignment.vehicle?.supplier?.tradeName ??
+                      job.assignment.vehicle?.supplier?.legalName
+                    }
+                  />
+                  <Row label={t("dispatch.driverName")} value={job.assignment.driver?.name} />
+                  <Row label={t("common.mobile")} value={job.assignment.driver?.mobileNumber} />
+                  <Row label={t("reports.repName")} value={job.assignment.rep?.name} />
+                  <Row label={t("reports.driverJobStatus")} value={job.assignment.driverStatus} />
+                  <Row label={t("reports.repJobStatus")} value={job.assignment.repStatus} />
+                </Section>
+              )}
+
+              {/* ── Pricing ── */}
+              {(job.priceAmount != null || job.transferPrice != null) && (
+                <Section title={t("jobs.pricing")}>
+                  {job.transferPrice != null && (
+                    <Row
+                      label={t("jobs.transferPrice")}
+                      value={`${job.transferPrice} ${job.transferPriceCurrency ?? ""}`}
+                    />
+                  )}
+                  {job.priceAmount != null && (
+                    <Row
+                      label={t("reports.applicationPrice")}
+                      value={`${job.priceAmount} ${job.priceCurrency ?? ""}`}
+                    />
+                  )}
+                  {job.collectionRequired && (
+                    <Row
+                      label={t("jobs.collection")}
+                      value={`${job.collectionAmount ?? 0} ${job.collectionCurrency ?? ""}`}
+                    />
+                  )}
+                </Section>
+              )}
+
+              {/* ── Meta ── */}
+              <Section title={t("common.createdBy")}>
+                <Row label={t("common.createdBy")} value={job.createdBy?.name} />
+                <Row label={t("common.createdAt")} value={fmtDate(job.createdAt)} />
+              </Section>
+            </div>
+
+            {/* ── Notes (full width) ── */}
             {job.notes && (
               <Section title={t("common.notes")}>
                 <p className="text-sm text-foreground whitespace-pre-wrap">{job.notes}</p>
               </Section>
             )}
-
-            {/* ── Meta ── */}
-            <Section title={t("common.createdBy")}>
-              <Row label={t("common.createdBy")} value={job.createdBy?.name} />
-              <Row label={t("common.createdAt")} value={fmtDate(job.createdAt)} />
-            </Section>
           </div>
         )}
       </DialogContent>
