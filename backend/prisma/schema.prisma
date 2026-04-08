@@ -543,9 +543,10 @@ model Agent {
   address     String?
   city        String?
   country     String?
-  phone       String?
-  email       String?
-  currency    Currency  @default(EGP)
+  phone        String?
+  email        String?
+  disputeEmail String?   @map("dispute_email")
+  currency     Currency  @default(EGP)
   refPattern  String?   @map("ref_pattern")
   refExample  String?   @map("ref_example")
   isActive    Boolean   @default(true) @map("is_active")
@@ -1402,6 +1403,13 @@ model EmailSettings {
   fromAddress         String   @default("noreply@itour.local") @map("from_address")
   notifyDispatchEmail String?  @map("notify_dispatch_email")
   notifyTrafficEmail  String?  @map("notify_traffic_email")
+  // Dispute Notification
+  disputeTo           String?  @map("dispute_to")
+  disputeCc1          String?  @map("dispute_cc1")
+  disputeCc2          String?  @map("dispute_cc2")
+  disputeCc3          String?  @map("dispute_cc3")
+  disputeSubject      String?  @map("dispute_subject")
+  disputeBody         String?  @map("dispute_body")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 

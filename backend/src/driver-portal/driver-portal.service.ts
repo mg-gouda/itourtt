@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
+import { NoShowDisputeService } from './no-show-dispute.service.js';
 
 type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
@@ -27,7 +28,10 @@ const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 export class DriverPortalService {
   private readonly logger = new Logger(DriverPortalService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly noShowDisputeService: NoShowDisputeService,
+  ) {}
 
   private readonly jobInclude = {
     originAirport: true,
@@ -345,6 +349,12 @@ export class DriverPortalService {
         ...updated.trafficJob,
         driverStatus: updated.driverStatus,
       };
+    }).then((result) => {
+      // Fire-and-forget: generate PDF evidence report and email agent dispute address
+      this.noShowDisputeService.generateAndSendDisputeReport(jobId).catch(() => {
+        // Errors already logged inside the service
+      });
+      return result;
     });
   }
 

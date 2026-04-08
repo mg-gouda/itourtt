@@ -432,6 +432,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "agents.taxId": "Tax ID",
     "agents.creditLimit": "Credit Limit",
     "agents.creditDays": "Credit Days",
+    "agents.disputeEmail": "Dispute Email",
     "agents.contactPerson": "Contact Person",
     "agents.phone": "Phone",
     "agents.address": "Address",
@@ -1057,6 +1058,20 @@ const translations: Record<Locale, Record<string, string>> = {
     "emailSettings.failedSave": "Failed to save email settings",
     "emailSettings.testSent": "Test email sent successfully",
     "emailSettings.testFailed": "Failed to send test email — check SMTP settings",
+
+    // ── Dispute Notification ──
+    "emailSettings.disputeNotification": "Dispute Notification",
+    "emailSettings.disputeNotificationDesc": "Configure the automated email sent to agents when a no-show dispute is triggered.",
+    "emailSettings.disputeTo": "TO Override",
+    "emailSettings.disputeToPlaceholder": "Leave blank to use the agent's dispute email",
+    "emailSettings.disputeCc1": "CC 1",
+    "emailSettings.disputeCc2": "CC 2",
+    "emailSettings.disputeCc3": "CC 3",
+    "emailSettings.disputeSubject": "Subject Template",
+    "emailSettings.disputeSubjectPlaceholder": "{AgentRef} - {JobStatus}",
+    "emailSettings.disputeBody": "Body Template",
+    "emailSettings.disputeBodyPlaceholder": "Dear Partner,\n\nPlease see attached evidence for {AgentRef} as the job {JobStatus}.\n\nRegards,\niTour Transport & Traffic",
+    "emailSettings.disputeTokensLabel": "Available tokens:",
 
     // ── Profile ──
     "profile.title": "Profile",
@@ -1866,6 +1881,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "agents.taxId": "\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A",
     "agents.creditLimit": "\u062D\u062F \u0627\u0644\u0627\u0626\u062A\u0645\u0627\u0646",
     "agents.creditDays": "\u0623\u064A\u0627\u0645 \u0627\u0644\u0627\u0626\u062A\u0645\u0627\u0646",
+    "agents.disputeEmail": "البريد الإلكتروني للنزاعات",
     "agents.contactPerson": "\u0634\u062E\u0635 \u0627\u0644\u0627\u062A\u0635\u0627\u0644",
     "agents.phone": "\u0627\u0644\u0647\u0627\u062A\u0641",
     "agents.address": "العنوان",
@@ -2490,6 +2506,20 @@ const translations: Record<Locale, Record<string, string>> = {
     "emailSettings.failedSave": "\u0641\u0634\u0644 \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0628\u0631\u064A\u062F",
     "emailSettings.testSent": "\u062A\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u062A\u062C\u0631\u064A\u0628\u064A \u0628\u0646\u062C\u0627\u062D",
     "emailSettings.testFailed": "\u0641\u0634\u0644 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u062A\u062C\u0631\u064A\u0628\u064A \u2014 \u062A\u062D\u0642\u0642 \u0645\u0646 \u0625\u0639\u062F\u0627\u062F\u0627\u062A SMTP",
+
+    // ── Dispute Notification ──
+    "emailSettings.disputeNotification": "\u0625\u0634\u0639\u0627\u0631 \u0627\u0644\u0646\u0632\u0627\u0639",
+    "emailSettings.disputeNotificationDesc": "\u0636\u0628\u0637 \u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0622\u0644\u064A \u0627\u0644\u0645\u0631\u0633\u0644 \u0644\u0644\u0648\u0643\u0644\u0627\u0621 \u0639\u0646\u062F \u062A\u0641\u0639\u064A\u0644 \u0646\u0632\u0627\u0639 \u0639\u062F\u0645 \u0627\u0644\u062D\u0636\u0648\u0631.",
+    "emailSettings.disputeTo": "\u062A\u062C\u0627\u0648\u0632 \u062D\u0642\u0644 \u0627\u0644\u0645\u0631\u0633\u0644 \u0625\u0644\u064A\u0647",
+    "emailSettings.disputeToPlaceholder": "\u0627\u062A\u0631\u0643\u0647 \u0641\u0627\u0631\u063A\u064B\u0627 \u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0628\u0631\u064A\u062F \u0627\u0644\u0646\u0632\u0627\u0639 \u0644\u0644\u0648\u0643\u064A\u0644",
+    "emailSettings.disputeCc1": "\u0646\u0633\u062E\u0629 1",
+    "emailSettings.disputeCc2": "\u0646\u0633\u062E\u0629 2",
+    "emailSettings.disputeCc3": "\u0646\u0633\u062E\u0629 3",
+    "emailSettings.disputeSubject": "\u0642\u0627\u0644\u0628 \u0627\u0644\u0645\u0648\u0636\u0648\u0639",
+    "emailSettings.disputeSubjectPlaceholder": "{AgentRef} - {JobStatus}",
+    "emailSettings.disputeBody": "\u0642\u0627\u0644\u0628 \u0646\u0635 \u0627\u0644\u0631\u0633\u0627\u0644\u0629",
+    "emailSettings.disputeBodyPlaceholder": "\u0639\u0632\u064A\u0632\u064A \u0627\u0644\u0634\u0631\u064A\u0643\u060C\n\n\u064A\u0631\u062C\u0649 \u0627\u0644\u0627\u0637\u0644\u0627\u0639 \u0639\u0644\u0649 \u0627\u0644\u0623\u062F\u0644\u0629 \u0627\u0644\u0645\u0631\u0641\u0642\u0629 \u0644\u0640 {AgentRef} \u0628\u0634\u0623\u0646 \u0627\u0644\u0645\u0647\u0645\u0629 {JobStatus}.",
+    "emailSettings.disputeTokensLabel": "\u0627\u0644\u0631\u0645\u0648\u0632 \u0627\u0644\u0645\u062A\u0627\u062D\u0629:",
 
     // ── Profile ──
     "profile.title": "\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A",

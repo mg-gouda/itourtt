@@ -165,6 +165,51 @@ export class EmailService {
     }
   }
 
+  async sendDisputeReport(
+    to: string,
+    subject: string,
+    body: string,
+    pdfBuffer: Buffer,
+    filename: string,
+    cc: string[] = [],
+  ): Promise<void> {
+    await this.ensureTransporter();
+    const html = `
+      <div style="font-family:Arial,sans-serif;padding:20px;color:#333;">
+        <p>${body.replace(/\n/g, '<br/>')}</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
+        <p style="color:#999;font-size:12px;">iTour Transport &amp; Traffic</p>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.log(
+        `[Email Mock] Dispute report to: ${to}${cc.length ? ` | CC: ${cc.join(', ')}` : ''} | Subject: ${subject} | Attachment: ${filename}`,
+      );
+      return;
+    }
+
+    try {
+      await this.transporter.sendMail({
+        from: this.fromAddress,
+        to,
+        ...(cc.length ? { cc: cc.join(', ') } : {}),
+        subject,
+        html,
+        attachments: [
+          {
+            filename,
+            content: pdfBuffer,
+            contentType: 'application/pdf',
+          },
+        ],
+      });
+      this.logger.log(`Dispute report email sent to ${to}: ${subject}`);
+    } catch (error) {
+      this.logger.error(`Failed to send dispute report to ${to}: ${(error as Error).message}`);
+    }
+  }
+
   async sendTestEmail(to: string): Promise<void> {
     const html = `
       <div style="font-family:Arial,sans-serif;padding:20px;">

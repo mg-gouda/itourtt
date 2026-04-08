@@ -34,6 +34,10 @@ export class CreateAgentDto {
   @IsOptional()
   email?: string;
 
+  @IsEmail()
+  @IsOptional()
+  disputeEmail?: string;
+
   @IsEnum(Currency)
   @IsOptional()
   currency?: string;

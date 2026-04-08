@@ -50,6 +50,7 @@ interface Agent {
   country: string;
   phone: string;
   email: string;
+  disputeEmail: string;
   currency: string;
   refPattern: string | null;
   refExample: string | null;
@@ -75,6 +76,7 @@ const INITIAL_FORM = {
   country: "",
   phone: "",
   email: "",
+  disputeEmail: "",
   currency: "EGP",
   refPattern: "",
   refExample: "",
@@ -139,6 +141,7 @@ export default function AgentsPage() {
   const [country, setCountry] = useState(INITIAL_FORM.country);
   const [phone, setPhone] = useState(INITIAL_FORM.phone);
   const [email, setEmail] = useState(INITIAL_FORM.email);
+  const [disputeEmail, setDisputeEmail] = useState(INITIAL_FORM.disputeEmail);
   const [currency, setCurrency] = useState(INITIAL_FORM.currency);
   const [refPattern, setRefPattern] = useState(INITIAL_FORM.refPattern);
   const [refExample, setRefExample] = useState(INITIAL_FORM.refExample);
@@ -230,6 +233,7 @@ export default function AgentsPage() {
     setCountry(INITIAL_FORM.country);
     setPhone(INITIAL_FORM.phone);
     setEmail(INITIAL_FORM.email);
+    setDisputeEmail(INITIAL_FORM.disputeEmail);
     setCurrency(INITIAL_FORM.currency);
     setRefPattern(INITIAL_FORM.refPattern);
     setRefExample(INITIAL_FORM.refExample);
@@ -252,6 +256,7 @@ export default function AgentsPage() {
     setCountry(agent.country || "");
     setPhone(agent.phone || "");
     setEmail(agent.email || "");
+    setDisputeEmail(agent.disputeEmail || "");
     setCurrency(agent.currency || "EGP");
     setRefPattern(agent.refPattern || "");
     setRefExample(agent.refExample || "");
@@ -279,6 +284,7 @@ export default function AgentsPage() {
           country: country.trim(),
           phone: phone.trim(),
           email: email.trim(),
+          ...(disputeEmail.trim() ? { disputeEmail: disputeEmail.trim() } : { disputeEmail: null }),
           currency,
           ...(refPattern.trim() ? { refPattern: refPattern.trim() } : { refPattern: null }),
           ...(refExample.trim() ? { refExample: refExample.trim() } : { refExample: null }),
@@ -317,6 +323,7 @@ export default function AgentsPage() {
         country: country.trim(),
         phone: phone.trim(),
         email: email.trim(),
+        ...(disputeEmail.trim() && { disputeEmail: disputeEmail.trim() }),
         currency,
         ...(refPattern.trim() && { refPattern: refPattern.trim() }),
         ...(refExample.trim() && { refExample: refExample.trim() }),
@@ -716,6 +723,20 @@ export default function AgentsPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="disputeEmail" className="text-muted-foreground">
+                    {t("agents.disputeEmail")}
+                  </Label>
+                  <Input
+                    id="disputeEmail"
+                    type="email"
+                    value={disputeEmail}
+                    onChange={(e) => setDisputeEmail(e.target.value)}
+                    placeholder="disputes@example.com"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="city" className="text-muted-foreground">
                     {t("locations.city")}
                   </Label>
@@ -915,6 +936,20 @@ export default function AgentsPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="agent@example.com"
+                    className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-disputeEmail" className="text-muted-foreground">
+                    {t("agents.disputeEmail")}
+                  </Label>
+                  <Input
+                    id="edit-disputeEmail"
+                    type="email"
+                    value={disputeEmail}
+                    onChange={(e) => setDisputeEmail(e.target.value)}
+                    placeholder="disputes@example.com"
                     className="border-border bg-card text-foreground placeholder:text-muted-foreground"
                   />
                 </div>

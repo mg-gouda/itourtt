@@ -25,6 +25,12 @@ const EMAIL_DEFAULTS = {
   fromAddress: 'noreply@itour.local',
   notifyDispatchEmail: null as string | null,
   notifyTrafficEmail: null as string | null,
+  disputeTo: null as string | null,
+  disputeCc1: null as string | null,
+  disputeCc2: null as string | null,
+  disputeCc3: null as string | null,
+  disputeSubject: null as string | null,
+  disputeBody: null as string | null,
 };
 
 const COMPANY_DEFAULTS = {
@@ -232,6 +238,12 @@ export class SettingsService {
     if (dto.fromAddress !== undefined) data.fromAddress = dto.fromAddress;
     if (dto.notifyDispatchEmail !== undefined) data.notifyDispatchEmail = dto.notifyDispatchEmail || null;
     if (dto.notifyTrafficEmail !== undefined) data.notifyTrafficEmail = dto.notifyTrafficEmail || null;
+    if (dto.disputeTo !== undefined) data.disputeTo = dto.disputeTo || null;
+    if (dto.disputeCc1 !== undefined) data.disputeCc1 = dto.disputeCc1 || null;
+    if (dto.disputeCc2 !== undefined) data.disputeCc2 = dto.disputeCc2 || null;
+    if (dto.disputeCc3 !== undefined) data.disputeCc3 = dto.disputeCc3 || null;
+    if (dto.disputeSubject !== undefined) data.disputeSubject = dto.disputeSubject || null;
+    if (dto.disputeBody !== undefined) data.disputeBody = dto.disputeBody || null;
 
     if (existing) {
       return this.prisma.emailSettings.update({
@@ -250,6 +262,12 @@ export class SettingsService {
         fromAddress: dto.fromAddress ?? EMAIL_DEFAULTS.fromAddress,
         notifyDispatchEmail: dto.notifyDispatchEmail ?? EMAIL_DEFAULTS.notifyDispatchEmail,
         notifyTrafficEmail: dto.notifyTrafficEmail ?? EMAIL_DEFAULTS.notifyTrafficEmail,
+        disputeTo: dto.disputeTo ?? EMAIL_DEFAULTS.disputeTo,
+        disputeCc1: dto.disputeCc1 ?? EMAIL_DEFAULTS.disputeCc1,
+        disputeCc2: dto.disputeCc2 ?? EMAIL_DEFAULTS.disputeCc2,
+        disputeCc3: dto.disputeCc3 ?? EMAIL_DEFAULTS.disputeCc3,
+        disputeSubject: dto.disputeSubject ?? EMAIL_DEFAULTS.disputeSubject,
+        disputeBody: dto.disputeBody ?? EMAIL_DEFAULTS.disputeBody,
       },
     });
   }

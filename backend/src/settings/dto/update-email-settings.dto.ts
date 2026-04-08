@@ -34,4 +34,28 @@ export class UpdateEmailSettingsDto {
   @IsOptional()
   @IsString()
   notifyTrafficEmail?: string;
+
+  @IsOptional()
+  @IsEmail()
+  disputeTo?: string;
+
+  @IsOptional()
+  @IsEmail()
+  disputeCc1?: string;
+
+  @IsOptional()
+  @IsEmail()
+  disputeCc2?: string;
+
+  @IsOptional()
+  @IsEmail()
+  disputeCc3?: string;
+
+  @IsOptional()
+  @IsString()
+  disputeSubject?: string;
+
+  @IsOptional()
+  @IsString()
+  disputeBody?: string;
 }

@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Mail, Loader2, Send } from "lucide-react";
+import { Mail, Loader2, Send, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 
@@ -21,6 +22,12 @@ interface EmailSettingsData {
   fromAddress: string;
   notifyDispatchEmail: string;
   notifyTrafficEmail: string;
+  disputeTo: string;
+  disputeCc1: string;
+  disputeCc2: string;
+  disputeCc3: string;
+  disputeSubject: string;
+  disputeBody: string;
 }
 
 export default function EmailSettingsPage() {
@@ -38,6 +45,13 @@ export default function EmailSettingsPage() {
   const [notifyDispatchEmail, setNotifyDispatchEmail] = useState("");
   const [notifyTrafficEmail, setNotifyTrafficEmail] = useState("");
 
+  const [disputeTo, setDisputeTo] = useState("");
+  const [disputeCc1, setDisputeCc1] = useState("");
+  const [disputeCc2, setDisputeCc2] = useState("");
+  const [disputeCc3, setDisputeCc3] = useState("");
+  const [disputeSubject, setDisputeSubject] = useState("");
+  const [disputeBody, setDisputeBody] = useState("");
+
   const [testEmail, setTestEmail] = useState("");
 
   useEffect(() => {
@@ -52,6 +66,12 @@ export default function EmailSettingsPage() {
         setFromAddress(data.fromAddress ?? "");
         setNotifyDispatchEmail(data.notifyDispatchEmail ?? "");
         setNotifyTrafficEmail(data.notifyTrafficEmail ?? "");
+        setDisputeTo(data.disputeTo ?? "");
+        setDisputeCc1(data.disputeCc1 ?? "");
+        setDisputeCc2(data.disputeCc2 ?? "");
+        setDisputeCc3(data.disputeCc3 ?? "");
+        setDisputeSubject(data.disputeSubject ?? "");
+        setDisputeBody(data.disputeBody ?? "");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -69,6 +89,12 @@ export default function EmailSettingsPage() {
         fromAddress: fromAddress || undefined,
         notifyDispatchEmail: notifyDispatchEmail || undefined,
         notifyTrafficEmail: notifyTrafficEmail || undefined,
+        disputeTo: disputeTo || undefined,
+        disputeCc1: disputeCc1 || undefined,
+        disputeCc2: disputeCc2 || undefined,
+        disputeCc3: disputeCc3 || undefined,
+        disputeSubject: disputeSubject || undefined,
+        disputeBody: disputeBody || undefined,
       });
       toast.success(t("emailSettings.settingsSaved"));
     } catch {
@@ -224,6 +250,108 @@ export default function EmailSettingsPage() {
               className="border-border bg-muted/50 text-foreground"
             />
           </div>
+        </div>
+      </Card>
+
+      {/* Dispute Notification */}
+      <Card className="border-border bg-card p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <h2 className="text-lg font-semibold text-foreground">
+            {t("emailSettings.disputeNotification")}
+          </h2>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          {t("emailSettings.disputeNotificationDesc")}
+        </p>
+
+        {/* TO override */}
+        <div className="mb-4 space-y-2">
+          <Label className="text-foreground/70">
+            {t("emailSettings.disputeTo")}
+          </Label>
+          <Input
+            type="email"
+            value={disputeTo}
+            onChange={(e) => setDisputeTo(e.target.value)}
+            placeholder={t("emailSettings.disputeToPlaceholder")}
+            className="border-border bg-muted/50 text-foreground"
+          />
+        </div>
+
+        {/* CC fields */}
+        <div className="mb-4 grid gap-4 sm:grid-cols-3">
+          {[
+            { label: t("emailSettings.disputeCc1"), value: disputeCc1, set: setDisputeCc1 },
+            { label: t("emailSettings.disputeCc2"), value: disputeCc2, set: setDisputeCc2 },
+            { label: t("emailSettings.disputeCc3"), value: disputeCc3, set: setDisputeCc3 },
+          ].map(({ label, value, set }) => (
+            <div key={label} className="space-y-2">
+              <Label className="text-foreground/70">{label}</Label>
+              <Input
+                type="email"
+                value={value}
+                onChange={(e) => set(e.target.value)}
+                placeholder="cc@example.com"
+                className="border-border bg-muted/50 text-foreground"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Subject template */}
+        <div className="mb-4 space-y-2">
+          <Label className="text-foreground/70">
+            {t("emailSettings.disputeSubject")}
+          </Label>
+          <Input
+            value={disputeSubject}
+            onChange={(e) => setDisputeSubject(e.target.value)}
+            placeholder={t("emailSettings.disputeSubjectPlaceholder")}
+            className="border-border bg-muted/50 text-foreground"
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("emailSettings.disputeTokensLabel")}{" "}
+            {["{AgentRef}", "{JobStatus}", "{InternalRef}", "{AgentName}", "{JobDate}", "{ServiceType}"].map((tok) => (
+              <code
+                key={tok}
+                className="mr-1 cursor-pointer rounded bg-muted px-1 py-0.5 text-xs hover:bg-muted/70"
+                onClick={() => setDisputeSubject((s) => s + tok)}
+              >
+                {tok}
+              </code>
+            ))}
+          </p>
+        </div>
+
+        {/* Body template */}
+        <div className="space-y-2">
+          <Label className="text-foreground/70">
+            {t("emailSettings.disputeBody")}
+          </Label>
+          <Textarea
+            value={disputeBody}
+            onChange={(e) => setDisputeBody(e.target.value)}
+            placeholder={t("emailSettings.disputeBodyPlaceholder")}
+            rows={6}
+            className="border-border bg-muted/50 font-mono text-sm text-foreground"
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("emailSettings.disputeTokensLabel")}{" "}
+            {[
+              "{AgentRef}", "{AgentName}", "{JobStatus}", "{InternalRef}",
+              "{JobDate}", "{ServiceType}", "{Route}", "{DriverName}",
+              "{RepName}", "{ClientName}", "{PaxCount}",
+            ].map((tok) => (
+              <code
+                key={tok}
+                className="mr-1 cursor-pointer rounded bg-muted px-1 py-0.5 text-xs hover:bg-muted/70"
+                onClick={() => setDisputeBody((s) => s + tok)}
+              >
+                {tok}
+              </code>
+            ))}
+          </p>
         </div>
       </Card>
 
