@@ -14,7 +14,7 @@ cd /opt/itour
 # ── Build shared backend image (same for all environments) ──
 echo ""
 echo ">> Building backend image..."
-docker build --no-cache -t itourtt-backend:3.3.10 backend -q
+docker build --no-cache -t itourtt-backend:3.3.11 backend -q
 
 # ── Build frontend images (per-environment feature flags) ──
 # Production & Training: Car Dispatch enabled
@@ -34,19 +34,19 @@ if $needs_car_dispatch; then
   echo ">> Building frontend image (with Car Dispatch)..."
   docker build --no-cache \
     --build-arg NEXT_PUBLIC_ENABLE_CAR_DISPATCH=true \
-    -t itourtt-frontend:3.3.10-cardispatch frontend -q
-  docker save itourtt-frontend:3.3.10-cardispatch | k3s ctr images import -
+    -t itourtt-frontend:3.3.11-cardispatch frontend -q
+  docker save itourtt-frontend:3.3.11-cardispatch | k3s ctr images import -
 fi
 
 if $needs_standard; then
   echo ">> Building frontend image (standard)..."
-  docker build --no-cache -t itourtt-frontend:3.3.10 frontend -q
-  docker save itourtt-frontend:3.3.10 | k3s ctr images import -
+  docker build --no-cache -t itourtt-frontend:3.3.11 frontend -q
+  docker save itourtt-frontend:3.3.11 | k3s ctr images import -
 fi
 
 # Import backend image into k3s
 echo ">> Importing backend image into k3s..."
-docker save itourtt-backend:3.3.10 | k3s ctr images import -
+docker save itourtt-backend:3.3.11 | k3s ctr images import -
 
 deploy_env() {
   local ns="$1"
@@ -57,7 +57,7 @@ deploy_env() {
   echo "=== Deploying $label ($ns) ==="
 
   # Point frontend deployment to the correct image tag
-  kubectl set image deployment/backend backend=itourtt-backend:3.3.10 -n "$ns"
+  kubectl set image deployment/backend backend=itourtt-backend:3.3.11 -n "$ns"
   kubectl set image deployment/frontend frontend=itourtt-frontend:${frontend_tag} -n "$ns"
 
   # Run database migrations
@@ -68,9 +68,14 @@ deploy_env() {
   echo ">> Syncing database schema..."
   kubectl exec -n "$ns" deployment/backend -- npx prisma db push --accept-data-loss 2>&1 || true
 
-  # Run seed (upserts — safe to re-run)
-  echo ">> Running database seed..."
-  kubectl exec -n "$ns" deployment/backend -- node dist/src/prisma/seed.js 2>&1 || true
+  # Scale to 3 replicas
+  echo ">> Scaling to 3 replicas..."
+  kubectl scale deployment/backend --replicas=3 -n "$ns" 2>&1 || true
+  kubectl scale deployment/frontend --replicas=3 -n "$ns" 2>&1 || true
+
+  # Run seed (upserts — safe to re-run; user permissions are NOT overwritten)
+  echo ">> Running database seed (permissions skipped)..."
+  kubectl exec -n "$ns" deployment/backend -- env SKIP_PERMISSION_SEED=true node dist/src/prisma/seed.js 2>&1 || true
 
   # Restart backend
   echo ">> Rolling out backend..."
@@ -86,15 +91,15 @@ deploy_env() {
 }
 
 if [[ "$ENV" == "production" || "$ENV" == "all" ]]; then
-  deploy_env "itour-production" "Production" "3.3.10-cardispatch"
+  deploy_env "itour-production" "Production" "3.3.11-cardispatch"
 fi
 
 if [[ "$ENV" == "training" || "$ENV" == "all" ]]; then
-  deploy_env "itour-training" "Training" "3.3.10-cardispatch"
+  deploy_env "itour-training" "Training" "3.3.11-cardispatch"
 fi
 
 if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
-  deploy_env "itour-travelplan" "TravelPlan" "3.3.10"
+  deploy_env "itour-travelplan" "TravelPlan" "3.3.11"
 fi
 
 echo ""

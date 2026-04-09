@@ -157,7 +157,7 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[50vw] max-w-[50vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-mono text-base">
             {job?.internalRef ?? t("jobs.jobDetails")}
@@ -189,7 +189,7 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
             </div>
 
             {/* ── Two-column grid ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 gap-5">
               {/* ── Basic info ── */}
               <Section title={t("jobs.jobDetails")}>
                 <Row label={t("reports.trsfReference")} value={job.internalRef} />

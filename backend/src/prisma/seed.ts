@@ -546,6 +546,8 @@ async function main() {
       },
     ];
 
+    const skipPermissions = process.env.SKIP_PERMISSION_SEED === 'true';
+
     for (const roleData of systemRoles) {
       const role = await prisma.role.upsert({
         where: { slug: roleData.slug },
@@ -562,7 +564,7 @@ async function main() {
         });
       }
 
-      if (roleData.permissions.length > 0) {
+      if (!skipPermissions && roleData.permissions.length > 0) {
         // Insert missing permissions; remove stale ones
         await prisma.rolePermissionV2.createMany({
           data: roleData.permissions.map((permissionKey) => ({ roleId: role.id, permissionKey })),
@@ -575,7 +577,11 @@ async function main() {
       }
     }
 
-    console.log('System roles and permissions seeded.');
+    if (skipPermissions) {
+      console.log('System roles seeded (permission seeding skipped — SKIP_PERMISSION_SEED=true).');
+    } else {
+      console.log('System roles and permissions seeded.');
+    }
 
     // ─── SEED EGYPT LOCATIONS WITH COORDINATES ───
     await seedEgyptLocations(prisma);

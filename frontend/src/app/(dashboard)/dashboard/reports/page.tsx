@@ -2202,7 +2202,7 @@ export default function ReportsPage() {
                           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(job.serviceDate).toLocaleDateString()}</TableCell>
                           <TableCell className="text-sm text-foreground">{job.serviceType}</TableCell>
                           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                            {job.time ? new Date(job.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "\u2014"}
+                            {job.time ? new Date(job.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
                           </TableCell>
                           <TableCell className="text-sm text-foreground">{job.driverName || "\u2014"}</TableCell>
                           <TableCell className="text-sm text-foreground">{job.repName || "\u2014"}</TableCell>
