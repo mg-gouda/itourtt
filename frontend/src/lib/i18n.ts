@@ -598,6 +598,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "dispatch.routeLabel": "Route",
     "dispatch.supplier": "Supplier",
     "dispatch.allSuppliers": "All Suppliers",
+    "dispatch.filterByAgentCustomer": "Agent / Customer",
+    "dispatch.allAgentsCustomers": "All Agents / Customers",
     "dispatch.carSource": "Car Source",
     "dispatch.vehicleSource": "Vehicle Source",
     "dispatch.selectSource": "Owned or Supplier...",
@@ -1299,6 +1301,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "portal.noCompletedJobs": "No completed jobs found for this period",
     "portal.jobHistory": "Job History",
     "portal.jobHistoryDesc": "View past completed and closed jobs",
+    "portal.arrivalTime": "Arrival Time",
+    "portal.pickUpTime": "Pickup Time",
+    "portal.driverArrival": "Driver Arrives",
+    "portal.driverPickup": "Driver Pickup",
 
     // ── Activity Log ──
     "activityLog.title": "Activity Log",
@@ -2061,6 +2067,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "dispatch.routeLabel": "المسار",
     "dispatch.supplier": "المورد",
     "dispatch.allSuppliers": "جميع الموردين",
+    "dispatch.filterByAgentCustomer": "الوكيل / العميل",
+    "dispatch.allAgentsCustomers": "جميع الوكلاء / العملاء",
     "dispatch.carSource": "مصدر السيارة",
     "dispatch.vehicleSource": "مصدر المركبة",
     "dispatch.selectSource": "مملوكة أو مورد...",
@@ -2761,6 +2769,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "portal.noCompletedJobs": "لا توجد مهام مكتملة لهذه الفترة",
     "portal.jobHistory": "سجل المهام",
     "portal.jobHistoryDesc": "عرض المهام المكتملة والمغلقة",
+    "portal.arrivalTime": "وقت الوصول",
+    "portal.pickUpTime": "وقت الاستلام",
+    "portal.driverArrival": "وصول السائق",
+    "portal.driverPickup": "استلام السائق",
 
     // ── Activity Log ──
     "activityLog.title": "سجل النشاط",
