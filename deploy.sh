@@ -73,9 +73,9 @@ deploy_env() {
   kubectl scale deployment/backend --replicas=3 -n "$ns" 2>&1 || true
   kubectl scale deployment/frontend --replicas=3 -n "$ns" 2>&1 || true
 
-  # Run seed (upserts — safe to re-run; user permissions are NOT overwritten)
-  echo ">> Running database seed (permissions skipped)..."
-  kubectl exec -n "$ns" deployment/backend -- env SKIP_PERMISSION_SEED=true node dist/src/prisma/seed.js 2>&1 || true
+  # Run seed (upserts — safe to re-run; permissions & system params are NOT overwritten)
+  echo ">> Running database seed (permissions + system params skipped)..."
+  kubectl exec -n "$ns" deployment/backend -- env SKIP_PERMISSION_SEED=true SKIP_SYSTEM_PARAMS_SEED=true node dist/src/prisma/seed.js 2>&1 || true
 
   # Restart backend
   echo ">> Rolling out backend..."

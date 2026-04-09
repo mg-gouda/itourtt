@@ -583,80 +583,86 @@ async function main() {
       console.log('System roles and permissions seeded.');
     }
 
-    // ─── SEED EGYPT LOCATIONS WITH COORDINATES ───
-    await seedEgyptLocations(prisma);
+    const skipSystemParams = process.env.SKIP_SYSTEM_PARAMS_SEED === 'true';
 
-    // Create sample vehicle types
-    const sedanType = await prisma.vehicleType.upsert({
-      where: { name: 'Sedan' },
-      update: {},
-      create: { name: 'Sedan', seatCapacity: 3 },
-    });
+    if (skipSystemParams) {
+      console.log('System parameters seeding skipped — SKIP_SYSTEM_PARAMS_SEED=true.');
+    } else {
+      // ─── SEED EGYPT LOCATIONS WITH COORDINATES ───
+      await seedEgyptLocations(prisma);
 
-    const minivanType = await prisma.vehicleType.upsert({
-      where: { name: 'Minivan' },
-      update: {},
-      create: { name: 'Minivan', seatCapacity: 7 },
-    });
+      // Create sample vehicle types
+      const sedanType = await prisma.vehicleType.upsert({
+        where: { name: 'Sedan' },
+        update: {},
+        create: { name: 'Sedan', seatCapacity: 3 },
+      });
 
-    const coasterType = await prisma.vehicleType.upsert({
-      where: { name: 'Coaster' },
-      update: {},
-      create: { name: 'Coaster', seatCapacity: 25 },
-    });
+      const minivanType = await prisma.vehicleType.upsert({
+        where: { name: 'Minivan' },
+        update: {},
+        create: { name: 'Minivan', seatCapacity: 7 },
+      });
 
-    const busType = await prisma.vehicleType.upsert({
-      where: { name: 'Bus' },
-      update: {},
-      create: { name: 'Bus', seatCapacity: 49 },
-    });
+      const coasterType = await prisma.vehicleType.upsert({
+        where: { name: 'Coaster' },
+        update: {},
+        create: { name: 'Coaster', seatCapacity: 25 },
+      });
 
-    console.log(`Vehicle types seeded: ${sedanType.name}, ${minivanType.name}, ${coasterType.name}, ${busType.name}`);
+      const busType = await prisma.vehicleType.upsert({
+        where: { name: 'Bus' },
+        update: {},
+        create: { name: 'Bus', seatCapacity: 49 },
+      });
 
-    // ─── SEED AGENT PRICE LIST ───
-    const allAgents = await prisma.agent.findMany({ where: { deletedAt: null } });
-    const allZones = await prisma.zone.findMany();
-    const allVehicleTypes = [sedanType, minivanType, coasterType, busType];
-    const serviceTypes = ['ARR', 'DEP'];
+      console.log(`Vehicle types seeded: ${sedanType.name}, ${minivanType.name}, ${coasterType.name}, ${busType.name}`);
 
-    let agentPriceCount = 0;
-    for (const agent of allAgents) {
-      for (const fromZone of allZones) {
-        for (const toZone of allZones) {
-          if (fromZone.id === toZone.id) continue;
-          for (const vt of allVehicleTypes) {
-            for (const st of serviceTypes) {
-              await prisma.agentPriceItem.upsert({
-                where: {
-                  agentId_serviceType_fromZoneId_toZoneId_vehicleTypeId: {
+      // ─── SEED AGENT PRICE LIST ───
+      const allAgents = await prisma.agent.findMany({ where: { deletedAt: null } });
+      const allZones = await prisma.zone.findMany();
+      const allVehicleTypes = [sedanType, minivanType, coasterType, busType];
+      const serviceTypes = ['ARR', 'DEP'];
+
+      let agentPriceCount = 0;
+      for (const agent of allAgents) {
+        for (const fromZone of allZones) {
+          for (const toZone of allZones) {
+            if (fromZone.id === toZone.id) continue;
+            for (const vt of allVehicleTypes) {
+              for (const st of serviceTypes) {
+                await prisma.agentPriceItem.upsert({
+                  where: {
+                    agentId_serviceType_fromZoneId_toZoneId_vehicleTypeId: {
+                      agentId: agent.id,
+                      serviceType: st as any,
+                      fromZoneId: fromZone.id,
+                      toZoneId: toZone.id,
+                      vehicleTypeId: vt.id,
+                    },
+                  },
+                  update: {},
+                  create: {
                     agentId: agent.id,
                     serviceType: st as any,
                     fromZoneId: fromZone.id,
                     toZoneId: toZone.id,
                     vehicleTypeId: vt.id,
+                    price: 10,
+                    driverTip: 0,
+                    boosterSeatPrice: 5,
+                    babySeatPrice: 5,
+                    wheelChairPrice: 5,
                   },
-                },
-                update: {},
-                create: {
-                  agentId: agent.id,
-                  serviceType: st as any,
-                  fromZoneId: fromZone.id,
-                  toZoneId: toZone.id,
-                  vehicleTypeId: vt.id,
-                  price: 10,
-                  driverTip: 0,
-                  boosterSeatPrice: 5,
-                  babySeatPrice: 5,
-                  wheelChairPrice: 5,
-                },
-              });
-              agentPriceCount++;
+                });
+                agentPriceCount++;
+              }
             }
           }
         }
       }
+      console.log(`Agent price items seeded: ${agentPriceCount} items for ${allAgents.length} agents`);
     }
-    console.log(`Agent price items seeded: ${agentPriceCount} items for ${allAgents.length} agents`);
 
     console.log('\nSeed completed successfully.');
   } finally {
