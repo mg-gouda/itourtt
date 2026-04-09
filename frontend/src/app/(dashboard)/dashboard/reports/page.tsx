@@ -681,7 +681,7 @@ export default function ReportsPage() {
   const downloadDriverEvidencePdf = async (job: JobStatusReport["jobs"][number]) => {
     setEvidencePdfLoading((prev) => new Set(prev).add(job.id));
     try {
-      const res = await api.get(`/export/evidence-pdf/${job.id}`, { responseType: "blob" });
+      const res = await api.get(`/export/odoo/evidence-pdf/${job.id}`, { responseType: "blob" });
       downloadBlob(res.data, `evidence_${job.internalRef}.pdf`);
     } catch {
       toast.error("Failed to generate evidence PDF");
@@ -709,7 +709,7 @@ export default function ReportsPage() {
   const generateEvidencePdf = async (row: EvidenceReportRow) => {
     setEvidencePdfLoading((prev) => new Set(prev).add(row.jobId));
     try {
-      const res = await api.get(`/export/evidence-pdf/${row.jobId}`, { responseType: "blob" });
+      const res = await api.get(`/export/odoo/evidence-pdf/${row.jobId}`, { responseType: "blob" });
       downloadBlob(res.data, `evidence_${row.internalRef}.pdf`);
     } catch {
       toast.error("Failed to generate evidence PDF");
