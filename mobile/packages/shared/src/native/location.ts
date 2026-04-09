@@ -28,13 +28,37 @@ export async function requestLocationPermission(): Promise<boolean> {
 
 /**
  * Get current GPS position (one-shot).
+ * Stage 1: high-accuracy GPS (30s). Stage 2: network/WiFi fallback (10s).
+ * Handles Android cold-start delays on budget devices.
  */
-export async function getCurrentPosition(timeout = 15000): Promise<GPSPosition> {
+export async function getCurrentPosition(timeout = 30000): Promise<GPSPosition> {
   const hasPermission = await requestLocationPermission();
   if (!hasPermission) {
     throw new Error('Location permission denied');
   }
 
+  try {
+    return await _getPosition({ enableHighAccuracy: true, timeout, maximumAge: 30000 });
+  } catch (error: any) {
+    // Only fall back on timeout; propagate permission/unavailable errors immediately
+    if (error?.code !== 3) {
+      throw _mapPositionError(error);
+    }
+  }
+
+  // Stage 2: network/WiFi location — faster fix, lower accuracy
+  try {
+    return await _getPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+  } catch (error: any) {
+    throw _mapPositionError(error);
+  }
+}
+
+function _getPosition(options: {
+  enableHighAccuracy: boolean;
+  timeout: number;
+  maximumAge: number;
+}): Promise<GPSPosition> {
   return new Promise((resolve, reject) => {
     Geolocation.getCurrentPosition(
       (position) => {
@@ -45,28 +69,23 @@ export async function getCurrentPosition(timeout = 15000): Promise<GPSPosition> 
           timestamp: position.timestamp,
         });
       },
-      (error) => {
-        switch (error.code) {
-          case 1:
-            reject(new Error('Location permission denied. Please enable GPS access.'));
-            break;
-          case 2:
-            reject(new Error('Location unavailable. Please check your GPS settings.'));
-            break;
-          case 3:
-            reject(new Error('Location request timed out. Please try again.'));
-            break;
-          default:
-            reject(new Error('Unable to get location'));
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout,
-        maximumAge: 30000,
-      },
+      (error) => reject(error),
+      options,
     );
   });
+}
+
+function _mapPositionError(error: any): Error {
+  switch (error?.code) {
+    case 1:
+      return new Error('Location permission denied. Please enable GPS access.');
+    case 2:
+      return new Error('Location unavailable. Please check your GPS settings.');
+    case 3:
+      return new Error('Location request timed out. Please try again later.');
+    default:
+      return new Error('Unable to get location');
+  }
 }
 
 /**
