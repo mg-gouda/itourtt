@@ -73,14 +73,14 @@ deploy_env() {
   kubectl scale deployment/backend --replicas=3 -n "$ns" 2>&1 || true
   kubectl scale deployment/frontend --replicas=3 -n "$ns" 2>&1 || true
 
-  # Run seed (upserts — safe to re-run; permissions & system params are NOT overwritten)
-  echo ">> Running database seed (permissions + system params skipped)..."
-  kubectl exec -n "$ns" deployment/backend -- env SKIP_PERMISSION_SEED=true SKIP_SYSTEM_PARAMS_SEED=true node dist/src/prisma/seed.js 2>&1 || true
-
-  # Restart backend
+  # Restart backend first — seed must run on the NEW image
   echo ">> Rolling out backend..."
   kubectl rollout restart deployment/backend -n "$ns"
   kubectl rollout status deployment/backend -n "$ns" --timeout=120s
+
+  # Run seed AFTER rollout so it executes on the new image
+  echo ">> Running database seed (permissions + system params skipped)..."
+  kubectl exec -n "$ns" deployment/backend -- env SKIP_PERMISSION_SEED=true SKIP_SYSTEM_PARAMS_SEED=true node dist/src/prisma/seed.js 2>&1 || true
 
   # Restart frontend
   echo ">> Rolling out frontend..."
