@@ -469,6 +469,7 @@ export default function ReportsPage() {
   const [jobStatusLoading, setJobStatusLoading] = useState(false);
   const jobStatusPrintRef = useRef<HTMLDivElement>(null);
   const [jobDetailId, setJobDetailId] = useState<string | null>(null);
+  const [evidencePdfLoading, setEvidencePdfLoading] = useState<Set<string>>(new Set());
 
   // Rep Score
   const [repScoreFrom, setRepScoreFrom] = useState(thirtyDaysAgo);
@@ -677,84 +678,16 @@ export default function ReportsPage() {
 
   const exportJobStatusPdf = () => printFromRef(jobStatusPrintRef, `Job Status Report - ${jobStatusFrom} to ${jobStatusTo}`);
 
-  const downloadDriverEvidencePdf = (job: JobStatusReport["jobs"][number]) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    const now = new Date().toLocaleString();
-    const userName = user?.name || "System";
-    const logoHtml = logoUrl
-      ? `<img src="${logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
-      : `<span style="font-size:18px;font-weight:700;">${companyName}</span>`;
-
-    const renderEvidence = (items: EvidenceItem[], label: string) => {
-      if (!items.length) return "";
-      return items.map((ev) => `
-        <div class="ev-section">
-          <div class="ev-meta">
-            <strong>${label}</strong> &nbsp;|&nbsp;
-            Submitted by: ${ev.submittedBy} &nbsp;|&nbsp;
-            Date: ${new Date(ev.createdAt).toLocaleString()} &nbsp;|&nbsp;
-            ${ev.gpsMapLink ? `<a href="${ev.gpsMapLink}" target="_blank">GPS Map</a>` : "No GPS"}
-          </div>
-          <div class="img-grid">
-            ${ev.imageUrls.map((url) => `<img src="${url}" class="ev-img" />`).join("")}
-          </div>
-        </div>
-      `).join("");
-    };
-
-    const evidenceHtml = renderEvidence(job.driverEvidence, "Driver In-Place Evidence");
-
-    printWindow.document.write(`
-      <html><head><title>Driver Evidence – ${job.internalRef}</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
-        .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111; }
-        .report-title { font-size: 20px; font-weight: 700; text-align: center; flex: 1; }
-        .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: #f0f0f0; padding: 5px 8px; margin: 16px 0 8px; border-left: 3px solid #333; }
-        .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 20px; margin-bottom: 12px; font-size: 12px; }
-        .detail-grid dt { color: #666; margin: 0; }
-        .detail-grid dd { font-weight: 600; margin: 0; }
-        .ev-section { margin-bottom: 20px; page-break-inside: avoid; }
-        .ev-meta { font-size: 12px; margin-bottom: 8px; padding: 6px 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
-        .ev-meta a { color: #1a56db; }
-        .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .ev-img { width: 100%; max-height: 220px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
-        .no-evidence { color: #888; font-style: italic; font-size: 13px; padding: 12px 0; }
-        .report-footer { display: flex; justify-content: space-between; margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #555; }
-        @media print { body { padding: 0; } .report-footer { position: fixed; bottom: 20px; left: 20px; right: 20px; } }
-      </style></head><body>
-      <div class="report-header">
-        <div>${logoHtml}</div>
-        <div class="report-title">Driver Evidence Report</div>
-        <div style="width:160px;text-align:right;font-size:11px;color:#666;">${new Date(job.serviceDate).toLocaleDateString()}</div>
-      </div>
-
-      <div class="section-title">Job Details</div>
-      <dl class="detail-grid">
-        <dt>Job Ref</dt><dd>${job.internalRef}</dd>
-        <dt>Agent Name</dt><dd>${job.agentName ?? "—"}</dd>
-        <dt>Agent Ref</dt><dd>${job.agentRef ?? "—"}</dd>
-        <dt>Service Date</dt><dd>${new Date(job.serviceDate).toLocaleDateString()}</dd>
-        <dt>Driver</dt><dd>${job.driverName ?? "—"}</dd>
-        <dt>Rep</dt><dd>${job.repName ?? "—"}</dd>
-        <dt>Job Status</dt><dd>${job.status}</dd>
-        <dt>Driver Status</dt><dd>${job.driverJobStatus ?? "—"}</dd>
-        <dt>Rep Status</dt><dd>${job.repJobStatus ?? "—"}</dd>
-      </dl>
-
-      <div class="section-title">Driver Evidence</div>
-      ${evidenceHtml || '<p class="no-evidence">No driver evidence submitted for this job.</p>'}
-
-      <div class="report-footer">
-        <span>Issued By: ${userName}</span>
-        <span>Issued on ${now}</span>
-      </div>
-      </body></html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  const downloadDriverEvidencePdf = async (job: JobStatusReport["jobs"][number]) => {
+    setEvidencePdfLoading((prev) => new Set(prev).add(job.id));
+    try {
+      const res = await api.get(`/export/evidence-pdf/${job.id}`, { responseType: "blob" });
+      downloadBlob(res.data, `evidence_${job.internalRef}.pdf`);
+    } catch {
+      toast.error("Failed to generate evidence PDF");
+    } finally {
+      setEvidencePdfLoading((prev) => { const s = new Set(prev); s.delete(job.id); return s; });
+    }
   };
 
   const fetchEvidenceReport = async () => {
@@ -773,127 +706,16 @@ export default function ReportsPage() {
     }
   };
 
-  const generateEvidencePdf = (row: EvidenceReportRow) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) { toast.error(t("reports.allowPopups")); return; }
-    const now = new Date().toLocaleString();
-    const userName = user?.name || "System";
-    const logoHtml = logoUrl
-      ? `<img src="${logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
-      : `<span style="font-size:18px;font-weight:700;">${companyName}</span>`;
-
-    const origin = row.originAirport
-      ? `${row.originAirport.name} (${row.originAirport.code})`
-      : row.originHotel?.name ?? row.fromZone?.name ?? "—";
-    const destination = row.destinationAirport
-      ? `${row.destinationAirport.name} (${row.destinationAirport.code})`
-      : row.destinationHotel?.name ?? row.toZone?.name ?? "—";
-
-    const driverName = row.assignment?.driver?.name ?? null;
-    const repName = row.assignment?.rep?.name ?? null;
-
-    const renderEvidence = (items: EvidenceItem[], sectionLabel: string) => {
-      if (!items.length) return "";
-      return `<div class="section-title">${sectionLabel}</div>` +
-        items.map((ev) => `
-          <div class="ev-section">
-            <div class="ev-meta">
-              Submitted by: <strong>${ev.submittedBy}</strong> &nbsp;|&nbsp;
-              Date: ${new Date(ev.createdAt).toLocaleString("en-GB", { timeZone: "Africa/Cairo" })} &nbsp;|&nbsp;
-              ${ev.gpsMapLink ? `<a href="${ev.gpsMapLink}" target="_blank">📍 GPS Map</a>` : "No GPS"}
-            </div>
-            <div class="img-grid">
-              ${ev.imageUrls.map((url) => `<img src="${url}" class="ev-img" crossorigin="anonymous" />`).join("")}
-            </div>
-          </div>
-        `).join("");
-    };
-
-    // Split evidence by submitted party
-    const repEvidence = [
-      ...row.inPlaceEvidence.filter((e) => repName && e.submittedBy === repName),
-      ...row.noShowEvidence,
-    ];
-    const driverEvidence = [
-      ...row.inPlaceEvidence.filter((e) => driverName && e.submittedBy === driverName),
-      ...row.completedEvidence,
-      // fallback: items not attributed to rep go under driver
-      ...row.inPlaceEvidence.filter((e) => (!repName || e.submittedBy !== repName) && (!driverName || e.submittedBy !== driverName)),
-    ];
-
-    const repSection = renderEvidence(repEvidence, "Rep Evidence");
-    const driverSection = renderEvidence(driverEvidence, "Driver Evidence");
-    const allEvidence = repSection + driverSection;
-
-    const flightRow = row.flight
-      ? `<tr><th>Flight</th><td>${row.flight.carrier ?? ""} ${row.flight.flightNo}${row.flight.terminal ? ` / T${row.flight.terminal}` : ""}</td></tr>`
-      : "";
-
-    printWindow.document.write(`
-      <html><head><title>Evidence – ${row.internalRef}</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
-        .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111; }
-        .report-title { font-size: 20px; font-weight: 700; text-align: center; flex: 1; }
-        .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: #f0f0f0; padding: 5px 8px; margin: 16px 0 8px; border-left: 3px solid #333; }
-        .detail-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
-        .detail-table th { text-align: left; color: #666; font-weight: 400; padding: 4px 8px; border: 1px solid #e0e0e0; background: #fafafa; width: 130px; white-space: nowrap; }
-        .detail-table td { font-weight: 600; padding: 4px 8px; border: 1px solid #e0e0e0; }
-        .ev-section { margin-bottom: 20px; page-break-inside: avoid; }
-        .ev-meta { font-size: 12px; margin-bottom: 8px; padding: 6px 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
-        .ev-meta a { color: #1a56db; }
-        .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .ev-img { width: 100%; max-height: 220px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
-        .no-evidence { color: #888; font-style: italic; font-size: 13px; padding: 12px 0; }
-        .report-footer { display: flex; justify-content: space-between; margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #555; }
-        @media print { body { padding: 0; } .report-footer { position: fixed; bottom: 20px; left: 20px; right: 20px; } }
-      </style></head><body>
-      <div class="report-header">
-        <div>${logoHtml}</div>
-        <div class="report-title">Job Evidence Report</div>
-        <div style="width:160px;text-align:right;font-size:11px;color:#666;">${new Date(row.jobDate).toLocaleDateString("en-GB")}</div>
-      </div>
-
-      <div class="section-title">Job Details</div>
-      <table class="detail-table">
-        <tr><th>Job Ref</th><td>${row.internalRef}</td></tr>
-        <tr><th>Agent Name</th><td>${row.agentName ?? "—"}</td></tr>
-        <tr><th>Agent Ref</th><td>${row.agentRef ?? "—"}</td></tr>
-        <tr><th>Date</th><td>${new Date(row.jobDate).toLocaleDateString("en-GB")}</td></tr>
-        <tr><th>Service Type</th><td>${row.serviceType}</td></tr>
-        <tr><th>Status</th><td>${row.status}</td></tr>
-        <tr><th>Pax Count</th><td>${row.paxCount}</td></tr>
-        <tr><th>Client</th><td>${row.clientName ?? "—"}</td></tr>
-        <tr><th>Route</th><td>${origin} → ${destination}</td></tr>
-        <tr><th>Vehicle</th><td>${row.assignment?.vehicle?.plateNumber ?? "—"}</td></tr>
-        <tr><th>Driver</th><td>${driverName ?? "—"}</td></tr>
-        <tr><th>Rep</th><td>${repName ?? "—"}</td></tr>
-        ${flightRow}
-      </table>
-
-      ${allEvidence || '<p class="no-evidence">No evidence submitted for this job.</p>'}
-
-      <div class="report-footer">
-        <span>Issued By: ${userName}</span>
-        <span>Issued on ${now}</span>
-      </div>
-      <script>
-        (function() {
-          var imgs = document.getElementsByTagName('img');
-          var total = imgs.length;
-          if (total === 0) { window.print(); window.close(); return; }
-          var done = 0;
-          function check() { done++; if (done >= total) { window.print(); window.close(); } }
-          for (var i = 0; i < total; i++) {
-            if (imgs[i].complete) { check(); }
-            else { imgs[i].onload = check; imgs[i].onerror = check; }
-          }
-        })();
-      </script>
-      </body></html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
+  const generateEvidencePdf = async (row: EvidenceReportRow) => {
+    setEvidencePdfLoading((prev) => new Set(prev).add(row.jobId));
+    try {
+      const res = await api.get(`/export/evidence-pdf/${row.jobId}`, { responseType: "blob" });
+      downloadBlob(res.data, `evidence_${row.internalRef}.pdf`);
+    } catch {
+      toast.error("Failed to generate evidence PDF");
+    } finally {
+      setEvidencePdfLoading((prev) => { const s = new Set(prev); s.delete(row.jobId); return s; });
+    }
   };
 
   const fetchRepScore = async () => {
@@ -2258,10 +2080,11 @@ export default function ReportsPage() {
                               <button
                                 type="button"
                                 onClick={() => downloadDriverEvidencePdf(job)}
-                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                disabled={evidencePdfLoading.has(job.id)}
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50 disabled:cursor-wait"
                               >
                                 <Printer className="h-3.5 w-3.5" />
-                                PDF
+                                {evidencePdfLoading.has(job.id) ? "Generating…" : "PDF"}
                               </button>
                             ) : (
                               <span className="text-muted-foreground text-xs">\u2014</span>
@@ -2616,9 +2439,10 @@ export default function ReportsPage() {
                                   variant="outline"
                                   className="gap-1.5 h-7 text-xs border-border text-foreground"
                                   onClick={() => generateEvidencePdf(row)}
+                                  disabled={evidencePdfLoading.has(row.jobId)}
                                 >
                                   <Camera className="h-3 w-3" />
-                                  {totalImages} photo{totalImages !== 1 ? "s" : ""}
+                                  {evidencePdfLoading.has(row.jobId) ? "Generating…" : `${totalImages} photo${totalImages !== 1 ? "s" : ""}`}
                                 </Button>
                               ) : (
                                 <span className="text-xs text-muted-foreground">—</span>

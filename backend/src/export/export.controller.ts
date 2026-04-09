@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param, Res, UseGuards, BadRequestException, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Query, Param, Res, UseGuards, BadRequestException, NotFoundException, ParseUUIDPipe, InternalServerErrorException } from '@nestjs/common';
 import * as express from 'express';
 import { ExportService } from './export.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -186,6 +186,26 @@ export class ExportController {
   async exportVehicleCompliance(@Res() res: express.Response) {
     const buffer = await this.exportService.exportVehicleCompliance();
     this.sendXlsx(res, buffer, 'vehicle_compliance');
+  }
+
+  @Get('evidence-pdf/:jobId')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  async downloadEvidencePdf(
+    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Res() res: express.Response,
+  ) {
+    try {
+      const buffer = await this.exportService.generateJobEvidencePdf(jobId);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="evidence_${jobId}.pdf"`,
+        'Content-Length': buffer.length.toString(),
+      });
+      res.end(buffer);
+    } catch (err: any) {
+      if (err?.status === 404) throw new NotFoundException(err.message);
+      throw new InternalServerErrorException('Failed to generate evidence PDF');
+    }
   }
 
   private sendXlsx(res: express.Response, buffer: Buffer, filename: string) {

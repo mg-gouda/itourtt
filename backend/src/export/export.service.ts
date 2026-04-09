@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as XLSX from 'xlsx';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
@@ -669,6 +669,277 @@ export class ExportService {
 
     const pdfBytes = await pdfDoc.save();
     return Buffer.from(pdfBytes);
+  }
+
+  // ─────────────────────────────────────────────
+  // JOB EVIDENCE PDF (server-side, no browser needed)
+  // ─────────────────────────────────────────────
+
+  async generateJobEvidencePdf(jobId: string): Promise<Buffer> {
+    /** Replace characters outside WinAnsi so pdf-lib StandardFonts don't crash */
+    const s = (text: string | null | undefined): string => {
+      if (!text) return '-';
+      return (text + '')
+        .replace(/\u2192/g, '>').replace(/\u2014/g, '-').replace(/\u2013/g, '-')
+        .replace(/\u2026/g, '...').replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2018\u2019]/g, "'").replace(/[^\x00-\xFF]/g, '?');
+    };
+
+    const [settings, job] = await Promise.all([
+      this.prisma.companySettings.findFirst(),
+      this.prisma.trafficJob.findUnique({
+        where: { id: jobId },
+        include: {
+          agent: true,
+          assignment: { include: { vehicle: true, driver: true, rep: true } },
+          flight: true,
+          fromZone: true,
+          toZone: true,
+          originAirport: true,
+          destinationAirport: true,
+          originHotel: true,
+          destinationHotel: true,
+          noShowEvidence: { orderBy: { createdAt: 'asc' } },
+          inPlaceEvidence: { orderBy: { createdAt: 'asc' } },
+          completedEvidence: { orderBy: { createdAt: 'asc' } },
+        },
+      }),
+    ]);
+
+    if (!job) throw new NotFoundException('Job not found');
+
+    const pdfDoc = await PDFDocument.create();
+    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    const PW = 595, PH = 842, M = 36, CW = PW - 2 * M;
+    const black = rgb(0, 0, 0);
+    const grayC = rgb(0.5, 0.5, 0.5);
+    const lightBg = rgb(0.95, 0.95, 0.95);
+    const darkText = rgb(0.2, 0.2, 0.2);
+
+    // Load company logo
+    let logoImg: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
+    if (settings?.logoUrl) {
+      try {
+        const lp = path.join(process.cwd(), settings.logoUrl.replace(/^\//, ''));
+        const lb = fs.readFileSync(lp);
+        logoImg = settings.logoUrl.toLowerCase().endsWith('.png')
+          ? await pdfDoc.embedPng(lb)
+          : await pdfDoc.embedJpg(lb);
+      } catch { /* no logo — continue */ }
+    }
+
+    // Page cursor helpers
+    let page = pdfDoc.addPage([PW, PH]);
+    let y = PH - M;
+
+    const newPage = () => { page = pdfDoc.addPage([PW, PH]); y = PH - M; };
+    const need = (h: number) => { if (y - h < M + 24) newPage(); };
+
+    const truncate = (text: string, font: typeof bold, size: number, maxW: number): string => {
+      if (font.widthOfTextAtSize(text, size) <= maxW) return text;
+      let t = text;
+      while (t.length > 3 && font.widthOfTextAtSize(t + '...', size) > maxW) t = t.slice(0, -1);
+      return t + '...';
+    };
+
+    // ── HEADER ──
+    if (logoImg) {
+      const d = logoImg.scale(1);
+      const sc = Math.min(120 / d.width, 40 / d.height, 1);
+      page.drawImage(logoImg, { x: M, y: y - d.height * sc, width: d.width * sc, height: d.height * sc });
+    } else {
+      page.drawText(s(settings?.companyName ?? 'iTour'), { x: M, y: y - 12, size: 11, font: bold, color: black });
+    }
+
+    const title = 'Job Evidence Report';
+    const tw = bold.widthOfTextAtSize(title, 15);
+    page.drawText(title, { x: (PW - tw) / 2, y: y - 18, size: 15, font: bold, color: black });
+
+    const dateStr = new Date(job.jobDate).toLocaleDateString('en-GB');
+    const dw = regular.widthOfTextAtSize(dateStr, 9);
+    page.drawText(dateStr, { x: PW - M - dw, y: y - 12, size: 9, font: regular, color: grayC });
+
+    y -= 52;
+    page.drawLine({ start: { x: M, y }, end: { x: PW - M, y }, thickness: 1, color: black });
+    y -= 14;
+
+    // ── SECTION HEADER ──
+    const drawSectionHeader = (label: string) => {
+      need(22);
+      page.drawRectangle({ x: M, y: y - 16, width: CW, height: 16, color: lightBg });
+      page.drawRectangle({ x: M, y: y - 16, width: 3, height: 16, color: darkText });
+      page.drawText(label.toUpperCase(), { x: M + 8, y: y - 11, size: 7.5, font: bold, color: darkText });
+      y -= 22;
+    };
+
+    // ── JOB DETAILS ──
+    drawSectionHeader('Job Details');
+
+    const origin = job.originAirport
+      ? `${job.originAirport.name} (${job.originAirport.code})`
+      : (job.originHotel?.name ?? job.fromZone?.name ?? '—');
+    const dest = job.destinationAirport
+      ? `${job.destinationAirport.name} (${job.destinationAirport.code})`
+      : (job.destinationHotel?.name ?? job.toZone?.name ?? '—');
+
+    const details: [string, string][] = [
+      ['Job Ref',      s(job.internalRef)],
+      ['Agent',        s(job.agent?.legalName)],
+      ['Agent Ref',    s(job.agentRef)],
+      ['Date',         dateStr],
+      ['Service Type', s(job.serviceType)],
+      ['Status',       s(job.status)],
+      ['Pax Count',    String(job.paxCount)],
+      ['Client',       s(job.clientName)],
+      ['Route',        s(`${origin} > ${dest}`)],
+      ['Vehicle',      s(job.assignment?.vehicle?.plateNumber)],
+      ['Driver',       s(job.assignment?.driver?.name)],
+      ['Rep',          s(job.assignment?.rep?.name)],
+    ];
+    if (job.flight) {
+      details.push(['Flight', s(`${job.flight.carrier ?? ''} ${job.flight.flightNo}`.trim())]);
+    }
+
+    const ROW_H = 17;
+    const COL_W = CW / 2;
+    const KEY_W = 62;
+
+    for (let i = 0; i < details.length; i += 2) {
+      need(ROW_H + 2);
+      const bg = Math.floor(i / 2) % 2 === 0 ? rgb(0.97, 0.97, 0.97) : rgb(1, 1, 1);
+      page.drawRectangle({ x: M, y: y - ROW_H, width: CW, height: ROW_H, color: bg });
+
+      for (let c = 0; c < 2; c++) {
+        const idx = i + c;
+        if (idx >= details.length) break;
+        const [key, val] = details[idx];
+        const xBase = M + c * COL_W;
+        page.drawText(key + ':', {
+          x: xBase + 4, y: y - ROW_H + 5,
+          size: 7.5, font: regular, color: grayC,
+        });
+        page.drawText(truncate(s(val), bold, 8, COL_W - KEY_W - 8), {
+          x: xBase + KEY_W, y: y - ROW_H + 5,
+          size: 8, font: bold, color: black,
+        });
+      }
+      y -= ROW_H;
+    }
+    y -= 10;
+
+    // ── EVIDENCE SECTIONS ──
+    const driverName = job.assignment?.driver?.name ?? null;
+    const repName    = job.assignment?.rep?.name    ?? null;
+
+    const repEvidence = [
+      ...job.inPlaceEvidence.filter(e => repName    && e.submittedBy === repName),
+      ...job.noShowEvidence,
+    ];
+    const driverEvidence = [
+      ...job.inPlaceEvidence.filter(e => driverName && e.submittedBy === driverName),
+      ...job.completedEvidence,
+      // fallback: items not attributed to either party go under driver
+      ...job.inPlaceEvidence.filter(
+        e => (!repName || e.submittedBy !== repName) && (!driverName || e.submittedBy !== driverName),
+      ),
+    ];
+
+    const IMG_COLS = 3;
+    const IMG_GAP  = 6;
+    const IMG_W    = (CW - IMG_GAP * (IMG_COLS - 1)) / IMG_COLS;
+    const IMG_H    = 115;
+
+    const embedImage = async (rawUrl: string) => {
+      const imgPath = path.join(process.cwd(), rawUrl.replace(/^\//, ''));
+      const imgBytes = fs.readFileSync(imgPath);
+      return rawUrl.toLowerCase().includes('.png')
+        ? pdfDoc.embedPng(imgBytes)
+        : pdfDoc.embedJpg(imgBytes);
+    };
+
+    const drawEvidenceGroup = async (label: string, items: typeof repEvidence) => {
+      if (!items.length) return;
+      drawSectionHeader(label);
+
+      for (const ev of items) {
+        const metaDate = new Date(ev.createdAt).toLocaleString('en-GB', { timeZone: 'Africa/Cairo' });
+        const meta = truncate(
+          s(`Submitted by: ${ev.submittedBy}   |   ${metaDate}`),
+          regular, 7.5, CW - 10,
+        );
+        need(22);
+        page.drawRectangle({ x: M, y: y - 18, width: CW, height: 18, color: lightBg });
+        page.drawText(meta, { x: M + 5, y: y - 12.5, size: 7.5, font: regular, color: darkText });
+        y -= 24;
+
+        const imageUrls: string[] = ev.imageUrls ?? [];
+        for (let i = 0; i < imageUrls.length; i += IMG_COLS) {
+          need(IMG_H + IMG_GAP + 4);
+          const row = imageUrls.slice(i, i + IMG_COLS);
+          let rowH = 0;
+
+          for (let c = 0; c < row.length; c++) {
+            const rawUrl = row[c];
+            const xBase  = M + c * (IMG_W + IMG_GAP);
+            try {
+              const embedded = await embedImage(rawUrl);
+              const d  = embedded.scale(1);
+              const sc = Math.min(IMG_W / d.width, IMG_H / d.height);
+              const iw = d.width  * sc;
+              const ih = d.height * sc;
+              rowH = Math.max(rowH, ih);
+              const ix = xBase + (IMG_W - iw) / 2;
+              page.drawImage(embedded, { x: ix, y: y - ih, width: iw, height: ih });
+              page.drawRectangle({
+                x: ix - 1, y: y - ih - 1, width: iw + 2, height: ih + 2,
+                borderColor: rgb(0.78, 0.78, 0.78), borderWidth: 0.5,
+              });
+            } catch {
+              rowH = Math.max(rowH, IMG_H);
+              page.drawRectangle({ x: xBase, y: y - IMG_H, width: IMG_W, height: IMG_H, color: rgb(0.9, 0.9, 0.9) });
+              page.drawText('Image unavailable', { x: xBase + 4, y: y - IMG_H / 2, size: 8, font: regular, color: grayC });
+            }
+          }
+          y -= (rowH + IMG_GAP);
+        }
+        y -= 6;
+      }
+    };
+
+    await drawEvidenceGroup('Rep Evidence', repEvidence);
+    await drawEvidenceGroup('Driver Evidence', driverEvidence);
+
+    if (!repEvidence.length && !driverEvidence.length) {
+      need(20);
+      page.drawText('No evidence submitted for this job.', {
+        x: M, y: y - 12, size: 10, font: regular, color: grayC,
+      });
+    }
+
+    // ── FOOTER on every page ──
+    const now       = new Date().toLocaleString('en-GB', { timeZone: 'Africa/Cairo' });
+    const compName  = s(settings?.companyName ?? 'iTour');
+    const totalPgs  = pdfDoc.getPageCount();
+    const footerY   = M + 4;
+
+    for (let p = 0; p < totalPgs; p++) {
+      const pg  = pdfDoc.getPage(p);
+      const pgW = pg.getWidth();
+      pg.drawLine({
+        start: { x: M, y: footerY + 12 }, end: { x: pgW - M, y: footerY + 12 },
+        thickness: 0.5, color: rgb(0.75, 0.75, 0.75),
+      });
+      pg.drawText(compName, { x: M, y: footerY, size: 7, font: regular, color: grayC });
+      const fr = `Issued on ${s(now)}`;
+      pg.drawText(fr, { x: pgW - M - regular.widthOfTextAtSize(fr, 7), y: footerY, size: 7, font: regular, color: grayC });
+      const pn  = `Page ${p + 1} of ${totalPgs}`;
+      const pnw = regular.widthOfTextAtSize(pn, 7);
+      pg.drawText(pn, { x: (pgW - pnw) / 2, y: footerY, size: 7, font: regular, color: grayC });
+    }
+
+    return Buffer.from(await pdfDoc.save());
   }
 
   // ─────────────────────────────────────────────
