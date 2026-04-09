@@ -618,50 +618,7 @@ async function main() {
 
       console.log(`Vehicle types seeded: ${sedanType.name}, ${minivanType.name}, ${coasterType.name}, ${busType.name}`);
 
-      // ─── SEED AGENT PRICE LIST ───
-      const allAgents = await prisma.agent.findMany({ where: { deletedAt: null } });
-      const allZones = await prisma.zone.findMany();
-      const allVehicleTypes = [sedanType, minivanType, coasterType, busType];
-      const serviceTypes = ['ARR', 'DEP'];
-
-      let agentPriceCount = 0;
-      for (const agent of allAgents) {
-        for (const fromZone of allZones) {
-          for (const toZone of allZones) {
-            if (fromZone.id === toZone.id) continue;
-            for (const vt of allVehicleTypes) {
-              for (const st of serviceTypes) {
-                await prisma.agentPriceItem.upsert({
-                  where: {
-                    agentId_serviceType_fromZoneId_toZoneId_vehicleTypeId: {
-                      agentId: agent.id,
-                      serviceType: st as any,
-                      fromZoneId: fromZone.id,
-                      toZoneId: toZone.id,
-                      vehicleTypeId: vt.id,
-                    },
-                  },
-                  update: {},
-                  create: {
-                    agentId: agent.id,
-                    serviceType: st as any,
-                    fromZoneId: fromZone.id,
-                    toZoneId: toZone.id,
-                    vehicleTypeId: vt.id,
-                    price: 10,
-                    driverTip: 0,
-                    boosterSeatPrice: 5,
-                    babySeatPrice: 5,
-                    wheelChairPrice: 5,
-                  },
-                });
-                agentPriceCount++;
-              }
-            }
-          }
-        }
-      }
-      console.log(`Agent price items seeded: ${agentPriceCount} items for ${allAgents.length} agents`);
+      console.log('Agent price seeding skipped (removed from default seed).');
     }
 
     console.log('\nSeed completed successfully.');
