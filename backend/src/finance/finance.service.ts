@@ -1164,7 +1164,7 @@ export class FinanceService {
         }
       }
 
-      return { ...job, suggestedUnitPrice };
+      return { ...job, suggestedUnitPrice, jobTransferPrice: job.transferPrice ? Number(job.transferPrice) : 0 };
     });
   }
 

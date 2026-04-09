@@ -790,6 +790,8 @@ export class ReportsService {
         time: j.serviceType === 'ARR' ? (j.flight?.arrivalTime ?? null) : (j.pickUpTime ?? null),
         priceAmount: j.priceAmount ? Number(j.priceAmount) : null,
         priceCurrency: j.priceCurrency,
+        transferPrice: j.transferPrice ? Number(j.transferPrice) : null,
+        transferPriceCurrency: j.transferPriceCurrency ?? null,
         status: j.status,
         repJobStatus: j.assignment?.repStatus || null,
         driverJobStatus: j.assignment?.driverStatus || null,

@@ -281,6 +281,8 @@ interface JobStatusReport {
     time: string | null;
     priceAmount: number | null;
     priceCurrency: string | null;
+    transferPrice: number | null;
+    transferPriceCurrency: string | null;
     status: string;
     repJobStatus: string | null;
     driverJobStatus: string | null;
@@ -787,27 +789,45 @@ export default function ReportsPage() {
       ? `${row.destinationAirport.name} (${row.destinationAirport.code})`
       : row.destinationHotel?.name ?? row.toZone?.name ?? "—";
 
-    const renderEvidence = (items: EvidenceItem[], label: string) => {
+    const driverName = row.assignment?.driver?.name ?? null;
+    const repName = row.assignment?.rep?.name ?? null;
+
+    const renderEvidence = (items: EvidenceItem[], sectionLabel: string) => {
       if (!items.length) return "";
-      return items.map((ev) => `
-        <div class="ev-section">
-          <div class="ev-meta">
-            <strong>${label}</strong> &nbsp;|&nbsp;
-            Submitted by: ${ev.submittedBy} &nbsp;|&nbsp;
-            Date: ${new Date(ev.createdAt).toLocaleString()} &nbsp;|&nbsp;
-            ${ev.gpsMapLink ? `<a href="${ev.gpsMapLink}" target="_blank">GPS Map</a>` : "No GPS"}
+      return `<div class="section-title">${sectionLabel}</div>` +
+        items.map((ev) => `
+          <div class="ev-section">
+            <div class="ev-meta">
+              Submitted by: <strong>${ev.submittedBy}</strong> &nbsp;|&nbsp;
+              Date: ${new Date(ev.createdAt).toLocaleString("en-GB", { timeZone: "Africa/Cairo" })} &nbsp;|&nbsp;
+              ${ev.gpsMapLink ? `<a href="${ev.gpsMapLink}" target="_blank">📍 GPS Map</a>` : "No GPS"}
+            </div>
+            <div class="img-grid">
+              ${ev.imageUrls.map((url) => `<img src="${url}" class="ev-img" crossorigin="anonymous" />`).join("")}
+            </div>
           </div>
-          <div class="img-grid">
-            ${ev.imageUrls.map((url) => `<img src="${url}" class="ev-img" />`).join("")}
-          </div>
-        </div>
-      `).join("");
+        `).join("");
     };
 
-    const allEvidence =
-      renderEvidence(row.inPlaceEvidence, "In-Place Evidence") +
-      renderEvidence(row.noShowEvidence, "No-Show Evidence") +
-      renderEvidence(row.completedEvidence, "Completed Evidence");
+    // Split evidence by submitted party
+    const repEvidence = [
+      ...row.inPlaceEvidence.filter((e) => repName && e.submittedBy === repName),
+      ...row.noShowEvidence,
+    ];
+    const driverEvidence = [
+      ...row.inPlaceEvidence.filter((e) => driverName && e.submittedBy === driverName),
+      ...row.completedEvidence,
+      // fallback: items not attributed to rep go under driver
+      ...row.inPlaceEvidence.filter((e) => (!repName || e.submittedBy !== repName) && (!driverName || e.submittedBy !== driverName)),
+    ];
+
+    const repSection = renderEvidence(repEvidence, "Rep Evidence");
+    const driverSection = renderEvidence(driverEvidence, "Driver Evidence");
+    const allEvidence = repSection + driverSection;
+
+    const flightRow = row.flight
+      ? `<tr><th>Flight</th><td>${row.flight.carrier ?? ""} ${row.flight.flightNo}${row.flight.terminal ? ` / T${row.flight.terminal}` : ""}</td></tr>`
+      : "";
 
     printWindow.document.write(`
       <html><head><title>Evidence – ${row.internalRef}</title>
@@ -816,9 +836,9 @@ export default function ReportsPage() {
         .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111; }
         .report-title { font-size: 20px; font-weight: 700; text-align: center; flex: 1; }
         .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; background: #f0f0f0; padding: 5px 8px; margin: 16px 0 8px; border-left: 3px solid #333; }
-        .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 20px; margin-bottom: 12px; font-size: 12px; }
-        .detail-grid dt { color: #666; margin: 0; }
-        .detail-grid dd { font-weight: 600; margin: 0; }
+        .detail-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
+        .detail-table th { text-align: left; color: #666; font-weight: 400; padding: 4px 8px; border: 1px solid #e0e0e0; background: #fafafa; width: 130px; white-space: nowrap; }
+        .detail-table td { font-weight: 600; padding: 4px 8px; border: 1px solid #e0e0e0; }
         .ev-section { margin-bottom: 20px; page-break-inside: avoid; }
         .ev-meta { font-size: 12px; margin-bottom: 8px; padding: 6px 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
         .ev-meta a { color: #1a56db; }
@@ -831,38 +851,49 @@ export default function ReportsPage() {
       <div class="report-header">
         <div>${logoHtml}</div>
         <div class="report-title">Job Evidence Report</div>
-        <div style="width:160px;text-align:right;font-size:11px;color:#666;">${new Date(row.jobDate).toLocaleDateString()}</div>
+        <div style="width:160px;text-align:right;font-size:11px;color:#666;">${new Date(row.jobDate).toLocaleDateString("en-GB")}</div>
       </div>
 
       <div class="section-title">Job Details</div>
-      <dl class="detail-grid">
-        <dt>Job Ref</dt><dd>${row.internalRef}</dd>
-        <dt>Agent Name</dt><dd>${row.agentName ?? "—"}</dd>
-        <dt>Agent Ref</dt><dd>${row.agentRef ?? "—"}</dd>
-        <dt>Date</dt><dd>${new Date(row.jobDate).toLocaleDateString()}</dd>
-        <dt>Service Type</dt><dd>${row.serviceType}</dd>
-        <dt>Status</dt><dd>${row.status}</dd>
-        <dt>Pax Count</dt><dd>${row.paxCount}</dd>
-        <dt>Client</dt><dd>${row.clientName ?? "—"}</dd>
-        <dt>Route</dt><dd>${origin} → ${destination}</dd>
-        <dt>Vehicle</dt><dd>${row.assignment?.vehicle?.plateNumber ?? "—"}</dd>
-        <dt>Driver</dt><dd>${row.assignment?.driver?.name ?? "—"}</dd>
-        <dt>Rep</dt><dd>${row.assignment?.rep?.name ?? "—"}</dd>
-        ${row.flight ? `<dt>Flight</dt><dd>${row.flight.carrier} ${row.flight.flightNo}${row.flight.terminal ? ` / T${row.flight.terminal}` : ""}</dd>` : ""}
-      </dl>
+      <table class="detail-table">
+        <tr><th>Job Ref</th><td>${row.internalRef}</td></tr>
+        <tr><th>Agent Name</th><td>${row.agentName ?? "—"}</td></tr>
+        <tr><th>Agent Ref</th><td>${row.agentRef ?? "—"}</td></tr>
+        <tr><th>Date</th><td>${new Date(row.jobDate).toLocaleDateString("en-GB")}</td></tr>
+        <tr><th>Service Type</th><td>${row.serviceType}</td></tr>
+        <tr><th>Status</th><td>${row.status}</td></tr>
+        <tr><th>Pax Count</th><td>${row.paxCount}</td></tr>
+        <tr><th>Client</th><td>${row.clientName ?? "—"}</td></tr>
+        <tr><th>Route</th><td>${origin} → ${destination}</td></tr>
+        <tr><th>Vehicle</th><td>${row.assignment?.vehicle?.plateNumber ?? "—"}</td></tr>
+        <tr><th>Driver</th><td>${driverName ?? "—"}</td></tr>
+        <tr><th>Rep</th><td>${repName ?? "—"}</td></tr>
+        ${flightRow}
+      </table>
 
-      <div class="section-title">Evidence</div>
       ${allEvidence || '<p class="no-evidence">No evidence submitted for this job.</p>'}
 
       <div class="report-footer">
         <span>Issued By: ${userName}</span>
         <span>Issued on ${now}</span>
       </div>
+      <script>
+        (function() {
+          var imgs = document.getElementsByTagName('img');
+          var total = imgs.length;
+          if (total === 0) { window.print(); window.close(); return; }
+          var done = 0;
+          function check() { done++; if (done >= total) { window.print(); window.close(); } }
+          for (var i = 0; i < total; i++) {
+            if (imgs[i].complete) { check(); }
+            else { imgs[i].onload = check; imgs[i].onerror = check; }
+          }
+        })();
+      </script>
       </body></html>
     `);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
   };
 
   const fetchRepScore = async () => {
@@ -2207,7 +2238,7 @@ export default function ReportsPage() {
                           <TableCell className="text-sm text-foreground">{job.driverName || "\u2014"}</TableCell>
                           <TableCell className="text-sm text-foreground">{job.repName || "\u2014"}</TableCell>
                           <TableCell className="text-right font-mono text-sm text-foreground">
-                            {job.priceAmount != null ? `${fmt(job.priceAmount, locale)} ${job.priceCurrency || ""}` : "\u2014"}
+                            {job.transferPrice != null ? `${fmt(job.transferPrice, locale)} ${job.transferPriceCurrency || ""}` : (job.priceAmount != null ? `${fmt(job.priceAmount, locale)} ${job.priceCurrency || ""}` : "\u2014")}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className={statusColors[job.status] || ""}>{job.status}</Badge>

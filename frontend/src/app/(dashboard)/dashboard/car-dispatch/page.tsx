@@ -1062,9 +1062,9 @@ function VehicleCard({
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Origin</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Destination</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Time</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">{isSupplier ? "Driver Name & Phone" : "Driver"}</th>
+                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Driver</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Cust. Rep</th>
-                  {!isSupplier && <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Extra Driver</th>}
+                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Extra Driver</th>
                   <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Type</th>
                   <th className="border border-border px-1 py-1 text-center font-semibold text-xs">Pax</th>
                   <th className="border border-border px-1 py-1 text-center font-semibold text-xs">Act</th>
@@ -1200,22 +1200,7 @@ function JobRowComponent({
       {/* Driver */}
       <td className={cell}>
         {isSupplierCard ? (
-          <>
-            <Input
-              value={job.extraDriverName}
-              onChange={(e) => onUpdate("extraDriverName", e.target.value)}
-              placeholder="Driver name"
-              className={cn(inp, "border-b border-border rounded-none")}
-              disabled={job.saved}
-            />
-            <Input
-              value={job.extraDriverPhone}
-              onChange={(e) => onUpdate("extraDriverPhone", e.target.value)}
-              placeholder="Driver phone"
-              className={inp}
-              disabled={job.saved}
-            />
-          </>
+          <span className="px-1 text-[10px] text-muted-foreground italic">External</span>
         ) : (
           <ComboSelect
             options={driverOptions}
@@ -1245,25 +1230,23 @@ function JobRowComponent({
         />
       </td>
 
-      {/* Extra Driver (owned cars only) */}
-      {!isSupplierCard && (
-        <td className={cell}>
-          <Input
-            value={job.extraDriverName}
-            onChange={(e) => onUpdate("extraDriverName", e.target.value)}
-            placeholder="Name"
-            className={cn(inp, "border-b border-border rounded-none")}
-            disabled={job.saved}
-          />
-          <Input
-            value={job.extraDriverPhone}
-            onChange={(e) => onUpdate("extraDriverPhone", e.target.value)}
-            placeholder="Phone"
-            className={inp}
-            disabled={job.saved}
-          />
-        </td>
-      )}
+      {/* Extra Driver (always shown — supplier cards use this for external driver) */}
+      <td className={cell}>
+        <Input
+          value={job.extraDriverName}
+          onChange={(e) => onUpdate("extraDriverName", e.target.value)}
+          placeholder="Name"
+          className={cn(inp, "border-b border-border rounded-none")}
+          disabled={job.saved}
+        />
+        <Input
+          value={job.extraDriverPhone}
+          onChange={(e) => onUpdate("extraDriverPhone", e.target.value)}
+          placeholder="Phone"
+          className={inp}
+          disabled={job.saved}
+        />
+      </td>
 
       {/* Transfer Type */}
       <td className={cell}>

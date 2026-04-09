@@ -812,7 +812,7 @@ export default function FinancePage() {
       const jobs = (data.data || []).map((j: any) => ({
         ...j,
         selected: true,
-        unitPrice: j.suggestedUnitPrice || 0,
+        unitPrice: j.suggestedUnitPrice || j.jobTransferPrice || 0,
         description: buildJobDescription(j),
       }));
       setFetchedJobs(jobs);

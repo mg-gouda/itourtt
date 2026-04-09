@@ -749,7 +749,7 @@ function JobCard({
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 {t("portal.complete")}
               </Button>
-              {repStatus === "PENDING" && (
+              {!isTerminal && (
                 <Button
                   size="sm"
                   variant="outline"
