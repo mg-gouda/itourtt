@@ -80,6 +80,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
@@ -87,6 +88,20 @@ api.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    // Session displaced — someone logged in with the same credentials on another device
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.message === 'SESSION_DISPLACED'
+    ) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?reason=displaced';
+      }
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);

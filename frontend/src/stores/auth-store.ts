@@ -10,8 +10,9 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  isAccountLocked: boolean;
   login: (payload: LoginPayload) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   hydrate: () => void;
 }
 
@@ -20,9 +21,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: false,
   error: null,
+  isAccountLocked: false,
 
   login: async (payload: LoginPayload) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, isAccountLocked: false });
     try {
       const { data } = await api.post<AuthResponse>('/auth/login', payload);
       localStorage.setItem('accessToken', data.accessToken);
@@ -32,20 +34,33 @@ export const useAuthStore = create<AuthState>((set) => ({
       // Load granular permissions after successful login
       usePermissionsStore.getState().loadPermissions();
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Login failed';
-      set({ error: message, isLoading: false });
+
+      if (status === 423) {
+        // Account locked due to concurrent login
+        set({ error: message, isLoading: false, isAccountLocked: true });
+      } else {
+        set({ error: message, isLoading: false, isAccountLocked: false });
+      }
       throw err;
     }
   },
 
-  logout: () => {
+  logout: async () => {
+    // Notify the server to clear the session (allows clean re-login)
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Ignore — clear locally regardless
+    }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     usePermissionsStore.getState().clear();
-    set({ user: null, isAuthenticated: false, error: null });
+    set({ user: null, isAuthenticated: false, error: null, isAccountLocked: false });
     window.location.href = '/login';
   },
 

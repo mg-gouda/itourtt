@@ -77,7 +77,7 @@ interface DispatchSummary {
     agent: { legalName: string } | null;
     customer: { legalName: string } | null;
     assignment: {
-      vehicle: { plateNumber: string; vehicleType: { name: string } };
+      vehicle: { plateNumber: string; vehicleType: { name: string } } | null;
       driver: { name: string } | null;
       rep: { name: string } | null;
     } | null;
@@ -448,6 +448,10 @@ export default function ReportsPage() {
   // scoreEdits: jobId → { attendance, appearance, work, review }
   const [scoreEdits, setScoreEdits] = useState<Record<string, RepJobScore>>({});
   const [scoreSaving, setScoreSaving] = useState<Record<string, boolean>>({});
+  // missedJobs: jobId → true when rep missed the job (disables score checkboxes)
+  const [missedJobs, setMissedJobs] = useState<Record<string, boolean>>({});
+  // deductions: jobId → amount deducted from rep for missing a job
+  const [deductions, setDeductions] = useState<Record<string, number>>({});
   const printRef = useRef<HTMLDivElement>(null);
   const dispatchPrintRef = useRef<HTMLDivElement>(null);
   const driverPrintRef = useRef<HTMLDivElement>(null);
@@ -1131,7 +1135,7 @@ export default function ReportsPage() {
                           {job.paxCount}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {job.assignment?.vehicle.plateNumber || "\u2014"}
+                          {job.assignment?.vehicle?.plateNumber || "\u2014"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {job.assignment?.driver?.name || "\u2014"}
@@ -1554,6 +1558,8 @@ export default function ReportsPage() {
                                 }
                               }
                               setScoreEdits(initialEdits);
+                              setMissedJobs({});
+                              setDeductions({});
                               setRepModalOpen(true);
                             }}
                           >
@@ -2516,12 +2522,14 @@ export default function ReportsPage() {
                         <TableHead className="text-white text-xs">Route</TableHead>
                         <TableHead className="text-white text-xs">{t("locations.hotel")}</TableHead>
                         <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
+                        <TableHead className="text-white text-xs text-center">Missed</TableHead>
                         <TableHead className="text-white text-xs text-center">Att<br/><span className="text-[10px] font-normal opacity-75">20pt</span></TableHead>
                         <TableHead className="text-white text-xs text-center">App<br/><span className="text-[10px] font-normal opacity-75">15pt</span></TableHead>
                         <TableHead className="text-white text-xs text-center">Work<br/><span className="text-[10px] font-normal opacity-75">30pt</span></TableHead>
                         <TableHead className="text-white text-xs text-center">Rev<br/><span className="text-[10px] font-normal opacity-75">35pt</span></TableHead>
                         <TableHead className="text-white text-xs text-right">Score</TableHead>
                         <TableHead className="text-white text-xs text-right">Fee</TableHead>
+                        <TableHead className="text-white text-xs text-right">Deductions</TableHead>
                         <TableHead className="text-white text-xs">Eval</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -2533,9 +2541,10 @@ export default function ReportsPage() {
                         const isCompleted = fee.repStatus === "COMPLETED" || fee.trafficJob.status === "COMPLETED";
                         const currentScore = scoreEdits[jobId] ?? fee.repJobScore;
                         const isSaving = scoreSaving[jobId] ?? false;
+                        const isMissed = missedJobs[jobId] ?? false;
 
                         const toggleScore = (field: "attendance" | "appearance" | "work" | "review", enabled: boolean) => {
-                          if (!enabled) return;
+                          if (!enabled || isMissed) return;
                           const base = currentScore ?? { attendance: false, appearance: false, work: false, review: false, total: null, fee: null, evaluation: null };
                           const next = { attendance: base.attendance, appearance: base.appearance, work: base.work, review: base.review, [field]: !base[field] };
                           saveRepScore(jobId, next);
@@ -2584,12 +2593,22 @@ export default function ReportsPage() {
                                 {fee.status}
                               </Badge>
                             </TableCell>
+                            {/* Missed — disables all score checkboxes */}
+                            <TableCell className="text-center">
+                              <input
+                                type="checkbox"
+                                checked={isMissed}
+                                onChange={() => setMissedJobs((prev) => ({ ...prev, [jobId]: !isMissed }))}
+                                title="Mark as missed"
+                                className="h-4 w-4 cursor-pointer accent-red-600"
+                              />
+                            </TableCell>
                             {/* Attendance — requires inPlaceEvidence */}
                             <TableCell className="text-center">
                               <input
                                 type="checkbox"
-                                disabled={!hasInPlace || isSaving}
-                                checked={currentScore?.attendance ?? false}
+                                disabled={!hasInPlace || isSaving || isMissed}
+                                checked={!isMissed && (currentScore?.attendance ?? false)}
                                 onChange={() => toggleScore("attendance", hasInPlace)}
                                 title={hasInPlace ? "Attendance (20pt)" : "Requires In Place evidence"}
                                 className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
@@ -2599,8 +2618,8 @@ export default function ReportsPage() {
                             <TableCell className="text-center">
                               <input
                                 type="checkbox"
-                                disabled={!hasInPlace || isSaving}
-                                checked={currentScore?.appearance ?? false}
+                                disabled={!hasInPlace || isSaving || isMissed}
+                                checked={!isMissed && (currentScore?.appearance ?? false)}
                                 onChange={() => toggleScore("appearance", hasInPlace)}
                                 title={hasInPlace ? "Appearance (15pt)" : "Requires In Place evidence"}
                                 className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
@@ -2610,8 +2629,8 @@ export default function ReportsPage() {
                             <TableCell className="text-center">
                               <input
                                 type="checkbox"
-                                disabled={isSaving}
-                                checked={currentScore?.work ?? false}
+                                disabled={isSaving || isMissed}
+                                checked={!isMissed && (currentScore?.work ?? false)}
                                 onChange={() => toggleScore("work", true)}
                                 title="Work (30pt)"
                                 className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
@@ -2621,27 +2640,41 @@ export default function ReportsPage() {
                             <TableCell className="text-center">
                               <input
                                 type="checkbox"
-                                disabled={isSaving}
-                                checked={currentScore?.review ?? false}
+                                disabled={isSaving || isMissed}
+                                checked={!isMissed && (currentScore?.review ?? false)}
                                 onChange={() => toggleScore("review", true)}
                                 title="Review (35pt)"
-                                className="h-4 w-4 cursor-pointer accent-emerald-600"
+                                className="h-4 w-4 cursor-pointer accent-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed"
                               />
                             </TableCell>
                             <TableCell className="text-right font-mono text-sm font-semibold">
-                              {isSaving ? (
+                              {isMissed ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : isSaving ? (
                                 <Loader2 className="h-3 w-3 animate-spin inline" />
                               ) : currentScore?.total !== undefined && currentScore.total !== null ? (
                                 <span>{currentScore.total}</span>
                               ) : "\u2014"}
                             </TableCell>
                             <TableCell className="text-right font-mono text-sm">
-                              {currentScore?.fee !== undefined && currentScore.fee !== null
+                              {isMissed ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : currentScore?.fee !== undefined && currentScore.fee !== null
                                 ? `${currentScore.fee} EGP`
                                 : "\u2014"}
                             </TableCell>
+                            {/* Deductions — negative amount deducted from rep */}
+                            <TableCell className="text-right">
+                              <input
+                                type="number"
+                                value={deductions[jobId] ?? ""}
+                                onChange={(e) => setDeductions((prev) => ({ ...prev, [jobId]: Number(e.target.value) }))}
+                                placeholder="0"
+                                className="w-20 text-right text-sm bg-transparent border border-border rounded px-1 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            </TableCell>
                             <TableCell>
-                              {currentScore?.evaluation ? (
+                              {!isMissed && currentScore?.evaluation ? (
                                 <Badge variant="outline" className={evalColor}>
                                   {currentScore.evaluation}
                                 </Badge>
@@ -2656,14 +2689,37 @@ export default function ReportsPage() {
                 </div>
               ))}
 
-              <div className="flex justify-between items-center border-t border-border pt-3 px-1">
-                <span className="text-sm font-semibold text-foreground">
-                  {t("common.total")} ({selectedRep.flightCount} {t("reports.flightsCount")})
-                </span>
-                <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                  {fmt(selectedRep.totalAmount, locale)} EGP
-                </span>
-              </div>
+              {(() => {
+                const jobCount = selectedRep.fees.length;
+                const computedFees = selectedRep.fees.reduce((sum, fee) => {
+                  const jobId = fee.trafficJob.id;
+                  if (missedJobs[jobId]) return sum;
+                  const score = scoreEdits[jobId] ?? fee.repJobScore;
+                  const feeAmt = fee.trafficJob.serviceType === "ARR"
+                    ? (score?.fee ?? fee.amount)
+                    : fee.amount;
+                  return sum + (Number(feeAmt) || 0);
+                }, 0);
+                const totalDeductions = Object.entries(deductions).reduce((s, [, v]) => s + (Number(v) || 0), 0);
+                const netTotal = computedFees - totalDeductions;
+                return (
+                  <div className="flex justify-between items-center border-t border-border pt-3 px-1">
+                    <span className="text-sm font-semibold text-foreground">
+                      {t("common.total")} ({jobCount} {t("reports.flightsCount")})
+                    </span>
+                    <div className="text-right">
+                      {totalDeductions > 0 && (
+                        <div className="text-xs text-red-500 font-mono">
+                          - {fmt(totalDeductions, locale)} EGP deductions
+                        </div>
+                      )}
+                      <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                        {fmt(netTotal, locale)} EGP
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </DialogContent>
@@ -2693,7 +2749,7 @@ export default function ReportsPage() {
                   <td>{job.serviceType}</td>
                   <td>{job.agent?.legalName || job.customer?.legalName || "\u2014"}</td>
                   <td className="text-right">{job.paxCount}</td>
-                  <td>{job.assignment?.vehicle.plateNumber || "\u2014"}</td>
+                  <td>{job.assignment?.vehicle?.plateNumber || "\u2014"}</td>
                   <td>{job.assignment?.driver?.name || "\u2014"}</td>
                   <td>{job.status}</td>
                 </tr>

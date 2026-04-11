@@ -213,6 +213,8 @@ model User {
   roleId        String?   @map("role_id")
   isActive      Boolean   @default(true) @map("is_active")
   refreshToken        String?   @map("refresh_token")
+  sessionId           String?   @map("session_id")
+  sessionExpiresAt    DateTime? @map("session_expires_at")
   passwordResetToken  String?   @map("password_reset_token")
   passwordResetExpiry DateTime? @map("password_reset_expiry")
   createdAt     DateTime  @default(now()) @map("created_at")

@@ -1683,7 +1683,7 @@ export default function DispatchPage() {
     const initial: Record<string, string> = {};
     for (const job of allJobs) {
       if (job.assignment?.vehicleId) {
-        // First try the available vehicles list
+        // Regular vehicle assignment — resolve supplier from vehicle
         const v = vehicles.find((veh) => veh.id === job.assignment?.vehicleId);
         if (v) {
           initial[job.id] = v.supplierId || "owned";
@@ -1691,6 +1691,9 @@ export default function DispatchPage() {
           // Vehicle is already assigned (not in available list) — use assignment data
           initial[job.id] = job.assignment.vehicle.supplierId || "owned";
         }
+      } else if (job.assignment?.supplierCarTypeId && job.assignment.supplierId) {
+        // Supplier car type assignment (no vehicleId) — restore supplier source directly
+        initial[job.id] = job.assignment.supplierId;
       }
     }
     setJobSources((prev) => ({ ...initial, ...prev }));

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,11 +21,14 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const { login, isLoading, error, isAuthenticated, hydrate } = useAuthStore();
+  const searchParams = useSearchParams();
+  const { login, isLoading, error, isAccountLocked, isAuthenticated, hydrate } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const t = useT();
+
+  const isDisplaced = searchParams.get("reason") === "displaced";
 
   const {
     register,
@@ -88,6 +91,26 @@ export default function LoginPage() {
             <p className="text-sm text-white/50">{t("login.system")}</p>
           </div>
 
+          {/* Session displaced warning */}
+          {isDisplaced && !isAccountLocked && (
+            <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex gap-2 items-start">
+              <ShieldAlert className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-300 leading-relaxed">
+                Someone logged in with your credentials on another device. Please log in again. If this was not you, contact your administrator immediately.
+              </p>
+            </div>
+          )}
+
+          {/* Account locked warning */}
+          {isAccountLocked && (
+            <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 flex gap-2 items-start">
+              <ShieldAlert className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-red-300 leading-relaxed">
+                Your account has been locked due to a concurrent login attempt. Please contact your system administrator to restore access.
+              </p>
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
@@ -126,7 +149,7 @@ export default function LoginPage() {
               )}
             </div>
 
-            {error && (
+            {error && !isAccountLocked && (
               <p className="text-center text-sm text-red-400">{error}</p>
             )}
 
@@ -158,5 +181,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -3,6 +3,8 @@ import {
   UnauthorizedException,
   ForbiddenException,
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -15,6 +17,8 @@ import type { AuthResponseDto } from './dto/auth-response.dto.js';
 import type { User } from '../../generated/prisma/client.js';
 
 const RESET_TOKEN_EXPIRY_MINUTES = 60;
+// Session lifetime mirrors the refresh token window (7 days)
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -29,9 +33,48 @@ export class AuthService {
 
   /**
    * Authenticate a user by email/phone and password, returning tokens and user info.
+   * For REP and DRIVER roles: if an active session already exists, the account password
+   * is immediately scrambled and a 423 Locked response is returned. The user must contact
+   * an administrator to have their password reset.
    */
   async login(identifier: string, password: string): Promise<AuthResponseDto> {
     const user = await this.validateUser(identifier, password);
+
+    // ── Concurrent-session guard (REP & DRIVER only) ─────────────────────────
+    const guardedRoles = ['REP', 'DRIVER'];
+    if (guardedRoles.includes(user.role)) {
+      const now = new Date();
+      const hasActiveSession =
+        user.sessionId !== null &&
+        user.sessionExpiresAt !== null &&
+        user.sessionExpiresAt > now;
+
+      if (hasActiveSession) {
+        // Scramble the password so nobody can use these credentials again
+        const scrambledHash = await this.hashPassword(
+          crypto.randomBytes(32).toString('hex'),
+        );
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: scrambledHash,
+            sessionId: null,
+            sessionExpiresAt: null,
+            refreshToken: null,
+          },
+        });
+
+        this.logger.warn(
+          `Concurrent login detected for user ${user.id} (${user.role}). Account locked.`,
+        );
+
+        throw new HttpException(
+          'Concurrent login detected. Your account has been locked. Please contact your administrator to restore access.',
+          HttpStatus.LOCKED, // 423
+        );
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Load role reference for JWT
     const userWithRole = await this.prisma.user.findUnique({
@@ -39,17 +82,26 @@ export class AuthService {
       include: { roleRef: { select: { id: true, slug: true } } },
     });
 
+    // Generate a new session ID for this login
+    const sessionId = crypto.randomUUID();
+    const sessionExpiresAt = new Date(Date.now() + SESSION_TTL_MS);
+
     const tokens = await this.generateTokens({
       ...user,
       roleId: userWithRole?.roleRef?.id,
       roleSlug: userWithRole?.roleRef?.slug,
+      sessionId,
     });
 
-    // Store the hashed refresh token on the user record
+    // Store hashed refresh token + session tracking
     const hashedRefreshToken = await this.hashPassword(tokens.refreshToken);
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { refreshToken: hashedRefreshToken },
+      data: {
+        refreshToken: hashedRefreshToken,
+        sessionId,
+        sessionExpiresAt,
+      },
     });
 
     // If user is a REP, resolve their repId
@@ -101,6 +153,7 @@ export class AuthService {
 
   /**
    * Validate a refresh token and issue new access + refresh tokens.
+   * Also extends the session expiry window.
    */
   async refresh(refreshToken: string): Promise<AuthResponseDto> {
     let payload: { sub: string; email: string; role: string };
@@ -141,18 +194,27 @@ export class AuthService {
       include: { roleRef: { select: { id: true, slug: true } } },
     });
 
+    // Keep the same sessionId but extend its expiry
+    const sessionId = user.sessionId ?? crypto.randomUUID();
+    const sessionExpiresAt = new Date(Date.now() + SESSION_TTL_MS);
+
     // Generate new token pair
     const tokens = await this.generateTokens({
       ...user,
       roleId: userWithRole?.roleRef?.id,
       roleSlug: userWithRole?.roleRef?.slug,
+      sessionId,
     });
 
-    // Update stored refresh token hash
+    // Update stored refresh token hash + extend session
     const hashedRefreshToken = await this.hashPassword(tokens.refreshToken);
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { refreshToken: hashedRefreshToken },
+      data: {
+        refreshToken: hashedRefreshToken,
+        sessionId,
+        sessionExpiresAt,
+      },
     });
 
     return {
@@ -167,6 +229,21 @@ export class AuthService {
         roleSlug: userWithRole?.roleRef?.slug,
       },
     };
+  }
+
+  /**
+   * Clear the session for the given user (called on explicit logout).
+   * This allows them to log in again without triggering the concurrent-session lock.
+   */
+  async logout(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        sessionId: null,
+        sessionExpiresAt: null,
+        refreshToken: null,
+      },
+    });
   }
 
   /**
@@ -260,6 +337,7 @@ export class AuthService {
 
   /**
    * Complete password reset: verify token, update password, invalidate token.
+   * Also clears the session so the user must log in fresh.
    */
   async resetPassword(email: string, rawToken: string, newPassword: string): Promise<void> {
     if (!newPassword || newPassword.length < 8) {
@@ -288,18 +366,22 @@ export class AuthService {
         passwordHash,
         passwordResetToken: null,
         passwordResetExpiry: null,
-        refreshToken: null, // Invalidate all sessions
+        refreshToken: null,
+        sessionId: null,
+        sessionExpiresAt: null,
       },
     });
   }
 
   /**
    * Generate both access and refresh JWT tokens for a given user.
+   * The sessionId is embedded in the payload so every request can be validated against the DB.
    */
   async generateTokens(
     user: Pick<User, 'id' | 'email' | 'role'> & {
       roleId?: string;
       roleSlug?: string;
+      sessionId?: string;
     },
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = {
@@ -308,6 +390,7 @@ export class AuthService {
       role: user.role,
       roleId: user.roleId,
       roleSlug: user.roleSlug,
+      sid: user.sessionId,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
