@@ -30,8 +30,9 @@ COPY --from=builder /app/src/prisma/seed.ts ./src/prisma/seed.ts
 COPY --from=builder /app/src/permissions/permission-registry.ts ./src/permissions/permission-registry.ts
 COPY --from=builder /app/tsconfig.json ./
 
-# Create uploads directory
+# Create uploads directory and copy font assets
 RUN mkdir -p /app/uploads
+COPY --from=builder /app/fonts ./fonts
 
 EXPOSE 3001
 
