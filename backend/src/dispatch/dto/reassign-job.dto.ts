@@ -26,10 +26,18 @@ export class ReassignJobDto {
   remarks?: string;
 
   @IsOptional()
+  @IsString()
+  supplierId?: string;
+
+  @IsOptional()
+  @IsString()
+  supplierCarTypeId?: string;
+
+  @IsOptional()
   @IsBoolean()
   allowTypeMismatch?: boolean;
 
   /** At least one field must be provided – validated in the service layer. */
-  @ValidateIf((o) => !o.vehicleId && !o.driverId && !o.repId && !o.externalDriverName && !o.remarks)
+  @ValidateIf((o) => !o.vehicleId && !o.driverId && !o.repId && !o.externalDriverName && !o.remarks && !o.supplierCarTypeId)
   _atLeastOne?: never;
 }

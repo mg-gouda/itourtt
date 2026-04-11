@@ -875,6 +875,7 @@ model Supplier {
   tripPrices    SupplierTripPrice[]
   supplierCosts SupplierCost[]
   carTypes      SupplierCarType[]
+  assignments   TrafficAssignment[] @relation("AssignmentSupplier")
 
   @@map("suppliers")
 }
@@ -885,8 +886,9 @@ model SupplierCarType {
   vehicleTypeId String   @map("vehicle_type_id")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  supplier    Supplier    @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  vehicleType VehicleType @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+  supplier     Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  vehicleType  VehicleType         @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+  assignments  TrafficAssignment[]
 
   @@unique([supplierId, vehicleTypeId])
   @@map("supplier_car_types")
@@ -1079,6 +1081,8 @@ model TrafficAssignment {
   vehicleId    String?         @map("vehicle_id")
   driverId     String?         @map("driver_id")
   repId        String?         @map("rep_id")
+  supplierId        String?   @map("supplier_id")
+  supplierCarTypeId String?   @map("supplier_car_type_id")
   assignedById String          @map("assigned_by_id")
   driverStatus   PortalJobStatus @default(PENDING) @map("driver_status")
   repStatus      PortalJobStatus @default(PENDING) @map("rep_status")
@@ -1094,6 +1098,8 @@ model TrafficAssignment {
   vehicle          Vehicle?         @relation(fields: [vehicleId], references: [id])
   driver           Driver?          @relation(fields: [driverId], references: [id])
   rep              Rep?             @relation(fields: [repId], references: [id])
+  supplier         Supplier?        @relation("AssignmentSupplier", fields: [supplierId], references: [id])
+  supplierCarType  SupplierCarType? @relation(fields: [supplierCarTypeId], references: [id])
   assignedBy       User             @relation("AssignedBy", fields: [assignedById], references: [id])
   statusChangeLogs StatusChangeLog[]
 

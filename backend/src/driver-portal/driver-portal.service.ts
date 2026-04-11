@@ -215,6 +215,57 @@ export class DriverPortalService {
         },
       });
 
+      if (status === 'COMPLETED') {
+        const job = updated.trafficJob;
+        const repAssigned = !!updated.repId;
+        const repCompleted = updated.repStatus === 'COMPLETED';
+        const shouldCompleteJob = !repAssigned || repCompleted;
+
+        if (shouldCompleteJob) {
+          await tx.trafficJob.update({
+            where: { id: jobId },
+            data: { status: 'COMPLETED' as any },
+          });
+
+          // Auto-generate DriverTripFee
+          if (updated.driverId && job.fromZoneId && job.toZoneId) {
+            const existingDriverFee = await tx.driverTripFee.findFirst({
+              where: { driverId: updated.driverId, trafficJobId: jobId },
+            });
+            if (!existingDriverFee) {
+              await tx.driverTripFee.create({
+                data: {
+                  driverId: updated.driverId,
+                  trafficJobId: jobId,
+                  fromZoneId: job.fromZoneId,
+                  toZoneId: job.toZoneId,
+                  amount: 0,
+                  currency: 'EGP',
+                },
+              });
+            }
+          }
+
+          // Auto-generate RepFee for ARR jobs
+          if (job.serviceType === 'ARR' && updated.repId) {
+            const existingRepFee = await tx.repFee.findFirst({
+              where: { repId: updated.repId, trafficJobId: jobId },
+            });
+            if (!existingRepFee) {
+              const rep = await tx.rep.findUniqueOrThrow({ where: { id: updated.repId } });
+              await tx.repFee.create({
+                data: {
+                  repId: updated.repId,
+                  trafficJobId: jobId,
+                  amount: rep.feePerFlight,
+                  currency: 'EGP',
+                },
+              });
+            }
+          }
+        }
+      }
+
       return {
         ...updated.trafficJob,
         driverStatus: updated.driverStatus,

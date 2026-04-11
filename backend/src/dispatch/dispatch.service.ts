@@ -54,6 +54,8 @@ export class DispatchService {
           vehicle: { include: { vehicleType: true } },
           driver: true,
           rep: true,
+          supplier: { select: { id: true, legalName: true, tradeName: true } },
+          supplierCarType: { include: { vehicleType: true } },
         },
       },
     };
@@ -101,7 +103,7 @@ export class DispatchService {
       const canDriver = userPermissions.has('dispatch.assignment.assignDriver');
       const canRep = userPermissions.has('dispatch.assignment.assignRep');
 
-      if (dto.vehicleId && !canVehicle) {
+      if ((dto.vehicleId || dto.supplierCarTypeId) && !canVehicle) {
         throw new ForbiddenException('You do not have permission to assign vehicles');
       }
       if (dto.driverId && !canDriver) {
@@ -112,9 +114,9 @@ export class DispatchService {
       }
     }
 
-    // Must provide at least vehicle or rep
-    if (!dto.vehicleId && !dto.repId) {
-      throw new BadRequestException('Either vehicleId or repId must be provided');
+    // Must provide at least vehicle (or supplier car type) or rep
+    if (!dto.vehicleId && !dto.supplierCarTypeId && !dto.repId) {
+      throw new BadRequestException('Either vehicleId, supplierCarTypeId, or repId must be provided');
     }
 
     // 1. Verify job exists and is eligible
@@ -213,6 +215,21 @@ export class DispatchService {
       await this.validateRepAvailability(dto.repId, job);
     }
 
+    // 5b. Validate supplier car type and resolve supplierId
+    let resolvedSupplierId: string | null = dto.supplierId ?? null;
+    if (dto.supplierCarTypeId) {
+      const carType = await this.prisma.supplierCarType.findFirst({
+        where: { id: dto.supplierCarTypeId },
+      });
+      if (!carType) {
+        throw new NotFoundException(`Supplier car type with ID "${dto.supplierCarTypeId}" not found`);
+      }
+      if (dto.supplierId && carType.supplierId !== dto.supplierId) {
+        throw new BadRequestException('Supplier car type does not belong to the specified supplier');
+      }
+      resolvedSupplierId = carType.supplierId;
+    }
+
     // 7. Create assignment and update job status in a transaction
     const assignment = await this.prisma.$transaction(async (tx) => {
       const created = await tx.trafficAssignment.create({
@@ -221,6 +238,8 @@ export class DispatchService {
           vehicleId: dto.vehicleId ?? null,
           driverId: dto.driverId ?? null,
           repId: dto.repId ?? null,
+          supplierId: resolvedSupplierId,
+          supplierCarTypeId: dto.supplierCarTypeId ?? null,
           externalDriverName: dto.externalDriverName ?? null,
           externalDriverPhone: dto.externalDriverPhone ?? null,
           remarks: dto.remarks ?? null,
@@ -230,6 +249,8 @@ export class DispatchService {
           vehicle: { include: { vehicleType: true } },
           driver: true,
           rep: true,
+          supplier: { select: { id: true, legalName: true, tradeName: true } },
+          supplierCarType: { include: { vehicleType: true } },
           trafficJob: true,
         },
       });
@@ -343,7 +364,7 @@ export class DispatchService {
   // ─────────────────────────────────────────────
 
   async reassignJob(assignmentId: string, dto: ReassignJobDto, userId: string, userRole?: string, roleSlug?: string, userPermissions?: Set<string>) {
-    if (!dto.vehicleId && !dto.driverId && !dto.repId
+    if (!dto.vehicleId && !dto.supplierCarTypeId && !dto.driverId && !dto.repId
         && dto.externalDriverName === undefined && dto.externalDriverPhone === undefined
         && dto.remarks === undefined) {
       throw new BadRequestException(
@@ -455,8 +476,25 @@ export class DispatchService {
       await this.validateRepAvailability(dto.repId, job, assignmentId);
     }
 
+    // Validate supplier car type for reassign and resolve supplierId
+    let reassignSupplierId: string | null | undefined = dto.supplierId;
+    if (dto.supplierCarTypeId) {
+      const carType = await this.prisma.supplierCarType.findFirst({
+        where: { id: dto.supplierCarTypeId },
+      });
+      if (!carType) {
+        throw new NotFoundException(`Supplier car type with ID "${dto.supplierCarTypeId}" not found`);
+      }
+      reassignSupplierId = carType.supplierId;
+    }
+
     const updateData: Record<string, unknown> = {};
     if (dto.vehicleId !== undefined) updateData.vehicleId = dto.vehicleId;
+    if (dto.supplierCarTypeId !== undefined) {
+      updateData.supplierCarTypeId = dto.supplierCarTypeId;
+      updateData.supplierId = reassignSupplierId ?? null;
+      updateData.vehicleId = null; // clear actual vehicle when switching to car type
+    }
     if (dto.driverId !== undefined) {
       updateData.driverId = dto.driverId;
       if (dto.driverId !== existing.driverId) {
@@ -481,6 +519,8 @@ export class DispatchService {
           vehicle: { include: { vehicleType: true } },
           driver: true,
           rep: true,
+          supplier: { select: { id: true, legalName: true, tradeName: true } },
+          supplierCarType: { include: { vehicleType: true } },
           trafficJob: true,
         },
       });
@@ -613,19 +653,51 @@ export class DispatchService {
       busyAssignments.map((a) => a.vehicleId).filter((id): id is string => id !== null),
     );
 
-    const vehicles = await this.prisma.vehicle.findMany({
-      where: {
-        deletedAt: null,
-        isActive: true,
-        ...(supplierId ? { supplierId } : {}),
-      },
+    // Owned vehicles (no supplierId)
+    const ownedVehicles = await this.prisma.vehicle.findMany({
+      where: { deletedAt: null, isActive: true, supplierId: null },
       include: { vehicleType: true, supplier: { select: { id: true, legalName: true, tradeName: true } } },
       orderBy: [{ plateNumber: 'asc' }],
     });
 
-    // Return all vehicles; mark busy ones so the UI can show a conflict indicator.
-    // The backend intentionally allows assigning a vehicle to multiple jobs on the same day.
-    return vehicles.map((v) => ({ ...v, isBusy: busyVehicleIds.has(v.id) }));
+    // Supplier car types — each becomes a virtual vehicle entry
+    const carTypes = await this.prisma.supplierCarType.findMany({
+      where: { supplier: { deletedAt: null, isActive: true } },
+      include: {
+        vehicleType: true,
+        supplier: { select: { id: true, legalName: true, tradeName: true } },
+      },
+      orderBy: [{ supplier: { legalName: 'asc' } }],
+    });
+
+    const vehicleResults = ownedVehicles.map((v) => ({
+      ...v,
+      isCarType: false,
+      isBusy: busyVehicleIds.has(v.id),
+    }));
+
+    const carTypeResults = carTypes.map((ct) => ({
+      id: ct.id,
+      plateNumber: ct.vehicleType.name,
+      vehicleTypeId: ct.vehicleTypeId,
+      vehicleType: ct.vehicleType,
+      supplierId: ct.supplierId,
+      supplier: ct.supplier,
+      isCarType: true,
+      isBusy: false,
+      ownership: 'SUPPLIER' as const,
+      color: null,
+      carBrand: null,
+      carModel: null,
+      makeYear: null,
+      luggageCapacity: null,
+      isActive: true,
+      createdAt: ct.createdAt,
+      updatedAt: ct.createdAt,
+      deletedAt: null,
+    }));
+
+    return [...vehicleResults, ...carTypeResults];
   }
 
   async getAvailableSuppliers() {

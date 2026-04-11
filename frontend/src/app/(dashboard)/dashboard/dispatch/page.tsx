@@ -112,6 +112,8 @@ interface Job {
     vehicleId: string | null;
     driverId: string | null;
     repId: string | null;
+    supplierId?: string | null;
+    supplierCarTypeId?: string | null;
     externalDriverName?: string | null;
     externalDriverPhone?: string | null;
     remarks?: string | null;
@@ -120,6 +122,9 @@ interface Job {
       supplierId?: string | null;
       vehicleType?: { name: string; seatCapacity: number };
     };
+    supplierCarType?: {
+      vehicleType?: { name: string; seatCapacity: number };
+    } | null;
     driver?: { name: string; mobileNumber?: string };
     rep?: { name: string };
   } | null;
@@ -150,6 +155,7 @@ interface VehicleResource {
   supplierId?: string | null;
   supplier?: { id: string; legalName: string; tradeName?: string | null } | null;
   isBusy?: boolean;
+  isCarType?: boolean;
 }
 
 interface PersonResource {
@@ -443,6 +449,8 @@ function EditableVehicleCell({
 }) {
   const t = useT();
   const current = job.assignment?.vehicle;
+  const currentCarType = job.assignment?.supplierCarType;
+  const vehicleLabel = current?.plateNumber ?? currentCarType?.vehicleType?.name ?? null;
 
   // Filter vehicles based on the source column selection
   const filteredVehicles = selectedSource === "owned"
@@ -454,9 +462,9 @@ function EditableVehicleCell({
   if (locked) {
     return (
       <TableCell ref={cellRef} className="text-sm">
-        {current ? (
+        {vehicleLabel ? (
           <Badge variant="outline" className="border-zinc-500/30 text-zinc-600 dark:text-zinc-400">
-            {current.plateNumber}
+            {vehicleLabel}
           </Badge>
         ) : (
           <span className="text-muted-foreground/60 text-xs">—</span>
@@ -468,14 +476,15 @@ function EditableVehicleCell({
   if (isEditing) {
     const vehicleOptions: SelectOption[] = filteredVehicles.map((v) => ({
       id: v.id,
-      label: `${v.plateNumber} — ${v.vehicleType?.name ?? ""}`,
+      label: v.isCarType ? v.plateNumber : `${v.plateNumber} — ${v.vehicleType?.name ?? ""}`,
       sublabel: v.vehicleType?.seatCapacity ? `${v.vehicleType.seatCapacity} seats` : undefined,
       isBusy: v.isBusy,
     }));
+    const currentId = job.assignment?.supplierCarTypeId || job.assignment?.vehicleId || "";
     return (
       <TableCell ref={cellRef} className="p-1">
         <InlineSearchSelect
-          currentId={job.assignment?.vehicleId || ""}
+          currentId={currentId}
           options={vehicleOptions}
           onSelect={onSelect}
           onClose={onCancel}
@@ -498,12 +507,12 @@ function EditableVehicleCell({
         }
       }}
     >
-      {current ? (
+      {vehicleLabel ? (
         <Badge
           variant="outline"
           className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
         >
-          {current.plateNumber}
+          {vehicleLabel}
         </Badge>
       ) : (
         <span className="text-red-600 dark:text-red-400 text-xs">{t("dispatch.clickToAssign")}</span>
@@ -1882,8 +1891,10 @@ export default function DispatchPage() {
     if (!job.assignment && field === "vehicle" && actualValue) {
       saveSnapshot();
 
+      const vehicleRes = vehicles.find((v) => v.id === actualValue);
+      const isCarType = vehicleRes?.isCarType === true;
+
       // Optimistic: create placeholder assignment
-      const vehicle = vehicles.find((v) => v.id === actualValue);
       const found = findJobList(job.id);
       if (found) {
         updateJobInList(found[1], job.id, (j) => ({
@@ -1891,14 +1902,16 @@ export default function DispatchPage() {
           status: "ASSIGNED",
           assignment: {
             id: "__pending__",
-            vehicleId: actualValue,
+            vehicleId: isCarType ? null : actualValue,
+            supplierCarTypeId: isCarType ? actualValue : null,
+            supplierId: isCarType ? (vehicleRes?.supplierId ?? null) : null,
             driverId: null,
             repId: null,
-            vehicle: vehicle
-              ? {
-                  plateNumber: vehicle.plateNumber,
-                  vehicleType: vehicle.vehicleType,
-                }
+            vehicle: !isCarType && vehicleRes
+              ? { plateNumber: vehicleRes.plateNumber, vehicleType: vehicleRes.vehicleType }
+              : undefined,
+            supplierCarType: isCarType && vehicleRes
+              ? { vehicleType: vehicleRes.vehicleType }
               : undefined,
             driver: undefined,
             rep: undefined,
@@ -1906,11 +1919,12 @@ export default function DispatchPage() {
         }));
       }
 
+      const assignPayload = isCarType
+        ? { trafficJobId: job.id, supplierCarTypeId: actualValue, supplierId: vehicleRes?.supplierId }
+        : { trafficJobId: job.id, vehicleId: actualValue };
+
       try {
-        await api.post("/dispatch/assign", {
-          trafficJobId: job.id,
-          vehicleId: actualValue,
-        });
+        await api.post("/dispatch/assign", assignPayload);
         toast.success(t("dispatch.vehicleAssigned"));
         fetchDay(); // refresh to get full assignment data
       } catch (err: unknown) {
@@ -1962,10 +1976,20 @@ export default function DispatchPage() {
           const updated = { ...j, assignment: { ...j.assignment } };
           if (field === "vehicle" && actualValue) {
             const v = vehicles.find((x) => x.id === actualValue);
-            updated.assignment.vehicleId = actualValue;
-            updated.assignment.vehicle = v
-              ? { plateNumber: v.plateNumber, vehicleType: v.vehicleType }
-              : updated.assignment.vehicle;
+            if (v?.isCarType) {
+              updated.assignment.vehicleId = null;
+              updated.assignment.vehicle = undefined;
+              updated.assignment.supplierCarTypeId = actualValue;
+              updated.assignment.supplierId = v.supplierId ?? null;
+              updated.assignment.supplierCarType = { vehicleType: v.vehicleType };
+            } else {
+              updated.assignment.vehicleId = actualValue;
+              updated.assignment.supplierCarTypeId = null;
+              updated.assignment.supplierId = null;
+              updated.assignment.vehicle = v
+                ? { plateNumber: v.plateNumber, vehicleType: v.vehicleType }
+                : updated.assignment.vehicle;
+            }
           } else if (field === "driver" && isExternalDriver) {
             const parts = value.split(":");
             updated.assignment.driverId = null;
@@ -1993,7 +2017,15 @@ export default function DispatchPage() {
       }
 
       const payload: Record<string, string | boolean | null> = {};
-      if (field === "vehicle" && actualValue) payload.vehicleId = actualValue;
+      if (field === "vehicle" && actualValue) {
+        const selectedVehicle = vehicles.find((v) => v.id === actualValue);
+        if (selectedVehicle?.isCarType) {
+          payload.supplierCarTypeId = actualValue;
+          payload.supplierId = selectedVehicle.supplierId ?? null;
+        } else {
+          payload.vehicleId = actualValue;
+        }
+      }
       if (field === "driver" && isExternalDriver) {
         const parts = value.split(":");
         payload.driverId = null;

@@ -52,7 +52,10 @@ export class SupplierPortalService {
 
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
-        vehicle: { supplierId },
+        OR: [
+          { vehicle: { supplierId } },
+          { supplierId },
+        ],
         trafficJob: {
           jobDate,
           deletedAt: null,
@@ -83,7 +86,10 @@ export class SupplierPortalService {
     const assignment = await this.prisma.trafficAssignment.findFirst({
       where: {
         trafficJobId: jobId,
-        vehicle: { supplierId },
+        OR: [
+          { vehicle: { supplierId } },
+          { supplierId },
+        ],
       },
       include: {
         trafficJob: true,

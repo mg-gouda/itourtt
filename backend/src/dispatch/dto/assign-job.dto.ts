@@ -30,6 +30,14 @@ export class AssignJobDto {
   remarks?: string;
 
   @IsOptional()
+  @IsString()
+  supplierId?: string;
+
+  @IsOptional()
+  @IsString()
+  supplierCarTypeId?: string;
+
+  @IsOptional()
   @IsBoolean()
   allowTypeMismatch?: boolean;
 }
