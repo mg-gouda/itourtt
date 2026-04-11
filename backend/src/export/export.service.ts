@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as XLSX from 'xlsx';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -31,12 +31,14 @@ function arabicize(text: string): string {
   );
 }
 
-/** Resolve the absolute path to the bundled Cairo font. */
-function cairoPaths() {
+/** Resolve the absolute paths to the bundled fonts. */
+function fontPaths() {
   const base = path.join(process.cwd(), 'fonts');
   return {
-    regular: path.join(base, 'Cairo-Regular.woff2'),
-    bold:    path.join(base, 'Cairo-Bold.woff2'),
+    arabicRegular: path.join(base, 'Cairo-Regular.woff2'),
+    arabicBold:    path.join(base, 'Cairo-Bold.woff2'),
+    latinRegular:  path.join(base, 'DejaVuSans-Regular.ttf'),
+    latinBold:     path.join(base, 'DejaVuSans-Bold.ttf'),
   };
 }
 
@@ -609,15 +611,15 @@ export class ExportService {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    const { regular: regularPath, bold: boldPath } = cairoPaths();
-    const helvetica     = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const arabicFont    = await pdfDoc.embedFont(fs.readFileSync(regularPath));
-    const arabicBold    = await pdfDoc.embedFont(fs.readFileSync(boldPath));
+    const fp = fontPaths();
+    const latinFont    = await pdfDoc.embedFont(fs.readFileSync(fp.latinRegular));
+    const latinBold    = await pdfDoc.embedFont(fs.readFileSync(fp.latinBold));
+    const arabicFont   = await pdfDoc.embedFont(fs.readFileSync(fp.arabicRegular));
+    const arabicBold   = await pdfDoc.embedFont(fs.readFileSync(fp.arabicBold));
 
-    /** Pick the right font: Cairo Arabic for Arabic text, Helvetica otherwise. */
-    const pickFont  = (text: string, bold = false) =>
-      hasArabic(text) ? (bold ? arabicBold : arabicFont) : (bold ? helveticaBold : helvetica);
+    /** Pick the right font: Cairo Arabic for Arabic text, DejaVu Sans otherwise. */
+    const pickFont = (text: string, isBold = false) =>
+      hasArabic(text) ? (isBold ? arabicBold : arabicFont) : (isBold ? latinBold : latinFont);
 
     // Load logo if available
     let logoImage: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
@@ -682,7 +684,7 @@ export class ExportService {
         x: margin + 30,
         y: currentY,
         size: 18,
-        font: helvetica,
+        font: latinFont,
         color: rgb(0.3, 0.3, 0.3),
       });
 
@@ -776,13 +778,13 @@ export class ExportService {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    const { regular: regularPath, bold: boldPath } = cairoPaths();
-    const regular     = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const bold        = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const arabicFont  = await pdfDoc.embedFont(fs.readFileSync(regularPath));
-    const arabicBold  = await pdfDoc.embedFont(fs.readFileSync(boldPath));
+    const fp = fontPaths();
+    const regular    = await pdfDoc.embedFont(fs.readFileSync(fp.latinRegular));
+    const bold       = await pdfDoc.embedFont(fs.readFileSync(fp.latinBold));
+    const arabicFont = await pdfDoc.embedFont(fs.readFileSync(fp.arabicRegular));
+    const arabicBold = await pdfDoc.embedFont(fs.readFileSync(fp.arabicBold));
 
-    /** Returns the correct font for the text — Cairo Arabic if Arabic, Helvetica otherwise. */
+    /** Returns the correct font — Cairo Arabic if Arabic, DejaVu Sans otherwise. */
     const pickFont = (text: string, isBold = false) =>
       hasArabic(text) ? (isBold ? arabicBold : arabicFont) : (isBold ? bold : regular);
 
