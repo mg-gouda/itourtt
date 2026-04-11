@@ -362,6 +362,8 @@ export default function CompanyPage() {
                   setLicenseStatus(data);
                   if (data.valid) {
                     toast.success(t("company.licenseActivated") || "License activated successfully");
+                    // Hard reload so the LicenseGate layout re-fetches and clears the invalid state
+                    setTimeout(() => { window.location.href = "/dashboard"; }, 1200);
                   } else {
                     toast.error(data.message || "Invalid license key");
                   }
