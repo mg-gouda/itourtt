@@ -440,7 +440,8 @@ export default function ReportsPage() {
   const [revenueLoading, setRevenueLoading] = useState(false);
 
   // Rep Fees
-  const [repFeeDate, setRepFeeDate] = useState(today);
+  const [repFeeFrom, setRepFeeFrom] = useState(today);
+  const [repFeeTo, setRepFeeTo] = useState(today);
   const [repFeeData, setRepFeeData] = useState<RepFeeReport | null>(null);
   const [repFeeLoading, setRepFeeLoading] = useState(false);
   const [selectedRep, setSelectedRep] = useState<RepFeeReportRep | null>(null);
@@ -452,6 +453,8 @@ export default function ReportsPage() {
   const [missedJobs, setMissedJobs] = useState<Record<string, boolean>>({});
   // deductions: jobId → amount deducted from rep for missing a job
   const [deductions, setDeductions] = useState<Record<string, number>>({});
+  // repNetTotals: repId → final computed net total (overrides server totalAmount in the list)
+  const [repNetTotals, setRepNetTotals] = useState<Record<string, number>>({});
   const printRef = useRef<HTMLDivElement>(null);
   const dispatchPrintRef = useRef<HTMLDivElement>(null);
   const driverPrintRef = useRef<HTMLDivElement>(null);
@@ -597,9 +600,13 @@ export default function ReportsPage() {
     setRepFeeLoading(true);
     try {
       const { data } = await api.get(
-        `/reports/rep-fees?date=${repFeeDate}`
+        `/reports/rep-fees?from=${repFeeFrom}&to=${repFeeTo}`
       );
       setRepFeeData(data.data || data);
+      // Reset per-rep overrides whenever a fresh report is loaded
+      setMissedJobs({});
+      setDeductions({});
+      setRepNetTotals({});
     } catch {
       toast.error(t("reports.failedRepFees"));
     } finally {
@@ -742,13 +749,13 @@ export default function ReportsPage() {
   const exportRepFeesExcel = async () => {
     try {
       const res = await api.get(
-        `/export/odoo/rep-fees?date=${repFeeDate}`,
+        `/export/odoo/rep-fees?from=${repFeeFrom}&to=${repFeeTo}`,
         { responseType: "blob" }
       );
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `rep_fees_${repFeeDate}.xlsx`);
+      link.setAttribute("download", `rep_fees_${repFeeFrom}_to_${repFeeTo}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -771,7 +778,7 @@ export default function ReportsPage() {
       ? `<img src="${logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
       : `<span style="font-size:18px;font-weight:700;">${companyName}</span>`;
     printWindow.document.write(`
-      <html><head><title>Rep Fees Report - ${repFeeDate}</title>
+      <html><head><title>Rep Fees Report - ${repFeeFrom} to ${repFeeTo}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
         h1 { font-size: 18px; margin-bottom: 4px; }
@@ -793,7 +800,7 @@ export default function ReportsPage() {
       </style></head><body>
       <div class="report-header">
         <div class="logo">${logoHtml}</div>
-        <div class="report-title">Rep Fees Report - ${repFeeDate}</div>
+        <div class="report-title">Rep Fees Report - ${repFeeFrom} to ${repFeeTo}</div>
         <div style="width:160px;"></div>
       </div>
       ${printRef.current.innerHTML}
@@ -914,6 +921,24 @@ export default function ReportsPage() {
     } catch { toast.error(t("reports.failedExcel")); }
   };
   const exportCompliancePdf = () => printFromRef(compliancePrintRef, "Vehicle Compliance Report");
+
+  // Compute final net total for a rep using current scoreEdits / missedJobs / deductions
+  function computeRepNet(fees: RepFeeReportRep["fees"]): number {
+    const gross = fees.reduce((sum, fee) => {
+      const jobId = fee.trafficJob.id;
+      if (missedJobs[jobId]) return sum;
+      const score = scoreEdits[jobId] ?? fee.repJobScore;
+      const feeAmt = fee.trafficJob.serviceType === "ARR"
+        ? (score?.fee ?? fee.amount)
+        : fee.amount;
+      return sum + (Number(feeAmt) || 0);
+    }, 0);
+    const relevantJobIds = new Set(fees.map((f) => f.trafficJob.id));
+    const totalDeductions = Object.entries(deductions)
+      .filter(([k]) => relevantJobIds.has(k))
+      .reduce((s, [, v]) => s + (Number(v) || 0), 0);
+    return gross - totalDeductions;
+  }
 
   // Group fees by flight number for the modal
   function groupByFlight(fees: RepFeeReportRep["fees"]) {
@@ -1466,11 +1491,24 @@ export default function ReportsPage() {
           <Card className="border-border bg-card p-4">
             <div className="flex items-end gap-3 flex-wrap">
               <div>
-                <Label className="text-muted-foreground text-xs">{t("common.date")}</Label>
+                <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
                 <Input
                   type="date"
-                  value={repFeeDate}
-                  onChange={(e) => setRepFeeDate(e.target.value)}
+                  value={repFeeFrom}
+                  onChange={(e) => {
+                    setRepFeeFrom(e.target.value);
+                    if (e.target.value > repFeeTo) setRepFeeTo(e.target.value);
+                  }}
+                  className="mt-1 w-44 border-border bg-card text-foreground"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                <Input
+                  type="date"
+                  value={repFeeTo}
+                  min={repFeeFrom}
+                  onChange={(e) => setRepFeeTo(e.target.value)}
                   className="mt-1 w-44 border-border bg-card text-foreground"
                 />
               </div>
@@ -1558,8 +1596,6 @@ export default function ReportsPage() {
                                 }
                               }
                               setScoreEdits(initialEdits);
-                              setMissedJobs({});
-                              setDeductions({});
                               setRepModalOpen(true);
                             }}
                           >
@@ -1570,10 +1606,10 @@ export default function ReportsPage() {
                           {fmt(rep.feePerFlight, locale)}
                         </TableCell>
                         <TableCell className="text-right text-foreground font-mono">
-                          {rep.flightCount}
+                          {groupByFlight(rep.fees).length}
                         </TableCell>
                         <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(rep.totalAmount, locale)}
+                          {fmt(repNetTotals[rep.repId] ?? rep.totalAmount, locale)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -2483,13 +2519,18 @@ export default function ReportsPage() {
         open={repModalOpen}
         onOpenChange={(open) => {
           setRepModalOpen(open);
-          if (!open) setSelectedRep(null);
+          if (!open && selectedRep) {
+            // Persist the computed net total back to the list row
+            const net = computeRepNet(selectedRep.fees);
+            setRepNetTotals((prev) => ({ ...prev, [selectedRep.repId]: net }));
+            setSelectedRep(null);
+          }
         }}
       >
         <DialogContent className="max-h-[85vh] overflow-y-auto border-border bg-popover text-foreground sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              {selectedRep?.repName} &mdash; {repFeeDate}
+              {selectedRep?.repName} &mdash; {repFeeFrom === repFeeTo ? repFeeFrom : `${repFeeFrom} → ${repFeeTo}`}
             </DialogTitle>
           </DialogHeader>
 
@@ -2690,6 +2731,7 @@ export default function ReportsPage() {
               ))}
 
               {(() => {
+                const flightCount = groupByFlight(selectedRep.fees).length;
                 const jobCount = selectedRep.fees.length;
                 const computedFees = selectedRep.fees.reduce((sum, fee) => {
                   const jobId = fee.trafficJob.id;
@@ -2700,17 +2742,23 @@ export default function ReportsPage() {
                     : fee.amount;
                   return sum + (Number(feeAmt) || 0);
                 }, 0);
-                const totalDeductions = Object.entries(deductions).reduce((s, [, v]) => s + (Number(v) || 0), 0);
+                // Sum only deductions for jobs in the current rep's fee list
+                const relevantJobIds = new Set(selectedRep.fees.map((f) => f.trafficJob.id));
+                const totalDeductions = Object.entries(deductions)
+                  .filter(([k]) => relevantJobIds.has(k))
+                  .reduce((s, [, v]) => s + (Number(v) || 0), 0);
                 const netTotal = computedFees - totalDeductions;
                 return (
                   <div className="flex justify-between items-center border-t border-border pt-3 px-1">
                     <span className="text-sm font-semibold text-foreground">
-                      {t("common.total")} ({jobCount} {t("reports.flightsCount")})
+                      {t("common.total")} ({flightCount} {t("reports.flightsCount")}, {jobCount} {t("reports.jobs")})
                     </span>
                     <div className="text-right">
-                      {totalDeductions > 0 && (
-                        <div className="text-xs text-red-500 font-mono">
-                          - {fmt(totalDeductions, locale)} EGP deductions
+                      {totalDeductions !== 0 && (
+                        <div className={`text-xs font-mono ${totalDeductions > 0 ? "text-red-500" : "text-emerald-500"}`}>
+                          {totalDeductions > 0
+                            ? `- ${fmt(totalDeductions, locale)} EGP deductions`
+                            : `+ ${fmt(Math.abs(totalDeductions), locale)} EGP adjustment`}
                         </div>
                       )}
                       <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
@@ -2900,7 +2948,7 @@ export default function ReportsPage() {
       {repFeeData && (
         <div ref={printRef} className="hidden">
           <h1>Rep Fees Report</h1>
-          <h2>Date: {repFeeDate}</h2>
+          <h2>Period: {repFeeFrom} to {repFeeTo}</h2>
           <table>
             <thead>
               <tr>

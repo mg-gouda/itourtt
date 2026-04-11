@@ -104,11 +104,11 @@ export class ReportsController {
 
   @Get('rep-fees')
   @Permissions('reports.repFees')
-  async repFeeReport(@Query() query: DayQueryDto) {
-    if (!query.date) {
-      throw new BadRequestException('date query parameter is required');
+  async repFeeReport(@Query() query: DateRangeQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
     }
-    const result = await this.reportsService.repFeeReport(query.date);
+    const result = await this.reportsService.repFeeReport(query.from, query.to);
     return new ApiResponse(result);
   }
 

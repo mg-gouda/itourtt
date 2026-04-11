@@ -287,15 +287,16 @@ export class ReportsService {
   // REP FEE REPORT
   // ─────────────────────────────────────────────
 
-  async repFeeReport(date: string) {
-    const jobDate = new Date(date);
+  async repFeeReport(from: string, to: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
 
-    // Query assignments where a rep is assigned for jobs on this date
+    // Query assignments where a rep is assigned for jobs within the date range
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         repId: { not: null },
         trafficJob: {
-          jobDate,
+          jobDate: { gte: fromDate, lte: toDate },
           deletedAt: null,
         },
       },
@@ -401,7 +402,8 @@ export class ReportsService {
     const totalFlights = reps.reduce((sum, r) => sum + r.flightCount, 0);
 
     return {
-      date,
+      from,
+      to,
       grandTotal,
       totalFlights,
       reps,

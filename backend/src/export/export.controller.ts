@@ -30,14 +30,15 @@ export class ExportController {
   @Get('rep-fees')
   @Permissions('reports.repFees')
   async exportRepFees(
-    @Query('date') date: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
     @Res() res: express.Response,
   ) {
-    if (!date) {
-      throw new BadRequestException('date query parameter is required');
+    if (!from || !to) {
+      throw new BadRequestException('from and to query parameters are required');
     }
-    const buffer = await this.exportService.exportRepFees(date);
-    this.sendXlsx(res, buffer, `rep_fees_${date}`);
+    const buffer = await this.exportService.exportRepFees(from, to);
+    this.sendXlsx(res, buffer, `rep_fees_${from}_to_${to}`);
   }
 
   @Get('customers')

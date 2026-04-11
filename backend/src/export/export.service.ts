@@ -1,9 +1,38 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as XLSX from 'xlsx';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createRequire } from 'module';
+
+const _require = createRequire(import.meta.url);
+const { convertArabic } = _require('arabic-reshaper') as { convertArabic: (t: string) => string };
+const bidi = _require('bidi-js') as (text: string, opts: Record<string, unknown>) => {
+  getEmbeddingLevels: (text: string, opts: Record<string, unknown>) => unknown;
+  getReorderedString: (text: string, levels: unknown) => string;
+};
+
+/** Reshape + visually reorder Arabic text so pdf-lib renders it correctly. */
+function arabicize(text: string): string {
+  if (!text) return text;
+  const reshaped = convertArabic(text);
+  const bidiObj = bidi(reshaped, { defaultParaLevel: 1 });
+  return bidiObj.getReorderedString(
+    reshaped,
+    bidiObj.getEmbeddingLevels(reshaped, { defaultParaLevel: 1 }),
+  );
+}
+
+/** Resolve the absolute path to the bundled Cairo font. */
+function cairoPaths() {
+  const base = path.join(process.cwd(), 'fonts');
+  return {
+    regular: path.join(base, 'Cairo-Regular.woff2'),
+    bold:    path.join(base, 'Cairo-Bold.woff2'),
+  };
+}
 
 @Injectable()
 export class ExportService {
@@ -298,14 +327,15 @@ export class ExportService {
   // REP FEES REPORT
   // ─────────────────────────────────────────────
 
-  async exportRepFees(date: string): Promise<Buffer> {
-    const jobDate = new Date(date);
+  async exportRepFees(from: string, to: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
 
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         repId: { not: null },
         trafficJob: {
-          jobDate,
+          jobDate: { gte: fromDate, lte: toDate },
           deletedAt: null,
         },
       },
@@ -562,6 +592,7 @@ export class ExportService {
         clientName: { not: null },
         deletedAt: null,
       },
+      include: { assignment: { include: { rep: true } } },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -570,6 +601,11 @@ export class ExportService {
     }
 
     const pdfDoc = await PDFDocument.create();
+    pdfDoc.registerFontkit(fontkit);
+
+    const { regular: regularPath, bold: boldPath } = cairoPaths();
+    const helveticaBold = await pdfDoc.embedFont(fs.readFileSync(boldPath));
+    const helvetica     = await pdfDoc.embedFont(fs.readFileSync(regularPath));
 
     // Load logo if available
     let logoImage: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
@@ -587,9 +623,6 @@ export class ExportService {
         // Logo not found, continue without it
       }
     }
-
-    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     // Landscape A4: 842 x 595 pt
     const pageWidth = 842;
@@ -645,12 +678,13 @@ export class ExportService {
 
       // Draw client name in large bold text, centered
       // Auto-size font to fit within page width
+      const displayName = arabicize(clientName);
       let fontSize = 72;
       const maxTextWidth = pageWidth - 2 * margin - 60;
-      let textWidth = helveticaBold.widthOfTextAtSize(clientName, fontSize);
+      let textWidth = helveticaBold.widthOfTextAtSize(displayName, fontSize);
       while (textWidth > maxTextWidth && fontSize > 24) {
         fontSize -= 2;
-        textWidth = helveticaBold.widthOfTextAtSize(clientName, fontSize);
+        textWidth = helveticaBold.widthOfTextAtSize(displayName, fontSize);
       }
 
       // Center the name vertically in the remaining space
@@ -658,13 +692,28 @@ export class ExportService {
       const remainingHeight = currentY - margin;
       const textY = margin + remainingHeight / 2 - fontSize / 3;
 
-      page.drawText(clientName, {
+      page.drawText(displayName, {
         x: textX,
         y: textY,
         size: fontSize,
         font: helveticaBold,
         color: rgb(0, 0, 0),
       });
+
+      // Draw rep name at bottom-right corner (size 10pt)
+      const repName = job.assignment?.rep?.name;
+      if (repName) {
+        const repDisplay = arabicize(repName);
+        const repSize = 10;
+        const repW = helvetica.widthOfTextAtSize(repDisplay, repSize);
+        page.drawText(repDisplay, {
+          x: pageWidth - margin - 8 - repW,
+          y: margin + 8,
+          size: repSize,
+          font: helvetica,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+      }
     }
 
     const pdfBytes = await pdfDoc.save();
@@ -676,13 +725,15 @@ export class ExportService {
   // ─────────────────────────────────────────────
 
   async generateJobEvidencePdf(jobId: string): Promise<Buffer> {
-    /** Replace characters outside WinAnsi so pdf-lib StandardFonts don't crash */
+    /** Normalize and arabicize text for PDF rendering. */
     const s = (text: string | null | undefined): string => {
       if (!text) return '-';
-      return (text + '')
-        .replace(/\u2192/g, '>').replace(/\u2014/g, '-').replace(/\u2013/g, '-')
-        .replace(/\u2026/g, '...').replace(/[\u201C\u201D]/g, '"')
-        .replace(/[\u2018\u2019]/g, "'").replace(/[^\x00-\xFF]/g, '?');
+      return arabicize(
+        (text + '')
+          .replace(/\u2192/g, '>').replace(/\u2014/g, '-').replace(/\u2013/g, '-')
+          .replace(/\u2026/g, '...').replace(/[\u201C\u201D]/g, '"')
+          .replace(/[\u2018\u2019]/g, "'"),
+      );
     };
 
     const [settings, job] = await Promise.all([
@@ -709,8 +760,11 @@ export class ExportService {
     if (!job) throw new NotFoundException('Job not found');
 
     const pdfDoc = await PDFDocument.create();
-    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    pdfDoc.registerFontkit(fontkit);
+
+    const { regular: regularPath, bold: boldPath } = cairoPaths();
+    const bold    = await pdfDoc.embedFont(fs.readFileSync(boldPath));
+    const regular = await pdfDoc.embedFont(fs.readFileSync(regularPath));
 
     const PW = 595, PH = 842, M = 36, CW = PW - 2 * M;
     const black = rgb(0, 0, 0);
