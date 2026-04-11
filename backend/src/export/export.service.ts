@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as XLSX from 'xlsx';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -610,8 +610,14 @@ export class ExportService {
     pdfDoc.registerFontkit(fontkit);
 
     const { regular: regularPath, bold: boldPath } = cairoPaths();
-    const helveticaBold = await pdfDoc.embedFont(fs.readFileSync(boldPath));
-    const helvetica     = await pdfDoc.embedFont(fs.readFileSync(regularPath));
+    const helvetica     = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const arabicFont    = await pdfDoc.embedFont(fs.readFileSync(regularPath));
+    const arabicBold    = await pdfDoc.embedFont(fs.readFileSync(boldPath));
+
+    /** Pick the right font: Cairo Arabic for Arabic text, Helvetica otherwise. */
+    const pickFont  = (text: string, bold = false) =>
+      hasArabic(text) ? (bold ? arabicBold : arabicFont) : (bold ? helveticaBold : helvetica);
 
     // Load logo if available
     let logoImage: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
@@ -685,12 +691,13 @@ export class ExportService {
       // Draw client name in large bold text, centered
       // Auto-size font to fit within page width
       const displayName = arabicize(clientName);
+      const nameFont = pickFont(clientName, true);
       let fontSize = 72;
       const maxTextWidth = pageWidth - 2 * margin - 60;
-      let textWidth = helveticaBold.widthOfTextAtSize(displayName, fontSize);
+      let textWidth = nameFont.widthOfTextAtSize(displayName, fontSize);
       while (textWidth > maxTextWidth && fontSize > 24) {
         fontSize -= 2;
-        textWidth = helveticaBold.widthOfTextAtSize(displayName, fontSize);
+        textWidth = nameFont.widthOfTextAtSize(displayName, fontSize);
       }
 
       // Center the name vertically in the remaining space
@@ -702,7 +709,7 @@ export class ExportService {
         x: textX,
         y: textY,
         size: fontSize,
-        font: helveticaBold,
+        font: nameFont,
         color: rgb(0, 0, 0),
       });
 
@@ -710,13 +717,14 @@ export class ExportService {
       const repName = job.assignment?.rep?.name;
       if (repName) {
         const repDisplay = arabicize(repName);
+        const repFont = pickFont(repName);
         const repSize = 10;
-        const repW = helvetica.widthOfTextAtSize(repDisplay, repSize);
+        const repW = repFont.widthOfTextAtSize(repDisplay, repSize);
         page.drawText(repDisplay, {
           x: pageWidth - margin - 8 - repW,
           y: margin + 8,
           size: repSize,
-          font: helvetica,
+          font: repFont,
           color: rgb(0.3, 0.3, 0.3),
         });
       }
@@ -769,8 +777,14 @@ export class ExportService {
     pdfDoc.registerFontkit(fontkit);
 
     const { regular: regularPath, bold: boldPath } = cairoPaths();
-    const bold    = await pdfDoc.embedFont(fs.readFileSync(boldPath));
-    const regular = await pdfDoc.embedFont(fs.readFileSync(regularPath));
+    const regular     = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const bold        = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const arabicFont  = await pdfDoc.embedFont(fs.readFileSync(regularPath));
+    const arabicBold  = await pdfDoc.embedFont(fs.readFileSync(boldPath));
+
+    /** Returns the correct font for the text — Cairo Arabic if Arabic, Helvetica otherwise. */
+    const pickFont = (text: string, isBold = false) =>
+      hasArabic(text) ? (isBold ? arabicBold : arabicFont) : (isBold ? bold : regular);
 
     const PW = 595, PH = 842, M = 36, CW = PW - 2 * M;
     const black = rgb(0, 0, 0);
@@ -880,9 +894,10 @@ export class ExportService {
           x: xBase + 4, y: y - ROW_H + 5,
           size: 7.5, font: regular, color: grayC,
         });
-        page.drawText(truncate(s(val), bold, 8, COL_W - KEY_W - 8), {
+        const valFont = pickFont(val, true);
+        page.drawText(truncate(val, valFont, 8, COL_W - KEY_W - 8), {
           x: xBase + KEY_W, y: y - ROW_H + 5,
-          size: 8, font: bold, color: black,
+          size: 8, font: valFont, color: black,
         });
       }
       y -= ROW_H;
@@ -925,13 +940,12 @@ export class ExportService {
 
       for (const ev of items) {
         const metaDate = new Date(ev.createdAt).toLocaleString('en-GB', { timeZone: 'Africa/Cairo' });
-        const meta = truncate(
-          s(`Submitted by: ${ev.submittedBy}   |   ${metaDate}`),
-          regular, 7.5, CW - 10,
-        );
+        const rawMeta = `Submitted by: ${ev.submittedBy}   |   ${metaDate}`;
+        const metaFont = pickFont(rawMeta);
+        const meta = truncate(s(rawMeta), metaFont, 7.5, CW - 10);
         need(22);
         page.drawRectangle({ x: M, y: y - 18, width: CW, height: 18, color: lightBg });
-        page.drawText(meta, { x: M + 5, y: y - 12.5, size: 7.5, font: regular, color: darkText });
+        page.drawText(meta, { x: M + 5, y: y - 12.5, size: 7.5, font: metaFont, color: darkText });
         y -= 24;
 
         const imageUrls: string[] = ev.imageUrls ?? [];
