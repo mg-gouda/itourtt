@@ -29,6 +29,7 @@ import {
   ClipboardList,
   Globe,
   Tag,
+  SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -41,6 +42,7 @@ import {
 import { useT } from "@/lib/i18n";
 import { usePermissionsStore } from "@/stores/permissions-store";
 import { useCompanyStore } from "@/stores/company-store";
+import { useAuthStore } from "@/stores/auth-store";
 
 export interface NavLink {
   type: "link";
@@ -49,6 +51,7 @@ export interface NavLink {
   icon: React.ElementType;
   permissionKey?: string;
   featureFlag?: string;
+  allowedEmails?: string[];
 }
 
 export interface NavSeparator {
@@ -101,6 +104,7 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.whatsapp", href: "/dashboard/whatsapp", icon: MessageCircle, permissionKey: "whatsapp" },
       { type: "link", nameKey: "sidebar.emailSettings", href: "/dashboard/email-settings", icon: Mail, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck, permissionKey: "users" },
+      { type: "link", nameKey: "sidebar.jobControl", href: "/dashboard/job-control", icon: SlidersHorizontal, allowedEmails: ["mggouda@gmail.com", "admin@itour.local"] },
     ],
   },
 ];
@@ -113,15 +117,19 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { has: hasPerm, isLoaded: permsLoaded } = usePermissionsStore();
   const { logoUrl, faviconUrl } = useCompanyStore();
+  const { user } = useAuthStore();
 
   // Feature flags — must use static keys for Next.js inlining
   const featureFlags: Record<string, boolean> = {
     NEXT_PUBLIC_ENABLE_CAR_DISPATCH: process.env.NEXT_PUBLIC_ENABLE_CAR_DISPATCH === "true",
   };
 
-  // Filter navigation based on permissions and feature flags
+  // Filter navigation based on permissions, feature flags, and email allowlist
   const canAccess = (item: NavLink): boolean => {
     if (item.featureFlag && !featureFlags[item.featureFlag]) return false;
+    if (item.allowedEmails) {
+      if (!user || !item.allowedEmails.includes(user.email)) return false;
+    }
     if (!permsLoaded || !item.permissionKey) return true;
     return hasPerm(item.permissionKey);
   };

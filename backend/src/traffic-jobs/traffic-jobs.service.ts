@@ -560,6 +560,33 @@ export class TrafficJobsService {
     return result;
   }
 
+  /** Admin-only override: force-set job status, rep status and/or driver status
+   *  without the normal transition guard. */
+  async forceControl(id: string, dto: { jobStatus?: string; repStatus?: string; driverStatus?: string }) {
+    const job = await this.findOne(id);
+
+    return this.prisma.$transaction(async (tx) => {
+      if (dto.jobStatus) {
+        await tx.trafficJob.update({
+          where: { id },
+          data: { status: dto.jobStatus as any },
+        });
+      }
+
+      if ((dto.repStatus || dto.driverStatus) && job.assignment) {
+        await tx.trafficAssignment.update({
+          where: { id: job.assignment.id },
+          data: {
+            ...(dto.repStatus    ? { repStatus:    dto.repStatus    as any } : {}),
+            ...(dto.driverStatus ? { driverStatus: dto.driverStatus as any } : {}),
+          },
+        });
+      }
+
+      return this.findOne(id);
+    });
+  }
+
   async remove(id: string) {
     const job = await this.findOne(id);
 

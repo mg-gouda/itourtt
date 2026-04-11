@@ -16,6 +16,7 @@ import { BulkCreateJobsDto } from './dto/bulk-create-jobs.dto.js';
 import { JobFilterDto } from './dto/job-filter.dto.js';
 import { UpdateJobDto } from './dto/update-job.dto.js';
 import { UpdateStatusDto } from './dto/update-status.dto.js';
+import { ForceControlDto } from './dto/force-control.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -89,6 +90,16 @@ export class TrafficJobsController {
   ) {
     const job = await this.trafficJobsService.updateStatus(id, dto, userId);
     return new ApiResponse(job, 'Traffic job status updated successfully');
+  }
+
+  @Patch(':id/control')
+  @Roles('ADMIN')
+  async forceControl(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ForceControlDto,
+  ) {
+    const job = await this.trafficJobsService.forceControl(id, dto);
+    return new ApiResponse(job, 'Job control updated successfully');
   }
 
   @Delete(':id')

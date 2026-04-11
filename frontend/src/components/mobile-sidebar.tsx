@@ -15,6 +15,7 @@ import {
 import { useT } from "@/lib/i18n";
 import { usePermissionsStore } from "@/stores/permissions-store";
 import { useCompanyStore } from "@/stores/company-store";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   navigation,
   type NavItem,
@@ -31,6 +32,7 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
   const t = useT();
   const { has: hasPerm, isLoaded: permsLoaded } = usePermissionsStore();
   const { logoUrl } = useCompanyStore();
+  const { user } = useAuthStore();
 
   // Close drawer on navigation
   useEffect(() => {
@@ -39,6 +41,9 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
   }, [pathname]);
 
   const canAccess = (item: NavLink): boolean => {
+    if (item.allowedEmails) {
+      if (!user || !item.allowedEmails.includes(user.email)) return false;
+    }
     if (!permsLoaded || !item.permissionKey) return true;
     return hasPerm(item.permissionKey);
   };
