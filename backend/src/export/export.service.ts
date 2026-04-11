@@ -14,9 +14,15 @@ const bidi = _require('bidi-js') as (text: string, opts: Record<string, unknown>
   getReorderedString: (text: string, levels: unknown) => string;
 };
 
-/** Reshape + visually reorder Arabic text so pdf-lib renders it correctly. */
+/** Returns true if the string contains any Arabic Unicode characters. */
+function hasArabic(text: string): boolean {
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+}
+
+/** Reshape + visually reorder Arabic text so pdf-lib renders it correctly.
+ *  Passes through unchanged if the text contains no Arabic characters. */
 function arabicize(text: string): string {
-  if (!text) return text;
+  if (!text || !hasArabic(text)) return text;
   const reshaped = convertArabic(text);
   const bidiObj = bidi(reshaped, { defaultParaLevel: 1 });
   return bidiObj.getReorderedString(
