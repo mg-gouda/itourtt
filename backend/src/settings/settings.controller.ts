@@ -80,6 +80,15 @@ export class SettingsController {
   }
 
   // ──────────────────────────────────────────────
+  // POST /settings/activate-license — activate license (any authenticated user)
+  // No role/permission guard — the key itself is the credential
+  // ──────────────────────────────────────────────
+  @Post('activate-license')
+  async activateLicense(@Body('key') key: string) {
+    return this.settingsService.activateLicense(key);
+  }
+
+  // ──────────────────────────────────────────────
   // GET /settings/company — retrieve company settings
   // ──────────────────────────────────────────────
 

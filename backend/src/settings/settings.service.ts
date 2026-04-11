@@ -167,6 +167,25 @@ export class SettingsService {
     return validateLicenseKey(settings?.licenseKey);
   }
 
+  async activateLicense(key: string): Promise<LicenseStatus> {
+    const trimmed = (key ?? '').trim();
+    const status = validateLicenseKey(trimmed);
+    if (!status.valid) return status;
+
+    const existing = await this.prisma.companySettings.findFirst();
+    if (existing) {
+      await this.prisma.companySettings.update({
+        where: { id: existing.id },
+        data: { licenseKey: trimmed },
+      });
+    } else {
+      await this.prisma.companySettings.create({
+        data: { licenseKey: trimmed },
+      });
+    }
+    return status;
+  }
+
   // ──────────────────────────────────────────────
   // FILE UPLOADS (logo / favicon)
   // ──────────────────────────────────────────────

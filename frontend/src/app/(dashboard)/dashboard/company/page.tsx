@@ -357,12 +357,11 @@ export default function CompanyPage() {
               onClick={async () => {
                 setActivatingLicense(true);
                 try {
-                  await api.patch("/settings/company", { licenseKey: licenseKey.trim() });
-                  const { data } = await api.get("/settings/license-status");
+                  const { data } = await api.post("/settings/activate-license", { key: licenseKey.trim() });
                   setLicenseStatus(data);
                   if (data.valid) {
                     toast.success(t("company.licenseActivated") || "License activated successfully");
-                    // Hard reload so the LicenseGate layout re-fetches and clears the invalid state
+                    // Hard reload so the LicenseGate re-fetches with the valid key
                     setTimeout(() => { window.location.href = "/dashboard"; }, 1200);
                   } else {
                     toast.error(data.message || "Invalid license key");
