@@ -8,9 +8,8 @@ RUN npm ci
 
 COPY . .
 
-# Build arg so the API URL is baked into the client bundle
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# NOTE: Do NOT pass NEXT_PUBLIC_API_URL — the axios client already appends /api
+# and the ingress routes /api/* to the backend. Passing it would double the prefix.
 
 # Feature flag: Car Dispatch (baked into client bundle at build time)
 ARG NEXT_PUBLIC_ENABLE_CAR_DISPATCH
