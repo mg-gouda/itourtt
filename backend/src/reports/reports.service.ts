@@ -36,18 +36,21 @@ export class ReportsService {
 
     const jobs = await this.prisma.trafficJob.findMany({
       where: { jobDate, deletedAt: null },
-      include: {
-        agent: true,
+      select: {
+        id: true,
+        internalRef: true,
+        serviceType: true,
+        status: true,
+        paxCount: true,
+        agent: { select: { legalName: true } },
+        customer: { select: { legalName: true } },
         assignment: {
-          include: {
-            vehicle: { include: { vehicleType: true } },
-            driver: true,
-            rep: true,
+          select: {
+            vehicle: { select: { plateNumber: true, vehicleType: { select: { name: true } } } },
+            driver: { select: { name: true } },
+            rep: { select: { name: true } },
           },
         },
-        flight: true,
-        fromZone: true,
-        toZone: true,
       },
     });
 
@@ -70,9 +73,7 @@ export class ReportsService {
 
     const completionRate =
       totalJobs > 0
-        ? Math.round(
-            ((byStatus['COMPLETED'] || 0) / totalJobs) * 100,
-          )
+        ? Math.round(((byStatus['COMPLETED'] || 0) / totalJobs) * 100)
         : 0;
 
     const assignmentRate =
