@@ -37,6 +37,10 @@ class JobStatusQueryDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @IsString()
+  repId?: string;
 }
 
 class EvidenceQueryDto {
@@ -217,6 +221,7 @@ export class ReportsController {
       query.from,
       query.to,
       query.status,
+      query.repId,
     );
     return new ApiResponse(result);
   }

@@ -910,6 +910,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.driverEvidence": "Driver Evidence",
     "reports.statusFilter": "Status",
     "reports.allStatuses": "All Statuses",
+    "reports.allReps": "All Reps",
 
     // ── Users ──
     "users.title": "Users",
@@ -2379,6 +2380,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.driverEvidence": "دليل السائق",
     "reports.statusFilter": "الحالة",
     "reports.allStatuses": "جميع الحالات",
+    "reports.allReps": "جميع المرافقين",
 
     // ── Users ──
     "users.title": "\u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u0648\u0646",

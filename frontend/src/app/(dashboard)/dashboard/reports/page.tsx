@@ -472,6 +472,7 @@ export default function ReportsPage() {
   const [jobStatusFrom, setJobStatusFrom] = useState(thirtyDaysAgo);
   const [jobStatusTo, setJobStatusTo] = useState(today);
   const [jobStatusFilter, setJobStatusFilter] = useState("ALL");
+  const [jobStatusRepId, setJobStatusRepId] = useState("ALL");
   const [jobStatusData, setJobStatusData] = useState<JobStatusReport | null>(null);
   const [jobStatusLoading, setJobStatusLoading] = useState(false);
   const jobStatusPrintRef = useRef<HTMLDivElement>(null);
@@ -676,8 +677,9 @@ export default function ReportsPage() {
     setJobStatusLoading(true);
     try {
       const statusParam = jobStatusFilter !== "ALL" ? `&status=${jobStatusFilter}` : "";
+      const repParam = jobStatusRepId !== "ALL" ? `&repId=${jobStatusRepId}` : "";
       const { data } = await api.get(
-        `/reports/job-status?from=${jobStatusFrom}&to=${jobStatusTo}${statusParam}`
+        `/reports/job-status?from=${jobStatusFrom}&to=${jobStatusTo}${statusParam}${repParam}`
       );
       setJobStatusData(data.data || data);
     } catch {
@@ -1998,6 +2000,20 @@ export default function ReportsPage() {
                     <SelectItem value="COMPLETED">Completed</SelectItem>
                     <SelectItem value="CANCELLED">Cancelled</SelectItem>
                     <SelectItem value="NO_SHOW">No Show</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">{t("reports.repName")}</Label>
+                <Select value={jobStatusRepId} onValueChange={setJobStatusRepId}>
+                  <SelectTrigger className="mt-1 w-44 border-border bg-card text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">{t("reports.allReps")}</SelectItem>
+                    {repList.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
