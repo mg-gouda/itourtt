@@ -323,6 +323,8 @@ interface EvidenceReportRow {
     arrivalTime: string | null;
     departureTime: string | null;
   } | null;
+  driverName: string | null;
+  repName: string | null;
   assignment: {
     vehicle: { plateNumber: string } | null;
     driver: { name: string } | null;
@@ -493,6 +495,9 @@ export default function ReportsPage() {
   const [evidenceTo, setEvidenceTo] = useState(today);
   const [evidenceStatusFilter, setEvidenceStatusFilter] = useState("ALL");
   const [evidenceAgentId, setEvidenceAgentId] = useState("ALL");
+  const [evidenceRepId, setEvidenceRepId] = useState("ALL");
+  const [evidenceDriverId, setEvidenceDriverId] = useState("ALL");
+  const [driverList, setDriverList] = useState<Array<{ id: string; name: string }>>([]);
   const [evidenceData, setEvidenceData] = useState<EvidenceReport | null>(null);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
 
@@ -531,6 +536,17 @@ export default function ReportsPage() {
       .then(({ data }) => {
         const list: Array<{ id: string; name: string }> = Array.isArray(data) ? data : data.data || [];
         setRepList(list.map((r) => ({ id: r.id, name: r.name })));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load drivers list for evidence report filter
+  useEffect(() => {
+    api
+      .get("/drivers?limit=500&isActive=true")
+      .then(({ data }) => {
+        const list: Array<{ id: string; name: string }> = Array.isArray(data) ? data : data.data || [];
+        setDriverList(list.map((d) => ({ id: d.id, name: d.name })));
       })
       .catch(() => {});
   }, []);
@@ -708,8 +724,10 @@ export default function ReportsPage() {
     try {
       const statusParam = evidenceStatusFilter !== "ALL" ? `&status=${evidenceStatusFilter}` : "";
       const agentParam = evidenceAgentId !== "ALL" ? `&agentId=${evidenceAgentId}` : "";
+      const repParam = evidenceRepId !== "ALL" ? `&repId=${evidenceRepId}` : "";
+      const driverParam = evidenceDriverId !== "ALL" ? `&driverId=${evidenceDriverId}` : "";
       const { data } = await api.get(
-        `/reports/evidence?from=${evidenceFrom}&to=${evidenceTo}${statusParam}${agentParam}`
+        `/reports/evidence?from=${evidenceFrom}&to=${evidenceTo}${statusParam}${agentParam}${repParam}${driverParam}`
       );
       setEvidenceData(data.data || data);
     } catch {
@@ -2430,6 +2448,34 @@ export default function ReportsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="min-w-[180px]">
+                  <Label className="text-muted-foreground text-xs">{t("reports.repName")}</Label>
+                  <Select value={evidenceRepId} onValueChange={setEvidenceRepId}>
+                    <SelectTrigger className="mt-1 h-9 border-border bg-card text-foreground">
+                      <SelectValue placeholder={t("reports.allReps")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">{t("reports.allReps")}</SelectItem>
+                      {repList.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="min-w-[180px]">
+                  <Label className="text-muted-foreground text-xs">{t("dispatch.driverName")}</Label>
+                  <Select value={evidenceDriverId} onValueChange={setEvidenceDriverId}>
+                    <SelectTrigger className="mt-1 h-9 border-border bg-card text-foreground">
+                      <SelectValue placeholder="All Drivers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Drivers</SelectItem>
+                      {driverList.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button onClick={fetchEvidenceReport} disabled={evidenceLoading} className="gap-1.5">
                   {evidenceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                   {t("reports.generate")}
@@ -2466,6 +2512,8 @@ export default function ReportsPage() {
                         <TableHead className="text-white text-xs">Date</TableHead>
                         <TableHead className="text-white text-xs">Type</TableHead>
                         <TableHead className="text-white text-xs">Status</TableHead>
+                        <TableHead className="text-white text-xs">{t("reports.repName")}</TableHead>
+                        <TableHead className="text-white text-xs">{t("dispatch.driverName")}</TableHead>
                         <TableHead className="text-white text-xs">Evidence</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -2490,6 +2538,8 @@ export default function ReportsPage() {
                             <TableCell>
                               <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>{row.status}</Badge>
                             </TableCell>
+                            <TableCell className="text-sm text-foreground">{row.repName ?? "—"}</TableCell>
+                            <TableCell className="text-sm text-foreground">{row.driverName ?? "—"}</TableCell>
                             <TableCell>
                               {row.hasEvidence ? (
                                 <Button
@@ -2511,7 +2561,7 @@ export default function ReportsPage() {
                       })}
                       {evidenceData.rows.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-sm">
+                          <TableCell colSpan={9} className="text-center text-muted-foreground py-8 text-sm">
                             No jobs found for the selected filters.
                           </TableCell>
                         </TableRow>

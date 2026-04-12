@@ -2,6 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { JobStatus, ServiceType } from '../../generated/prisma/client.js';
 
+/** Returns the effective driver name: direct driver → external driver name → supplier name. */
+function resolveDriverName(assignment: {
+  driver?: { name: string } | null;
+  externalDriverName?: string | null;
+  supplier?: { tradeName?: string | null; legalName: string } | null;
+} | null): string | null {
+  if (!assignment) return null;
+  if (assignment.driver?.name) return assignment.driver.name;
+  if (assignment.externalDriverName) return assignment.externalDriverName;
+  if (assignment.supplier) return assignment.supplier.tradeName ?? assignment.supplier.legalName;
+  return null;
+}
+
 function calcRepScore(s: {
   attendance: boolean;
   appearance: boolean;
@@ -657,7 +670,7 @@ export class ReportsService {
   // EVIDENCE REPORT
   // ─────────────────────────────────────────────
 
-  async evidenceReport(from: string, to: string, status?: string, agentId?: string) {
+  async evidenceReport(from: string, to: string, status?: string, agentId?: string, repId?: string, driverId?: string) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
 
@@ -667,6 +680,12 @@ export class ReportsService {
     };
     if (status && status !== 'ALL') where.status = status;
     if (agentId) where.agentId = agentId;
+    if (repId || driverId) {
+      where.assignment = {
+        ...(repId ? { repId } : {}),
+        ...(driverId ? { driverId } : {}),
+      };
+    }
 
     const jobs = await this.prisma.trafficJob.findMany({
       where,
@@ -692,6 +711,7 @@ export class ReportsService {
             vehicle: { select: { plateNumber: true } },
             driver: { select: { name: true } },
             rep: { select: { name: true } },
+            supplier: { select: { legalName: true, tradeName: true } },
           },
         },
         noShowEvidence: {
@@ -724,6 +744,8 @@ export class ReportsService {
       originHotel: j.originHotel,
       destinationHotel: j.destinationHotel,
       flight: j.flight,
+      driverName: resolveDriverName(j.assignment),
+      repName: j.assignment?.rep?.name ?? null,
       assignment: j.assignment
         ? {
             vehicle: j.assignment.vehicle,
@@ -770,8 +792,10 @@ export class ReportsService {
           select: {
             driverStatus: true,
             repStatus: true,
+            externalDriverName: true,
             driver: { select: { name: true } },
             rep: { select: { name: true } },
+            supplier: { select: { legalName: true, tradeName: true } },
           },
         },
         inPlaceEvidence: {
@@ -802,7 +826,7 @@ export class ReportsService {
         repJobStatus: j.assignment?.repStatus || null,
         driverJobStatus: j.assignment?.driverStatus || null,
         repName: j.assignment?.rep?.name ?? null,
-        driverName: j.assignment?.driver?.name ?? null,
+        driverName: resolveDriverName(j.assignment ?? null),
         driverEvidence: j.inPlaceEvidence,
       })),
     };

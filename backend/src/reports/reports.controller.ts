@@ -57,6 +57,14 @@ class EvidenceQueryDto {
   @IsOptional()
   @IsString()
   agentId?: string;
+
+  @IsOptional()
+  @IsString()
+  repId?: string;
+
+  @IsOptional()
+  @IsString()
+  driverId?: string;
 }
 
 class DayQueryDto {
@@ -205,6 +213,8 @@ export class ReportsController {
       query.to,
       query.status,
       query.agentId,
+      query.repId,
+      query.driverId,
     );
     return new ApiResponse(result);
   }
