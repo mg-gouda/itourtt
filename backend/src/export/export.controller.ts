@@ -97,7 +97,7 @@ export class ExportController {
 
   @Get('client-signs')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
-  @Permissions('dispatch.exportButton')
+  @Permissions('dispatch.exportButton', 'traffic-jobs.online.createJob')
   async exportClientSigns(
     @Query('date') date: string,
     @Res() res: express.Response,

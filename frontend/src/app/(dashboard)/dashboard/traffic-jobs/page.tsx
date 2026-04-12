@@ -46,6 +46,7 @@ import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
 import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
+import { usePermission } from "@/hooks/use-permission";
 
 interface TrafficJob {
   id: string;
@@ -137,6 +138,7 @@ export default function TrafficJobsPage() {
   const t = useT();
   const locale = useLocaleId();
   const router = useRouter();
+  const canPrintSigns = usePermission("dispatch.exportButton") || usePermission("traffic-jobs.online.createJob");
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
@@ -232,15 +234,17 @@ export default function TrafficJobsPage() {
           <p className="mt-1 text-sm text-muted-foreground">{t("jobs.description")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 border-border"
-            onClick={() => setSignModalOpen(true)}
-          >
-            <Printer className="h-4 w-4" />
-            {t("jobs.printSigns")}
-          </Button>
+          {canPrintSigns && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 border-border"
+              onClick={() => setSignModalOpen(true)}
+            >
+              <Printer className="h-4 w-4" />
+              {t("jobs.printSigns")}
+            </Button>
+          )}
           <Button
             size="sm"
             className="gap-1.5"
