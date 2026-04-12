@@ -191,6 +191,7 @@ export class ExportController {
 
   @Get('evidence-pdf/:jobId')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.evidence')
   async downloadEvidencePdf(
     @Param('jobId', ParseUUIDPipe) jobId: string,
     @Res() res: express.Response,

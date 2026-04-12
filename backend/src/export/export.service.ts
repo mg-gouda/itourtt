@@ -19,6 +19,18 @@ function hasArabic(text: string): boolean {
   return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
 }
 
+/**
+ * Normalises a logoUrl that may be stored as a full URL (e.g. http://localhost:3001/uploads/x.jpg)
+ * or as a relative path (/uploads/x.jpg) into a local filesystem path.
+ */
+function resolveLogoPath(logoUrl: string): string {
+  if (logoUrl.startsWith('http://') || logoUrl.startsWith('https://')) {
+    const pathname = new URL(logoUrl).pathname; // e.g. /uploads/x.jpg
+    return path.join(process.cwd(), pathname.replace(/^\//, ''));
+  }
+  return path.join(process.cwd(), logoUrl.replace(/^\//, ''));
+}
+
 /** Reshape + visually reorder Arabic text so pdf-lib renders it correctly.
  *  Passes through unchanged if the text contains no Arabic characters. */
 function arabicize(text: string): string {
@@ -625,7 +637,7 @@ export class ExportService {
     let logoImage: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
     if (logoUrl) {
       try {
-        const logoPath = path.join(process.cwd(), logoUrl.replace(/^\//, ''));
+        const logoPath = resolveLogoPath(logoUrl);
         const logoBytes = fs.readFileSync(logoPath);
         const ext = logoUrl.toLowerCase();
         if (ext.endsWith('.png')) {
@@ -798,7 +810,7 @@ export class ExportService {
     let logoImg: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
     if (settings?.logoUrl) {
       try {
-        const lp = path.join(process.cwd(), settings.logoUrl.replace(/^\//, ''));
+        const lp = resolveLogoPath(settings.logoUrl);
         const lb = fs.readFileSync(lp);
         logoImg = settings.logoUrl.toLowerCase().endsWith('.png')
           ? await pdfDoc.embedPng(lb)
