@@ -6,6 +6,7 @@ import fontkit from '@pdf-lib/fontkit';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createRequire } from 'module';
+import sharp from 'sharp';
 
 const _require = createRequire(import.meta.url);
 const { convertArabic } = _require('arabic-reshaper') as { convertArabic: (t: string) => string };
@@ -29,6 +30,33 @@ function resolveLogoPath(logoUrl: string): string {
     return path.join(process.cwd(), pathname.replace(/^\//, ''));
   }
   return path.join(process.cwd(), logoUrl.replace(/^\//, ''));
+}
+
+/**
+ * Loads a logo file and embeds it into the PDF document.
+ * Supports JPEG, PNG, and SVG (SVG is rasterised to PNG via sharp).
+ * Returns null if the logo cannot be loaded.
+ */
+async function embedLogo(
+  pdfDoc: PDFDocument,
+  logoUrl: string,
+): Promise<Awaited<ReturnType<typeof pdfDoc.embedPng>> | null> {
+  try {
+    const logoPath = resolveLogoPath(logoUrl);
+    const ext = logoUrl.toLowerCase();
+    if (ext.endsWith('.svg')) {
+      // Rasterise SVG → PNG with a fixed height; sharp handles width automatically
+      const pngBytes = await sharp(logoPath).png().toBuffer();
+      return await pdfDoc.embedPng(pngBytes);
+    }
+    const bytes = fs.readFileSync(logoPath);
+    if (ext.endsWith('.png')) {
+      return await pdfDoc.embedPng(bytes);
+    }
+    return await pdfDoc.embedJpg(bytes);
+  } catch {
+    return null;
+  }
 }
 
 /** Reshape + visually reorder Arabic text so pdf-lib renders it correctly.
@@ -634,21 +662,7 @@ export class ExportService {
       hasArabic(text) ? (isBold ? arabicBold : arabicFont) : (isBold ? latinBold : latinFont);
 
     // Load logo if available
-    let logoImage: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
-    if (logoUrl) {
-      try {
-        const logoPath = resolveLogoPath(logoUrl);
-        const logoBytes = fs.readFileSync(logoPath);
-        const ext = logoUrl.toLowerCase();
-        if (ext.endsWith('.png')) {
-          logoImage = await pdfDoc.embedPng(logoBytes);
-        } else {
-          logoImage = await pdfDoc.embedJpg(logoBytes);
-        }
-      } catch {
-        // Logo not found, continue without it
-      }
-    }
+    const logoImage = logoUrl ? await embedLogo(pdfDoc, logoUrl) : null;
 
     // Landscape A4: 842 x 595 pt
     const pageWidth = 842;
@@ -807,16 +821,7 @@ export class ExportService {
     const darkText = rgb(0.2, 0.2, 0.2);
 
     // Load company logo
-    let logoImg: Awaited<ReturnType<typeof pdfDoc.embedJpg>> | null = null;
-    if (settings?.logoUrl) {
-      try {
-        const lp = resolveLogoPath(settings.logoUrl);
-        const lb = fs.readFileSync(lp);
-        logoImg = settings.logoUrl.toLowerCase().endsWith('.png')
-          ? await pdfDoc.embedPng(lb)
-          : await pdfDoc.embedJpg(lb);
-      } catch { /* no logo — continue */ }
-    }
+    const logoImg = settings?.logoUrl ? await embedLogo(pdfDoc, settings.logoUrl) : null;
 
     // Page cursor helpers
     let page = pdfDoc.addPage([PW, PH]);
