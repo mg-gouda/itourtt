@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-USAGE="Usage: $0 [production|training|travelplan|all]"
+USAGE="Usage: $0 [production|travelplan|all]"
 ENV="${1:-all}"
 
-if [[ "$ENV" != "production" && "$ENV" != "training" && "$ENV" != "travelplan" && "$ENV" != "all" ]]; then
+if [[ "$ENV" != "production" && "$ENV" != "travelplan" && "$ENV" != "all" ]]; then
   echo "$USAGE"
   exit 1
 fi
@@ -17,13 +17,13 @@ echo ">> Building backend image..."
 docker build --no-cache -t itourtt-backend:3.3.12 backend -q
 
 # ── Build frontend images (per-environment feature flags) ──
-# Production & Training: Car Dispatch enabled
+# Production: Car Dispatch enabled
 # TravelPlan: Car Dispatch disabled
 
 needs_car_dispatch=false
 needs_standard=false
 
-if [[ "$ENV" == "production" || "$ENV" == "training" || "$ENV" == "all" ]]; then
+if [[ "$ENV" == "production" || "$ENV" == "all" ]]; then
   needs_car_dispatch=true
 fi
 if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
@@ -68,10 +68,10 @@ deploy_env() {
   echo ">> Syncing database schema..."
   kubectl exec -n "$ns" deployment/backend -- npx prisma db push --accept-data-loss 2>&1 || true
 
-  # Scale to 3 replicas
-  echo ">> Scaling to 3 replicas..."
-  kubectl scale deployment/backend --replicas=3 -n "$ns" 2>&1 || true
-  kubectl scale deployment/frontend --replicas=3 -n "$ns" 2>&1 || true
+  # Scale to 2 replicas
+  echo ">> Scaling to 2 replicas..."
+  kubectl scale deployment/backend --replicas=2 -n "$ns" 2>&1 || true
+  kubectl scale deployment/frontend --replicas=2 -n "$ns" 2>&1 || true
 
   # Restart backend first — seed must run on the NEW image
   echo ">> Rolling out backend..."
@@ -94,10 +94,6 @@ if [[ "$ENV" == "production" || "$ENV" == "all" ]]; then
   deploy_env "itour-production" "Production" "3.3.12-cardispatch"
 fi
 
-if [[ "$ENV" == "training" || "$ENV" == "all" ]]; then
-  deploy_env "itour-training" "Training" "3.3.12-cardispatch"
-fi
-
 if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
   deploy_env "itour-travelplan" "TravelPlan" "3.3.12"
 fi
@@ -105,5 +101,4 @@ fi
 echo ""
 echo "=== Deployment complete ==="
 echo "Production:  https://fulvago.itourtt.cloud"
-echo "Training:    https://tranning.itourtt.cloud"
 echo "TravelPlan:  https://travelplan.itourtt.cloud"
