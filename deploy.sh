@@ -11,6 +11,11 @@ fi
 
 cd /opt/itour
 
+# ── Pull latest code from GitHub ──
+echo ""
+echo ">> Pulling latest code from GitHub (main)..."
+git pull origin main
+
 # ── Build shared backend image (same for all environments) ──
 echo ""
 echo ">> Building backend image..."
@@ -56,11 +61,21 @@ deploy_env() {
   echo ""
   echo "=== Deploying $label ($ns) ==="
 
-  # Point frontend deployment to the correct image tag
+  # Point both deployments to the new image tags
   kubectl set image deployment/backend backend=itourtt-backend:3.3.12 -n "$ns"
   kubectl set image deployment/frontend frontend=itourtt-frontend:${frontend_tag} -n "$ns"
 
-  # Run database migrations
+  # Scale to 2 replicas
+  echo ">> Scaling to 2 replicas..."
+  kubectl scale deployment/backend --replicas=2 -n "$ns" 2>&1 || true
+  kubectl scale deployment/frontend --replicas=2 -n "$ns" 2>&1 || true
+
+  # Rollout backend FIRST so migration runs from the NEW image
+  echo ">> Rolling out backend..."
+  kubectl rollout restart deployment/backend -n "$ns"
+  kubectl rollout status deployment/backend -n "$ns" --timeout=120s
+
+  # Run migrations AFTER rollout — new image has the new migration files
   echo ">> Running database migrations..."
   kubectl exec -n "$ns" deployment/backend -- npx prisma migrate deploy 2>&1 || true
 
@@ -68,17 +83,7 @@ deploy_env() {
   echo ">> Syncing database schema..."
   kubectl exec -n "$ns" deployment/backend -- npx prisma db push --accept-data-loss 2>&1 || true
 
-  # Scale to 2 replicas
-  echo ">> Scaling to 2 replicas..."
-  kubectl scale deployment/backend --replicas=2 -n "$ns" 2>&1 || true
-  kubectl scale deployment/frontend --replicas=2 -n "$ns" 2>&1 || true
-
-  # Restart backend first — seed must run on the NEW image
-  echo ">> Rolling out backend..."
-  kubectl rollout restart deployment/backend -n "$ns"
-  kubectl rollout status deployment/backend -n "$ns" --timeout=120s
-
-  # Run seed AFTER rollout so it executes on the new image
+  # Run seed AFTER migration
   echo ">> Running database seed (permissions + system params skipped)..."
   kubectl exec -n "$ns" deployment/backend -- env SKIP_PERMISSION_SEED=true SKIP_SYSTEM_PARAMS_SEED=true node dist/src/prisma/seed.js 2>&1 || true
 
