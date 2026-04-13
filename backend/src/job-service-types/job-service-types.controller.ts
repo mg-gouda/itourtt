@@ -1,7 +1,9 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Body, Param, UseGuards,
+  Body, Param, Res, UseGuards, UseInterceptors, UploadedFile,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JobServiceTypesService } from './job-service-types.service.js';
 import { CreateJobServiceTypeDto } from './dto/create-job-service-type.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -18,6 +20,30 @@ export class JobServiceTypesController {
   @Permissions('driver-tariffs')
   async findAll() {
     return new ApiResponse(await this.service.findAll());
+  }
+
+  @Get('import/template')
+  @Permissions('driver-tariffs')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = await this.service.generateTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="service_types_template.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Post('import/excel')
+  @Permissions('driver-tariffs.upsert')
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
+    const result = await this.service.importFromExcel(file.buffer);
+    const message = result.errors.length > 0
+      ? `Imported ${result.imported} service types with ${result.errors.length} errors`
+      : `Successfully imported ${result.imported} service types`;
+    return new ApiResponse(result, message);
   }
 
   @Post()

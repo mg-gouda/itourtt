@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Plus, Pencil, Trash2, Receipt, Copy, Check, ChevronsUpDown, Download, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Receipt, Copy, Check, ChevronsUpDown, Download, Upload, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -186,6 +186,348 @@ function CreatableCombobox({
   );
 }
 
+// ── Service Types Manager Modal ───────────────────────────────────────────────
+
+function ServiceTypesManager({
+  open,
+  onClose,
+  zones,
+  onChanged,
+}: {
+  open: boolean;
+  onClose: () => void;
+  zones: Zone[];
+  onChanged: () => void;
+}) {
+  const canUpsert = usePermission("driver-tariffs.upsert");
+  const canDelete = usePermission("driver-tariffs.delete");
+
+  const [items, setItems] = useState<JobServiceType[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Form state
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [fromZoneId, setFromZoneId] = useState("");
+  const [toZoneId, setToZoneId] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Delete
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Import
+  const importRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [dlTemplate, setDlTemplate] = useState(false);
+  const [importResult, setImportResult] = useState<{ open: boolean; imported: number; errors: string[] }>({
+    open: false, imported: 0, errors: [],
+  });
+
+  const zoneItems = useMemo(
+    () => zones.map((z) => ({ value: z.id, label: z.name, sub: z.city?.name })),
+    [zones]
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/job-service-types");
+      setItems(res.data.data || res.data || []);
+    } catch {
+      toast.error("Failed to load service types");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) load();
+  }, [open, load]);
+
+  const openAdd = () => {
+    setEditingId(null); setName(""); setFromZoneId(""); setToZoneId("");
+    setFormOpen(true);
+  };
+
+  const openEdit = (st: JobServiceType) => {
+    setEditingId(st.id);
+    setName(st.name);
+    setFromZoneId(st.fromZone?.id ?? "");
+    setToZoneId(st.toZone?.id ?? "");
+    setFormOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) { toast.error("Name is required"); return; }
+    setSaving(true);
+    try {
+      if (editingId) {
+        await api.patch(`/job-service-types/${editingId}`, {
+          name: name.trim(),
+          fromZoneId: fromZoneId || null,
+          toZoneId: toZoneId || null,
+        });
+        toast.success("Service type updated");
+      } else {
+        await api.post("/job-service-types", {
+          name: name.trim(),
+          fromZoneId: fromZoneId || undefined,
+          toZoneId: toZoneId || undefined,
+        });
+        toast.success("Service type created");
+      }
+      setFormOpen(false);
+      load();
+      onChanged();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/job-service-types/${deleteId}`);
+      toast.success("Service type deleted");
+      setDeleteId(null);
+      load();
+      onChanged();
+    } catch {
+      toast.error("Failed to delete");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    setDlTemplate(true);
+    try {
+      const res = await api.get("/job-service-types/import/template", { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url; a.setAttribute("download", "service_types_template.xlsx");
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download template");
+    } finally {
+      setDlTemplate(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await api.post("/job-service-types/import/excel", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const result = res.data.data;
+      setImportResult({ open: true, imported: result.imported, errors: result.errors });
+      if (result.imported > 0) { load(); onChanged(); }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Import failed");
+    } finally {
+      setImporting(false);
+      if (importRef.current) importRef.current.value = "";
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent className="w-[90vw] max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Manage Service Types</DialogTitle>
+          </DialogHeader>
+
+          {/* Toolbar */}
+          <div className="flex items-center justify-between gap-2 py-1">
+            <span className="text-sm text-muted-foreground">
+              {items.length} service type{items.length !== 1 ? "s" : ""}
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleDownloadTemplate} disabled={dlTemplate}>
+                <Download className="h-4 w-4 mr-1.5" />
+                {dlTemplate ? "Downloading…" : "Template"}
+              </Button>
+              {canUpsert && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => importRef.current?.click()} disabled={importing}>
+                    <Upload className="h-4 w-4 mr-1.5" />
+                    {importing ? "Importing…" : "Import"}
+                  </Button>
+                  <input ref={importRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+                  <Button size="sm" onClick={openAdd}>
+                    <Plus className="h-4 w-4 mr-1.5" /> Add
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="flex-1 overflow-y-auto rounded border">
+            {loading ? (
+              <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">Loading…</div>
+            ) : items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 gap-2 text-sm text-muted-foreground">
+                <p>No service types yet.</p>
+                {canUpsert && (
+                  <Button variant="outline" size="sm" onClick={openAdd}>
+                    <Plus className="h-4 w-4 mr-1" /> Add first service type
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>From Zone</TableHead>
+                    <TableHead>To Zone</TableHead>
+                    {(canUpsert || canDelete) && <TableHead className="text-right w-24">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((st) => (
+                    <TableRow key={st.id}>
+                      <TableCell className="font-medium">{st.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{st.fromZone?.name ?? "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{st.toZone?.name ?? "—"}</TableCell>
+                      {(canUpsert || canDelete) && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {canUpsert && (
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(st)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button variant="ghost" size="icon" onClick={() => setDeleteId(st.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add / Edit form */}
+      <Dialog open={formOpen} onOpenChange={(o) => !o && setFormOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Edit Service Type" : "Add Service Type"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Name <span className="text-destructive">*</span></Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. ARR-HRG"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>From Zone <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <SearchableCombobox
+                items={zoneItems}
+                value={fromZoneId}
+                onChange={setFromZoneId}
+                placeholder="Select zone…"
+                searchPlaceholder="Search zones…"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>To Zone <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <SearchableCombobox
+                items={zoneItems}
+                value={toZoneId}
+                onChange={setToZoneId}
+                placeholder="Select zone…"
+                searchPlaceholder="Search zones…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Service Type</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the service type. Tariffs linked to it will lose the reference.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Import result */}
+      <AlertDialog open={importResult.open} onOpenChange={(o) => !o && setImportResult((r) => ({ ...r, open: false }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import Complete</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p><span className="font-medium text-green-600">{importResult.imported}</span> service type{importResult.imported !== 1 ? "s" : ""} imported.</p>
+                {importResult.errors.length > 0 && (
+                  <div>
+                    <p className="font-medium text-destructive mb-1">{importResult.errors.length} error{importResult.errors.length !== 1 ? "s" : ""}:</p>
+                    <ul className="max-h-40 overflow-y-auto text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+                      {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setImportResult((r) => ({ ...r, open: false }))}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DriverTariffsPage() {
@@ -205,6 +547,9 @@ export default function DriverTariffsPage() {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Service types manager
+  const [stManagerOpen, setStManagerOpen] = useState(false);
 
   // Import state
   const importFileRef = useRef<HTMLInputElement>(null);
@@ -415,6 +760,14 @@ export default function DriverTariffsPage() {
           description="Rate card for driver trip fees by route and vehicle type. Used to auto-calculate driver fees when a job is completed."
         />
         <div className="flex items-center gap-2 mt-1 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setStManagerOpen(true)}
+          >
+            <Settings2 className="h-4 w-4 mr-1.5" />
+            Service Types
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -634,6 +987,14 @@ export default function DriverTariffsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Service Types Manager */}
+      <ServiceTypesManager
+        open={stManagerOpen}
+        onClose={() => setStManagerOpen(false)}
+        zones={zones}
+        onChanged={fetchData}
+      />
 
       {/* Import Result */}
       <AlertDialog open={importResult.open} onOpenChange={(o) => !o && setImportResult((r) => ({ ...r, open: false }))}>
