@@ -1180,6 +1180,7 @@ model DriverTripFee {
   vehicleTypeId String?  @map("vehicle_type_id")
   tariffId      String?  @map("tariff_id")
   amount        Decimal  @db.Decimal(15, 2)
+  tariffAmount  Decimal? @map("tariff_amount") @db.Decimal(15, 2)
   currency      Currency @default(EGP)
   isPosted      Boolean  @default(false) @map("is_posted")
   createdAt     DateTime @default(now()) @map("created_at")

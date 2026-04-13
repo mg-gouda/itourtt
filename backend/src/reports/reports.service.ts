@@ -48,15 +48,23 @@ function calcDriverScore(s: {
     (s.appearance ? 20 : 0) +
     (s.carCleanliness ? 10 : 0) +
     (s.maintenance ? 10 : 0) +
-    (s.work ? 20 : 0)
+    (s.work ? 30 : 0)
   );
 }
 
 function driverScoreToEval(total: number): string {
-  if (total >= 81) return 'Excellent';
-  if (total >= 63) return 'Good';
-  if (total >= 45) return 'Average';
+  if (total >= 90) return 'Excellent';
+  if (total >= 70) return 'Good';
+  if (total >= 50) return 'Average';
   return 'Poor';
+}
+
+/** Returns the fee multiplier for a given driver score total (out of 100). */
+function driverScoreToMultiplier(total: number): number {
+  if (total >= 90) return 1.0;
+  if (total >= 70) return 0.8;
+  if (total >= 50) return 0.6;
+  return 0.4;
 }
 
 @Injectable()
@@ -206,6 +214,8 @@ export class ReportsService {
           return from && to ? `${from} → ${to}` : '—';
         })(),
         agent: a.trafficJob.agent?.legalName || '—',
+        tripFee: null as number | null,
+        tariffFee: null as number | null,
         driverJobScore: djs
           ? {
               attendance: djs.attendance,
@@ -246,9 +256,25 @@ export class ReportsService {
     });
 
     const feeByDriver = new Map<string, number>();
+    const feeByJob    = new Map<string, { amount: number; tariffAmount: number | null }>();
     for (const fee of fees) {
       const curr = feeByDriver.get(fee.driverId) || 0;
       feeByDriver.set(fee.driverId, curr + Number(fee.amount));
+      feeByJob.set(fee.trafficJobId, {
+        amount:       Number(fee.amount),
+        tariffAmount: fee.tariffAmount != null ? Number(fee.tariffAmount) : null,
+      });
+    }
+
+    // Attach per-trip fee to each trip
+    for (const d of driverMap.values()) {
+      for (const trip of d.trips) {
+        const f = feeByJob.get(trip.jobId);
+        if (f !== undefined) {
+          trip.tripFee   = f.amount;
+          trip.tariffFee = f.tariffAmount;
+        }
+      }
     }
 
     const drivers = Array.from(driverMap.values())
@@ -298,6 +324,23 @@ export class ReportsService {
     });
 
     const total = calcDriverScore(data);
+    const multiplier = driverScoreToMultiplier(total);
+
+    // Update the trip fee based on the score multiplier
+    const existingFee = await this.prisma.driverTripFee.findFirst({
+      where: { driverId: assignment.driverId, trafficJobId: jobId },
+    });
+    if (existingFee) {
+      const base = Number(existingFee.tariffAmount ?? existingFee.amount);
+      await this.prisma.driverTripFee.update({
+        where: { id: existingFee.id },
+        data: {
+          tariffAmount: existingFee.tariffAmount ?? existingFee.amount,
+          amount: Math.round(base * multiplier * 100) / 100,
+        },
+      });
+    }
+
     return { ok: true, total, evaluation: driverScoreToEval(total) };
   }
 
@@ -752,6 +795,72 @@ export class ReportsService {
 
     const totalScore = rows.reduce((sum, r) => sum + r.total, 0);
     const avgScore = rows.length > 0 ? Math.round((totalScore / rows.length) * 10) / 10 : 0;
+
+    return { from, to, rows, totalScore, avgScore, count: rows.length };
+  }
+
+  // ─────────────────────────────────────────────
+  // DRIVER SCORE REPORT
+  // ─────────────────────────────────────────────
+
+  async driverScoreReport(from: string, to: string, driverId?: string) {
+    const fromDate = new Date(from);
+    const toDate   = new Date(to);
+
+    const scores = await this.prisma.driverJobScore.findMany({
+      where: {
+        ...(driverId ? { driverId } : {}),
+        trafficJob: {
+          jobDate: { gte: fromDate, lte: toDate },
+          deletedAt: null,
+        },
+      },
+      include: {
+        driver: { select: { id: true, name: true } },
+        trafficJob: {
+          include: {
+            fromZone:           { select: { name: true } },
+            toZone:             { select: { name: true } },
+            originAirport:      { select: { name: true, code: true } },
+            destinationAirport: { select: { name: true, code: true } },
+          },
+        },
+      },
+      orderBy: [{ trafficJob: { jobDate: 'asc' } }, { driver: { name: 'asc' } }],
+    });
+
+    const rows = scores.map((s) => {
+      const total      = calcDriverScore(s);
+      const multiplier = driverScoreToMultiplier(total);
+      const evaluation = driverScoreToEval(total);
+      return {
+        jobId:       s.trafficJobId,
+        internalRef: s.trafficJob.internalRef,
+        jobDate:     s.trafficJob.jobDate,
+        serviceType: s.trafficJob.serviceType,
+        paxCount:    s.trafficJob.paxCount,
+        status:      s.trafficJob.status,
+        driverId:    s.driverId,
+        driverName:  s.driver.name,
+        route: (() => {
+          const from = s.trafficJob.originAirport?.code ?? s.trafficJob.fromZone?.name;
+          const to   = s.trafficJob.destinationAirport?.code ?? s.trafficJob.toZone?.name;
+          return from && to ? `${from} → ${to}` : '—';
+        })(),
+        attendance:    s.attendance,
+        appearance:    s.appearance,
+        carCleanliness: s.carCleanliness,
+        maintenance:   s.maintenance,
+        work:          s.work,
+        total,
+        multiplier,
+        feePercent: Math.round(multiplier * 100),
+        evaluation,
+      };
+    });
+
+    const totalScore = rows.reduce((sum, r) => sum + r.total, 0);
+    const avgScore   = rows.length > 0 ? Math.round((totalScore / rows.length) * 10) / 10 : 0;
 
     return { from, to, rows, totalScore, avgScore, count: rows.length };
   }

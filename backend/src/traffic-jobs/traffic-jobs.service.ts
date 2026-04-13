@@ -554,7 +554,8 @@ export class TrafficJobsService {
                 toAirportId:   toAirportId   ?? undefined,
                 vehicleTypeId: vehicleTypeId ?? undefined,
                 tariffId:      tariffId      ?? undefined,
-                amount: tariffAmount,
+                amount:        tariffAmount,
+                tariffAmount:  tariffAmount,
                 currency: 'EGP',
               },
             });
@@ -772,7 +773,8 @@ export class TrafficJobsService {
           toAirportId:   toAirportId   ?? undefined,
           vehicleTypeId: vehicleTypeId ?? undefined,
           tariffId:      tariffId      ?? undefined,
-          amount:  tariffAmount,
+          amount:       tariffAmount,
+          tariffAmount: tariffAmount,
           currency: 'EGP',
         },
       });

@@ -116,6 +116,8 @@ interface DriverTripReport {
       paxCount: number;
       route: string;
       agent: string;
+      tripFee: number | null;
+      tariffFee: number | null;
       driverJobScore: DriverJobScore | null;
     }>;
   }>;
@@ -260,6 +262,36 @@ interface RepScoreReport {
   from: string;
   to: string;
   rows: RepScoreRow[];
+  totalScore: number;
+  avgScore: number;
+  count: number;
+}
+
+interface DriverScoreRow {
+  jobId: string;
+  internalRef: string;
+  jobDate: string;
+  serviceType: string;
+  paxCount: number;
+  status: string;
+  driverId: string;
+  driverName: string;
+  route: string;
+  attendance: boolean;
+  appearance: boolean;
+  carCleanliness: boolean;
+  maintenance: boolean;
+  work: boolean;
+  total: number;
+  multiplier: number;
+  feePercent: number;
+  evaluation: string;
+}
+
+interface DriverScoreReport {
+  from: string;
+  to: string;
+  rows: DriverScoreRow[];
   totalScore: number;
   avgScore: number;
   count: number;
@@ -446,6 +478,8 @@ export default function ReportsPage() {
   const [driverLoading, setDriverLoading] = useState(false);
   const [recalcLoading, setRecalcLoading] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<DriverTripReport["drivers"][number] | null>(null);
+  const [driverMissedJobs, setDriverMissedJobs] = useState<Record<string, boolean>>({});
+  const [driverDeductions, setDriverDeductions] = useState<Record<string, number>>({});
   const [driverModalOpen, setDriverModalOpen] = useState(false);
   const [driverScoreEdits, setDriverScoreEdits] = useState<Record<string, DriverJobScore>>({});
   const [driverScoreSaving, setDriverScoreSaving] = useState<Record<string, boolean>>({});
@@ -512,6 +546,14 @@ export default function ReportsPage() {
   const [repScoreData, setRepScoreData] = useState<RepScoreReport | null>(null);
   const [repScoreLoading, setRepScoreLoading] = useState(false);
   const repScorePrintRef = useRef<HTMLDivElement>(null);
+
+  // Driver Score
+  const [driverScoreFrom, setDriverScoreFrom] = useState(thirtyDaysAgo);
+  const [driverScoreTo, setDriverScoreTo] = useState(today);
+  const [driverScoreDriverId, setDriverScoreDriverId] = useState("ALL");
+  const [driverScoreData, setDriverScoreData] = useState<DriverScoreReport | null>(null);
+  const [driverScoreLoading, setDriverScoreLoading] = useState(false);
+  const driverScorePrintRef = useRef<HTMLDivElement>(null);
 
   // Evidence Report
   const [evidenceFrom, setEvidenceFrom] = useState(thirtyDaysAgo);
@@ -845,6 +887,23 @@ export default function ReportsPage() {
 
   const exportRepScorePdf = () => printFromRef(repScorePrintRef, `Rep Score Report - ${repScoreFrom} to ${repScoreTo}`);
 
+  const fetchDriverScore = async () => {
+    setDriverScoreLoading(true);
+    try {
+      const driverParam = driverScoreDriverId !== "ALL" ? `&driverId=${driverScoreDriverId}` : "";
+      const { data } = await api.get(
+        `/reports/driver-score?from=${driverScoreFrom}&to=${driverScoreTo}${driverParam}`
+      );
+      setDriverScoreData(data.data || data);
+    } catch {
+      toast.error("Failed to load driver score report");
+    } finally {
+      setDriverScoreLoading(false);
+    }
+  };
+
+  const exportDriverScorePdf = () => printFromRef(driverScorePrintRef, `Driver Score Report - ${driverScoreFrom} to ${driverScoreTo}`);
+
   const exportRepFeesExcel = async () => {
     try {
       const res = await api.get(
@@ -1095,6 +1154,15 @@ export default function ReportsPage() {
               {t("reports.driverTrips")}
             </TabsTrigger>
           )}
+          {canDriverTrips && (
+            <TabsTrigger
+              value="driver-score"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <Car className="h-3.5 w-3.5" />
+              Driver Score
+            </TabsTrigger>
+          )}
           {canAgentStatement && (
             <TabsTrigger
               value="agent"
@@ -1111,6 +1179,15 @@ export default function ReportsPage() {
             >
               <UserCheck className="h-3.5 w-3.5" />
               {t("reports.repFees")}
+            </TabsTrigger>
+          )}
+          {canRepFees && (
+            <TabsTrigger
+              value="rep-score"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              Rep Score
             </TabsTrigger>
           )}
           {canRevenue && (
@@ -1138,15 +1215,6 @@ export default function ReportsPage() {
             <ClipboardList className="h-3.5 w-3.5" />
             {t("reports.jobStatus")}
           </TabsTrigger>
-          {canRepFees && (
-            <TabsTrigger
-              value="rep-score"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-            >
-              <UserCheck className="h-3.5 w-3.5" />
-              Rep Score
-            </TabsTrigger>
-          )}
           {canEvidence && (
             <TabsTrigger
               value="evidence"
@@ -1439,6 +1507,220 @@ export default function ReportsPage() {
             </>
           )}
         </TabsContent>}
+
+        {/* ─── DRIVER SCORE REPORT ─── */}
+        {canDriverTrips && (
+          <TabsContent value="driver-score" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
+                  <Input
+                    type="date"
+                    value={driverScoreFrom}
+                    onChange={(e) => setDriverScoreFrom(e.target.value)}
+                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                  <Input
+                    type="date"
+                    value={driverScoreTo}
+                    onChange={(e) => setDriverScoreTo(e.target.value)}
+                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
+                  />
+                </div>
+                <div className="min-w-[180px]">
+                  <Label className="text-muted-foreground text-xs">Driver Name</Label>
+                  <Select value={driverScoreDriverId} onValueChange={setDriverScoreDriverId}>
+                    <SelectTrigger className="border-border bg-muted/50 mt-0.5 h-8 text-sm">
+                      <SelectValue placeholder="All Drivers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Drivers</SelectItem>
+                      {driverList.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" onClick={fetchDriverScore} disabled={driverScoreLoading} className="gap-1.5">
+                  {driverScoreLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                  {t("common.search")}
+                </Button>
+                {driverScoreData && (
+                  <Button size="sm" variant="outline" onClick={exportDriverScorePdf} className="gap-1.5 ml-auto">
+                    <Printer className="h-3.5 w-3.5" />
+                    {t("reports.exportPdf")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            {driverScoreLoading ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : driverScoreData ? (
+              <Card className="border-border bg-card p-4">
+                {/* Summary row */}
+                <div className="mb-4 flex flex-wrap gap-4">
+                  <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Jobs Scored</p>
+                    <p className="text-lg font-bold text-foreground">{driverScoreData.count}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Total Score</p>
+                    <p className="text-lg font-bold text-foreground">{driverScoreData.totalScore}</p>
+                  </div>
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Average Score</p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{driverScoreData.avgScore} / 100</p>
+                  </div>
+                </div>
+
+                {driverScoreData.rows.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No scored jobs found for this period.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="text-xs">Job Ref</TableHead>
+                          <TableHead className="text-xs">Date</TableHead>
+                          <TableHead className="text-xs">Type</TableHead>
+                          <TableHead className="text-xs text-right">Pax</TableHead>
+                          <TableHead className="text-xs">Driver</TableHead>
+                          <TableHead className="text-xs">Route</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs text-center">Att<br /><span className="text-muted-foreground">30pt</span></TableHead>
+                          <TableHead className="text-xs text-center">App<br /><span className="text-muted-foreground">20pt</span></TableHead>
+                          <TableHead className="text-xs text-center">Car<br /><span className="text-muted-foreground">10pt</span></TableHead>
+                          <TableHead className="text-xs text-center">Maint<br /><span className="text-muted-foreground">10pt</span></TableHead>
+                          <TableHead className="text-xs text-center">Work<br /><span className="text-muted-foreground">30pt</span></TableHead>
+                          <TableHead className="text-xs text-right">Score</TableHead>
+                          <TableHead className="text-xs text-right">Fee %</TableHead>
+                          <TableHead className="text-xs">Evaluation</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {driverScoreData.rows.map((row, idx) => {
+                          const evalColor =
+                            row.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                            row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                            row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                            "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
+                          const check = <span className="text-emerald-500 font-bold text-sm">✓</span>;
+                          const dash  = <span className="text-muted-foreground text-sm">—</span>;
+                          return (
+                            <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
+                              <TableCell className="font-mono text-xs">{row.internalRef}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                {new Date(row.jobDate).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{row.driverName}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{row.route}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>
+                                  {row.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">{row.attendance ? check : dash}</TableCell>
+                              <TableCell className="text-center">{row.appearance ? check : dash}</TableCell>
+                              <TableCell className="text-center">{row.carCleanliness ? check : dash}</TableCell>
+                              <TableCell className="text-center">{row.maintenance ? check : dash}</TableCell>
+                              <TableCell className="text-center">{row.work ? check : dash}</TableCell>
+                              <TableCell className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>
+                              <TableCell className="text-right font-mono text-sm">
+                                <span className={
+                                  row.feePercent === 100 ? "text-emerald-600 dark:text-emerald-400 font-semibold" :
+                                  row.feePercent >= 80 ? "text-blue-600 dark:text-blue-400" :
+                                  row.feePercent >= 60 ? "text-amber-600 dark:text-amber-400" :
+                                  "text-red-600 dark:text-red-400"
+                                }>{row.feePercent}%</span>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${evalColor}`}>
+                                  {row.evaluation}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3 px-1">
+                      <span className="text-sm text-muted-foreground">
+                        {driverScoreData.count} job{driverScoreData.count !== 1 ? "s" : ""} scored · Total {driverScoreData.totalScore} pts
+                      </span>
+                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                        Average: {driverScoreData.avgScore} / 100
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Car className="mb-2 h-8 w-8" />
+                <p className="text-sm">Select a date range and click Search to view driver scores.</p>
+              </div>
+            )}
+
+            {/* Hidden print content */}
+            {driverScoreData && (
+              <div ref={driverScorePrintRef} className="hidden">
+                <h1>Driver Score Report</h1>
+                <h2>Period: {driverScoreFrom} to {driverScoreTo}</h2>
+                <dl className="info-grid">
+                  <dt>Jobs Scored</dt><dd>{driverScoreData.count}</dd>
+                  <dt>Total Score</dt><dd>{driverScoreData.totalScore}</dd>
+                  <dt>Average Score</dt><dd>{driverScoreData.avgScore} / 100</dd>
+                </dl>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Job Ref</th><th>Date</th><th>Type</th><th>Pax</th><th>Driver</th><th>Route</th><th>Status</th>
+                      <th>Att (30)</th><th>App (20)</th><th>Car (10)</th><th>Maint (10)</th><th>Work (30)</th>
+                      <th>Score</th><th>Fee %</th><th>Evaluation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {driverScoreData.rows.map((row) => (
+                      <tr key={row.jobId}>
+                        <td>{row.internalRef}</td>
+                        <td>{new Date(row.jobDate).toLocaleDateString()}</td>
+                        <td>{row.serviceType}</td>
+                        <td className="text-right">{row.paxCount}</td>
+                        <td>{row.driverName}</td>
+                        <td>{row.route}</td>
+                        <td>{row.status}</td>
+                        <td className="text-center">{row.attendance ? "✓" : "—"}</td>
+                        <td className="text-center">{row.appearance ? "✓" : "—"}</td>
+                        <td className="text-center">{row.carCleanliness ? "✓" : "—"}</td>
+                        <td className="text-center">{row.maintenance ? "✓" : "—"}</td>
+                        <td className="text-center">{row.work ? "✓" : "—"}</td>
+                        <td className="text-right">{row.total}</td>
+                        <td className="text-right">{row.feePercent}%</td>
+                        <td>{row.evaluation}</td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan={13}>Average Score ({driverScoreData.count} jobs)</td>
+                      <td className="text-right">{driverScoreData.avgScore}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabsContent>
+        )}
 
         {/* ─── AGENT STATEMENT ─── */}
         {canAgentStatement && <TabsContent value="agent" className="space-y-4">
@@ -1783,6 +2065,196 @@ export default function ReportsPage() {
             </>
           )}
         </TabsContent>}
+
+        {/* ─── REP SCORE REPORT ─── */}
+        {canRepFees && (
+          <TabsContent value="rep-score" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
+                  <Input
+                    type="date"
+                    value={repScoreFrom}
+                    onChange={(e) => setRepScoreFrom(e.target.value)}
+                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                  <Input
+                    type="date"
+                    value={repScoreTo}
+                    onChange={(e) => setRepScoreTo(e.target.value)}
+                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
+                  />
+                </div>
+                <div className="min-w-[180px]">
+                  <Label className="text-muted-foreground text-xs">Rep Name</Label>
+                  <Select value={repScoreRepId} onValueChange={setRepScoreRepId}>
+                    <SelectTrigger className="border-border bg-muted/50 mt-0.5 h-8 text-sm">
+                      <SelectValue placeholder="All Reps" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Reps</SelectItem>
+                      {repList.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" onClick={fetchRepScore} disabled={repScoreLoading} className="gap-1.5">
+                  {repScoreLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                  {t("common.search")}
+                </Button>
+                {repScoreData && (
+                  <Button size="sm" variant="outline" onClick={exportRepScorePdf} className="gap-1.5 ml-auto">
+                    <Printer className="h-3.5 w-3.5" />
+                    {t("reports.exportPdf")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            {repScoreLoading ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : repScoreData ? (
+              <Card className="border-border bg-card p-4">
+                <div className="mb-4 flex flex-wrap gap-4">
+                  <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Jobs Scored</p>
+                    <p className="text-lg font-bold text-foreground">{repScoreData.count}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Total Score</p>
+                    <p className="text-lg font-bold text-foreground">{repScoreData.totalScore}</p>
+                  </div>
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2">
+                    <p className="text-xs text-muted-foreground">Average Score</p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{repScoreData.avgScore} / 100</p>
+                  </div>
+                </div>
+                {repScoreData.rows.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No scored jobs found for this period.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="text-xs">Job Ref</TableHead>
+                          <TableHead className="text-xs">Type</TableHead>
+                          <TableHead className="text-xs text-right">Pax</TableHead>
+                          <TableHead className="text-xs">Rep</TableHead>
+                          <TableHead className="text-xs">Route</TableHead>
+                          <TableHead className="text-xs">Hotel</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs text-center">Att<br /><span className="text-muted-foreground">20pt</span></TableHead>
+                          <TableHead className="text-xs text-center">App<br /><span className="text-muted-foreground">15pt</span></TableHead>
+                          <TableHead className="text-xs text-center">Work<br /><span className="text-muted-foreground">30pt</span></TableHead>
+                          <TableHead className="text-xs text-center">Rev<br /><span className="text-muted-foreground">35pt</span></TableHead>
+                          <TableHead className="text-xs text-right">Score</TableHead>
+                          <TableHead className="text-xs">Evaluation</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {repScoreData.rows.map((row, idx) => {
+                          const evalColor =
+                            row.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                            row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                            row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                            "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
+                          return (
+                            <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
+                              <TableCell className="font-mono text-xs">{row.internalRef}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{row.repName}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>{row.status}</Badge>
+                              </TableCell>
+                              <TableCell className="text-center">{row.attendance ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
+                              <TableCell className="text-center">{row.appearance ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
+                              <TableCell className="text-center">{row.work ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
+                              <TableCell className="text-center">{row.review ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
+                              <TableCell className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-xs ${evalColor}`}>{row.evaluation}</Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3 px-1">
+                      <span className="text-sm text-muted-foreground">
+                        {repScoreData.count} job{repScoreData.count !== 1 ? "s" : ""} scored · Total {repScoreData.totalScore} pts
+                      </span>
+                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                        Average: {repScoreData.avgScore} / 100
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <UserCheck className="mb-2 h-8 w-8" />
+                <p className="text-sm">Select a date range and click Search to view rep scores.</p>
+              </div>
+            )}
+            {repScoreData && (
+              <div ref={repScorePrintRef} className="hidden">
+                <h1>Rep Score Report</h1>
+                <h2>Period: {repScoreFrom} to {repScoreTo}</h2>
+                <dl className="info-grid">
+                  <dt>Jobs Scored</dt><dd>{repScoreData.count}</dd>
+                  <dt>Total Score</dt><dd>{repScoreData.totalScore}</dd>
+                  <dt>Average Score</dt><dd>{repScoreData.avgScore} / 100</dd>
+                </dl>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Job Ref</th><th>Type</th><th>Pax</th><th>Rep</th><th>Route</th><th>Hotel</th><th>Status</th>
+                      <th>Att (20)</th><th>App (15)</th><th>Work (30)</th><th>Rev (35)</th><th>Score</th><th>Evaluation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {repScoreData.rows.map((row) => (
+                      <tr key={row.jobId}>
+                        <td>{row.internalRef}</td>
+                        <td>{row.serviceType}</td>
+                        <td className="text-right">{row.paxCount}</td>
+                        <td>{row.repName}</td>
+                        <td>{(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}</td>
+                        <td>{row.destinationHotel?.name || "—"}</td>
+                        <td>{row.status}</td>
+                        <td className="text-center">{row.attendance ? "✓" : "—"}</td>
+                        <td className="text-center">{row.appearance ? "✓" : "—"}</td>
+                        <td className="text-center">{row.work ? "✓" : "—"}</td>
+                        <td className="text-center">{row.review ? "✓" : "—"}</td>
+                        <td className="text-right">{row.total}</td>
+                        <td>{row.evaluation}</td>
+                      </tr>
+                    ))}
+                    <tr className="total-row">
+                      <td colSpan={11}>Average Score ({repScoreData.count} jobs)</td>
+                      <td className="text-right">{repScoreData.avgScore}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabsContent>
+        )}
 
         {/* ─── REVENUE REPORT ─── */}
         {canRevenue && <TabsContent value="revenue" className="space-y-4">
@@ -2303,218 +2775,6 @@ export default function ReportsPage() {
           )}
         </TabsContent>
 
-        {/* ─── REP SCORE REPORT ─── */}
-        {canRepFees && (
-          <TabsContent value="rep-score" className="space-y-4">
-            <Card className="border-border bg-card p-4">
-              <div className="flex flex-wrap items-end gap-3">
-                <div>
-                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
-                  <Input
-                    type="date"
-                    value={repScoreFrom}
-                    onChange={(e) => setRepScoreFrom(e.target.value)}
-                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
-                  />
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
-                  <Input
-                    type="date"
-                    value={repScoreTo}
-                    onChange={(e) => setRepScoreTo(e.target.value)}
-                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
-                  />
-                </div>
-                <div className="min-w-[180px]">
-                  <Label className="text-muted-foreground text-xs">Rep Name</Label>
-                  <Select value={repScoreRepId} onValueChange={setRepScoreRepId}>
-                    <SelectTrigger className="border-border bg-muted/50 mt-0.5 h-8 text-sm">
-                      <SelectValue placeholder="All Reps" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Reps</SelectItem>
-                      {repList.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button size="sm" onClick={fetchRepScore} disabled={repScoreLoading} className="gap-1.5">
-                  {repScoreLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                  {t("common.search")}
-                </Button>
-                {repScoreData && (
-                  <Button size="sm" variant="outline" onClick={exportRepScorePdf} className="gap-1.5 ml-auto">
-                    <Printer className="h-3.5 w-3.5" />
-                    {t("reports.exportPdf")}
-                  </Button>
-                )}
-              </div>
-            </Card>
-
-            {repScoreLoading ? (
-              <div className="flex h-32 items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : repScoreData ? (
-              <Card className="border-border bg-card p-4">
-                {/* Summary row */}
-                <div className="mb-4 flex flex-wrap gap-4">
-                  <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
-                    <p className="text-xs text-muted-foreground">Jobs Scored</p>
-                    <p className="text-lg font-bold text-foreground">{repScoreData.count}</p>
-                  </div>
-                  <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
-                    <p className="text-xs text-muted-foreground">Total Score</p>
-                    <p className="text-lg font-bold text-foreground">{repScoreData.totalScore}</p>
-                  </div>
-                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2">
-                    <p className="text-xs text-muted-foreground">Average Score</p>
-                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{repScoreData.avgScore} / 100</p>
-                  </div>
-                </div>
-
-                {repScoreData.rows.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">No scored jobs found for this period.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/40">
-                          <TableHead className="text-xs">Job Ref</TableHead>
-                          <TableHead className="text-xs">Type</TableHead>
-                          <TableHead className="text-xs text-right">Pax</TableHead>
-                          <TableHead className="text-xs">Rep</TableHead>
-                          <TableHead className="text-xs">Route</TableHead>
-                          <TableHead className="text-xs">Hotel</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs text-center">Att<br /><span className="text-muted-foreground">20pt</span></TableHead>
-                          <TableHead className="text-xs text-center">App<br /><span className="text-muted-foreground">15pt</span></TableHead>
-                          <TableHead className="text-xs text-center">Work<br /><span className="text-muted-foreground">30pt</span></TableHead>
-                          <TableHead className="text-xs text-center">Rev<br /><span className="text-muted-foreground">35pt</span></TableHead>
-                          <TableHead className="text-xs text-right">Score</TableHead>
-                          <TableHead className="text-xs">Evaluation</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {repScoreData.rows.map((row, idx) => {
-                          const evalColor =
-                            row.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
-                            row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
-                            row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
-                            "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
-                          return (
-                            <TableRow
-                              key={row.jobId}
-                              className={idx % 2 === 0 ? "bg-muted/10" : ""}
-                            >
-                              <TableCell className="font-mono text-xs">{row.internalRef}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs">
-                                  {row.serviceType}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{row.repName}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>
-                                  {row.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {row.attendance ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {row.appearance ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {row.work ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {row.review ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}
-                              </TableCell>
-                              <TableCell className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={`text-xs ${evalColor}`}>
-                                  {row.evaluation}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                    {/* Footer totals */}
-                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3 px-1">
-                      <span className="text-sm text-muted-foreground">
-                        {repScoreData.count} job{repScoreData.count !== 1 ? "s" : ""} scored · Total {repScoreData.totalScore} pts
-                      </span>
-                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                        Average: {repScoreData.avgScore} / 100
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </Card>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <UserCheck className="mb-2 h-8 w-8" />
-                <p className="text-sm">Select a date range and click Search to view rep scores.</p>
-              </div>
-            )}
-
-            {/* Hidden print content */}
-            {repScoreData && (
-              <div ref={repScorePrintRef} className="hidden">
-                <h1>Rep Score Report</h1>
-                <h2>Period: {repScoreFrom} to {repScoreTo}</h2>
-                <dl className="info-grid">
-                  <dt>Jobs Scored</dt><dd>{repScoreData.count}</dd>
-                  <dt>Total Score</dt><dd>{repScoreData.totalScore}</dd>
-                  <dt>Average Score</dt><dd>{repScoreData.avgScore} / 100</dd>
-                </dl>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Job Ref</th><th>Type</th><th>Pax</th><th>Rep</th><th>Route</th><th>Hotel</th><th>Status</th>
-                      <th>Att (20)</th><th>App (15)</th><th>Work (30)</th><th>Rev (35)</th><th>Score</th><th>Evaluation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {repScoreData.rows.map((row) => (
-                      <tr key={row.jobId}>
-                        <td>{row.internalRef}</td>
-                        <td>{row.serviceType}</td>
-                        <td className="text-right">{row.paxCount}</td>
-                        <td>{row.repName}</td>
-                        <td>{(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}</td>
-                        <td>{row.destinationHotel?.name || "—"}</td>
-                        <td>{row.status}</td>
-                        <td className="text-center">{row.attendance ? "✓" : "—"}</td>
-                        <td className="text-center">{row.appearance ? "✓" : "—"}</td>
-                        <td className="text-center">{row.work ? "✓" : "—"}</td>
-                        <td className="text-center">{row.review ? "✓" : "—"}</td>
-                        <td className="text-right">{row.total}</td>
-                        <td>{row.evaluation}</td>
-                      </tr>
-                    ))}
-                    <tr className="total-row">
-                      <td colSpan={11}>Average Score ({repScoreData.count} jobs)</td>
-                      <td className="text-right">{repScoreData.avgScore}</td>
-                      <td></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </TabsContent>
-        )}
-
         {/* ─── EVIDENCE REPORT ─── */}
         {canEvidence && (
           <TabsContent value="evidence" className="space-y-4">
@@ -2966,7 +3226,11 @@ export default function ReportsPage() {
         open={driverModalOpen}
         onOpenChange={(open) => {
           setDriverModalOpen(open);
-          if (!open) setSelectedDriver(null);
+          if (!open) {
+            setSelectedDriver(null);
+            setDriverMissedJobs({});
+            setDriverDeductions({});
+          }
         }}
       >
         <DialogContent className="max-h-[85vh] overflow-y-auto border-border bg-popover text-foreground sm:max-w-6xl">
@@ -3002,9 +3266,12 @@ export default function ReportsPage() {
                         Maint<br/><span className="text-[10px] font-normal opacity-75">10pt</span>
                       </TableHead>
                       <TableHead className="text-white text-xs text-center">
-                        Work<br/><span className="text-[10px] font-normal opacity-75">20pt</span>
+                        Work<br/><span className="text-[10px] font-normal opacity-75">30pt</span>
                       </TableHead>
                       <TableHead className="text-white text-xs text-right">Score</TableHead>
+                      <TableHead className="text-white text-xs text-center">Missed</TableHead>
+                      <TableHead className="text-white text-xs text-right">Fee</TableHead>
+                      <TableHead className="text-white text-xs text-right">Deductions</TableHead>
                       <TableHead className="text-white text-xs">Eval</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -3015,6 +3282,7 @@ export default function ReportsPage() {
                       const isSaving = driverScoreSaving[jobId] ?? false;
                       const isCompleted = trip.status === "COMPLETED";
                       const isMissing = !currentScore;
+                      const isMissed = driverMissedJobs[jobId] ?? false;
 
                       const toggleDriverScore = (field: keyof Omit<DriverJobScore, "total" | "evaluation">) => {
                         const base = currentScore ?? { attendance: false, appearance: false, carCleanliness: false, maintenance: false, work: false, total: 0, evaluation: "Poor" };
@@ -3110,10 +3378,50 @@ export default function ReportsPage() {
                             {isSaving ? (
                               <Loader2 className="h-3 w-3 animate-spin inline" />
                             ) : currentScore ? (
-                              <span>{currentScore.total}<span className="text-muted-foreground text-xs">/90</span></span>
+                              <span>{currentScore.total}<span className="text-muted-foreground text-xs">/100</span></span>
                             ) : (
                               <span className="text-amber-500 text-xs">—</span>
                             )}
+                          </TableCell>
+                          {/* Missed */}
+                          <TableCell className="text-center">
+                            <input
+                              type="checkbox"
+                              checked={isMissed}
+                              onChange={() => setDriverMissedJobs((prev) => ({ ...prev, [jobId]: !isMissed }))}
+                              title="Mark as missed (excludes fee from total)"
+                              className="h-4 w-4 cursor-pointer accent-red-600"
+                            />
+                          </TableCell>
+                          {/* Trip Fee */}
+                          <TableCell className="text-right font-mono text-sm">
+                            {isMissed ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : trip.tripFee != null ? (
+                              <span className="flex flex-col items-end gap-0">
+                                {trip.tariffFee != null && trip.tariffFee !== trip.tripFee && (
+                                  <span className="text-muted-foreground line-through text-xs">
+                                    {fmt(trip.tariffFee, locale)}
+                                  </span>
+                                )}
+                                <span className={trip.tripFee > 0 ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground"}>
+                                  {fmt(trip.tripFee, locale)}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-amber-500 text-xs">—</span>
+                            )}
+                          </TableCell>
+                          {/* Deductions */}
+                          <TableCell className="text-right">
+                            <input
+                              type="number"
+                              value={driverDeductions[jobId] ?? ""}
+                              onChange={(e) => setDriverDeductions((prev) => ({ ...prev, [jobId]: Number(e.target.value) }))}
+                              disabled={isMissed}
+                              placeholder="0"
+                              className="w-20 text-right text-sm bg-transparent border border-border rounded px-1 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40"
+                            />
                           </TableCell>
                           <TableCell>
                             {currentScore?.evaluation ? (
@@ -3140,12 +3448,30 @@ export default function ReportsPage() {
                 <div className="text-right">
                   {selectedDriver.avgScore !== null && (
                     <div className="text-xs text-muted-foreground">
-                      Avg Score: <span className="font-semibold font-mono text-foreground">{selectedDriver.avgScore}/90</span>
+                      Avg Score: <span className="font-semibold font-mono text-foreground">{selectedDriver.avgScore}/100</span>
                     </div>
                   )}
-                  <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                    {fmt(selectedDriver.totalFees, locale)} EGP
-                  </span>
+                  {(() => {
+                    const netFees = selectedDriver.trips.reduce((sum, trip) => {
+                      if (driverMissedJobs[trip.jobId]) return sum;
+                      const fee = trip.tripFee ?? 0;
+                      const ded = driverDeductions[trip.jobId] ?? 0;
+                      return sum + fee - ded;
+                    }, 0);
+                    const hasAdjustments = Object.keys(driverMissedJobs).some(k => driverMissedJobs[k]) || Object.values(driverDeductions).some(v => v > 0);
+                    return (
+                      <>
+                        {hasAdjustments && (
+                          <div className="text-xs text-muted-foreground line-through">
+                            {fmt(selectedDriver.totalFees, locale)} EGP
+                          </div>
+                        )}
+                        <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                          {fmt(netFees, locale)} EGP
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
