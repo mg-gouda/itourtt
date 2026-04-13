@@ -6,9 +6,13 @@ import {
   Param,
   Body,
   Query,
+  Res,
   UseGuards,
-  ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { DriverTariffsService } from './driver-tariffs.service.js';
 import { UpsertTariffDto } from './dto/upsert-tariff.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -35,6 +39,33 @@ export class DriverTariffsController {
   async findAll(@Query() filters: TariffFilterDto) {
     const data = await this.driverTariffsService.findAll(filters);
     return new ApiResponse(data);
+  }
+
+  @Get('import/template')
+  @Permissions('driver-tariffs')
+  async downloadTemplate(@Res() res: Response) {
+    const buffer = await this.driverTariffsService.generateTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="driver_tariffs_template.xlsx"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Post('import/excel')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('driver-tariffs.upsert')
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
+    }
+    const result = await this.driverTariffsService.importFromExcel(file.buffer);
+    const message = result.errors.length > 0
+      ? `Imported ${result.imported} tariffs with ${result.errors.length} errors`
+      : `Successfully imported ${result.imported} tariffs`;
+    return new ApiResponse(result, message);
   }
 
   @Post()

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Pencil, Trash2, Receipt, Copy, Check, ChevronsUpDown } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Plus, Pencil, Trash2, Receipt, Copy, Check, ChevronsUpDown, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -206,6 +206,14 @@ export default function DriverTariffsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Import state
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    open: boolean; imported: number; errors: string[];
+  }>({ open: false, imported: 0, errors: [] });
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -356,13 +364,91 @@ export default function DriverTariffsPage() {
     }
   };
 
+  const handleDownloadTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      const res = await api.get("/driver-tariffs/import/template", { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "driver_tariffs_template.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download template");
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await api.post("/driver-tariffs/import/excel", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const result = res.data.data;
+      setImportResult({ open: true, imported: result.imported, errors: result.errors });
+      if (result.imported > 0) fetchData();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to import file";
+      toast.error(message);
+    } finally {
+      setImporting(false);
+      if (importFileRef.current) importFileRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Driver Tariffs"
-        description="Rate card for driver trip fees by route and vehicle type. Used to auto-calculate driver fees when a job is completed."
-        action={canUpsert ? { label: "Add Tariff", onClick: openAdd } : undefined}
-      />
+      <div className="flex items-start justify-between">
+        <PageHeader
+          title="Driver Tariffs"
+          description="Rate card for driver trip fees by route and vehicle type. Used to auto-calculate driver fees when a job is completed."
+        />
+        <div className="flex items-center gap-2 mt-1 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadTemplate}
+            disabled={downloadingTemplate}
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            {downloadingTemplate ? "Downloading…" : "Template"}
+          </Button>
+          {canUpsert && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => importFileRef.current?.click()}
+                disabled={importing}
+              >
+                <Upload className="h-4 w-4 mr-1.5" />
+                {importing ? "Importing…" : "Import"}
+              </Button>
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <Button size="sm" onClick={openAdd}>
+                <Plus className="h-4 w-4 mr-1.5" /> Add Tariff
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">Loading tariffs…</div>
@@ -548,6 +634,35 @@ export default function DriverTariffsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Result */}
+      <AlertDialog open={importResult.open} onOpenChange={(o) => !o && setImportResult((r) => ({ ...r, open: false }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import Complete</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  <span className="font-medium text-green-600">{importResult.imported}</span> tariff{importResult.imported !== 1 ? "s" : ""} imported successfully.
+                </p>
+                {importResult.errors.length > 0 && (
+                  <div>
+                    <p className="font-medium text-destructive mb-1">{importResult.errors.length} error{importResult.errors.length !== 1 ? "s" : ""}:</p>
+                    <ul className="max-h-48 overflow-y-auto space-y-0.5 text-xs text-muted-foreground list-disc pl-4">
+                      {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setImportResult((r) => ({ ...r, open: false }))}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(o: boolean) => !o && setDeleteId(null)}>
