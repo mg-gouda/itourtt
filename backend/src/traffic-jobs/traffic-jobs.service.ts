@@ -498,55 +498,67 @@ export class TrafficJobsService {
         });
       }
 
-      // Auto-generate DriverTripFee when job is completed with driver + zones
-      if (
-        newStatus === 'COMPLETED' &&
-        updatedJob.assignment?.driverId &&
-        updatedJob.fromZoneId &&
-        updatedJob.toZoneId
-      ) {
+      // Auto-generate DriverTripFee when job is completed with a driver assigned
+      if (newStatus === 'COMPLETED' && updatedJob.assignment?.driverId) {
         const driverId = updatedJob.assignment.driverId;
         const existingDriverFee = await tx.driverTripFee.findFirst({
           where: { driverId, trafficJobId: id },
         });
+
         if (!existingDriverFee) {
-          // Resolve vehicleTypeId from the assigned vehicle
-          let vehicleTypeId: string | null = null;
-          if (updatedJob.assignment.vehicleId) {
-            const vehicle = await tx.vehicle.findUnique({
-              where: { id: updatedJob.assignment.vehicleId },
-              select: { vehicleTypeId: true },
-            });
-            vehicleTypeId = vehicle?.vehicleTypeId ?? null;
-          }
+          // Resolve from/to location IDs for the fee record
+          const fromZoneId    = updatedJob.fromZoneId    ?? null;
+          const toZoneId      = updatedJob.toZoneId      ?? null;
+          const fromAirportId = updatedJob.originAirportId      ?? null;
+          const toAirportId   = updatedJob.destinationAirportId ?? null;
 
-          // Look up tariff: fromZone + toZone + vehicleType
-          let tariffAmount = 0;
-          let tariffId: string | null = null;
-          if (vehicleTypeId) {
-            const tariff = await this.driverTariffsService.lookup(
-              updatedJob.fromZoneId,
-              updatedJob.toZoneId,
-              vehicleTypeId,
-            );
-            if (tariff) {
-              tariffAmount = Number(tariff.amount);
-              tariffId = tariff.id;
+          // Only create fee if we have at least one from and one to location
+          const hasFrom = fromZoneId || fromAirportId;
+          const hasTo   = toZoneId   || toAirportId;
+
+          if (hasFrom && hasTo) {
+            // Resolve vehicleTypeId from the assigned vehicle
+            let vehicleTypeId: string | null = null;
+            if (updatedJob.assignment.vehicleId) {
+              const vehicle = await tx.vehicle.findUnique({
+                where: { id: updatedJob.assignment.vehicleId },
+                select: { vehicleTypeId: true },
+              });
+              vehicleTypeId = vehicle?.vehicleTypeId ?? null;
             }
-          }
 
-          await tx.driverTripFee.create({
-            data: {
-              driverId,
-              trafficJobId: id,
-              fromZoneId: updatedJob.fromZoneId,
-              toZoneId: updatedJob.toZoneId,
-              vehicleTypeId: vehicleTypeId ?? undefined,
-              tariffId: tariffId ?? undefined,
-              amount: tariffAmount,
-              currency: 'EGP',
-            },
-          });
+            // Look up tariff: supports zone↔zone, airport↔zone, zone↔airport, airport↔airport
+            let tariffAmount = 0;
+            let tariffId: string | null = null;
+            if (vehicleTypeId) {
+              const tariff = await this.driverTariffsService.lookup(
+                fromZoneId,
+                toZoneId,
+                vehicleTypeId,
+                fromAirportId,
+                toAirportId,
+              );
+              if (tariff) {
+                tariffAmount = Number(tariff.amount);
+                tariffId = tariff.id;
+              }
+            }
+
+            await tx.driverTripFee.create({
+              data: {
+                driverId,
+                trafficJobId: id,
+                fromZoneId:    fromZoneId    ?? undefined,
+                toZoneId:      toZoneId      ?? undefined,
+                fromAirportId: fromAirportId ?? undefined,
+                toAirportId:   toAirportId   ?? undefined,
+                vehicleTypeId: vehicleTypeId ?? undefined,
+                tariffId:      tariffId      ?? undefined,
+                amount: tariffAmount,
+                currency: 'EGP',
+              },
+            });
+          }
         }
       }
 
@@ -695,5 +707,78 @@ export class TrafficJobsService {
     }
 
     return results;
+  }
+
+  /**
+   * Retroactively create missing DriverTripFee records for completed jobs
+   * in the given date range. Safe to call multiple times (idempotent).
+   */
+  async recalculateDriverFees(from: string, to: string): Promise<{ created: number; skipped: number }> {
+    const fromDate = new Date(from);
+    const toDate   = new Date(to);
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: {
+        status: 'COMPLETED',
+        jobDate: { gte: fromDate, lte: toDate },
+        deletedAt: null,
+        assignment: { driverId: { not: null } },
+      },
+      include: {
+        assignment: {
+          include: { vehicle: { select: { vehicleTypeId: true } } },
+        },
+      },
+    });
+
+    let created = 0;
+    let skipped = 0;
+
+    for (const job of jobs) {
+      if (!job.assignment?.driverId) { skipped++; continue; }
+
+      const existing = await this.prisma.driverTripFee.findFirst({
+        where: { driverId: job.assignment.driverId, trafficJobId: job.id },
+      });
+      if (existing) { skipped++; continue; }
+
+      const fromZoneId    = job.fromZoneId    ?? null;
+      const toZoneId      = job.toZoneId      ?? null;
+      const fromAirportId = job.originAirportId      ?? null;
+      const toAirportId   = job.destinationAirportId ?? null;
+
+      const hasFrom = fromZoneId || fromAirportId;
+      const hasTo   = toZoneId   || toAirportId;
+      if (!hasFrom || !hasTo) { skipped++; continue; }
+
+      const vehicleTypeId = job.assignment.vehicle?.vehicleTypeId ?? null;
+
+      let tariffAmount = 0;
+      let tariffId: string | null = null;
+      if (vehicleTypeId) {
+        const tariff = await this.driverTariffsService.lookup(
+          fromZoneId, toZoneId, vehicleTypeId, fromAirportId, toAirportId,
+        );
+        if (tariff) { tariffAmount = Number(tariff.amount); tariffId = tariff.id; }
+      }
+
+      await this.prisma.driverTripFee.create({
+        data: {
+          driverId:      job.assignment.driverId,
+          trafficJobId:  job.id,
+          fromZoneId:    fromZoneId    ?? undefined,
+          toZoneId:      toZoneId      ?? undefined,
+          fromAirportId: fromAirportId ?? undefined,
+          toAirportId:   toAirportId   ?? undefined,
+          vehicleTypeId: vehicleTypeId ?? undefined,
+          tariffId:      tariffId      ?? undefined,
+          amount:  tariffAmount,
+          currency: 'EGP',
+        },
+      });
+      created++;
+    }
+
+    return { created, skipped };
   }
 }

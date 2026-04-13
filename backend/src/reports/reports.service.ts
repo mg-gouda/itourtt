@@ -150,6 +150,8 @@ export class ReportsService {
           include: {
             fromZone: true,
             toZone: true,
+            originAirport: true,
+            destinationAirport: true,
             agent: true,
             driverJobScore: true,
           },
@@ -198,10 +200,11 @@ export class ReportsService {
         serviceType: a.trafficJob.serviceType,
         status: a.trafficJob.status,
         paxCount: a.trafficJob.paxCount,
-        route:
-          a.trafficJob.fromZone && a.trafficJob.toZone
-            ? `${a.trafficJob.fromZone.name} → ${a.trafficJob.toZone.name}`
-            : '—',
+        route: (() => {
+          const from = a.trafficJob.originAirport?.code ?? a.trafficJob.fromZone?.name;
+          const to   = a.trafficJob.destinationAirport?.code ?? a.trafficJob.toZone?.name;
+          return from && to ? `${from} → ${to}` : '—';
+        })(),
         agent: a.trafficJob.agent?.legalName || '—',
         driverJobScore: djs
           ? {

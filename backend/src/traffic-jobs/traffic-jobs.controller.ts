@@ -109,4 +109,14 @@ export class TrafficJobsController {
     const result = await this.trafficJobsService.remove(id);
     return new ApiResponse(result, 'Traffic job deleted successfully');
   }
+
+  @Post('recalculate-driver-fees')
+  @Roles('ADMIN')
+  @Permissions('traffic-jobs')
+  async recalculateDriverFees(
+    @Body() body: { from: string; to: string },
+  ) {
+    const result = await this.trafficJobsService.recalculateDriverFees(body.from, body.to);
+    return new ApiResponse(result, `Created ${result.created} fee records, skipped ${result.skipped}`);
+  }
 }

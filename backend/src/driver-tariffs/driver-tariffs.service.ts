@@ -89,10 +89,37 @@ export class DriverTariffsService {
     return this.prisma.driverPriceTariff.delete({ where: { id } });
   }
 
-  /** Look up a tariff for a zone-to-zone route. */
-  async lookup(fromZoneId: string, toZoneId: string, vehicleTypeId: string) {
+  /**
+   * Look up the best matching active tariff for a route.
+   * Accepts nullable zone/airport IDs — tries all populated combos.
+   */
+  async lookup(
+    fromZoneId: string | null | undefined,
+    toZoneId: string | null | undefined,
+    vehicleTypeId: string,
+    fromAirportId?: string | null,
+    toAirportId?: string | null,
+  ) {
+    // Build an OR of all non-null from+to combos that match the given locations
+    const orClauses: any[] = [];
+
+    if (fromZoneId && toZoneId) {
+      orClauses.push({ fromZoneId, toZoneId: toZoneId, fromAirportId: null, toAirportId: null });
+    }
+    if (fromAirportId && toZoneId) {
+      orClauses.push({ fromAirportId, toZoneId: toZoneId, fromZoneId: null, toAirportId: null });
+    }
+    if (fromZoneId && toAirportId) {
+      orClauses.push({ fromZoneId, toAirportId, fromAirportId: null, toZoneId: null });
+    }
+    if (fromAirportId && toAirportId) {
+      orClauses.push({ fromAirportId, toAirportId, fromZoneId: null, toZoneId: null });
+    }
+
+    if (orClauses.length === 0) return null;
+
     return this.prisma.driverPriceTariff.findFirst({
-      where: { fromZoneId, toZoneId, vehicleTypeId, isActive: true },
+      where: { vehicleTypeId, isActive: true, OR: orClauses },
     });
   }
 

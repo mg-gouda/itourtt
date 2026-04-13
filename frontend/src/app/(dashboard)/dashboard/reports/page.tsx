@@ -8,6 +8,7 @@ import {
   Building2,
   DollarSign,
   Loader2,
+  RefreshCw,
   Search,
   UserCheck,
   FileSpreadsheet,
@@ -443,6 +444,7 @@ export default function ReportsPage() {
   const [driverTo, setDriverTo] = useState(today);
   const [driverData, setDriverData] = useState<DriverTripReport | null>(null);
   const [driverLoading, setDriverLoading] = useState(false);
+  const [recalcLoading, setRecalcLoading] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<DriverTripReport["drivers"][number] | null>(null);
   const [driverModalOpen, setDriverModalOpen] = useState(false);
   const [driverScoreEdits, setDriverScoreEdits] = useState<Record<string, DriverJobScore>>({});
@@ -599,6 +601,23 @@ export default function ReportsPage() {
       toast.error(t("reports.failedDriverTrips"));
     } finally {
       setDriverLoading(false);
+    }
+  };
+
+  const recalculateDriverFees = async () => {
+    setRecalcLoading(true);
+    try {
+      const { data } = await api.post(`/traffic-jobs/recalculate-driver-fees`, {
+        from: driverFrom,
+        to: driverTo,
+      });
+      const result = data.data || data;
+      toast.success(`Fees recalculated: ${result.created} created, ${result.skipped} skipped`);
+      await fetchDriverTrips();
+    } catch {
+      toast.error("Failed to recalculate driver fees");
+    } finally {
+      setRecalcLoading(false);
     }
   };
 
@@ -1295,6 +1314,16 @@ export default function ReportsPage() {
                   <Search className="h-4 w-4" />
                 )}
                 {t("reports.generate")}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={recalculateDriverFees}
+                disabled={recalcLoading}
+                className="gap-1.5 border-border text-foreground"
+                title="Recalculate missing driver trip fees from tariffs"
+              >
+                {recalcLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Recalc Fees
               </Button>
               {driverData && (
                 <>

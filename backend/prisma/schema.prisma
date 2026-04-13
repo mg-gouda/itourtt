@@ -284,6 +284,8 @@ model Airport {
   guestBookingsDest      GuestBooking[]       @relation("GuestBookingDestAirport")
   fromTariffs            DriverPriceTariff[]  @relation("TariffFromAirport")
   toTariffs              DriverPriceTariff[]  @relation("TariffToAirport")
+  fromFees               DriverTripFee[]      @relation("FeeFromAirport")
+  toFees                 DriverTripFee[]      @relation("FeeToAirport")
 
   @@map("airports")
 }
@@ -1171,8 +1173,10 @@ model DriverTripFee {
   id            String   @id @default(uuid())
   driverId      String   @map("driver_id")
   trafficJobId  String   @map("traffic_job_id")
-  fromZoneId    String   @map("from_zone_id")
-  toZoneId      String   @map("to_zone_id")
+  fromZoneId    String?  @map("from_zone_id")
+  toZoneId      String?  @map("to_zone_id")
+  fromAirportId String?  @map("from_airport_id")
+  toAirportId   String?  @map("to_airport_id")
   vehicleTypeId String?  @map("vehicle_type_id")
   tariffId      String?  @map("tariff_id")
   amount        Decimal  @db.Decimal(15, 2)
@@ -1183,8 +1187,10 @@ model DriverTripFee {
 
   driver       Driver             @relation(fields: [driverId], references: [id])
   trafficJob   TrafficJob         @relation(fields: [trafficJobId], references: [id])
-  fromZone     Zone               @relation("FeeFromZone", fields: [fromZoneId], references: [id])
-  toZone       Zone               @relation("FeeToZone", fields: [toZoneId], references: [id])
+  fromZone     Zone?              @relation("FeeFromZone", fields: [fromZoneId], references: [id])
+  toZone       Zone?              @relation("FeeToZone", fields: [toZoneId], references: [id])
+  fromAirport  Airport?           @relation("FeeFromAirport", fields: [fromAirportId], references: [id])
+  toAirport    Airport?           @relation("FeeToAirport", fields: [toAirportId], references: [id])
   vehicleType  VehicleType?       @relation(fields: [vehicleTypeId], references: [id])
   tariff       DriverPriceTariff? @relation(fields: [tariffId], references: [id])
 
