@@ -184,6 +184,8 @@ export class ReportsService {
           paxCount: number;
           route: string;
           agent: string;
+          tripFee: number | null;
+          tariffFee: number | null;
           driverJobScore: {
             attendance: boolean;
             appearance: boolean;
