@@ -63,6 +63,12 @@ interface Zone {
   city?: { name: string };
 }
 
+interface Airport {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface VehicleType {
   id: string;
   name: string;
@@ -78,8 +84,10 @@ interface JobServiceType {
 
 interface Tariff {
   id: string;
-  fromZone: Zone;
-  toZone: Zone;
+  fromZone?: Zone | null;
+  toZone?: Zone | null;
+  fromAirport?: Airport | null;
+  toAirport?: Airport | null;
   vehicleType: VehicleType;
   jobServiceType?: JobServiceType | null;
   amount: number;
@@ -88,15 +96,57 @@ interface Tariff {
   isActive: boolean;
 }
 
+// A unified location item used across all location pickers
+interface LocationItem {
+  value: string;       // prefixed: "zone:id" or "airport:id"
+  label: string;
+  sub?: string;
+  type: "zone" | "airport";
+}
+
+function locationLabel(t: Tariff, side: "from" | "to") {
+  if (side === "from") {
+    if (t.fromAirport) return `${t.fromAirport.code} – ${t.fromAirport.name}`;
+    if (t.fromZone)    return t.fromZone.name + (t.fromZone.city ? ` (${t.fromZone.city.name})` : "");
+    return "—";
+  }
+  if (t.toAirport) return `${t.toAirport.code} – ${t.toAirport.name}`;
+  if (t.toZone)    return t.toZone.name + (t.toZone.city ? ` (${t.toZone.city.name})` : "");
+  return "—";
+}
+
 const EMPTY_FORM = {
   jobServiceTypeId: "",
-  fromZoneId: "",
-  toZoneId: "",
+  fromLocationValue: "",   // "zone:<id>" | "airport:<id>"
+  toLocationValue: "",
   vehicleTypeId: "",
   amount: "",
   currency: "EGP",
   notes: "",
 };
+
+// Parse a prefixed location value back to DTO fields
+function parseLocation(val: string): { fromZoneId?: string; fromAirportId?: string } | { toZoneId?: string; toAirportId?: string } | null {
+  if (!val) return null;
+  const [type, id] = val.split(":");
+  if (type === "zone")    return { fromZoneId: id };
+  if (type === "airport") return { fromAirportId: id };
+  return null;
+}
+function parseFromLocation(val: string) {
+  if (!val) return {};
+  const [type, id] = val.split(":");
+  if (type === "zone")    return { fromZoneId: id,    fromAirportId: undefined };
+  if (type === "airport") return { fromAirportId: id, fromZoneId: undefined };
+  return {};
+}
+function parseToLocation(val: string) {
+  if (!val) return {};
+  const [type, id] = val.split(":");
+  if (type === "zone")    return { toZoneId: id,    toAirportId: undefined };
+  if (type === "airport") return { toAirportId: id, toZoneId: undefined };
+  return {};
+}
 
 // ── Creatable Combobox (for Service Type) ─────────────────────────────────────
 
@@ -536,6 +586,7 @@ export default function DriverTariffsPage() {
 
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
+  const [airports, setAirports] = useState<Airport[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [jobServiceTypes, setJobServiceTypes] = useState<JobServiceType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -562,9 +613,10 @@ export default function DriverTariffsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [tariffsRes, zonesRes, vtRes, jstRes] = await Promise.all([
+      const [tariffsRes, zonesRes, airportsRes, vtRes, jstRes] = await Promise.all([
         api.get("/driver-tariffs"),
         api.get("/locations/zones"),
+        api.get("/locations/airports"),
         api.get("/vehicles/types"),
         api.get("/job-service-types"),
       ]);
@@ -575,6 +627,7 @@ export default function DriverTariffsPage() {
         }))
       );
       setZones(zonesRes.data.data || zonesRes.data || []);
+      setAirports(airportsRes.data.data || airportsRes.data || []);
       setVehicleTypes(vtRes.data.data || vtRes.data || []);
       setJobServiceTypes(jstRes.data.data || jstRes.data || []);
     } catch {
@@ -586,10 +639,20 @@ export default function DriverTariffsPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const zoneItems = useMemo(() =>
-    zones.map((z) => ({ value: z.id, label: z.name, sub: z.city?.name })),
-    [zones]
-  );
+  const locationItems = useMemo((): LocationItem[] => [
+    ...airports.map((a) => ({
+      value: `airport:${a.id}`,
+      label: `${a.code} – ${a.name}`,
+      sub: "Airport",
+      type: "airport" as const,
+    })),
+    ...zones.map((z) => ({
+      value: `zone:${z.id}`,
+      label: z.name,
+      sub: z.city?.name,
+      type: "zone" as const,
+    })),
+  ], [airports, zones]);
 
   const vehicleTypeItems = useMemo(() =>
     vehicleTypes.map((vt) => ({
@@ -611,8 +674,8 @@ export default function DriverTariffsPage() {
     setForm((f) => ({
       ...f,
       jobServiceTypeId: id,
-      ...(st?.fromZone ? { fromZoneId: st.fromZone.id } : {}),
-      ...(st?.toZone ? { toZoneId: st.toZone.id } : {}),
+      ...(st?.fromZone ? { fromLocationValue: `zone:${st.fromZone.id}` } : {}),
+      ...(st?.toZone   ? { toLocationValue:   `zone:${st.toZone.id}`   } : {}),
     }));
   };
 
@@ -635,37 +698,31 @@ export default function DriverTariffsPage() {
     setDialogOpen(true);
   };
 
+  const tariffToFormValues = (t: Tariff) => ({
+    jobServiceTypeId: t.jobServiceType?.id ?? "",
+    fromLocationValue: t.fromAirport ? `airport:${t.fromAirport.id}` : t.fromZone ? `zone:${t.fromZone.id}` : "",
+    toLocationValue:   t.toAirport   ? `airport:${t.toAirport.id}`   : t.toZone   ? `zone:${t.toZone.id}`   : "",
+    vehicleTypeId: t.vehicleType.id,
+    amount: String(t.amount),
+    currency: t.currency,
+    notes: t.notes ?? "",
+  });
+
   const openEdit = (t: Tariff) => {
     setEditingId(t.id);
-    setForm({
-      jobServiceTypeId: t.jobServiceType?.id ?? "",
-      fromZoneId: t.fromZone.id,
-      toZoneId: t.toZone.id,
-      vehicleTypeId: t.vehicleType.id,
-      amount: String(t.amount),
-      currency: t.currency,
-      notes: t.notes ?? "",
-    });
+    setForm(tariffToFormValues(t));
     setDialogOpen(true);
   };
 
   const openCopy = (t: Tariff) => {
-    setEditingId(null); // null = new record
-    setForm({
-      jobServiceTypeId: t.jobServiceType?.id ?? "",
-      fromZoneId: t.fromZone.id,
-      toZoneId: t.toZone.id,
-      vehicleTypeId: t.vehicleType.id,
-      amount: String(t.amount),
-      currency: t.currency,
-      notes: t.notes ?? "",
-    });
+    setEditingId(null);
+    setForm(tariffToFormValues(t));
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.fromZoneId || !form.toZoneId || !form.vehicleTypeId || !form.amount) {
-      toast.error("From zone, to zone, vehicle type, and amount are required");
+    if (!form.fromLocationValue || !form.toLocationValue || !form.vehicleTypeId || !form.amount) {
+      toast.error("From location, to location, vehicle type, and amount are required");
       return;
     }
     const amt = parseFloat(form.amount);
@@ -676,8 +733,8 @@ export default function DriverTariffsPage() {
     setSaving(true);
     try {
       await api.post("/driver-tariffs", {
-        fromZoneId: form.fromZoneId,
-        toZoneId: form.toZoneId,
+        ...parseFromLocation(form.fromLocationValue),
+        ...parseToLocation(form.toLocationValue),
         vehicleTypeId: form.vehicleTypeId,
         amount: amt,
         currency: form.currency,
@@ -821,8 +878,8 @@ export default function DriverTariffsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Service Type</TableHead>
-                <TableHead>From Zone</TableHead>
-                <TableHead>To Zone</TableHead>
+                <TableHead>From</TableHead>
+                <TableHead>To</TableHead>
                 <TableHead>Vehicle Type</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Currency</TableHead>
@@ -838,13 +895,17 @@ export default function DriverTariffsPage() {
                   <TableCell className="font-medium text-primary">
                     {t.jobServiceType?.name ?? <span className="text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell>
-                    {t.fromZone.name}
-                    {t.fromZone.city && <span className="text-muted-foreground text-xs ml-1">({t.fromZone.city.name})</span>}
+                  <TableCell className="text-sm">
+                    {t.fromAirport
+                      ? <span className="font-mono text-primary">{t.fromAirport.code}</span>
+                      : t.fromZone?.name ?? "—"}
+                    {t.fromZone?.city && <span className="text-muted-foreground text-xs ml-1">({t.fromZone.city.name})</span>}
                   </TableCell>
-                  <TableCell>
-                    {t.toZone.name}
-                    {t.toZone.city && <span className="text-muted-foreground text-xs ml-1">({t.toZone.city.name})</span>}
+                  <TableCell className="text-sm">
+                    {t.toAirport
+                      ? <span className="font-mono text-primary">{t.toAirport.code}</span>
+                      : t.toZone?.name ?? "—"}
+                    {t.toZone?.city && <span className="text-muted-foreground text-xs ml-1">({t.toZone.city.name})</span>}
                   </TableCell>
                   <TableCell>
                     {t.vehicleType.name}
@@ -906,26 +967,26 @@ export default function DriverTariffsPage() {
               />
             </div>
 
-            {/* 2. Zones */}
+            {/* 2. Locations (zones + airports) */}
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <Label>From Zone <span className="text-destructive">*</span></Label>
+                <Label>From <span className="text-destructive">*</span></Label>
                 <SearchableCombobox
-                  items={zoneItems}
-                  value={form.fromZoneId}
-                  onChange={(v) => setForm((f) => ({ ...f, fromZoneId: v }))}
-                  placeholder="Select zone…"
-                  searchPlaceholder="Search zones…"
+                  items={locationItems}
+                  value={form.fromLocationValue}
+                  onChange={(v) => setForm((f) => ({ ...f, fromLocationValue: v }))}
+                  placeholder="Zone or airport…"
+                  searchPlaceholder="Search zones / airports…"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>To Zone <span className="text-destructive">*</span></Label>
+                <Label>To <span className="text-destructive">*</span></Label>
                 <SearchableCombobox
-                  items={zoneItems}
-                  value={form.toZoneId}
-                  onChange={(v) => setForm((f) => ({ ...f, toZoneId: v }))}
-                  placeholder="Select zone…"
-                  searchPlaceholder="Search zones…"
+                  items={locationItems}
+                  value={form.toLocationValue}
+                  onChange={(v) => setForm((f) => ({ ...f, toLocationValue: v }))}
+                  placeholder="Zone or airport…"
+                  searchPlaceholder="Search zones / airports…"
                 />
               </div>
             </div>

@@ -1,17 +1,26 @@
-import { IsNumber, IsOptional, IsString, IsBoolean, Min, IsNotEmpty } from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsBoolean, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpsertTariffDto {
+  // From location — exactly one of fromZoneId / fromAirportId must be set
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  fromZoneId: string;
+  fromZoneId?: string;
+
+  @IsOptional()
+  @IsString()
+  fromAirportId?: string;
+
+  // To location — exactly one of toZoneId / toAirportId must be set
+  @IsOptional()
+  @IsString()
+  toZoneId?: string;
+
+  @IsOptional()
+  @IsString()
+  toAirportId?: string;
 
   @IsString()
-  @IsNotEmpty()
-  toZoneId: string;
-
-  @IsString()
-  @IsNotEmpty()
   vehicleTypeId: string;
 
   @IsNumber()
