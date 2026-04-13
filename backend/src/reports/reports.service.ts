@@ -36,6 +36,29 @@ function scoreToFeeAndEval(total: number): { fee: number; evaluation: string } {
   return { fee: 20, evaluation: 'Poor' };
 }
 
+function calcDriverScore(s: {
+  attendance: boolean;
+  appearance: boolean;
+  carCleanliness: boolean;
+  maintenance: boolean;
+  work: boolean;
+}): number {
+  return (
+    (s.attendance ? 30 : 0) +
+    (s.appearance ? 20 : 0) +
+    (s.carCleanliness ? 10 : 0) +
+    (s.maintenance ? 10 : 0) +
+    (s.work ? 20 : 0)
+  );
+}
+
+function driverScoreToEval(total: number): string {
+  if (total >= 81) return 'Excellent';
+  if (total >= 63) return 'Good';
+  if (total >= 45) return 'Average';
+  return 'Poor';
+}
+
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -128,6 +151,7 @@ export class ReportsService {
             fromZone: true,
             toZone: true,
             agent: true,
+            driverJobScore: true,
           },
         },
       },
@@ -139,41 +163,70 @@ export class ReportsService {
       {
         driver: { id: string; name: string; mobileNumber: string };
         tripCount: number;
+        scoredCount: number;
+        totalScore: number;
         trips: Array<{
+          jobId: string;
+          internalRef: string;
           jobDate: Date;
           serviceType: string;
+          status: string;
+          paxCount: number;
           route: string;
           agent: string;
-          internalRef: string;
+          driverJobScore: {
+            attendance: boolean;
+            appearance: boolean;
+            carCleanliness: boolean;
+            maintenance: boolean;
+            work: boolean;
+            total: number;
+            evaluation: string;
+          } | null;
         }>;
       }
     >();
 
     for (const a of assignments) {
       if (!a.driver) continue;
-      const existing = driverMap.get(a.driverId!);
+      const djs = a.trafficJob.driverJobScore;
+      const scoreTotal = djs ? calcDriverScore(djs) : null;
       const tripInfo = {
+        jobId: a.trafficJobId,
+        internalRef: a.trafficJob.internalRef,
         jobDate: a.trafficJob.jobDate,
         serviceType: a.trafficJob.serviceType,
+        status: a.trafficJob.status,
+        paxCount: a.trafficJob.paxCount,
         route:
           a.trafficJob.fromZone && a.trafficJob.toZone
             ? `${a.trafficJob.fromZone.name} → ${a.trafficJob.toZone.name}`
             : '—',
         agent: a.trafficJob.agent?.legalName || '—',
-        internalRef: a.trafficJob.internalRef,
+        driverJobScore: djs
+          ? {
+              attendance: djs.attendance,
+              appearance: djs.appearance,
+              carCleanliness: djs.carCleanliness,
+              maintenance: djs.maintenance,
+              work: djs.work,
+              total: scoreTotal!,
+              evaluation: driverScoreToEval(scoreTotal!),
+            }
+          : null,
       };
 
+      const existing = driverMap.get(a.driverId!);
       if (existing) {
         existing.tripCount++;
         existing.trips.push(tripInfo);
+        if (scoreTotal !== null) { existing.scoredCount++; existing.totalScore += scoreTotal; }
       } else {
         driverMap.set(a.driverId!, {
-          driver: {
-            id: a.driver.id,
-            name: a.driver.name,
-            mobileNumber: a.driver.mobileNumber,
-          },
+          driver: { id: a.driver.id, name: a.driver.name, mobileNumber: a.driver.mobileNumber },
           tripCount: 1,
+          scoredCount: scoreTotal !== null ? 1 : 0,
+          totalScore: scoreTotal ?? 0,
           trips: [tripInfo],
         });
       }
@@ -199,6 +252,8 @@ export class ReportsService {
       .map((d) => ({
         ...d,
         totalFees: feeByDriver.get(d.driver.id) || 0,
+        avgScore: d.scoredCount > 0 ? Math.round(d.totalScore / d.scoredCount) : null,
+        missingScores: d.tripCount - d.scoredCount,
       }))
       .sort((a, b) => b.tripCount - a.tripCount);
 
@@ -209,6 +264,38 @@ export class ReportsService {
       totalTrips: assignments.length,
       drivers,
     };
+  }
+
+  // ─────────────────────────────────────────────
+  // DRIVER JOB SCORE UPSERT
+  // ─────────────────────────────────────────────
+
+  async upsertDriverScore(
+    jobId: string,
+    scoredById: string,
+    data: {
+      attendance: boolean;
+      appearance: boolean;
+      carCleanliness: boolean;
+      maintenance: boolean;
+      work: boolean;
+    },
+  ) {
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { trafficJobId: jobId, driverId: { not: null } },
+    });
+    if (!assignment?.driverId) {
+      throw new NotFoundException(`No driver assignment found for job ${jobId}`);
+    }
+
+    await this.prisma.driverJobScore.upsert({
+      where: { trafficJobId: jobId },
+      update: { ...data, scoredById },
+      create: { trafficJobId: jobId, driverId: assignment.driverId, scoredById, ...data },
+    });
+
+    const total = calcDriverScore(data);
+    return { ok: true, total, evaluation: driverScoreToEval(total) };
   }
 
   // ─────────────────────────────────────────────

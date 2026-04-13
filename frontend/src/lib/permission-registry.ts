@@ -600,6 +600,17 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     ],
   },
 
+  // ─── DRIVER TARIFFS ───
+  {
+    key: 'driver-tariffs',
+    labelKey: 'permissions.driverTariffs',
+    crudType: 'page',
+    children: [
+      { key: 'driver-tariffs.upsert', labelKey: 'permissions.driverTariffs.upsert', crudType: 'action' },
+      { key: 'driver-tariffs.delete', labelKey: 'permissions.driverTariffs.delete', crudType: 'D' },
+    ],
+  },
+
   // ─── JOB LOCKS ───
   {
     key: 'job-locks',

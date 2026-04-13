@@ -170,4 +170,8 @@ export class UpdateJobDto {
   @ValidateNested()
   @Type(() => FlightInfoDto)
   flight?: FlightInfoDto;
+
+  @IsOptional()
+  @IsString()
+  jobServiceTypeId?: string;
 }

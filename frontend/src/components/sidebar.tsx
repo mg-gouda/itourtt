@@ -30,6 +30,7 @@ import {
   Globe,
   Tag,
   SlidersHorizontal,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -95,6 +96,7 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.locations", href: "/dashboard/locations", icon: MapPin, permissionKey: "locations" },
       { type: "link", nameKey: "sidebar.vehicles", href: "/dashboard/vehicles", icon: Car, permissionKey: "vehicles" },
       { type: "link", nameKey: "sidebar.drivers", href: "/dashboard/drivers", icon: Users, permissionKey: "drivers" },
+      { type: "link", nameKey: "sidebar.driverTariffs", href: "/dashboard/driver-tariffs", icon: Receipt, permissionKey: "driver-tariffs" },
       { type: "link", nameKey: "sidebar.reps", href: "/dashboard/reps", icon: UserCheck, permissionKey: "reps" },
       { type: "link", nameKey: "sidebar.agents", href: "/dashboard/agents", icon: Building2, permissionKey: "agents" },
       { type: "link", nameKey: "sidebar.customers", href: "/dashboard/customers", icon: Users, permissionKey: "customers" },

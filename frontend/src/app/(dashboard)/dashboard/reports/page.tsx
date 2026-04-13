@@ -84,6 +84,16 @@ interface DispatchSummary {
   }>;
 }
 
+interface DriverJobScore {
+  attendance: boolean;
+  appearance: boolean;
+  carCleanliness: boolean;
+  maintenance: boolean;
+  work: boolean;
+  total: number;
+  evaluation: string;
+}
+
 interface DriverTripReport {
   from: string;
   to: string;
@@ -93,12 +103,19 @@ interface DriverTripReport {
     driver: { id: string; name: string; mobileNumber: string };
     tripCount: number;
     totalFees: number;
+    scoredCount: number;
+    missingScores: number;
+    avgScore: number | null;
     trips: Array<{
+      jobId: string;
+      internalRef: string;
       jobDate: string;
       serviceType: string;
+      status: string;
+      paxCount: number;
       route: string;
       agent: string;
-      internalRef: string;
+      driverJobScore: DriverJobScore | null;
     }>;
   }>;
 }
@@ -426,6 +443,10 @@ export default function ReportsPage() {
   const [driverTo, setDriverTo] = useState(today);
   const [driverData, setDriverData] = useState<DriverTripReport | null>(null);
   const [driverLoading, setDriverLoading] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<DriverTripReport["drivers"][number] | null>(null);
+  const [driverModalOpen, setDriverModalOpen] = useState(false);
+  const [driverScoreEdits, setDriverScoreEdits] = useState<Record<string, DriverJobScore>>({});
+  const [driverScoreSaving, setDriverScoreSaving] = useState<Record<string, boolean>>({});
 
   // Agent Statement
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -674,6 +695,45 @@ export default function ReportsPage() {
       toast.error("Failed to save score");
     } finally {
       setScoreSaving((s) => ({ ...s, [jobId]: false }));
+    }
+  };
+
+  const saveDriverScore = async (
+    jobId: string,
+    score: { attendance: boolean; appearance: boolean; carCleanliness: boolean; maintenance: boolean; work: boolean },
+  ) => {
+    setDriverScoreSaving((s) => ({ ...s, [jobId]: true }));
+    try {
+      await api.put(`/reports/driver-score/${jobId}`, score);
+      const total =
+        (score.attendance ? 30 : 0) +
+        (score.appearance ? 20 : 0) +
+        (score.carCleanliness ? 10 : 0) +
+        (score.maintenance ? 10 : 0) +
+        (score.work ? 20 : 0);
+      let evaluation = "Poor";
+      if (total >= 81) evaluation = "Excellent";
+      else if (total >= 63) evaluation = "Good";
+      else if (total >= 45) evaluation = "Average";
+      const newScore: DriverJobScore = { ...score, total, evaluation };
+      setDriverScoreEdits((s) => ({ ...s, [jobId]: newScore }));
+      // Patch driverData so the modal stays in sync
+      setDriverData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          drivers: prev.drivers.map((d) => ({
+            ...d,
+            trips: d.trips.map((t) =>
+              t.jobId === jobId ? { ...t, driverJobScore: newScore } : t,
+            ),
+          })),
+        };
+      });
+    } catch {
+      toast.error("Failed to save driver score");
+    } finally {
+      setDriverScoreSaving((s) => ({ ...s, [jobId]: false }));
     }
   };
 
@@ -1262,12 +1322,15 @@ export default function ReportsPage() {
                   label={t("reports.avgTripsDriver")}
                   value={
                     driverData.totalDrivers > 0
-                      ? (
-                          driverData.totalTrips / driverData.totalDrivers
-                        ).toFixed(1)
+                      ? (driverData.totalTrips / driverData.totalDrivers).toFixed(1)
                       : "0"
                   }
                   color="text-emerald-600 dark:text-emerald-400"
+                />
+                <StatCard
+                  label="Missing Scores"
+                  value={driverData.drivers.reduce((s, d) => s + d.missingScores, 0)}
+                  color="text-amber-600 dark:text-amber-400"
                 />
               </div>
 
@@ -1278,6 +1341,8 @@ export default function ReportsPage() {
                       <SortableHeader label={t("dispatch.driver")} sortKey="driver.name" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} />
                       <SortableHeader label={t("drivers.mobile")} sortKey="driver.mobileNumber" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} />
                       <SortableHeader label={t("reports.trips")} sortKey="tripCount" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
+                      <SortableHeader label="Avg Score" sortKey="avgScore" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
+                      <SortableHeader label="Missing" sortKey="missingScores" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
                       <SortableHeader label={t("reports.totalFees")} sortKey="totalFees" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
                     </TableRow>
                   </TableHeader>
@@ -1285,16 +1350,47 @@ export default function ReportsPage() {
                     {driverSort.sortedData.map((d, idx) => (
                       <TableRow
                         key={d.driver.id}
-                        className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                        className={`border-border cursor-pointer hover:bg-muted/50 ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        <TableCell className="text-foreground text-sm font-medium">
-                          {d.driver.name}
+                        <TableCell>
+                          <button
+                            type="button"
+                            className="text-primary hover:underline font-medium text-sm text-left"
+                            onClick={() => {
+                              setSelectedDriver(d);
+                              const initialEdits: Record<string, DriverJobScore> = {};
+                              for (const trip of d.trips) {
+                                if (trip.driverJobScore) initialEdits[trip.jobId] = trip.driverJobScore;
+                              }
+                              setDriverScoreEdits(initialEdits);
+                              setDriverModalOpen(true);
+                            }}
+                          >
+                            {d.driver.name}
+                          </button>
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {d.driver.mobileNumber}
                         </TableCell>
                         <TableCell className="text-right text-foreground font-mono">
                           {d.tripCount}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {d.avgScore !== null ? (
+                            <span className={
+                              d.avgScore >= 81 ? "text-emerald-600 dark:text-emerald-400" :
+                              d.avgScore >= 63 ? "text-blue-600 dark:text-blue-400" :
+                              d.avgScore >= 45 ? "text-amber-600 dark:text-amber-400" :
+                              "text-red-600 dark:text-red-400"
+                            }>{d.avgScore}</span>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {d.missingScores > 0 ? (
+                            <span className="text-amber-600 dark:text-amber-400">{d.missingScores}</span>
+                          ) : (
+                            <span className="text-emerald-600 dark:text-emerald-400">0</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
                           {fmt(d.totalFees, locale)}
@@ -1303,10 +1399,7 @@ export default function ReportsPage() {
                     ))}
                     {driverData.drivers.length === 0 && (
                       <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-center text-muted-foreground py-8"
-                        >
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                           {t("reports.noDriverTrips")}
                         </TableCell>
                       </TableRow>
@@ -2834,6 +2927,198 @@ export default function ReportsPage() {
                   </div>
                 );
               })()}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── DRIVER TRIP DETAIL MODAL ─── */}
+      <Dialog
+        open={driverModalOpen}
+        onOpenChange={(open) => {
+          setDriverModalOpen(open);
+          if (!open) setSelectedDriver(null);
+        }}
+      >
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-border bg-popover text-foreground sm:max-w-6xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {selectedDriver?.driver.name} &mdash; {driverFrom === driverTo ? driverFrom : `${driverFrom} → ${driverTo}`}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedDriver && (
+            <div className="space-y-3 py-2">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableHead className="text-white text-xs">Job Ref</TableHead>
+                      <TableHead className="text-white text-xs">Date</TableHead>
+                      <TableHead className="text-white text-xs">Type</TableHead>
+                      <TableHead className="text-white text-xs text-right">Pax</TableHead>
+                      <TableHead className="text-white text-xs">Route</TableHead>
+                      <TableHead className="text-white text-xs">Agent</TableHead>
+                      <TableHead className="text-white text-xs">Status</TableHead>
+                      <TableHead className="text-white text-xs text-center">
+                        Att<br/><span className="text-[10px] font-normal opacity-75">30pt</span>
+                      </TableHead>
+                      <TableHead className="text-white text-xs text-center">
+                        App<br/><span className="text-[10px] font-normal opacity-75">20pt</span>
+                      </TableHead>
+                      <TableHead className="text-white text-xs text-center">
+                        Car<br/><span className="text-[10px] font-normal opacity-75">10pt</span>
+                      </TableHead>
+                      <TableHead className="text-white text-xs text-center">
+                        Maint<br/><span className="text-[10px] font-normal opacity-75">10pt</span>
+                      </TableHead>
+                      <TableHead className="text-white text-xs text-center">
+                        Work<br/><span className="text-[10px] font-normal opacity-75">20pt</span>
+                      </TableHead>
+                      <TableHead className="text-white text-xs text-right">Score</TableHead>
+                      <TableHead className="text-white text-xs">Eval</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedDriver.trips.map((trip, idx) => {
+                      const jobId = trip.jobId;
+                      const currentScore = driverScoreEdits[jobId] ?? trip.driverJobScore;
+                      const isSaving = driverScoreSaving[jobId] ?? false;
+                      const isCompleted = trip.status === "COMPLETED";
+                      const isMissing = !currentScore;
+
+                      const toggleDriverScore = (field: keyof Omit<DriverJobScore, "total" | "evaluation">) => {
+                        const base = currentScore ?? { attendance: false, appearance: false, carCleanliness: false, maintenance: false, work: false, total: 0, evaluation: "Poor" };
+                        const next = {
+                          attendance: base.attendance,
+                          appearance: base.appearance,
+                          carCleanliness: base.carCleanliness,
+                          maintenance: base.maintenance,
+                          work: base.work,
+                          [field]: !base[field],
+                        };
+                        saveDriverScore(jobId, next);
+                      };
+
+                      const evalColor =
+                        currentScore?.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                        currentScore?.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                        currentScore?.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                        currentScore?.evaluation === "Poor" ? "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20" : "";
+
+                      return (
+                        <TableRow
+                          key={jobId}
+                          className={`border-border ${isMissing ? "bg-amber-500/5 border-l-2 border-l-amber-500" : idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                        >
+                          <TableCell className="text-foreground font-mono text-xs">{trip.internalRef}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs">{formatDate(trip.jobDate)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">{trip.serviceType}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground text-xs">{trip.paxCount}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{trip.route}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs">{trip.agent}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={`text-xs ${statusColors[trip.status] || ""}`}>{trip.status}</Badge>
+                          </TableCell>
+                          {/* Attendance — 30pt */}
+                          <TableCell className="text-center">
+                            <input
+                              type="checkbox"
+                              disabled={isSaving}
+                              checked={currentScore?.attendance ?? false}
+                              onChange={() => toggleDriverScore("attendance")}
+                              title="Attendance (30pt)"
+                              className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                            />
+                          </TableCell>
+                          {/* Appearance — 20pt */}
+                          <TableCell className="text-center">
+                            <input
+                              type="checkbox"
+                              disabled={isSaving}
+                              checked={currentScore?.appearance ?? false}
+                              onChange={() => toggleDriverScore("appearance")}
+                              title="Appearance (20pt)"
+                              className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                            />
+                          </TableCell>
+                          {/* Car Cleanliness — 10pt */}
+                          <TableCell className="text-center">
+                            <input
+                              type="checkbox"
+                              disabled={isSaving}
+                              checked={currentScore?.carCleanliness ?? false}
+                              onChange={() => toggleDriverScore("carCleanliness")}
+                              title="Car Cleanliness (10pt)"
+                              className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                            />
+                          </TableCell>
+                          {/* Maintenance — 10pt */}
+                          <TableCell className="text-center">
+                            <input
+                              type="checkbox"
+                              disabled={isSaving}
+                              checked={currentScore?.maintenance ?? false}
+                              onChange={() => toggleDriverScore("maintenance")}
+                              title="Maintenance (10pt)"
+                              className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                            />
+                          </TableCell>
+                          {/* Work — 20pt, auto from COMPLETED */}
+                          <TableCell className="text-center">
+                            <input
+                              type="checkbox"
+                              disabled={isSaving}
+                              checked={currentScore?.work ?? false}
+                              onChange={() => toggleDriverScore("work")}
+                              title={isCompleted ? "Work (20pt) — COMPLETED" : "Work (20pt)"}
+                              className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm font-semibold">
+                            {isSaving ? (
+                              <Loader2 className="h-3 w-3 animate-spin inline" />
+                            ) : currentScore ? (
+                              <span>{currentScore.total}<span className="text-muted-foreground text-xs">/90</span></span>
+                            ) : (
+                              <span className="text-amber-500 text-xs">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {currentScore?.evaluation ? (
+                              <Badge variant="outline" className={`text-xs ${evalColor}`}>
+                                {currentScore.evaluation}
+                              </Badge>
+                            ) : <span className="text-xs text-amber-500">Pending</span>}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Summary footer */}
+              <div className="flex justify-between items-center border-t border-border pt-3 px-1">
+                <span className="text-sm font-semibold text-foreground">
+                  {selectedDriver.tripCount} trips &mdash; {selectedDriver.tripCount - selectedDriver.missingScores} scored
+                  {selectedDriver.missingScores > 0 && (
+                    <span className="ml-2 text-amber-500 text-xs">({selectedDriver.missingScores} pending)</span>
+                  )}
+                </span>
+                <div className="text-right">
+                  {selectedDriver.avgScore !== null && (
+                    <div className="text-xs text-muted-foreground">
+                      Avg Score: <span className="font-semibold font-mono text-foreground">{selectedDriver.avgScore}/90</span>
+                    </div>
+                  )}
+                  <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                    {fmt(selectedDriver.totalFees, locale)} EGP
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

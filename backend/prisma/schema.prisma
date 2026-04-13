@@ -235,7 +235,8 @@ model User {
   activityLogs      ActivityLog[]
   notifications     UserNotification[]
   deviceTokens      DeviceToken[]
-  repScoresGiven    RepJobScore[]      @relation("RepScoreScoredBy")
+  repScoresGiven      RepJobScore[]      @relation("RepScoreScoredBy")
+  driverScoresGiven   DriverJobScore[]   @relation("DriverScoreScoredBy")
 
   @@map("users")
 }
@@ -327,6 +328,8 @@ model Zone {
   jobsDestination      TrafficJob[]          @relation("JobDestZone")
   driverFeesFrom       DriverTripFee[]       @relation("FeeFromZone")
   driverFeesTo         DriverTripFee[]       @relation("FeeToZone")
+  driverTariffsFrom    DriverPriceTariff[]   @relation("TariffFromZone")
+  driverTariffsTo      DriverPriceTariff[]   @relation("TariffToZone")
   customerPricesFrom   CustomerPriceItem[]   @relation("CustomerPriceFromZone")
   customerPricesTo     CustomerPriceItem[]   @relation("CustomerPriceToZone")
   agentPricesFrom      AgentPriceItem[]      @relation("AgentPriceFromZone")
@@ -335,6 +338,8 @@ model Zone {
   publicPricesTo       PublicPriceItem[]     @relation("PublicPriceToZone")
   guestBookingsFrom    GuestBooking[]        @relation("GuestBookingFromZone")
   guestBookingsTo      GuestBooking[]        @relation("GuestBookingToZone")
+  serviceTypesFrom     JobServiceType[]      @relation("ServiceTypeFromZone")
+  serviceTypesTo       JobServiceType[]      @relation("ServiceTypeToZone")
 
   @@map("zones")
 }
@@ -382,6 +387,8 @@ model VehicleType {
   guestBookings     GuestBooking[]
   requestedByJobs   TrafficJob[] @relation("JobRequestedVehicleType")
   supplierCarTypes  SupplierCarType[]
+  driverTariffs     DriverPriceTariff[]
+  driverTripFees    DriverTripFee[]
 
   @@map("vehicle_types")
 }
@@ -480,6 +487,7 @@ model Driver {
   assignments    TrafficAssignment[]
   tripFees       DriverTripFee[]
   notifications  DriverNotification[]
+  driverJobScores DriverJobScore[]
 
   @@map("drivers")
 }
@@ -933,8 +941,9 @@ model TrafficJob {
   agentRef        String?        @map("agent_ref")
   customerJobId   String?        @map("customer_job_id")
   customerId      String?        @map("customer_id")
-  serviceType     ServiceType    @map("service_type")
-  jobDate         DateTime       @map("job_date") @db.Date
+  serviceType        ServiceType     @map("service_type")
+  jobServiceTypeId   String?         @map("job_service_type_id")
+  jobDate            DateTime        @map("job_date") @db.Date
   status          JobStatus      @default(PENDING)
   bookingStatus   BookingStatus  @default(NEW) @map("booking_status")
   adultCount      Int            @map("adult_count")
@@ -1035,7 +1044,8 @@ model TrafficJob {
   fromZone           Zone?     @relation("JobFromZone", fields: [fromZoneId], references: [id])
   toZone             Zone?     @relation("JobToZone", fields: [toZoneId], references: [id])
   requestedVehicleType VehicleType? @relation("JobRequestedVehicleType", fields: [requestedVehicleTypeId], references: [id])
-  createdBy          User      @relation("JobCreatedBy", fields: [createdById], references: [id])
+  createdBy          User           @relation("JobCreatedBy", fields: [createdById], references: [id])
+  jobServiceType     JobServiceType? @relation(fields: [jobServiceTypeId], references: [id])
 
   flight                TrafficFlight?
   assignment            TrafficAssignment?
@@ -1049,6 +1059,7 @@ model TrafficJob {
   inPlaceEvidence       InPlaceEvidence[]
   completedEvidence     CompletedEvidence[]
   repJobScore           RepJobScore?
+  driverJobScore        DriverJobScore?
   whatsappLogs          WhatsappNotificationLog[]
   userNotifications     UserNotification[]
 
@@ -1155,23 +1166,69 @@ model ActivityLog {
 // ─────────────────────────────────────────────
 
 model DriverTripFee {
-  id           String   @id @default(uuid())
-  driverId     String   @map("driver_id")
-  trafficJobId String   @map("traffic_job_id")
-  fromZoneId   String   @map("from_zone_id")
-  toZoneId     String   @map("to_zone_id")
-  amount       Decimal  @db.Decimal(15, 2)
-  currency     Currency @default(EGP)
-  isPosted     Boolean  @default(false) @map("is_posted")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  driverId      String   @map("driver_id")
+  trafficJobId  String   @map("traffic_job_id")
+  fromZoneId    String   @map("from_zone_id")
+  toZoneId      String   @map("to_zone_id")
+  vehicleTypeId String?  @map("vehicle_type_id")
+  tariffId      String?  @map("tariff_id")
+  amount        Decimal  @db.Decimal(15, 2)
+  currency      Currency @default(EGP)
+  isPosted      Boolean  @default(false) @map("is_posted")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  driver       Driver     @relation(fields: [driverId], references: [id])
-  trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
-  fromZone     Zone       @relation("FeeFromZone", fields: [fromZoneId], references: [id])
-  toZone       Zone       @relation("FeeToZone", fields: [toZoneId], references: [id])
+  driver       Driver             @relation(fields: [driverId], references: [id])
+  trafficJob   TrafficJob         @relation(fields: [trafficJobId], references: [id])
+  fromZone     Zone               @relation("FeeFromZone", fields: [fromZoneId], references: [id])
+  toZone       Zone               @relation("FeeToZone", fields: [toZoneId], references: [id])
+  vehicleType  VehicleType?       @relation(fields: [vehicleTypeId], references: [id])
+  tariff       DriverPriceTariff? @relation(fields: [tariffId], references: [id])
 
   @@map("driver_trip_fees")
+}
+
+model DriverPriceTariff {
+  id            String      @id @default(uuid())
+  fromZoneId    String      @map("from_zone_id")
+  toZoneId      String      @map("to_zone_id")
+  vehicleTypeId String      @map("vehicle_type_id")
+  amount        Decimal     @db.Decimal(15, 2)
+  currency      Currency    @default(EGP)
+  notes         String?
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  jobServiceTypeId  String?         @map("job_service_type_id")
+
+  fromZone       Zone            @relation("TariffFromZone", fields: [fromZoneId], references: [id])
+  toZone         Zone            @relation("TariffToZone", fields: [toZoneId], references: [id])
+  vehicleType    VehicleType     @relation(fields: [vehicleTypeId], references: [id])
+  jobServiceType JobServiceType? @relation(fields: [jobServiceTypeId], references: [id])
+  fees           DriverTripFee[]
+
+  @@unique([fromZoneId, toZoneId, vehicleTypeId])
+  @@index([fromZoneId, toZoneId])
+  @@map("driver_price_tariffs")
+}
+
+model JobServiceType {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  fromZoneId  String?   @map("from_zone_id")
+  toZoneId    String?   @map("to_zone_id")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  fromZone    Zone?          @relation("ServiceTypeFromZone", fields: [fromZoneId], references: [id])
+  toZone      Zone?          @relation("ServiceTypeToZone", fields: [toZoneId], references: [id])
+  tariffs     DriverPriceTariff[]
+  trafficJobs TrafficJob[]
+
+  @@map("job_service_types")
 }
 
 model RepFee {
@@ -1616,6 +1673,26 @@ model RepJobScore {
   scoredBy     User       @relation("RepScoreScoredBy", fields: [scoredById], references: [id])
 
   @@map("rep_job_scores")
+}
+
+model DriverJobScore {
+  id             String   @id @default(uuid())
+  trafficJobId   String   @unique @map("traffic_job_id")
+  driverId       String   @map("driver_id")
+  attendance     Boolean  @default(false)   // 30 pts — manual
+  appearance     Boolean  @default(false)   // 20 pts — manual
+  carCleanliness Boolean  @default(false)   @map("car_cleanliness")  // 10 pts — manual
+  maintenance    Boolean  @default(false)   // 10 pts — manual
+  work           Boolean  @default(false)   // 20 pts — auto from COMPLETED status
+  scoredById     String   @map("scored_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
+  driver     Driver     @relation(fields: [driverId], references: [id])
+  scoredBy   User       @relation("DriverScoreScoredBy", fields: [scoredById], references: [id])
+
+  @@map("driver_job_scores")
 }
 
 // ─────────────────────────────────────────────

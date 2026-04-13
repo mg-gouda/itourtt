@@ -35,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LocationCombobox } from "@/components/location-combobox";
+import { SearchableCombobox } from "@/components/searchable-combobox";
 import { B2BJobImportModal } from "@/components/b2b-job-import-modal";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
@@ -165,6 +166,7 @@ interface FormState {
   customerId: string;
   customerJobId: string;
   serviceType: string;
+  jobServiceTypeId: string;
   jobDate: string;
   paxCount: string;
   originAirportId: string;
@@ -201,6 +203,7 @@ const defaultForm: FormState = {
   customerId: "",
   customerJobId: "",
   serviceType: "ARR",
+  jobServiceTypeId: "",
   jobDate: localDateStr(new Date()),
   paxCount: "1",
   originAirportId: "",
@@ -269,6 +272,7 @@ export default function B2BJobPage() {
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<FormState>({ ...defaultForm });
   const [suppliers, setSuppliers] = useState<SupplierResource[]>([]);
+  const [jobServiceTypes, setJobServiceTypes] = useState<{ id: string; name: string }[]>([]);
   const [vehicles, setVehicles] = useState<VehicleResource[]>([]);
   const [drivers, setDrivers] = useState<PersonResource[]>([]);
   const [reps, setReps] = useState<PersonResource[]>([]);
@@ -313,6 +317,10 @@ export default function B2BJobPage() {
       } catch {
         /* non-critical */
       }
+      try {
+        const { data } = await api.get("/job-service-types");
+        setJobServiceTypes(Array.isArray(data) ? data : data.data || []);
+      } catch { /* non-critical */ }
     }
     fetchResources();
   }, [canAssign, canAssignVehicle, canAssignDriver, canAssignRep]);
@@ -385,6 +393,7 @@ export default function B2BJobPage() {
       custRepMeetingTime,
       priceAmount: job.priceAmount != null ? String(job.priceAmount) : "",
       priceCurrency: job.priceCurrency || "EGP",
+      jobServiceTypeId: (job as any).jobServiceType?.id || "",
       flightNo: job.flight?.flightNo || "",
       terminal: job.flight?.terminal || "",
       arrivalTime,
@@ -436,6 +445,7 @@ export default function B2BJobPage() {
       };
 
       if (form.customerJobId.trim()) payload.customerJobId = form.customerJobId.trim();
+      if (form.jobServiceTypeId) payload.jobServiceTypeId = form.jobServiceTypeId;
       if (form.priceAmount) {
         payload.priceAmount = parseFloat(form.priceAmount);
         payload.priceCurrency = form.priceCurrency || "EGP";
@@ -711,6 +721,18 @@ export default function B2BJobPage() {
                 onChange={(e) => updateForm({ customerJobId: e.target.value })}
                 placeholder={t("jobs.customerJobIdPlaceholder") || "Customer ref..."}
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+              />
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">Route / Service Type</Label>
+              <SearchableCombobox
+                items={jobServiceTypes.map((s) => ({ value: s.id, label: s.name }))}
+                value={form.jobServiceTypeId}
+                onChange={(v) => updateForm({ jobServiceTypeId: v })}
+                placeholder="Select route…"
+                searchPlaceholder="Search routes…"
+                emptyText="No routes found."
+                triggerClassName="border-border bg-card text-foreground h-9"
               />
             </div>
             {canB2BServiceType && (

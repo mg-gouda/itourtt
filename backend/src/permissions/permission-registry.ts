@@ -537,6 +537,16 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     ],
   },
 
+  // ─── DRIVER TARIFFS ───
+  {
+    key: 'driver-tariffs',
+    labelKey: 'permissions.driverTariffs',
+    children: [
+      { key: 'driver-tariffs.upsert', labelKey: 'permissions.driverTariffs.upsert' },
+      { key: 'driver-tariffs.delete', labelKey: 'permissions.driverTariffs.delete' },
+    ],
+  },
+
   // ─── JOB LOCKS ───
   {
     key: 'job-locks',

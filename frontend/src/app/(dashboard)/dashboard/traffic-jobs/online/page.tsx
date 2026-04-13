@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LocationCombobox } from "@/components/location-combobox";
+import { SearchableCombobox } from "@/components/searchable-combobox";
 import api from "@/lib/api";
 import { usePermission } from "@/hooks/use-permission";
 import { useT, useLocaleId } from "@/lib/i18n";
@@ -144,6 +145,7 @@ interface FormState {
   agentId: string;
   agentRef: string;
   serviceType: string;
+  jobServiceTypeId: string;
   jobDate: string;
   adultCount: string;
   childCount: string;
@@ -182,6 +184,7 @@ const defaultForm: FormState = {
   agentId: "",
   agentRef: "",
   serviceType: "ARR",
+  jobServiceTypeId: "",
   jobDate: localDateStr(new Date()),
   adultCount: "1",
   childCount: "0",
@@ -241,6 +244,7 @@ export default function OnlineJobPage() {
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [jobServiceTypes, setJobServiceTypes] = useState<{ id: string; name: string }[]>([]);
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -285,8 +289,15 @@ export default function OnlineJobPage() {
         /* non-critical */
       }
     }
+    async function fetchJobServiceTypes() {
+      try {
+        const { data } = await api.get("/job-service-types");
+        setJobServiceTypes(Array.isArray(data) ? data : data.data || []);
+      } catch { /* non-critical */ }
+    }
     fetchAgents();
     fetchVehicleTypes();
+    fetchJobServiceTypes();
   }, []);
 
   /* ── Debounce search ── */
@@ -388,6 +399,7 @@ export default function OnlineJobPage() {
       transferPrice: job.transferPrice ? String(job.transferPrice) : "",
       transferPriceCurrency: job.transferPriceCurrency || "EGP",
       requestedVehicleTypeId: job.requestedVehicleTypeId || "",
+      jobServiceTypeId: (job as any).jobServiceType?.id || "",
       flightNo: job.flight?.flightNo || "",
       terminal: job.flight?.terminal || "",
       arrivalTime,
@@ -480,6 +492,7 @@ export default function OnlineJobPage() {
       if (form.requestedVehicleTypeId) {
         payload.requestedVehicleTypeId = form.requestedVehicleTypeId;
       }
+      if (form.jobServiceTypeId) payload.jobServiceTypeId = form.jobServiceTypeId;
 
       if (form.pickUpTime) payload.pickUpTime = `${form.jobDate}T${form.pickUpTime}`;
       if (form.notes.trim()) payload.notes = form.notes.trim();
@@ -608,6 +621,18 @@ export default function OnlineJobPage() {
               )}
             </div>
             )}
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-muted-foreground text-xs">Route / Service Type</Label>
+              <SearchableCombobox
+                items={jobServiceTypes.map((s) => ({ value: s.id, label: s.name }))}
+                value={form.jobServiceTypeId}
+                onChange={(v) => updateForm({ jobServiceTypeId: v })}
+                placeholder="Select route…"
+                searchPlaceholder="Search routes…"
+                emptyText="No routes found."
+                triggerClassName="border-border bg-card text-foreground h-9"
+              />
+            </div>
             {canServiceType && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>

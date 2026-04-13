@@ -87,6 +87,7 @@ export class DriversService {
         },
         fromZone: { select: { id: true, name: true } },
         toZone: { select: { id: true, name: true } },
+        vehicleType: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

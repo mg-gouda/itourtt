@@ -37,6 +37,8 @@ import { ImportTemplatesModule } from './import-templates/import-templates.modul
 import { AiParserModule } from './ai-parser/ai-parser.module.js';
 import { PushNotificationsModule } from './push-notifications/push-notifications.module.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
+import { DriverTariffsModule } from './driver-tariffs/driver-tariffs.module.js';
+import { JobServiceTypesModule } from './job-service-types/job-service-types.module.js';
 
 @Module({
   imports: [
@@ -69,6 +71,8 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
     SupplierPortalModule,
     ActivityLogsModule,
     PublicPricesModule,
+    DriverTariffsModule,
+    JobServiceTypesModule,
     PaymentsModule,
     PublicApiModule,
     GuestBookingsModule,

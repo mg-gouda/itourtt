@@ -98,6 +98,23 @@ class UpsertRepScoreDto {
   review!: boolean;
 }
 
+class UpsertDriverScoreDto {
+  @IsBoolean()
+  attendance!: boolean;
+
+  @IsBoolean()
+  appearance!: boolean;
+
+  @IsBoolean()
+  carCleanliness!: boolean;
+
+  @IsBoolean()
+  maintenance!: boolean;
+
+  @IsBoolean()
+  work!: boolean;
+}
+
 @Controller('reports')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT', 'DISPATCHER')
@@ -185,6 +202,17 @@ export class ReportsController {
       req.user.id,
       body,
     );
+    return new ApiResponse(result);
+  }
+
+  @Put('driver-score/:jobId')
+  @Permissions('reports.driverTrips')
+  async upsertDriverScore(
+    @Param('jobId') jobId: string,
+    @Body() body: UpsertDriverScoreDto,
+    @Request() req: any,
+  ) {
+    const result = await this.reportsService.upsertDriverScore(jobId, req.user.id, body);
     return new ApiResponse(result);
   }
 

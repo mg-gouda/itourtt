@@ -14,6 +14,7 @@ import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { WhatsappNotificationsService } from '../whatsapp-notifications/whatsapp-notifications.service.js';
 import { SettingsService } from '../settings/settings.service.js';
+import { DriverTariffsService } from '../driver-tariffs/driver-tariffs.service.js';
 
 type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
@@ -35,6 +36,7 @@ export class TrafficJobsService {
     private readonly notificationsService: NotificationsService,
     private readonly whatsappService: WhatsappNotificationsService,
     private readonly settingsService: SettingsService,
+    private readonly driverTariffsService: DriverTariffsService,
   ) {}
 
   private readonly jobInclude = {
@@ -59,6 +61,7 @@ export class TrafficJobsService {
       },
     },
     noShowEvidence: true,
+    jobServiceType: { select: { id: true, name: true } },
   };
 
   async findAll(filter: JobFilterDto) {
@@ -195,6 +198,7 @@ export class TrafficJobsService {
           customerJobId: dto.customerJobId ?? null,
           customerId: dto.bookingChannel === 'B2B' ? dto.customerId! : null,
           serviceType: dto.serviceType as any,
+          jobServiceTypeId: dto.jobServiceTypeId ?? null,
           jobDate: new Date(dto.jobDate),
           adultCount: dto.adultCount,
           childCount,
@@ -373,6 +377,7 @@ export class TrafficJobsService {
       if (dto.customerJobId !== undefined) data.customerJobId = dto.customerJobId || null;
       if (dto.customerId !== undefined) data.customerId = dto.customerId || null;
       if (dto.serviceType !== undefined) data.serviceType = dto.serviceType;
+      if (dto.jobServiceTypeId !== undefined) data.jobServiceTypeId = dto.jobServiceTypeId || null;
       if (dto.jobDate !== undefined) data.jobDate = new Date(dto.jobDate);
       if (dto.clientName !== undefined) data.clientName = dto.clientName;
       if (dto.clientMobile !== undefined) data.clientMobile = dto.clientMobile;
@@ -505,13 +510,40 @@ export class TrafficJobsService {
           where: { driverId, trafficJobId: id },
         });
         if (!existingDriverFee) {
+          // Resolve vehicleTypeId from the assigned vehicle
+          let vehicleTypeId: string | null = null;
+          if (updatedJob.assignment.vehicleId) {
+            const vehicle = await tx.vehicle.findUnique({
+              where: { id: updatedJob.assignment.vehicleId },
+              select: { vehicleTypeId: true },
+            });
+            vehicleTypeId = vehicle?.vehicleTypeId ?? null;
+          }
+
+          // Look up tariff: fromZone + toZone + vehicleType
+          let tariffAmount = 0;
+          let tariffId: string | null = null;
+          if (vehicleTypeId) {
+            const tariff = await this.driverTariffsService.lookup(
+              updatedJob.fromZoneId,
+              updatedJob.toZoneId,
+              vehicleTypeId,
+            );
+            if (tariff) {
+              tariffAmount = Number(tariff.amount);
+              tariffId = tariff.id;
+            }
+          }
+
           await tx.driverTripFee.create({
             data: {
               driverId,
               trafficJobId: id,
               fromZoneId: updatedJob.fromZoneId,
               toZoneId: updatedJob.toZoneId,
-              amount: 0,
+              vehicleTypeId: vehicleTypeId ?? undefined,
+              tariffId: tariffId ?? undefined,
+              amount: tariffAmount,
               currency: 'EGP',
             },
           });
