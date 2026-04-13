@@ -177,7 +177,7 @@ export class LocationsController {
 
   @Get('airports')
   @Permissions('locations.airports')
-  findAirportsByCountry(@Query('countryId', ParseUUIDPipe) countryId: string) {
+  findAirportsByCountry(@Query('countryId') countryId?: string) {
     return this.locationsService.findAirportsByCountry(countryId);
   }
 

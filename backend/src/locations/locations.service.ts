@@ -175,16 +175,18 @@ export class LocationsService {
 
   // ─── Airports ─────────────────────────────────────────────
 
-  async findAirportsByCountry(countryId: string) {
-    const country = await this.prisma.country.findUnique({
-      where: { id: countryId, deletedAt: null },
-    });
-    if (!country) {
-      throw new NotFoundException(`Country with id ${countryId} not found`);
+  async findAirportsByCountry(countryId?: string) {
+    if (countryId) {
+      const country = await this.prisma.country.findUnique({
+        where: { id: countryId, deletedAt: null },
+      });
+      if (!country) {
+        throw new NotFoundException(`Country with id ${countryId} not found`);
+      }
     }
 
     return this.prisma.airport.findMany({
-      where: { countryId, deletedAt: null },
+      where: { ...(countryId ? { countryId } : {}), deletedAt: null, isActive: true },
       orderBy: { name: 'asc' },
       include: { country: true },
     });
