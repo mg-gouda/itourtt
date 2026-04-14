@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  HardDrive,
   Loader2,
   CheckCircle2,
   XCircle,
@@ -128,7 +127,6 @@ export default function GoogleDrivePage() {
       <PageHeader
         title={t("googleDrive.title")}
         description={t("googleDrive.description")}
-        icon={<HardDrive className="h-5 w-5" />}
       />
 
       {/* ── Setup Instructions ── */}
