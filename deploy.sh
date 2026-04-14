@@ -16,10 +16,14 @@ echo ""
 echo ">> Pulling latest code from GitHub (main)..."
 git pull origin main
 
+# ── Derive version from package.json ──
+VERSION=$(node -p "require('./backend/package.json').version")
+echo ">> Version: $VERSION"
+
 # ── Build shared backend image (same for all environments) ──
 echo ""
 echo ">> Building backend image..."
-docker build --no-cache -t itourtt-backend:3.3.12 backend -q
+docker build --no-cache -t itourtt-backend:${VERSION} backend -q
 
 # ── Build frontend images (per-environment feature flags) ──
 # Production: Car Dispatch enabled
@@ -39,19 +43,19 @@ if $needs_car_dispatch; then
   echo ">> Building frontend image (with Car Dispatch)..."
   docker build --no-cache \
     --build-arg NEXT_PUBLIC_ENABLE_CAR_DISPATCH=true \
-    -t itourtt-frontend:3.3.12-cardispatch frontend -q
-  docker save itourtt-frontend:3.3.12-cardispatch | k3s ctr images import -
+    -t itourtt-frontend:${VERSION}-cardispatch frontend -q
+  docker save itourtt-frontend:${VERSION}-cardispatch | k3s ctr images import -
 fi
 
 if $needs_standard; then
   echo ">> Building frontend image (standard)..."
-  docker build --no-cache -t itourtt-frontend:3.3.12 frontend -q
-  docker save itourtt-frontend:3.3.12 | k3s ctr images import -
+  docker build --no-cache -t itourtt-frontend:${VERSION} frontend -q
+  docker save itourtt-frontend:${VERSION} | k3s ctr images import -
 fi
 
 # Import backend image into k3s
 echo ">> Importing backend image into k3s..."
-docker save itourtt-backend:3.3.12 | k3s ctr images import -
+docker save itourtt-backend:${VERSION} | k3s ctr images import -
 
 deploy_env() {
   local ns="$1"
@@ -62,7 +66,7 @@ deploy_env() {
   echo "=== Deploying $label ($ns) ==="
 
   # Point both deployments to the new image tags
-  kubectl set image deployment/backend backend=itourtt-backend:3.3.12 -n "$ns"
+  kubectl set image deployment/backend backend=itourtt-backend:${VERSION} -n "$ns"
   kubectl set image deployment/frontend frontend=itourtt-frontend:${frontend_tag} -n "$ns"
 
   # Scale to 2 replicas
@@ -96,14 +100,21 @@ deploy_env() {
 }
 
 if [[ "$ENV" == "production" || "$ENV" == "all" ]]; then
-  deploy_env "itour-production" "Production" "3.3.12-cardispatch"
+  deploy_env "itour-production" "Production" "${VERSION}-cardispatch"
 fi
 
 if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
-  deploy_env "itour-travelplan" "TravelPlan" "3.3.12"
+  deploy_env "itour-travelplan" "TravelPlan" "${VERSION}"
 fi
+
+# ── Cleanup: remove unused images and Docker build cache ──
+echo ""
+echo ">> Pruning unused container images..."
+k3s ctr images ls -q | grep "^sha256:" | xargs -r k3s ctr images rm 2>/dev/null || true
+docker builder prune -af --filter "until=1h" -q 2>/dev/null || true
 
 echo ""
 echo "=== Deployment complete ==="
 echo "Production:  https://fulvago.itourtt.cloud"
 echo "TravelPlan:  https://travelplan.itourtt.cloud"
+df -h / | awk 'NR==2 {printf "Disk:        %s used of %s (%s)\n", $3, $2, $5}'
