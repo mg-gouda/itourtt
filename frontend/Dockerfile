@@ -17,7 +17,7 @@ ENV NEXT_PUBLIC_ENABLE_CAR_DISPATCH=${NEXT_PUBLIC_ENABLE_CAR_DISPATCH}
 
 # Bake version from package.json into the client bundle
 ENV NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
-RUN export NEXT_PUBLIC_APP_VERSION=$(node -p "require('./package.json').version") && npm run build
+RUN export NEXT_PUBLIC_APP_VERSION=$(node -p "require('./package.json').version") && NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # ── Production stage ──
 FROM node:20-alpine AS runner
