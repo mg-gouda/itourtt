@@ -17,7 +17,9 @@ import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
 import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto.js';
+import { UpdateGoogleDriveSettingsDto } from './dto/update-google-drive-settings.dto.js';
 import { EmailService } from '../email/email.service.js';
+import { GoogleDriveService } from '../google-drive/google-drive.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -47,6 +49,7 @@ export class SettingsController {
   constructor(
     private readonly settingsService: SettingsService,
     private readonly emailService: EmailService,
+    private readonly googleDriveService: GoogleDriveService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -246,5 +249,55 @@ export class SettingsController {
     const url = '/uploads/' + file.filename;
     await this.settingsService.updateHeroImage(url);
     return { url };
+  }
+
+  // ──────────────────────────────────────────────
+  // GET /settings/google-drive — retrieve Google Drive config (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Get('google-drive')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async getGoogleDriveSettings() {
+    return this.settingsService.getGoogleDriveSettings();
+  }
+
+  // ──────────────────────────────────────────────
+  // PATCH /settings/google-drive — update Google Drive config (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Patch('google-drive')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async updateGoogleDriveSettings(@Body() dto: UpdateGoogleDriveSettingsDto) {
+    const result = await this.settingsService.updateGoogleDriveSettings(dto);
+    this.googleDriveService.clearCache();
+    return result;
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/google-drive/test — verify credentials & folder access
+  // ──────────────────────────────────────────────
+
+  @Post('google-drive/test')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async testGoogleDriveConnection() {
+    return this.googleDriveService.testConnection();
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/google-drive/migrate — migrate local /uploads/ images to Drive
+  // ──────────────────────────────────────────────
+
+  @Post('google-drive/migrate')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async migrateEvidenceToDrive() {
+    return this.googleDriveService.migrateLocalFilesToDrive();
   }
 }

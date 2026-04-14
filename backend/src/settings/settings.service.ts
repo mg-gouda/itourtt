@@ -4,6 +4,7 @@ import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
 import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto.js';
+import { UpdateGoogleDriveSettingsDto } from './dto/update-google-drive-settings.dto.js';
 import { validateLicenseKey, type LicenseStatus } from '../common/license.util.js';
 
 /** Default values returned when no row exists yet. */
@@ -435,6 +436,44 @@ export class SettingsService {
       data: {
         siteName: WEBSITE_DEFAULTS.siteName,
         heroImageUrl: fileUrl,
+      },
+    });
+  }
+
+  // ──────────────────────────────────────────────
+  // GOOGLE DRIVE SETTINGS
+  // ──────────────────────────────────────────────
+
+  async getGoogleDriveSettings() {
+    const row = await this.prisma.googleDriveSettings.findFirst();
+    return {
+      enabled: row?.enabled ?? false,
+      serviceAccountJson: row?.serviceAccountJson ? '••••••••' : null,
+      rootFolderId: row?.rootFolderId ?? null,
+    };
+  }
+
+  async updateGoogleDriveSettings(dto: UpdateGoogleDriveSettingsDto) {
+    const existing = await this.prisma.googleDriveSettings.findFirst();
+    const data: Record<string, unknown> = {};
+
+    if (dto.enabled !== undefined) data.enabled = dto.enabled;
+    if (dto.rootFolderId !== undefined) data.rootFolderId = dto.rootFolderId || null;
+
+    // Only overwrite the JSON key if a real value is submitted (not the masked placeholder)
+    if (dto.serviceAccountJson !== undefined && dto.serviceAccountJson !== '••••••••') {
+      data.serviceAccountJson = dto.serviceAccountJson || null;
+    }
+
+    if (existing) {
+      return this.prisma.googleDriveSettings.update({ where: { id: existing.id }, data });
+    }
+
+    return this.prisma.googleDriveSettings.create({
+      data: {
+        enabled: dto.enabled ?? false,
+        serviceAccountJson: dto.serviceAccountJson ?? null,
+        rootFolderId: dto.rootFolderId ?? null,
       },
     });
   }

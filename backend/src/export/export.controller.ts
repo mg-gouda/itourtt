@@ -1,6 +1,7 @@
 import { Controller, Get, Query, Param, Res, UseGuards, BadRequestException, NotFoundException, ParseUUIDPipe, InternalServerErrorException } from '@nestjs/common';
 import * as express from 'express';
 import { ExportService } from './export.service.js';
+import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -11,7 +12,10 @@ import { Permissions } from '../common/decorators/permissions.decorator.js';
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
 export class ExportController {
-  constructor(private readonly exportService: ExportService) {}
+  constructor(
+    private readonly exportService: ExportService,
+    private readonly googleDriveService: GoogleDriveService,
+  ) {}
 
   @Get('dispatch')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
@@ -208,6 +212,34 @@ export class ExportController {
       if (err?.status === 404) throw new NotFoundException(err.message);
       throw new InternalServerErrorException('Failed to generate evidence PDF');
     }
+  }
+
+  // ──────────────────────────────────────────────
+  // GET /export/odoo/evidence-file/:fileId
+  // Proxy a Drive file through the backend (JWT-guarded).
+  // Accessible to all dashboard roles — dispatchers/managers view evidence images.
+  // ──────────────────────────────────────────────
+
+  @Get('evidence-file/:fileId')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  async proxyEvidenceFile(
+    @Param('fileId') fileId: string,
+    @Res() res: express.Response,
+  ) {
+    if (!isDriveFileId(fileId)) {
+      throw new BadRequestException('Invalid file ID');
+    }
+
+    const result = await this.googleDriveService.getFileStream(fileId);
+    if (!result) {
+      throw new NotFoundException('File not found or Drive not configured');
+    }
+
+    res.set({
+      'Content-Type': result.mimeType,
+      'Cache-Control': 'private, max-age=3600',
+    });
+    result.stream.pipe(res);
   }
 
   private sendXlsx(res: express.Response, buffer: Buffer, filename: string) {

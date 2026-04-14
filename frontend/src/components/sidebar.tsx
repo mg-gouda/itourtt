@@ -31,6 +31,7 @@ import {
   Tag,
   SlidersHorizontal,
   Receipt,
+  HardDrive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -105,6 +106,7 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.company", href: "/dashboard/company", icon: Building, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.whatsapp", href: "/dashboard/whatsapp", icon: MessageCircle, permissionKey: "whatsapp" },
       { type: "link", nameKey: "sidebar.emailSettings", href: "/dashboard/email-settings", icon: Mail, permissionKey: "company" },
+      { type: "link", nameKey: "sidebar.googleDrive", href: "/dashboard/google-drive", icon: HardDrive, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck, permissionKey: "users" },
       { type: "link", nameKey: "sidebar.jobControl", href: "/dashboard/job-control", icon: SlidersHorizontal, allowedEmails: ["mggouda@gmail.com", "admin@itour.local"] },
     ],

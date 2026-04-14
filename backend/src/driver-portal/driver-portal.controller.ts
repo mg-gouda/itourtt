@@ -13,10 +13,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DriverPortalService } from './driver-portal.service.js';
+import { GoogleDriveService } from '../google-drive/google-drive.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -29,15 +30,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const noShowStorage = diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueName = Date.now() + '-' + file.originalname;
-    cb(null, uniqueName);
-  },
-});
+const memStore = memoryStorage();
 
 class UpdateJobStatusDto {
   @IsString()
@@ -66,7 +59,10 @@ class DateQueryDto {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DRIVER')
 export class DriverPortalController {
-  constructor(private readonly driverPortalService: DriverPortalService) {}
+  constructor(
+    private readonly driverPortalService: DriverPortalService,
+    private readonly googleDriveService: GoogleDriveService,
+  ) {}
 
   @Get('jobs')
   async getMyJobs(
@@ -128,7 +124,7 @@ export class DriverPortalController {
   }
 
   @Post('jobs/:jobId/no-show')
-  @UseInterceptors(FilesInterceptor('images', 10, { storage: noShowStorage }))
+  @UseInterceptors(FilesInterceptor('images', 10, { storage: memStore }))
   async submitNoShow(
     @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
@@ -139,21 +135,15 @@ export class DriverPortalController {
       throw new BadRequestException('At least one image is required for no-show evidence');
     }
 
-    const imageUrls = files.map(f => '/uploads/no-show/' + f.filename);
     const latitude = parseFloat(body.latitude);
     const longitude = parseFloat(body.longitude);
-
     if (isNaN(latitude) || isNaN(longitude)) {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const result = await this.driverPortalService.submitNoShow(
-      userId,
-      jobId,
-      imageUrls,
-      latitude,
-      longitude,
-    );
+    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show');
+
+    const result = await this.driverPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'No-show evidence submitted');
   }
 
@@ -182,5 +172,44 @@ export class DriverPortalController {
   async getProfile(@CurrentUser('id') userId: string) {
     const result = await this.driverPortalService.getProfile(userId);
     return new ApiResponse(result);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Upload helper — tries Drive first, falls back to local disk
+  // ──────────────────────────────────────────────────────────────────────────
+
+  private async uploadFiles(
+    files: Express.Multer.File[],
+    jobId: string,
+    driveType: 'rep' | 'driver' | 'no-show',
+    localSubdir: string,
+  ): Promise<string[]> {
+    const urls: string[] = [];
+    const uploadsBase = path.join(process.cwd(), 'uploads');
+
+    for (const file of files) {
+      const uniqueName = Date.now() + '-' + file.originalname;
+      const mimeType = file.mimetype || 'image/jpeg';
+
+      const driveId = await this.googleDriveService.uploadFile(
+        file.buffer,
+        uniqueName,
+        mimeType,
+        jobId,
+        driveType,
+      );
+
+      if (driveId) {
+        urls.push(driveId);
+      } else {
+        const dir = path.join(uploadsBase, localSubdir);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const localPath = path.join(dir, uniqueName);
+        fs.writeFileSync(localPath, file.buffer);
+        urls.push(`/uploads/${localSubdir}/${uniqueName}`);
+      }
+    }
+
+    return urls;
   }
 }

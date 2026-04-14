@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
 import * as XLSX from 'xlsx';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
@@ -84,7 +85,10 @@ function fontPaths() {
 
 @Injectable()
 export class ExportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly googleDrive: GoogleDriveService,
+  ) {}
 
   // ─────────────────────────────────────────────
   // CUSTOMERS (Agent → res.partner)
@@ -946,8 +950,19 @@ export class ExportService {
     const IMG_H    = 115;
 
     const embedImage = async (rawUrl: string) => {
+      let imgBytes: Buffer;
+
+      if (isDriveFileId(rawUrl)) {
+        const buf = await this.googleDrive.getFileBuffer(rawUrl);
+        if (!buf) throw new Error(`Drive file not available: ${rawUrl}`);
+        imgBytes = buf;
+        // Detect PNG header
+        const isPng = imgBytes[0] === 0x89 && imgBytes[1] === 0x50;
+        return isPng ? pdfDoc.embedPng(imgBytes) : pdfDoc.embedJpg(imgBytes);
+      }
+
       const imgPath = path.join(process.cwd(), rawUrl.replace(/^\//, ''));
-      const imgBytes = fs.readFileSync(imgPath);
+      imgBytes = fs.readFileSync(imgPath);
       return rawUrl.toLowerCase().includes('.png')
         ? pdfDoc.embedPng(imgBytes)
         : pdfDoc.embedJpg(imgBytes);

@@ -3,9 +3,10 @@ import { DriverPortalController } from './driver-portal.controller.js';
 import { DriverPortalService } from './driver-portal.service.js';
 import { NoShowDisputeService } from './no-show-dispute.service.js';
 import { EmailModule } from '../email/email.module.js';
+import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 
 @Module({
-  imports: [EmailModule],
+  imports: [EmailModule, GoogleDriveModule],
   controllers: [DriverPortalController],
   providers: [DriverPortalService, NoShowDisputeService],
 })

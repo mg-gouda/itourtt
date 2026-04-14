@@ -1790,3 +1790,20 @@ model WebsiteSettings {
 
   @@map("website_settings")
 }
+
+// ─────────────────────────────────────────────
+// GOOGLE DRIVE INTEGRATION SETTINGS
+// ─────────────────────────────────────────────
+
+model GoogleDriveSettings {
+  id                   String   @id @default(uuid())
+
+  enabled              Boolean  @default(false)
+  serviceAccountJson   String?  @map("service_account_json") @db.Text
+  rootFolderId         String?  @map("root_folder_id")
+
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("google_drive_settings")
+}
