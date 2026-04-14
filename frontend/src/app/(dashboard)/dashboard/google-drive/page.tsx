@@ -135,6 +135,10 @@ export default function GoogleDrivePage() {
           <Info className="h-4 w-4 text-blue-500 shrink-0" />
           <h3 className="font-semibold text-sm">{t("googleDrive.instructions")}</h3>
         </div>
+        <div className="mb-3 flex items-start gap-2 rounded-md border border-yellow-300 bg-yellow-50 dark:bg-yellow-950/30 dark:border-yellow-700 px-3 py-2 text-sm text-yellow-800 dark:text-yellow-300">
+          <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>{t("googleDrive.sharedDriveNote")}</span>
+        </div>
         <ol className="space-y-2 text-sm text-muted-foreground">
           {[
             t("googleDrive.step1"),

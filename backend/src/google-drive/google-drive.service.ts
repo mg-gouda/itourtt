@@ -70,6 +70,8 @@ export class GoogleDriveService {
       q: `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
       fields: 'files(id)',
       spaces: 'drive',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
 
     if (search.data.files?.length) {
@@ -80,6 +82,7 @@ export class GoogleDriveService {
 
     // Create it
     const created = await drive.files.create({
+      supportsAllDrives: true,
       requestBody: {
         name,
         mimeType: 'application/vnd.google-apps.folder',
@@ -149,6 +152,7 @@ export class GoogleDriveService {
 
       const stream = Readable.from(buffer);
       const res = await drive.files.create({
+        supportsAllDrives: true,
         requestBody: {
           name: filename,
           parents: [folderId],
@@ -179,7 +183,7 @@ export class GoogleDriveService {
     try {
       const drive = await this.getDrive(config);
       const res = await drive.files.get(
-        { fileId, alt: 'media' },
+        { fileId, alt: 'media', supportsAllDrives: true },
         { responseType: 'arraybuffer' },
       );
       return Buffer.from(res.data as ArrayBuffer);
@@ -198,11 +202,11 @@ export class GoogleDriveService {
       const drive = await this.getDrive(config);
 
       // Get mime type first
-      const meta = await drive.files.get({ fileId, fields: 'mimeType' });
+      const meta = await drive.files.get({ fileId, fields: 'mimeType', supportsAllDrives: true });
       const mimeType = (meta.data.mimeType as string) || 'application/octet-stream';
 
       const res = await drive.files.get(
-        { fileId, alt: 'media' },
+        { fileId, alt: 'media', supportsAllDrives: true },
         { responseType: 'stream' },
       );
 
@@ -228,6 +232,7 @@ export class GoogleDriveService {
       const res = await drive.files.get({
         fileId: config.rootFolderId,
         fields: 'id,name,mimeType',
+        supportsAllDrives: true,
       });
 
       if (res.data.mimeType !== 'application/vnd.google-apps.folder') {
@@ -318,6 +323,7 @@ export class GoogleDriveService {
 
             const stream = Readable.from(buffer);
             const res = await drive.files.create({
+              supportsAllDrives: true,
               requestBody: { name: filename, parents: [folderId] },
               media: { mimeType, body: stream },
               fields: 'id',
