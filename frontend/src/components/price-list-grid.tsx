@@ -467,15 +467,15 @@ export function PriceListGrid({
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                <TableHead className="text-white text-xs min-w-[280px]">
+              <TableRow className="border-border bg-muted">
+                <TableHead className="text-muted-foreground text-xs min-w-[280px]">
                   Route
                 </TableHead>
                 {vehicleTypes.map((vt) => (
                   <TableHead
                     key={vt.id}
                     colSpan={2}
-                    className="text-center text-white text-xs border-l border-border"
+                    className="text-center text-muted-foreground text-xs border-l border-border"
                   >
                     {vt.name}
                     <span className="ml-1 text-xs">
@@ -483,16 +483,16 @@ export function PriceListGrid({
                     </span>
                   </TableHead>
                 ))}
-                <TableHead className="text-white text-xs w-[50px]" />
+                <TableHead className="text-muted-foreground text-xs w-[50px]" />
               </TableRow>
-              <TableRow className="border-border bg-gray-600/75 dark:bg-gray-700/75">
+              <TableRow className="border-border bg-muted">
                 <TableHead />
                 {vehicleTypes.map((vt) => (
                   <Fragment key={vt.id}>
-                    <TableHead className="text-xs text-white text-center border-l border-border">
+                    <TableHead className="text-xs text-muted-foreground text-center border-l border-border">
                       Price
                     </TableHead>
-                    <TableHead className="text-xs text-white text-center">
+                    <TableHead className="text-xs text-muted-foreground text-center">
                       Tip
                     </TableHead>
                   </Fragment>

@@ -41,6 +41,7 @@ import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
 import { usePermission } from "@/hooks/use-permission";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 interface VehicleTypeResource {
   id: string;
@@ -137,20 +138,6 @@ interface TrafficJob {
   } | null;
 }
 
-const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30",
-  ASSIGNED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  IN_PROGRESS: "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30",
-  COMPLETED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-  NO_SHOW: "bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30",
-};
-
-const bookingStatusColors: Record<string, string> = {
-  NEW: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  UPDATED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-};
 
 function isJobLocked(jobDate: string, editUnlockedAt?: string | null): boolean {
   if (editUnlockedAt) return false; // explicitly unlocked
@@ -679,8 +666,14 @@ export default function B2BJobPage() {
       </div>
 
       {/* ─── Inline Form ─── */}
-      <Card ref={formRef} className={cn("border-border bg-card p-4", editingJobId && "ring-2 ring-primary/50")}>
-        <div className="space-y-4">
+      <Card ref={formRef} className={cn("border-border bg-card flex flex-col", editingJobId && "ring-2 ring-primary/50")}>
+        <div className="overflow-y-auto p-4 space-y-4">
+          {/* ── Booking Info ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Booking Info</span>
+            <hr className="flex-1 border-border" />
+          </div>
+
           {/* Row 1: Booking Status + Customer + Service Type + Date + Pickup + Adults */}
           <div className="grid grid-cols-7 gap-3">
             <div className="min-w-0 space-y-1.5">
@@ -795,6 +788,12 @@ export default function B2BJobPage() {
             )}
           </div>
 
+          {/* ── Route & Flight ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Route &amp; Flight</span>
+            <hr className="flex-1 border-border" />
+          </div>
+
           {/* Row 2: Origin + Destination + Flight Info + Arrival/Departure Time */}
           <div className={`grid gap-3 ${showFlightFields ? "grid-cols-5" : "grid-cols-2"}`}>
             {canB2BRoute && (
@@ -867,6 +866,12 @@ export default function B2BJobPage() {
                 </div>
               </>
             )}
+          </div>
+
+          {/* ── Pricing & Meeting ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Pricing &amp; Meeting</span>
+            <hr className="flex-1 border-border" />
           </div>
 
           {/* Row 4: Price + Customer Rep Meeting Fields */}
@@ -943,6 +948,14 @@ export default function B2BJobPage() {
             </>
             )}
           </div>
+
+          {/* ── Assignment ── */}
+          {canAssign && (
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Assignment</span>
+            <hr className="flex-1 border-border" />
+          </div>
+          )}
 
           {/* Row 5: Assignment — Source, Vehicle, Driver, Rep */}
           {canAssign && (
@@ -1070,40 +1083,48 @@ export default function B2BJobPage() {
             </div>
           )}
 
-          {/* Row 6: Notes + Submit */}
-          <div className="flex items-center gap-3">
-            {canB2BNotes && (
-            <div className="flex-1 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
-              <Input
-                value={form.notes}
-                onChange={(e) => updateForm({ notes: e.target.value })}
-                placeholder={t("jobs.optionalNotes")}
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
-              />
-            </div>
-            )}
-            {editingJobId && (
-              <Button
-                variant="outline"
-                onClick={handleCancelEdit}
-                className="gap-1.5 mt-auto border-border text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-                {t("common.cancel") || "Cancel"}
-              </Button>
-            )}
-            {canCreateB2B && (
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 mt-auto"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {editingJobId ? (t("jobs.updateJob") || "Update Job") : t("jobs.createJob")}
-            </Button>
-            )}
+          {/* ── Notes ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Notes</span>
+            <hr className="flex-1 border-border" />
           </div>
+
+          {/* Row 6: Notes */}
+          {canB2BNotes && (
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
+            <Input
+              value={form.notes}
+              onChange={(e) => updateForm({ notes: e.target.value })}
+              placeholder={t("jobs.optionalNotes")}
+              className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+            />
+          </div>
+          )}
+        </div>
+
+        {/* Sticky Footer — Cancel + Save */}
+        <div className="sticky bottom-0 bg-card border-t border-border py-3 px-4 flex justify-end gap-2">
+          {editingJobId && (
+            <Button
+              variant="outline"
+              onClick={handleCancelEdit}
+              className="gap-1.5 border-border text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+              {t("common.cancel") || "Cancel"}
+            </Button>
+          )}
+          {canCreateB2B && (
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {editingJobId ? (t("jobs.updateJob") || "Update Job") : t("jobs.createJob")}
+          </Button>
+          )}
         </div>
       </Card>
 
@@ -1175,21 +1196,21 @@ export default function B2BJobPage() {
             <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                  <TableHead className="text-white text-xs w-8"></TableHead>
-                  <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.customerJobId") || "Cust. Job ID"}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.customer")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("dispatch.pax")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.extras") || "Extras"}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.notes") || "Notes"}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.price") || "Price"}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
-                  <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
+                <TableRow className="border-border bg-muted">
+                  <TableHead className="text-muted-foreground text-xs w-8"></TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("dispatch.ref")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.customerJobId") || "Cust. Job ID"}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.type")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("common.date")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.customer")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("dispatch.route")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("dispatch.pax")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.extras") || "Extras"}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.notes") || "Notes"}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.price") || "Price"}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.assignment")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1248,14 +1269,10 @@ export default function B2BJobPage() {
                         ) : "\u2014"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-xs ${bookingStatusColors[job.bookingStatus] || ""}`}>
-                          {job.bookingStatus || "NEW"}
-                        </Badge>
+                        <StatusBadge status={job.bookingStatus || "NEW"} />
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-xs ${statusColors[job.status] || ""}`}>
-                          {job.status.replace("_", " ")}
-                        </Badge>
+                        <StatusBadge status={job.status} />
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {job.assignment ? (

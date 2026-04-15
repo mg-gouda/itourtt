@@ -39,6 +39,7 @@ import { PushNotificationsModule } from './push-notifications/push-notifications
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { DriverTariffsModule } from './driver-tariffs/driver-tariffs.module.js';
 import { JobServiceTypesModule } from './job-service-types/job-service-types.module.js';
+import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { JobServiceTypesModule } from './job-service-types/job-service-types.mod
     ImportTemplatesModule,
     AiParserModule,
     PushNotificationsModule,
+    UserPreferencesModule,
   ],
   controllers: [AppController],
   providers: [

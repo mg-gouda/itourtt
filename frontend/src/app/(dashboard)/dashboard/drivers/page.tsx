@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Users,
   Plus,
   Loader2,
   Pencil,
@@ -17,9 +16,12 @@ import {
   KeyRound,
   Trash2,
   ExternalLink,
+  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
@@ -629,20 +631,36 @@ export default function DriversPage() {
       />
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <tbody>
+              {Array.from({ length: 9 }).map((_, i) => (
+                <tr key={i} className={`border-b border-border ${i % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
+                  <td className="px-3 py-3"><Skeleton className="h-4 w-32" /></td>
+                  <td className="px-3 py-3"><Skeleton className="h-4 w-28" /></td>
+                  <td className="px-3 py-3"><Skeleton className="h-4 w-24" /></td>
+                  <td className="px-3 py-3"><Skeleton className="h-4 w-20" /></td>
+                  <td className="px-3 py-3"><Skeleton className="h-4 w-12" /></td>
+                  <td className="px-3 py-3"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                  <td className="px-3 py-3"><Skeleton className="h-5 w-14 rounded-full" /></td>
+                  <td className="px-3 py-3 text-right"><Skeleton className="h-7 w-24 ml-auto" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : drivers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Users className="h-10 w-10 text-muted-foreground/40" />
-          <p className="mt-3 text-sm text-muted-foreground">
-            {t("drivers.noDrivers")}
-          </p>
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <EmptyState
+            icon={Truck}
+            heading="No drivers yet"
+            description="Add drivers to assign them to jobs."
+          />
           {canAddDriver && (
-          <Button size="sm" className="mt-4 gap-1.5" onClick={openAddDialog}>
-            <Plus className="h-4 w-4" />
-            {t("drivers.addDriver")}
-          </Button>
+            <Button size="sm" className="gap-1.5" onClick={openAddDialog}>
+              <Plus className="h-4 w-4" />
+              {t("drivers.addDriver")}
+            </Button>
           )}
         </div>
       ) : (
@@ -655,7 +673,7 @@ export default function DriversPage() {
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+              <TableRow className="border-border bg-muted">
                 <SortableHeader
                   label={t("drivers.name")}
                   sortKey="name"
@@ -670,7 +688,7 @@ export default function DriversPage() {
                   currentDir={sortDir}
                   onSort={onSort}
                 />
-                <TableHead className="text-white text-xs">
+                <TableHead className="text-muted-foreground text-xs">
                   {t("drivers.licenseNo")}
                 </TableHead>
                 <SortableHeader
@@ -680,12 +698,12 @@ export default function DriversPage() {
                   currentDir={sortDir}
                   onSort={onSort}
                 />
-                <TableHead className="text-white text-xs">
+                <TableHead className="text-muted-foreground text-xs">
                   {t("drivers.attachment")}
                 </TableHead>
-                <TableHead className="text-white text-xs">{t("drivers.account")}</TableHead>
-                <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                <TableHead className="text-right text-white text-xs">
+                <TableHead className="text-muted-foreground text-xs">{t("drivers.account")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                <TableHead className="text-right text-muted-foreground text-xs">
                   {t("common.actions")}
                 </TableHead>
               </TableRow>

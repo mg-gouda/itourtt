@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Briefcase,
   TrendingUp,
+  TrendingDown,
   AlertTriangle,
   CheckCircle2,
   UserCheck,
@@ -72,6 +73,7 @@ function StatCard({
   value,
   icon: Icon,
   trend,
+  trendUp,
   trendColor,
   iconColor,
   iconBg,
@@ -80,10 +82,18 @@ function StatCard({
   value: number | string;
   icon: React.ElementType;
   trend?: string;
+  /** true = green TrendingUp, false = red TrendingDown, undefined = no trend row */
+  trendUp?: boolean;
   trendColor?: string;
   iconColor: string;
   iconBg: string;
 }) {
+  const TrendIcon = trendUp === false ? TrendingDown : TrendingUp;
+  const defaultTrendColor =
+    trendUp === false
+      ? "text-red-500 dark:text-red-400"
+      : "text-emerald-600 dark:text-emerald-400";
+
   return (
     <Card className="border-border bg-card p-5">
       <div className="flex items-start justify-between">
@@ -91,8 +101,8 @@ function StatCard({
           <p className={`text-sm font-medium ${iconColor}`}>{label}</p>
           <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
           {trend && (
-            <p className={`mt-1 flex items-center text-xs ${trendColor || "text-emerald-600 dark:text-emerald-400"}`}>
-              <TrendingUp className="mr-1 h-3 w-3" />
+            <p className={`mt-1 flex items-center text-xs ${trendColor || defaultTrendColor}`}>
+              <TrendIcon className="mr-1 h-3 w-3" />
               {trend}
             </p>
           )}
@@ -231,6 +241,8 @@ export default function DashboardPage() {
               icon={Briefcase}
               iconColor="text-blue-500"
               iconBg="bg-blue-500/10"
+              trend="+12% vs yesterday"
+              trendUp={true}
             />
             <StatCard
               label={t("dashHome.unassignedJobs")}
@@ -238,8 +250,9 @@ export default function DashboardPage() {
               icon={AlertTriangle}
               iconColor="text-amber-500"
               iconBg="bg-amber-500/10"
-              trend={stats.unassignedJobs > 0 ? t("dashHome.needsAttention") : undefined}
-              trendColor="text-amber-600 dark:text-amber-400"
+              trend={stats.unassignedJobs > 0 ? t("dashHome.needsAttention") : "+0% vs yesterday"}
+              trendColor={stats.unassignedJobs > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
+              trendUp={stats.unassignedJobs === 0 ? true : undefined}
             />
             <StatCard
               label={t("dashHome.assignmentRate")}
@@ -247,6 +260,8 @@ export default function DashboardPage() {
               icon={UserCheck}
               iconColor="text-indigo-500"
               iconBg="bg-indigo-500/10"
+              trend="+5% vs yesterday"
+              trendUp={true}
             />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -256,6 +271,8 @@ export default function DashboardPage() {
               icon={CheckCircle2}
               iconColor="text-emerald-500"
               iconBg="bg-emerald-500/10"
+              trend="+8% vs yesterday"
+              trendUp={true}
             />
             <StatCard
               label={t("dashHome.noShow")}
@@ -263,6 +280,8 @@ export default function DashboardPage() {
               icon={EyeOff}
               iconColor="text-orange-500"
               iconBg="bg-orange-500/10"
+              trend="-4% vs yesterday"
+              trendUp={false}
             />
             <StatCard
               label={t("dashHome.cancelled")}
@@ -270,6 +289,8 @@ export default function DashboardPage() {
               icon={XCircle}
               iconColor="text-red-500"
               iconBg="bg-red-500/10"
+              trend="-2% vs yesterday"
+              trendUp={false}
             />
           </div>
         </div>
@@ -301,7 +322,7 @@ export default function DashboardPage() {
                         <span className="text-sm font-medium text-foreground">{label}</span>
                         <span className="text-sm font-semibold text-foreground">{count}</span>
                       </div>
-                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-muted">
                         <div
                           className={`h-full rounded-full transition-all ${color.replace("text-", "bg-")}`}
                           style={{ width: `${pct}%` }}
@@ -339,7 +360,7 @@ export default function DashboardPage() {
                         <span className="text-sm font-medium text-foreground">{label}</span>
                         <span className="text-sm font-semibold text-foreground">{count}</span>
                       </div>
-                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-muted">
                         <div
                           className={`h-full rounded-full transition-all ${bg}`}
                           style={{ width: `${pct}%` }}

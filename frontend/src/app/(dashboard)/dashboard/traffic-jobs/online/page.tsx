@@ -43,6 +43,7 @@ import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
 import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 /* ─────────── types ─────────── */
 
@@ -116,20 +117,6 @@ interface TrafficJob {
   } | null;
 }
 
-const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30",
-  ASSIGNED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  IN_PROGRESS: "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30",
-  COMPLETED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-  NO_SHOW: "bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30",
-};
-
-const bookingStatusColors: Record<string, string> = {
-  NEW: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  UPDATED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-};
 
 function isJobLocked(jobDate: string, editUnlockedAt?: string | null): boolean {
   if (editUnlockedAt) return false; // explicitly unlocked
@@ -570,8 +557,14 @@ export default function OnlineJobPage() {
       </div>
 
       {/* ─── Inline Form ─── */}
-      <Card ref={formRef} className={cn("border-border bg-card p-4", editingJobId && "ring-2 ring-primary/50")}>
-        <div className="space-y-4">
+      <Card ref={formRef} className={cn("border-border bg-card flex flex-col", editingJobId && "ring-2 ring-primary/50")}>
+        <div className="overflow-y-auto p-4 space-y-4">
+          {/* ── Booking Info ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Booking Info</span>
+            <hr className="flex-1 border-border" />
+          </div>
+
           {/* Line 1: Booking Status + Transfer Provider + Agent Ref + Service Type + Service Date + Pickup Time */}
           <div className="grid grid-cols-6 gap-3">
             <div className="min-w-0 space-y-1.5">
@@ -680,6 +673,12 @@ export default function OnlineJobPage() {
             )}
           </div>
 
+          {/* ── Client Info ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Client Info</span>
+            <hr className="flex-1 border-border" />
+          </div>
+
           {/* Line 2: Client Lead Name + Client Mobile + Adults + Children */}
           <div className="grid grid-cols-4 gap-3">
             {canClientInfo && (
@@ -728,6 +727,12 @@ export default function OnlineJobPage() {
             </div>
             </>
             )}
+          </div>
+
+          {/* ── Route & Flight ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Route &amp; Flight</span>
+            <hr className="flex-1 border-border" />
           </div>
 
           {/* Line 3: Origin + Destination + Flight Info */}
@@ -818,6 +823,12 @@ export default function OnlineJobPage() {
                 )}
               </>
             )}
+          </div>
+
+          {/* ── Extras & Pricing ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Extras &amp; Pricing</span>
+            <hr className="flex-1 border-border" />
           </div>
 
           {/* Line 4: Extras */}
@@ -956,40 +967,48 @@ export default function OnlineJobPage() {
             )}
           </div>
 
-          {/* Line 6: Notes + Submit */}
-          <div className="flex items-center gap-3">
-            {canNotes && (
-            <div className="flex-1 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
-              <Input
-                value={form.notes}
-                onChange={(e) => updateForm({ notes: e.target.value })}
-                placeholder={t("jobs.optionalNotes")}
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
-              />
-            </div>
-            )}
-            {editingJobId && (
-              <Button
-                variant="outline"
-                onClick={handleCancelEdit}
-                className="gap-1.5 mt-auto border-border text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-                {t("common.cancel") || "Cancel"}
-              </Button>
-            )}
-            {canCreate && (
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 mt-auto"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {editingJobId ? (t("jobs.updateJob") || "Update Job") : t("jobs.createJob")}
-            </Button>
-            )}
+          {/* ── Notes ── */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Notes</span>
+            <hr className="flex-1 border-border" />
           </div>
+
+          {/* Line 6: Notes */}
+          {canNotes && (
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground text-xs">{t("jobs.notes")}</Label>
+            <Input
+              value={form.notes}
+              onChange={(e) => updateForm({ notes: e.target.value })}
+              placeholder={t("jobs.optionalNotes")}
+              className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
+            />
+          </div>
+          )}
+        </div>
+
+        {/* Sticky Footer — Cancel + Save */}
+        <div className="sticky bottom-0 bg-card border-t border-border py-3 px-4 flex justify-end gap-2">
+          {editingJobId && (
+            <Button
+              variant="outline"
+              onClick={handleCancelEdit}
+              className="gap-1.5 border-border text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+              {t("common.cancel") || "Cancel"}
+            </Button>
+          )}
+          {canCreate && (
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {editingJobId ? (t("jobs.updateJob") || "Update Job") : t("jobs.createJob")}
+          </Button>
+          )}
         </div>
       </Card>
 
@@ -1050,28 +1069,28 @@ export default function OnlineJobPage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                  <TableHead className="text-white text-xs w-8"></TableHead>
+                <TableRow className="border-border bg-muted">
+                  <TableHead className="text-muted-foreground text-xs w-8"></TableHead>
                   <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("jobs.agentRef")} sortKey="agentRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("common.date")} sortKey="jobDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("jobs.pickUpTime")} sortKey="pickUpTime" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">{t("jobs.arrivalTime")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.arrivalTime")}</TableHead>
                   <SortableHeader label={t("jobs.transferProvider")} sortKey="agent.legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("jobs.clientName")} sortKey="clientName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("dispatch.route")}</TableHead>
                   <SortableHeader label={t("dispatch.pax")} sortKey="paxCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">{t("jobs.extras") || "Extras"}</TableHead>
-                  <TableHead className="text-white text-xs w-[70px]">Coll. Amt</TableHead>
-                  <TableHead className="text-white text-xs w-[60px]">Coll. Cur</TableHead>
-                  <TableHead className="text-white text-xs w-[70px]">Tr. Price</TableHead>
-                  <TableHead className="text-white text-xs w-[60px]">Tr. Cur</TableHead>
-                  <TableHead className="text-white text-xs">Veh. Type</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.notes") || "Notes"}</TableHead>
-                  <TableHead className="text-white text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.extras") || "Extras"}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs w-[70px]">Coll. Amt</TableHead>
+                  <TableHead className="text-muted-foreground text-xs w-[60px]">Coll. Cur</TableHead>
+                  <TableHead className="text-muted-foreground text-xs w-[70px]">Tr. Price</TableHead>
+                  <TableHead className="text-muted-foreground text-xs w-[60px]">Tr. Cur</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">Veh. Type</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.notes") || "Notes"}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
                   <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("jobs.assignment")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1162,14 +1181,10 @@ export default function OnlineJobPage() {
                         {job.notes || "\u2014"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-xs ${bookingStatusColors[job.bookingStatus] || ""}`}>
-                          {job.bookingStatus || "NEW"}
-                        </Badge>
+                        <StatusBadge status={job.bookingStatus || "NEW"} />
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-xs ${statusColors[job.status] || ""}`}>
-                          {job.status.replace("_", " ")}
-                        </Badge>
+                        <StatusBadge status={job.status} />
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {job.assignment ? (

@@ -237,8 +237,23 @@ model User {
   deviceTokens      DeviceToken[]
   repScoresGiven      RepJobScore[]      @relation("RepScoreScoredBy")
   driverScoresGiven   DriverJobScore[]   @relation("DriverScoreScoredBy")
+  preferences         UserPreference[]
 
   @@map("users")
+}
+
+model UserPreference {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  key       String
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@map("user_preferences")
 }
 
 // ─────────────────────────────────────────────

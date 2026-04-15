@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -588,25 +589,21 @@ export default function SuppliersPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : suppliers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-card">
-            <Truck className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="mt-4 text-sm font-medium text-foreground">
-            {t("suppliers.noSuppliers")}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add your first supplier to get started.
-          </p>
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <EmptyState
+            icon={Truck}
+            heading="No suppliers yet"
+            description="Add your first supplier to get started."
+          />
           {canAddSupplier && (
-          <Button
-            size="sm"
-            className="mt-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={openDialog}
-          >
-            <Plus className="h-4 w-4" />
-            {t("suppliers.addSupplier")}
-          </Button>
+            <Button
+              size="sm"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={openDialog}
+            >
+              <Plus className="h-4 w-4" />
+              {t("suppliers.addSupplier")}
+            </Button>
           )}
         </div>
       ) : (
@@ -671,23 +668,23 @@ export default function SuppliersPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                <TableRow className="border-border bg-muted">
                   <TableHead className="w-10">
                     <Checkbox
                       checked={sortedData.length > 0 && selectedIds.size === sortedData.length}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead className="text-white text-xs">Type</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">Type</TableHead>
                   <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">{t("agents.taxId")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("agents.taxId")}</TableHead>
                   <SortableHeader label={t("locations.city")} sortKey="city" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("locations.country")} sortKey="country" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">{t("agents.phone")}</TableHead>
-                  <TableHead className="text-white text-xs">Account</TableHead>
-                  <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                  <TableHead className="text-right text-white text-xs">
+                  <TableHead className="text-muted-foreground text-xs">{t("agents.phone")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">Account</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                  <TableHead className="text-right text-muted-foreground text-xs">
                     {t("common.actions")}
                   </TableHead>
                 </TableRow>

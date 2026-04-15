@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Briefcase,
   Loader2,
   Search,
   Filter,
@@ -13,8 +12,11 @@ import {
   MapPin,
   ExternalLink,
   Image,
+  PlaneLanding,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +49,7 @@ import { formatDate , localDateStr } from "@/lib/utils";
 import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 import { usePermission } from "@/hooks/use-permission";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 interface TrafficJob {
   id: string;
@@ -111,28 +114,6 @@ interface TrafficJob {
   }[];
 }
 
-const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30",
-  ASSIGNED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  IN_PROGRESS: "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30",
-  COMPLETED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-  NO_SHOW: "bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30",
-};
-
-const bookingStatusColors: Record<string, string> = {
-  NEW: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  UPDATED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-};
-
-const portalStatusColors: Record<string, string> = {
-  PENDING:     "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30",
-  IN_PROGRESS: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  COMPLETED:   "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  CANCELLED:   "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-  NO_SHOW:     "bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500/30",
-};
 
 export default function TrafficJobsPage() {
   const t = useT();
@@ -227,10 +208,10 @@ export default function TrafficJobsPage() {
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t("jobs.title")}</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t("jobs.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("jobs.description")}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -298,50 +279,91 @@ export default function TrafficJobsPage() {
       {/* Table */}
       <div>
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <tr key={i} className={`border-b border-border ${i % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-20" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-24" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-5 w-14 rounded-full" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-5 w-12 rounded-full" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-20" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-12" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-28" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-24" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-20" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-6" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-6" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-16" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-16" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-16" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-8" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-10" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-10" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-14" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-14" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-6" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-20" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-14" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-16" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-16" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-28" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-20" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3 w-16" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <Briefcase className="mb-2 h-8 w-8" />
-            <p>{t("jobs.noJobs")}</p>
+          <div className="py-16">
+            <EmptyState
+              icon={PlaneLanding}
+              heading="No jobs found"
+              description="Try adjusting your date range or filters."
+            />
           </div>
         ) : (
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+              <TableRow className="border-border bg-muted">
                 <SortableHeader label={t("jobs.bookingDate")} sortKey="createdAt" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <SortableHeader label={t("jobs.channel")} sortKey="bookingChannel" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <SortableHeader label={t("jobs.serviceDate")} sortKey="jobDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <SortableHeader label={t("jobs.pickUpTime")} sortKey="pickUpTime" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-white text-xs">{t("jobs.agentCustomer")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.agentCustomer")}</TableHead>
                 <SortableHeader label={t("jobs.clientName")} sortKey="clientName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-white text-xs">{t("jobs.clientNumber")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.clientNumber")}</TableHead>
                 <SortableHeader label={t("jobs.ad")} sortKey="adultCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <SortableHeader label={t("jobs.chd")} sortKey="childCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-white text-xs">{t("jobs.origin")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.destination")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.flightNumber")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.terminal")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.arrivalTime")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.departureTime")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.carrier")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.extras")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.printSign")}</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.notes")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.origin")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.destination")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.flightNumber")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.terminal")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.arrivalTime")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.departureTime")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.carrier")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.extras")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.printSign")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.notes")}</TableHead>
                 <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <SortableHeader label="Bkg Status" sortKey="bookingStatus" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-white text-xs">Driver Status</TableHead>
-                <TableHead className="text-white text-xs">Rep Status</TableHead>
-                <TableHead className="text-white text-xs">Veh. Type</TableHead>
-                <TableHead className="text-white text-xs">Transfer Price</TableHead>
-                <TableHead className="text-white text-xs">Collection</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.assignment")}</TableHead>
-                <TableHead className="text-white text-xs">Cust. Rep</TableHead>
-                <TableHead className="text-white text-xs">{t("jobs.userLog")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">Driver Status</TableHead>
+                <TableHead className="text-muted-foreground text-xs">Rep Status</TableHead>
+                <TableHead className="text-muted-foreground text-xs">Veh. Type</TableHead>
+                <TableHead className="text-muted-foreground text-xs">Transfer Price</TableHead>
+                <TableHead className="text-muted-foreground text-xs">Collection</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.assignment")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">Cust. Rep</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("jobs.userLog")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -453,70 +475,59 @@ export default function TrafficJobsPage() {
                   </TableCell>
                   <TableCell>
                     {job.status === "NO_SHOW" ? (
-                      <Badge
+                      <span
                         data-no-show="true"
-                        variant="outline"
-                        className={`text-xs cursor-pointer hover:underline ${statusColors[job.status] || ""}`}
+                        className="cursor-pointer hover:underline inline-flex items-center gap-1"
                         title="Click to view no-show evidence"
                         onClick={() => setEvidenceJob(job)}
                       >
-                        NO SHOW
+                        <StatusBadge status={job.status} />
                         {(job.noShowEvidence?.length ?? 0) > 0 && (
-                          <Image className="ml-1 inline h-3 w-3 opacity-70" />
+                          <Image className="h-3 w-3 opacity-70" />
                         )}
-                      </Badge>
+                      </span>
                     ) : (
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${statusColors[job.status] || ""}`}
-                      >
-                        {job.status.replace(/_/g, " ")}
-                      </Badge>
+                      <StatusBadge status={job.status} />
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${bookingStatusColors[job.bookingStatus] || ""}`}
-                    >
-                      {job.bookingStatus || "\u2014"}
-                    </Badge>
+                    {job.bookingStatus ? (
+                      <StatusBadge status={job.bookingStatus} />
+                    ) : "\u2014"}
                   </TableCell>
                   <TableCell>
                     {job.assignment?.driverStatus ? (
-                      <Badge
-                        variant="outline"
+                      <span
                         data-no-show={job.assignment.driverStatus === "NO_SHOW" ? "true" : undefined}
-                        className={`text-xs ${portalStatusColors[job.assignment.driverStatus] || ""} ${job.assignment.driverStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}`}
+                        className={job.assignment.driverStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}
                         title={job.assignment.driverStatus === "NO_SHOW" ? "Click to view no-show evidence" : undefined}
                         onClick={job.assignment.driverStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
                       >
-                        {job.assignment.driverStatus.replace(/_/g, " ")}
-                      </Badge>
+                        <StatusBadge status={job.assignment.driverStatus} />
+                      </span>
                     ) : "\u2014"}
                   </TableCell>
                   <TableCell>
                     {job.assignment?.repStatus ? (
-                      <Badge
-                        variant="outline"
+                      <span
                         data-no-show={job.assignment.repStatus === "NO_SHOW" ? "true" : undefined}
-                        className={`text-xs ${portalStatusColors[job.assignment.repStatus] || ""} ${job.assignment.repStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}`}
+                        className={job.assignment.repStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}
                         title={job.assignment.repStatus === "NO_SHOW" ? "Click to view no-show evidence" : undefined}
                         onClick={job.assignment.repStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
                       >
-                        {job.assignment.repStatus.replace(/_/g, " ")}
-                      </Badge>
+                        <StatusBadge status={job.assignment.repStatus} />
+                      </span>
                     ) : "\u2014"}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                     {job.requestedVehicleType?.name || "\u2014"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap font-mono font-medium">
                     {job.transferPrice
                       ? `${job.transferPrice} ${job.transferPriceCurrency}`
                       : "\u2014"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap font-mono font-medium">
                     {job.collectionRequired && job.collectionAmount
                       ? `${job.collectionAmount} ${job.collectionCurrency}`
                       : "\u2014"}

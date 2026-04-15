@@ -115,6 +115,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "sidebar.flights": "Flights",
     "sidebar.collapse": "Collapse sidebar",
     "sidebar.expand": "Expand sidebar",
+    "sidebar.section.operations": "Operations",
+    "sidebar.section.finance": "Finance & Reports",
+    "sidebar.section.system": "System",
 
     // ── Header ──
     "header.profileSettings": "Profile & Settings",
@@ -1637,6 +1640,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "sidebar.flights": "\u0627\u0644\u0631\u062D\u0644\u0627\u062A",
     "sidebar.collapse": "\u0637\u064A \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
     "sidebar.expand": "\u062A\u0648\u0633\u064A\u0639 \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
+    "sidebar.section.operations": "\u0627\u0644\u0639\u0645\u0644\u064A\u0627\u062A",
+    "sidebar.section.finance": "\u0627\u0644\u0645\u0627\u0644\u064A\u0629 \u0648\u0627\u0644\u062A\u0642\u0627\u0631\u064A\u0631",
+    "sidebar.section.system": "\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645",
 
     // ── Header ──
     "header.profileSettings": "\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062E\u0635\u064A \u0648\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A",

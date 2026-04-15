@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -413,9 +414,12 @@ export default function UsersPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : users.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Users className="mb-2 h-8 w-8" />
-              <p className="text-sm">{t("users.noUsers")}</p>
+            <div className="py-16">
+              <EmptyState
+                icon={Users}
+                heading="No users yet"
+                description="Add users to grant access to the system."
+              />
             </div>
           ) : (
             <>
@@ -438,13 +442,13 @@ export default function UsersPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                    <TableRow className="border-border bg-muted">
                       <SortableHeader label={t("common.name")}   sortKey="name"      currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                       <SortableHeader label={t("common.email")}  sortKey="email"     currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                       <SortableHeader label={t("common.role")}   sortKey="role"      currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("users.created")}</TableHead>
-                      <TableHead className="text-right text-white text-xs">{t("common.actions")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("users.created")}</TableHead>
+                      <TableHead className="text-right text-muted-foreground text-xs">{t("common.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

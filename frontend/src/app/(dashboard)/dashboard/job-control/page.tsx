@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Select,
   SelectContent,
@@ -28,16 +28,6 @@ const PORTAL_STATUSES = ["PENDING", "IN_PROGRESS", "IN_PLACE", "COMPLETED", "CAN
 type JobStatus = (typeof JOB_STATUSES)[number];
 type PortalStatus = (typeof PORTAL_STATUSES)[number];
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING:     "bg-yellow-100 text-yellow-800",
-  ASSIGNED:    "bg-blue-100 text-blue-800",
-  IN_PROGRESS: "bg-indigo-100 text-indigo-800",
-  IN_PLACE:    "bg-purple-100 text-purple-800",
-  COMPLETED:   "bg-green-100 text-green-800",
-  CANCELLED:   "bg-red-100 text-red-800",
-  NO_SHOW:     "bg-gray-100 text-gray-700",
-};
-
 interface Job {
   id: string;
   internalRef: string;
@@ -53,13 +43,6 @@ interface Job {
   } | null;
 }
 
-function StatusBadge({ value }: { value: string }) {
-  return (
-    <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[value] ?? "bg-gray-100 text-gray-700"}`}>
-      {value.replace("_", " ")}
-    </span>
-  );
-}
 
 export default function JobControlPage() {
   const router = useRouter();
@@ -174,7 +157,7 @@ export default function JobControlPage() {
                   <span className="text-muted-foreground text-xs">{job.serviceType} · {new Date(job.jobDate).toLocaleDateString("en-GB")}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <StatusBadge value={job.status} />
+                  <StatusBadge status={job.status} />
                   {selected?.id === job.id && <CheckCircle2 className="h-4 w-4 text-green-600" />}
                 </div>
               </button>
@@ -201,7 +184,7 @@ export default function JobControlPage() {
               )}
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
-              <StatusBadge value={selected.status} />
+              <StatusBadge status={selected.status} />
             </div>
           </div>
 
@@ -217,7 +200,7 @@ export default function JobControlPage() {
                   {JOB_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
                       <span className="flex items-center gap-2">
-                        <StatusBadge value={s} />
+                        <StatusBadge status={s} />
                       </span>
                     </SelectItem>
                   ))}
@@ -240,7 +223,7 @@ export default function JobControlPage() {
                   {PORTAL_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
                       <span className="flex items-center gap-2">
-                        <StatusBadge value={s} />
+                        <StatusBadge status={s} />
                       </span>
                     </SelectItem>
                   ))}
@@ -266,7 +249,7 @@ export default function JobControlPage() {
                   {PORTAL_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
                       <span className="flex items-center gap-2">
-                        <StatusBadge value={s} />
+                        <StatusBadge status={s} />
                       </span>
                     </SelectItem>
                   ))}

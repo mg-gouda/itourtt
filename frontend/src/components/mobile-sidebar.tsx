@@ -118,6 +118,17 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
               return <Separator key={i} className="my-2 bg-sidebar-border" />;
             }
 
+            if (item.type === "section-label") {
+              return (
+                <p
+                  key={i}
+                  className="text-[10px] uppercase tracking-widest text-sidebar-foreground/40 px-2 pt-4 pb-1 select-none"
+                >
+                  {t(item.labelKey)}
+                </p>
+              );
+            }
+
             if (item.type === "group") {
               const isOpen = !!groupOpen[item.nameKey];
               const Icon = item.icon;
@@ -133,8 +144,8 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       hasActiveChild
-                        ? "text-sidebar-foreground"
-                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
+                        : "border-l-2 border-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -159,8 +170,8 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                             className={cn(
                               "flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                               isActive
-                                ? "bg-sidebar-accent text-sidebar-foreground"
-                                : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                                ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
+                                : "border-l-2 border-transparent text-sidebar-foreground/50 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                             )}
                           >
                             <ChildIcon className="h-3.5 w-3.5 shrink-0" />
@@ -187,8 +198,8 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-foreground"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
+                    : "border-l-2 border-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />

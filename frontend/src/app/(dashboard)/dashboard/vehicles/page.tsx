@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Car, Plus, Loader2, Trash2, FileDown, FileUp, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -383,8 +385,18 @@ export default function VehiclesPage() {
           </div>
 
           {typesLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody>
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <tr key={i} className={`border-b border-border ${i % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-32" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-3 py-3 text-right"><Skeleton className="h-7 w-14 ml-auto" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : types.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -401,10 +413,10 @@ export default function VehiclesPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                    <TableRow className="border-border bg-muted">
                       <SortableHeader label={t("common.name")} sortKey="name" currentKey={typeSortKey} currentDir={typeSortDir} onSort={onTypeSort} />
                       <SortableHeader label={t("vehicles.seatCapacity")} sortKey="seatCapacity" currentKey={typeSortKey} currentDir={typeSortDir} onSort={onTypeSort} />
-                      <TableHead className="text-right text-white text-xs">
+                      <TableHead className="text-right text-muted-foreground text-xs">
                         {t("common.actions")}
                       </TableHead>
                     </TableRow>
@@ -515,13 +527,33 @@ export default function VehiclesPage() {
           />
 
           {vehiclesLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody>
+                  {Array.from({ length: 9 }).map((_, i) => (
+                    <tr key={i} className={`border-b border-border ${i % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-24" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-20" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-12" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-10" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-4 w-8" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                      <td className="px-3 py-3"><Skeleton className="h-5 w-14 rounded-full" /></td>
+                      <td className="px-3 py-3 text-right"><Skeleton className="h-7 w-24 ml-auto" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : vehicles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Car className="mb-2 h-8 w-8" />
-              <p className="text-sm">{t("vehicles.noVehicles")}</p>
+            <div className="py-16">
+              <EmptyState
+                icon={Car}
+                heading="No vehicles yet"
+                description="Add vehicles to assign them to jobs."
+              />
             </div>
           ) : (
             <>
@@ -533,17 +565,17 @@ export default function VehiclesPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                    <TableRow className="border-border bg-muted">
                       <SortableHeader label={t("vehicles.plateNumber")} sortKey="plateNumber" currentKey={vehicleSortKey} currentDir={vehicleSortDir} onSort={onVehicleSort} />
                       <SortableHeader label={t("vehicles.type")} sortKey="vehicleType.name" currentKey={vehicleSortKey} currentDir={vehicleSortDir} onSort={onVehicleSort} />
-                      <TableHead className="text-white text-xs">{t("vehicles.color")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("vehicles.carBrand")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("vehicles.carModel")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("vehicles.makeYear")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("vehicles.luggageCapacity")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("vehicles.ownership")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                      <TableHead className="text-right text-white text-xs">
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.color")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.carBrand")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.carModel")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.makeYear")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.luggageCapacity")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.ownership")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                      <TableHead className="text-right text-muted-foreground text-xs">
                         {t("common.actions")}
                       </TableHead>
                     </TableRow>

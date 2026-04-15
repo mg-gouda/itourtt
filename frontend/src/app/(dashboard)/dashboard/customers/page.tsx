@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
@@ -483,13 +484,16 @@ export default function CustomersPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : customers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Users className="h-10 w-10 text-muted-foreground/40" />
-          <p className="mt-3 text-sm text-muted-foreground">{t("customers.noCustomers")}</p>
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <EmptyState
+            icon={Users}
+            heading="No customers yet"
+            description="Add customers to start creating bookings."
+          />
           {canAdd && (
             <Button
               size="sm"
-              className="mt-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={openDialog}
             >
               <Plus className="h-4 w-4" />
@@ -533,7 +537,7 @@ export default function CustomersPage() {
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+              <TableRow className="border-border bg-muted">
                 <TableHead className="w-10">
                   <Checkbox
                     checked={sortedData.length > 0 && selectedIds.size === sortedData.length}
@@ -542,13 +546,13 @@ export default function CustomersPage() {
                 </TableHead>
                 <SortableHeader label={t("customers.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                 <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-white text-xs">{t("agents.contactPerson")}</TableHead>
-                <TableHead className="text-white text-xs">{t("agents.phone")}</TableHead>
-                <TableHead className="text-white text-xs">Currency</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("agents.contactPerson")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("agents.phone")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">Currency</TableHead>
                 <SortableHeader label={t("agents.creditLimit")} sortKey="creditLimit" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-white text-xs">{t("agents.creditDays")}</TableHead>
-                <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                <TableHead className="text-white text-xs">{t("common.actions")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("agents.creditDays")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

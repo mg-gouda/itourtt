@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { LogOut, User, Settings, HelpCircle, Menu, Bell, Check, CheckCheck } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { LogOut, User, Settings, HelpCircle, Menu, Bell, Check, CheckCheck, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +24,76 @@ import { useT } from "@/lib/i18n";
 import { MobileSidebar } from "@/components/mobile-sidebar";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+// Static map: path segment → human-readable label
+const SEGMENT_LABEL_MAP: Record<string, string> = {
+  dashboard: "Dashboard",
+  dispatch: "Dispatch",
+  "car-dispatch": "Car Dispatch",
+  "traffic-jobs": "Traffic Jobs",
+  b2b: "B2B",
+  online: "Online",
+  finance: "Finance",
+  reports: "Reports",
+  locations: "Locations",
+  vehicles: "Vehicles",
+  drivers: "Drivers",
+  "driver-tariffs": "Driver Tariffs",
+  reps: "Reps",
+  agents: "Agents",
+  customers: "Customers",
+  suppliers: "Suppliers",
+  styling: "Styling",
+  company: "Company",
+  whatsapp: "WhatsApp",
+  "email-settings": "Email / SMTP",
+  "google-drive": "Google Drive",
+  users: "Users",
+  "job-control": "Job Control",
+  "job-locks": "Job Locks",
+  "activity-log": "Activity Log",
+  website: "Website CMS",
+  "public-prices": "Public Prices",
+  "guest-bookings": "Guest Bookings",
+  profile: "Profile & Settings",
+  help: "Help & Support",
+};
+
+function Breadcrumb() {
+  const pathname = usePathname();
+
+  // Split into segments, filter empty strings
+  const segments = pathname.split("/").filter(Boolean);
+
+  // Build cumulative hrefs
+  const crumbs = segments.map((seg, i) => ({
+    label: SEGMENT_LABEL_MAP[seg] ?? seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    href: "/" + segments.slice(0, i + 1).join("/"),
+    isLast: i === segments.length - 1,
+  }));
+
+  if (crumbs.length === 0) return null;
+
+  return (
+    <nav className="hidden lg:flex items-center gap-1 text-sm">
+      {crumbs.map((crumb, i) => (
+        <span key={crumb.href} className="flex items-center gap-1">
+          {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
+          {crumb.isLast ? (
+            <span className="text-foreground font-medium">{crumb.label}</span>
+          ) : (
+            <Link
+              href={crumb.href}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {crumb.label}
+            </Link>
+          )}
+        </span>
+      ))}
+    </nav>
+  );
+}
 
 interface Notification {
   id: string;
@@ -94,13 +165,14 @@ export function Header() {
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-background px-3 md:px-6">
-      <div className="flex items-center">
+      <div className="flex items-center gap-3">
         <button
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
           onClick={() => setMobileNavOpen(true)}
         >
           <Menu className="h-5 w-5" />
         </button>
+        <Breadcrumb />
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
         {user && (
@@ -177,7 +249,13 @@ export function Header() {
               size="sm"
               className="gap-2 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              <User className="h-4 w-4" />
+              {user?.name ? (
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-semibold select-none">
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <User className="h-4 w-4" />
+              )}
               <span className="hidden text-sm sm:inline">{user?.name || "User"}</span>
             </Button>
           </DropdownMenuTrigger>

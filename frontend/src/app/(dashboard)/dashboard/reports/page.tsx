@@ -57,6 +57,9 @@ import { useSortable } from "@/hooks/use-sortable";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCompanyStore } from "@/stores/company-store";
 import { usePermission } from "@/hooks/use-permission";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useColumnOrder } from "@/hooks/useColumnOrder";
+import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 
 // ────────────────────────────────────────────
 // Types
@@ -445,18 +448,163 @@ const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
 const fmt = (n: number, locale = "en-US") =>
   n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const statusColors: Record<string, string> = {
-  PENDING: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
-  ASSIGNED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  IN_PROGRESS: "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30",
-  COMPLETED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-  NO_SHOW: "bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30",
-  IN_PLACE: "bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/30",
-  DRAFT: "bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border-zinc-500/30",
-  POSTED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  PAID: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-};
+
+// ────────────────────────────────────────────
+// Column definitions for draggable headers
+// ────────────────────────────────────────────
+
+const DISPATCH_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Ref" },
+  { key: "serviceType", label: "Type" },
+  { key: "agent", label: "Agent" },
+  { key: "paxCount", label: "Pax" },
+  { key: "vehicle", label: "Vehicle" },
+  { key: "driver", label: "Driver" },
+  { key: "status", label: "Status" },
+];
+const DISPATCH_DEFAULT_KEYS = DISPATCH_COLUMNS.map((c) => c.key);
+
+const DRIVERS_COLUMNS: ColumnDef[] = [
+  { key: "driverName", label: "Driver" },
+  { key: "mobile", label: "Mobile" },
+  { key: "trips", label: "Trips", className: "text-right" },
+  { key: "avgScore", label: "Avg Score", className: "text-right" },
+  { key: "missing", label: "Missing", className: "text-right" },
+  { key: "totalFees", label: "Total Fees", className: "text-right" },
+];
+const DRIVERS_DEFAULT_KEYS = DRIVERS_COLUMNS.map((c) => c.key);
+
+const DRIVER_SCORE_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Job Ref" },
+  { key: "jobDate", label: "Date" },
+  { key: "serviceType", label: "Type" },
+  { key: "paxCount", label: "Pax", className: "text-right" },
+  { key: "driverName", label: "Driver" },
+  { key: "route", label: "Route" },
+  { key: "status", label: "Status" },
+  { key: "attendance", label: <>Att<br /><span className="text-muted-foreground">30pt</span></>, className: "text-center" },
+  { key: "appearance", label: <>App<br /><span className="text-muted-foreground">20pt</span></>, className: "text-center" },
+  { key: "carCleanliness", label: <>Car<br /><span className="text-muted-foreground">10pt</span></>, className: "text-center" },
+  { key: "maintenance", label: <>Maint<br /><span className="text-muted-foreground">10pt</span></>, className: "text-center" },
+  { key: "work", label: <>Work<br /><span className="text-muted-foreground">30pt</span></>, className: "text-center" },
+  { key: "total", label: "Score", className: "text-right" },
+  { key: "feePercent", label: "Fee %", className: "text-right" },
+  { key: "evaluation", label: "Evaluation" },
+];
+const DRIVER_SCORE_DEFAULT_KEYS = DRIVER_SCORE_COLUMNS.map((c) => c.key);
+
+const AGENT_COLUMNS: ColumnDef[] = [
+  { key: "invoiceNumber", label: "Invoice No" },
+  { key: "invoiceDate", label: "Date" },
+  { key: "dueDate", label: "Due Date" },
+  { key: "total", label: "Total", className: "text-right" },
+  { key: "paid", label: "Paid", className: "text-right" },
+  { key: "balance", label: "Balance", className: "text-right" },
+  { key: "status", label: "Status" },
+];
+const AGENT_DEFAULT_KEYS = AGENT_COLUMNS.map((c) => c.key);
+
+const REP_FEES_COLUMNS: ColumnDef[] = [
+  { key: "repName", label: "Rep Name" },
+  { key: "feePerFlight", label: "Fee/Flight", className: "text-right" },
+  { key: "flightCount", label: "Flights", className: "text-right" },
+  { key: "totalAmount", label: "Total", className: "text-right" },
+];
+const REP_FEES_DEFAULT_KEYS = REP_FEES_COLUMNS.map((c) => c.key);
+
+const REP_SCORE_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Job Ref" },
+  { key: "serviceType", label: "Type" },
+  { key: "paxCount", label: "Pax", className: "text-right" },
+  { key: "repName", label: "Rep" },
+  { key: "route", label: "Route" },
+  { key: "hotel", label: "Hotel" },
+  { key: "status", label: "Status" },
+  { key: "attendance", label: <>Att<br /><span className="text-muted-foreground">20pt</span></>, className: "text-center" },
+  { key: "appearance", label: <>App<br /><span className="text-muted-foreground">15pt</span></>, className: "text-center" },
+  { key: "work", label: <>Work<br /><span className="text-muted-foreground">30pt</span></>, className: "text-center" },
+  { key: "review", label: <>Rev<br /><span className="text-muted-foreground">35pt</span></>, className: "text-center" },
+  { key: "total", label: "Score", className: "text-right" },
+  { key: "evaluation", label: "Evaluation" },
+];
+const REP_SCORE_DEFAULT_KEYS = REP_SCORE_COLUMNS.map((c) => c.key);
+
+const REVENUE_COLUMNS: ColumnDef[] = [
+  { key: "agentName", label: "Agent" },
+  { key: "revenue", label: "Revenue", className: "text-right" },
+  { key: "invoiceCount", label: "Invoices", className: "text-right" },
+  { key: "jobCount", label: "Jobs", className: "text-right" },
+];
+const REVENUE_DEFAULT_KEYS = REVENUE_COLUMNS.map((c) => c.key);
+
+const COMPLIANCE_COLUMNS: ColumnDef[] = [
+  { key: "plateNumber", label: "Plate Number" },
+  { key: "vehicleTypeName", label: "Type" },
+  { key: "ownership", label: "Ownership" },
+  { key: "licenseExpiryDate", label: "License Expiry" },
+  { key: "insurance", label: "Insurance" },
+  { key: "temporaryPermitDate", label: "Permit Date" },
+  { key: "permitExpiry", label: "Permit Expiry" },
+  { key: "annualPayment", label: "Annual Payment" },
+  { key: "registrationFees", label: "Reg. Fees" },
+  { key: "totalFees", label: "Total Fees" },
+  { key: "depositTotal", label: "Deposits" },
+  { key: "balanceRemaining", label: "Balance" },
+];
+const COMPLIANCE_DEFAULT_KEYS = COMPLIANCE_COLUMNS.map((c) => c.key);
+
+const JOB_STATUS_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "TRSF Ref" },
+  { key: "agentRef", label: "Agent Ref" },
+  { key: "agentName", label: "Agent Name" },
+  { key: "serviceDate", label: "Service Date" },
+  { key: "serviceType", label: "Type" },
+  { key: "time", label: "Time" },
+  { key: "driverName", label: "Driver" },
+  { key: "repName", label: "Rep" },
+  { key: "priceAmount", label: "Price", className: "text-right" },
+  { key: "status", label: "Status" },
+  { key: "repJobStatus", label: "Rep Status" },
+  { key: "driverJobStatus", label: "Driver Status" },
+  { key: "evidence", label: "Evidence" },
+];
+const JOB_STATUS_DEFAULT_KEYS = JOB_STATUS_COLUMNS.map((c) => c.key);
+
+const EVIDENCE_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Job Ref" },
+  { key: "agentName", label: "Agent Name" },
+  { key: "agentRef", label: "Agent Ref" },
+  { key: "jobDate", label: "Date" },
+  { key: "serviceType", label: "Type" },
+  { key: "status", label: "Status" },
+  { key: "repName", label: "Rep" },
+  { key: "driverName", label: "Driver" },
+  { key: "evidence", label: "Evidence" },
+];
+const EVIDENCE_DEFAULT_KEYS = EVIDENCE_COLUMNS.map((c) => c.key);
+
+const SUPPLIER_JOBS_COLUMNS: ColumnDef[] = [
+  { key: "jobRef", label: "Job Ref" },
+  { key: "agentName", label: "Agent Name" },
+  { key: "agentRef", label: "Agent Ref" },
+  { key: "serviceDate", label: "Service Date" },
+  { key: "route", label: "Route" },
+  { key: "supplierName", label: "Supplier" },
+  { key: "supplierStatus", label: "Supplier Status" },
+];
+const SUPPLIER_JOBS_DEFAULT_KEYS = SUPPLIER_JOBS_COLUMNS.map((c) => c.key);
+
+const CAR_JOBS_COLUMNS: ColumnDef[] = [
+  { key: "jobRef", label: "Job Ref" },
+  { key: "agentName", label: "Agent Name" },
+  { key: "serviceDate", label: "Service Date" },
+  { key: "origin", label: "Origin" },
+  { key: "destination", label: "Destination" },
+  { key: "plateNumber", label: "Vehicle" },
+  { key: "driver", label: "Driver" },
+  { key: "jobStatus", label: "Job Status" },
+];
+const CAR_JOBS_DEFAULT_KEYS = CAR_JOBS_COLUMNS.map((c) => c.key);
 
 // ────────────────────────────────────────────
 // Stat Card
@@ -642,6 +790,20 @@ export default function ReportsPage() {
   const jobStatusSort = useSortable(jobStatusData?.jobs || []);
   const supplierJobsSort = useSortable(supplierJobsData?.rows || []);
   const carJobsSort = useSortable(carJobsData?.rows || []);
+
+  // Column order hooks for drag-and-drop reordering
+  const dispatchColOrder = useColumnOrder("dispatch", DISPATCH_DEFAULT_KEYS);
+  const driversColOrder = useColumnOrder("drivers", DRIVERS_DEFAULT_KEYS);
+  const driverScoreColOrder = useColumnOrder("driver_score", DRIVER_SCORE_DEFAULT_KEYS);
+  const agentColOrder = useColumnOrder("agent_statement", AGENT_DEFAULT_KEYS);
+  const repFeesColOrder = useColumnOrder("rep_fees", REP_FEES_DEFAULT_KEYS);
+  const repScoreColOrder = useColumnOrder("rep_score", REP_SCORE_DEFAULT_KEYS);
+  const revenueColOrder = useColumnOrder("revenue", REVENUE_DEFAULT_KEYS);
+  const complianceColOrder = useColumnOrder("compliance", COMPLIANCE_DEFAULT_KEYS);
+  const jobStatusColOrder = useColumnOrder("job_status", JOB_STATUS_DEFAULT_KEYS);
+  const evidenceColOrder = useColumnOrder("evidence", EVIDENCE_DEFAULT_KEYS);
+  const supplierJobsColOrder = useColumnOrder("supplier_jobs", SUPPLIER_JOBS_DEFAULT_KEYS);
+  const carJobsColOrder = useColumnOrder("car_jobs", CAR_JOBS_DEFAULT_KEYS);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -1379,11 +1541,11 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
         canSupplierJobs ? "supplier-jobs" :
         canCarJobs ? "car-jobs" : "dispatch"
       } className="space-y-4">
-        <TabsList className="bg-card border border-border">
+        <TabsList className="bg-card border border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex-nowrap">
           {canDailyDispatch && (
             <TabsTrigger
               value="dispatch"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <CalendarDays className="h-3.5 w-3.5" />
               {t("reports.dailyDispatch")}
@@ -1392,7 +1554,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canDriverTrips && (
             <TabsTrigger
               value="drivers"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <Car className="h-3.5 w-3.5" />
               {t("reports.driverTrips")}
@@ -1401,7 +1563,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canDriverTrips && (
             <TabsTrigger
               value="driver-score"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <Car className="h-3.5 w-3.5" />
               Driver Score
@@ -1410,7 +1572,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canAgentStatement && (
             <TabsTrigger
               value="agent"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <Building2 className="h-3.5 w-3.5" />
               {t("reports.agentStatement")}
@@ -1419,7 +1581,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canRepFees && (
             <TabsTrigger
               value="rep-fees"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <UserCheck className="h-3.5 w-3.5" />
               {t("reports.repFees")}
@@ -1428,7 +1590,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canRepFees && (
             <TabsTrigger
               value="rep-score"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <UserCheck className="h-3.5 w-3.5" />
               Rep Score
@@ -1437,7 +1599,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canRevenue && (
             <TabsTrigger
               value="revenue"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <DollarSign className="h-3.5 w-3.5" />
               {t("reports.revenue")}
@@ -1446,7 +1608,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canVehicleCompliance && (
             <TabsTrigger
               value="compliance"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               {t("reports.vehicleCompliance")}
@@ -1454,7 +1616,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           )}
           <TabsTrigger
             value="job-status"
-            className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
           >
             <ClipboardList className="h-3.5 w-3.5" />
             {t("reports.jobStatus")}
@@ -1462,7 +1624,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canEvidence && (
             <TabsTrigger
               value="evidence"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <Camera className="h-3.5 w-3.5" />
               Evidence
@@ -1471,7 +1633,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canSupplierJobs && (
             <TabsTrigger
               value="supplier-jobs"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <Truck className="h-3.5 w-3.5" />
               Supplier Jobs
@@ -1480,7 +1642,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
           {canCarJobs && (
             <TabsTrigger
               value="car-jobs"
-              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
             >
               <Car className="h-3.5 w-3.5" />
               Car Jobs
@@ -1559,49 +1721,29 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
 
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                      <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={dispatchSort.sortKey} currentDir={dispatchSort.sortDir} onSort={dispatchSort.onSort} />
-                      <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={dispatchSort.sortKey} currentDir={dispatchSort.sortDir} onSort={dispatchSort.onSort} />
-                      <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
-                      <SortableHeader label={t("dispatch.pax")} sortKey="paxCount" currentKey={dispatchSort.sortKey} currentDir={dispatchSort.sortDir} onSort={dispatchSort.onSort} />
-                      <TableHead className="text-white text-xs">{t("dispatch.vehicle")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("dispatch.driver")}</TableHead>
-                      <SortableHeader label={t("common.status")} sortKey="status" currentKey={dispatchSort.sortKey} currentDir={dispatchSort.sortDir} onSort={dispatchSort.onSort} />
-                    </TableRow>
-                  </TableHeader>
+                  <DraggableTableHeader
+                    columns={DISPATCH_COLUMNS}
+                    columnOrder={dispatchColOrder.columns}
+                    onReorder={dispatchColOrder.reorder}
+                  />
                   <TableBody>
                     {dispatchSort.sortedData.map((job, idx) => (
                       <TableRow
                         key={job.id}
                         className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        <TableCell className="text-foreground font-mono text-xs">
-                          {job.internalRef}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {job.serviceType}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {job.agent?.legalName || job.customer?.legalName || "\u2014"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {job.paxCount}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {job.assignment?.vehicle?.plateNumber || "\u2014"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {job.assignment?.driver?.name || "\u2014"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={statusColors[job.status] || ""}
-                          >
-                            {job.status}
-                          </Badge>
-                        </TableCell>
+                        {dispatchColOrder.columns.map((col) => {
+                          switch (col) {
+                            case "internalRef": return <TableCell key={col} className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>;
+                            case "serviceType": return <TableCell key={col} className="text-muted-foreground text-sm">{job.serviceType}</TableCell>;
+                            case "agent": return <TableCell key={col} className="text-muted-foreground text-sm">{job.agent?.legalName || job.customer?.legalName || "\u2014"}</TableCell>;
+                            case "paxCount": return <TableCell key={col} className="text-muted-foreground">{job.paxCount}</TableCell>;
+                            case "vehicle": return <TableCell key={col} className="text-muted-foreground text-sm">{job.assignment?.vehicle?.plateNumber || "\u2014"}</TableCell>;
+                            case "driver": return <TableCell key={col} className="text-muted-foreground text-sm">{job.assignment?.driver?.name || "\u2014"}</TableCell>;
+                            case "status": return <TableCell key={col}><StatusBadge status={job.status} /></TableCell>;
+                            default: return null;
+                          }
+                        })}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1695,70 +1837,70 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
 
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                      <SortableHeader label={t("dispatch.driver")} sortKey="driver.name" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} />
-                      <SortableHeader label={t("drivers.mobile")} sortKey="driver.mobileNumber" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} />
-                      <SortableHeader label={t("reports.trips")} sortKey="tripCount" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
-                      <SortableHeader label="Avg Score" sortKey="avgScore" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
-                      <SortableHeader label="Missing" sortKey="missingScores" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
-                      <SortableHeader label={t("reports.totalFees")} sortKey="totalFees" currentKey={driverSort.sortKey} currentDir={driverSort.sortDir} onSort={driverSort.onSort} className="text-right" />
-                    </TableRow>
-                  </TableHeader>
+                  <DraggableTableHeader
+                    columns={DRIVERS_COLUMNS}
+                    columnOrder={driversColOrder.columns}
+                    onReorder={driversColOrder.reorder}
+                  />
                   <TableBody>
                     {driverSort.sortedData.map((d, idx) => (
                       <TableRow
                         key={d.driver.id}
                         className={`border-border cursor-pointer hover:bg-muted/50 ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        <TableCell>
-                          <button
-                            type="button"
-                            className="text-primary hover:underline font-medium text-sm text-left"
-                            onClick={() => {
-                              setSelectedDriver(d);
-                              const initialEdits: Record<string, DriverJobScore> = {};
-                              for (const trip of d.trips) {
-                                if (trip.driverJobScore) initialEdits[trip.jobId] = trip.driverJobScore;
-                              }
-                              setDriverScoreEdits(initialEdits);
-                              setDriverModalOpen(true);
-                            }}
-                          >
-                            {d.driver.name}
-                          </button>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {d.driver.mobileNumber}
-                        </TableCell>
-                        <TableCell className="text-right text-foreground font-mono">
-                          {d.tripCount}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {d.avgScore !== null ? (
-                            <span className={
-                              d.avgScore >= 81 ? "text-emerald-600 dark:text-emerald-400" :
-                              d.avgScore >= 63 ? "text-blue-600 dark:text-blue-400" :
-                              d.avgScore >= 45 ? "text-amber-600 dark:text-amber-400" :
-                              "text-red-600 dark:text-red-400"
-                            }>{d.avgScore}</span>
-                          ) : <span className="text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {d.missingScores > 0 ? (
-                            <span className="text-amber-600 dark:text-amber-400">{d.missingScores}</span>
-                          ) : (
-                            <span className="text-emerald-600 dark:text-emerald-400">0</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(d.totalFees, locale)}
-                        </TableCell>
+                        {driversColOrder.columns.map((col) => {
+                          switch (col) {
+                            case "driverName": return (
+                              <TableCell key={col}>
+                                <button
+                                  type="button"
+                                  className="text-primary hover:underline font-medium text-sm text-left"
+                                  onClick={() => {
+                                    setSelectedDriver(d);
+                                    const initialEdits: Record<string, DriverJobScore> = {};
+                                    for (const trip of d.trips) {
+                                      if (trip.driverJobScore) initialEdits[trip.jobId] = trip.driverJobScore;
+                                    }
+                                    setDriverScoreEdits(initialEdits);
+                                    setDriverModalOpen(true);
+                                  }}
+                                >
+                                  {d.driver.name}
+                                </button>
+                              </TableCell>
+                            );
+                            case "mobile": return <TableCell key={col} className="text-muted-foreground text-sm">{d.driver.mobileNumber}</TableCell>;
+                            case "trips": return <TableCell key={col} className="text-right text-foreground font-mono font-medium">{d.tripCount}</TableCell>;
+                            case "avgScore": return (
+                              <TableCell key={col} className="text-right font-mono font-medium">
+                                {d.avgScore !== null ? (
+                                  <span className={
+                                    d.avgScore >= 81 ? "text-emerald-600 dark:text-emerald-400" :
+                                    d.avgScore >= 63 ? "text-blue-600 dark:text-blue-400" :
+                                    d.avgScore >= 45 ? "text-amber-600 dark:text-amber-400" :
+                                    "text-red-600 dark:text-red-400"
+                                  }>{d.avgScore}</span>
+                                ) : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                            );
+                            case "missing": return (
+                              <TableCell key={col} className="text-right font-mono font-medium">
+                                {d.missingScores > 0 ? (
+                                  <span className="text-amber-600 dark:text-amber-400">{d.missingScores}</span>
+                                ) : (
+                                  <span className="text-emerald-600 dark:text-emerald-400">0</span>
+                                )}
+                              </TableCell>
+                            );
+                            case "totalFees": return <TableCell key={col} className="text-right text-emerald-600 dark:text-emerald-400 font-mono font-medium">{fmt(d.totalFees, locale)}</TableCell>;
+                            default: return null;
+                          }
+                        })}
                       </TableRow>
                     ))}
                     {driverData.drivers.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={driversColOrder.columns.length} className="text-center text-muted-foreground py-8">
                           {t("reports.noDriverTrips")}
                         </TableCell>
                       </TableRow>
@@ -1847,25 +1989,11 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/40">
-                          <TableHead className="text-xs">Job Ref</TableHead>
-                          <TableHead className="text-xs">Date</TableHead>
-                          <TableHead className="text-xs">Type</TableHead>
-                          <TableHead className="text-xs text-right">Pax</TableHead>
-                          <TableHead className="text-xs">Driver</TableHead>
-                          <TableHead className="text-xs">Route</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs text-center">Att<br /><span className="text-muted-foreground">30pt</span></TableHead>
-                          <TableHead className="text-xs text-center">App<br /><span className="text-muted-foreground">20pt</span></TableHead>
-                          <TableHead className="text-xs text-center">Car<br /><span className="text-muted-foreground">10pt</span></TableHead>
-                          <TableHead className="text-xs text-center">Maint<br /><span className="text-muted-foreground">10pt</span></TableHead>
-                          <TableHead className="text-xs text-center">Work<br /><span className="text-muted-foreground">30pt</span></TableHead>
-                          <TableHead className="text-xs text-right">Score</TableHead>
-                          <TableHead className="text-xs text-right">Fee %</TableHead>
-                          <TableHead className="text-xs">Evaluation</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <DraggableTableHeader
+                        columns={DRIVER_SCORE_COLUMNS}
+                        columnOrder={driverScoreColOrder.columns}
+                        onReorder={driverScoreColOrder.reorder}
+                      />
                       <TableBody>
                         {driverScoreData.rows.map((row, idx) => {
                           const evalColor =
@@ -1877,40 +2005,35 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                           const dash  = <span className="text-muted-foreground text-sm">—</span>;
                           return (
                             <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
-                              <TableCell className="font-mono text-xs">{row.internalRef}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                {new Date(row.jobDate).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
-                              </TableCell>
-                              <TableCell className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{row.driverName}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{row.route}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>
-                                  {row.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-center">{row.attendance ? check : dash}</TableCell>
-                              <TableCell className="text-center">{row.appearance ? check : dash}</TableCell>
-                              <TableCell className="text-center">{row.carCleanliness ? check : dash}</TableCell>
-                              <TableCell className="text-center">{row.maintenance ? check : dash}</TableCell>
-                              <TableCell className="text-center">{row.work ? check : dash}</TableCell>
-                              <TableCell className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>
-                              <TableCell className="text-right font-mono text-sm">
-                                <span className={
-                                  row.feePercent === 100 ? "text-emerald-600 dark:text-emerald-400 font-semibold" :
-                                  row.feePercent >= 80 ? "text-blue-600 dark:text-blue-400" :
-                                  row.feePercent >= 60 ? "text-amber-600 dark:text-amber-400" :
-                                  "text-red-600 dark:text-red-400"
-                                }>{row.feePercent}%</span>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={`text-xs ${evalColor}`}>
-                                  {row.evaluation}
-                                </Badge>
-                              </TableCell>
+                              {driverScoreColOrder.columns.map((col) => {
+                                switch (col) {
+                                  case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
+                                  case "jobDate": return <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">{new Date(row.jobDate).toLocaleDateString()}</TableCell>;
+                                  case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
+                                  case "paxCount": return <TableCell key={col} className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>;
+                                  case "driverName": return <TableCell key={col} className="text-xs text-muted-foreground">{row.driverName}</TableCell>;
+                                  case "route": return <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">{row.route}</TableCell>;
+                                  case "status": return <TableCell key={col}><StatusBadge status={row.status} /></TableCell>;
+                                  case "attendance": return <TableCell key={col} className="text-center">{row.attendance ? check : dash}</TableCell>;
+                                  case "appearance": return <TableCell key={col} className="text-center">{row.appearance ? check : dash}</TableCell>;
+                                  case "carCleanliness": return <TableCell key={col} className="text-center">{row.carCleanliness ? check : dash}</TableCell>;
+                                  case "maintenance": return <TableCell key={col} className="text-center">{row.maintenance ? check : dash}</TableCell>;
+                                  case "work": return <TableCell key={col} className="text-center">{row.work ? check : dash}</TableCell>;
+                                  case "total": return <TableCell key={col} className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>;
+                                  case "feePercent": return (
+                                    <TableCell key={col} className="text-right font-mono text-sm">
+                                      <span className={
+                                        row.feePercent === 100 ? "text-emerald-600 dark:text-emerald-400 font-semibold" :
+                                        row.feePercent >= 80 ? "text-blue-600 dark:text-blue-400" :
+                                        row.feePercent >= 60 ? "text-amber-600 dark:text-amber-400" :
+                                        "text-red-600 dark:text-red-400"
+                                      }>{row.feePercent}%</span>
+                                    </TableCell>
+                                  );
+                                  case "evaluation": return <TableCell key={col}><Badge variant="outline" className={`text-xs ${evalColor}`}>{row.evaluation}</Badge></TableCell>;
+                                  default: return null;
+                                }
+                              })}
                             </TableRow>
                           );
                         })}
@@ -1920,7 +2043,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                       <span className="text-sm text-muted-foreground">
                         {driverScoreData.count} job{driverScoreData.count !== 1 ? "s" : ""} scored · Total {driverScoreData.totalScore} pts
                       </span>
-                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="text-base font-medium text-emerald-600 dark:text-emerald-400">
                         Average: {driverScoreData.avgScore} / 100
                       </span>
                     </div>
@@ -2054,7 +2177,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <Card className="border-border bg-card p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className="text-base font-medium text-foreground">
                       {agentData.agent.legalName}
                     </h3>
                     {agentData.agent.tradeName && (
@@ -2110,55 +2233,35 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
 
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                      <SortableHeader label={t("finance.invoiceNo")} sortKey="invoiceNumber" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} />
-                      <SortableHeader label={t("common.date")} sortKey="invoiceDate" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} />
-                      <SortableHeader label={t("finance.dueDate")} sortKey="dueDate" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} />
-                      <SortableHeader label={t("common.total")} sortKey="total" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} className="text-right" />
-                      <SortableHeader label={t("reports.paid")} sortKey="paid" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} className="text-right" />
-                      <SortableHeader label={t("reports.balance")} sortKey="balance" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} className="text-right" />
-                      <SortableHeader label={t("common.status")} sortKey="status" currentKey={agentSort.sortKey} currentDir={agentSort.sortDir} onSort={agentSort.onSort} />
-                    </TableRow>
-                  </TableHeader>
+                  <DraggableTableHeader
+                    columns={AGENT_COLUMNS}
+                    columnOrder={agentColOrder.columns}
+                    onReorder={agentColOrder.reorder}
+                  />
                   <TableBody>
                     {agentSort.sortedData.map((inv, idx) => (
                       <TableRow
                         key={inv.invoiceNumber}
                         className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        <TableCell className="text-foreground font-mono text-xs">
-                          {inv.invoiceNumber}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(inv.invoiceDate)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(inv.dueDate)}
-                        </TableCell>
-                        <TableCell className="text-right text-foreground font-mono">
-                          {fmt(inv.total, locale)}
-                        </TableCell>
-                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(inv.paid, locale)}
-                        </TableCell>
-                        <TableCell className="text-right text-amber-600 dark:text-amber-400 font-mono">
-                          {fmt(inv.balance, locale)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={statusColors[inv.status] || ""}
-                          >
-                            {inv.status}
-                          </Badge>
-                        </TableCell>
+                        {agentColOrder.columns.map((col) => {
+                          switch (col) {
+                            case "invoiceNumber": return <TableCell key={col} className="text-foreground font-mono text-xs">{inv.invoiceNumber}</TableCell>;
+                            case "invoiceDate": return <TableCell key={col} className="text-muted-foreground text-sm">{formatDate(inv.invoiceDate)}</TableCell>;
+                            case "dueDate": return <TableCell key={col} className="text-muted-foreground text-sm">{formatDate(inv.dueDate)}</TableCell>;
+                            case "total": return <TableCell key={col} className="text-right text-foreground font-mono font-medium">{fmt(inv.total, locale)}</TableCell>;
+                            case "paid": return <TableCell key={col} className="text-right text-emerald-600 dark:text-emerald-400 font-mono font-medium">{fmt(inv.paid, locale)}</TableCell>;
+                            case "balance": return <TableCell key={col} className="text-right text-amber-600 dark:text-amber-400 font-mono font-medium">{fmt(inv.balance, locale)}</TableCell>;
+                            case "status": return <TableCell key={col}><StatusBadge status={inv.status} /></TableCell>;
+                            default: return null;
+                          }
+                        })}
                       </TableRow>
                     ))}
                     {agentData.invoices.length === 0 && (
                       <TableRow>
                         <TableCell
-                          colSpan={7}
+                          colSpan={agentColOrder.columns.length}
                           className="text-center text-muted-foreground py-8"
                         >
                           {t("reports.noInvoices")}
@@ -2254,55 +2357,52 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
 
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                      <SortableHeader label={t("reports.repName")} sortKey="repName" currentKey={repFeeSort.sortKey} currentDir={repFeeSort.sortDir} onSort={repFeeSort.onSort} />
-                      <SortableHeader label={t("reps.feePerFlight")} sortKey="feePerFlight" currentKey={repFeeSort.sortKey} currentDir={repFeeSort.sortDir} onSort={repFeeSort.onSort} className="text-right" />
-                      <SortableHeader label={t("reports.flights")} sortKey="flightCount" currentKey={repFeeSort.sortKey} currentDir={repFeeSort.sortDir} onSort={repFeeSort.onSort} className="text-right" />
-                      <SortableHeader label={t("common.total")} sortKey="totalAmount" currentKey={repFeeSort.sortKey} currentDir={repFeeSort.sortDir} onSort={repFeeSort.onSort} className="text-right" />
-                    </TableRow>
-                  </TableHeader>
+                  <DraggableTableHeader
+                    columns={REP_FEES_COLUMNS}
+                    columnOrder={repFeesColOrder.columns}
+                    onReorder={repFeesColOrder.reorder}
+                  />
                   <TableBody>
                     {repFeeSort.sortedData.map((rep, idx) => (
                       <TableRow
                         key={rep.repId}
                         className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        <TableCell>
-                          <button
-                            type="button"
-                            className="text-primary hover:underline font-medium text-sm text-left"
-                            onClick={() => {
-                              setSelectedRep(rep);
-                              // Pre-populate scoreEdits from existing scores
-                              const initialEdits: Record<string, RepJobScore> = {};
-                              for (const fee of rep.fees) {
-                                if (fee.repJobScore) {
-                                  initialEdits[fee.trafficJob.id] = fee.repJobScore;
-                                }
-                              }
-                              setScoreEdits(initialEdits);
-                              setRepModalOpen(true);
-                            }}
-                          >
-                            {rep.repName}
-                          </button>
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground font-mono">
-                          {fmt(rep.feePerFlight, locale)}
-                        </TableCell>
-                        <TableCell className="text-right text-foreground font-mono">
-                          {groupByFlight(rep.fees).length}
-                        </TableCell>
-                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(repNetTotals[rep.repId] ?? rep.totalAmount, locale)}
-                        </TableCell>
+                        {repFeesColOrder.columns.map((col) => {
+                          switch (col) {
+                            case "repName": return (
+                              <TableCell key={col}>
+                                <button
+                                  type="button"
+                                  className="text-primary hover:underline font-medium text-sm text-left"
+                                  onClick={() => {
+                                    setSelectedRep(rep);
+                                    const initialEdits: Record<string, RepJobScore> = {};
+                                    for (const fee of rep.fees) {
+                                      if (fee.repJobScore) {
+                                        initialEdits[fee.trafficJob.id] = fee.repJobScore;
+                                      }
+                                    }
+                                    setScoreEdits(initialEdits);
+                                    setRepModalOpen(true);
+                                  }}
+                                >
+                                  {rep.repName}
+                                </button>
+                              </TableCell>
+                            );
+                            case "feePerFlight": return <TableCell key={col} className="text-right text-muted-foreground font-mono font-medium">{fmt(rep.feePerFlight, locale)}</TableCell>;
+                            case "flightCount": return <TableCell key={col} className="text-right text-foreground font-mono font-medium">{groupByFlight(rep.fees).length}</TableCell>;
+                            case "totalAmount": return <TableCell key={col} className="text-right text-emerald-600 dark:text-emerald-400 font-mono font-medium">{fmt(repNetTotals[rep.repId] ?? rep.totalAmount, locale)}</TableCell>;
+                            default: return null;
+                          }
+                        })}
                       </TableRow>
                     ))}
                     {repFeeData.reps.length === 0 && (
                       <TableRow>
                         <TableCell
-                          colSpan={4}
+                          colSpan={repFeesColOrder.columns.length}
                           className="text-center text-muted-foreground py-8"
                         >
                           {t("reports.noRepFees")}
@@ -2311,14 +2411,15 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                     )}
                     {repFeeData.reps.length > 0 && (
                       <TableRow className="border-border bg-muted/50 font-semibold">
-                        <TableCell className="text-foreground">{t("reports.grandTotal")}</TableCell>
-                        <TableCell />
-                        <TableCell className="text-right text-foreground font-mono">
-                          {repFeeData.totalFlights}
-                        </TableCell>
-                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
-                          {fmt(repFeeData.grandTotal, locale)}
-                        </TableCell>
+                        {repFeesColOrder.columns.map((col) => {
+                          switch (col) {
+                            case "repName": return <TableCell key={col} className="text-foreground">{t("reports.grandTotal")}</TableCell>;
+                            case "feePerFlight": return <TableCell key={col} />;
+                            case "flightCount": return <TableCell key={col} className="text-right text-foreground font-mono font-medium">{repFeeData.totalFlights}</TableCell>;
+                            case "totalAmount": return <TableCell key={col} className="text-right text-emerald-600 dark:text-emerald-400 font-mono font-medium">{fmt(repFeeData.grandTotal, locale)}</TableCell>;
+                            default: return null;
+                          }
+                        })}
                       </TableRow>
                     )}
                   </TableBody>
@@ -2403,23 +2504,11 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/40">
-                          <TableHead className="text-xs">Job Ref</TableHead>
-                          <TableHead className="text-xs">Type</TableHead>
-                          <TableHead className="text-xs text-right">Pax</TableHead>
-                          <TableHead className="text-xs">Rep</TableHead>
-                          <TableHead className="text-xs">Route</TableHead>
-                          <TableHead className="text-xs">Hotel</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs text-center">Att<br /><span className="text-muted-foreground">20pt</span></TableHead>
-                          <TableHead className="text-xs text-center">App<br /><span className="text-muted-foreground">15pt</span></TableHead>
-                          <TableHead className="text-xs text-center">Work<br /><span className="text-muted-foreground">30pt</span></TableHead>
-                          <TableHead className="text-xs text-center">Rev<br /><span className="text-muted-foreground">35pt</span></TableHead>
-                          <TableHead className="text-xs text-right">Score</TableHead>
-                          <TableHead className="text-xs">Evaluation</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <DraggableTableHeader
+                        columns={REP_SCORE_COLUMNS}
+                        columnOrder={repScoreColOrder.columns}
+                        onReorder={repScoreColOrder.reorder}
+                      />
                       <TableBody>
                         {repScoreData.rows.map((row, idx) => {
                           const evalColor =
@@ -2427,29 +2516,32 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                             row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
                             row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
                             "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
+                          const check = <span className="text-emerald-500 font-bold text-sm">✓</span>;
+                          const dash = <span className="text-muted-foreground text-sm">—</span>;
                           return (
                             <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
-                              <TableCell className="font-mono text-xs">{row.internalRef}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
-                              </TableCell>
-                              <TableCell className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{row.repName}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>{row.status}</Badge>
-                              </TableCell>
-                              <TableCell className="text-center">{row.attendance ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
-                              <TableCell className="text-center">{row.appearance ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
-                              <TableCell className="text-center">{row.work ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
-                              <TableCell className="text-center">{row.review ? <span className="text-emerald-500 font-bold text-sm">✓</span> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
-                              <TableCell className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={`text-xs ${evalColor}`}>{row.evaluation}</Badge>
-                              </TableCell>
+                              {repScoreColOrder.columns.map((col) => {
+                                switch (col) {
+                                  case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
+                                  case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
+                                  case "paxCount": return <TableCell key={col} className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>;
+                                  case "repName": return <TableCell key={col} className="text-xs text-muted-foreground">{row.repName}</TableCell>;
+                                  case "route": return (
+                                    <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">
+                                      {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
+                                    </TableCell>
+                                  );
+                                  case "hotel": return <TableCell key={col} className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>;
+                                  case "status": return <TableCell key={col}><StatusBadge status={row.status} /></TableCell>;
+                                  case "attendance": return <TableCell key={col} className="text-center">{row.attendance ? check : dash}</TableCell>;
+                                  case "appearance": return <TableCell key={col} className="text-center">{row.appearance ? check : dash}</TableCell>;
+                                  case "work": return <TableCell key={col} className="text-center">{row.work ? check : dash}</TableCell>;
+                                  case "review": return <TableCell key={col} className="text-center">{row.review ? check : dash}</TableCell>;
+                                  case "total": return <TableCell key={col} className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>;
+                                  case "evaluation": return <TableCell key={col}><Badge variant="outline" className={`text-xs ${evalColor}`}>{row.evaluation}</Badge></TableCell>;
+                                  default: return null;
+                                }
+                              })}
                             </TableRow>
                           );
                         })}
@@ -2459,7 +2551,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                       <span className="text-sm text-muted-foreground">
                         {repScoreData.count} job{repScoreData.count !== 1 ? "s" : ""} scored · Total {repScoreData.totalScore} pts
                       </span>
-                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="text-base font-medium text-emerald-600 dark:text-emerald-400">
                         Average: {repScoreData.avgScore} / 100
                       </span>
                     </div>
@@ -2652,7 +2744,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                    <TableRow className="border-border bg-muted">
                       <SortableHeader label={t("dispatch.agent")} sortKey="name" currentKey={revenueSort.sortKey} currentDir={revenueSort.sortDir} onSort={revenueSort.onSort} />
                       <SortableHeader label={t("reports.revenueLabel")} sortKey="revenue" currentKey={revenueSort.sortKey} currentDir={revenueSort.sortDir} onSort={revenueSort.onSort} className="text-right" />
                       <SortableHeader label={t("reports.invoices")} sortKey="invoiceCount" currentKey={revenueSort.sortKey} currentDir={revenueSort.sortDir} onSort={revenueSort.onSort} className="text-right" />
@@ -2668,13 +2760,13 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                         <TableCell className="text-foreground text-sm font-medium">
                           {a.name}
                         </TableCell>
-                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono">
+                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400 font-mono font-medium">
                           {fmt(a.revenue, locale)}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground font-mono">
+                        <TableCell className="text-right text-muted-foreground font-mono font-medium">
                           {a.invoiceCount}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground font-mono">
+                        <TableCell className="text-right text-muted-foreground font-mono font-medium">
                           {a.jobCount}
                         </TableCell>
                       </TableRow>
@@ -2784,19 +2876,19 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                    <TableRow className="border-border bg-muted">
                       <SortableHeader label={t("vehicles.plateNumber")} sortKey="plateNumber" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
                       <SortableHeader label={t("vehicles.type")} sortKey="vehicleTypeName" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
                       <SortableHeader label={t("vehicles.ownership")} sortKey="ownership" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
                       <SortableHeader label={t("vehicles.licenseExpiryDate")} sortKey="licenseExpiryDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <TableHead className="text-white text-xs">{t("vehicles.insurance")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.insurance")}</TableHead>
                       <SortableHeader label={t("vehicles.temporaryPermit")} sortKey="temporaryPermitDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <TableHead className="text-white text-xs">{t("vehicles.permitExpiry")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.permitExpiry")}</TableHead>
                       <SortableHeader label={t("vehicles.annualPayment")} sortKey="annualPayment" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <TableHead className="text-white text-xs">{t("vehicles.registrationFees")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.registrationFees")}</TableHead>
                       <SortableHeader label={t("vehicles.totalFees")} sortKey="totalFees" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
                       <SortableHeader label={t("vehicles.totalDeposits")} sortKey="depositTotal" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <TableHead className="text-white text-xs">{t("vehicles.balanceRemaining")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.balanceRemaining")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -2988,7 +3080,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 <div className="rounded-md border border-border overflow-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                      <TableRow className="border-border bg-muted">
                         <SortableHeader label={t("reports.trsfReference")} sortKey="internalRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("reports.agentRef")} sortKey="agentRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
                         <SortableHeader label={t("agents.legalName")} sortKey="agentName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
@@ -3025,20 +3117,20 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                           </TableCell>
                           <TableCell className="text-sm text-foreground">{job.driverName || "\u2014"}</TableCell>
                           <TableCell className="text-sm text-foreground">{job.repName || "\u2014"}</TableCell>
-                          <TableCell className="text-right font-mono text-sm text-foreground">
+                          <TableCell className="text-right font-mono font-medium text-sm text-foreground">
                             {job.transferPrice != null ? `${fmt(job.transferPrice, locale)} ${job.transferPriceCurrency || ""}` : (job.priceAmount != null ? `${fmt(job.priceAmount, locale)} ${job.priceCurrency || ""}` : "\u2014")}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={statusColors[job.status] || ""}>{job.status}</Badge>
+                            <StatusBadge status={job.status} />
                           </TableCell>
                           <TableCell>
                             {job.repJobStatus ? (
-                              <Badge variant="outline" className={statusColors[job.repJobStatus] || ""}>{job.repJobStatus}</Badge>
+                              <StatusBadge status={job.repJobStatus} />
                             ) : "\u2014"}
                           </TableCell>
                           <TableCell>
                             {job.driverJobStatus ? (
-                              <Badge variant="outline" className={statusColors[job.driverJobStatus] || ""}>{job.driverJobStatus}</Badge>
+                              <StatusBadge status={job.driverJobStatus} />
                             ) : "\u2014"}
                           </TableCell>
                           <TableCell>
@@ -3183,16 +3275,16 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 <div className="rounded-md border border-border overflow-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                        <TableHead className="text-white text-xs">Job Ref</TableHead>
-                        <TableHead className="text-white text-xs">Agent Name</TableHead>
-                        <TableHead className="text-white text-xs">Agent Ref</TableHead>
-                        <TableHead className="text-white text-xs">Date</TableHead>
-                        <TableHead className="text-white text-xs">Type</TableHead>
-                        <TableHead className="text-white text-xs">Status</TableHead>
-                        <TableHead className="text-white text-xs">{t("reports.repName")}</TableHead>
-                        <TableHead className="text-white text-xs">{t("dispatch.driverName")}</TableHead>
-                        <TableHead className="text-white text-xs">Evidence</TableHead>
+                      <TableRow className="border-border bg-muted">
+                        <TableHead className="text-muted-foreground text-xs">Job Ref</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Agent Name</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Agent Ref</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Date</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Type</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Status</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">{t("reports.repName")}</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">{t("dispatch.driverName")}</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Evidence</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -3214,7 +3306,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                               <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={`text-xs ${statusColors[row.status] || ""}`}>{row.status}</Badge>
+                              <StatusBadge status={row.status} />
                             </TableCell>
                             <TableCell className="text-sm text-foreground">{row.repName ?? "—"}</TableCell>
                             <TableCell className="text-sm text-foreground">{row.driverName ?? "—"}</TableCell>
@@ -3347,7 +3439,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                   <div className="rounded-md border border-border overflow-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                        <TableRow className="border-border bg-muted">
                           <SortableHeader label="Job Ref" sortKey="jobRef" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
                           <SortableHeader label="Agent Name" sortKey="agentName" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
                           <SortableHeader label="Agent Ref" sortKey="agentRef" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
@@ -3369,9 +3461,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                             <TableCell className="text-sm text-foreground">{row.route}</TableCell>
                             <TableCell className="text-sm text-foreground">{row.supplierName}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={statusColors[row.supplierStatus] || ""}>
-                                {row.supplierStatus.replace(/_/g, " ")}
-                              </Badge>
+                              <StatusBadge status={row.supplierStatus} />
                             </TableCell>
                           </TableRow>
                         ))}
@@ -3463,7 +3553,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                   <div className="rounded-md border border-border overflow-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                        <TableRow className="border-border bg-muted">
                           <SortableHeader label="Job Ref" sortKey="jobRef" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
                           <SortableHeader label="Agent Name" sortKey="agentName" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
                           <SortableHeader label="Service Date" sortKey="serviceDate" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
@@ -3487,9 +3577,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                             <TableCell className="font-mono text-sm text-muted-foreground">{row.plateNumber}</TableCell>
                             <TableCell className="text-sm text-foreground">{row.driver}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={statusColors[row.jobStatus] || ""}>
-                                {row.jobStatus.replace(/_/g, " ")}
-                              </Badge>
+                              <StatusBadge status={row.jobStatus} />
                             </TableCell>
                           </TableRow>
                         ))}
@@ -3548,24 +3636,24 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                   <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                        <TableHead className="text-white text-xs">{t("reports.jobRef")}</TableHead>
-                        <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
-                        <TableHead className="text-white text-xs text-right">
+                      <TableRow className="border-border bg-muted">
+                        <TableHead className="text-muted-foreground text-xs">{t("reports.jobRef")}</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">{t("jobs.type")}</TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-right">
                           {t("dispatch.pax")}
                         </TableHead>
-                        <TableHead className="text-white text-xs">Route</TableHead>
-                        <TableHead className="text-white text-xs">{t("locations.hotel")}</TableHead>
-                        <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                        <TableHead className="text-white text-xs text-center">Missed</TableHead>
-                        <TableHead className="text-white text-xs text-center">Att<br/><span className="text-[10px] font-normal opacity-75">20pt</span></TableHead>
-                        <TableHead className="text-white text-xs text-center">App<br/><span className="text-[10px] font-normal opacity-75">15pt</span></TableHead>
-                        <TableHead className="text-white text-xs text-center">Work<br/><span className="text-[10px] font-normal opacity-75">30pt</span></TableHead>
-                        <TableHead className="text-white text-xs text-center">Rev<br/><span className="text-[10px] font-normal opacity-75">35pt</span></TableHead>
-                        <TableHead className="text-white text-xs text-right">Score</TableHead>
-                        <TableHead className="text-white text-xs text-right">Fee</TableHead>
-                        <TableHead className="text-white text-xs text-right">Deductions</TableHead>
-                        <TableHead className="text-white text-xs">Eval</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Route</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">{t("locations.hotel")}</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-center">Missed</TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-center">Att<br/><span className="text-[10px] font-normal opacity-75">20pt</span></TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-center">App<br/><span className="text-[10px] font-normal opacity-75">15pt</span></TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-center">Work<br/><span className="text-[10px] font-normal opacity-75">30pt</span></TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-center">Rev<br/><span className="text-[10px] font-normal opacity-75">35pt</span></TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-right">Score</TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-right">Fee</TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-right">Deductions</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Eval</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -3621,12 +3709,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                               {fee.trafficJob.hotel?.name || "\u2014"}
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={statusColors[fee.status] || ""}
-                              >
-                                {fee.status}
-                              </Badge>
+                              <StatusBadge status={fee.status} />
                             </TableCell>
                             {/* Missed — disables all score checkboxes */}
                             <TableCell className="text-center">
@@ -3691,7 +3774,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                                 <span>{currentScore.total}</span>
                               ) : "\u2014"}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-sm">
+                            <TableCell className="text-right font-mono font-medium text-sm">
                               {isMissed ? (
                                 <span className="text-muted-foreground">—</span>
                               ) : currentScore?.fee !== undefined && currentScore.fee !== null
@@ -3755,7 +3838,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                             : `+ ${fmt(Math.abs(totalDeductions), locale)} EGP adjustment`}
                         </div>
                       )}
-                      <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                      <span className="text-base font-medium text-emerald-600 dark:text-emerald-400 font-mono">
                         {fmt(netTotal, locale)} EGP
                       </span>
                     </div>
@@ -3791,34 +3874,34 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                      <TableHead className="text-white text-xs">Job Ref</TableHead>
-                      <TableHead className="text-white text-xs">Date</TableHead>
-                      <TableHead className="text-white text-xs">Type</TableHead>
-                      <TableHead className="text-white text-xs text-right">Pax</TableHead>
-                      <TableHead className="text-white text-xs">Route</TableHead>
-                      <TableHead className="text-white text-xs">Agent</TableHead>
-                      <TableHead className="text-white text-xs">Status</TableHead>
-                      <TableHead className="text-white text-xs text-center">
+                    <TableRow className="border-border bg-muted">
+                      <TableHead className="text-muted-foreground text-xs">Job Ref</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Date</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Type</TableHead>
+                      <TableHead className="text-muted-foreground text-xs text-right">Pax</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Route</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Agent</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Status</TableHead>
+                      <TableHead className="text-muted-foreground text-xs text-center">
                         Att<br/><span className="text-[10px] font-normal opacity-75">30pt</span>
                       </TableHead>
-                      <TableHead className="text-white text-xs text-center">
+                      <TableHead className="text-muted-foreground text-xs text-center">
                         App<br/><span className="text-[10px] font-normal opacity-75">20pt</span>
                       </TableHead>
-                      <TableHead className="text-white text-xs text-center">
+                      <TableHead className="text-muted-foreground text-xs text-center">
                         Car<br/><span className="text-[10px] font-normal opacity-75">10pt</span>
                       </TableHead>
-                      <TableHead className="text-white text-xs text-center">
+                      <TableHead className="text-muted-foreground text-xs text-center">
                         Maint<br/><span className="text-[10px] font-normal opacity-75">10pt</span>
                       </TableHead>
-                      <TableHead className="text-white text-xs text-center">
+                      <TableHead className="text-muted-foreground text-xs text-center">
                         Work<br/><span className="text-[10px] font-normal opacity-75">30pt</span>
                       </TableHead>
-                      <TableHead className="text-white text-xs text-right">Score</TableHead>
-                      <TableHead className="text-white text-xs text-center">Missed</TableHead>
-                      <TableHead className="text-white text-xs text-right">Fee</TableHead>
-                      <TableHead className="text-white text-xs text-right">Deductions</TableHead>
-                      <TableHead className="text-white text-xs">Eval</TableHead>
+                      <TableHead className="text-muted-foreground text-xs text-right">Score</TableHead>
+                      <TableHead className="text-muted-foreground text-xs text-center">Missed</TableHead>
+                      <TableHead className="text-muted-foreground text-xs text-right">Fee</TableHead>
+                      <TableHead className="text-muted-foreground text-xs text-right">Deductions</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">Eval</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -3863,7 +3946,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                           <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{trip.route}</TableCell>
                           <TableCell className="text-muted-foreground text-xs">{trip.agent}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={`text-xs ${statusColors[trip.status] || ""}`}>{trip.status}</Badge>
+                            <StatusBadge status={trip.status} />
                           </TableCell>
                           {/* Attendance — 30pt */}
                           <TableCell className="text-center">
@@ -3940,7 +4023,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                             />
                           </TableCell>
                           {/* Trip Fee */}
-                          <TableCell className="text-right font-mono text-sm">
+                          <TableCell className="text-right font-mono font-medium text-sm">
                             {isMissed ? (
                               <span className="text-muted-foreground">—</span>
                             ) : trip.tripFee != null ? (
@@ -4012,7 +4095,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                             {fmt(selectedDriver.totalFees, locale)} EGP
                           </div>
                         )}
-                        <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                        <span className="text-base font-medium text-emerald-600 dark:text-emerald-400 font-mono">
                           {fmt(netFees, locale)} EGP
                         </span>
                       </>

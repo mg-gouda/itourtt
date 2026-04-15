@@ -60,6 +60,7 @@ import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
 import { usePermission } from "@/hooks/use-permission";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 /* ─── Types ─────────────────────────────────── */
 
@@ -198,18 +199,6 @@ interface CreditStatus {
 
 /* ─── Constants ─────────────────────────────── */
 
-const statusColors: Record<string, string> = {
-  DRAFT: "bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border-zinc-500/30",
-  POSTED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  PAID: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  CANCELLED: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
-};
-
-const collectionStatusColors: Record<string, string> = {
-  PENDING: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
-  COLLECTED: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  LIQUIDATED: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-};
 
 const paymentMethodLabels: Record<string, string> = {
   CASH: "finance.methodCash",
@@ -1099,16 +1088,16 @@ export default function FinancePage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                    <TableRow className="border-border bg-muted">
                       <SortableHeader label={t("finance.invoiceNo")} sortKey="invoiceNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <TableHead className="text-white text-xs">{t("jobs.agentCustomer")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("jobs.agentCustomer")}</TableHead>
                       <SortableHeader label={t("common.date")} sortKey="invoiceDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                       <SortableHeader label={t("finance.dueDate")} sortKey="dueDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <TableHead className="text-white text-xs">{t("finance.currency")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("finance.currency")}</TableHead>
                       <SortableHeader label={t("common.total")} sortKey="total" currentKey={sortKey} currentDir={sortDir} onSort={onSort} className="text-right" />
-                      <TableHead className="text-white text-xs text-right">{t("finance.remainingBalance")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("common.actions")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs text-right">{t("finance.remainingBalance")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1133,18 +1122,16 @@ export default function FinancePage() {
                         <TableCell className="text-muted-foreground">
                           {inv.currency}
                         </TableCell>
-                        <TableCell className="text-right text-foreground font-mono">
+                        <TableCell className="text-right text-foreground font-mono font-medium">
                           {fmtNum(inv.total, locale)}
                         </TableCell>
-                        <TableCell className="text-right text-foreground font-mono">
+                        <TableCell className="text-right text-foreground font-mono font-medium">
                           {inv.remainingBalance != null
                             ? fmtNum(inv.remainingBalance, locale)
                             : fmtNum(inv.total, locale)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={statusColors[inv.status] || ""}>
-                            {inv.status}
-                          </Badge>
+                          <StatusBadge status={inv.status} />
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           {canRecordPayment && inv.status !== "PAID" && inv.status !== "CANCELLED" && (
@@ -1293,16 +1280,16 @@ export default function FinancePage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-                    <TableHead className="text-white text-xs">{t("dispatch.ref") || "Ref"}</TableHead>
-                    <TableHead className="text-white text-xs">{t("common.date") || "Date"}</TableHead>
-                    <TableHead className="text-white text-xs">{t("jobs.agentCustomer") || "Agent/Customer"}</TableHead>
-                    <TableHead className="text-white text-xs">{t("dispatch.driver") || "Driver"}</TableHead>
-                    <TableHead className="text-white text-xs text-right">{t("finance.collectionAmount") || "Amount"}</TableHead>
-                    <TableHead className="text-white text-xs">{t("finance.currency") || "Currency"}</TableHead>
-                    <TableHead className="text-white text-xs">{t("finance.receiptNo") || "Receipt"}</TableHead>
-                    <TableHead className="text-white text-xs">{t("common.status") || "Status"}</TableHead>
-                    <TableHead className="text-white text-xs">{t("common.actions") || "Actions"}</TableHead>
+                  <TableRow className="border-border bg-muted">
+                    <TableHead className="text-muted-foreground text-xs">{t("dispatch.ref") || "Ref"}</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">{t("common.date") || "Date"}</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">{t("jobs.agentCustomer") || "Agent/Customer"}</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">{t("dispatch.driver") || "Driver"}</TableHead>
+                    <TableHead className="text-muted-foreground text-xs text-right">{t("finance.collectionAmount") || "Amount"}</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">{t("finance.currency") || "Currency"}</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">{t("finance.receiptNo") || "Receipt"}</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">{t("common.status") || "Status"}</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">{t("common.actions") || "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1317,13 +1304,11 @@ export default function FinancePage() {
                         <TableCell className="text-muted-foreground text-sm">{formatDate(c.jobDate)}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">{c.agent?.legalName || c.customer?.legalName || "\u2014"}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">{c.assignment?.driver?.name || "\u2014"}</TableCell>
-                        <TableCell className="text-right text-foreground font-mono">{fmtNum(c.collectionAmount, locale)}</TableCell>
+                        <TableCell className="text-right text-foreground font-mono font-medium">{fmtNum(c.collectionAmount, locale)}</TableCell>
                         <TableCell className="text-muted-foreground">{c.collectionCurrency}</TableCell>
                         <TableCell className="text-muted-foreground text-xs">{c.collectionReceiptNo || "\u2014"}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={collectionStatusColors[status] || ""}>
-                            {status}
-                          </Badge>
+                          <StatusBadge status={status} />
                         </TableCell>
                         <TableCell>
                           {status === "COLLECTED" && (
@@ -1403,9 +1388,7 @@ export default function FinancePage() {
                   <span className="text-sm font-medium text-foreground">
                     {detail.invoiceNumber}
                   </span>
-                  <Badge variant="outline" className={statusColors[detail.status] || ""}>
-                    {detail.status}
-                  </Badge>
+                  <StatusBadge status={detail.status} />
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                   <div>
@@ -1423,17 +1406,17 @@ export default function FinancePage() {
                 </div>
                 <div className="flex justify-between text-xs border-t border-border pt-2 mt-2">
                   <span className="text-muted-foreground">{t("finance.subtotal")}</span>
-                  <span className="font-mono text-foreground">{fmtNum(Number(detail.subtotal), locale)}</span>
+                  <span className="font-mono font-medium text-foreground">{fmtNum(Number(detail.subtotal), locale)}</span>
                 </div>
                 {Number(detail.taxAmount) > 0 && (
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">{t("finance.taxAmount")}</span>
-                    <span className="font-mono text-foreground">{fmtNum(Number(detail.taxAmount), locale)}</span>
+                    <span className="font-mono font-medium text-foreground">{fmtNum(Number(detail.taxAmount), locale)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-medium">
                   <span>{t("common.total")}</span>
-                  <span className="font-mono">{fmtNum(Number(detail.total), locale)}</span>
+                  <span className="font-mono font-medium">{fmtNum(Number(detail.total), locale)}</span>
                 </div>
                 {detail.paidAmount != null && detail.paidAmount > 0 && (
                   <>
@@ -1611,17 +1594,17 @@ export default function FinancePage() {
                     <div className="border-t border-border pt-2 mt-2 space-y-1">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{t("finance.subtotal")}</span>
-                        <span className="font-mono">{fmtNum(editTotals.subtotal, locale)}</span>
+                        <span className="font-mono font-medium">{fmtNum(editTotals.subtotal, locale)}</span>
                       </div>
                       {editTotals.taxAmount > 0 && (
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>{t("finance.taxAmount")}</span>
-                          <span className="font-mono">{fmtNum(editTotals.taxAmount, locale)}</span>
+                          <span className="font-mono font-medium">{fmtNum(editTotals.taxAmount, locale)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm font-medium text-foreground">
                         <span>{t("common.total")}</span>
-                        <span className="font-mono">{fmtNum(editTotals.total, locale)}</span>
+                        <span className="font-mono font-medium">{fmtNum(editTotals.total, locale)}</span>
                       </div>
                     </div>
 
@@ -1663,9 +1646,9 @@ export default function FinancePage() {
                         <TableRow key={line.id} className="border-border">
                           <TableCell className="text-xs text-foreground">{line.description}</TableCell>
                           <TableCell className="text-xs text-center text-muted-foreground">{line.quantity}</TableCell>
-                          <TableCell className="text-xs text-right font-mono">{fmtNum(Number(line.unitPrice), locale)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono font-medium">{fmtNum(Number(line.unitPrice), locale)}</TableCell>
                           <TableCell className="text-xs text-right text-muted-foreground">{Number(line.taxRate)}%</TableCell>
-                          <TableCell className="text-xs text-right font-mono text-muted-foreground">{fmtNum(Number(line.taxAmount), locale)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono font-medium text-muted-foreground">{fmtNum(Number(line.taxAmount), locale)}</TableCell>
                           <TableCell className="text-xs text-right font-mono font-medium">{fmtNum(Number(line.lineTotal), locale)}</TableCell>
                         </TableRow>
                       ))}
@@ -1721,7 +1704,7 @@ export default function FinancePage() {
                           <TableCell className="text-xs text-muted-foreground">
                             {t(paymentMethodLabels[p.paymentMethod] || p.paymentMethod)}
                           </TableCell>
-                          <TableCell className="text-xs text-right font-mono text-foreground">
+                          <TableCell className="text-xs text-right font-mono font-medium text-foreground">
                             {fmtNum(Number(p.amount), locale)}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">
@@ -2102,17 +2085,17 @@ export default function FinancePage() {
                       <div className="border-t border-border pt-2 mt-2 space-y-1">
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>{t("finance.subtotal")}</span>
-                          <span className="font-mono">{fmtNum(agentJobTotals.subtotal, locale)}</span>
+                          <span className="font-mono font-medium">{fmtNum(agentJobTotals.subtotal, locale)}</span>
                         </div>
                         {agentJobTotals.taxAmount > 0 && (
                           <div className="flex justify-between text-xs text-muted-foreground">
                             <span>{t("finance.taxAmount")}</span>
-                            <span className="font-mono">{fmtNum(agentJobTotals.taxAmount, locale)}</span>
+                            <span className="font-mono font-medium">{fmtNum(agentJobTotals.taxAmount, locale)}</span>
                           </div>
                         )}
                         <div className="flex justify-between text-sm font-medium text-foreground">
                           <span>{t("common.total")}</span>
-                          <span className="font-mono">{fmtNum(agentJobTotals.total, locale)}</span>
+                          <span className="font-mono font-medium">{fmtNum(agentJobTotals.total, locale)}</span>
                         </div>
                       </div>
                     </div>

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -515,7 +516,7 @@ function EditableVehicleCell({
           {vehicleLabel}
         </Badge>
       ) : (
-        <span className="text-red-600 dark:text-red-400 text-xs">{t("dispatch.clickToAssign")}</span>
+        <span className="text-muted-foreground text-xs">{t("dispatch.clickToAssign")}</span>
       )}
     </TableCell>
   );
@@ -918,6 +919,7 @@ function JobGrid({
   showPickUpTime,
   canAssignVehicle = true,
   canAssignRep = true,
+  savedRowId,
 }: {
   jobs: Job[];
   title: string;
@@ -944,6 +946,7 @@ function JobGrid({
   showPickUpTime?: boolean;
   canAssignVehicle?: boolean;
   canAssignRep?: boolean;
+  savedRowId?: string | null;
 }) {
   const t = useT();
   const locale = useLocaleId();
@@ -1011,24 +1014,24 @@ function JobGrid({
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
-            {showLockColumn && <TableHead className="text-white text-xs w-8" />}
-            <TableHead className="text-white text-xs w-28">{t("dispatch.ref")}</TableHead>
-            <TableHead className="text-white text-xs">{t("dispatch.agent")}</TableHead>
-            <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
-            <TableHead className="text-white text-xs w-14">{t("dispatch.pax")}</TableHead>
-            <TableHead className="text-white text-xs w-24">Req. Type</TableHead>
-            <TableHead className="text-white text-xs w-24">{t("jobs.flightNumber")}</TableHead>
-            <TableHead className="text-white text-xs w-20">Flight Time</TableHead>
-            {showPickUpTime && <TableHead className="text-white text-xs w-20">{t("jobs.pickUpTime")}</TableHead>}
-            <TableHead className="text-white text-xs w-36">{t("dispatch.carSource")}</TableHead>
-            <TableHead className="text-white text-xs w-36">{t("dispatch.vehicle")}</TableHead>
-            <TableHead className="text-white text-xs w-32">{t("dispatch.driver")}</TableHead>
-            <TableHead className="text-white text-xs w-32">{t("dispatch.rep")}</TableHead>
-            <TableHead className="text-white text-xs w-32">{t("dispatch.remarks")}</TableHead>
-            <TableHead className="text-white text-xs w-28">{t("jobs.extras")}</TableHead>
-            <TableHead className="text-white text-xs w-20">Coll. Amt</TableHead>
-            <TableHead className="text-white text-xs w-16">Coll. Cur</TableHead>
+          <TableRow className="border-border bg-muted">
+            {showLockColumn && <TableHead className="text-muted-foreground text-xs w-8" />}
+            <TableHead className="text-muted-foreground text-xs w-28">{t("dispatch.ref")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs">{t("dispatch.agent")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs">{t("dispatch.route")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-14">{t("dispatch.pax")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-24">Req. Type</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-24">{t("jobs.flightNumber")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-20">Flight Time</TableHead>
+            {showPickUpTime && <TableHead className="text-muted-foreground text-xs w-20">{t("jobs.pickUpTime")}</TableHead>}
+            <TableHead className="text-muted-foreground text-xs w-36">{t("dispatch.carSource")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-36">{t("dispatch.vehicle")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-32">{t("dispatch.driver")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-32">{t("dispatch.rep")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-32">{t("dispatch.remarks")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-28">{t("jobs.extras")}</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-20">Coll. Amt</TableHead>
+            <TableHead className="text-muted-foreground text-xs w-16">Coll. Cur</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1042,7 +1045,7 @@ function JobGrid({
             return (
               <TableRow
                 key={job.id}
-                className={`border-border ${statusRowClass[job.status] || stripe} ${job.status === "CANCELLED" ? "[&_td]:line-through [&_td]:text-red-900 dark:[&_td]:text-red-800" : ""}`}
+                className={`border-border transition-colors duration-300 ${statusRowClass[job.status] || stripe} ${job.status === "CANCELLED" ? "[&_td]:line-through [&_td]:text-red-900 dark:[&_td]:text-red-800" : ""} ${savedRowId === job.id ? "bg-green-500/10" : ""}`}
               >
                 {showLockColumn && (
                   <TableCell className="w-8 px-1">
@@ -1601,6 +1604,13 @@ export default function DispatchPage() {
   // Inline editing state
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
 
+  // Row success flash state
+  const [savedRowId, setSavedRowId] = useState<string | null>(null);
+  const showSavedFlash = (jobId: string) => {
+    setSavedRowId(jobId);
+    setTimeout(() => setSavedRowId(null), 1000);
+  };
+
   // Per-job car source selection (lifted to parent so it persists across tab switches)
   const [jobSources, setJobSources] = useState<Record<string, string>>({});
 
@@ -1879,6 +1889,7 @@ export default function DispatchPage() {
           repId: actualValue,
         });
         toast.success(t("dispatch.repUpdated"));
+        showSavedFlash(job.id);
         fetchDay();
       } catch (err: unknown) {
         rollback();
@@ -1929,6 +1940,7 @@ export default function DispatchPage() {
       try {
         await api.post("/dispatch/assign", assignPayload);
         toast.success(t("dispatch.vehicleAssigned"));
+        showSavedFlash(job.id);
         fetchDay(); // refresh to get full assignment data
       } catch (err: unknown) {
         const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
@@ -2046,6 +2058,7 @@ export default function DispatchPage() {
           payload
         );
         toast.success(t(`dispatch.${field === "remarks" ? "remarks" : field}Updated`));
+        showSavedFlash(job.id);
       } catch (err: unknown) {
         const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
         if (resp?.status === 409 && resp?.data?.message?.includes("Vehicle type mismatch")) {
@@ -2056,6 +2069,7 @@ export default function DispatchPage() {
                 { ...payload, allowTypeMismatch: true }
               );
               toast.success(t(`dispatch.${field === "remarks" ? "remarks" : field}Updated`));
+              showSavedFlash(job.id);
               fetchDay();
               return;
             } catch (retryErr: unknown) {
@@ -2265,10 +2279,11 @@ export default function DispatchPage() {
     onToggleLock: handleToggleLock,
     canAssignVehicle,
     canAssignRep,
+    savedRowId,
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full animate-in fade-in duration-300">
       <div className="flex-1 space-y-4 overflow-auto pb-2">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -2405,8 +2420,67 @@ export default function DispatchPage() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/60" />
+          <div className="space-y-4">
+            {/* ARR skeleton */}
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <div className="overflow-x-auto rounded-md border border-border">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className={`border-b border-border ${i % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-20" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-10" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-24" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-28" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-24" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-8" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-5 w-14 rounded-full" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-12" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-10" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-6 w-20 rounded-sm" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-6 w-20 rounded-sm" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-6 w-20 rounded-sm" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-6 w-28 rounded-sm" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {/* DEP skeleton */}
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <div className="overflow-x-auto rounded-md border border-border">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={i} className={`border-b border-border ${i % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-20" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-10" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-24" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-28" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-24" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-8" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-5 w-14 rounded-full" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-12" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-3 w-10" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-6 w-20 rounded-sm" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-6 w-20 rounded-sm" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-6 w-20 rounded-sm" /></td>
+                        <td className="px-2 py-2.5"><Skeleton className="h-6 w-28 rounded-sm" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         ) : (
           <Tabs defaultValue="split" className="space-y-4">
@@ -2422,19 +2496,28 @@ export default function DispatchPage() {
                   value="arrivals"
                   className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
                 >
-                  {t("dispatch.arrivals")} ({filteredArrivals.length})
+                  {t("dispatch.arrivals")}
+                  <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px] leading-4 min-w-[18px] text-center">
+                    {filteredArrivals.length}
+                  </Badge>
                 </TabsTrigger>
                 <TabsTrigger
                   value="departures"
                   className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
                 >
-                  {t("dispatch.departures")} ({filteredDepartures.length})
+                  {t("dispatch.departures")}
+                  <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px] leading-4 min-w-[18px] text-center">
+                    {filteredDepartures.length}
+                  </Badge>
                 </TabsTrigger>
                 <TabsTrigger
                   value="city"
                   className="data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
                 >
-                  {t("dispatch.other")} ({filteredCityTransfers.length})
+                  {t("dispatch.other")}
+                  <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px] leading-4 min-w-[18px] text-center">
+                    {filteredCityTransfers.length}
+                  </Badge>
                 </TabsTrigger>
               </TabsList>
 

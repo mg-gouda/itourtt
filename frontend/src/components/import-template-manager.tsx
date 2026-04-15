@@ -162,7 +162,7 @@ export function ImportTemplateManager({ customerId }: ImportTemplateManagerProps
           <div className="rounded-md border border-border overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-700/75 dark:bg-gray-800/75">
+                <TableRow className="bg-muted">
                   <TableHead className="text-gray-200">{t("importTemplates.serviceType") || "Service Type"}</TableHead>
                   <TableHead className="text-gray-200">{t("importTemplates.fileType") || "File Type"}</TableHead>
                   <TableHead className="text-gray-200">{t("importTemplates.fileName") || "File Name"}</TableHead>

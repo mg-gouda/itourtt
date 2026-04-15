@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 interface GuestBooking {
   id: string;
@@ -77,18 +78,6 @@ interface GuestBooking {
   createdAt: string;
 }
 
-const bookingStatusColors: Record<string, string> = {
-  CONFIRMED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  CONVERTED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-};
-
-const paymentStatusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  PAID: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  REFUNDED: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
-  FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-};
 
 export default function GuestBookingsPage() {
   const t = useT();
@@ -270,18 +259,10 @@ export default function GuestBookingsPage() {
                     {b.currency} {Number(b.total).toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      className={`text-xs ${paymentStatusColors[b.paymentStatus] || ""}`}
-                    >
-                      {b.paymentStatus}
-                    </Badge>
+                    <StatusBadge status={b.paymentStatus} />
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      className={`text-xs ${bookingStatusColors[b.bookingStatus] || ""}`}
-                    >
-                      {b.bookingStatus}
-                    </Badge>
+                    <StatusBadge status={b.bookingStatus} />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -558,21 +559,17 @@ export default function RepsPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : reps.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <UserCheck className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="mt-4 text-sm font-medium text-foreground">
-            {t("reps.noReps")}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("reps.addNew")}
-          </p>
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <EmptyState
+            icon={UserCheck}
+            heading="No reps yet"
+            description="Add reps to assign them to completed jobs."
+          />
           {canAddRep && (
-          <Button size="sm" className="mt-4 gap-1.5" onClick={openAddDialog}>
-            <Plus className="h-4 w-4" />
-            {t("reps.addRep")}
-          </Button>
+            <Button size="sm" className="gap-1.5" onClick={openAddDialog}>
+              <Plus className="h-4 w-4" />
+              {t("reps.addRep")}
+            </Button>
           )}
         </div>
       ) : (
@@ -585,16 +582,16 @@ export default function RepsPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                <TableRow className="border-border bg-muted">
                   <SortableHeader label={t("common.name")} sortKey="name" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("drivers.mobile")} sortKey="mobileNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("reps.feePerFlight")} sortKey="feePerFlight" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">
+                  <TableHead className="text-muted-foreground text-xs">
                     {t("drivers.attachment")}
                   </TableHead>
-                  <TableHead className="text-white text-xs">{t("reps.account")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                  <TableHead className="text-right text-white text-xs">
+                  <TableHead className="text-muted-foreground text-xs">{t("reps.account")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                  <TableHead className="text-right text-muted-foreground text-xs">
                     {t("common.actions")}
                   </TableHead>
                 </TableRow>

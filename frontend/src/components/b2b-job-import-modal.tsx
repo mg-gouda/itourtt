@@ -382,7 +382,7 @@ export function B2BJobImportModal({
             <div className="rounded-md border border-border overflow-x-auto max-h-[50vh] overflow-y-auto">
               <Table>
                 <TableHeader className="sticky top-0 z-10">
-                  <TableRow className="bg-gray-700/75 dark:bg-gray-800/75">
+                  <TableRow className="bg-muted">
                     <TableHead className="text-gray-200 w-10"></TableHead>
                     <TableHead className="text-gray-200 w-8">#</TableHead>
                     <TableHead className="text-gray-200">Type</TableHead>

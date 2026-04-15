@@ -423,7 +423,7 @@ export default function ActivityLogPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                <TableRow className="border-border bg-muted">
                   <SortableHeader
                     label={t("activityLog.dateTime")}
                     sortKey="createdAt"
@@ -452,7 +452,7 @@ export default function ActivityLogPage() {
                     currentDir={sortDir}
                     onSort={onSort}
                   />
-                  <TableHead className="text-white text-xs">
+                  <TableHead className="text-muted-foreground text-xs">
                     {t("activityLog.summary")}
                   </TableHead>
                 </TableRow>

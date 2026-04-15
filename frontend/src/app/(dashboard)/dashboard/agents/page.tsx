@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Plus, Loader2, FileDown, FileUp, FileSpreadsheet, AlertTriangle, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -481,13 +482,16 @@ export default function AgentsPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : agents.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Building2 className="h-10 w-10 text-muted-foreground/40" />
-          <p className="mt-3 text-sm text-muted-foreground">{t("agents.noAgents")}</p>
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <EmptyState
+            icon={Building2}
+            heading="No agents yet"
+            description="Add your first agent to start booking jobs."
+          />
           {canAdd && (
             <Button
               size="sm"
-              className="mt-4 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={openDialog}
             >
               <Plus className="h-4 w-4" />
@@ -531,7 +535,7 @@ export default function AgentsPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                <TableRow className="border-border bg-muted">
                   <TableHead className="w-10">
                     <Checkbox
                       checked={sortedData.length > 0 && selectedIds.size === sortedData.length}
@@ -540,13 +544,13 @@ export default function AgentsPage() {
                   </TableHead>
                   <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">{t("agents.taxId")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("agents.taxId")}</TableHead>
                   <SortableHeader label={t("locations.city")} sortKey="city" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("locations.country")} sortKey="country" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
                   <SortableHeader label={t("agents.phone")} sortKey="phone" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-white text-xs">Currency</TableHead>
-                  <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                  <TableHead className="text-white text-xs">{t("common.actions")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">Currency</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                  <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

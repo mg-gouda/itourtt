@@ -193,15 +193,15 @@ export default function RepHistoryPage() {
             <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-700/75 dark:bg-gray-800/75">
-                      <TableHead className="text-white text-xs">{t("dispatch.ref")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("common.date")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("jobs.type")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("dispatch.flight")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("dispatch.route")}</TableHead>
-                      <TableHead className="text-center text-white text-xs">{t("dispatch.pax")}</TableHead>
-                      <TableHead className="text-white text-xs">{t("common.status")}</TableHead>
-                      <TableHead className="text-right text-white text-xs">{t("portal.feeEgp")}</TableHead>
+                    <TableRow className="bg-muted">
+                      <TableHead className="text-muted-foreground text-xs">{t("dispatch.ref")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("common.date")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("jobs.type")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("dispatch.flight")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("dispatch.route")}</TableHead>
+                      <TableHead className="text-center text-muted-foreground text-xs">{t("dispatch.pax")}</TableHead>
+                      <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
+                      <TableHead className="text-right text-muted-foreground text-xs">{t("portal.feeEgp")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

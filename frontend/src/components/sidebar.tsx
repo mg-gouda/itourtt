@@ -60,6 +60,11 @@ export interface NavSeparator {
   type: "separator";
 }
 
+export interface NavSectionLabel {
+  type: "section-label";
+  labelKey: string;
+}
+
 export interface NavGroup {
   type: "group";
   nameKey: string;
@@ -67,14 +72,15 @@ export interface NavGroup {
   children: NavLink[];
 }
 
-export type NavItem = NavLink | NavSeparator | NavGroup;
+export type NavItem = NavLink | NavSeparator | NavSectionLabel | NavGroup;
 
 export const navigation: NavItem[] = [
+  { type: "section-label", labelKey: "sidebar.section.operations" },
   { type: "link", nameKey: "sidebar.dashboard", href: "/dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
   { type: "link", nameKey: "sidebar.dispatch", href: "/dashboard/dispatch", icon: CalendarClock, permissionKey: "dispatch" },
   { type: "link", nameKey: "sidebar.carDispatch", href: "/dashboard/car-dispatch", icon: Car, permissionKey: "dispatch", featureFlag: "NEXT_PUBLIC_ENABLE_CAR_DISPATCH" },
   { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase, permissionKey: "traffic-jobs" },
-  { type: "separator" },
+  { type: "section-label", labelKey: "sidebar.section.finance" },
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
   { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3, permissionKey: "reports" },
   {
@@ -88,7 +94,7 @@ export const navigation: NavItem[] = [
   },
   { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },
   { type: "link", nameKey: "sidebar.activityLog", href: "/dashboard/activity-log", icon: ClipboardList, permissionKey: "activity-logs" },
-  { type: "separator" },
+  { type: "section-label", labelKey: "sidebar.section.system" },
   {
     type: "group",
     nameKey: "sidebar.systemParams",
@@ -244,6 +250,21 @@ export function Sidebar() {
               return <Separator key={i} className="my-2 bg-sidebar-border" />;
             }
 
+            if (item.type === "section-label") {
+              // In collapsed mode, show a thin divider instead of the label
+              if (collapsed) {
+                return <Separator key={i} className="my-2 bg-sidebar-border" />;
+              }
+              return (
+                <p
+                  key={i}
+                  className="text-[10px] uppercase tracking-widest text-sidebar-foreground/40 px-2 pt-4 pb-1 select-none"
+                >
+                  {t(item.labelKey)}
+                </p>
+              );
+            }
+
             if (item.type === "group") {
               const isOpen = !!groupOpen[item.nameKey] && !collapsed;
               const Icon = item.icon;
@@ -264,8 +285,8 @@ export function Sidebar() {
                             ? "justify-center px-0 py-2"
                             : "gap-2.5 px-3 py-2",
                           hasActiveChild
-                            ? "text-sidebar-foreground"
-                            : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                            ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
+                            : "border-l-2 border-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                         )}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
@@ -301,8 +322,8 @@ export function Sidebar() {
                             className={cn(
                               "flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap overflow-hidden",
                               isActive
-                                ? "bg-sidebar-accent text-sidebar-foreground"
-                                : "text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                                ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
+                                : "border-l-2 border-transparent text-sidebar-foreground/50 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                             )}
                           >
                             <ChildIcon className="h-3.5 w-3.5 shrink-0" />
@@ -334,8 +355,8 @@ export function Sidebar() {
                         ? "justify-center px-0 py-2"
                         : "gap-2.5 px-3 py-2",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-foreground"
-                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
+                        : "border-l-2 border-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -361,7 +382,7 @@ export function Sidebar() {
             <TooltipTrigger asChild>
               <button
                 onClick={toggleCollapsed}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-accent text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/80 hover:text-sidebar-foreground"
               >
                 {collapsed ? (
                   <ChevronsRight className="h-4 w-4" />
