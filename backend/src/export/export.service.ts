@@ -1662,8 +1662,14 @@ export class ExportService {
         trafficJob: {
           include: {
             agent: { select: { legalName: true } },
-            fromZone: { select: { name: true } },
-            toZone: { select: { name: true } },
+            originAirport:      { select: { code: true } },
+            originHotel:        { select: { name: true } },
+            originZone:         { select: { name: true } },
+            destinationAirport: { select: { code: true } },
+            destinationHotel:   { select: { name: true } },
+            destinationZone:    { select: { name: true } },
+            fromZone:           { select: { name: true } },
+            toZone:             { select: { name: true } },
           },
         },
       },
@@ -1672,10 +1678,17 @@ export class ExportService {
 
     const rows = assignments.map((a) => {
       const job = a.trafficJob;
-      const route =
-        job.fromZone && job.toZone
-          ? `${job.fromZone.name} → ${job.toZone.name}`
-          : '—';
+      const from =
+        job.originAirport?.code ??
+        job.originHotel?.name ??
+        job.originZone?.name ??
+        job.fromZone?.name;
+      const to =
+        job.destinationAirport?.code ??
+        job.destinationHotel?.name ??
+        job.destinationZone?.name ??
+        job.toZone?.name;
+      const route = from && to ? `${from} → ${to}` : '—';
       return {
         id: a.id,
         jobRef: job.internalRef,
