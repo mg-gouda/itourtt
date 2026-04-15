@@ -336,11 +336,7 @@ export default function GuestBookingsPage() {
             <DialogTitle className="flex items-center gap-2">
               Booking {selectedBooking?.bookingRef}
               {selectedBooking && (
-                <Badge
-                  className={`text-xs ${bookingStatusColors[selectedBooking.bookingStatus] || ""}`}
-                >
-                  {selectedBooking.bookingStatus}
-                </Badge>
+                <StatusBadge status={selectedBooking.bookingStatus} />
               )}
             </DialogTitle>
           </DialogHeader>
@@ -451,11 +447,7 @@ export default function GuestBookingsPage() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Status:</span>{" "}
-                    <Badge
-                      className={`text-xs ${paymentStatusColors[selectedBooking.paymentStatus] || ""}`}
-                    >
-                      {selectedBooking.paymentStatus}
-                    </Badge>
+                    <StatusBadge status={selectedBooking.paymentStatus} />
                   </div>
                   {selectedBooking.paymentGateway && (
                     <div>
