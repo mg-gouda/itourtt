@@ -84,10 +84,11 @@ export class VehiclesController {
   findAllVehicles(
     @Query() pagination: PaginationDto,
     @Query('vehicleTypeId') vehicleTypeId?: string,
+    @Query('ownership') ownership?: string,
   ) {
     const page = pagination.page ?? 1;
     const limit = pagination.limit ?? 20;
-    return this.vehiclesService.findAllVehicles(page, limit, vehicleTypeId);
+    return this.vehiclesService.findAllVehicles(page, limit, vehicleTypeId, ownership);
   }
 
   @Get('export/excel')

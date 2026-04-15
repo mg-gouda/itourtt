@@ -667,11 +667,11 @@ export default function ReportsPage() {
   // Load owned active vehicles for car jobs filter
   useEffect(() => {
     api
-      .get("/vehicles?ownership=OWNED&isActive=true&limit=500")
+      .get("/export/odoo/car-jobs/vehicles")
       .then(({ data }) => {
         const list: Array<{ id: string; plateNumber: string }> =
           Array.isArray(data) ? data : data.data || [];
-        setOwnedVehicleList(list.map((v) => ({ id: v.id, plateNumber: v.plateNumber })));
+        setOwnedVehicleList(list);
       })
       .catch(() => {});
   }, []);

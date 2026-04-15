@@ -43,12 +43,15 @@ export class VehiclesService {
 
   // ─── Vehicles ─────────────────────────────────────────────
 
-  async findAllVehicles(page: number, limit: number, vehicleTypeId?: string) {
+  async findAllVehicles(page: number, limit: number, vehicleTypeId?: string, ownership?: string) {
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = { deletedAt: null, isActive: true };
     if (vehicleTypeId) {
       where.vehicleTypeId = vehicleTypeId;
+    }
+    if (ownership) {
+      where.ownership = ownership;
     }
 
     const [data, total] = await Promise.all([

@@ -194,6 +194,17 @@ export class ExportController {
   }
 
   // ──────────────────────────────────────────────
+  // GET /export/odoo/car-jobs/vehicles
+  // Lightweight list of owned+active vehicles for the car jobs filter dropdown.
+  // ──────────────────────────────────────────────
+  @Get('car-jobs/vehicles')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.carJobs')
+  getCarJobsVehicles() {
+    return this.exportService.getOwnedActiveVehicles();
+  }
+
+  // ──────────────────────────────────────────────
   // GET /export/odoo/car-jobs
   // Car Jobs report — filterable by date range and owned vehicle.
   // ──────────────────────────────────────────────

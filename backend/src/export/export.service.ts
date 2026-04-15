@@ -1709,6 +1709,14 @@ export class ExportService {
   // CAR JOBS REPORT
   // ─────────────────────────────────────────────
 
+  async getOwnedActiveVehicles() {
+    return this.prisma.vehicle.findMany({
+      where: { ownership: 'OWNED', isActive: true, deletedAt: null },
+      select: { id: true, plateNumber: true },
+      orderBy: { plateNumber: 'asc' },
+    });
+  }
+
   async getCarJobsReport(opts: {
     from: string;
     to: string;
