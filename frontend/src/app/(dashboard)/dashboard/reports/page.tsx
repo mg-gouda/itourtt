@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   ClipboardList,
   Camera,
+  Truck,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import JobDetailModal from "@/components/job-detail-modal";
@@ -398,6 +399,22 @@ interface Agent {
   legalName: string;
 }
 
+interface SupplierJobRow {
+  id: string;
+  jobRef: string;
+  agentName: string;
+  agentRef: string;
+  serviceDate: string;
+  route: string;
+  supplierName: string;
+  supplierStatus: string;
+}
+
+interface SupplierJobsReport {
+  total: number;
+  rows: SupplierJobRow[];
+}
+
 // ────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────
@@ -465,6 +482,7 @@ export default function ReportsPage() {
   const canVehicleCompliance = usePermission("reports.vehicleCompliance");
   const canJobStatus = usePermission("reports.jobStatus");
   const canEvidence = usePermission("reports.evidence");
+  const canSupplierJobs = usePermission("reports.supplierJobs");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -557,6 +575,16 @@ export default function ReportsPage() {
   const [driverScoreLoading, setDriverScoreLoading] = useState(false);
   const driverScorePrintRef = useRef<HTMLDivElement>(null);
 
+  // Supplier Jobs Report
+  const [supplierJobsFrom, setSupplierJobsFrom] = useState(thirtyDaysAgo);
+  const [supplierJobsTo, setSupplierJobsTo] = useState(today);
+  const [supplierJobsSupplierId, setSupplierJobsSupplierId] = useState("ALL");
+  const [supplierJobsStatus, setSupplierJobsStatus] = useState("ALL");
+  const [supplierJobsData, setSupplierJobsData] = useState<SupplierJobsReport | null>(null);
+  const [supplierJobsLoading, setSupplierJobsLoading] = useState(false);
+  const [supplierList, setSupplierList] = useState<Array<{ id: string; name: string }>>([]);
+  const supplierJobsPrintRef = useRef<HTMLDivElement>(null);
+
   // Evidence Report
   const [evidenceFrom, setEvidenceFrom] = useState(thirtyDaysAgo);
   const [evidenceTo, setEvidenceTo] = useState(today);
@@ -584,6 +612,7 @@ export default function ReportsPage() {
   const revenueSort = useSortable(revenueData?.byAgent || []);
   const complianceSort = useSortable(filteredComplianceData);
   const jobStatusSort = useSortable(jobStatusData?.jobs || []);
+  const supplierJobsSort = useSortable(supplierJobsData?.rows || []);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -603,6 +632,20 @@ export default function ReportsPage() {
       .then(({ data }) => {
         const list: Array<{ id: string; name: string }> = Array.isArray(data) ? data : data.data || [];
         setRepList(list.map((r) => ({ id: r.id, name: r.name })));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load suppliers list for supplier jobs filter
+  useEffect(() => {
+    api
+      .get("/suppliers?limit=500")
+      .then(({ data }) => {
+        const list: Array<{ id: string; tradeName?: string; legalName?: string }> =
+          Array.isArray(data) ? data : data.data || [];
+        setSupplierList(
+          list.map((s) => ({ id: s.id, name: s.tradeName ?? s.legalName ?? s.id }))
+        );
       })
       .catch(() => {});
   }, []);
@@ -831,6 +874,24 @@ export default function ReportsPage() {
   };
 
   const exportJobStatusPdf = () => printFromRef(jobStatusPrintRef, `Job Status Report - ${jobStatusFrom} to ${jobStatusTo}`);
+
+  const fetchSupplierJobs = async () => {
+    setSupplierJobsLoading(true);
+    try {
+      const params = new URLSearchParams({ from: supplierJobsFrom, to: supplierJobsTo });
+      if (supplierJobsSupplierId !== "ALL") params.set("supplierId", supplierJobsSupplierId);
+      if (supplierJobsStatus !== "ALL") params.set("supplierStatus", supplierJobsStatus);
+      const { data } = await api.get(`/export/odoo/supplier-jobs?${params.toString()}`);
+      setSupplierJobsData(data.data ?? data);
+    } catch {
+      toast.error("Failed to load supplier jobs report");
+    } finally {
+      setSupplierJobsLoading(false);
+    }
+  };
+
+  const exportSupplierJobsPdf = () =>
+    printFromRef(supplierJobsPrintRef, `Supplier Jobs - ${supplierJobsFrom} to ${supplierJobsTo}`);
 
   const openEvidenceHtml = async (jobId: string, ref: string) => {
     setEvidencePdfLoading((prev) => new Set(prev).add(jobId));
@@ -1256,7 +1317,8 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
         canRevenue ? "revenue" :
         canVehicleCompliance ? "compliance" :
         canJobStatus ? "job-status" :
-        canEvidence ? "evidence" : "dispatch"
+        canEvidence ? "evidence" :
+        canSupplierJobs ? "supplier-jobs" : "dispatch"
       } className="space-y-4">
         <TabsList className="bg-card border border-border">
           {canDailyDispatch && (
@@ -1345,6 +1407,15 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
             >
               <Camera className="h-3.5 w-3.5" />
               Evidence
+            </TabsTrigger>
+          )}
+          {canSupplierJobs && (
+            <TabsTrigger
+              value="supplier-jobs"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <Truck className="h-3.5 w-3.5" />
+              Supplier Jobs
             </TabsTrigger>
           )}
         </TabsList>
@@ -3113,6 +3184,138 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Camera className="mb-2 h-8 w-8" />
                 <p className="text-sm">Select filters and click Generate to view evidence report.</p>
+              </div>
+            )}
+          </TabsContent>
+        )}
+
+        {/* ─── SUPPLIER JOBS REPORT ─── */}
+        {canSupplierJobs && (
+          <TabsContent value="supplier-jobs" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-muted-foreground text-xs">Supplier Name</Label>
+                  <Select value={supplierJobsSupplierId} onValueChange={setSupplierJobsSupplierId}>
+                    <SelectTrigger className="mt-1 w-52 border-border bg-card text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Suppliers</SelectItem>
+                      {supplierList.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Supplier Status</Label>
+                  <Select value={supplierJobsStatus} onValueChange={setSupplierJobsStatus}>
+                    <SelectTrigger className="mt-1 w-44 border-border bg-card text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Statuses</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                      <SelectItem value="IN_PLACE">In Place</SelectItem>
+                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                      <SelectItem value="NO_SHOW">No Show</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
+                  <Input
+                    type="date"
+                    value={supplierJobsFrom}
+                    onChange={(e) => setSupplierJobsFrom(e.target.value)}
+                    className="mt-1 w-44 border-border bg-card text-foreground"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                  <Input
+                    type="date"
+                    value={supplierJobsTo}
+                    onChange={(e) => setSupplierJobsTo(e.target.value)}
+                    className="mt-1 w-44 border-border bg-card text-foreground"
+                  />
+                </div>
+                <Button onClick={fetchSupplierJobs} disabled={supplierJobsLoading} className="gap-1.5">
+                  {supplierJobsLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  {t("reports.generate")}
+                </Button>
+                {supplierJobsData && (
+                  <Button variant="outline" onClick={exportSupplierJobsPdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            {supplierJobsData ? (
+              <>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <StatCard label="Total Jobs" value={supplierJobsData.total} />
+                  <StatCard
+                    label="Completed"
+                    value={supplierJobsData.rows.filter((r) => r.supplierStatus === "COMPLETED").length}
+                    color="text-emerald-600 dark:text-emerald-400"
+                  />
+                  <StatCard
+                    label="Pending"
+                    value={supplierJobsData.rows.filter((r) => r.supplierStatus === "PENDING").length}
+                    color="text-amber-600 dark:text-amber-400"
+                  />
+                </div>
+
+                <div ref={supplierJobsPrintRef}>
+                  <div className="rounded-md border border-border overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                          <SortableHeader label="Job Ref" sortKey="jobRef" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
+                          <SortableHeader label="Agent Name" sortKey="agentName" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
+                          <SortableHeader label="Agent Ref" sortKey="agentRef" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
+                          <SortableHeader label="Service Date" sortKey="serviceDate" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
+                          <SortableHeader label="Route" sortKey="route" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
+                          <SortableHeader label="Supplier" sortKey="supplierName" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
+                          <SortableHeader label="Supplier Status" sortKey="supplierStatus" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {supplierJobsSort.sortedData.map((row) => (
+                          <TableRow key={row.id} className="border-border hover:bg-muted/30">
+                            <TableCell className="font-mono text-sm">{row.jobRef}</TableCell>
+                            <TableCell className="text-sm text-foreground">{row.agentName}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{row.agentRef}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                              {new Date(row.serviceDate).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-sm text-foreground">{row.route}</TableCell>
+                            <TableCell className="text-sm text-foreground">{row.supplierName}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={statusColors[row.supplierStatus] || ""}>
+                                {row.supplierStatus.replace(/_/g, " ")}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Truck className="mb-2 h-8 w-8" />
+                <p className="text-sm">Select filters and click Generate to view supplier jobs.</p>
               </div>
             )}
           </TabsContent>

@@ -1631,4 +1631,64 @@ export class ExportService {
       },
     };
   }
+
+  // ─────────────────────────────────────────────
+  // SUPPLIER JOBS REPORT
+  // ─────────────────────────────────────────────
+
+  async getSupplierJobsReport(opts: {
+    from: string;
+    to: string;
+    supplierId?: string;
+    supplierStatus?: string;
+  }) {
+    const fromDate = new Date(opts.from);
+    const toDate = new Date(opts.to);
+
+    const assignments = await this.prisma.trafficAssignment.findMany({
+      where: {
+        supplierId: { not: null },
+        ...(opts.supplierId ? { supplierId: opts.supplierId } : {}),
+        ...(opts.supplierStatus && opts.supplierStatus !== 'ALL'
+          ? { supplierStatus: opts.supplierStatus as any }
+          : {}),
+        trafficJob: {
+          deletedAt: null,
+          jobDate: { gte: fromDate, lte: toDate },
+        },
+      },
+      include: {
+        supplier: { select: { id: true, tradeName: true, legalName: true } },
+        trafficJob: {
+          include: {
+            agent: { select: { legalName: true } },
+            fromZone: { select: { name: true } },
+            toZone: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { trafficJob: { jobDate: 'asc' } },
+    });
+
+    const rows = assignments.map((a) => {
+      const job = a.trafficJob;
+      const route =
+        job.fromZone && job.toZone
+          ? `${job.fromZone.name} → ${job.toZone.name}`
+          : '—';
+      return {
+        id: a.id,
+        jobRef: job.internalRef,
+        agentName: job.agent?.legalName ?? '—',
+        agentRef: job.agentRef ?? '—',
+        serviceDate: job.jobDate,
+        route,
+        supplierName:
+          a.supplier?.tradeName ?? a.supplier?.legalName ?? '—',
+        supplierStatus: a.supplierStatus,
+      };
+    });
+
+    return { total: rows.length, rows };
+  }
 }

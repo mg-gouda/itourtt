@@ -194,6 +194,23 @@ export class ExportController {
   }
 
   // ──────────────────────────────────────────────
+  // GET /export/odoo/supplier-jobs
+  // Supplier Jobs report — filterable by date range, supplier, and supplier status.
+  // ──────────────────────────────────────────────
+  @Get('supplier-jobs')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.supplierJobs')
+  async getSupplierJobsReport(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('supplierId') supplierId?: string,
+    @Query('supplierStatus') supplierStatus?: string,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    return this.exportService.getSupplierJobsReport({ from, to, supplierId, supplierStatus });
+  }
+
+  // ──────────────────────────────────────────────
   // GET /export/odoo/evidence-data/:jobId
   // Returns structured JSON for evidence HTML rendering on the client.
   // ──────────────────────────────────────────────
