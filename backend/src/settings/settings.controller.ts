@@ -17,7 +17,7 @@ import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
 import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto.js';
-import { UpdateGoogleDriveSettingsDto } from './dto/update-google-drive-settings.dto.js';
+import { UpdateGoogleDriveSettingsDto, GoogleDriveAuthUrlDto, GoogleDriveExchangeCodeDto } from './dto/update-google-drive-settings.dto.js';
 import { EmailService } from '../email/email.service.js';
 import { GoogleDriveService } from '../google-drive/google-drive.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -252,7 +252,7 @@ export class SettingsController {
   }
 
   // ──────────────────────────────────────────────
-  // GET /settings/google-drive — retrieve Google Drive config (ADMIN only)
+  // GET /settings/google-drive
   // ──────────────────────────────────────────────
 
   @Get('google-drive')
@@ -264,7 +264,7 @@ export class SettingsController {
   }
 
   // ──────────────────────────────────────────────
-  // PATCH /settings/google-drive — update Google Drive config (ADMIN only)
+  // PATCH /settings/google-drive — save client ID / secret / folder ID
   // ──────────────────────────────────────────────
 
   @Patch('google-drive')
@@ -278,7 +278,50 @@ export class SettingsController {
   }
 
   // ──────────────────────────────────────────────
-  // POST /settings/google-drive/test — verify credentials & folder access
+  // POST /settings/google-drive/auth-url
+  // Returns the Google OAuth consent URL for the admin to open
+  // ──────────────────────────────────────────────
+
+  @Post('google-drive/auth-url')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async getGoogleDriveAuthUrl(@Body() dto: GoogleDriveAuthUrlDto) {
+    const url = await this.googleDriveService.generateAuthUrl(dto.redirectUri);
+    return { url };
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/google-drive/exchange-code
+  // Exchanges the one-time Google auth code for a refresh token
+  // ──────────────────────────────────────────────
+
+  @Post('google-drive/exchange-code')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async exchangeGoogleDriveCode(@Body() dto: GoogleDriveExchangeCodeDto) {
+    await this.googleDriveService.exchangeCode(dto.code, dto.redirectUri);
+    return { ok: true };
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/google-drive/disconnect
+  // Clears the stored refresh token
+  // ──────────────────────────────────────────────
+
+  @Post('google-drive/disconnect')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  async disconnectGoogleDrive() {
+    await this.settingsService.disconnectGoogleDrive();
+    this.googleDriveService.clearCache();
+    return { ok: true };
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/google-drive/test
   // ──────────────────────────────────────────────
 
   @Post('google-drive/test')
@@ -290,7 +333,7 @@ export class SettingsController {
   }
 
   // ──────────────────────────────────────────────
-  // POST /settings/google-drive/migrate — migrate local /uploads/ images to Drive
+  // POST /settings/google-drive/migrate
   // ──────────────────────────────────────────────
 
   @Post('google-drive/migrate')

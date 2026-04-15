@@ -371,7 +371,7 @@ export class RepPortalService {
     this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
 
     const currentStatus = assignment.repStatus;
-    if (currentStatus !== 'PENDING') {
+    if (currentStatus !== 'PENDING' && currentStatus !== 'IN_PLACE') {
       throw new BadRequestException(
         `Cannot mark as In Place from "${currentStatus}"`,
       );

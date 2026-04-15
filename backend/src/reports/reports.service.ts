@@ -108,24 +108,31 @@ export class ReportsService {
       byStatus[job.status] = (byStatus[job.status] || 0) + 1;
       byServiceType[job.serviceType] =
         (byServiceType[job.serviceType] || 0) + 1;
-      if (job.assignment) {
-        assignedCount++;
-      } else {
-        unassignedCount++;
+      // Exclude CANCELLED from assignment tracking
+      if (job.status !== 'CANCELLED') {
+        if (job.assignment) {
+          assignedCount++;
+        } else {
+          unassignedCount++;
+        }
       }
     }
 
+    // Active jobs = all non-cancelled jobs (base for rate calculations)
+    const activeJobs = totalJobs - (byStatus['CANCELLED'] || 0);
+
     const completionRate =
-      totalJobs > 0
-        ? Math.round(((byStatus['COMPLETED'] || 0) / totalJobs) * 100)
+      activeJobs > 0
+        ? Math.round(((byStatus['COMPLETED'] || 0) / activeJobs) * 100)
         : 0;
 
     const assignmentRate =
-      totalJobs > 0 ? Math.round((assignedCount / totalJobs) * 100) : 0;
+      activeJobs > 0 ? Math.round((assignedCount / activeJobs) * 100) : 0;
 
     return {
       date,
       totalJobs,
+      activeJobs,
       assignedCount,
       unassignedCount,
       completionRate,
@@ -970,7 +977,7 @@ export class ReportsService {
   // JOB STATUS REPORT
   // ─────────────────────────────────────────────
 
-  async jobStatusReport(from: string, to: string, status?: string, repId?: string) {
+  async jobStatusReport(from: string, to: string, status?: string, repId?: string, repStatus?: string, driverStatus?: string) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
 
@@ -981,8 +988,14 @@ export class ReportsService {
     if (status && status !== 'ALL') {
       where.status = status;
     }
-    if (repId && repId !== 'ALL') {
-      where.assignment = { repId };
+
+    // Build assignment filter
+    const assignmentFilter: Record<string, unknown> = {};
+    if (repId && repId !== 'ALL') assignmentFilter.repId = repId;
+    if (repStatus && repStatus !== 'ALL') assignmentFilter.repStatus = repStatus;
+    if (driverStatus && driverStatus !== 'ALL') assignmentFilter.driverStatus = driverStatus;
+    if (Object.keys(assignmentFilter).length > 0) {
+      where.assignment = assignmentFilter;
     }
 
     const jobs = await this.prisma.trafficJob.findMany({

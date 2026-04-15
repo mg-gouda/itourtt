@@ -196,14 +196,8 @@ export class DispatchService {
       await this.validateDriverAvailability(dto.driverId, job);
     }
 
-    // 6. Validate rep with flight-aware rules
+    // 6. Validate rep
     if (dto.repId) {
-      // Reps can only be assigned to ARR/DEP jobs
-      if (job.serviceType !== ('ARR' as ServiceType) && job.serviceType !== ('DEP' as ServiceType)) {
-        throw new BadRequestException(
-          'Rep assignment is only available for Arrival and Departure jobs.',
-        );
-      }
       const rep = await this.prisma.rep.findFirst({
         where: { id: dto.repId, deletedAt: null, isActive: true },
       });
@@ -458,13 +452,8 @@ export class DispatchService {
       await this.validateDriverAvailability(dto.driverId, job, assignmentId);
     }
 
-    // Rep validation with flight-aware rules
+    // Rep validation
     if (dto.repId) {
-      if (job.serviceType !== ('ARR' as ServiceType) && job.serviceType !== ('DEP' as ServiceType)) {
-        throw new BadRequestException(
-          'Rep assignment is only available for Arrival and Departure jobs.',
-        );
-      }
       const rep = await this.prisma.rep.findFirst({
         where: { id: dto.repId, deletedAt: null, isActive: true },
       });
@@ -773,10 +762,7 @@ export class DispatchService {
       include: { flight: true },
     });
 
-    // No rep assignment on non-ARR/DEP jobs
-    if (!targetJob || targetJob.serviceType !== ('ARR' as ServiceType) && targetJob.serviceType !== ('DEP' as ServiceType)) {
-      return [];
-    }
+    if (!targetJob) return [];
 
     const targetFlight = targetJob.flight;
     const targetTime = this.getJobReferenceTime(targetJob);
@@ -908,8 +894,8 @@ export class DispatchService {
   }
 
   /**
-   * Get the reference time for a job. ARR → arrivalTime, DEP → departureTime or pickUpTime.
-   * Non-ARR/DEP → null.
+   * Get the reference time for a job.
+   * ARR → arrivalTime, DEP → pickUpTime or departureTime, excursion/transfer → pickUpTime.
    */
   private getJobReferenceTime(
     job: { serviceType: string; pickUpTime?: Date | null; flight?: { arrivalTime?: Date | null; departureTime?: Date | null } | null },
@@ -921,6 +907,8 @@ export class DispatchService {
       if (job.pickUpTime) return new Date(job.pickUpTime);
       if (job.flight?.departureTime) return new Date(job.flight.departureTime);
     }
+    // Excursion / transfer jobs use pickUpTime
+    if (job.pickUpTime) return new Date(job.pickUpTime);
     return null;
   }
 
@@ -945,9 +933,16 @@ export class DispatchService {
   }
 
   /**
-   * Validate rep availability with flight-aware rules.
-   * Same flight number + time → allowed (rep can handle multiple jobs on same flight).
-   * Different flight → always allowed.
+   * Validate rep availability with time-aware rules.
+   *
+   * ARR/DEP (flight jobs):
+   *   - Same flightNo + same reference time → allowed (one rep, multiple pax on same flight).
+   *   - Different flight at same time → conflict.
+   *   - Different flight at different time → allowed.
+   *
+   * Excursion / transfer jobs (DAY_TOUR, ONE_WAY_TRANSFER, TWO_WAY_TRANSFER):
+   *   - Same pickUpTime as any existing job → conflict.
+   *   - Different pickUpTime → allowed.
    */
   private async validateRepAvailability(
     repId: string,
@@ -974,23 +969,28 @@ export class DispatchService {
     const targetFlight = job.flight;
     const targetTime = this.getJobReferenceTime(job);
 
+    // If target job has no reference time, no conflict possible
+    if (!targetTime) return;
+
     for (const a of existingAssignments) {
       const existingFlight = a.trafficJob.flight;
       const existingTime = this.getJobReferenceTime(a.trafficJob);
 
-      // Same flight check: same flightNo AND same time → allowed
+      if (!existingTime) continue;
+      if (targetTime.getTime() !== existingTime.getTime()) continue;
+
+      // Same time — check same-flight exception (applies to ARR/DEP only)
       if (
         targetFlight?.flightNo &&
         existingFlight?.flightNo &&
-        targetFlight.flightNo === existingFlight.flightNo &&
-        targetTime &&
-        existingTime &&
-        targetTime.getTime() === existingTime.getTime()
+        targetFlight.flightNo === existingFlight.flightNo
       ) {
-        continue;
+        continue; // same flight, allowed
       }
 
-      // Different flight: always allowed (no time gap restriction)
+      throw new ConflictException(
+        `Rep is already assigned to job ${a.trafficJob.internalRef} at the same time.`,
+      );
     }
   }
 }

@@ -41,6 +41,14 @@ class JobStatusQueryDto {
   @IsOptional()
   @IsString()
   repId?: string;
+
+  @IsOptional()
+  @IsString()
+  repStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  driverStatus?: string;
 }
 
 class EvidenceQueryDto {
@@ -286,6 +294,8 @@ export class ReportsController {
       query.to,
       query.status,
       query.repId,
+      query.repStatus,
+      query.driverStatus,
     );
     return new ApiResponse(result);
   }

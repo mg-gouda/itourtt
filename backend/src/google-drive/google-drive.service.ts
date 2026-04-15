@@ -9,7 +9,9 @@ export function isDriveFileId(value: string): boolean {
 
 interface DriveConfig {
   enabled: boolean;
-  serviceAccountJson: string;
+  oauthClientId: string;
+  oauthClientSecret: string;
+  oauthRefreshToken: string;
   rootFolderId: string;
 }
 
@@ -20,6 +22,10 @@ export class GoogleDriveService {
   /** In-process folder ID cache: key → Drive folder ID */
   private folderCache = new Map<string, string>();
 
+  /** Short-lived config cache to avoid repeated DB hits within a single request */
+  private configCache: { value: DriveConfig | null; expiresAt: number } | null = null;
+  private readonly CONFIG_TTL_MS = 30_000; // 30 seconds
+
   constructor(private readonly prisma: PrismaService) {}
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -27,34 +33,94 @@ export class GoogleDriveService {
   // ──────────────────────────────────────────────────────────────────────────
 
   async getConfig(): Promise<DriveConfig | null> {
-    const row = await this.prisma.googleDriveSettings.findFirst();
-    if (!row || !row.enabled || !row.serviceAccountJson || !row.rootFolderId) {
-      return null;
+    const now = Date.now();
+    if (this.configCache && this.configCache.expiresAt > now) {
+      return this.configCache.value;
     }
-    return {
-      enabled: row.enabled,
-      serviceAccountJson: row.serviceAccountJson,
-      rootFolderId: row.rootFolderId,
-    };
+
+    const row = await this.prisma.googleDriveSettings.findFirst();
+    const value =
+      !row ||
+      !row.enabled ||
+      !row.oauthClientId ||
+      !row.oauthClientSecret ||
+      !row.oauthRefreshToken ||
+      !row.rootFolderId
+        ? null
+        : {
+            enabled: row.enabled,
+            oauthClientId: row.oauthClientId,
+            oauthClientSecret: row.oauthClientSecret,
+            oauthRefreshToken: row.oauthRefreshToken,
+            rootFolderId: row.rootFolderId,
+          };
+
+    this.configCache = { value, expiresAt: now + this.CONFIG_TTL_MS };
+    return value;
   }
 
   /** Invalidate folder cache — call after settings update */
   clearCache() {
     this.folderCache.clear();
+    this.configCache = null;
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Drive client factory (lazy import — googleapis is optional)
+  // OAuth2 client factory
   // ──────────────────────────────────────────────────────────────────────────
+
+  private async getOAuth2Client(clientId: string, clientSecret: string, redirectUri?: string) {
+    const { google } = await import('googleapis');
+    return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  }
 
   private async getDrive(config: DriveConfig) {
     const { google } = await import('googleapis');
-    const credentials = JSON.parse(config.serviceAccountJson);
-    const auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/drive'],
+    const oauth2Client = await this.getOAuth2Client(config.oauthClientId, config.oauthClientSecret);
+    oauth2Client.setCredentials({ refresh_token: config.oauthRefreshToken });
+    return google.drive({ version: 'v3', auth: oauth2Client });
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // OAuth flow helpers (called from settings controller)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  async generateAuthUrl(redirectUri: string): Promise<string> {
+    const row = await this.prisma.googleDriveSettings.findFirst();
+    if (!row?.oauthClientId || !row?.oauthClientSecret) {
+      throw new Error('Save Client ID and Client Secret first before connecting.');
+    }
+
+    const oauth2Client = await this.getOAuth2Client(row.oauthClientId, row.oauthClientSecret, redirectUri);
+    return oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',   // force refresh_token on every consent
+      scope: ['https://www.googleapis.com/auth/drive'],
     });
-    return google.drive({ version: 'v3', auth });
+  }
+
+  async exchangeCode(code: string, redirectUri: string): Promise<void> {
+    const row = await this.prisma.googleDriveSettings.findFirst();
+    if (!row?.oauthClientId || !row?.oauthClientSecret) {
+      throw new Error('Client credentials not found. Save them first.');
+    }
+
+    const oauth2Client = await this.getOAuth2Client(row.oauthClientId, row.oauthClientSecret, redirectUri);
+    const { tokens } = await oauth2Client.getToken(code);
+
+    if (!tokens.refresh_token) {
+      throw new Error(
+        'Google did not return a refresh token. ' +
+        'Revoke app access at myaccount.google.com/permissions and try connecting again.',
+      );
+    }
+
+    await this.prisma.googleDriveSettings.update({
+      where: { id: row.id },
+      data: { oauthRefreshToken: tokens.refresh_token },
+    });
+
+    this.clearCache();
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -65,7 +131,6 @@ export class GoogleDriveService {
     const cacheKey = `${parentId}::${name}`;
     if (this.folderCache.has(cacheKey)) return this.folderCache.get(cacheKey)!;
 
-    // Search for existing folder with this name under parent
     const search = await drive.files.list({
       q: `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
       fields: 'files(id)',
@@ -80,7 +145,6 @@ export class GoogleDriveService {
       return id;
     }
 
-    // Create it
     const created = await drive.files.create({
       supportsAllDrives: true,
       requestBody: {
@@ -96,10 +160,6 @@ export class GoogleDriveService {
     return id;
   }
 
-  /**
-   * Resolves (and creates if needed) the target folder for a job's evidence type.
-   * Structure: rootFolder / {jobRef} / {type label}
-   */
   async resolveEvidenceFolder(
     drive: any,
     rootFolderId: string,
@@ -114,10 +174,6 @@ export class GoogleDriveService {
   // Upload
   // ──────────────────────────────────────────────────────────────────────────
 
-  /**
-   * Upload a file buffer to Drive. Returns the Drive file ID.
-   * Falls back gracefully (returns null) if Drive is not configured.
-   */
   async uploadFile(
     buffer: Buffer,
     filename: string,
@@ -131,7 +187,6 @@ export class GoogleDriveService {
     try {
       const drive = await this.getDrive(config);
 
-      // Resolve job internalRef for the folder name
       const job = await this.prisma.trafficJob.findUnique({
         where: { id: jobId },
         select: { internalRef: true },
@@ -153,14 +208,8 @@ export class GoogleDriveService {
       const stream = Readable.from(buffer);
       const res = await drive.files.create({
         supportsAllDrives: true,
-        requestBody: {
-          name: filename,
-          parents: [folderId],
-        },
-        media: {
-          mimeType,
-          body: stream,
-        },
+        requestBody: { name: filename, parents: [folderId] },
+        media: { mimeType, body: stream },
         fields: 'id',
       });
 
@@ -175,7 +224,6 @@ export class GoogleDriveService {
   // Download (for PDF embed + proxy)
   // ──────────────────────────────────────────────────────────────────────────
 
-  /** Download a Drive file as a Buffer. Used by export service for PDF embed. */
   async getFileBuffer(fileId: string): Promise<Buffer | null> {
     const config = await this.getConfig();
     if (!config) return null;
@@ -193,15 +241,12 @@ export class GoogleDriveService {
     }
   }
 
-  /** Stream a Drive file. Used by the proxy endpoint. */
   async getFileStream(fileId: string): Promise<{ stream: Readable; mimeType: string } | null> {
     const config = await this.getConfig();
     if (!config) return null;
 
     try {
       const drive = await this.getDrive(config);
-
-      // Get mime type first
       const meta = await drive.files.get({ fileId, fields: 'mimeType', supportsAllDrives: true });
       const mimeType = (meta.data.mimeType as string) || 'application/octet-stream';
 
@@ -291,7 +336,6 @@ export class GoogleDriveService {
 
         for (const url of oldUrls) {
           if (!url.startsWith('/uploads/')) {
-            // Already a Drive ID or unknown — keep as-is
             newUrls.push(url);
             continue;
           }

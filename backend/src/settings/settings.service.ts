@@ -448,9 +448,22 @@ export class SettingsService {
     const row = await this.prisma.googleDriveSettings.findFirst();
     return {
       enabled: row?.enabled ?? false,
-      serviceAccountJson: row?.serviceAccountJson ? '••••••••' : null,
+      oauthClientId: row?.oauthClientId ?? null,
+      // mask secrets — never expose raw values
+      oauthClientSecret: row?.oauthClientSecret ? '••••••••' : null,
+      oauthRefreshToken: row?.oauthRefreshToken ? '••••••••' : null,
       rootFolderId: row?.rootFolderId ?? null,
+      isConnected: !!(row?.oauthRefreshToken),
     };
+  }
+
+  async disconnectGoogleDrive() {
+    const existing = await this.prisma.googleDriveSettings.findFirst();
+    if (!existing) return;
+    await this.prisma.googleDriveSettings.update({
+      where: { id: existing.id },
+      data: { oauthRefreshToken: null },
+    });
   }
 
   async updateGoogleDriveSettings(dto: UpdateGoogleDriveSettingsDto) {
@@ -459,10 +472,13 @@ export class SettingsService {
 
     if (dto.enabled !== undefined) data.enabled = dto.enabled;
     if (dto.rootFolderId !== undefined) data.rootFolderId = dto.rootFolderId || null;
+    if (dto.oauthClientId !== undefined) data.oauthClientId = dto.oauthClientId || null;
 
-    // Only overwrite the JSON key if a real value is submitted (not the masked placeholder)
-    if (dto.serviceAccountJson !== undefined && dto.serviceAccountJson !== '••••••••') {
-      data.serviceAccountJson = dto.serviceAccountJson || null;
+    // Only overwrite secret if a real value is submitted (not the masked placeholder)
+    if (dto.oauthClientSecret !== undefined && dto.oauthClientSecret !== '••••••••') {
+      data.oauthClientSecret = dto.oauthClientSecret || null;
+      // Changing credentials invalidates any stored refresh token
+      data.oauthRefreshToken = null;
     }
 
     if (existing) {
@@ -472,7 +488,8 @@ export class SettingsService {
     return this.prisma.googleDriveSettings.create({
       data: {
         enabled: dto.enabled ?? false,
-        serviceAccountJson: dto.serviceAccountJson ?? null,
+        oauthClientId: dto.oauthClientId ?? null,
+        oauthClientSecret: dto.oauthClientSecret ?? null,
         rootFolderId: dto.rootFolderId ?? null,
       },
     });

@@ -1796,14 +1796,16 @@ model WebsiteSettings {
 // ─────────────────────────────────────────────
 
 model GoogleDriveSettings {
-  id                   String   @id @default(uuid())
+  id                String   @id @default(uuid())
 
-  enabled              Boolean  @default(false)
-  serviceAccountJson   String?  @map("service_account_json") @db.Text
-  rootFolderId         String?  @map("root_folder_id")
+  enabled           Boolean  @default(false)
+  oauthClientId     String?  @map("oauth_client_id")
+  oauthClientSecret String?  @map("oauth_client_secret")
+  oauthRefreshToken String?  @map("oauth_refresh_token") @db.Text
+  rootFolderId      String?  @map("root_folder_id")
 
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@map("google_drive_settings")
 }

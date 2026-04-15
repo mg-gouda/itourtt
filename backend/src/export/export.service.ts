@@ -972,6 +972,20 @@ export class ExportService {
       if (!items.length) return;
       drawSectionHeader(label);
 
+      // Pre-fetch all images in parallel across all evidence items in this group
+      const allUrls = items.flatMap(ev => ev.imageUrls ?? []);
+      const embeddedMap = new Map<string, Awaited<ReturnType<typeof embedImage>> | null>();
+      await Promise.all(
+        allUrls.map(async (rawUrl) => {
+          if (embeddedMap.has(rawUrl)) return;
+          try {
+            embeddedMap.set(rawUrl, await embedImage(rawUrl));
+          } catch {
+            embeddedMap.set(rawUrl, null);
+          }
+        }),
+      );
+
       for (const ev of items) {
         const metaDate = new Date(ev.createdAt).toLocaleString('en-GB', { timeZone: 'Africa/Cairo' });
         const rawMeta = `Submitted by: ${ev.submittedBy}   |   ${metaDate}`;
@@ -991,20 +1005,26 @@ export class ExportService {
           for (let c = 0; c < row.length; c++) {
             const rawUrl = row[c];
             const xBase  = M + c * (IMG_W + IMG_GAP);
-            try {
-              const embedded = await embedImage(rawUrl);
-              const d  = embedded.scale(1);
-              const sc = Math.min(IMG_W / d.width, IMG_H / d.height);
-              const iw = d.width  * sc;
-              const ih = d.height * sc;
-              rowH = Math.max(rowH, ih);
-              const ix = xBase + (IMG_W - iw) / 2;
-              page.drawImage(embedded, { x: ix, y: y - ih, width: iw, height: ih });
-              page.drawRectangle({
-                x: ix - 1, y: y - ih - 1, width: iw + 2, height: ih + 2,
-                borderColor: rgb(0.78, 0.78, 0.78), borderWidth: 0.5,
-              });
-            } catch {
+            const embedded = embeddedMap.get(rawUrl) ?? null;
+            if (embedded) {
+              try {
+                const d  = embedded.scale(1);
+                const sc = Math.min(IMG_W / d.width, IMG_H / d.height);
+                const iw = d.width  * sc;
+                const ih = d.height * sc;
+                rowH = Math.max(rowH, ih);
+                const ix = xBase + (IMG_W - iw) / 2;
+                page.drawImage(embedded, { x: ix, y: y - ih, width: iw, height: ih });
+                page.drawRectangle({
+                  x: ix - 1, y: y - ih - 1, width: iw + 2, height: ih + 2,
+                  borderColor: rgb(0.78, 0.78, 0.78), borderWidth: 0.5,
+                });
+              } catch {
+                rowH = Math.max(rowH, IMG_H);
+                page.drawRectangle({ x: xBase, y: y - IMG_H, width: IMG_W, height: IMG_H, color: rgb(0.9, 0.9, 0.9) });
+                page.drawText('Image unavailable', { x: xBase + 4, y: y - IMG_H / 2, size: 8, font: regular, color: grayC });
+              }
+            } else {
               rowH = Math.max(rowH, IMG_H);
               page.drawRectangle({ x: xBase, y: y - IMG_H, width: IMG_W, height: IMG_H, color: rgb(0.9, 0.9, 0.9) });
               page.drawText('Image unavailable', { x: xBase + 4, y: y - IMG_H / 2, size: 8, font: regular, color: grayC });
@@ -1505,5 +1525,110 @@ export class ExportService {
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     return Buffer.from(buf);
+  }
+
+  // ─────────────────────────────────────────────
+  // EVIDENCE DATA — JSON for client-side HTML rendering
+  // ─────────────────────────────────────────────
+
+  async getEvidenceData(jobId: string) {
+    const [settings, job] = await Promise.all([
+      this.prisma.companySettings.findFirst({
+        select: { companyName: true, logoUrl: true },
+      }),
+      this.prisma.trafficJob.findUnique({
+        where: { id: jobId },
+        include: {
+          agent: { select: { legalName: true, tradeName: true } },
+          assignment: {
+            include: {
+              vehicle: { select: { plateNumber: true, vehicleType: { select: { name: true } } } },
+              driver: { select: { name: true, mobileNumber: true } },
+              rep: { select: { name: true, mobileNumber: true } },
+            },
+          },
+          flight: true,
+          fromZone: { select: { name: true } },
+          toZone: { select: { name: true } },
+          originAirport: { select: { name: true, code: true } },
+          destinationAirport: { select: { name: true, code: true } },
+          originHotel: { select: { name: true } },
+          destinationHotel: { select: { name: true } },
+          noShowEvidence: { orderBy: { createdAt: 'asc' } },
+          inPlaceEvidence: { orderBy: { createdAt: 'asc' } },
+          completedEvidence: { orderBy: { createdAt: 'asc' } },
+        },
+      }),
+    ]);
+
+    if (!job) throw new NotFoundException('Job not found');
+
+    return {
+      companyName: settings?.companyName ?? 'iTour',
+      logoUrl: settings?.logoUrl ?? null,
+      job: {
+        id: job.id,
+        internalRef: job.internalRef,
+        agentRef: job.agentRef,
+        serviceType: job.serviceType,
+        status: job.status,
+        paxCount: job.paxCount,
+        jobDate: job.jobDate,
+        pickUpTime: job.pickUpTime,
+        notes: job.notes,
+        agentName: job.agent?.tradeName ?? job.agent?.legalName ?? null,
+        route: {
+          fromZone: job.fromZone?.name ?? null,
+          toZone: job.toZone?.name ?? null,
+          originAirport: job.originAirport ? `${job.originAirport.name} (${job.originAirport.code})` : null,
+          destinationAirport: job.destinationAirport ? `${job.destinationAirport.name} (${job.destinationAirport.code})` : null,
+          originHotel: job.originHotel?.name ?? null,
+          destinationHotel: job.destinationHotel?.name ?? null,
+        },
+        flight: job.flight ? {
+          flightNo: job.flight.flightNo,
+          carrier: job.flight.carrier,
+          arrivalTime: job.flight.arrivalTime,
+          departureTime: job.flight.departureTime,
+        } : null,
+        assignment: job.assignment ? {
+          vehicle: job.assignment.vehicle ? {
+            plateNumber: job.assignment.vehicle.plateNumber,
+            vehicleType: job.assignment.vehicle.vehicleType.name,
+          } : null,
+          driver: job.assignment.driver ? {
+            name: job.assignment.driver.name,
+            mobile: job.assignment.driver.mobileNumber,
+          } : null,
+          rep: job.assignment.rep ? {
+            name: job.assignment.rep.name,
+            mobile: job.assignment.rep.mobileNumber,
+          } : null,
+        } : null,
+      },
+      evidence: {
+        noShow: job.noShowEvidence.map(e => ({
+          id: e.id,
+          submittedBy: e.submittedBy,
+          createdAt: e.createdAt,
+          imageUrls: e.imageUrls,
+          gpsMapLink: e.gpsMapLink,
+        })),
+        inPlace: job.inPlaceEvidence.map(e => ({
+          id: e.id,
+          submittedBy: e.submittedBy,
+          createdAt: e.createdAt,
+          imageUrls: e.imageUrls,
+          gpsMapLink: e.gpsMapLink,
+        })),
+        completed: job.completedEvidence.map(e => ({
+          id: e.id,
+          submittedBy: e.submittedBy,
+          createdAt: e.createdAt,
+          imageUrls: e.imageUrls,
+          gpsMapLink: e.gpsMapLink,
+        })),
+      },
+    };
   }
 }

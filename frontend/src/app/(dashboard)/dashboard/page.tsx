@@ -16,15 +16,47 @@ import {
   Map,
   ArrowRightLeft,
   Repeat,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import { localDateStr } from "@/lib/utils";
+import { localDateStr, formatDate } from "@/lib/utils";
+
+interface JobSummary {
+  id: string;
+  internalRef: string;
+  serviceType: string;
+  status: string;
+  paxCount: number;
+  agent: { legalName: string } | null;
+  customer: { legalName: string } | null;
+  assignment: {
+    vehicle: { plateNumber: string; vehicleType: { name: string } } | null;
+    driver: { name: string } | null;
+    rep: { name: string } | null;
+  } | null;
+}
 
 interface DashboardStats {
   todayJobs: number;
+  activeJobs: number;
   unassignedJobs: number;
   assignmentRate: number;
   completionRate: number;
@@ -32,6 +64,7 @@ interface DashboardStats {
   cancelledJobs: number;
   byServiceType: Record<string, number>;
   byStatus: Record<string, number>;
+  jobs: JobSummary[];
 }
 
 function StatCard({
@@ -72,12 +105,22 @@ function StatCard({
   );
 }
 
+const STATUS_BADGE: Record<string, string> = {
+  PENDING: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  ASSIGNED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  IN_PROGRESS: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
+  COMPLETED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  NO_SHOW: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+};
+
 export default function DashboardPage() {
   const t = useT();
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
   const [stats, setStats] = useState<DashboardStats>({
     todayJobs: 0,
+    activeJobs: 0,
     unassignedJobs: 0,
     assignmentRate: 0,
     completionRate: 0,
@@ -85,8 +128,10 @@ export default function DashboardPage() {
     cancelledJobs: 0,
     byServiceType: {},
     byStatus: {},
+    jobs: [],
   });
   const [loading, setLoading] = useState(true);
+  const [modalFilter, setModalFilter] = useState<{ type: "status" | "serviceType"; key: string; label: string } | null>(null);
 
   const fetchStats = useCallback(async (date: string) => {
     setLoading(true);
@@ -98,6 +143,7 @@ export default function DashboardPage() {
       const byServiceType = report.byServiceType || {};
       setStats({
         todayJobs: report.totalJobs || 0,
+        activeJobs: report.activeJobs || 0,
         unassignedJobs: report.unassignedCount || 0,
         assignmentRate: report.assignmentRate || 0,
         completionRate: report.completionRate || 0,
@@ -105,6 +151,7 @@ export default function DashboardPage() {
         cancelledJobs: byStatus.CANCELLED || 0,
         byServiceType,
         byStatus,
+        jobs: report.jobs || [],
       });
     } catch {
       // silently fail – dashboard still renders with zeros
@@ -133,6 +180,14 @@ export default function DashboardPage() {
     { key: "NO_SHOW", label: t("dashHome.noShow"), color: "text-orange-500", bg: "bg-orange-500" },
     { key: "CANCELLED", label: t("dashHome.cancelled"), color: "text-red-500", bg: "bg-red-500" },
   ];
+
+  const modalJobs = modalFilter
+    ? stats.jobs.filter((j) =>
+        modalFilter.type === "status"
+          ? j.status === modalFilter.key
+          : j.serviceType === modalFilter.key
+      )
+    : [];
 
   return (
     <div className="space-y-6">
@@ -235,7 +290,7 @@ export default function DashboardPage() {
                 return (
                   <button
                     key={key}
-                    onClick={() => router.push(`/dashboard/dispatch`)}
+                    onClick={() => setModalFilter({ type: "serviceType", key, label })}
                     className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent"
                   >
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
@@ -268,11 +323,14 @@ export default function DashboardPage() {
             <div className="space-y-3">
               {statusRows.map(({ key, label, color, bg }) => {
                 const count = stats.byStatus[key] || 0;
-                const pct = stats.todayJobs > 0 ? Math.round((count / stats.todayJobs) * 100) : 0;
+                // percentage over active jobs for COMPLETED/IN_PROGRESS/ASSIGNED/PENDING/NO_SHOW;
+                // CANCELLED is shown as % of total
+                const base = key === "CANCELLED" ? stats.todayJobs : (stats.activeJobs || stats.todayJobs);
+                const pct = base > 0 ? Math.round((count / base) * 100) : 0;
                 return (
                   <button
                     key={key}
-                    onClick={() => router.push(`/dashboard/traffic-jobs?status=${key}`)}
+                    onClick={() => setModalFilter({ type: "status", key, label })}
                     className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent"
                   >
                     <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${bg}`} />
@@ -296,6 +354,65 @@ export default function DashboardPage() {
           </Card>
         </div>
       )}
+
+      {/* Jobs drill-down modal */}
+      <Dialog open={!!modalFilter} onOpenChange={(open) => { if (!open) setModalFilter(null); }}>
+        <DialogContent className="!w-[95vw] !max-w-[95vw] sm:!max-w-[95vw] max-h-[85vh] flex flex-col gap-0 p-0 border-2 border-white [&>button]:text-red-500 [&>button]:hover:text-red-600 [&>button]:opacity-100">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+            <DialogTitle className="flex items-center gap-2">
+              {modalFilter?.label} — {formatDate(selectedDate)}
+              <span className="ml-auto text-sm font-normal text-muted-foreground">
+                {modalJobs.length} job{modalJobs.length !== 1 ? "s" : ""}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto flex-1 px-6 py-4">
+            {modalJobs.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No jobs for this selection.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead>Ref</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Pax</TableHead>
+                    <TableHead>Agent</TableHead>
+                    <TableHead>Vehicle</TableHead>
+                    <TableHead>Driver</TableHead>
+                    <TableHead>Rep</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {modalJobs.map((j) => (
+                    <TableRow
+                      key={j.id}
+                      className="border-border cursor-pointer hover:bg-accent"
+                      onClick={() => {
+                        setModalFilter(null);
+                        router.push(`/dashboard/traffic-jobs?search=${j.internalRef}`);
+                      }}
+                    >
+                      <TableCell className="font-mono text-xs font-medium">{j.internalRef}</TableCell>
+                      <TableCell className="text-xs">{j.serviceType}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[j.status] || ""}`}>
+                          {j.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs">{j.paxCount}</TableCell>
+                      <TableCell className="text-xs">{j.agent?.legalName ?? j.customer?.legalName ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{j.assignment?.vehicle?.plateNumber ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{j.assignment?.driver?.name ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{j.assignment?.rep?.name ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

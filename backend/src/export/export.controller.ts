@@ -193,6 +193,17 @@ export class ExportController {
     this.sendXlsx(res, buffer, 'vehicle_compliance');
   }
 
+  // ──────────────────────────────────────────────
+  // GET /export/odoo/evidence-data/:jobId
+  // Returns structured JSON for evidence HTML rendering on the client.
+  // ──────────────────────────────────────────────
+  @Get('evidence-data/:jobId')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.evidence')
+  async getEvidenceData(@Param('jobId', ParseUUIDPipe) jobId: string) {
+    return this.exportService.getEvidenceData(jobId);
+  }
+
   @Get('evidence-pdf/:jobId')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
   @Permissions('reports.evidence')
