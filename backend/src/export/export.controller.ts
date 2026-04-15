@@ -194,6 +194,22 @@ export class ExportController {
   }
 
   // ──────────────────────────────────────────────
+  // GET /export/odoo/car-jobs
+  // Car Jobs report — filterable by date range and owned vehicle.
+  // ──────────────────────────────────────────────
+  @Get('car-jobs')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.carJobs')
+  async getCarJobsReport(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('vehicleId') vehicleId?: string,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    return this.exportService.getCarJobsReport({ from, to, vehicleId });
+  }
+
+  // ──────────────────────────────────────────────
   // GET /export/odoo/supplier-jobs
   // Supplier Jobs report — filterable by date range, supplier, and supplier status.
   // ──────────────────────────────────────────────

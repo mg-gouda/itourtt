@@ -1704,4 +1704,72 @@ export class ExportService {
 
     return { total: rows.length, rows };
   }
+
+  // ─────────────────────────────────────────────
+  // CAR JOBS REPORT
+  // ─────────────────────────────────────────────
+
+  async getCarJobsReport(opts: {
+    from: string;
+    to: string;
+    vehicleId?: string;
+  }) {
+    const fromDate = new Date(opts.from);
+    const toDate = new Date(opts.to);
+
+    const assignments = await this.prisma.trafficAssignment.findMany({
+      where: {
+        vehicleId: { not: null },
+        ...(opts.vehicleId ? { vehicleId: opts.vehicleId } : {}),
+        vehicle: { ownership: 'OWNED', isActive: true },
+        trafficJob: {
+          deletedAt: null,
+          jobDate: { gte: fromDate, lte: toDate },
+        },
+      },
+      include: {
+        vehicle: { select: { id: true, plateNumber: true } },
+        driver: { select: { name: true } },
+        trafficJob: {
+          include: {
+            agent:              { select: { legalName: true } },
+            originAirport:      { select: { code: true } },
+            originHotel:        { select: { name: true } },
+            originZone:         { select: { name: true } },
+            destinationAirport: { select: { code: true } },
+            destinationHotel:   { select: { name: true } },
+            destinationZone:    { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { trafficJob: { jobDate: 'asc' } },
+    });
+
+    const rows = assignments.map((a) => {
+      const job = a.trafficJob;
+      const origin =
+        job.originAirport?.code ??
+        job.originHotel?.name ??
+        job.originZone?.name ??
+        '—';
+      const destination =
+        job.destinationAirport?.code ??
+        job.destinationHotel?.name ??
+        job.destinationZone?.name ??
+        '—';
+      return {
+        id: a.id,
+        jobRef: job.internalRef,
+        agentName: job.agent?.legalName ?? '—',
+        serviceDate: job.jobDate,
+        origin,
+        destination,
+        driver: a.driver?.name ?? '—',
+        jobStatus: job.status,
+        plateNumber: a.vehicle?.plateNumber ?? '—',
+      };
+    });
+
+    return { total: rows.length, rows };
+  }
 }

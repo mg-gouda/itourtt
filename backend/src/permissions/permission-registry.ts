@@ -278,6 +278,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'reports.jobStatus', labelKey: 'permissions.reports.jobStatus' },
       { key: 'reports.evidence', labelKey: 'permissions.reports.evidence' },
       { key: 'reports.supplierJobs', labelKey: 'permissions.reports.supplierJobs' },
+      { key: 'reports.carJobs', labelKey: 'permissions.reports.carJobs' },
     ],
   },
 

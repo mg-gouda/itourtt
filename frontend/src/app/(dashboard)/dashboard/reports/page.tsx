@@ -399,6 +399,23 @@ interface Agent {
   legalName: string;
 }
 
+interface CarJobRow {
+  id: string;
+  jobRef: string;
+  agentName: string;
+  serviceDate: string;
+  origin: string;
+  destination: string;
+  driver: string;
+  jobStatus: string;
+  plateNumber: string;
+}
+
+interface CarJobsReport {
+  total: number;
+  rows: CarJobRow[];
+}
+
 interface SupplierJobRow {
   id: string;
   jobRef: string;
@@ -483,6 +500,7 @@ export default function ReportsPage() {
   const canJobStatus = usePermission("reports.jobStatus");
   const canEvidence = usePermission("reports.evidence");
   const canSupplierJobs = usePermission("reports.supplierJobs");
+  const canCarJobs = usePermission("reports.carJobs");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -575,6 +593,15 @@ export default function ReportsPage() {
   const [driverScoreLoading, setDriverScoreLoading] = useState(false);
   const driverScorePrintRef = useRef<HTMLDivElement>(null);
 
+  // Car Jobs Report
+  const [carJobsFrom, setCarJobsFrom] = useState(thirtyDaysAgo);
+  const [carJobsTo, setCarJobsTo] = useState(today);
+  const [carJobsVehicleId, setCarJobsVehicleId] = useState("ALL");
+  const [carJobsData, setCarJobsData] = useState<CarJobsReport | null>(null);
+  const [carJobsLoading, setCarJobsLoading] = useState(false);
+  const [ownedVehicleList, setOwnedVehicleList] = useState<Array<{ id: string; plateNumber: string }>>([]);
+  const carJobsPrintRef = useRef<HTMLDivElement>(null);
+
   // Supplier Jobs Report
   const [supplierJobsFrom, setSupplierJobsFrom] = useState(thirtyDaysAgo);
   const [supplierJobsTo, setSupplierJobsTo] = useState(today);
@@ -613,6 +640,7 @@ export default function ReportsPage() {
   const complianceSort = useSortable(filteredComplianceData);
   const jobStatusSort = useSortable(jobStatusData?.jobs || []);
   const supplierJobsSort = useSortable(supplierJobsData?.rows || []);
+  const carJobsSort = useSortable(carJobsData?.rows || []);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -632,6 +660,18 @@ export default function ReportsPage() {
       .then(({ data }) => {
         const list: Array<{ id: string; name: string }> = Array.isArray(data) ? data : data.data || [];
         setRepList(list.map((r) => ({ id: r.id, name: r.name })));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load owned active vehicles for car jobs filter
+  useEffect(() => {
+    api
+      .get("/vehicles?ownership=OWNED&isActive=true&limit=500")
+      .then(({ data }) => {
+        const list: Array<{ id: string; plateNumber: string }> =
+          Array.isArray(data) ? data : data.data || [];
+        setOwnedVehicleList(list.map((v) => ({ id: v.id, plateNumber: v.plateNumber })));
       })
       .catch(() => {});
   }, []);
@@ -874,6 +914,23 @@ export default function ReportsPage() {
   };
 
   const exportJobStatusPdf = () => printFromRef(jobStatusPrintRef, `Job Status Report - ${jobStatusFrom} to ${jobStatusTo}`);
+
+  const fetchCarJobs = async () => {
+    setCarJobsLoading(true);
+    try {
+      const params = new URLSearchParams({ from: carJobsFrom, to: carJobsTo });
+      if (carJobsVehicleId !== "ALL") params.set("vehicleId", carJobsVehicleId);
+      const { data } = await api.get(`/export/odoo/car-jobs?${params.toString()}`);
+      setCarJobsData(data.data ?? data);
+    } catch {
+      toast.error("Failed to load car jobs report");
+    } finally {
+      setCarJobsLoading(false);
+    }
+  };
+
+  const exportCarJobsPdf = () =>
+    printFromRef(carJobsPrintRef, `Car Jobs - ${carJobsFrom} to ${carJobsTo}`);
 
   const fetchSupplierJobs = async () => {
     setSupplierJobsLoading(true);
@@ -1318,7 +1375,8 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
         canVehicleCompliance ? "compliance" :
         canJobStatus ? "job-status" :
         canEvidence ? "evidence" :
-        canSupplierJobs ? "supplier-jobs" : "dispatch"
+        canSupplierJobs ? "supplier-jobs" :
+        canCarJobs ? "car-jobs" : "dispatch"
       } className="space-y-4">
         <TabsList className="bg-card border border-border">
           {canDailyDispatch && (
@@ -1416,6 +1474,15 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
             >
               <Truck className="h-3.5 w-3.5" />
               Supplier Jobs
+            </TabsTrigger>
+          )}
+          {canCarJobs && (
+            <TabsTrigger
+              value="car-jobs"
+              className="gap-1.5 data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <Car className="h-3.5 w-3.5" />
+              Car Jobs
             </TabsTrigger>
           )}
         </TabsList>
@@ -3316,6 +3383,122 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Truck className="mb-2 h-8 w-8" />
                 <p className="text-sm">Select filters and click Generate to view supplier jobs.</p>
+              </div>
+            )}
+          </TabsContent>
+        )}
+        {/* ─── CAR JOBS REPORT ─── */}
+        {canCarJobs && (
+          <TabsContent value="car-jobs" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-muted-foreground text-xs">Vehicle</Label>
+                  <Select value={carJobsVehicleId} onValueChange={setCarJobsVehicleId}>
+                    <SelectTrigger className="mt-1 w-52 border-border bg-card text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Owned Cars</SelectItem>
+                      {ownedVehicleList.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>{v.plateNumber}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
+                  <Input
+                    type="date"
+                    value={carJobsFrom}
+                    onChange={(e) => setCarJobsFrom(e.target.value)}
+                    className="mt-1 w-44 border-border bg-card text-foreground"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                  <Input
+                    type="date"
+                    value={carJobsTo}
+                    onChange={(e) => setCarJobsTo(e.target.value)}
+                    className="mt-1 w-44 border-border bg-card text-foreground"
+                  />
+                </div>
+                <Button onClick={fetchCarJobs} disabled={carJobsLoading} className="gap-1.5">
+                  {carJobsLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  {t("reports.generate")}
+                </Button>
+                {carJobsData && (
+                  <Button variant="outline" onClick={exportCarJobsPdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            {carJobsData ? (
+              <>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <StatCard label="Total Jobs" value={carJobsData.total} />
+                  <StatCard
+                    label="Completed"
+                    value={carJobsData.rows.filter((r) => r.jobStatus === "COMPLETED").length}
+                    color="text-emerald-600 dark:text-emerald-400"
+                  />
+                  <StatCard
+                    label="Pending"
+                    value={carJobsData.rows.filter((r) => r.jobStatus === "PENDING").length}
+                    color="text-amber-600 dark:text-amber-400"
+                  />
+                </div>
+
+                <div ref={carJobsPrintRef}>
+                  <div className="rounded-md border border-border overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border bg-gray-700/75 dark:bg-gray-800/75">
+                          <SortableHeader label="Job Ref" sortKey="jobRef" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                          <SortableHeader label="Agent Name" sortKey="agentName" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                          <SortableHeader label="Service Date" sortKey="serviceDate" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                          <SortableHeader label="Origin" sortKey="origin" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                          <SortableHeader label="Destination" sortKey="destination" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                          <SortableHeader label="Vehicle" sortKey="plateNumber" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                          <SortableHeader label="Driver" sortKey="driver" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                          <SortableHeader label="Job Status" sortKey="jobStatus" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {carJobsSort.sortedData.map((row) => (
+                          <TableRow key={row.id} className="border-border hover:bg-muted/30">
+                            <TableCell className="font-mono text-sm">{row.jobRef}</TableCell>
+                            <TableCell className="text-sm text-foreground">{row.agentName}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                              {new Date(row.serviceDate).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-sm text-foreground">{row.origin}</TableCell>
+                            <TableCell className="text-sm text-foreground">{row.destination}</TableCell>
+                            <TableCell className="font-mono text-sm text-muted-foreground">{row.plateNumber}</TableCell>
+                            <TableCell className="text-sm text-foreground">{row.driver}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={statusColors[row.jobStatus] || ""}>
+                                {row.jobStatus.replace(/_/g, " ")}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Car className="mb-2 h-8 w-8" />
+                <p className="text-sm">Select filters and click Generate to view car jobs.</p>
               </div>
             )}
           </TabsContent>
