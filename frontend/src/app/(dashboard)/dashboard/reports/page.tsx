@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import JobDetailModal from "@/components/job-detail-modal";
+import { SearchableCombobox } from "@/components/searchable-combobox";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -3394,17 +3395,19 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="flex flex-wrap items-end gap-3">
                 <div>
                   <Label className="text-muted-foreground text-xs">Vehicle</Label>
-                  <Select value={carJobsVehicleId} onValueChange={setCarJobsVehicleId}>
-                    <SelectTrigger className="mt-1 w-52 border-border bg-card text-foreground">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Owned Cars</SelectItem>
-                      {ownedVehicleList.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>{v.plateNumber}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="mt-1">
+                    <SearchableCombobox
+                      items={[
+                        { value: "ALL", label: "All Owned Cars" },
+                        ...ownedVehicleList.map((v) => ({ value: v.id, label: v.plateNumber })),
+                      ]}
+                      value={carJobsVehicleId}
+                      onChange={setCarJobsVehicleId}
+                      placeholder="All Owned Cars"
+                      searchPlaceholder="Search plate number…"
+                      triggerClassName="w-52 border-border bg-card text-foreground"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
