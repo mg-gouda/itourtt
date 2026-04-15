@@ -107,11 +107,35 @@ if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
   deploy_env "itour-travelplan" "TravelPlan" "${VERSION}"
 fi
 
-# ── Cleanup: remove unused images and Docker build cache ──
+# ── Cleanup: aggressively remove old images to save disk space ──
 echo ""
-echo ">> Pruning unused container images..."
-k3s ctr images ls -q | grep "^sha256:" | xargs -r k3s ctr images rm 2>/dev/null || true
-docker builder prune -af --filter "until=1h" -q 2>/dev/null || true
+echo ">> Cleaning up Docker images and build cache..."
+
+# Remove all unused Docker images (not just dangling — full prune)
+docker image prune -af -q 2>/dev/null || true
+
+# Remove old versioned itourtt images from Docker (keep only current VERSION)
+docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" \
+  | grep -E "^itourtt-(backend|frontend):" \
+  | grep -v ":${VERSION}" \
+  | awk '{print $2}' \
+  | xargs -r docker rmi -f 2>/dev/null || true
+
+# Remove all Docker build cache
+docker builder prune -af -q 2>/dev/null || true
+
+# Remove unused containerd/k3s images (untagged digests not referenced by any pod)
+echo ">> Cleaning up k3s containerd images..."
+RUNNING_IMAGES=$(kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' 2>/dev/null | sort -u)
+k3s ctr images ls -q 2>/dev/null | while read img; do
+  if ! echo "$RUNNING_IMAGES" | grep -qF "$img"; then
+    k3s ctr images rm "$img" 2>/dev/null || true
+  fi
+done
+
+# Show disk usage after cleanup
+echo ">> Disk usage after cleanup:"
+df -h / | awk 'NR==2 {printf "   %s used of %s (%s free)\n", $3, $2, $4}'
 
 echo ""
 echo "=== Deployment complete ==="
