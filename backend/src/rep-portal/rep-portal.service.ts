@@ -358,6 +358,7 @@ export class RepPortalService {
             originAirport: true,
             originZone: true,
             originHotel: { include: { zone: true } },
+            flight: true,
           },
         },
       },
@@ -369,6 +370,22 @@ export class RepPortalService {
 
     this.checkRepTimelock(assignment.trafficJob);
     this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
+
+    // Enforce IN PLACE time window: arrivalTime - 10min to arrivalTime + 80min
+    const flight = (assignment.trafficJob as any).flight;
+    if (flight?.arrivalTime) {
+      const now = new Date();
+      const arrivalTime = new Date(flight.arrivalTime);
+      const windowStart = new Date(arrivalTime.getTime() - 10 * 60 * 1000);
+      const windowEnd = new Date(arrivalTime.getTime() + 80 * 60 * 1000);
+      if (now < windowStart || now > windowEnd) {
+        const fmt = (d: Date) =>
+          d.toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false });
+        throw new BadRequestException(
+          `IN PLACE can only be submitted between ${fmt(windowStart)} and ${fmt(windowEnd)} (10 min before to 80 min after flight arrival)`,
+        );
+      }
+    }
 
     const currentStatus = assignment.repStatus;
 
@@ -560,6 +577,95 @@ export class RepPortalService {
 
       return { ...updated.trafficJob, repStatus: updated.repStatus };
     });
+  }
+
+  async submitFlightDelay(
+    userId: string,
+    jobId: string,
+    newArrivalTime: string,
+  ) {
+    const rep = await this.prisma.rep.findFirst({
+      where: { userId, deletedAt: null },
+      include: { user: { select: { name: true } } },
+    });
+    if (!rep) throw new ForbiddenException('No rep profile linked to this account');
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { repId: rep.id, trafficJobId: jobId },
+      include: {
+        trafficJob: {
+          select: { internalRef: true, serviceType: true, jobDate: true, flight: true },
+        },
+      },
+    });
+
+    if (!assignment) throw new NotFoundException('Job not found or not assigned to you');
+    if (assignment.trafficJob.serviceType !== 'ARR') {
+      throw new BadRequestException('Flight delay can only be reported for arrival (ARR) jobs');
+    }
+    if (!(assignment.trafficJob as any).flight) {
+      throw new BadRequestException('This job has no flight information to update');
+    }
+
+    const newTime = new Date(newArrivalTime);
+    if (isNaN(newTime.getTime())) {
+      throw new BadRequestException('Invalid date/time format');
+    }
+
+    await this.prisma.trafficFlight.update({
+      where: { trafficJobId: jobId },
+      data: { arrivalTime: newTime },
+    });
+
+    const job = assignment.trafficJob;
+    const repName = rep.user?.name ?? (rep as any).name ?? 'Rep';
+    const newTimeStr = newTime.toLocaleString('en-GB', {
+      timeZone: 'Africa/Cairo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+
+    const title = `✈ Flight Delay: ${job.internalRef}`;
+    const message = `${repName} reported a flight delay. New arrival time: ${newTimeStr}. Please verify and update IN PLACE window if needed.`;
+
+    const recipients = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        OR: [
+          {
+            roleRef: {
+              permissions: {
+                some: { permissionKey: { in: ['traffic-jobs', 'dispatch'] } },
+              },
+            },
+          },
+          { role: 'ADMIN' },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (recipients.length > 0) {
+      await this.prisma.userNotification.createMany({
+        data: recipients.map((r) => ({
+          userId: r.id,
+          title,
+          message,
+          type: 'GENERAL' as const,
+          trafficJobId: jobId,
+          metadata: { repName, newArrivalTime: newTime.toISOString() },
+        })),
+      });
+    }
+
+    this.logger.log(`Flight delay reported for ${job.internalRef} by ${repName}: new arrival ${newTimeStr}`);
+
+    return { success: true, newArrivalTime: newTime.toISOString(), recipientCount: recipients.length };
   }
 
   async submitUpdate(

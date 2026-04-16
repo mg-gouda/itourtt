@@ -29,12 +29,16 @@ const uploadsDir = path.join(process.cwd(), 'uploads', 'no-show');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+const completedUploadsDir = path.join(process.cwd(), 'uploads', 'completed');
+if (!fs.existsSync(completedUploadsDir)) {
+  fs.mkdirSync(completedUploadsDir, { recursive: true });
+}
 
 const memStore = memoryStorage();
 
 class UpdateJobStatusDto {
   @IsString()
-  @IsIn(['IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
+  @IsIn(['IN_PROGRESS', 'CANCELLED'])
   status!: string;
 
   @IsNumber()
@@ -145,6 +149,30 @@ export class DriverPortalController {
 
     const result = await this.driverPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'No-show evidence submitted');
+  }
+
+  @Post('jobs/:jobId/completed')
+  @UseInterceptors(FilesInterceptor('images', 10, { storage: memStore }))
+  async submitCompleted(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { latitude: string; longitude: string },
+  ) {
+    if (!files || files.length < 1) {
+      throw new BadRequestException('At least one image is required for completed evidence');
+    }
+
+    const latitude = parseFloat(body.latitude);
+    const longitude = parseFloat(body.longitude);
+    if (isNaN(latitude) || isNaN(longitude)) {
+      throw new BadRequestException('Valid GPS coordinates are required');
+    }
+
+    const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed');
+
+    const result = await this.driverPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);
+    return new ApiResponse(result, 'Completed evidence submitted');
   }
 
   @Get('notifications')

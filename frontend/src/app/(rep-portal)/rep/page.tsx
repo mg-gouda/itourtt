@@ -30,10 +30,9 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPinCheck,
-  MessageSquarePlus,
+  AlertTriangle,
 } from "lucide-react";
 import JobDetailModal from "@/components/job-detail-modal";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { InPlaceEvidenceDialog } from "@/components/in-place-evidence-dialog";
@@ -147,13 +146,15 @@ export default function RepDashboardPage() {
     jobId: string;
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
-  const [updateDialog, setUpdateDialog] = useState<{
+  const [flightDelayDialog, setFlightDelayDialog] = useState<{
     open: boolean;
     jobId: string;
     jobRef: string;
-  }>({ open: false, jobId: "", jobRef: "" });
-  const [updateMessage, setUpdateMessage] = useState("");
-  const [sendingUpdate, setSendingUpdate] = useState(false);
+    currentArrivalTime: string | null;
+  }>({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
+  const [flightDelayDate, setFlightDelayDate] = useState("");
+  const [flightDelayTime, setFlightDelayTime] = useState("");
+  const [sendingDelay, setSendingDelay] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
 
   const shiftDate = (days: number) => {
@@ -232,23 +233,26 @@ export default function RepDashboardPage() {
     }
   };
 
-  const handleSendUpdate = async () => {
-    if (!updateMessage.trim()) return;
-    setSendingUpdate(true);
+  const handleFlightDelay = async () => {
+    if (!flightDelayDate || !flightDelayTime) return;
+    setSendingDelay(true);
     try {
-      await api.post(`/rep-portal/jobs/${updateDialog.jobId}/update`, {
-        message: updateMessage.trim(),
+      const newArrivalTime = new Date(`${flightDelayDate}T${flightDelayTime}:00`).toISOString();
+      await api.patch(`/rep-portal/jobs/${flightDelayDialog.jobId}/flight-delay`, {
+        arrivalTime: newArrivalTime,
       });
-      toast.success(t("portal.updateSent"));
-      setUpdateDialog({ open: false, jobId: "", jobRef: "" });
-      setUpdateMessage("");
+      toast.success(`Flight delay reported for ${flightDelayDialog.jobRef}. Operators have been notified.`);
+      setFlightDelayDialog({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
+      setFlightDelayDate("");
+      setFlightDelayTime("");
+      fetchJobs();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t("portal.updateFailed");
+          ?.message || "Failed to report flight delay";
       toast.error(message);
     } finally {
-      setSendingUpdate(false);
+      setSendingDelay(false);
     }
   };
 
@@ -355,9 +359,10 @@ export default function RepDashboardPage() {
                     key={job.id}
                     job={job}
                     onStatusChange={handleStatusChange}
-                    onUpdate={(jobId, jobRef) => {
-                      setUpdateMessage("");
-                      setUpdateDialog({ open: true, jobId, jobRef });
+                    onFlightDelay={(jobId, jobRef, arrivalTime) => {
+                      setFlightDelayDate(arrivalTime ? arrivalTime.split("T")[0] : localDateStr(new Date()));
+                      setFlightDelayTime(arrivalTime ? new Date(arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "");
+                      setFlightDelayDialog({ open: true, jobId, jobRef, currentArrivalTime: arrivalTime });
                     }}
                     onViewDetail={setJobDetailId}
                     formatTime={formatTime}
@@ -378,9 +383,10 @@ export default function RepDashboardPage() {
                     key={job.id}
                     job={job}
                     onStatusChange={handleStatusChange}
-                    onUpdate={(jobId, jobRef) => {
-                      setUpdateMessage("");
-                      setUpdateDialog({ open: true, jobId, jobRef });
+                    onFlightDelay={(jobId, jobRef, arrivalTime) => {
+                      setFlightDelayDate(arrivalTime ? arrivalTime.split("T")[0] : localDateStr(new Date()));
+                      setFlightDelayTime(arrivalTime ? new Date(arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "");
+                      setFlightDelayDialog({ open: true, jobId, jobRef, currentArrivalTime: arrivalTime });
                     }}
                     onViewDetail={setJobDetailId}
                     formatTime={formatTime}
@@ -527,48 +533,70 @@ export default function RepDashboardPage() {
         onSuccess={fetchJobs}
       />
 
-      {/* Rep Update Dialog */}
+      {/* Flight Delay Dialog */}
       <Dialog
-        open={updateDialog.open}
+        open={flightDelayDialog.open}
         onOpenChange={(open) => {
           if (!open) {
-            setUpdateDialog({ open: false, jobId: "", jobRef: "" });
-            setUpdateMessage("");
+            setFlightDelayDialog({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
+            setFlightDelayDate("");
+            setFlightDelayTime("");
           }
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("portal.sendUpdate")}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-400" />
+              Report Flight Delay
+            </DialogTitle>
             <DialogDescription>
-              {t("portal.sendUpdateDesc")}{" "}
-              <span className="font-semibold">{updateDialog.jobRef}</span>
+              Report a new arrival time for job{" "}
+              <span className="font-semibold">{flightDelayDialog.jobRef}</span>.
+              Dispatch operators will be notified immediately.
             </DialogDescription>
           </DialogHeader>
-          <Textarea
-            value={updateMessage}
-            onChange={(e) => setUpdateMessage(e.target.value)}
-            placeholder={t("portal.updatePlaceholder")}
-            rows={4}
-            className="resize-none"
-          />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">New Arrival Date</label>
+                <input
+                  type="date"
+                  value={flightDelayDate}
+                  onChange={(e) => setFlightDelayDate(e.target.value)}
+                  className="w-full h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">New Arrival Time</label>
+                <input
+                  type="time"
+                  value={flightDelayTime}
+                  onChange={(e) => setFlightDelayTime(e.target.value)}
+                  className="w-full h-9 rounded-md border border-border bg-card px-3 text-sm text-foreground"
+                />
+              </div>
+            </div>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
-                setUpdateDialog({ open: false, jobId: "", jobRef: "" });
-                setUpdateMessage("");
+                setFlightDelayDialog({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
+                setFlightDelayDate("");
+                setFlightDelayTime("");
               }}
-              disabled={sendingUpdate}
+              disabled={sendingDelay}
             >
               {t("common.cancel")}
             </Button>
             <Button
-              onClick={handleSendUpdate}
-              disabled={!updateMessage.trim() || sendingUpdate}
+              onClick={handleFlightDelay}
+              disabled={!flightDelayDate || !flightDelayTime || sendingDelay}
+              className="bg-amber-600 hover:bg-amber-700"
             >
-              {sendingUpdate && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("portal.sendUpdateBtn")}
+              {sendingDelay && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Report Delay
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -587,13 +615,13 @@ export default function RepDashboardPage() {
 function JobCard({
   job,
   onStatusChange,
-  onUpdate,
+  onFlightDelay,
   onViewDetail,
   formatTime,
 }: {
   job: RepJob;
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
-  onUpdate: (jobId: string, jobRef: string) => void;
+  onFlightDelay: (jobId: string, jobRef: string, arrivalTime: string | null) => void;
   onViewDetail: (jobId: string) => void;
   formatTime: (iso: string | null) => string | null;
 }) {
@@ -604,6 +632,24 @@ function JobCard({
     job.serviceType === "ARR"
       ? formatTime(job.flight?.arrivalTime ?? null)
       : formatTime(job.flight?.departureTime ?? null);
+
+  // IN PLACE is only active within 10 min before to 80 min after flight arrival
+  const inPlaceWindowOpen = (() => {
+    if (job.serviceType !== "ARR" || !job.flight?.arrivalTime) return true;
+    const now = new Date();
+    const arr = new Date(job.flight.arrivalTime);
+    return now >= new Date(arr.getTime() - 10 * 60 * 1000) &&
+           now <= new Date(arr.getTime() + 80 * 60 * 1000);
+  })();
+
+  const inPlaceWindowMsg = (() => {
+    if (!job.flight?.arrivalTime || inPlaceWindowOpen) return "";
+    const arr = new Date(job.flight.arrivalTime);
+    const start = new Date(arr.getTime() - 10 * 60 * 1000);
+    const end = new Date(arr.getTime() + 80 * 60 * 1000);
+    const fmt = (d: Date) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return `Available ${fmt(start)} – ${fmt(end)}`;
+  })();
 
   return (
     <Card className={isTerminal ? "opacity-60" : ""}>
@@ -733,11 +779,16 @@ function JobCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-1.5 text-emerald-400 hover:text-emerald-300"
+                  className="gap-1.5 text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
                   onClick={() => onStatusChange(job.id, job.internalRef, "IN_PLACE")}
+                  disabled={!inPlaceWindowOpen}
+                  title={inPlaceWindowMsg || undefined}
                 >
                   <MapPinCheck className="h-3.5 w-3.5" />
                   {t("portal.inPlace")}
+                  {!inPlaceWindowOpen && inPlaceWindowMsg && (
+                    <span className="ml-1 text-[10px] opacity-70">({inPlaceWindowMsg})</span>
+                  )}
                 </Button>
               )}
               <Button
@@ -749,17 +800,15 @@ function JobCard({
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 {t("portal.complete")}
               </Button>
-              {!isTerminal && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 text-orange-400 hover:text-orange-300"
-                  onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
-                >
-                  <UserX className="h-3.5 w-3.5" />
-                  {t("portal.noShow")}
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-orange-400 hover:text-orange-300"
+                onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
+              >
+                <UserX className="h-3.5 w-3.5" />
+                {t("portal.noShow")}
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -771,15 +820,17 @@ function JobCard({
               </Button>
             </>
           )}
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 text-blue-400 hover:text-blue-300"
-            onClick={() => onUpdate(job.id, job.internalRef)}
-          >
-            <MessageSquarePlus className="h-3.5 w-3.5" />
-            {t("portal.update")}
-          </Button>
+          {job.serviceType === "ARR" && !isTerminal && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-amber-400 hover:text-amber-300"
+              onClick={() => onFlightDelay(job.id, job.internalRef, job.flight?.arrivalTime ?? null)}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Flight Delay
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

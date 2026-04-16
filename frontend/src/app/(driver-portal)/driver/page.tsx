@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
+import { CompletedEvidenceDialog } from "@/components/completed-evidence-dialog";
 import JobDetailModal from "@/components/job-detail-modal";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
@@ -138,6 +139,11 @@ export default function DriverDashboardPage() {
     jobId: string;
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
+  const [completedDialog, setCompletedDialog] = useState<{
+    open: boolean;
+    jobId: string;
+    jobRef: string;
+  }>({ open: false, jobId: "", jobRef: "" });
   const [updating, setUpdating] = useState(false);
   const [collectingJobId, setCollectingJobId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
@@ -195,6 +201,10 @@ export default function DriverDashboardPage() {
   const handleStatusChange = (jobId: string, jobRef: string, status: string) => {
     if (status === "NO_SHOW") {
       setNoShowDialog({ open: true, jobId, jobRef });
+      return;
+    }
+    if (status === "COMPLETED") {
+      setCompletedDialog({ open: true, jobId, jobRef });
       return;
     }
     setConfirmDialog({ open: true, jobId, jobRef, status });
@@ -470,6 +480,18 @@ export default function DriverDashboardPage() {
         onSuccess={fetchJobs}
       />
 
+      {/* Completed Evidence Dialog */}
+      <CompletedEvidenceDialog
+        open={completedDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setCompletedDialog({ open: false, jobId: "", jobRef: "" });
+        }}
+        jobId={completedDialog.jobId}
+        jobRef={completedDialog.jobRef}
+        portalApiBase="/driver-portal"
+        onSuccess={fetchJobs}
+      />
+
       <JobDetailModal
         jobId={jobDetailId}
         open={jobDetailId !== null}
@@ -502,6 +524,23 @@ function DriverJobCard({
     job.serviceType === "ARR"
       ? formatTime(job.flight?.arrivalTime ?? null)
       : formatTime(job.flight?.departureTime ?? null);
+
+  // Compute job reference time for time guards
+  const jobTime = (() => {
+    const rawTime = job.serviceType === "ARR"
+      ? job.flight?.arrivalTime
+      : job.pickUpTime;
+    return rawTime ? new Date(rawTime) : null;
+  })();
+  const now = new Date();
+  const canStartProgress = !jobTime || now >= jobTime;
+  const canComplete = !jobTime || now >= new Date(jobTime.getTime() + 15 * 60 * 1000);
+  const progressBlockMsg = jobTime && !canStartProgress
+    ? `Available from ${jobTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    : "";
+  const completeBlockMsg = jobTime && !canComplete
+    ? `Available from ${new Date(jobTime.getTime() + 15 * 60 * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    : "";
 
   return (
     <Card className={isTerminal ? "opacity-60" : ""}>
@@ -657,11 +696,16 @@ function DriverJobCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 text-cyan-400 hover:text-cyan-300"
+                className="gap-1.5 text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
                 onClick={() => onStatusChange(job.id, job.internalRef, "IN_PROGRESS")}
+                disabled={!canStartProgress}
+                title={progressBlockMsg || undefined}
               >
                 <PlayCircle className="h-3.5 w-3.5" />
                 {t("portal.inProgress")}
+                {!canStartProgress && progressBlockMsg && (
+                  <span className="ml-1 text-[10px] opacity-70">({progressBlockMsg})</span>
+                )}
               </Button>
             )}
             <Button
@@ -669,11 +713,18 @@ function DriverJobCard({
               variant="default"
               className="gap-1.5"
               onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
-              disabled={job.collectionRequired && !job.collectionCollected}
-              title={job.collectionRequired && !job.collectionCollected ? (t("portal.collectionRequiredBeforeComplete") || "Collect payment before completing") : ""}
+              disabled={(job.collectionRequired && !job.collectionCollected) || !canComplete}
+              title={
+                job.collectionRequired && !job.collectionCollected
+                  ? (t("portal.collectionRequiredBeforeComplete") || "Collect payment before completing")
+                  : completeBlockMsg || undefined
+              }
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               {t("portal.complete")}
+              {!canComplete && completeBlockMsg && (
+                <span className="ml-1 text-[10px] opacity-70">({completeBlockMsg})</span>
+              )}
             </Button>
             <Button
               size="sm"

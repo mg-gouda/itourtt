@@ -22,68 +22,88 @@ function stampImage(
 ): Promise<{ stamped: File; preview: string }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return reject(new Error("Canvas not supported"));
+      try {
+        const canvas = document.createElement("canvas");
+        const MAX_W = 2000;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX_W) {
+          h = Math.round(h * MAX_W / w);
+          w = MAX_W;
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          return reject(new Error("Canvas not supported"));
+        }
 
-      ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(objectUrl);
 
-      const now = new Date();
-      const dateLine = now.toLocaleString("en-GB", {
-        timeZone: "Africa/Cairo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      });
-      const gpsLine = gps
-        ? `GPS: ${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)}`
-        : "GPS: unavailable";
+        const now = new Date();
+        const dateLine = now.toLocaleString("en-GB", {
+          timeZone: "Africa/Cairo",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
+        const gpsLine = gps
+          ? `GPS: ${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)}`
+          : "GPS: unavailable";
 
-      const fontSize = Math.max(14, Math.min(48, Math.round(img.width * 0.02)));
-      ctx.font = `bold ${fontSize}px monospace`;
-      ctx.textBaseline = "bottom";
+        const fontSize = Math.max(14, Math.min(48, Math.round(w * 0.02)));
+        ctx.font = `bold ${fontSize}px monospace`;
+        ctx.textBaseline = "bottom";
 
-      const lines = [dateLine, gpsLine];
-      const lineHeight = fontSize * 1.3;
-      const padding = fontSize * 0.5;
+        const lines = [dateLine, gpsLine];
+        const lineHeight = fontSize * 1.3;
+        const padding = fontSize * 0.5;
 
-      let maxWidth = 0;
-      for (const line of lines) {
-        const w = ctx.measureText(line).width;
-        if (w > maxWidth) maxWidth = w;
+        let maxWidth = 0;
+        for (const line of lines) {
+          const mw = ctx.measureText(line).width;
+          if (mw > maxWidth) maxWidth = mw;
+        }
+
+        const bgHeight = lines.length * lineHeight + padding * 2;
+        const bgWidth = maxWidth + padding * 2;
+        const bgY = h - bgHeight;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(0, bgY, bgWidth, bgHeight);
+
+        ctx.fillStyle = "#FFD700";
+        lines.forEach((line, i) => {
+          ctx.fillText(line, padding, bgY + padding + (i + 1) * lineHeight);
+        });
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error("Failed to export canvas"));
+            const stamped = new File([blob], file.name, { type: "image/jpeg" });
+            const preview = canvas.toDataURL("image/jpeg", 0.85);
+            resolve({ stamped, preview });
+          },
+          "image/jpeg",
+          0.85,
+        );
+      } catch (err) {
+        URL.revokeObjectURL(objectUrl);
+        reject(err);
       }
-
-      const bgHeight = lines.length * lineHeight + padding * 2;
-      const bgWidth = maxWidth + padding * 2;
-      const bgY = img.height - bgHeight;
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-      ctx.fillRect(0, bgY, bgWidth, bgHeight);
-
-      ctx.fillStyle = "#FFD700";
-      lines.forEach((line, i) => {
-        ctx.fillText(line, padding, bgY + padding + (i + 1) * lineHeight);
-      });
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return reject(new Error("Failed to export canvas"));
-          const stamped = new File([blob], file.name, { type: "image/jpeg" });
-          const preview = canvas.toDataURL("image/jpeg", 0.85);
-          resolve({ stamped, preview });
-        },
-        "image/jpeg",
-        0.85,
-      );
     };
-    img.onerror = () => reject(new Error("Failed to load image"));
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load image"));
+    };
+    img.src = objectUrl;
   });
 }
 

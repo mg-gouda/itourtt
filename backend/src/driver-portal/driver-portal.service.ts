@@ -9,9 +9,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
 import { NoShowDisputeService } from './no-show-dispute.service.js';
 
-type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+type DriverJobStatus = 'IN_PROGRESS' | 'CANCELLED';
 
-const DRIVER_ALLOWED_STATUSES: DriverJobStatus[] = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+const DRIVER_ALLOWED_STATUSES: DriverJobStatus[] = ['IN_PROGRESS', 'CANCELLED'];
 const DRIVER_TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
 const DRIVER_VALID_TRANSITIONS: Record<string, string[]> = {
@@ -164,6 +164,7 @@ export class DriverPortalService {
             originAirport: true,
             originZone: true,
             originHotel: { include: { zone: true } },
+            flight: true,
           },
         },
       },
@@ -184,9 +185,27 @@ export class DriverPortalService {
       );
     }
 
-    // Collection guard: driver must collect before completing
-    if (status === 'COMPLETED' && assignment.trafficJob.collectionRequired && !assignment.trafficJob.collectionCollected) {
-      throw new BadRequestException('Collection must be marked as collected before completing the job');
+    // Time guard: cannot start IN_PROGRESS before job time
+    if (status === 'IN_PROGRESS') {
+      const flight = (assignment.trafficJob as any).flight;
+      const jobTime =
+        assignment.trafficJob.serviceType === 'ARR'
+          ? (flight?.arrivalTime ?? null)
+          : (assignment.trafficJob.pickUpTime ?? null);
+      if (jobTime) {
+        const now = new Date();
+        if (now < new Date(jobTime)) {
+          const timeStr = new Date(jobTime).toLocaleTimeString('en-GB', {
+            timeZone: 'Africa/Cairo',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          });
+          throw new BadRequestException(
+            `Cannot start job before the scheduled time (${timeStr})`,
+          );
+        }
+      }
     }
 
     const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
@@ -215,61 +234,174 @@ export class DriverPortalService {
         },
       });
 
-      if (status === 'COMPLETED') {
-        const job = updated.trafficJob;
-        const repAssigned = !!updated.repId;
-        const repCompleted = updated.repStatus === 'COMPLETED';
-        const shouldCompleteJob = !repAssigned || repCompleted;
-
-        if (shouldCompleteJob) {
-          await tx.trafficJob.update({
-            where: { id: jobId },
-            data: { status: 'COMPLETED' as any },
-          });
-
-          // Auto-generate DriverTripFee
-          if (updated.driverId && job.fromZoneId && job.toZoneId) {
-            const existingDriverFee = await tx.driverTripFee.findFirst({
-              where: { driverId: updated.driverId, trafficJobId: jobId },
-            });
-            if (!existingDriverFee) {
-              await tx.driverTripFee.create({
-                data: {
-                  driverId: updated.driverId,
-                  trafficJobId: jobId,
-                  fromZoneId: job.fromZoneId,
-                  toZoneId: job.toZoneId,
-                  amount: 0,
-                  currency: 'EGP',
-                },
-              });
-            }
-          }
-
-          // Auto-generate RepFee for ARR jobs
-          if (job.serviceType === 'ARR' && updated.repId) {
-            const existingRepFee = await tx.repFee.findFirst({
-              where: { repId: updated.repId, trafficJobId: jobId },
-            });
-            if (!existingRepFee) {
-              const rep = await tx.rep.findUniqueOrThrow({ where: { id: updated.repId } });
-              await tx.repFee.create({
-                data: {
-                  repId: updated.repId,
-                  trafficJobId: jobId,
-                  amount: rep.feePerFlight,
-                  currency: 'EGP',
-                },
-              });
-            }
-          }
-        }
-      }
-
       return {
         ...updated.trafficJob,
         driverStatus: updated.driverStatus,
       };
+    });
+  }
+
+  async submitCompleted(
+    userId: string,
+    jobId: string,
+    imageUrls: string[],
+    latitude: number,
+    longitude: number,
+  ) {
+    const driver = await this.prisma.driver.findFirst({
+      where: { userId, deletedAt: null },
+      include: { user: { select: { name: true } } },
+    });
+    if (!driver) throw new ForbiddenException('No driver profile linked to this account');
+    const driverId = driver.id;
+    const submittedByLabel = `DRIVER-${driver.user?.name ?? 'Unknown'}`;
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { driverId, trafficJobId: jobId },
+      include: {
+        trafficJob: {
+          include: {
+            originAirport: true,
+            originZone: true,
+            originHotel: { include: { zone: true } },
+            flight: true,
+          },
+        },
+      },
+    });
+
+    if (!assignment) throw new NotFoundException('Job not found or not assigned to you');
+
+    this.checkDriverTimelock(assignment.trafficJob);
+    this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
+
+    const currentStatus = assignment.driverStatus;
+    if (DRIVER_TERMINAL_STATUSES.includes(currentStatus)) {
+      throw new BadRequestException(`Driver status is already terminal: "${currentStatus}"`);
+    }
+    if (!['PENDING', 'IN_PROGRESS'].includes(currentStatus)) {
+      throw new BadRequestException(`Cannot complete job from "${currentStatus}"`);
+    }
+
+    // Time guard: at least 15 minutes after job time
+    const flight = (assignment.trafficJob as any).flight;
+    const jobTime =
+      assignment.trafficJob.serviceType === 'ARR'
+        ? (flight?.arrivalTime ?? null)
+        : (assignment.trafficJob.pickUpTime ?? null);
+    if (jobTime) {
+      const now = new Date();
+      const minCompleteAt = new Date(new Date(jobTime).getTime() + 15 * 60 * 1000);
+      if (now < minCompleteAt) {
+        const timeStr = minCompleteAt.toLocaleTimeString('en-GB', {
+          timeZone: 'Africa/Cairo',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+        throw new BadRequestException(
+          `Cannot mark job as completed before ${timeStr} (minimum 15 minutes after job time)`,
+        );
+      }
+    }
+
+    // Collection guard
+    if (assignment.trafficJob.collectionRequired && !assignment.trafficJob.collectionCollected) {
+      throw new BadRequestException('Collection must be marked as collected before completing the job');
+    }
+
+    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.trafficAssignment.update({
+        where: { id: assignment.id },
+        data: { driverStatus: 'COMPLETED' as any },
+        include: { trafficJob: { include: this.jobInclude } },
+      });
+
+      await tx.completedEvidence.create({
+        data: {
+          trafficJobId: jobId,
+          imageUrls,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+          submittedBy: submittedByLabel,
+          submittedById: driverId,
+        },
+      });
+
+      await tx.statusChangeLog.create({
+        data: {
+          assignmentId: assignment.id,
+          changedBy: 'DRIVER',
+          changedById: driverId,
+          previousStatus: currentStatus as any,
+          newStatus: 'COMPLETED' as any,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+        },
+      });
+
+      const job = updated.trafficJob;
+      const isDepJob = job.serviceType === 'DEP';
+
+      // For DEP jobs: auto-complete any assigned rep
+      if (isDepJob && updated.repId && !DRIVER_TERMINAL_STATUSES.includes(updated.repStatus as string)) {
+        await tx.trafficAssignment.update({
+          where: { id: assignment.id },
+          data: { repStatus: 'COMPLETED' as any },
+        });
+      }
+
+      const repAssigned = !!updated.repId;
+      const repCompleted = updated.repStatus === 'COMPLETED';
+      const shouldCompleteJob = !repAssigned || repCompleted || isDepJob;
+
+      if (shouldCompleteJob) {
+        await tx.trafficJob.update({
+          where: { id: jobId },
+          data: { status: 'COMPLETED' as any },
+        });
+
+        if (updated.driverId && job.fromZoneId && job.toZoneId) {
+          const existingDriverFee = await tx.driverTripFee.findFirst({
+            where: { driverId: updated.driverId, trafficJobId: jobId },
+          });
+          if (!existingDriverFee) {
+            await tx.driverTripFee.create({
+              data: {
+                driverId: updated.driverId,
+                trafficJobId: jobId,
+                fromZoneId: job.fromZoneId,
+                toZoneId: job.toZoneId,
+                amount: 0,
+                currency: 'EGP',
+              },
+            });
+          }
+        }
+
+        if (job.serviceType === 'ARR' && updated.repId) {
+          const existingRepFee = await tx.repFee.findFirst({
+            where: { repId: updated.repId, trafficJobId: jobId },
+          });
+          if (!existingRepFee) {
+            const rep = await tx.rep.findUniqueOrThrow({ where: { id: updated.repId } });
+            await tx.repFee.create({
+              data: {
+                repId: updated.repId,
+                trafficJobId: jobId,
+                amount: rep.feePerFlight,
+                currency: 'EGP',
+              },
+            });
+          }
+        }
+      }
+
+      return { ...updated.trafficJob, driverStatus: updated.driverStatus };
     });
   }
 

@@ -181,6 +181,19 @@ export class RepPortalController {
     return new ApiResponse(result, 'Completed evidence submitted');
   }
 
+  @Patch('jobs/:jobId/flight-delay')
+  async submitFlightDelay(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Body() body: { arrivalTime: string },
+  ) {
+    if (!body.arrivalTime) {
+      throw new BadRequestException('New arrival time is required');
+    }
+    const result = await this.repPortalService.submitFlightDelay(userId, jobId, body.arrivalTime);
+    return new ApiResponse(result, 'Flight delay reported successfully');
+  }
+
   @Post('jobs/:jobId/update')
   async submitUpdate(
     @CurrentUser('id') userId: string,
