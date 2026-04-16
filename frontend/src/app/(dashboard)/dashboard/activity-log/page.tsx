@@ -41,6 +41,17 @@ import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
 import { localDateStr } from "@/lib/utils";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const ACTIVITY_COL_DEFS: ColumnDef[] = [
+  { key: "dateTime", label: "Date/Time" },
+  { key: "user", label: "User" },
+  { key: "action", label: "Action" },
+  { key: "entity", label: "Entity" },
+  { key: "summary", label: "Summary" },
+];
 
 // ─── Types ──────────────────────────────────────────────────────
 interface ActivityLog {
@@ -99,6 +110,8 @@ export default function ActivityLogPage() {
   const [exporting, setExporting] = useState(false);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(logs);
+  const { visibility: actColVis, saveVisibility: saveActColVis } = useColumnPreferences("activity_log", ACTIVITY_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => actColVis[key] !== false;
 
   // Track current page for pagination re-fetch
   const pageRef = useRef(page);
@@ -421,40 +434,17 @@ export default function ActivityLogPage() {
       ) : (
         <>
           <div className="overflow-x-auto">
+            <div className="flex justify-end mb-2">
+              <ColumnVisibilityControl columns={ACTIVITY_COL_DEFS} visibility={actColVis} onSave={saveActColVis} />
+            </div>
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-muted">
-                  <SortableHeader
-                    label={t("activityLog.dateTime")}
-                    sortKey="createdAt"
-                    currentKey={sortKey}
-                    currentDir={sortDir}
-                    onSort={onSort}
-                  />
-                  <SortableHeader
-                    label={t("activityLog.user")}
-                    sortKey="userName"
-                    currentKey={sortKey}
-                    currentDir={sortDir}
-                    onSort={onSort}
-                  />
-                  <SortableHeader
-                    label={t("activityLog.action")}
-                    sortKey="action"
-                    currentKey={sortKey}
-                    currentDir={sortDir}
-                    onSort={onSort}
-                  />
-                  <SortableHeader
-                    label={t("activityLog.entity")}
-                    sortKey="entity"
-                    currentKey={sortKey}
-                    currentDir={sortDir}
-                    onSort={onSort}
-                  />
-                  <TableHead className="text-muted-foreground text-xs">
-                    {t("activityLog.summary")}
-                  </TableHead>
+                  {isVis("dateTime") && <SortableHeader label={t("activityLog.dateTime")} sortKey="createdAt" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("user") && <SortableHeader label={t("activityLog.user")} sortKey="userName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("action") && <SortableHeader label={t("activityLog.action")} sortKey="action" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("entity") && <SortableHeader label={t("activityLog.entity")} sortKey="entity" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("summary") && <TableHead className="text-muted-foreground text-xs">{t("activityLog.summary")}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -468,21 +458,11 @@ export default function ActivityLogPage() {
                     }`}
                     onClick={() => openDetail(log.id)}
                   >
-                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                      {formatDateTime(log.createdAt)}
-                    </TableCell>
-                    <TableCell className="font-medium text-foreground whitespace-nowrap">
-                      {log.userName}
-                    </TableCell>
-                    <TableCell>{actionBadge(log.action)}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="bg-secondary text-muted-foreground">
-                        {log.entity}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground max-w-xs truncate">
-                      {log.summary}
-                    </TableCell>
+                    {isVis("dateTime") && <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatDateTime(log.createdAt)}</TableCell>}
+                    {isVis("user") && <TableCell className="font-medium text-foreground whitespace-nowrap">{log.userName}</TableCell>}
+                    {isVis("action") && <TableCell>{actionBadge(log.action)}</TableCell>}
+                    {isVis("entity") && <TableCell><Badge variant="secondary" className="bg-secondary text-muted-foreground">{log.entity}</Badge></TableCell>}
+                    {isVis("summary") && <TableCell className="text-muted-foreground max-w-xs truncate">{log.summary}</TableCell>}
                   </TableRow>
                 ))}
               </TableBody>

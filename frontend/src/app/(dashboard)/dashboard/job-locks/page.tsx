@@ -21,6 +21,19 @@ import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
 import { localDateStr } from "@/lib/utils";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const JOB_LOCKS_COL_DEFS: ColumnDef[] = [
+  { key: "lock", label: "Lock" },
+  { key: "ref", label: "Ref" },
+  { key: "entity", label: "Entity" },
+  { key: "route", label: "Route" },
+  { key: "date", label: "Date" },
+  { key: "status", label: "Status" },
+  { key: "provider", label: "Provider" },
+];
 
 type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit";
 
@@ -260,6 +273,9 @@ function JobLocksTable({
   canToggle: boolean;
   t: (key: string) => string;
 }) {
+  const { visibility: jlColVis, saveVisibility: saveJlColVis } = useColumnPreferences("job_locks", JOB_LOCKS_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => jlColVis[key] !== false;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -277,17 +293,21 @@ function JobLocksTable({
   }
 
   return (
-    <div className="rounded-md border">
+    <>
+      <div className="flex justify-end mb-2">
+        <ColumnVisibilityControl columns={JOB_LOCKS_COL_DEFS} visibility={jlColVis} onSave={saveJlColVis} />
+      </div>
+      <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-16">{t("jobLocks.table.lock")}</TableHead>
-            <TableHead>{t("jobLocks.table.ref")}</TableHead>
-            <TableHead>{t("jobLocks.table.entity")}</TableHead>
-            <TableHead>{t("jobLocks.table.route")}</TableHead>
-            <TableHead>{t("jobLocks.table.date")}</TableHead>
-            <TableHead>{t("jobLocks.table.status")}</TableHead>
-            <TableHead>{t("jobLocks.table.provider")}</TableHead>
+            {isVis("lock") && <TableHead className="w-16">{t("jobLocks.table.lock")}</TableHead>}
+            {isVis("ref") && <TableHead>{t("jobLocks.table.ref")}</TableHead>}
+            {isVis("entity") && <TableHead>{t("jobLocks.table.entity")}</TableHead>}
+            {isVis("route") && <TableHead>{t("jobLocks.table.route")}</TableHead>}
+            {isVis("date") && <TableHead>{t("jobLocks.table.date")}</TableHead>}
+            {isVis("status") && <TableHead>{t("jobLocks.table.status")}</TableHead>}
+            {isVis("provider") && <TableHead>{t("jobLocks.table.provider")}</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -304,64 +324,37 @@ function JobLocksTable({
 
             return (
               <TableRow key={job.id}>
-                <TableCell>
-                  {canToggle ? (
-                    <button
-                      onClick={() => onToggleLock(job)}
-                      disabled={isToggling}
-                      className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted"
-                      title={
-                        job.isUnlocked ? t("jobLocks.lock") : t("jobLocks.unlock")
-                      }
-                    >
-                      {isToggling ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : job.isUnlocked ? (
-                        <LockOpen className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Lock className="h-4 w-4 text-amber-500" />
-                      )}
-                    </button>
-                  ) : (
-                    <div className="flex h-8 w-8 items-center justify-center">
-                      {job.isUnlocked ? (
-                        <LockOpen className="h-4 w-4 text-green-500/50" />
-                      ) : (
-                        <Lock className="h-4 w-4 text-amber-500/50" />
-                      )}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {job.internalRef}
-                </TableCell>
-                <TableCell>{getEntityName(job, tab)}</TableCell>
-                <TableCell className="text-sm">{route || "-"}</TableCell>
-                <TableCell className="text-sm">
-                  {new Date(job.jobDate).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      job.isUnlocked ? "default" : "secondary"
-                    }
-                    className={
-                      job.isUnlocked
-                        ? "bg-green-500/10 text-green-500 border-green-500/20"
-                        : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                    }
-                  >
-                    {job.isUnlocked
-                      ? t("jobLocks.unlocked")
-                      : t("jobLocks.locked")}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm">{provider}</TableCell>
+                {isVis("lock") && (
+                  <TableCell>
+                    {canToggle ? (
+                      <button onClick={() => onToggleLock(job)} disabled={isToggling} className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted" title={job.isUnlocked ? t("jobLocks.lock") : t("jobLocks.unlock")}>
+                        {isToggling ? <Loader2 className="h-4 w-4 animate-spin" /> : job.isUnlocked ? <LockOpen className="h-4 w-4 text-green-500" /> : <Lock className="h-4 w-4 text-amber-500" />}
+                      </button>
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center">
+                        {job.isUnlocked ? <LockOpen className="h-4 w-4 text-green-500/50" /> : <Lock className="h-4 w-4 text-amber-500/50" />}
+                      </div>
+                    )}
+                  </TableCell>
+                )}
+                {isVis("ref") && <TableCell className="font-mono text-xs">{job.internalRef}</TableCell>}
+                {isVis("entity") && <TableCell>{getEntityName(job, tab)}</TableCell>}
+                {isVis("route") && <TableCell className="text-sm">{route || "-"}</TableCell>}
+                {isVis("date") && <TableCell className="text-sm">{new Date(job.jobDate).toLocaleDateString()}</TableCell>}
+                {isVis("status") && (
+                  <TableCell>
+                    <Badge variant={job.isUnlocked ? "default" : "secondary"} className={job.isUnlocked ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"}>
+                      {job.isUnlocked ? t("jobLocks.unlocked") : t("jobLocks.locked")}
+                    </Badge>
+                  </TableCell>
+                )}
+                {isVis("provider") && <TableCell className="text-sm">{provider}</TableCell>}
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
-    </div>
+      </div>
+    </>
   );
 }

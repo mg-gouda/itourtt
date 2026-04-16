@@ -46,6 +46,22 @@ import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
 import { localDateStr } from "@/lib/utils";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const SUPPLIERS_COL_DEFS: ColumnDef[] = [
+  { key: "type", label: "Type" },
+  { key: "legalName", label: "Legal Name" },
+  { key: "tradeName", label: "Trade Name" },
+  { key: "taxId", label: "Tax ID" },
+  { key: "city", label: "City" },
+  { key: "country", label: "Country" },
+  { key: "phone", label: "Phone" },
+  { key: "account", label: "Account" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "Actions" },
+];
 
 interface Supplier {
   id: string;
@@ -125,6 +141,8 @@ export default function SuppliersPage() {
   }, [suppliers, search]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable<Supplier>(filtered);
+  const { visibility: supplierColVis, saveVisibility: saveSupplierColVis } = useColumnPreferences("suppliers_list", SUPPLIERS_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => supplierColVis[key] !== false;
 
   // Account management
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
@@ -665,6 +683,9 @@ export default function SuppliersPage() {
               </div>
             )}
           </div>
+          <div className="flex justify-end mb-2">
+            <ColumnVisibilityControl columns={SUPPLIERS_COL_DEFS} visibility={supplierColVis} onSave={saveSupplierColVis} />
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -675,18 +696,16 @@ export default function SuppliersPage() {
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead className="text-muted-foreground text-xs">Type</TableHead>
-                  <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">{t("agents.taxId")}</TableHead>
-                  <SortableHeader label={t("locations.city")} sortKey="city" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("locations.country")} sortKey="country" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">{t("agents.phone")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">Account</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                  <TableHead className="text-right text-muted-foreground text-xs">
-                    {t("common.actions")}
-                  </TableHead>
+                  {isVis("type") && <TableHead className="text-muted-foreground text-xs">Type</TableHead>}
+                  {isVis("legalName") && <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("tradeName") && <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("taxId") && <TableHead className="text-muted-foreground text-xs">{t("agents.taxId")}</TableHead>}
+                  {isVis("city") && <SortableHeader label={t("locations.city")} sortKey="city" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("country") && <SortableHeader label={t("locations.country")} sortKey="country" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("phone") && <TableHead className="text-muted-foreground text-xs">{t("agents.phone")}</TableHead>}
+                  {isVis("account") && <TableHead className="text-muted-foreground text-xs">Account</TableHead>}
+                  {isVis("status") && <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>}
+                  {isVis("actions") && <TableHead className="text-right text-muted-foreground text-xs">{t("common.actions")}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -701,119 +720,43 @@ export default function SuppliersPage() {
                       onCheckedChange={() => toggleSelect(supplier.id)}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {supplier.supplierType === "INDIVIDUAL" ? "Individual" : "Company"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium text-foreground">
-                    {supplier.legalName}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {supplier.tradeName || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {supplier.taxId || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {supplier.city || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {supplier.country || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {supplier.phone || "-"}
-                  </TableCell>
-                  <TableCell>
-                    {supplier.userId ? (
-                      <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="text-xs">
-                          {supplier.user?.email}
-                        </Badge>
-                        {canResetPassword && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
-                          onClick={() => openPasswordDialog(supplier)}
-                        >
-                          <KeyRound className="h-3.5 w-3.5" />
-                          {t("common.reset")}
-                        </Button>
-                        )}
+                  {isVis("type") && <TableCell><Badge variant="outline" className="text-xs">{supplier.supplierType === "INDIVIDUAL" ? "Individual" : "Company"}</Badge></TableCell>}
+                  {isVis("legalName") && <TableCell className="font-medium text-foreground">{supplier.legalName}</TableCell>}
+                  {isVis("tradeName") && <TableCell className="text-muted-foreground">{supplier.tradeName || "-"}</TableCell>}
+                  {isVis("taxId") && <TableCell className="text-muted-foreground">{supplier.taxId || "-"}</TableCell>}
+                  {isVis("city") && <TableCell className="text-muted-foreground">{supplier.city || "-"}</TableCell>}
+                  {isVis("country") && <TableCell className="text-muted-foreground">{supplier.country || "-"}</TableCell>}
+                  {isVis("phone") && <TableCell className="text-muted-foreground">{supplier.phone || "-"}</TableCell>}
+                  {isVis("account") && (
+                    <TableCell>
+                      {supplier.userId ? (
+                        <div className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-xs">{supplier.user?.email}</Badge>
+                          {canResetPassword && <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground" onClick={() => openPasswordDialog(supplier)}><KeyRound className="h-3.5 w-3.5" />{t("common.reset")}</Button>}
+                        </div>
+                      ) : canCreateAccount ? (
+                        <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground" onClick={() => openAccountDialog(supplier)}><UserPlus className="h-3.5 w-3.5" />Create Account</Button>
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                    </TableCell>
+                  )}
+                  {isVis("status") && (
+                    <TableCell>
+                      {canToggleStatus ? (
+                        <button onClick={() => handleToggleStatus(supplier.id)} className="cursor-pointer">
+                          {supplier.isActive ? <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">{t("common.active")}</Badge> : <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/25 transition-colors">{t("common.inactive")}</Badge>}
+                        </button>
+                      ) : (supplier.isActive ? <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">{t("common.active")}</Badge> : <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">{t("common.inactive")}</Badge>)}
+                    </TableCell>
+                  )}
+                  {isVis("actions") && (
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground" onClick={() => router.push(`/dashboard/suppliers/${supplier.id}`)}><Eye className="h-3.5 w-3.5" />{t("common.view")}</Button>
+                        {canEditSupplier && <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => openEditDialog(supplier)}>{t("common.edit")}</Button>}
+                        {canDeleteSupplier && <Button variant="ghost" size="sm" className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10" onClick={() => openDeleteDialog(supplier)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                       </div>
-                    ) : canCreateAccount ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
-                        onClick={() => openAccountDialog(supplier)}
-                      >
-                        <UserPlus className="h-3.5 w-3.5" />
-                        Create Account
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {canToggleStatus ? (
-                    <button onClick={() => handleToggleStatus(supplier.id)} className="cursor-pointer">
-                      {supplier.isActive ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
-                          {t("common.active")}
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/25 transition-colors">
-                          {t("common.inactive")}
-                        </Badge>
-                      )}
-                    </button>
-                    ) : (
-                      supplier.isActive ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                          {t("common.active")}
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">
-                          {t("common.inactive")}
-                        </Badge>
-                      )
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1 text-muted-foreground hover:text-foreground"
-                        onClick={() => router.push(`/dashboard/suppliers/${supplier.id}`)}
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        {t("common.view")}
-                      </Button>
-                      {canEditSupplier && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => openEditDialog(supplier)}
-                      >
-                        {t("common.edit")}
-                      </Button>
-                      )}
-                      {canDeleteSupplier && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
-                        onClick={() => openDeleteDialog(supplier)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                      )}
-                    </div>
-                  </TableCell>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
               </TableBody>

@@ -61,6 +61,21 @@ import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const FINANCE_COL_DEFS: ColumnDef[] = [
+  { key: "invoiceNo", label: "Invoice No" },
+  { key: "agentCustomer", label: "Agent/Customer" },
+  { key: "date", label: "Date" },
+  { key: "dueDate", label: "Due Date" },
+  { key: "currency", label: "Currency" },
+  { key: "total", label: "Total" },
+  { key: "balance", label: "Balance" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "Actions" },
+];
 
 /* ─── Types ─────────────────────────────────── */
 
@@ -413,6 +428,8 @@ export default function FinancePage() {
 
   const { sortedData, sortKey, sortDir, onSort } =
     useSortable<Invoice>(filtered);
+  const { visibility: finColVis, saveVisibility: saveFinColVis } = useColumnPreferences("finance_invoices", FINANCE_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => finColVis[key] !== false;
 
   /* ─── Detail sheet ────────────────────────── */
 
@@ -1085,19 +1102,22 @@ export default function FinancePage() {
                 onStatusChange={setStatusFilter}
                 statusPlaceholder={t("common.all")}
               />
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={FINANCE_COL_DEFS} visibility={finColVis} onSave={saveFinColVis} />
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">
-                      <SortableHeader label={t("finance.invoiceNo")} sortKey="invoiceNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <TableHead className="text-muted-foreground text-xs">{t("jobs.agentCustomer")}</TableHead>
-                      <SortableHeader label={t("common.date")} sortKey="invoiceDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <SortableHeader label={t("finance.dueDate")} sortKey="dueDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <TableHead className="text-muted-foreground text-xs">{t("finance.currency")}</TableHead>
-                      <SortableHeader label={t("common.total")} sortKey="total" currentKey={sortKey} currentDir={sortDir} onSort={onSort} className="text-right" />
-                      <TableHead className="text-muted-foreground text-xs text-right">{t("finance.remainingBalance")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>
+                      {isVis("invoiceNo") && <SortableHeader label={t("finance.invoiceNo")} sortKey="invoiceNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                      {isVis("agentCustomer") && <TableHead className="text-muted-foreground text-xs">{t("jobs.agentCustomer")}</TableHead>}
+                      {isVis("date") && <SortableHeader label={t("common.date")} sortKey="invoiceDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                      {isVis("dueDate") && <SortableHeader label={t("finance.dueDate")} sortKey="dueDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                      {isVis("currency") && <TableHead className="text-muted-foreground text-xs">{t("finance.currency")}</TableHead>}
+                      {isVis("total") && <SortableHeader label={t("common.total")} sortKey="total" currentKey={sortKey} currentDir={sortDir} onSort={onSort} className="text-right" />}
+                      {isVis("balance") && <TableHead className="text-muted-foreground text-xs text-right">{t("finance.remainingBalance")}</TableHead>}
+                      {isVis("status") && <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>}
+                      {isVis("actions") && <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1107,45 +1127,23 @@ export default function FinancePage() {
                         className={`border-border cursor-pointer ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                         onClick={() => openDetail(inv.id)}
                       >
-                        <TableCell className="text-foreground font-mono text-xs">
-                          {inv.invoiceNumber}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {inv.agent?.legalName || inv.customer?.legalName || "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(inv.invoiceDate)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(inv.dueDate)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {inv.currency}
-                        </TableCell>
-                        <TableCell className="text-right text-foreground font-mono font-medium">
-                          {fmtNum(inv.total, locale)}
-                        </TableCell>
-                        <TableCell className="text-right text-foreground font-mono font-medium">
-                          {inv.remainingBalance != null
-                            ? fmtNum(inv.remainingBalance, locale)
-                            : fmtNum(inv.total, locale)}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={inv.status} />
-                        </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          {canRecordPayment && inv.status !== "PAID" && inv.status !== "CANCELLED" && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="gap-1 text-xs"
-                              onClick={() => openPayment(inv)}
-                            >
-                              <CreditCard className="h-3.5 w-3.5" />
-                              {t("finance.recordPayment")}
-                            </Button>
-                          )}
-                        </TableCell>
+                        {isVis("invoiceNo") && <TableCell className="text-foreground font-mono text-xs">{inv.invoiceNumber}</TableCell>}
+                        {isVis("agentCustomer") && <TableCell className="text-muted-foreground text-sm">{inv.agent?.legalName || inv.customer?.legalName || "—"}</TableCell>}
+                        {isVis("date") && <TableCell className="text-muted-foreground text-sm">{formatDate(inv.invoiceDate)}</TableCell>}
+                        {isVis("dueDate") && <TableCell className="text-muted-foreground text-sm">{formatDate(inv.dueDate)}</TableCell>}
+                        {isVis("currency") && <TableCell className="text-muted-foreground">{inv.currency}</TableCell>}
+                        {isVis("total") && <TableCell className="text-right text-foreground font-mono font-medium">{fmtNum(inv.total, locale)}</TableCell>}
+                        {isVis("balance") && <TableCell className="text-right text-foreground font-mono font-medium">{inv.remainingBalance != null ? fmtNum(inv.remainingBalance, locale) : fmtNum(inv.total, locale)}</TableCell>}
+                        {isVis("status") && <TableCell><StatusBadge status={inv.status} /></TableCell>}
+                        {isVis("actions") && (
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            {canRecordPayment && inv.status !== "PAID" && inv.status !== "CANCELLED" && (
+                              <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => openPayment(inv)}>
+                                <CreditCard className="h-3.5 w-3.5" />{t("finance.recordPayment")}
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

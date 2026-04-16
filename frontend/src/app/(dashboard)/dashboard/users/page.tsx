@@ -49,6 +49,18 @@ import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
 import { usePermission } from "@/hooks/use-permission";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const USERS_COL_DEFS: ColumnDef[] = [
+  { key: "name", label: "Name" },
+  { key: "email", label: "Email" },
+  { key: "role", label: "Role" },
+  { key: "status", label: "Status" },
+  { key: "created", label: "Created" },
+  { key: "actions", label: "Actions" },
+];
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface User {
@@ -116,6 +128,8 @@ export default function UsersPage() {
   }, [users, search, roleFilter]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
+  const { visibility: userColVis, saveVisibility: saveUserColVis } = useColumnPreferences("users_list", USERS_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => userColVis[key] !== false;
 
   const [addDialogOpen, setAddDialogOpen]   = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -439,16 +453,19 @@ export default function UsersPage() {
                 onStatusChange={setRoleFilter}
                 statusPlaceholder={t("common.all")}
               />
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={USERS_COL_DEFS} visibility={userColVis} onSave={saveUserColVis} />
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">
-                      <SortableHeader label={t("common.name")}   sortKey="name"      currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <SortableHeader label={t("common.email")}  sortKey="email"     currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <SortableHeader label={t("common.role")}   sortKey="role"      currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                      <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("users.created")}</TableHead>
-                      <TableHead className="text-right text-muted-foreground text-xs">{t("common.actions")}</TableHead>
+                      {isVis("name") && <SortableHeader label={t("common.name")} sortKey="name" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                      {isVis("email") && <SortableHeader label={t("common.email")} sortKey="email" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                      {isVis("role") && <SortableHeader label={t("common.role")} sortKey="role" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                      {isVis("status") && <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>}
+                      {isVis("created") && <TableHead className="text-muted-foreground text-xs">{t("users.created")}</TableHead>}
+                      {isVis("actions") && <TableHead className="text-right text-muted-foreground text-xs">{t("common.actions")}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -457,33 +474,17 @@ export default function UsersPage() {
                         key={user.id}
                         className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        <TableCell className="font-medium text-foreground">{user.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {user.roleRef?.name || t(`role.${user.role}`)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {user.isActive ? (
-                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">{t("common.active")}</Badge>
-                          ) : (
-                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">{t("common.inactive")}</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
-                        <TableCell className="text-right">
-                          {canEditUser && (
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => openEdit(user)}>
-                              {t("common.edit")}
-                            </Button>
-                          )}
-                          {canDeactivateUser && user.isActive && (
-                            <Button variant="ghost" size="sm" className="text-red-500/70 hover:text-red-500" onClick={() => handleDeactivate(user.id)}>
-                              {t("users.deactivate")}
-                            </Button>
-                          )}
-                        </TableCell>
+                        {isVis("name") && <TableCell className="font-medium text-foreground">{user.name}</TableCell>}
+                        {isVis("email") && <TableCell className="text-muted-foreground">{user.email}</TableCell>}
+                        {isVis("role") && <TableCell><Badge variant="secondary">{user.roleRef?.name || t(`role.${user.role}`)}</Badge></TableCell>}
+                        {isVis("status") && <TableCell>{user.isActive ? <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">{t("common.active")}</Badge> : <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">{t("common.inactive")}</Badge>}</TableCell>}
+                        {isVis("created") && <TableCell className="text-muted-foreground">{formatDate(user.createdAt)}</TableCell>}
+                        {isVis("actions") && (
+                          <TableCell className="text-right">
+                            {canEditUser && <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => openEdit(user)}>{t("common.edit")}</Button>}
+                            {canDeactivateUser && user.isActive && <Button variant="ghost" size="sm" className="text-red-500/70 hover:text-red-500" onClick={() => handleDeactivate(user.id)}>{t("users.deactivate")}</Button>}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

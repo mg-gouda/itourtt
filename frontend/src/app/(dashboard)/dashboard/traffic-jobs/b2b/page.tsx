@@ -42,8 +42,9 @@ import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useColumnOrder } from "@/hooks/useColumnOrder";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 
 interface VehicleTypeResource {
   id: string;
@@ -652,7 +653,7 @@ export default function B2BJobPage() {
     "ref", "customerJobId", "serviceType", "jobDate", "customer",
     "route", "pax", "extras", "notes", "price", "bookingStatus", "status", "assignment",
   ];
-  const { columns: b2bColumnOrder, reorder: b2bReorder } = useColumnOrder("traffic_jobs_b2b", B2B_DEFAULT_COLS);
+  const { columns: b2bColumnOrder, reorder: b2bReorder, visibility: b2bVisibility, saveVisibility: b2bSaveVisibility } = useColumnPreferences("traffic_jobs_b2b", B2B_DEFAULT_COLS);
   const th = (label: string) => <span className="text-xs font-medium text-muted-foreground">{label}</span>;
 
   const b2bColumnDefs: ColumnDef[] = [
@@ -1281,6 +1282,11 @@ export default function B2BJobPage() {
             {t("jobImport.title") || "Import Jobs"}
           </Button>
           )}
+          <ColumnVisibilityControl
+            columns={b2bColumnDefs}
+            visibility={b2bVisibility}
+            onSave={b2bSaveVisibility}
+          />
         </div>
 
         <div>
@@ -1301,6 +1307,7 @@ export default function B2BJobPage() {
                 columnOrder={b2bColumnOrder}
                 onReorder={b2bReorder}
                 rowClassName="border-border bg-muted"
+                visibility={b2bVisibility}
               />
               <TableBody>
                 {filtered.map((job, idx) => {
@@ -1320,7 +1327,7 @@ export default function B2BJobPage() {
                             : "bg-gray-200/50 dark:bg-gray-700/50"
                       )}
                     >
-                      {b2bColumnOrder.map((key) => renderB2BCell(key, job, locked))}
+                      {b2bColumnOrder.filter((key) => b2bVisibility[key] !== false).map((key) => renderB2BCell(key, job, locked))}
                     </TableRow>
                   );
                 })}

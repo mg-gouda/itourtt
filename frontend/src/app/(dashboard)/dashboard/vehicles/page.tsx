@@ -34,6 +34,22 @@ import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
 import { localDateStr } from "@/lib/utils";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const VEHICLES_COL_DEFS: ColumnDef[] = [
+  { key: "plateNumber", label: "Plate Number" },
+  { key: "type", label: "Type" },
+  { key: "color", label: "Color" },
+  { key: "carBrand", label: "Brand" },
+  { key: "carModel", label: "Model" },
+  { key: "makeYear", label: "Year" },
+  { key: "luggageCapacity", label: "Luggage" },
+  { key: "ownership", label: "Ownership" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "Actions" },
+];
 
 // ─── Types ───────────────────────────────────────────────────────
 interface VehicleType {
@@ -128,6 +144,8 @@ export default function VehiclesPage() {
     );
   }, [vehicles, vehicleSearch]);
   const { sortedData: sortedVehicles, sortKey: vehicleSortKey, sortDir: vehicleSortDir, onSort: onVehicleSort } = useSortable<Vehicle>(filteredVehicles);
+  const { visibility: vehicleColVis, saveVisibility: saveVehicleColVis } = useColumnPreferences("vehicles_list", VEHICLES_COL_DEFS.map((c) => c.key));
+  const isVehicleVis = (key: string) => vehicleColVis[key] !== false;
 
   // ─── Fetch Vehicle Types ────────────────────────────────────────
   const fetchTypes = useCallback(async () => {
@@ -562,22 +580,23 @@ export default function VehiclesPage() {
                 onSearchChange={setVehicleSearch}
                 placeholder={t("common.search") + "..."}
               />
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={VEHICLES_COL_DEFS} visibility={vehicleColVis} onSave={saveVehicleColVis} />
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">
-                      <SortableHeader label={t("vehicles.plateNumber")} sortKey="plateNumber" currentKey={vehicleSortKey} currentDir={vehicleSortDir} onSort={onVehicleSort} />
-                      <SortableHeader label={t("vehicles.type")} sortKey="vehicleType.name" currentKey={vehicleSortKey} currentDir={vehicleSortDir} onSort={onVehicleSort} />
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.color")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.carBrand")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.carModel")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.makeYear")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.luggageCapacity")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.ownership")}</TableHead>
-                      <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                      <TableHead className="text-right text-muted-foreground text-xs">
-                        {t("common.actions")}
-                      </TableHead>
+                      {isVehicleVis("plateNumber") && <SortableHeader label={t("vehicles.plateNumber")} sortKey="plateNumber" currentKey={vehicleSortKey} currentDir={vehicleSortDir} onSort={onVehicleSort} />}
+                      {isVehicleVis("type") && <SortableHeader label={t("vehicles.type")} sortKey="vehicleType.name" currentKey={vehicleSortKey} currentDir={vehicleSortDir} onSort={onVehicleSort} />}
+                      {isVehicleVis("color") && <TableHead className="text-muted-foreground text-xs">{t("vehicles.color")}</TableHead>}
+                      {isVehicleVis("carBrand") && <TableHead className="text-muted-foreground text-xs">{t("vehicles.carBrand")}</TableHead>}
+                      {isVehicleVis("carModel") && <TableHead className="text-muted-foreground text-xs">{t("vehicles.carModel")}</TableHead>}
+                      {isVehicleVis("makeYear") && <TableHead className="text-muted-foreground text-xs">{t("vehicles.makeYear")}</TableHead>}
+                      {isVehicleVis("luggageCapacity") && <TableHead className="text-muted-foreground text-xs">{t("vehicles.luggageCapacity")}</TableHead>}
+                      {isVehicleVis("ownership") && <TableHead className="text-muted-foreground text-xs">{t("vehicles.ownership")}</TableHead>}
+                      {isVehicleVis("status") && <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>}
+                      {isVehicleVis("actions") && <TableHead className="text-right text-muted-foreground text-xs">{t("common.actions")}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -586,82 +605,31 @@ export default function VehiclesPage() {
                       key={vehicle.id}
                       className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                     >
-                      <TableCell className="font-medium text-foreground">
-                        {vehicle.plateNumber}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {getTypeName(vehicle)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {vehicle.color || "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {vehicle.carBrand || "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {vehicle.carModel || "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {vehicle.makeYear ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {vehicle.luggageCapacity != null ? vehicle.luggageCapacity : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className="bg-secondary text-muted-foreground"
-                        >
-                          {vehicle.ownership}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {canToggleStatus ? (
-                        <button onClick={() => handleToggleStatus(vehicle.id)} className="cursor-pointer">
-                          {vehicle.isActive ? (
-                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30 transition-colors">
-                              {t("common.active")}
-                            </Badge>
+                      {isVehicleVis("plateNumber") && <TableCell className="font-medium text-foreground">{vehicle.plateNumber}</TableCell>}
+                      {isVehicleVis("type") && <TableCell className="text-muted-foreground">{getTypeName(vehicle)}</TableCell>}
+                      {isVehicleVis("color") && <TableCell className="text-muted-foreground">{vehicle.color || "—"}</TableCell>}
+                      {isVehicleVis("carBrand") && <TableCell className="text-muted-foreground">{vehicle.carBrand || "—"}</TableCell>}
+                      {isVehicleVis("carModel") && <TableCell className="text-muted-foreground">{vehicle.carModel || "—"}</TableCell>}
+                      {isVehicleVis("makeYear") && <TableCell className="text-muted-foreground">{vehicle.makeYear ?? "—"}</TableCell>}
+                      {isVehicleVis("luggageCapacity") && <TableCell className="text-muted-foreground">{vehicle.luggageCapacity != null ? vehicle.luggageCapacity : "—"}</TableCell>}
+                      {isVehicleVis("ownership") && <TableCell><Badge variant="secondary" className="bg-secondary text-muted-foreground">{vehicle.ownership}</Badge></TableCell>}
+                      {isVehicleVis("status") && (
+                        <TableCell>
+                          {canToggleStatus ? (
+                            <button onClick={() => handleToggleStatus(vehicle.id)} className="cursor-pointer">
+                              {vehicle.isActive ? <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30 transition-colors">{t("common.active")}</Badge> : <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/30 transition-colors">{t("common.inactive")}</Badge>}
+                            </button>
                           ) : (
-                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/30 transition-colors">
-                              {t("common.inactive")}
-                            </Badge>
+                            vehicle.isActive ? <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">{t("common.active")}</Badge> : <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">{t("common.inactive")}</Badge>
                           )}
-                        </button>
-                        ) : (
-                          vehicle.isActive ? (
-                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                              {t("common.active")}
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">
-                              {t("common.inactive")}
-                            </Badge>
-                          )
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {canEditVehicle && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={() => router.push(`/dashboard/vehicles/${vehicle.id}/edit`)}
-                        >
-                          {t("common.edit")}
-                        </Button>
-                        )}
-                        {canDeleteVehicle && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-muted-foreground hover:text-red-600"
-                          onClick={() => openDeleteDialog(vehicle)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                        )}
-                      </TableCell>
+                        </TableCell>
+                      )}
+                      {isVehicleVis("actions") && (
+                        <TableCell className="text-right">
+                          {canEditVehicle && <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => router.push(`/dashboard/vehicles/${vehicle.id}/edit`)}>{t("common.edit")}</Button>}
+                          {canDeleteVehicle && <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-red-600" onClick={() => openDeleteDialog(vehicle)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                   </TableBody>

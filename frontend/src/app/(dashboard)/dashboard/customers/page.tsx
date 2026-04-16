@@ -50,6 +50,21 @@ import { toast } from "sonner";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
 import { localDateStr } from "@/lib/utils";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const CUSTOMERS_COL_DEFS: ColumnDef[] = [
+  { key: "legalName", label: "Legal Name" },
+  { key: "tradeName", label: "Trade Name" },
+  { key: "contactPerson", label: "Contact Person" },
+  { key: "phone", label: "Phone" },
+  { key: "currency", label: "Currency" },
+  { key: "creditLimit", label: "Credit Limit" },
+  { key: "creditDays", label: "Credit Days" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "Actions" },
+];
 
 interface Customer {
   id: string;
@@ -143,6 +158,8 @@ export default function CustomersPage() {
   }, [customers, search]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable<Customer>(filtered);
+  const { visibility: custColVis, saveVisibility: saveCustColVis } = useColumnPreferences("customers", CUSTOMERS_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => custColVis[key] !== false;
 
   const [legalName, setLegalName] = useState(INITIAL_FORM.legalName);
   const [tradeName, setTradeName] = useState(INITIAL_FORM.tradeName);
@@ -534,6 +551,9 @@ export default function CustomersPage() {
               </Button>
             </div>
           )}
+          <div className="flex justify-end mb-2">
+            <ColumnVisibilityControl columns={CUSTOMERS_COL_DEFS} visibility={custColVis} onSave={saveCustColVis} />
+          </div>
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -544,15 +564,15 @@ export default function CustomersPage() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <SortableHeader label={t("customers.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-muted-foreground text-xs">{t("agents.contactPerson")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("agents.phone")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">Currency</TableHead>
-                <SortableHeader label={t("agents.creditLimit")} sortKey="creditLimit" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-muted-foreground text-xs">{t("agents.creditDays")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>
+                {isVis("legalName") && <SortableHeader label={t("customers.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                {isVis("tradeName") && <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                {isVis("contactPerson") && <TableHead className="text-muted-foreground text-xs">{t("agents.contactPerson")}</TableHead>}
+                {isVis("phone") && <TableHead className="text-muted-foreground text-xs">{t("agents.phone")}</TableHead>}
+                {isVis("currency") && <TableHead className="text-muted-foreground text-xs">Currency</TableHead>}
+                {isVis("creditLimit") && <SortableHeader label={t("agents.creditLimit")} sortKey="creditLimit" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                {isVis("creditDays") && <TableHead className="text-muted-foreground text-xs">{t("agents.creditDays")}</TableHead>}
+                {isVis("status") && <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>}
+                {isVis("actions") && <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -567,89 +587,53 @@ export default function CustomersPage() {
                       onCheckedChange={() => toggleSelect(customer.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-medium text-foreground">
-                    {customer.legalName}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {customer.tradeName || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {customer.contactPerson || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {customer.phone || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {customer.currency}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {customer.creditLimit != null
-                      ? customer.creditLimit.toLocaleString(locale)
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {customer.creditDays != null ? `${customer.creditDays} days` : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {canToggleStatus ? (
-                      <button onClick={() => handleToggleStatus(customer.id)} className="cursor-pointer">
-                        {customer.isActive ? (
-                          <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
-                            {t("common.active")}
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/30 transition-colors">
-                            {t("common.inactive")}
-                          </Badge>
-                        )}
-                      </button>
-                    ) : (
-                      customer.isActive ? (
-                        <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                          {t("common.active")}
-                        </Badge>
+                  {isVis("legalName") && <TableCell className="font-medium text-foreground">{customer.legalName}</TableCell>}
+                  {isVis("tradeName") && <TableCell className="text-muted-foreground">{customer.tradeName || "-"}</TableCell>}
+                  {isVis("contactPerson") && <TableCell className="text-muted-foreground">{customer.contactPerson || "-"}</TableCell>}
+                  {isVis("phone") && <TableCell className="text-muted-foreground">{customer.phone || "-"}</TableCell>}
+                  {isVis("currency") && <TableCell className="text-muted-foreground">{customer.currency}</TableCell>}
+                  {isVis("creditLimit") && <TableCell className="text-muted-foreground">{customer.creditLimit != null ? customer.creditLimit.toLocaleString(locale) : "-"}</TableCell>}
+                  {isVis("creditDays") && <TableCell className="text-muted-foreground">{customer.creditDays != null ? `${customer.creditDays} days` : "-"}</TableCell>}
+                  {isVis("status") && (
+                    <TableCell>
+                      {canToggleStatus ? (
+                        <button onClick={() => handleToggleStatus(customer.id)} className="cursor-pointer">
+                          {customer.isActive ? (
+                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">{t("common.active")}</Badge>
+                          ) : (
+                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/30 transition-colors">{t("common.inactive")}</Badge>
+                          )}
+                        </button>
                       ) : (
-                        <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30">
-                          {t("common.inactive")}
-                        </Badge>
-                      )
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {canView && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => router.push(`/dashboard/customers/${customer.id}`)}
-                          className="gap-1.5 text-muted-foreground hover:text-foreground"
-                        >
-                          <Eye className="h-4 w-4" />
-                          {t("common.view")}
-                        </Button>
+                        customer.isActive ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">{t("common.active")}</Badge>
+                        ) : (
+                          <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30">{t("common.inactive")}</Badge>
+                        )
                       )}
-                      {canEdit && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={() => openEditDialog(customer)}
-                        >
-                          {t("common.edit")}
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
-                          onClick={() => openDeleteDialog(customer)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
+                    </TableCell>
+                  )}
+                  {isVis("actions") && (
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {canView && (
+                          <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/customers/${customer.id}`)} className="gap-1.5 text-muted-foreground hover:text-foreground">
+                            <Eye className="h-4 w-4" />{t("common.view")}
+                          </Button>
+                        )}
+                        {canEdit && (
+                          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => openEditDialog(customer)}>
+                            {t("common.edit")}
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button variant="ghost" size="sm" className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10" onClick={() => openDeleteDialog(customer)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

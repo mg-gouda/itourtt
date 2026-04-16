@@ -52,8 +52,9 @@ import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useColumnOrder } from "@/hooks/useColumnOrder";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 
 interface TrafficJob {
   id: string;
@@ -220,7 +221,7 @@ export default function TrafficJobsPage() {
     "driverStatus", "repStatus", "vehicleType", "transferPrice", "collection",
     "assignment", "custRep", "userLog",
   ];
-  const { columns: columnOrder, reorder } = useColumnOrder("traffic_jobs_all", DEFAULT_COLS);
+  const { columns: columnOrder, reorder, visibility, saveVisibility } = useColumnPreferences("traffic_jobs_all", DEFAULT_COLS);
 
   const sortBtn = (label: string, key: string) => (
     <button onClick={() => onSort(key)} className="flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground">
@@ -515,6 +516,13 @@ export default function TrafficJobsPage() {
             </SelectContent>
           </Select>
         </div>
+        <div className="ml-auto">
+          <ColumnVisibilityControl
+            columns={columnDefs}
+            visibility={visibility}
+            onSave={saveVisibility}
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -577,6 +585,7 @@ export default function TrafficJobsPage() {
               columnOrder={columnOrder}
               onReorder={reorder}
               rowClassName="border-border bg-muted"
+              visibility={visibility}
             />
             <TableBody>
               {sortedData.map((job, idx) => (
@@ -588,7 +597,7 @@ export default function TrafficJobsPage() {
                     router.push(`/dashboard/traffic-jobs/${job.bookingChannel === "ONLINE" ? "online" : "b2b"}?edit=${job.id}`);
                   }}
                 >
-                  {columnOrder.map((key) => renderCell(key, job))}
+                  {columnOrder.filter((key) => visibility[key] !== false).map((key) => renderCell(key, job))}
                 </TableRow>
               ))}
             </TableBody>

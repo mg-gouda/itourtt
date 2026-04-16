@@ -43,8 +43,9 @@ import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
 import { useSortable } from "@/hooks/use-sortable";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useColumnOrder } from "@/hooks/useColumnOrder";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 /* ─────────── types ─────────── */
@@ -543,7 +544,7 @@ export default function OnlineJobPage() {
     "extras", "collectionAmt", "collectionCur", "transferPrice", "transferCur",
     "vehicleType", "notes", "bookingStatus", "status", "assignment",
   ];
-  const { columns: onlineColumnOrder, reorder: onlineReorder } = useColumnOrder("traffic_jobs_online", ONLINE_DEFAULT_COLS);
+  const { columns: onlineColumnOrder, reorder: onlineReorder, visibility: onlineVisibility, saveVisibility: onlineSaveVisibility } = useColumnPreferences("traffic_jobs_online", ONLINE_DEFAULT_COLS);
 
   const sortBtn = (label: string, key: string) => (
     <button onClick={() => onSort(key)} className="flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground">
@@ -1207,6 +1208,13 @@ export default function OnlineJobPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="ml-auto">
+            <ColumnVisibilityControl
+              columns={onlineColumnDefs}
+              visibility={onlineVisibility}
+              onSave={onlineSaveVisibility}
+            />
+          </div>
         </div>
 
         <Card className="border-border bg-card">
@@ -1226,6 +1234,7 @@ export default function OnlineJobPage() {
                 columnOrder={onlineColumnOrder}
                 onReorder={onlineReorder}
                 rowClassName="border-border bg-muted"
+                visibility={onlineVisibility}
               />
               <TableBody>
                 {sortedData.map((job, idx) => {
@@ -1245,7 +1254,7 @@ export default function OnlineJobPage() {
                             : "bg-gray-200/50 dark:bg-gray-700/50"
                       )}
                     >
-                      {onlineColumnOrder.map((key) => renderOnlineCell(key, job, locked))}
+                      {onlineColumnOrder.filter((key) => onlineVisibility[key] !== false).map((key) => renderOnlineCell(key, job, locked))}
                     </TableRow>
                   );
                 })}

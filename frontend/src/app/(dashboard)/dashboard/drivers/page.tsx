@@ -48,6 +48,20 @@ import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
 import { formatDate as utilsFormatDate , localDateStr } from "@/lib/utils";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const DRIVERS_COL_DEFS: ColumnDef[] = [
+  { key: "name", label: "Name" },
+  { key: "mobile", label: "Mobile" },
+  { key: "licenseNo", label: "License No" },
+  { key: "licenseExpiry", label: "License Expiry" },
+  { key: "attachment", label: "Attachment" },
+  { key: "account", label: "Account" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "Actions" },
+];
 
 interface Driver {
   id: string;
@@ -149,6 +163,8 @@ export default function DriversPage() {
   }, [drivers, search]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
+  const { visibility: driverColVis, saveVisibility: saveDriverColVis } = useColumnPreferences("drivers_list", DRIVERS_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => driverColVis[key] !== false;
 
   // Form fields
   const [name, setName] = useState("");
@@ -670,42 +686,21 @@ export default function DriversPage() {
             onSearchChange={setSearch}
             placeholder={t("common.search") + "..."}
           />
+          <div className="flex justify-end mb-2">
+            <ColumnVisibilityControl columns={DRIVERS_COL_DEFS} visibility={driverColVis} onSave={saveDriverColVis} />
+          </div>
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-border bg-muted">
-                <SortableHeader
-                  label={t("drivers.name")}
-                  sortKey="name"
-                  currentKey={sortKey}
-                  currentDir={sortDir}
-                  onSort={onSort}
-                />
-                <SortableHeader
-                  label={t("drivers.mobile")}
-                  sortKey="mobileNumber"
-                  currentKey={sortKey}
-                  currentDir={sortDir}
-                  onSort={onSort}
-                />
-                <TableHead className="text-muted-foreground text-xs">
-                  {t("drivers.licenseNo")}
-                </TableHead>
-                <SortableHeader
-                  label={t("drivers.licenseExpiry")}
-                  sortKey="licenseExpiryDate"
-                  currentKey={sortKey}
-                  currentDir={sortDir}
-                  onSort={onSort}
-                />
-                <TableHead className="text-muted-foreground text-xs">
-                  {t("drivers.attachment")}
-                </TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("drivers.account")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                <TableHead className="text-right text-muted-foreground text-xs">
-                  {t("common.actions")}
-                </TableHead>
+                {isVis("name") && <SortableHeader label={t("drivers.name")} sortKey="name" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                {isVis("mobile") && <SortableHeader label={t("drivers.mobile")} sortKey="mobileNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                {isVis("licenseNo") && <TableHead className="text-muted-foreground text-xs">{t("drivers.licenseNo")}</TableHead>}
+                {isVis("licenseExpiry") && <SortableHeader label={t("drivers.licenseExpiry")} sortKey="licenseExpiryDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                {isVis("attachment") && <TableHead className="text-muted-foreground text-xs">{t("drivers.attachment")}</TableHead>}
+                {isVis("account") && <TableHead className="text-muted-foreground text-xs">{t("drivers.account")}</TableHead>}
+                {isVis("status") && <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>}
+                {isVis("actions") && <TableHead className="text-right text-muted-foreground text-xs">{t("common.actions")}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -718,155 +713,92 @@ export default function DriversPage() {
                     key={driver.id}
                     className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                   >
-                    <TableCell className="font-medium text-foreground">
-                      {driver.name}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {driver.mobileNumber}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {driver.licenseNumber || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">
-                          {formatDate(driver.licenseExpiryDate)}
-                        </span>
-                        {expiryStatus === "expired" && (
-                          <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">
-                            {t("drivers.expired")}
-                          </Badge>
-                        )}
-                        {expiryStatus === "expiring" && (
-                          <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                            <AlertTriangle className="mr-1 h-3 w-3" />
-                            {t("drivers.expiringSoon")}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {driver.attachmentUrl ? (
-                        <a
-                          href={`${backendUrl}${driver.attachmentUrl}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          {t("common.view")}
-                        </a>
-                      ) : canUploadAttachment ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
-                          onClick={() => triggerFileUpload(driver.id)}
-                          disabled={uploadingId === driver.id}
-                        >
-                          {uploadingId === driver.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Upload className="h-3.5 w-3.5" />
-                          )}
-                          {t("common.upload")}
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {driver.userId ? (
+                    {isVis("name") && <TableCell className="font-medium text-foreground">{driver.name}</TableCell>}
+                    {isVis("mobile") && <TableCell className="text-muted-foreground">{driver.mobileNumber}</TableCell>}
+                    {isVis("licenseNo") && <TableCell className="text-muted-foreground">{driver.licenseNumber || "—"}</TableCell>}
+                    {isVis("licenseExpiry") && (
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                            {driver.user?.email ?? "Linked"}
-                          </Badge>
-                          {canResetPassword && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
-                            onClick={() => openPasswordDialog(driver)}
-                          >
-                            <KeyRound className="h-3.5 w-3.5" />
-                            {t("common.reset")}
+                          <span className="text-muted-foreground">{formatDate(driver.licenseExpiryDate)}</span>
+                          {expiryStatus === "expired" && <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">{t("drivers.expired")}</Badge>}
+                          {expiryStatus === "expiring" && <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20"><AlertTriangle className="mr-1 h-3 w-3" />{t("drivers.expiringSoon")}</Badge>}
+                        </div>
+                      </TableCell>
+                    )}
+                    {isVis("attachment") && (
+                      <TableCell>
+                        {driver.attachmentUrl ? (
+                          <a href={`${backendUrl}${driver.attachmentUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                            <Download className="h-3.5 w-3.5" />{t("common.view")}
+                          </a>
+                        ) : canUploadAttachment ? (
+                          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground" onClick={() => triggerFileUpload(driver.id)} disabled={uploadingId === driver.id}>
+                            {uploadingId === driver.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                            {t("common.upload")}
                           </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("account") && (
+                      <TableCell>
+                        {driver.userId ? (
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20">{driver.user?.email ?? "Linked"}</Badge>
+                            {canResetPassword && (
+                              <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground" onClick={() => openPasswordDialog(driver)}>
+                                <KeyRound className="h-3.5 w-3.5" />{t("common.reset")}
+                              </Button>
+                            )}
+                          </div>
+                        ) : canCreateAccount ? (
+                          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground" onClick={() => openAccountDialog(driver)}>
+                            <UserPlus className="h-3.5 w-3.5" />{t("drivers.createAccount")}
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("status") && (
+                      <TableCell>
+                        {canToggleStatus ? (
+                          <button onClick={() => handleToggleStatus(driver.id)} className="cursor-pointer">
+                            {driver.isActive ? (
+                              <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">{t("common.active")}</Badge>
+                            ) : (
+                              <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/25 transition-colors">{t("common.inactive")}</Badge>
+                            )}
+                          </button>
+                        ) : (
+                          driver.isActive ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">{t("common.active")}</Badge>
+                          ) : (
+                            <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">{t("common.inactive")}</Badge>
+                          )
+                        )}
+                      </TableCell>
+                    )}
+                    {isVis("actions") && (
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground" onClick={() => router.push(`/dashboard/drivers/${driver.id}`)}>
+                            <ExternalLink className="h-3.5 w-3.5" />{t("common.view")}
+                          </Button>
+                          {canEditDriver && (
+                            <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground" onClick={() => openEditDialog(driver)}>
+                              <Pencil className="h-3.5 w-3.5" />{t("common.edit")}
+                            </Button>
+                          )}
+                          {canDeleteDriver && (
+                            <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-red-600 dark:hover:text-red-400" onClick={() => openDeleteDialog(driver)}>
+                              <Trash2 className="h-3.5 w-3.5" />{t("common.delete")}
+                            </Button>
                           )}
                         </div>
-                      ) : canCreateAccount ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
-                          onClick={() => openAccountDialog(driver)}
-                        >
-                          <UserPlus className="h-3.5 w-3.5" />
-                          {t("drivers.createAccount")}
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {canToggleStatus ? (
-                      <button onClick={() => handleToggleStatus(driver.id)} className="cursor-pointer">
-                        {driver.isActive ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
-                            {t("common.active")}
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/25 transition-colors">
-                            {t("common.inactive")}
-                          </Badge>
-                        )}
-                      </button>
-                      ) : (
-                        driver.isActive ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                            {t("common.active")}
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">
-                            {t("common.inactive")}
-                          </Badge>
-                        )
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-muted-foreground hover:text-foreground"
-                          onClick={() => router.push(`/dashboard/drivers/${driver.id}`)}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          {t("common.view")}
-                        </Button>
-                        {canEditDriver && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-muted-foreground hover:text-foreground"
-                          onClick={() => openEditDialog(driver)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          {t("common.edit")}
-                        </Button>
-                        )}
-                        {canDeleteDriver && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
-                          onClick={() => openDeleteDialog(driver)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          {t("common.delete")}
-                        </Button>
-                        )}
-                      </div>
-                    </TableCell>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}

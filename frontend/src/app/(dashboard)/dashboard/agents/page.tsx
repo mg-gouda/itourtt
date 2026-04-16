@@ -40,6 +40,21 @@ import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
 import { localDateStr } from "@/lib/utils";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const AGENTS_COL_DEFS: ColumnDef[] = [
+  { key: "legalName", label: "Legal Name" },
+  { key: "tradeName", label: "Trade Name" },
+  { key: "taxId", label: "Tax ID" },
+  { key: "city", label: "City" },
+  { key: "country", label: "Country" },
+  { key: "phone", label: "Phone" },
+  { key: "currency", label: "Currency" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "Actions" },
+];
 
 interface Agent {
   id: string;
@@ -133,6 +148,8 @@ export default function AgentsPage() {
   }, [agents, search]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable<Agent>(filtered);
+  const { visibility: agentColVis, saveVisibility: saveAgentColVis } = useColumnPreferences("agents", AGENTS_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => agentColVis[key] !== false;
 
   const [legalName, setLegalName] = useState(INITIAL_FORM.legalName);
   const [tradeName, setTradeName] = useState(INITIAL_FORM.tradeName);
@@ -532,6 +549,9 @@ export default function AgentsPage() {
               </Button>
             </div>
           )}
+          <div className="flex justify-end mb-2">
+            <ColumnVisibilityControl columns={AGENTS_COL_DEFS} visibility={agentColVis} onSave={saveAgentColVis} />
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -542,15 +562,15 @@ export default function AgentsPage() {
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">{t("agents.taxId")}</TableHead>
-                  <SortableHeader label={t("locations.city")} sortKey="city" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("locations.country")} sortKey="country" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("agents.phone")} sortKey="phone" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">Currency</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>
+                  {isVis("legalName") && <SortableHeader label={t("agents.legalName")} sortKey="legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("tradeName") && <SortableHeader label={t("agents.tradeName")} sortKey="tradeName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("taxId") && <TableHead className="text-muted-foreground text-xs">{t("agents.taxId")}</TableHead>}
+                  {isVis("city") && <SortableHeader label={t("locations.city")} sortKey="city" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("country") && <SortableHeader label={t("locations.country")} sortKey="country" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("phone") && <SortableHeader label={t("agents.phone")} sortKey="phone" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("currency") && <TableHead className="text-muted-foreground text-xs">Currency</TableHead>}
+                  {isVis("status") && <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>}
+                  {isVis("actions") && <TableHead className="text-muted-foreground text-xs">{t("common.actions")}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -566,76 +586,66 @@ export default function AgentsPage() {
                       onCheckedChange={() => toggleSelect(agent.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-medium text-foreground">
-                    {agent.legalName}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {agent.tradeName || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {agent.taxId || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {agent.city || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {agent.country || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {agent.phone || "-"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {agent.currency}
-                  </TableCell>
-                  <TableCell>
-                    {canToggleStatus ? (
-                      <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(agent.id); }} className="cursor-pointer">
-                        {agent.isActive ? (
-                          <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
+                  {isVis("legalName") && <TableCell className="font-medium text-foreground">{agent.legalName}</TableCell>}
+                  {isVis("tradeName") && <TableCell className="text-muted-foreground">{agent.tradeName || "-"}</TableCell>}
+                  {isVis("taxId") && <TableCell className="text-muted-foreground">{agent.taxId || "-"}</TableCell>}
+                  {isVis("city") && <TableCell className="text-muted-foreground">{agent.city || "-"}</TableCell>}
+                  {isVis("country") && <TableCell className="text-muted-foreground">{agent.country || "-"}</TableCell>}
+                  {isVis("phone") && <TableCell className="text-muted-foreground">{agent.phone || "-"}</TableCell>}
+                  {isVis("currency") && <TableCell className="text-muted-foreground">{agent.currency}</TableCell>}
+                  {isVis("status") && (
+                    <TableCell>
+                      {canToggleStatus ? (
+                        <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(agent.id); }} className="cursor-pointer">
+                          {agent.isActive ? (
+                            <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
+                              {t("common.active")}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/30 transition-colors">
+                              {t("common.inactive")}
+                            </Badge>
+                          )}
+                        </button>
+                      ) : (
+                        agent.isActive ? (
+                          <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
                             {t("common.active")}
                           </Badge>
                         ) : (
-                          <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30 hover:bg-red-500/30 transition-colors">
+                          <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30">
                             {t("common.inactive")}
                           </Badge>
+                        )
+                      )}
+                    </TableCell>
+                  )}
+                  {isVis("actions") && (
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={(e) => { e.stopPropagation(); openEditDialog(agent); }}
+                          >
+                            {t("common.edit")}
+                          </Button>
                         )}
-                      </button>
-                    ) : (
-                      agent.isActive ? (
-                        <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                          {t("common.active")}
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30">
-                          {t("common.inactive")}
-                        </Badge>
-                      )
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {canEdit && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={(e) => { e.stopPropagation(); openEditDialog(agent); }}
-                        >
-                          {t("common.edit")}
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
-                          onClick={(e) => { e.stopPropagation(); openDeleteDialog(agent); }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+                            onClick={(e) => { e.stopPropagation(); openDeleteDialog(agent); }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
               </TableBody>

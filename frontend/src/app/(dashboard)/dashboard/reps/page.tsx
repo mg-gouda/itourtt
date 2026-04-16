@@ -47,6 +47,19 @@ import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
 import { localDateStr } from "@/lib/utils";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const REPS_COL_DEFS: ColumnDef[] = [
+  { key: "name", label: "Name" },
+  { key: "mobile", label: "Mobile" },
+  { key: "feePerFlight", label: "Fee/Flight" },
+  { key: "attachment", label: "Attachment" },
+  { key: "account", label: "Account" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "Actions" },
+];
 
 interface Rep {
   id: string;
@@ -112,6 +125,8 @@ export default function RepsPage() {
   }, [reps, search]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
+  const { visibility: repColVis, saveVisibility: saveRepColVis } = useColumnPreferences("reps_list", REPS_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => repColVis[key] !== false;
 
   // Delete
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -579,21 +594,20 @@ export default function RepsPage() {
             onSearchChange={setSearch}
             placeholder={t("common.search") + "..."}
           />
+          <div className="flex justify-end mb-2">
+            <ColumnVisibilityControl columns={REPS_COL_DEFS} visibility={repColVis} onSave={saveRepColVis} />
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-muted">
-                  <SortableHeader label={t("common.name")} sortKey="name" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("drivers.mobile")} sortKey="mobileNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("reps.feePerFlight")} sortKey="feePerFlight" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">
-                    {t("drivers.attachment")}
-                  </TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("reps.account")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                  <TableHead className="text-right text-muted-foreground text-xs">
-                    {t("common.actions")}
-                  </TableHead>
+                  {isVis("name") && <SortableHeader label={t("common.name")} sortKey="name" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("mobile") && <SortableHeader label={t("drivers.mobile")} sortKey="mobileNumber" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("feePerFlight") && <SortableHeader label={t("reps.feePerFlight")} sortKey="feePerFlight" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("attachment") && <TableHead className="text-muted-foreground text-xs">{t("drivers.attachment")}</TableHead>}
+                  {isVis("account") && <TableHead className="text-muted-foreground text-xs">{t("reps.account")}</TableHead>}
+                  {isVis("status") && <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>}
+                  {isVis("actions") && <TableHead className="text-right text-muted-foreground text-xs">{t("common.actions")}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -602,138 +616,53 @@ export default function RepsPage() {
                   key={rep.id}
                   className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                 >
-                  <TableCell className="font-medium text-foreground">
-                    {rep.name}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {rep.mobileNumber}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {Number(rep.feePerFlight) > 0
-                      ? `${Number(rep.feePerFlight).toFixed(2)} EGP`
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {rep.attachmentUrl ? (
-                      <a
-                        href={`${backendUrl}${rep.attachmentUrl}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        {t("common.view")}
-                      </a>
-                    ) : canUploadAttachment ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
-                        onClick={() => triggerFileUpload(rep.id)}
-                        disabled={uploadingId === rep.id}
-                      >
-                        {uploadingId === rep.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Upload className="h-3.5 w-3.5" />
-                        )}
-                        {t("common.upload")}
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {rep.userId ? (
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                          {rep.user?.email ?? "Linked"}
-                        </Badge>
-                        {canResetPassword && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
-                          onClick={() => openPasswordDialog(rep)}
-                        >
-                          <KeyRound className="h-3.5 w-3.5" />
-                          {t("common.reset")}
+                  {isVis("name") && <TableCell className="font-medium text-foreground">{rep.name}</TableCell>}
+                  {isVis("mobile") && <TableCell className="text-muted-foreground">{rep.mobileNumber}</TableCell>}
+                  {isVis("feePerFlight") && <TableCell className="text-muted-foreground">{Number(rep.feePerFlight) > 0 ? `${Number(rep.feePerFlight).toFixed(2)} EGP` : "-"}</TableCell>}
+                  {isVis("attachment") && (
+                    <TableCell>
+                      {rep.attachmentUrl ? (
+                        <a href={`${backendUrl}${rep.attachmentUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                          <Download className="h-3.5 w-3.5" />{t("common.view")}
+                        </a>
+                      ) : canUploadAttachment ? (
+                        <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground" onClick={() => triggerFileUpload(rep.id)} disabled={uploadingId === rep.id}>
+                          {uploadingId === rep.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                          {t("common.upload")}
                         </Button>
-                        )}
-                      </div>
-                    ) : canCreateAccount ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground"
-                        onClick={() => openAccountDialog(rep)}
-                      >
-                        <UserPlus className="h-3.5 w-3.5" />
-                        {t("reps.createAccount")}
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {canToggleStatus ? (
-                    <button onClick={() => handleToggleStatus(rep.id)} className="cursor-pointer">
-                      {rep.isActive ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">
-                          {t("common.active")}
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/25 transition-colors">
-                          {t("common.inactive")}
-                        </Badge>
-                      )}
-                    </button>
-                    ) : (
-                      rep.isActive ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
-                          {t("common.active")}
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">
-                          {t("common.inactive")}
-                        </Badge>
-                      )
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {canEditRep && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1 text-muted-foreground hover:text-foreground"
-                      onClick={() => router.push(`/dashboard/reps/${rep.id}`)}
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      {t("common.view")}
-                    </Button>
-                    )}
-                    {canEditRep && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1 text-muted-foreground hover:text-foreground"
-                      onClick={() => openEditDialog(rep)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      {t("common.edit")}
-                    </Button>
-                    )}
-                    {canDeleteRep && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1 text-muted-foreground hover:text-red-600"
-                      onClick={() => openDeleteDialog(rep)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                    )}
-                  </TableCell>
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                    </TableCell>
+                  )}
+                  {isVis("account") && (
+                    <TableCell>
+                      {rep.userId ? (
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20">{rep.user?.email ?? "Linked"}</Badge>
+                          {canResetPassword && <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground" onClick={() => openPasswordDialog(rep)}><KeyRound className="h-3.5 w-3.5" />{t("common.reset")}</Button>}
+                        </div>
+                      ) : canCreateAccount ? (
+                        <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-muted-foreground hover:text-foreground" onClick={() => openAccountDialog(rep)}>
+                          <UserPlus className="h-3.5 w-3.5" />{t("reps.createAccount")}
+                        </Button>
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
+                    </TableCell>
+                  )}
+                  {isVis("status") && (
+                    <TableCell>
+                      {canToggleStatus ? (
+                        <button onClick={() => handleToggleStatus(rep.id)} className="cursor-pointer">
+                          {rep.isActive ? <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25 transition-colors">{t("common.active")}</Badge> : <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/25 transition-colors">{t("common.inactive")}</Badge>}
+                        </button>
+                      ) : (rep.isActive ? <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">{t("common.active")}</Badge> : <Badge className="bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">{t("common.inactive")}</Badge>)}
+                    </TableCell>
+                  )}
+                  {isVis("actions") && (
+                    <TableCell className="text-right">
+                      {canEditRep && <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground" onClick={() => router.push(`/dashboard/reps/${rep.id}`)}><ExternalLink className="h-3.5 w-3.5" />{t("common.view")}</Button>}
+                      {canEditRep && <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground" onClick={() => openEditDialog(rep)}><Pencil className="h-3.5 w-3.5" />{t("common.edit")}</Button>}
+                      {canDeleteRep && <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-red-600" onClick={() => openDeleteDialog(rep)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
               </TableBody>

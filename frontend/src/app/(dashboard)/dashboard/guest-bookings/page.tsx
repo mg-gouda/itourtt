@@ -44,6 +44,21 @@ import {
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { type ColumnDef } from "@/components/ui/draggable-table-header";
+
+const GUEST_BOOKINGS_COL_DEFS: ColumnDef[] = [
+  { key: "ref", label: "Ref" },
+  { key: "guest", label: "Guest" },
+  { key: "service", label: "Service" },
+  { key: "date", label: "Date" },
+  { key: "route", label: "Route" },
+  { key: "total", label: "Total" },
+  { key: "payment", label: "Payment" },
+  { key: "status", label: "Status" },
+  { key: "actions", label: "Actions" },
+];
 
 interface GuestBooking {
   id: string;
@@ -83,6 +98,9 @@ export default function GuestBookingsPage() {
   const t = useT();
   const canConvert = usePermission("guest-bookings.convert");
   const canCancel = usePermission("guest-bookings.cancel");
+  const { visibility: gbColVis, saveVisibility: saveGbColVis } = useColumnPreferences("guest_bookings", GUEST_BOOKINGS_COL_DEFS.map((c) => c.key));
+  const isVis = (key: string) => gbColVis[key] !== false;
+  const visColCount = GUEST_BOOKINGS_COL_DEFS.filter((c) => gbColVis[c.key] !== false).length;
   const [bookings, setBookings] = useState<GuestBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -208,90 +226,60 @@ export default function GuestBookingsPage() {
       </div>
 
       {/* Table */}
+      <div className="flex justify-end mb-2">
+        <ColumnVisibilityControl columns={GUEST_BOOKINGS_COL_DEFS} visibility={gbColVis} onSave={saveGbColVis} />
+      </div>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Ref</TableHead>
-              <TableHead>Guest</TableHead>
-              <TableHead>Service</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Route</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              {isVis("ref") && <TableHead>Ref</TableHead>}
+              {isVis("guest") && <TableHead>Guest</TableHead>}
+              {isVis("service") && <TableHead>Service</TableHead>}
+              {isVis("date") && <TableHead>Date</TableHead>}
+              {isVis("route") && <TableHead>Route</TableHead>}
+              {isVis("total") && <TableHead className="text-right">Total</TableHead>}
+              {isVis("payment") && <TableHead>Payment</TableHead>}
+              {isVis("status") && <TableHead>Status</TableHead>}
+              {isVis("actions") && <TableHead className="w-[100px]">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={visColCount} className="text-center py-8">
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : bookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={visColCount} className="text-center py-8 text-muted-foreground">
                   No guest bookings found
                 </TableCell>
               </TableRow>
             ) : (
               bookings.map((b) => (
                 <TableRow key={b.id}>
-                  <TableCell className="font-mono text-xs">{b.bookingRef}</TableCell>
-                  <TableCell>
-                    <div className="text-sm font-medium">{b.guestName}</div>
-                    <div className="text-xs text-muted-foreground">{b.guestEmail}</div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {b.serviceType}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {new Date(b.jobDate).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {b.fromZone?.name} → {b.toZone?.name}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {b.currency} {Number(b.total).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={b.paymentStatus} />
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={b.bookingStatus} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setSelectedBooking(b)}
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                      {canConvert && b.bookingStatus === "CONFIRMED" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-blue-600"
-                          disabled={converting === b.id}
-                          onClick={() => handleConvert(b.id)}
-                          title="Convert to Traffic Job"
-                        >
-                          {converting === b.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <ArrowRightLeft className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
+                  {isVis("ref") && <TableCell className="font-mono text-xs">{b.bookingRef}</TableCell>}
+                  {isVis("guest") && <TableCell><div className="text-sm font-medium">{b.guestName}</div><div className="text-xs text-muted-foreground">{b.guestEmail}</div></TableCell>}
+                  {isVis("service") && <TableCell><Badge variant="outline" className="text-xs">{b.serviceType}</Badge></TableCell>}
+                  {isVis("date") && <TableCell className="text-sm">{new Date(b.jobDate).toLocaleDateString()}</TableCell>}
+                  {isVis("route") && <TableCell className="text-sm">{b.fromZone?.name} → {b.toZone?.name}</TableCell>}
+                  {isVis("total") && <TableCell className="text-right font-mono text-sm">{b.currency} {Number(b.total).toFixed(2)}</TableCell>}
+                  {isVis("payment") && <TableCell><StatusBadge status={b.paymentStatus} /></TableCell>}
+                  {isVis("status") && <TableCell><StatusBadge status={b.bookingStatus} /></TableCell>}
+                  {isVis("actions") && (
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedBooking(b)}><Eye className="h-3.5 w-3.5" /></Button>
+                        {canConvert && b.bookingStatus === "CONFIRMED" && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" disabled={converting === b.id} onClick={() => handleConvert(b.id)} title="Convert to Traffic Job">
+                            {converting === b.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRightLeft className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

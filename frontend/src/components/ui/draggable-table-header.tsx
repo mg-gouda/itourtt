@@ -23,6 +23,7 @@ import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
 export interface ColumnDef {
   key: string;
   label: React.ReactNode;
+  title?: string; // plain text label for the column visibility panel
   className?: string;
 }
 
@@ -32,6 +33,7 @@ interface DraggableTableHeaderProps {
   onReorder: (newOrder: string[]) => void;
   rowClassName?: string;
   prefixCells?: React.ReactNode;
+  visibility?: Record<string, boolean>;
 }
 
 function SortableTableHead({ col }: { col: ColumnDef }) {
@@ -75,6 +77,7 @@ export function DraggableTableHeader({
   onReorder,
   rowClassName,
   prefixCells,
+  visibility,
 }: DraggableTableHeaderProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -86,6 +89,10 @@ export function DraggableTableHeader({
   const orderedColumns = columnOrder
     .map((key) => columns.find((c) => c.key === key))
     .filter(Boolean) as ColumnDef[];
+
+  const visibleColumns = visibility
+    ? orderedColumns.filter((col) => visibility[col.key] !== false)
+    : orderedColumns;
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -109,7 +116,7 @@ export function DraggableTableHeader({
         >
           <TableRow className={rowClassName}>
             {prefixCells}
-            {orderedColumns.map((col) => (
+            {visibleColumns.map((col) => (
               <SortableTableHead key={col.key} col={col} />
             ))}
           </TableRow>

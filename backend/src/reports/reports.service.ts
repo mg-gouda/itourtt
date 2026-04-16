@@ -977,7 +977,7 @@ export class ReportsService {
   // JOB STATUS REPORT
   // ─────────────────────────────────────────────
 
-  async jobStatusReport(from: string, to: string, status?: string, repId?: string, repStatus?: string, driverStatus?: string) {
+  async jobStatusReport(from: string, to: string, status?: string, repId?: string, repStatus?: string, driverStatus?: string, serviceType?: string) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
 
@@ -987,6 +987,9 @@ export class ReportsService {
     };
     if (status && status !== 'ALL') {
       where.status = status;
+    }
+    if (serviceType && serviceType !== 'ALL') {
+      where.serviceType = serviceType as ServiceType;
     }
 
     // Build assignment filter

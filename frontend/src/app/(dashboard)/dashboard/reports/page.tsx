@@ -58,8 +58,9 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useCompanyStore } from "@/stores/company-store";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useColumnOrder } from "@/hooks/useColumnOrder";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
+import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 
 // ────────────────────────────────────────────
 // Types
@@ -719,6 +720,7 @@ export default function ReportsPage() {
   const [jobStatusRepId, setJobStatusRepId] = useState("ALL");
   const [jobStatusRepStatus, setJobStatusRepStatus] = useState("ALL");
   const [jobStatusDriverStatus, setJobStatusDriverStatus] = useState("ALL");
+  const [jobStatusServiceType, setJobStatusServiceType] = useState("ALL");
   const [jobStatusData, setJobStatusData] = useState<JobStatusReport | null>(null);
   const [jobStatusLoading, setJobStatusLoading] = useState(false);
   const jobStatusPrintRef = useRef<HTMLDivElement>(null);
@@ -792,18 +794,18 @@ export default function ReportsPage() {
   const carJobsSort = useSortable(carJobsData?.rows || []);
 
   // Column order hooks for drag-and-drop reordering
-  const dispatchColOrder = useColumnOrder("dispatch", DISPATCH_DEFAULT_KEYS);
-  const driversColOrder = useColumnOrder("drivers", DRIVERS_DEFAULT_KEYS);
-  const driverScoreColOrder = useColumnOrder("driver_score", DRIVER_SCORE_DEFAULT_KEYS);
-  const agentColOrder = useColumnOrder("agent_statement", AGENT_DEFAULT_KEYS);
-  const repFeesColOrder = useColumnOrder("rep_fees", REP_FEES_DEFAULT_KEYS);
-  const repScoreColOrder = useColumnOrder("rep_score", REP_SCORE_DEFAULT_KEYS);
-  const revenueColOrder = useColumnOrder("revenue", REVENUE_DEFAULT_KEYS);
-  const complianceColOrder = useColumnOrder("compliance", COMPLIANCE_DEFAULT_KEYS);
-  const jobStatusColOrder = useColumnOrder("job_status", JOB_STATUS_DEFAULT_KEYS);
-  const evidenceColOrder = useColumnOrder("evidence", EVIDENCE_DEFAULT_KEYS);
-  const supplierJobsColOrder = useColumnOrder("supplier_jobs", SUPPLIER_JOBS_DEFAULT_KEYS);
-  const carJobsColOrder = useColumnOrder("car_jobs", CAR_JOBS_DEFAULT_KEYS);
+  const dispatchColOrder = useColumnPreferences("dispatch", DISPATCH_DEFAULT_KEYS);
+  const driversColOrder = useColumnPreferences("drivers", DRIVERS_DEFAULT_KEYS);
+  const driverScoreColOrder = useColumnPreferences("driver_score", DRIVER_SCORE_DEFAULT_KEYS);
+  const agentColOrder = useColumnPreferences("agent_statement", AGENT_DEFAULT_KEYS);
+  const repFeesColOrder = useColumnPreferences("rep_fees", REP_FEES_DEFAULT_KEYS);
+  const repScoreColOrder = useColumnPreferences("rep_score", REP_SCORE_DEFAULT_KEYS);
+  const revenueColOrder = useColumnPreferences("revenue", REVENUE_DEFAULT_KEYS);
+  const complianceColOrder = useColumnPreferences("compliance", COMPLIANCE_DEFAULT_KEYS);
+  const jobStatusColOrder = useColumnPreferences("job_status", JOB_STATUS_DEFAULT_KEYS);
+  const evidenceColOrder = useColumnPreferences("evidence", EVIDENCE_DEFAULT_KEYS);
+  const supplierJobsColOrder = useColumnPreferences("supplier_jobs", SUPPLIER_JOBS_DEFAULT_KEYS);
+  const carJobsColOrder = useColumnPreferences("car_jobs", CAR_JOBS_DEFAULT_KEYS);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -1065,8 +1067,9 @@ export default function ReportsPage() {
       const repParam = jobStatusRepId !== "ALL" ? `&repId=${jobStatusRepId}` : "";
       const repStatusParam = jobStatusRepStatus !== "ALL" ? `&repStatus=${jobStatusRepStatus}` : "";
       const driverStatusParam = jobStatusDriverStatus !== "ALL" ? `&driverStatus=${jobStatusDriverStatus}` : "";
+      const serviceTypeParam = jobStatusServiceType !== "ALL" ? `&serviceType=${jobStatusServiceType}` : "";
       const { data } = await api.get(
-        `/reports/job-status?from=${jobStatusFrom}&to=${jobStatusTo}${statusParam}${repParam}${repStatusParam}${driverStatusParam}`
+        `/reports/job-status?from=${jobStatusFrom}&to=${jobStatusTo}${statusParam}${repParam}${repStatusParam}${driverStatusParam}${serviceTypeParam}`
       );
       setJobStatusData(data.data || data);
     } catch {
@@ -1719,12 +1722,16 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 ))}
               </div>
 
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={DISPATCH_COLUMNS} visibility={dispatchColOrder.visibility} onSave={dispatchColOrder.saveVisibility} />
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <DraggableTableHeader
                     columns={DISPATCH_COLUMNS}
                     columnOrder={dispatchColOrder.columns}
                     onReorder={dispatchColOrder.reorder}
+                    visibility={dispatchColOrder.visibility}
                   />
                   <TableBody>
                     {dispatchSort.sortedData.map((job, idx) => (
@@ -1732,7 +1739,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                         key={job.id}
                         className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        {dispatchColOrder.columns.map((col) => {
+                        {dispatchColOrder.columns.filter((col) => dispatchColOrder.visibility[col] !== false).map((col) => {
                           switch (col) {
                             case "internalRef": return <TableCell key={col} className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>;
                             case "serviceType": return <TableCell key={col} className="text-muted-foreground text-sm">{job.serviceType}</TableCell>;
@@ -1835,12 +1842,16 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 />
               </div>
 
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={DRIVERS_COLUMNS} visibility={driversColOrder.visibility} onSave={driversColOrder.saveVisibility} />
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <DraggableTableHeader
                     columns={DRIVERS_COLUMNS}
                     columnOrder={driversColOrder.columns}
                     onReorder={driversColOrder.reorder}
+                    visibility={driversColOrder.visibility}
                   />
                   <TableBody>
                     {driverSort.sortedData.map((d, idx) => (
@@ -1848,7 +1859,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                         key={d.driver.id}
                         className={`border-border cursor-pointer hover:bg-muted/50 ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        {driversColOrder.columns.map((col) => {
+                        {driversColOrder.columns.filter((col) => driversColOrder.visibility[col] !== false).map((col) => {
                           switch (col) {
                             case "driverName": return (
                               <TableCell key={col}>
@@ -1900,7 +1911,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                     ))}
                     {driverData.drivers.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={driversColOrder.columns.length} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={driversColOrder.columns.filter((c) => driversColOrder.visibility[c] !== false).length} className="text-center text-muted-foreground py-8">
                           {t("reports.noDriverTrips")}
                         </TableCell>
                       </TableRow>
@@ -1987,12 +1998,17 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 {driverScoreData.rows.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">No scored jobs found for this period.</p>
                 ) : (
+                  <>
+                  <div className="flex justify-end mb-2">
+                    <ColumnVisibilityControl columns={DRIVER_SCORE_COLUMNS} visibility={driverScoreColOrder.visibility} onSave={driverScoreColOrder.saveVisibility} />
+                  </div>
                   <div className="overflow-x-auto">
                     <Table>
                       <DraggableTableHeader
                         columns={DRIVER_SCORE_COLUMNS}
                         columnOrder={driverScoreColOrder.columns}
                         onReorder={driverScoreColOrder.reorder}
+                        visibility={driverScoreColOrder.visibility}
                       />
                       <TableBody>
                         {driverScoreData.rows.map((row, idx) => {
@@ -2005,7 +2021,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                           const dash  = <span className="text-muted-foreground text-sm">—</span>;
                           return (
                             <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
-                              {driverScoreColOrder.columns.map((col) => {
+                              {driverScoreColOrder.columns.filter((col) => driverScoreColOrder.visibility[col] !== false).map((col) => {
                                 switch (col) {
                                   case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
                                   case "jobDate": return <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">{new Date(row.jobDate).toLocaleDateString()}</TableCell>;
@@ -2048,6 +2064,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                       </span>
                     </div>
                   </div>
+                  </>
                 )}
               </Card>
             ) : (
@@ -2231,12 +2248,16 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 />
               </div>
 
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={AGENT_COLUMNS} visibility={agentColOrder.visibility} onSave={agentColOrder.saveVisibility} />
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <DraggableTableHeader
                     columns={AGENT_COLUMNS}
                     columnOrder={agentColOrder.columns}
                     onReorder={agentColOrder.reorder}
+                    visibility={agentColOrder.visibility}
                   />
                   <TableBody>
                     {agentSort.sortedData.map((inv, idx) => (
@@ -2244,7 +2265,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                         key={inv.invoiceNumber}
                         className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        {agentColOrder.columns.map((col) => {
+                        {agentColOrder.columns.filter((col) => agentColOrder.visibility[col] !== false).map((col) => {
                           switch (col) {
                             case "invoiceNumber": return <TableCell key={col} className="text-foreground font-mono text-xs">{inv.invoiceNumber}</TableCell>;
                             case "invoiceDate": return <TableCell key={col} className="text-muted-foreground text-sm">{formatDate(inv.invoiceDate)}</TableCell>;
@@ -2261,7 +2282,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                     {agentData.invoices.length === 0 && (
                       <TableRow>
                         <TableCell
-                          colSpan={agentColOrder.columns.length}
+                          colSpan={agentColOrder.columns.filter((c) => agentColOrder.visibility[c] !== false).length}
                           className="text-center text-muted-foreground py-8"
                         >
                           {t("reports.noInvoices")}
@@ -2355,12 +2376,16 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 />
               </div>
 
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={REP_FEES_COLUMNS} visibility={repFeesColOrder.visibility} onSave={repFeesColOrder.saveVisibility} />
+              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <DraggableTableHeader
                     columns={REP_FEES_COLUMNS}
                     columnOrder={repFeesColOrder.columns}
                     onReorder={repFeesColOrder.reorder}
+                    visibility={repFeesColOrder.visibility}
                   />
                   <TableBody>
                     {repFeeSort.sortedData.map((rep, idx) => (
@@ -2368,7 +2393,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                         key={rep.repId}
                         className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                       >
-                        {repFeesColOrder.columns.map((col) => {
+                        {repFeesColOrder.columns.filter((col) => repFeesColOrder.visibility[col] !== false).map((col) => {
                           switch (col) {
                             case "repName": return (
                               <TableCell key={col}>
@@ -2402,7 +2427,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                     {repFeeData.reps.length === 0 && (
                       <TableRow>
                         <TableCell
-                          colSpan={repFeesColOrder.columns.length}
+                          colSpan={repFeesColOrder.columns.filter((c) => repFeesColOrder.visibility[c] !== false).length}
                           className="text-center text-muted-foreground py-8"
                         >
                           {t("reports.noRepFees")}
@@ -2411,7 +2436,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                     )}
                     {repFeeData.reps.length > 0 && (
                       <TableRow className="border-border bg-muted/50 font-semibold">
-                        {repFeesColOrder.columns.map((col) => {
+                        {repFeesColOrder.columns.filter((col) => repFeesColOrder.visibility[col] !== false).map((col) => {
                           switch (col) {
                             case "repName": return <TableCell key={col} className="text-foreground">{t("reports.grandTotal")}</TableCell>;
                             case "feePerFlight": return <TableCell key={col} />;
@@ -2502,12 +2527,17 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 {repScoreData.rows.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">No scored jobs found for this period.</p>
                 ) : (
+                  <>
+                  <div className="flex justify-end mb-2">
+                    <ColumnVisibilityControl columns={REP_SCORE_COLUMNS} visibility={repScoreColOrder.visibility} onSave={repScoreColOrder.saveVisibility} />
+                  </div>
                   <div className="overflow-x-auto">
                     <Table>
                       <DraggableTableHeader
                         columns={REP_SCORE_COLUMNS}
                         columnOrder={repScoreColOrder.columns}
                         onReorder={repScoreColOrder.reorder}
+                        visibility={repScoreColOrder.visibility}
                       />
                       <TableBody>
                         {repScoreData.rows.map((row, idx) => {
@@ -2520,7 +2550,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                           const dash = <span className="text-muted-foreground text-sm">—</span>;
                           return (
                             <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
-                              {repScoreColOrder.columns.map((col) => {
+                              {repScoreColOrder.columns.filter((col) => repScoreColOrder.visibility[col] !== false).map((col) => {
                                 switch (col) {
                                   case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
                                   case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
@@ -2556,6 +2586,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                       </span>
                     </div>
                   </div>
+                  </>
                 )}
               </Card>
             ) : (
@@ -2966,6 +2997,20 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                     <SelectItem value="COMPLETED">Completed</SelectItem>
                     <SelectItem value="CANCELLED">Cancelled</SelectItem>
                     <SelectItem value="NO_SHOW">No Show</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>
+                <Select value={jobStatusServiceType} onValueChange={setJobStatusServiceType}>
+                  <SelectTrigger className="mt-1 w-36 border-border bg-card text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Types</SelectItem>
+                    <SelectItem value="ARR">ARR</SelectItem>
+                    <SelectItem value="DEP">DEP</SelectItem>
+                    <SelectItem value="CITY">CITY</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
