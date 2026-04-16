@@ -41,9 +41,11 @@ import api from "@/lib/api";
 import { usePermission } from "@/hooks/use-permission";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
-import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useColumnOrder } from "@/hooks/useColumnOrder";
+import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 /* ─────────── types ─────────── */
 
@@ -533,6 +535,157 @@ export default function OnlineJobPage() {
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
   const showFlightFields = form.serviceType === "ARR" || form.serviceType === "DEP";
+
+  // ── Draggable column order ──
+  const ONLINE_DEFAULT_COLS = [
+    "internalRef", "agentRef", "serviceType", "jobDate", "pickUpTime", "arrivalTime",
+    "agent", "clientName", "route", "pax",
+    "extras", "collectionAmt", "collectionCur", "transferPrice", "transferCur",
+    "vehicleType", "notes", "bookingStatus", "status", "assignment",
+  ];
+  const { columns: onlineColumnOrder, reorder: onlineReorder } = useColumnOrder("traffic_jobs_online", ONLINE_DEFAULT_COLS);
+
+  const sortBtn = (label: string, key: string) => (
+    <button onClick={() => onSort(key)} className="flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+      {label}
+      {sortKey === key && (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+    </button>
+  );
+  const th = (label: string) => <span className="text-xs font-medium text-muted-foreground">{label}</span>;
+
+  const onlineColumnDefs: ColumnDef[] = [
+    { key: "internalRef",    label: sortBtn(t("dispatch.ref"), "internalRef") },
+    { key: "agentRef",       label: sortBtn(t("jobs.agentRef"), "agentRef") },
+    { key: "serviceType",    label: sortBtn(t("jobs.type"), "serviceType") },
+    { key: "jobDate",        label: sortBtn(t("common.date"), "jobDate") },
+    { key: "pickUpTime",     label: sortBtn(t("jobs.pickUpTime"), "pickUpTime") },
+    { key: "arrivalTime",    label: th(t("jobs.arrivalTime")) },
+    { key: "agent",          label: sortBtn(t("jobs.transferProvider"), "agent.legalName") },
+    { key: "clientName",     label: sortBtn(t("jobs.clientName"), "clientName") },
+    { key: "route",          label: th(t("dispatch.route")) },
+    { key: "pax",            label: sortBtn(t("dispatch.pax"), "paxCount") },
+    { key: "extras",         label: th(t("jobs.extras") || "Extras") },
+    { key: "collectionAmt",  label: th("Coll. Amt"), className: "w-[70px]" },
+    { key: "collectionCur",  label: th("Coll. Cur"), className: "w-[60px]" },
+    { key: "transferPrice",  label: th("Tr. Price"), className: "w-[70px]" },
+    { key: "transferCur",    label: th("Tr. Cur"), className: "w-[60px]" },
+    { key: "vehicleType",    label: th("Veh. Type") },
+    { key: "notes",          label: th(t("jobs.notes") || "Notes") },
+    { key: "bookingStatus",  label: th(t("jobs.bookingStatus") || "Booking") },
+    { key: "status",         label: sortBtn(t("common.status"), "status") },
+    { key: "assignment",     label: th(t("jobs.assignment")) },
+  ];
+
+  const renderOnlineCell = (key: string, job: TrafficJob, locked: boolean): React.ReactNode => {
+    switch (key) {
+      case "internalRef":
+        return (
+          <TableCell key={key} className="text-foreground font-mono text-xs">
+            <div className="flex items-center gap-1.5">
+              {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />}
+              {job.internalRef}
+            </div>
+          </TableCell>
+        );
+      case "agentRef":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.agentRef || "\u2014"}</TableCell>;
+      case "serviceType":
+        return (
+          <TableCell key={key}>
+            <Badge variant="outline" className="border-border text-muted-foreground text-xs">
+              {serviceTypeLabels[job.serviceType] || job.serviceType}
+            </Badge>
+          </TableCell>
+        );
+      case "jobDate":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{formatDate(job.jobDate)}</TableCell>;
+      case "pickUpTime":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+          </TableCell>
+        );
+      case "arrivalTime":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+          </TableCell>
+        );
+      case "agent":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.agent?.legalName || "\u2014"}</TableCell>;
+      case "clientName":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.clientName || "\u2014"}</TableCell>;
+      case "route":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs">
+            {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
+          </TableCell>
+        );
+      case "pax":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs">
+            {job.paxCount}
+            <span className="ml-1 text-muted-foreground/60">({job.adultCount}A{job.childCount > 0 && `+${job.childCount}C`})</span>
+          </TableCell>
+        );
+      case "extras": {
+        const extras: string[] = [];
+        if (job.boosterSeatQty > 0) extras.push(`B:${job.boosterSeatQty}`);
+        if (job.babySeatQty > 0) extras.push(`I:${job.babySeatQty}`);
+        if (job.wheelChairQty > 0) extras.push(`W:${job.wheelChairQty}`);
+        return <TableCell key={key} className="text-muted-foreground text-xs">{extras.length > 0 ? extras.join(" ") : "\u2014"}</TableCell>;
+      }
+      case "collectionAmt":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs text-center">
+            {job.collectionRequired && job.collectionAmount ? <span className="text-amber-500">{job.collectionAmount}</span> : "\u2014"}
+          </TableCell>
+        );
+      case "collectionCur":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs text-center">
+            {job.collectionRequired ? <span className="text-amber-500">{job.collectionCurrency}</span> : "\u2014"}
+          </TableCell>
+        );
+      case "transferPrice":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs text-center">
+            {job.transferPrice ? <span className="text-sky-500">{job.transferPrice}</span> : "\u2014"}
+          </TableCell>
+        );
+      case "transferCur":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs text-center">
+            {job.transferPrice ? <span className="text-sky-500">{job.transferPriceCurrency}</span> : "\u2014"}
+          </TableCell>
+        );
+      case "vehicleType":
+        return <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">{job.requestedVehicleType?.name || "\u2014"}</TableCell>;
+      case "notes":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
+            {job.notes || "\u2014"}
+          </TableCell>
+        );
+      case "bookingStatus":
+        return <TableCell key={key}><StatusBadge status={job.bookingStatus || "NEW"} /></TableCell>;
+      case "status":
+        return <TableCell key={key}><StatusBadge status={job.status} /></TableCell>;
+      case "assignment":
+        return (
+          <TableCell key={key} className="text-xs text-muted-foreground">
+            {job.assignment ? (
+              <span>
+                {job.assignment.vehicle?.plateNumber || "\u2014"}
+                {job.assignment.driver && ` / ${job.assignment.driver.name}`}
+              </span>
+            ) : t("dispatch.unassigned")}
+          </TableCell>
+        );
+      default:
+        return <TableCell key={key} />;
+    }
+  };
   const selectedAgent = agents.find((a) => a.id === form.agentId);
   const agentRefInvalid = !!(form.agentRef && selectedAgent?.refPattern && (() => { try { return !new RegExp(selectedAgent.refPattern).test(form.agentRef); } catch { return false; } })());
 
@@ -1068,31 +1221,12 @@ export default function OnlineJobPage() {
             </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow className="border-border bg-muted">
-                  <TableHead className="text-muted-foreground text-xs w-8"></TableHead>
-                  <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("jobs.agentRef")} sortKey="agentRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("common.date")} sortKey="jobDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("jobs.pickUpTime")} sortKey="pickUpTime" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.arrivalTime")}</TableHead>
-                  <SortableHeader label={t("jobs.transferProvider")} sortKey="agent.legalName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <SortableHeader label={t("jobs.clientName")} sortKey="clientName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">{t("dispatch.route")}</TableHead>
-                  <SortableHeader label={t("dispatch.pax")} sortKey="paxCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.extras") || "Extras"}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs w-[70px]">Coll. Amt</TableHead>
-                  <TableHead className="text-muted-foreground text-xs w-[60px]">Coll. Cur</TableHead>
-                  <TableHead className="text-muted-foreground text-xs w-[70px]">Tr. Price</TableHead>
-                  <TableHead className="text-muted-foreground text-xs w-[60px]">Tr. Cur</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">Veh. Type</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.notes") || "Notes"}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
-                  <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.assignment")}</TableHead>
-                </TableRow>
-              </TableHeader>
+              <DraggableTableHeader
+                columns={onlineColumnDefs}
+                columnOrder={onlineColumnOrder}
+                onReorder={onlineReorder}
+                rowClassName="border-border bg-muted"
+              />
               <TableBody>
                 {sortedData.map((job, idx) => {
                   const locked = isJobLocked(job.jobDate, job.editUnlockedAt);
@@ -1111,91 +1245,7 @@ export default function OnlineJobPage() {
                             : "bg-gray-200/50 dark:bg-gray-700/50"
                       )}
                     >
-                      <TableCell className="text-center px-2">
-                        {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />}
-                      </TableCell>
-                      <TableCell className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{job.agentRef || "\u2014"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-border text-muted-foreground text-xs">
-                          {serviceTypeLabels[job.serviceType] || job.serviceType}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {formatDate(job.jobDate)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                        {job.pickUpTime
-                          ? new Date(job.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
-                          : "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                        {job.flight?.arrivalTime
-                          ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
-                          : "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{job.agent?.legalName || "\u2014"}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{job.clientName || "\u2014"}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {job.paxCount}
-                        <span className="ml-1 text-muted-foreground/60">
-                          ({job.adultCount}A{job.childCount > 0 && `+${job.childCount}C`})
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {(() => {
-                          const extras: string[] = [];
-                          if (job.boosterSeatQty > 0) extras.push(`B:${job.boosterSeatQty}`);
-                          if (job.babySeatQty > 0) extras.push(`I:${job.babySeatQty}`);
-                          if (job.wheelChairQty > 0) extras.push(`W:${job.wheelChairQty}`);
-                          return extras.length > 0 ? extras.join(" ") : "\u2014";
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs text-center">
-                        {job.collectionRequired && job.collectionAmount
-                          ? <span className="text-amber-500">{job.collectionAmount}</span>
-                          : "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs text-center">
-                        {job.collectionRequired
-                          ? <span className="text-amber-500">{job.collectionCurrency}</span>
-                          : "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs text-center">
-                        {job.transferPrice
-                          ? <span className="text-sky-500">{job.transferPrice}</span>
-                          : "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs text-center">
-                        {job.transferPrice
-                          ? <span className="text-sky-500">{job.transferPriceCurrency}</span>
-                          : "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                        {job.requestedVehicleType?.name || "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
-                        {job.notes || "\u2014"}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={job.bookingStatus || "NEW"} />
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={job.status} />
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {job.assignment ? (
-                          <span>
-                            {job.assignment.vehicle?.plateNumber || "\u2014"}
-                            {job.assignment.driver && ` / ${job.assignment.driver.name}`}
-                          </span>
-                        ) : (
-                          t("dispatch.unassigned")
-                        )}
-                      </TableCell>
+                      {onlineColumnOrder.map((key) => renderOnlineCell(key, job, locked))}
                     </TableRow>
                   );
                 })}

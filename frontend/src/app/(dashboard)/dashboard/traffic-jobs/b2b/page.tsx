@@ -42,6 +42,8 @@ import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr } from "@/lib/utils";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useColumnOrder } from "@/hooks/useColumnOrder";
+import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 
 interface VehicleTypeResource {
   id: string;
@@ -645,6 +647,105 @@ export default function B2BJobPage() {
 
   const showFlightFields = form.serviceType === "ARR" || form.serviceType === "DEP";
 
+  // ── Draggable column order ──
+  const B2B_DEFAULT_COLS = [
+    "ref", "customerJobId", "serviceType", "jobDate", "customer",
+    "route", "pax", "extras", "notes", "price", "bookingStatus", "status", "assignment",
+  ];
+  const { columns: b2bColumnOrder, reorder: b2bReorder } = useColumnOrder("traffic_jobs_b2b", B2B_DEFAULT_COLS);
+  const th = (label: string) => <span className="text-xs font-medium text-muted-foreground">{label}</span>;
+
+  const b2bColumnDefs: ColumnDef[] = [
+    { key: "ref",           label: th(t("dispatch.ref")) },
+    { key: "customerJobId", label: th(t("jobs.customerJobId") || "Cust. Job ID") },
+    { key: "serviceType",   label: th(t("jobs.type")) },
+    { key: "jobDate",       label: th(t("common.date")) },
+    { key: "customer",      label: th(t("jobs.customer")) },
+    { key: "route",         label: th(t("dispatch.route")) },
+    { key: "pax",           label: th(t("dispatch.pax")) },
+    { key: "extras",        label: th(t("jobs.extras") || "Extras") },
+    { key: "notes",         label: th(t("jobs.notes") || "Notes") },
+    { key: "price",         label: th(t("jobs.price") || "Price") },
+    { key: "bookingStatus", label: th(t("jobs.bookingStatus") || "Booking") },
+    { key: "status",        label: th(t("common.status")) },
+    { key: "assignment",    label: th(t("jobs.assignment")) },
+  ];
+
+  const renderB2BCell = (key: string, job: TrafficJob, locked: boolean): React.ReactNode => {
+    switch (key) {
+      case "ref":
+        return (
+          <TableCell key={key} className="text-foreground font-mono text-xs">
+            <div className="flex items-center gap-1.5">
+              {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />}
+              {job.internalRef}
+            </div>
+          </TableCell>
+        );
+      case "customerJobId":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.customerJobId || "\u2014"}</TableCell>;
+      case "serviceType":
+        return (
+          <TableCell key={key}>
+            <Badge variant="outline" className="border-border text-muted-foreground text-xs">
+              {serviceTypeLabels[job.serviceType] || job.serviceType}
+            </Badge>
+          </TableCell>
+        );
+      case "jobDate":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{formatDate(job.jobDate)}</TableCell>;
+      case "customer":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.customer?.legalName || "\u2014"}</TableCell>;
+      case "route":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs">
+            {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
+          </TableCell>
+        );
+      case "pax":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.paxCount}</TableCell>;
+      case "extras": {
+        const extras: string[] = [];
+        if (job.boosterSeatQty > 0) extras.push(`B:${job.boosterSeatQty}`);
+        if (job.babySeatQty > 0) extras.push(`I:${job.babySeatQty}`);
+        if (job.wheelChairQty > 0) extras.push(`W:${job.wheelChairQty}`);
+        return <TableCell key={key} className="text-muted-foreground text-xs">{extras.length > 0 ? extras.join(" ") : "\u2014"}</TableCell>;
+      }
+      case "notes":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
+            {job.notes || "\u2014"}
+          </TableCell>
+        );
+      case "price":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs">
+            {job.priceAmount != null ? (
+              <span>{Number(job.priceAmount).toLocaleString()} <span className="text-muted-foreground/60">{job.priceCurrency || "EGP"}</span></span>
+            ) : "\u2014"}
+          </TableCell>
+        );
+      case "bookingStatus":
+        return <TableCell key={key}><StatusBadge status={job.bookingStatus || "NEW"} /></TableCell>;
+      case "status":
+        return <TableCell key={key}><StatusBadge status={job.status} /></TableCell>;
+      case "assignment":
+        return (
+          <TableCell key={key} className="text-xs text-muted-foreground">
+            {job.assignment ? (
+              <span>
+                {job.assignment.vehicle?.plateNumber || job.assignment.externalDriverName || "\u2014"}
+                {job.assignment.driver ? ` / ${job.assignment.driver.name}` : job.assignment.externalDriverName ? ` / ${job.assignment.externalDriverPhone || ""}` : ""}
+                {job.assignment.rep && ` / ${job.assignment.rep.name}`}
+              </span>
+            ) : t("dispatch.unassigned")}
+          </TableCell>
+        );
+      default:
+        return <TableCell key={key} />;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1195,24 +1296,12 @@ export default function B2BJobPage() {
           ) : (
             <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow className="border-border bg-muted">
-                  <TableHead className="text-muted-foreground text-xs w-8"></TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("dispatch.ref")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.customerJobId") || "Cust. Job ID"}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.type")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("common.date")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.customer")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("dispatch.route")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("dispatch.pax")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.extras") || "Extras"}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.notes") || "Notes"}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.price") || "Price"}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.bookingStatus") || "Booking"}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
-                  <TableHead className="text-muted-foreground text-xs">{t("jobs.assignment")}</TableHead>
-                </TableRow>
-              </TableHeader>
+              <DraggableTableHeader
+                columns={b2bColumnDefs}
+                columnOrder={b2bColumnOrder}
+                onReorder={b2bReorder}
+                rowClassName="border-border bg-muted"
+              />
               <TableBody>
                 {filtered.map((job, idx) => {
                   const locked = isJobLocked(job.jobDate, job.editUnlockedAt);
@@ -1231,60 +1320,7 @@ export default function B2BJobPage() {
                             : "bg-gray-200/50 dark:bg-gray-700/50"
                       )}
                     >
-                      <TableCell className="text-center px-2">
-                        {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />}
-                      </TableCell>
-                      <TableCell className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{job.customerJobId || "\u2014"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-border text-muted-foreground text-xs">
-                          {serviceTypeLabels[job.serviceType] || job.serviceType}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {formatDate(job.jobDate)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{job.customer?.legalName || "\u2014"}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {job.paxCount}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {(() => {
-                          const extras: string[] = [];
-                          if (job.boosterSeatQty > 0) extras.push(`B:${job.boosterSeatQty}`);
-                          if (job.babySeatQty > 0) extras.push(`I:${job.babySeatQty}`);
-                          if (job.wheelChairQty > 0) extras.push(`W:${job.wheelChairQty}`);
-                          return extras.length > 0 ? extras.join(" ") : "\u2014";
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
-                        {job.notes || "\u2014"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {job.priceAmount != null ? (
-                          <span>{Number(job.priceAmount).toLocaleString()} <span className="text-muted-foreground/60">{job.priceCurrency || "EGP"}</span></span>
-                        ) : "\u2014"}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={job.bookingStatus || "NEW"} />
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={job.status} />
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {job.assignment ? (
-                          <span>
-                            {job.assignment.vehicle?.plateNumber || job.assignment.externalDriverName || "\u2014"}
-                            {job.assignment.driver ? ` / ${job.assignment.driver.name}` : job.assignment.externalDriverName ? ` / ${job.assignment.externalDriverPhone || ""}` : ""}
-                            {job.assignment.rep && ` / ${job.assignment.rep.name}`}
-                          </span>
-                        ) : (
-                          t("dispatch.unassigned")
-                        )}
-                      </TableCell>
+                      {b2bColumnOrder.map((key) => renderB2BCell(key, job, locked))}
                     </TableRow>
                   );
                 })}

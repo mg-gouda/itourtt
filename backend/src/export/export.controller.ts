@@ -277,6 +277,7 @@ export class ExportController {
 
   @Get('evidence-file/:fileId')
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.evidence')
   async proxyEvidenceFile(
     @Param('fileId') fileId: string,
     @Res() res: express.Response,

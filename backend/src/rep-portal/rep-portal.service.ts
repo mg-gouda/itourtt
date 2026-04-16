@@ -371,7 +371,17 @@ export class RepPortalService {
     this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
 
     const currentStatus = assignment.repStatus;
-    if (currentStatus !== 'PENDING' && currentStatus !== 'IN_PLACE') {
+
+    // Idempotent: already IN_PLACE — return current state without re-processing
+    if (currentStatus === 'IN_PLACE') {
+      const job = await this.prisma.trafficJob.findUniqueOrThrow({
+        where: { id: jobId },
+        include: this.jobInclude,
+      });
+      return { ...job, repStatus: 'IN_PLACE' };
+    }
+
+    if (currentStatus !== 'PENDING') {
       throw new BadRequestException(
         `Cannot mark as In Place from "${currentStatus}"`,
       );

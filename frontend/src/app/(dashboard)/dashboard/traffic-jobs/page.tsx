@@ -13,6 +13,8 @@ import {
   ExternalLink,
   Image,
   PlaneLanding,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -50,6 +52,8 @@ import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useColumnOrder } from "@/hooks/useColumnOrder";
+import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 
 interface TrafficJob {
   id: string;
@@ -207,6 +211,243 @@ export default function TrafficJobsPage() {
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
 
+  // ── Draggable column order ──
+  const DEFAULT_COLS = [
+    "createdAt", "internalRef", "bookingChannel", "serviceType", "jobDate", "pickUpTime",
+    "agentCustomer", "clientName", "clientNumber", "adults", "children",
+    "origin", "destination", "flightNo", "terminal", "arrivalTime", "departureTime", "carrier",
+    "extras", "printSign", "notes", "status", "bookingStatus",
+    "driverStatus", "repStatus", "vehicleType", "transferPrice", "collection",
+    "assignment", "custRep", "userLog",
+  ];
+  const { columns: columnOrder, reorder } = useColumnOrder("traffic_jobs_all", DEFAULT_COLS);
+
+  const sortBtn = (label: string, key: string) => (
+    <button onClick={() => onSort(key)} className="flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+      {label}
+      {sortKey === key && (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+    </button>
+  );
+  const th = (label: string) => <span className="text-xs font-medium text-muted-foreground">{label}</span>;
+
+  const columnDefs: ColumnDef[] = [
+    { key: "createdAt",      label: sortBtn(t("jobs.bookingDate"), "createdAt") },
+    { key: "internalRef",    label: sortBtn(t("dispatch.ref"), "internalRef") },
+    { key: "bookingChannel", label: sortBtn(t("jobs.channel"), "bookingChannel") },
+    { key: "serviceType",    label: sortBtn(t("jobs.type"), "serviceType") },
+    { key: "jobDate",        label: sortBtn(t("jobs.serviceDate"), "jobDate") },
+    { key: "pickUpTime",     label: sortBtn(t("jobs.pickUpTime"), "pickUpTime") },
+    { key: "agentCustomer",  label: th(t("jobs.agentCustomer")) },
+    { key: "clientName",     label: sortBtn(t("jobs.clientName"), "clientName") },
+    { key: "clientNumber",   label: th(t("jobs.clientNumber")) },
+    { key: "adults",         label: sortBtn(t("jobs.ad"), "adultCount") },
+    { key: "children",       label: sortBtn(t("jobs.chd"), "childCount") },
+    { key: "origin",         label: th(t("jobs.origin")) },
+    { key: "destination",    label: th(t("jobs.destination")) },
+    { key: "flightNo",       label: th(t("jobs.flightNumber")) },
+    { key: "terminal",       label: th(t("jobs.terminal")) },
+    { key: "arrivalTime",    label: th(t("jobs.arrivalTime")) },
+    { key: "departureTime",  label: th(t("jobs.departureTime")) },
+    { key: "carrier",        label: th(t("jobs.carrier")) },
+    { key: "extras",         label: th(t("jobs.extras")) },
+    { key: "printSign",      label: th(t("jobs.printSign")) },
+    { key: "notes",          label: th(t("jobs.notes")) },
+    { key: "status",         label: sortBtn(t("common.status"), "status") },
+    { key: "bookingStatus",  label: sortBtn("Bkg Status", "bookingStatus") },
+    { key: "driverStatus",   label: th("Driver Status") },
+    { key: "repStatus",      label: th("Rep Status") },
+    { key: "vehicleType",    label: th("Veh. Type") },
+    { key: "transferPrice",  label: th("Transfer Price") },
+    { key: "collection",     label: th("Collection") },
+    { key: "assignment",     label: th(t("jobs.assignment")) },
+    { key: "custRep",        label: th("Cust. Rep") },
+    { key: "userLog",        label: th(t("jobs.userLog")) },
+  ];
+
+  const renderCell = (key: string, job: TrafficJob): React.ReactNode => {
+    switch (key) {
+      case "createdAt":
+        return <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">{formatDate(job.createdAt)}</TableCell>;
+      case "internalRef":
+        return (
+          <TableCell key={key} className="text-foreground font-mono text-xs whitespace-nowrap">
+            {job.internalRef}
+            {job.agentRef && <span className="ml-1 text-muted-foreground">({job.agentRef})</span>}
+            {job.customerJobId && <span className="ml-1 text-muted-foreground">#{job.customerJobId}</span>}
+          </TableCell>
+        );
+      case "bookingChannel":
+        return (
+          <TableCell key={key}>
+            <Badge variant="outline" className={job.bookingChannel === "ONLINE" ? "bg-blue-500/10 text-blue-600 border-blue-500/30 text-xs" : "bg-amber-500/10 text-amber-600 border-amber-500/30 text-xs"}>
+              {job.bookingChannel}
+            </Badge>
+          </TableCell>
+        );
+      case "serviceType":
+        return (
+          <TableCell key={key}>
+            <Badge variant="outline" className="border-border text-muted-foreground text-xs">
+              {serviceTypeLabels[job.serviceType] || job.serviceType}
+            </Badge>
+          </TableCell>
+        );
+      case "jobDate":
+        return <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">{formatDate(job.jobDate)}</TableCell>;
+      case "pickUpTime":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+          </TableCell>
+        );
+      case "agentCustomer":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {job.bookingChannel === "ONLINE" ? job.agent?.legalName || "\u2014" : job.customer?.legalName || "\u2014"}
+          </TableCell>
+        );
+      case "clientName":
+        return <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">{job.clientName || "\u2014"}</TableCell>;
+      case "clientNumber":
+        return <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">{job.clientMobile || "\u2014"}</TableCell>;
+      case "adults":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.adultCount}</TableCell>;
+      case "children":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.childCount}</TableCell>;
+      case "origin":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {job.originAirport?.code || job.originAirport?.name || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "\u2014"}
+          </TableCell>
+        );
+      case "destination":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {job.destinationAirport?.code || job.destinationAirport?.name || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "\u2014"}
+          </TableCell>
+        );
+      case "flightNo":
+        return <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">{job.flight?.flightNo || "\u2014"}</TableCell>;
+      case "terminal":
+        return <TableCell key={key} className="text-muted-foreground text-xs">{job.flight?.terminal || "\u2014"}</TableCell>;
+      case "arrivalTime":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+          </TableCell>
+        );
+      case "departureTime":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+          </TableCell>
+        );
+      case "carrier":
+        return <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">{job.flight?.carrier || "\u2014"}</TableCell>;
+      case "extras":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
+            {[
+              job.boosterSeat && `Booster x${job.boosterSeatQty}`,
+              job.babySeat && `Baby x${job.babySeatQty}`,
+              job.wheelChair && `WC x${job.wheelChairQty}`,
+            ].filter(Boolean).join(", ") || "\u2014"}
+          </TableCell>
+        );
+      case "printSign":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs text-center">
+            {job.printSign ? <span className="text-emerald-500">✓</span> : "\u2014"}
+          </TableCell>
+        );
+      case "notes":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
+            {job.notes || "\u2014"}
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key={key}>
+            {job.status === "NO_SHOW" ? (
+              <span data-no-show="true" className="cursor-pointer hover:underline inline-flex items-center gap-1" title="Click to view no-show evidence" onClick={() => setEvidenceJob(job)}>
+                <StatusBadge status={job.status} />
+                {(job.noShowEvidence?.length ?? 0) > 0 && <Image className="h-3 w-3 opacity-70" />}
+              </span>
+            ) : (
+              <StatusBadge status={job.status} />
+            )}
+          </TableCell>
+        );
+      case "bookingStatus":
+        return <TableCell key={key}>{job.bookingStatus ? <StatusBadge status={job.bookingStatus} /> : "\u2014"}</TableCell>;
+      case "driverStatus":
+        return (
+          <TableCell key={key}>
+            {job.assignment?.driverStatus ? (
+              <span
+                data-no-show={job.assignment.driverStatus === "NO_SHOW" ? "true" : undefined}
+                className={job.assignment.driverStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}
+                onClick={job.assignment.driverStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
+              >
+                <StatusBadge status={job.assignment.driverStatus} />
+              </span>
+            ) : "\u2014"}
+          </TableCell>
+        );
+      case "repStatus":
+        return (
+          <TableCell key={key}>
+            {job.assignment?.repStatus ? (
+              <span
+                data-no-show={job.assignment.repStatus === "NO_SHOW" ? "true" : undefined}
+                className={job.assignment.repStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}
+                onClick={job.assignment.repStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
+              >
+                <StatusBadge status={job.assignment.repStatus} />
+              </span>
+            ) : "\u2014"}
+          </TableCell>
+        );
+      case "vehicleType":
+        return <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">{job.requestedVehicleType?.name || "\u2014"}</TableCell>;
+      case "transferPrice":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap font-mono font-medium">
+            {job.transferPrice ? `${job.transferPrice} ${job.transferPriceCurrency}` : "\u2014"}
+          </TableCell>
+        );
+      case "collection":
+        return (
+          <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap font-mono font-medium">
+            {job.collectionRequired && job.collectionAmount ? `${job.collectionAmount} ${job.collectionCurrency}` : "\u2014"}
+          </TableCell>
+        );
+      case "assignment":
+        return (
+          <TableCell key={key} className="text-xs text-muted-foreground whitespace-nowrap">
+            {job.assignment ? (
+              <span>
+                {job.assignment.vehicle?.plateNumber || "\u2014"}
+                {job.assignment.driver && ` / ${job.assignment.driver.name}`}
+                {job.assignment.rep && ` / ${job.assignment.rep.name}`}
+              </span>
+            ) : t("dispatch.unassigned")}
+          </TableCell>
+        );
+      case "custRep":
+        return (
+          <TableCell key={key} className="text-xs text-muted-foreground whitespace-nowrap">
+            {job.custRepName ? `${job.custRepName}${job.custRepMobile ? ` (${job.custRepMobile})` : ""}` : "\u2014"}
+          </TableCell>
+        );
+      case "userLog":
+        return <TableCell key={key} className="text-xs text-muted-foreground whitespace-nowrap">{job.createdBy?.name || "\u2014"}</TableCell>;
+      default:
+        return <TableCell key={key} />;
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
@@ -331,41 +572,12 @@ export default function TrafficJobsPage() {
         ) : (
           <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
-              <TableRow className="border-border bg-muted">
-                <SortableHeader label={t("jobs.bookingDate")} sortKey="createdAt" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <SortableHeader label={t("dispatch.ref")} sortKey="internalRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <SortableHeader label={t("jobs.channel")} sortKey="bookingChannel" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <SortableHeader label={t("jobs.type")} sortKey="serviceType" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <SortableHeader label={t("jobs.serviceDate")} sortKey="jobDate" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <SortableHeader label={t("jobs.pickUpTime")} sortKey="pickUpTime" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.agentCustomer")}</TableHead>
-                <SortableHeader label={t("jobs.clientName")} sortKey="clientName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.clientNumber")}</TableHead>
-                <SortableHeader label={t("jobs.ad")} sortKey="adultCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <SortableHeader label={t("jobs.chd")} sortKey="childCount" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.origin")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.destination")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.flightNumber")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.terminal")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.arrivalTime")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.departureTime")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.carrier")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.extras")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.printSign")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.notes")}</TableHead>
-                <SortableHeader label={t("common.status")} sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <SortableHeader label="Bkg Status" sortKey="bookingStatus" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />
-                <TableHead className="text-muted-foreground text-xs">Driver Status</TableHead>
-                <TableHead className="text-muted-foreground text-xs">Rep Status</TableHead>
-                <TableHead className="text-muted-foreground text-xs">Veh. Type</TableHead>
-                <TableHead className="text-muted-foreground text-xs">Transfer Price</TableHead>
-                <TableHead className="text-muted-foreground text-xs">Collection</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.assignment")}</TableHead>
-                <TableHead className="text-muted-foreground text-xs">Cust. Rep</TableHead>
-                <TableHead className="text-muted-foreground text-xs">{t("jobs.userLog")}</TableHead>
-              </TableRow>
-            </TableHeader>
+            <DraggableTableHeader
+              columns={columnDefs}
+              columnOrder={columnOrder}
+              onReorder={reorder}
+              rowClassName="border-border bg-muted"
+            />
             <TableBody>
               {sortedData.map((job, idx) => (
                 <TableRow
@@ -376,181 +588,7 @@ export default function TrafficJobsPage() {
                     router.push(`/dashboard/traffic-jobs/${job.bookingChannel === "ONLINE" ? "online" : "b2b"}?edit=${job.id}`);
                   }}
                 >
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {formatDate(job.createdAt)}
-                  </TableCell>
-                  <TableCell className="text-foreground font-mono text-xs whitespace-nowrap">
-                    {job.internalRef}
-                    {job.agentRef && (
-                      <span className="ml-1 text-muted-foreground">({job.agentRef})</span>
-                    )}
-                    {job.customerJobId && (
-                      <span className="ml-1 text-muted-foreground">#{job.customerJobId}</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        job.bookingChannel === "ONLINE"
-                          ? "bg-blue-500/10 text-blue-600 border-blue-500/30 text-xs"
-                          : "bg-amber-500/10 text-amber-600 border-amber-500/30 text-xs"
-                      }
-                    >
-                      {job.bookingChannel}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="border-border text-muted-foreground text-xs"
-                    >
-                      {serviceTypeLabels[job.serviceType] || job.serviceType}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {formatDate(job.jobDate)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.pickUpTime
-                      ? new Date(job.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
-                      : "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.bookingChannel === "ONLINE"
-                      ? job.agent?.legalName || "\u2014"
-                      : job.customer?.legalName || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.clientName || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.clientMobile || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {job.adultCount}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {job.childCount}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.originAirport?.code || job.originAirport?.name || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.destinationAirport?.code || job.destinationAirport?.name || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.flight?.flightNo || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {job.flight?.terminal || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.flight?.arrivalTime
-                      ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
-                      : "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.flight?.departureTime
-                      ? new Date(job.flight.departureTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
-                      : "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.flight?.carrier || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {[
-                      job.boosterSeat && `Booster x${job.boosterSeatQty}`,
-                      job.babySeat && `Baby x${job.babySeatQty}`,
-                      job.wheelChair && `WC x${job.wheelChairQty}`,
-                    ].filter(Boolean).join(", ") || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs text-center">
-                    {job.printSign ? (
-                      <span className="text-emerald-500">✓</span>
-                    ) : "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate" title={job.notes || ""}>
-                    {job.notes || "\u2014"}
-                  </TableCell>
-                  <TableCell>
-                    {job.status === "NO_SHOW" ? (
-                      <span
-                        data-no-show="true"
-                        className="cursor-pointer hover:underline inline-flex items-center gap-1"
-                        title="Click to view no-show evidence"
-                        onClick={() => setEvidenceJob(job)}
-                      >
-                        <StatusBadge status={job.status} />
-                        {(job.noShowEvidence?.length ?? 0) > 0 && (
-                          <Image className="h-3 w-3 opacity-70" />
-                        )}
-                      </span>
-                    ) : (
-                      <StatusBadge status={job.status} />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {job.bookingStatus ? (
-                      <StatusBadge status={job.bookingStatus} />
-                    ) : "\u2014"}
-                  </TableCell>
-                  <TableCell>
-                    {job.assignment?.driverStatus ? (
-                      <span
-                        data-no-show={job.assignment.driverStatus === "NO_SHOW" ? "true" : undefined}
-                        className={job.assignment.driverStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}
-                        title={job.assignment.driverStatus === "NO_SHOW" ? "Click to view no-show evidence" : undefined}
-                        onClick={job.assignment.driverStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
-                      >
-                        <StatusBadge status={job.assignment.driverStatus} />
-                      </span>
-                    ) : "\u2014"}
-                  </TableCell>
-                  <TableCell>
-                    {job.assignment?.repStatus ? (
-                      <span
-                        data-no-show={job.assignment.repStatus === "NO_SHOW" ? "true" : undefined}
-                        className={job.assignment.repStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}
-                        title={job.assignment.repStatus === "NO_SHOW" ? "Click to view no-show evidence" : undefined}
-                        onClick={job.assignment.repStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
-                      >
-                        <StatusBadge status={job.assignment.repStatus} />
-                      </span>
-                    ) : "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                    {job.requestedVehicleType?.name || "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap font-mono font-medium">
-                    {job.transferPrice
-                      ? `${job.transferPrice} ${job.transferPriceCurrency}`
-                      : "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap font-mono font-medium">
-                    {job.collectionRequired && job.collectionAmount
-                      ? `${job.collectionAmount} ${job.collectionCurrency}`
-                      : "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {job.assignment ? (
-                      <span>
-                        {job.assignment.vehicle?.plateNumber || "\u2014"}
-                        {job.assignment.driver && ` / ${job.assignment.driver.name}`}
-                        {job.assignment.rep && ` / ${job.assignment.rep.name}`}
-                      </span>
-                    ) : (
-                      t("dispatch.unassigned")
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {job.custRepName
-                      ? `${job.custRepName}${job.custRepMobile ? ` (${job.custRepMobile})` : ""}`
-                      : "\u2014"}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                    {job.createdBy?.name || "\u2014"}
-                  </TableCell>
+                  {columnOrder.map((key) => renderCell(key, job))}
                 </TableRow>
               ))}
             </TableBody>

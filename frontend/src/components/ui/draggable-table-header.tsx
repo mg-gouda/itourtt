@@ -30,6 +30,8 @@ interface DraggableTableHeaderProps {
   columns: ColumnDef[];
   columnOrder: string[];
   onReorder: (newOrder: string[]) => void;
+  rowClassName?: string;
+  prefixCells?: React.ReactNode;
 }
 
 function SortableTableHead({ col }: { col: ColumnDef }) {
@@ -71,6 +73,8 @@ export function DraggableTableHeader({
   columns,
   columnOrder,
   onReorder,
+  rowClassName,
+  prefixCells,
 }: DraggableTableHeaderProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -103,7 +107,8 @@ export function DraggableTableHeader({
           items={columnOrder}
           strategy={horizontalListSortingStrategy}
         >
-          <TableRow>
+          <TableRow className={rowClassName}>
+            {prefixCells}
             {orderedColumns.map((col) => (
               <SortableTableHead key={col.key} col={col} />
             ))}
