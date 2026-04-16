@@ -552,7 +552,7 @@ export default function RepDetailPage() {
             ) : !feesData || feesData.fees.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("reps.noFees")}</p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <TableHeader>
                     <TableRow>

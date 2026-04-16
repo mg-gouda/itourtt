@@ -433,7 +433,7 @@ export default function ActivityLogPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [overflow-y:clip]">
             <div className="flex justify-end mb-2">
               <ColumnVisibilityControl columns={ACTIVITY_COL_DEFS} visibility={actColVis} onSave={saveActColVis} />
             </div>

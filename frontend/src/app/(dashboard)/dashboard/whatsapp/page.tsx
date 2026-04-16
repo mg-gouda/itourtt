@@ -668,7 +668,7 @@ export default function WhatsAppPage() {
         {logs.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("whatsapp.noLogs")}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [overflow-y:clip]">
             <Table>
               <TableHeader>
                 <TableRow>

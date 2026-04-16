@@ -1300,7 +1300,7 @@ export default function B2BJobPage() {
               <p>{t("jobs.noJobs")}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto [overflow-y:clip]">
             <Table>
               <DraggableTableHeader
                 columns={b2bColumnDefs}

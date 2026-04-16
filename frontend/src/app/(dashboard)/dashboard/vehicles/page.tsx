@@ -403,7 +403,7 @@ export default function VehiclesPage() {
           </div>
 
           {typesLoading ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto [overflow-y:clip]">
               <table className="w-full text-sm">
                 <tbody>
                   {Array.from({ length: 8 }).map((_, i) => (
@@ -428,7 +428,7 @@ export default function VehiclesPage() {
                 onSearchChange={setTypeSearch}
                 placeholder={t("common.search") + "..."}
               />
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">
@@ -545,7 +545,7 @@ export default function VehiclesPage() {
           />
 
           {vehiclesLoading ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto [overflow-y:clip]">
               <table className="w-full text-sm">
                 <tbody>
                   {Array.from({ length: 9 }).map((_, i) => (
@@ -583,7 +583,7 @@ export default function VehiclesPage() {
               <div className="flex justify-end mb-2">
                 <ColumnVisibilityControl columns={VEHICLES_COL_DEFS} visibility={vehicleColVis} onSave={saveVehicleColVis} />
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">

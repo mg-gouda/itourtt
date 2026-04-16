@@ -1011,7 +1011,7 @@ function JobGrid({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto [overflow-y:clip]">
       <Table>
         <TableHeader>
           <TableRow className="border-border bg-muted">

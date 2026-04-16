@@ -552,7 +552,7 @@ export default function AgentsPage() {
           <div className="flex justify-end mb-2">
             <ColumnVisibilityControl columns={AGENTS_COL_DEFS} visibility={agentColVis} onSave={saveAgentColVis} />
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [overflow-y:clip]">
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-muted">

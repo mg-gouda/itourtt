@@ -610,7 +610,7 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                         <div className="space-y-3 border-t border-border pt-4">
                           <p className="text-sm font-medium text-foreground">{t("vehicles.depositPayments")}</p>
 
-                          <div className="overflow-x-auto">
+                          <div className="overflow-x-auto [overflow-y:clip]">
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="border-b border-border text-xs text-muted-foreground">

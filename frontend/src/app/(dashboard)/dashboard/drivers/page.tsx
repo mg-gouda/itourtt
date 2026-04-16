@@ -647,7 +647,7 @@ export default function DriversPage() {
       />
 
       {loading ? (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto [overflow-y:clip]">
           <table className="w-full text-sm">
             <tbody>
               {Array.from({ length: 9 }).map((_, i) => (
@@ -689,7 +689,7 @@ export default function DriversPage() {
           <div className="flex justify-end mb-2">
             <ColumnVisibilityControl columns={DRIVERS_COL_DEFS} visibility={driverColVis} onSave={saveDriverColVis} />
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [overflow-y:clip]">
           <Table>
             <TableHeader>
               <TableRow className="border-border bg-muted">

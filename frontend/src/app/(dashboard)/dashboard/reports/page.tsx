@@ -1725,7 +1725,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="flex justify-end mb-2">
                 <ColumnVisibilityControl columns={DISPATCH_COLUMNS} visibility={dispatchColOrder.visibility} onSave={dispatchColOrder.saveVisibility} />
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <DraggableTableHeader
                     columns={DISPATCH_COLUMNS}
@@ -1845,7 +1845,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="flex justify-end mb-2">
                 <ColumnVisibilityControl columns={DRIVERS_COLUMNS} visibility={driversColOrder.visibility} onSave={driversColOrder.saveVisibility} />
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <DraggableTableHeader
                     columns={DRIVERS_COLUMNS}
@@ -2002,7 +2002,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                   <div className="flex justify-end mb-2">
                     <ColumnVisibilityControl columns={DRIVER_SCORE_COLUMNS} visibility={driverScoreColOrder.visibility} onSave={driverScoreColOrder.saveVisibility} />
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto [overflow-y:clip]">
                     <Table>
                       <DraggableTableHeader
                         columns={DRIVER_SCORE_COLUMNS}
@@ -2251,7 +2251,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="flex justify-end mb-2">
                 <ColumnVisibilityControl columns={AGENT_COLUMNS} visibility={agentColOrder.visibility} onSave={agentColOrder.saveVisibility} />
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <DraggableTableHeader
                     columns={AGENT_COLUMNS}
@@ -2379,7 +2379,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               <div className="flex justify-end mb-2">
                 <ColumnVisibilityControl columns={REP_FEES_COLUMNS} visibility={repFeesColOrder.visibility} onSave={repFeesColOrder.saveVisibility} />
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <DraggableTableHeader
                     columns={REP_FEES_COLUMNS}
@@ -2531,7 +2531,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                   <div className="flex justify-end mb-2">
                     <ColumnVisibilityControl columns={REP_SCORE_COLUMNS} visibility={repScoreColOrder.visibility} onSave={repScoreColOrder.saveVisibility} />
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto [overflow-y:clip]">
                     <Table>
                       <DraggableTableHeader
                         columns={REP_SCORE_COLUMNS}
@@ -2772,7 +2772,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 </Card>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">
@@ -2904,22 +2904,25 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
               </div>
 
               {/* Table */}
-              <div className="overflow-x-auto">
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={COMPLIANCE_COLUMNS} visibility={complianceColOrder.visibility} onSave={complianceColOrder.saveVisibility} />
+              </div>
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">
-                      <SortableHeader label={t("vehicles.plateNumber")} sortKey="plateNumber" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <SortableHeader label={t("vehicles.type")} sortKey="vehicleTypeName" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <SortableHeader label={t("vehicles.ownership")} sortKey="ownership" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <SortableHeader label={t("vehicles.licenseExpiryDate")} sortKey="licenseExpiryDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.insurance")}</TableHead>
-                      <SortableHeader label={t("vehicles.temporaryPermit")} sortKey="temporaryPermitDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.permitExpiry")}</TableHead>
-                      <SortableHeader label={t("vehicles.annualPayment")} sortKey="annualPayment" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.registrationFees")}</TableHead>
-                      <SortableHeader label={t("vehicles.totalFees")} sortKey="totalFees" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <SortableHeader label={t("vehicles.totalDeposits")} sortKey="depositTotal" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />
-                      <TableHead className="text-muted-foreground text-xs">{t("vehicles.balanceRemaining")}</TableHead>
+                      {complianceColOrder.visibility["plateNumber"] !== false && <SortableHeader label={t("vehicles.plateNumber")} sortKey="plateNumber" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />}
+                      {complianceColOrder.visibility["vehicleTypeName"] !== false && <SortableHeader label={t("vehicles.type")} sortKey="vehicleTypeName" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />}
+                      {complianceColOrder.visibility["ownership"] !== false && <SortableHeader label={t("vehicles.ownership")} sortKey="ownership" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />}
+                      {complianceColOrder.visibility["licenseExpiryDate"] !== false && <SortableHeader label={t("vehicles.licenseExpiryDate")} sortKey="licenseExpiryDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />}
+                      {complianceColOrder.visibility["insurance"] !== false && <TableHead className="text-muted-foreground text-xs">{t("vehicles.insurance")}</TableHead>}
+                      {complianceColOrder.visibility["temporaryPermitDate"] !== false && <SortableHeader label={t("vehicles.temporaryPermit")} sortKey="temporaryPermitDate" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />}
+                      {complianceColOrder.visibility["permitExpiry"] !== false && <TableHead className="text-muted-foreground text-xs">{t("vehicles.permitExpiry")}</TableHead>}
+                      {complianceColOrder.visibility["annualPayment"] !== false && <SortableHeader label={t("vehicles.annualPayment")} sortKey="annualPayment" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />}
+                      {complianceColOrder.visibility["registrationFees"] !== false && <TableHead className="text-muted-foreground text-xs">{t("vehicles.registrationFees")}</TableHead>}
+                      {complianceColOrder.visibility["totalFees"] !== false && <SortableHeader label={t("vehicles.totalFees")} sortKey="totalFees" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />}
+                      {complianceColOrder.visibility["depositTotal"] !== false && <SortableHeader label={t("vehicles.totalDeposits")} sortKey="depositTotal" currentKey={complianceSort.sortKey} currentDir={complianceSort.sortDir} onSort={complianceSort.onSort} />}
+                      {complianceColOrder.visibility["balanceRemaining"] !== false && <TableHead className="text-muted-foreground text-xs">{t("vehicles.balanceRemaining")}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -2936,34 +2939,40 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                           key={`${v.vehicleId}-${idx}`}
                           className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                         >
-                          <TableCell className="font-medium text-foreground">{v.plateNumber}</TableCell>
-                          <TableCell className="text-muted-foreground">{v.vehicleTypeName}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="bg-secondary text-muted-foreground">{v.ownership}</Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{v.licenseExpiryDate ? formatDate(v.licenseExpiryDate) : "—"}</TableCell>
-                          <TableCell>
-                            {v.hasInsurance ? (
-                              <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">{t("common.yes")}</Badge>
-                            ) : (
-                              <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">{t("common.no")}</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{v.temporaryPermitDate ? formatDate(v.temporaryPermitDate) : "—"}</TableCell>
-                          <TableCell>
-                            {permitExp ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-muted-foreground text-sm">{formatDate(v.temporaryPermitExpiryDate!)}</span>
-                                {isExpired && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
-                                {isWarning && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
-                              </div>
-                            ) : "—"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{v.annualPayment != null ? `${fmt(Number(v.annualPayment))} ${v.annualPaymentCurrency || ""}` : "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{v.registrationFees != null ? fmt(Number(v.registrationFees)) : "—"}</TableCell>
-                          <TableCell className="text-muted-foreground font-medium">{v.totalFees != null ? fmt(Number(v.totalFees)) : "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{v.depositTotal != null ? fmt(Number(v.depositTotal)) : "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{v.balanceRemaining != null ? fmt(Number(v.balanceRemaining)) : "—"}</TableCell>
+                          {complianceColOrder.visibility["plateNumber"] !== false && <TableCell className="font-medium text-foreground">{v.plateNumber}</TableCell>}
+                          {complianceColOrder.visibility["vehicleTypeName"] !== false && <TableCell className="text-muted-foreground">{v.vehicleTypeName}</TableCell>}
+                          {complianceColOrder.visibility["ownership"] !== false && (
+                            <TableCell>
+                              <Badge variant="secondary" className="bg-secondary text-muted-foreground">{v.ownership}</Badge>
+                            </TableCell>
+                          )}
+                          {complianceColOrder.visibility["licenseExpiryDate"] !== false && <TableCell className="text-muted-foreground">{v.licenseExpiryDate ? formatDate(v.licenseExpiryDate) : "—"}</TableCell>}
+                          {complianceColOrder.visibility["insurance"] !== false && (
+                            <TableCell>
+                              {v.hasInsurance ? (
+                                <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">{t("common.yes")}</Badge>
+                              ) : (
+                                <Badge className="bg-red-500/20 text-red-600 dark:text-red-400">{t("common.no")}</Badge>
+                              )}
+                            </TableCell>
+                          )}
+                          {complianceColOrder.visibility["temporaryPermitDate"] !== false && <TableCell className="text-muted-foreground">{v.temporaryPermitDate ? formatDate(v.temporaryPermitDate) : "—"}</TableCell>}
+                          {complianceColOrder.visibility["permitExpiry"] !== false && (
+                            <TableCell>
+                              {permitExp ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-muted-foreground text-sm">{formatDate(v.temporaryPermitExpiryDate!)}</span>
+                                  {isExpired && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
+                                  {isWarning && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                </div>
+                              ) : "—"}
+                            </TableCell>
+                          )}
+                          {complianceColOrder.visibility["annualPayment"] !== false && <TableCell className="text-muted-foreground">{v.annualPayment != null ? `${fmt(Number(v.annualPayment))} ${v.annualPaymentCurrency || ""}` : "—"}</TableCell>}
+                          {complianceColOrder.visibility["registrationFees"] !== false && <TableCell className="text-muted-foreground">{v.registrationFees != null ? fmt(Number(v.registrationFees)) : "—"}</TableCell>}
+                          {complianceColOrder.visibility["totalFees"] !== false && <TableCell className="text-muted-foreground font-medium">{v.totalFees != null ? fmt(Number(v.totalFees)) : "—"}</TableCell>}
+                          {complianceColOrder.visibility["depositTotal"] !== false && <TableCell className="text-muted-foreground">{v.depositTotal != null ? fmt(Number(v.depositTotal)) : "—"}</TableCell>}
+                          {complianceColOrder.visibility["balanceRemaining"] !== false && <TableCell className="text-muted-foreground">{v.balanceRemaining != null ? fmt(Number(v.balanceRemaining)) : "—"}</TableCell>}
                         </TableRow>
                       );
                     })}
@@ -3121,29 +3130,33 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 />
               </div>
 
+              <div className="flex justify-end mb-2">
+                <ColumnVisibilityControl columns={JOB_STATUS_COLUMNS} visibility={jobStatusColOrder.visibility} onSave={jobStatusColOrder.saveVisibility} />
+              </div>
               <div ref={jobStatusPrintRef}>
-                <div className="rounded-md border border-border overflow-auto">
+                <div className="rounded-md border border-border overflow-x-auto [overflow-y:clip]">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border bg-muted">
-                        <SortableHeader label={t("reports.trsfReference")} sortKey="internalRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("reports.agentRef")} sortKey="agentRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("agents.legalName")} sortKey="agentName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("jobs.serviceDate")} sortKey="serviceDate" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("jobs.serviceType")} sortKey="serviceType" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("jobs.time")} sortKey="time" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("dispatch.driverName")} sortKey="driverName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("reports.repName")} sortKey="repName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("reports.applicationPrice")} sortKey="priceAmount" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} className="text-right" />
-                        <SortableHeader label={t("common.status")} sortKey="status" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("reports.repJobStatus")} sortKey="repJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <SortableHeader label={t("reports.driverJobStatus")} sortKey="driverJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />
-                        <TableHead className="text-muted-foreground font-semibold text-xs">{t("reports.driverEvidence")}</TableHead>
+                        {jobStatusColOrder.visibility["internalRef"] !== false && <SortableHeader label={t("reports.trsfReference")} sortKey="internalRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["agentRef"] !== false && <SortableHeader label={t("reports.agentRef")} sortKey="agentRef" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["agentName"] !== false && <SortableHeader label={t("agents.legalName")} sortKey="agentName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["serviceDate"] !== false && <SortableHeader label={t("jobs.serviceDate")} sortKey="serviceDate" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["serviceType"] !== false && <SortableHeader label={t("jobs.serviceType")} sortKey="serviceType" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["time"] !== false && <SortableHeader label={t("jobs.time")} sortKey="time" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["driverName"] !== false && <SortableHeader label={t("dispatch.driverName")} sortKey="driverName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["repName"] !== false && <SortableHeader label={t("reports.repName")} sortKey="repName" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["priceAmount"] !== false && <SortableHeader label={t("reports.applicationPrice")} sortKey="priceAmount" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} className="text-right" />}
+                        {jobStatusColOrder.visibility["status"] !== false && <SortableHeader label={t("common.status")} sortKey="status" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["repJobStatus"] !== false && <SortableHeader label={t("reports.repJobStatus")} sortKey="repJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["driverJobStatus"] !== false && <SortableHeader label={t("reports.driverJobStatus")} sortKey="driverJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["evidence"] !== false && <TableHead className="text-muted-foreground font-semibold text-xs">{t("reports.driverEvidence")}</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {jobStatusSort.sortedData.map((job) => (
                         <TableRow key={job.id} className="border-border hover:bg-muted/30">
+                          {jobStatusColOrder.visibility["internalRef"] !== false && (
                             <TableCell className="font-mono text-sm">
                               <button
                                 type="button"
@@ -3153,46 +3166,55 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                                 {job.internalRef}
                               </button>
                             </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">{job.agentRef || "\u2014"}</TableCell>
-                          <TableCell className="text-sm text-foreground">{job.agentName || "\u2014"}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(job.serviceDate).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-sm text-foreground">{job.serviceType}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                            {job.time ? new Date(job.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
-                          </TableCell>
-                          <TableCell className="text-sm text-foreground">{job.driverName || "\u2014"}</TableCell>
-                          <TableCell className="text-sm text-foreground">{job.repName || "\u2014"}</TableCell>
-                          <TableCell className="text-right font-mono font-medium text-sm text-foreground">
-                            {job.transferPrice != null ? `${fmt(job.transferPrice, locale)} ${job.transferPriceCurrency || ""}` : (job.priceAmount != null ? `${fmt(job.priceAmount, locale)} ${job.priceCurrency || ""}` : "\u2014")}
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={job.status} />
-                          </TableCell>
-                          <TableCell>
-                            {job.repJobStatus ? (
-                              <StatusBadge status={job.repJobStatus} />
-                            ) : "\u2014"}
-                          </TableCell>
-                          <TableCell>
-                            {job.driverJobStatus ? (
-                              <StatusBadge status={job.driverJobStatus} />
-                            ) : "\u2014"}
-                          </TableCell>
-                          <TableCell>
-                            {job.driverEvidence.length > 0 ? (
-                              <button
-                                type="button"
-                                onClick={() => downloadDriverEvidencePdf(job)}
-                                disabled={evidencePdfLoading.has(job.id)}
-                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50 disabled:cursor-wait"
-                              >
-                                <Printer className="h-3.5 w-3.5" />
-                                {evidencePdfLoading.has(job.id) ? "Generating…" : "PDF"}
-                              </button>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">\u2014</span>
-                            )}
-                          </TableCell>
+                          )}
+                          {jobStatusColOrder.visibility["agentRef"] !== false && <TableCell className="text-muted-foreground text-sm">{job.agentRef || "\u2014"}</TableCell>}
+                          {jobStatusColOrder.visibility["agentName"] !== false && <TableCell className="text-sm text-foreground">{job.agentName || "\u2014"}</TableCell>}
+                          {jobStatusColOrder.visibility["serviceDate"] !== false && <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(job.serviceDate).toLocaleDateString()}</TableCell>}
+                          {jobStatusColOrder.visibility["serviceType"] !== false && <TableCell className="text-sm text-foreground">{job.serviceType}</TableCell>}
+                          {jobStatusColOrder.visibility["time"] !== false && (
+                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                              {job.time ? new Date(job.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+                            </TableCell>
+                          )}
+                          {jobStatusColOrder.visibility["driverName"] !== false && <TableCell className="text-sm text-foreground">{job.driverName || "\u2014"}</TableCell>}
+                          {jobStatusColOrder.visibility["repName"] !== false && <TableCell className="text-sm text-foreground">{job.repName || "\u2014"}</TableCell>}
+                          {jobStatusColOrder.visibility["priceAmount"] !== false && (
+                            <TableCell className="text-right font-mono font-medium text-sm text-foreground">
+                              {job.transferPrice != null ? `${fmt(job.transferPrice, locale)} ${job.transferPriceCurrency || ""}` : (job.priceAmount != null ? `${fmt(job.priceAmount, locale)} ${job.priceCurrency || ""}` : "\u2014")}
+                            </TableCell>
+                          )}
+                          {jobStatusColOrder.visibility["status"] !== false && (
+                            <TableCell>
+                              <StatusBadge status={job.status} />
+                            </TableCell>
+                          )}
+                          {jobStatusColOrder.visibility["repJobStatus"] !== false && (
+                            <TableCell>
+                              {job.repJobStatus ? <StatusBadge status={job.repJobStatus} /> : "\u2014"}
+                            </TableCell>
+                          )}
+                          {jobStatusColOrder.visibility["driverJobStatus"] !== false && (
+                            <TableCell>
+                              {job.driverJobStatus ? <StatusBadge status={job.driverJobStatus} /> : "\u2014"}
+                            </TableCell>
+                          )}
+                          {jobStatusColOrder.visibility["evidence"] !== false && (
+                            <TableCell>
+                              {job.driverEvidence.length > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => downloadDriverEvidencePdf(job)}
+                                  disabled={evidencePdfLoading.has(job.id)}
+                                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50 disabled:cursor-wait"
+                                >
+                                  <Printer className="h-3.5 w-3.5" />
+                                  {evidencePdfLoading.has(job.id) ? "Generating…" : "PDF"}
+                                </button>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">\u2014</span>
+                              )}
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -3317,19 +3339,22 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                     color="text-amber-600 dark:text-amber-400"
                   />
                 </div>
-                <div className="rounded-md border border-border overflow-auto">
+                <div className="flex justify-end mb-2">
+                  <ColumnVisibilityControl columns={EVIDENCE_COLUMNS} visibility={evidenceColOrder.visibility} onSave={evidenceColOrder.saveVisibility} />
+                </div>
+                <div className="rounded-md border border-border overflow-x-auto [overflow-y:clip]">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border bg-muted">
-                        <TableHead className="text-muted-foreground text-xs">Job Ref</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Agent Name</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Agent Ref</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Date</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Type</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Status</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">{t("reports.repName")}</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">{t("dispatch.driverName")}</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Evidence</TableHead>
+                        {evidenceColOrder.visibility["internalRef"] !== false && <TableHead className="text-muted-foreground text-xs">Job Ref</TableHead>}
+                        {evidenceColOrder.visibility["agentName"] !== false && <TableHead className="text-muted-foreground text-xs">Agent Name</TableHead>}
+                        {evidenceColOrder.visibility["agentRef"] !== false && <TableHead className="text-muted-foreground text-xs">Agent Ref</TableHead>}
+                        {evidenceColOrder.visibility["jobDate"] !== false && <TableHead className="text-muted-foreground text-xs">Date</TableHead>}
+                        {evidenceColOrder.visibility["serviceType"] !== false && <TableHead className="text-muted-foreground text-xs">Type</TableHead>}
+                        {evidenceColOrder.visibility["status"] !== false && <TableHead className="text-muted-foreground text-xs">Status</TableHead>}
+                        {evidenceColOrder.visibility["repName"] !== false && <TableHead className="text-muted-foreground text-xs">{t("reports.repName")}</TableHead>}
+                        {evidenceColOrder.visibility["driverName"] !== false && <TableHead className="text-muted-foreground text-xs">{t("dispatch.driverName")}</TableHead>}
+                        {evidenceColOrder.visibility["evidence"] !== false && <TableHead className="text-muted-foreground text-xs">Evidence</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -3343,40 +3368,46 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                             key={row.jobId}
                             className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                           >
-                            <TableCell className="font-mono text-sm text-foreground">{row.internalRef}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{row.agentName ?? "—"}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{row.agentRef ?? "—"}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{formatDate(row.jobDate)}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <StatusBadge status={row.status} />
-                            </TableCell>
-                            <TableCell className="text-sm text-foreground">{row.repName ?? "—"}</TableCell>
-                            <TableCell className="text-sm text-foreground">{row.driverName ?? "—"}</TableCell>
-                            <TableCell>
-                              {row.hasEvidence ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1.5 h-7 text-xs border-border text-foreground"
-                                  onClick={() => generateEvidencePdf(row)}
-                                  disabled={evidencePdfLoading.has(row.jobId)}
-                                >
-                                  <Camera className="h-3 w-3" />
-                                  {evidencePdfLoading.has(row.jobId) ? "Generating…" : `${totalImages} photo${totalImages !== 1 ? "s" : ""}`}
-                                </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
+                            {evidenceColOrder.visibility["internalRef"] !== false && <TableCell className="font-mono text-sm text-foreground">{row.internalRef}</TableCell>}
+                            {evidenceColOrder.visibility["agentName"] !== false && <TableCell className="text-sm text-muted-foreground">{row.agentName ?? "—"}</TableCell>}
+                            {evidenceColOrder.visibility["agentRef"] !== false && <TableCell className="text-sm text-muted-foreground">{row.agentRef ?? "—"}</TableCell>}
+                            {evidenceColOrder.visibility["jobDate"] !== false && <TableCell className="text-sm text-muted-foreground">{formatDate(row.jobDate)}</TableCell>}
+                            {evidenceColOrder.visibility["serviceType"] !== false && (
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
+                              </TableCell>
+                            )}
+                            {evidenceColOrder.visibility["status"] !== false && (
+                              <TableCell>
+                                <StatusBadge status={row.status} />
+                              </TableCell>
+                            )}
+                            {evidenceColOrder.visibility["repName"] !== false && <TableCell className="text-sm text-foreground">{row.repName ?? "—"}</TableCell>}
+                            {evidenceColOrder.visibility["driverName"] !== false && <TableCell className="text-sm text-foreground">{row.driverName ?? "—"}</TableCell>}
+                            {evidenceColOrder.visibility["evidence"] !== false && (
+                              <TableCell>
+                                {row.hasEvidence ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 h-7 text-xs border-border text-foreground"
+                                    onClick={() => generateEvidencePdf(row)}
+                                    disabled={evidencePdfLoading.has(row.jobId)}
+                                  >
+                                    <Camera className="h-3 w-3" />
+                                    {evidencePdfLoading.has(row.jobId) ? "Generating…" : `${totalImages} photo${totalImages !== 1 ? "s" : ""}`}
+                                  </Button>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                            )}
                           </TableRow>
                         );
                       })}
                       {evidenceData.rows.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={9} className="text-center text-muted-foreground py-8 text-sm">
+                          <TableCell colSpan={EVIDENCE_COLUMNS.filter(c => evidenceColOrder.visibility[c.key] !== false).length} className="text-center text-muted-foreground py-8 text-sm">
                             No jobs found for the selected filters.
                           </TableCell>
                         </TableRow>
@@ -3480,34 +3511,41 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                   />
                 </div>
 
+                <div className="flex justify-end mb-2">
+                  <ColumnVisibilityControl columns={SUPPLIER_JOBS_COLUMNS} visibility={supplierJobsColOrder.visibility} onSave={supplierJobsColOrder.saveVisibility} />
+                </div>
                 <div ref={supplierJobsPrintRef}>
-                  <div className="rounded-md border border-border overflow-auto">
+                  <div className="rounded-md border border-border overflow-x-auto [overflow-y:clip]">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border bg-muted">
-                          <SortableHeader label="Job Ref" sortKey="jobRef" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
-                          <SortableHeader label="Agent Name" sortKey="agentName" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
-                          <SortableHeader label="Agent Ref" sortKey="agentRef" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
-                          <SortableHeader label="Service Date" sortKey="serviceDate" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
-                          <SortableHeader label="Route" sortKey="route" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
-                          <SortableHeader label="Supplier" sortKey="supplierName" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
-                          <SortableHeader label="Supplier Status" sortKey="supplierStatus" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />
+                          {supplierJobsColOrder.visibility["jobRef"] !== false && <SortableHeader label="Job Ref" sortKey="jobRef" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />}
+                          {supplierJobsColOrder.visibility["agentName"] !== false && <SortableHeader label="Agent Name" sortKey="agentName" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />}
+                          {supplierJobsColOrder.visibility["agentRef"] !== false && <SortableHeader label="Agent Ref" sortKey="agentRef" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />}
+                          {supplierJobsColOrder.visibility["serviceDate"] !== false && <SortableHeader label="Service Date" sortKey="serviceDate" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />}
+                          {supplierJobsColOrder.visibility["route"] !== false && <SortableHeader label="Route" sortKey="route" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />}
+                          {supplierJobsColOrder.visibility["supplierName"] !== false && <SortableHeader label="Supplier" sortKey="supplierName" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />}
+                          {supplierJobsColOrder.visibility["supplierStatus"] !== false && <SortableHeader label="Supplier Status" sortKey="supplierStatus" currentKey={supplierJobsSort.sortKey} currentDir={supplierJobsSort.sortDir} onSort={supplierJobsSort.onSort} />}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {supplierJobsSort.sortedData.map((row) => (
                           <TableRow key={row.id} className="border-border hover:bg-muted/30">
-                            <TableCell className="font-mono text-sm">{row.jobRef}</TableCell>
-                            <TableCell className="text-sm text-foreground">{row.agentName}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{row.agentRef}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                              {new Date(row.serviceDate).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell className="text-sm text-foreground">{row.route}</TableCell>
-                            <TableCell className="text-sm text-foreground">{row.supplierName}</TableCell>
-                            <TableCell>
-                              <StatusBadge status={row.supplierStatus} />
-                            </TableCell>
+                            {supplierJobsColOrder.visibility["jobRef"] !== false && <TableCell className="font-mono text-sm">{row.jobRef}</TableCell>}
+                            {supplierJobsColOrder.visibility["agentName"] !== false && <TableCell className="text-sm text-foreground">{row.agentName}</TableCell>}
+                            {supplierJobsColOrder.visibility["agentRef"] !== false && <TableCell className="text-sm text-muted-foreground">{row.agentRef}</TableCell>}
+                            {supplierJobsColOrder.visibility["serviceDate"] !== false && (
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {new Date(row.serviceDate).toLocaleDateString()}
+                              </TableCell>
+                            )}
+                            {supplierJobsColOrder.visibility["route"] !== false && <TableCell className="text-sm text-foreground">{row.route}</TableCell>}
+                            {supplierJobsColOrder.visibility["supplierName"] !== false && <TableCell className="text-sm text-foreground">{row.supplierName}</TableCell>}
+                            {supplierJobsColOrder.visibility["supplierStatus"] !== false && (
+                              <TableCell>
+                                <StatusBadge status={row.supplierStatus} />
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -3594,36 +3632,43 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                   />
                 </div>
 
+                <div className="flex justify-end mb-2">
+                  <ColumnVisibilityControl columns={CAR_JOBS_COLUMNS} visibility={carJobsColOrder.visibility} onSave={carJobsColOrder.saveVisibility} />
+                </div>
                 <div ref={carJobsPrintRef}>
-                  <div className="rounded-md border border-border overflow-auto">
+                  <div className="rounded-md border border-border overflow-x-auto [overflow-y:clip]">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border bg-muted">
-                          <SortableHeader label="Job Ref" sortKey="jobRef" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
-                          <SortableHeader label="Agent Name" sortKey="agentName" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
-                          <SortableHeader label="Service Date" sortKey="serviceDate" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
-                          <SortableHeader label="Origin" sortKey="origin" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
-                          <SortableHeader label="Destination" sortKey="destination" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
-                          <SortableHeader label="Vehicle" sortKey="plateNumber" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
-                          <SortableHeader label="Driver" sortKey="driver" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
-                          <SortableHeader label="Job Status" sortKey="jobStatus" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />
+                          {carJobsColOrder.visibility["jobRef"] !== false && <SortableHeader label="Job Ref" sortKey="jobRef" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
+                          {carJobsColOrder.visibility["agentName"] !== false && <SortableHeader label="Agent Name" sortKey="agentName" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
+                          {carJobsColOrder.visibility["serviceDate"] !== false && <SortableHeader label="Service Date" sortKey="serviceDate" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
+                          {carJobsColOrder.visibility["origin"] !== false && <SortableHeader label="Origin" sortKey="origin" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
+                          {carJobsColOrder.visibility["destination"] !== false && <SortableHeader label="Destination" sortKey="destination" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
+                          {carJobsColOrder.visibility["plateNumber"] !== false && <SortableHeader label="Vehicle" sortKey="plateNumber" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
+                          {carJobsColOrder.visibility["driver"] !== false && <SortableHeader label="Driver" sortKey="driver" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
+                          {carJobsColOrder.visibility["jobStatus"] !== false && <SortableHeader label="Job Status" sortKey="jobStatus" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {carJobsSort.sortedData.map((row) => (
                           <TableRow key={row.id} className="border-border hover:bg-muted/30">
-                            <TableCell className="font-mono text-sm">{row.jobRef}</TableCell>
-                            <TableCell className="text-sm text-foreground">{row.agentName}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                              {new Date(row.serviceDate).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell className="text-sm text-foreground">{row.origin}</TableCell>
-                            <TableCell className="text-sm text-foreground">{row.destination}</TableCell>
-                            <TableCell className="font-mono text-sm text-muted-foreground">{row.plateNumber}</TableCell>
-                            <TableCell className="text-sm text-foreground">{row.driver}</TableCell>
-                            <TableCell>
-                              <StatusBadge status={row.jobStatus} />
-                            </TableCell>
+                            {carJobsColOrder.visibility["jobRef"] !== false && <TableCell className="font-mono text-sm">{row.jobRef}</TableCell>}
+                            {carJobsColOrder.visibility["agentName"] !== false && <TableCell className="text-sm text-foreground">{row.agentName}</TableCell>}
+                            {carJobsColOrder.visibility["serviceDate"] !== false && (
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {new Date(row.serviceDate).toLocaleDateString()}
+                              </TableCell>
+                            )}
+                            {carJobsColOrder.visibility["origin"] !== false && <TableCell className="text-sm text-foreground">{row.origin}</TableCell>}
+                            {carJobsColOrder.visibility["destination"] !== false && <TableCell className="text-sm text-foreground">{row.destination}</TableCell>}
+                            {carJobsColOrder.visibility["plateNumber"] !== false && <TableCell className="font-mono text-sm text-muted-foreground">{row.plateNumber}</TableCell>}
+                            {carJobsColOrder.visibility["driver"] !== false && <TableCell className="text-sm text-foreground">{row.driver}</TableCell>}
+                            {carJobsColOrder.visibility["jobStatus"] !== false && (
+                              <TableCell>
+                                <StatusBadge status={row.jobStatus} />
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -3678,7 +3723,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                       </span>
                     )}
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto [overflow-y:clip]">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border bg-muted">
@@ -3916,7 +3961,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
 
           {selectedDriver && (
             <div className="space-y-3 py-2">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">

@@ -456,7 +456,7 @@ export default function UsersPage() {
               <div className="flex justify-end mb-2">
                 <ColumnVisibilityControl columns={USERS_COL_DEFS} visibility={userColVis} onSave={saveUserColVis} />
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">

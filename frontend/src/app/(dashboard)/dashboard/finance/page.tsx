@@ -1105,7 +1105,7 @@ export default function FinancePage() {
               <div className="flex justify-end mb-2">
                 <ColumnVisibilityControl columns={FINANCE_COL_DEFS} visibility={finColVis} onSave={saveFinColVis} />
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto [overflow-y:clip]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border bg-muted">
@@ -1275,7 +1275,7 @@ export default function FinancePage() {
               <p>{t("finance.noCollections") || "No collections found"}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto [overflow-y:clip]">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border bg-muted">

@@ -1052,7 +1052,7 @@ function VehicleCard({
             No jobs yet — click &quot;Add Job&quot; to start
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [overflow-y:clip]">
             <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="bg-muted/50">

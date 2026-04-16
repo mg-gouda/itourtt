@@ -528,7 +528,7 @@ export default function TrafficJobsPage() {
       {/* Table */}
       <div>
         {loading ? (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [overflow-y:clip]">
             <table className="w-full text-sm">
               <tbody>
                 {Array.from({ length: 9 }).map((_, i) => (
@@ -578,7 +578,7 @@ export default function TrafficJobsPage() {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [overflow-y:clip]">
           <Table>
             <DraggableTableHeader
               columns={columnDefs}

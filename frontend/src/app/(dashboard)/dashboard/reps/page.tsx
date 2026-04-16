@@ -597,7 +597,7 @@ export default function RepsPage() {
           <div className="flex justify-end mb-2">
             <ColumnVisibilityControl columns={REPS_COL_DEFS} visibility={repColVis} onSave={saveRepColVis} />
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [overflow-y:clip]">
             <Table>
               <TableHeader>
                 <TableRow className="border-border bg-muted">
