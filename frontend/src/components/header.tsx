@@ -78,13 +78,13 @@ function Breadcrumb() {
     <nav className="hidden lg:flex items-center gap-1 text-sm">
       {crumbs.map((crumb, i) => (
         <span key={crumb.href} className="flex items-center gap-1">
-          {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />}
+          {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-white/30 shrink-0" />}
           {crumb.isLast ? (
-            <span className="text-foreground font-medium">{crumb.label}</span>
+            <span className="text-white font-medium">{crumb.label}</span>
           ) : (
             <Link
               href={crumb.href}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-white/60 hover:text-white transition-colors"
             >
               {crumb.label}
             </Link>
@@ -164,10 +164,10 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-background px-3 md:px-6">
+    <header className="flex h-14 items-center justify-between border-b border-white/10 bg-[#41004c] px-3 md:px-6">
       <div className="flex items-center gap-3">
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
           onClick={() => setMobileNavOpen(true)}
         >
           <Menu className="h-5 w-5" />
@@ -176,7 +176,7 @@ export function Header() {
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
         {user && (
-          <Badge variant="outline" className="hidden border-border text-muted-foreground sm:inline-flex">
+          <Badge variant="outline" className="hidden border-white/20 text-white/60 sm:inline-flex">
             {t(`role.${user.role}`)}
           </Badge>
         )}
@@ -184,7 +184,7 @@ export function Header() {
         {/* Notification Bell */}
         <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
           <DropdownMenuTrigger asChild>
-            <button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+            <button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white">
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -247,16 +247,16 @@ export function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="gap-2 text-white/70 hover:bg-white/10 hover:text-white"
             >
               {user?.name ? (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-semibold select-none">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white text-xs font-semibold select-none">
                   {user.name.charAt(0).toUpperCase()}
                 </span>
               ) : (
                 <User className="h-4 w-4" />
               )}
-              <span className="hidden text-sm sm:inline">{user?.name || "User"}</span>
+              <span className="hidden text-sm text-white/80 sm:inline">{user?.name || "User"}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -289,7 +289,7 @@ export function Header() {
             <TooltipTrigger asChild>
               <Link
                 href="/dashboard/help"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <HelpCircle className="h-4 w-4" />
               </Link>
