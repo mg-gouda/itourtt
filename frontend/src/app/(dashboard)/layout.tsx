@@ -6,8 +6,25 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useCompanyStore } from "@/stores/company-store";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { LicenseGate } from "@/components/license-gate";
+
+function DashboardFrame({ children }: { children: React.ReactNode }) {
+  const { settings } = useTheme();
+  const style: React.CSSProperties = settings.innerBgImageUrl
+    ? {
+        backgroundImage: `url('${settings.innerBgImageUrl}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }
+    : {};
+  return (
+    <div className="flex h-screen overflow-hidden bg-background" style={style}>
+      {children}
+    </div>
+  );
+}
 
 export default function DashboardLayout({
   children,
@@ -47,7 +64,7 @@ export default function DashboardLayout({
   return (
     <ThemeProvider>
       <LicenseGate>
-        <div className="flex h-screen overflow-hidden bg-background">
+        <DashboardFrame>
           <div className="hidden lg:flex">
             <Sidebar />
           </div>
@@ -58,7 +75,7 @@ export default function DashboardLayout({
               Developed by: <a href="https://wa.me/+201002805139" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Mohamed Gouda</a> &middot; v{process.env.NEXT_PUBLIC_APP_VERSION}
             </footer>
           </div>
-        </div>
+        </DashboardFrame>
       </LicenseGate>
     </ThemeProvider>
   );

@@ -44,12 +44,11 @@ function LoginForm() {
   useEffect(() => {
     hydrate();
     setMounted(true);
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-    fetch(`${apiBase}/auth/login-config`)
+    fetch("/api/auth/login-config")
       .then((r) => r.json())
       .then((d) => {
-        if (d.loginBgImageUrl) setLoginBgUrl(d.loginBgImageUrl.startsWith("http") ? d.loginBgImageUrl : apiBase + d.loginBgImageUrl);
-        if (d.loginLogoUrl) setLoginLogoUrl(d.loginLogoUrl.startsWith("http") ? d.loginLogoUrl : apiBase + d.loginLogoUrl);
+        if (d.loginBgImageUrl) setLoginBgUrl(d.loginBgImageUrl);
+        if (d.loginLogoUrl) setLoginLogoUrl(d.loginLogoUrl);
       })
       .catch(() => {});
   }, [hydrate]);

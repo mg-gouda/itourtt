@@ -204,14 +204,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.setProperty("--sidebar-gradient-end", settings.sidebarColor + "99");
   }, [settings.primaryColor, settings.accentColor, settings.sidebarColor]);
 
-  // Apply inner background image
+  // Apply inner background image — /uploads/... is served by nginx at the same origin
   useEffect(() => {
     if (settings.innerBgImageUrl) {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-      const url = settings.innerBgImageUrl.startsWith("http")
-        ? settings.innerBgImageUrl
-        : apiBase + settings.innerBgImageUrl;
-      document.documentElement.style.setProperty("--inner-bg-image", `url('${url}')`);
+      document.documentElement.style.setProperty("--inner-bg-image", `url('${settings.innerBgImageUrl}')`);
       document.body.classList.add("has-inner-bg");
     } else {
       document.documentElement.style.removeProperty("--inner-bg-image");

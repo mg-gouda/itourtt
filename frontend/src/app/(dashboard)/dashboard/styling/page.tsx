@@ -65,11 +65,9 @@ const LANGUAGES = [
   { value: "hi", label: "Hindi" },
 ];
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
+// /uploads/... is proxied by nginx at the same origin — use paths as-is
 function resolveUrl(url: string | null) {
-  if (!url) return null;
-  return url.startsWith("http") ? url : API_BASE + url;
+  return url ?? null;
 }
 
 // ─── Image Upload Row ────────────────────────────────────────────
@@ -524,8 +522,7 @@ export default function StylingPage() {
               accept="image/png,image/jpeg,image/svg+xml"
               endpoint="/settings/system/inner-bg"
               onUploaded={(url) => {
-                const full = resolveUrl(url)!;
-                setInnerBgImageUrl(full);
+                setInnerBgImageUrl(url);
                 updateSettings({ innerBgImageUrl: url });
               }}
               onRemoved={() => {
@@ -540,10 +537,7 @@ export default function StylingPage() {
               currentUrl={loginBgImageUrl}
               accept="image/png,image/jpeg,image/svg+xml"
               endpoint="/settings/system/login-bg"
-              onUploaded={(url) => {
-                const full = resolveUrl(url)!;
-                setLoginBgImageUrl(full);
-              }}
+              onUploaded={(url) => setLoginBgImageUrl(url)}
               onRemoved={() => setLoginBgImageUrl(null)}
             />
 
@@ -553,10 +547,7 @@ export default function StylingPage() {
               currentUrl={loginLogoUrl}
               accept="image/png,image/jpeg,image/svg+xml"
               endpoint="/settings/system/login-logo"
-              onUploaded={(url) => {
-                const full = resolveUrl(url)!;
-                setLoginLogoUrl(full);
-              }}
+              onUploaded={(url) => setLoginLogoUrl(url)}
               onRemoved={() => setLoginLogoUrl(null)}
             />
           </div>
