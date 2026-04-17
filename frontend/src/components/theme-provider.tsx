@@ -14,16 +14,24 @@ interface SystemSettings {
   theme: "light" | "dark";
   primaryColor: string;
   accentColor: string;
+  sidebarColor: string;
   fontFamily: string;
   language: string;
+  innerBgImageUrl: string | null;
+  loginBgImageUrl: string | null;
+  loginLogoUrl: string | null;
 }
 
 const DEFAULTS: SystemSettings = {
   theme: "dark",
   primaryColor: "#3b82f6",
   accentColor: "#8b5cf6",
+  sidebarColor: "#41004c",
   fontFamily: "Geist",
   language: "en",
+  innerBgImageUrl: null,
+  loginBgImageUrl: null,
+  loginLogoUrl: null,
 };
 
 interface ThemeContextValue {
@@ -57,8 +65,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           theme: data.theme ?? DEFAULTS.theme,
           primaryColor: data.primaryColor ?? DEFAULTS.primaryColor,
           accentColor: data.accentColor ?? DEFAULTS.accentColor,
+          sidebarColor: data.sidebarColor ?? DEFAULTS.sidebarColor,
           fontFamily: data.fontFamily ?? DEFAULTS.fontFamily,
           language: data.language ?? DEFAULTS.language,
+          innerBgImageUrl: data.innerBgImageUrl ?? null,
+          loginBgImageUrl: data.loginBgImageUrl ?? null,
+          loginLogoUrl: data.loginLogoUrl ?? null,
         };
 
         // Overlay per-user preferences from localStorage
@@ -185,15 +197,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Apply custom colors as CSS variables
   useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--primary-hex",
-      settings.primaryColor
-    );
-    document.documentElement.style.setProperty(
-      "--accent-hex",
-      settings.accentColor
-    );
-  }, [settings.primaryColor, settings.accentColor]);
+    document.documentElement.style.setProperty("--primary-hex", settings.primaryColor);
+    document.documentElement.style.setProperty("--accent-hex", settings.accentColor);
+    document.documentElement.style.setProperty("--sidebar", settings.sidebarColor);
+    // Derive a darker shade for the sidebar gradient end
+    document.documentElement.style.setProperty("--sidebar-gradient-end", settings.sidebarColor + "99");
+  }, [settings.primaryColor, settings.accentColor, settings.sidebarColor]);
+
+  // Apply inner background image
+  useEffect(() => {
+    if (settings.innerBgImageUrl) {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+      const url = settings.innerBgImageUrl.startsWith("http")
+        ? settings.innerBgImageUrl
+        : apiBase + settings.innerBgImageUrl;
+      document.documentElement.style.setProperty("--inner-bg-image", `url('${url}')`);
+      document.body.classList.add("has-inner-bg");
+    } else {
+      document.documentElement.style.removeProperty("--inner-bg-image");
+      document.body.classList.remove("has-inner-bg");
+    }
+  }, [settings.innerBgImageUrl]);
 
   // Apply locally only (no API call) — used by per-user profile pages
   const applyLocal = useCallback(

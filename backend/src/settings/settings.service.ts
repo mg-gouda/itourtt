@@ -12,9 +12,13 @@ const SYSTEM_DEFAULTS = {
   theme: 'dark',
   primaryColor: '#3b82f6',
   accentColor: '#8b5cf6',
+  sidebarColor: '#41004c',
   fontFamily: 'Geist',
   language: 'en',
   googleMapsApiKey: null as string | null,
+  innerBgImageUrl: null as string | null,
+  loginBgImageUrl: null as string | null,
+  loginLogoUrl: null as string | null,
 };
 
 const EMAIL_DEFAULTS = {
@@ -102,6 +106,7 @@ export class SettingsService {
           ...(dto.theme !== undefined && { theme: dto.theme }),
           ...(dto.primaryColor !== undefined && { primaryColor: dto.primaryColor }),
           ...(dto.accentColor !== undefined && { accentColor: dto.accentColor }),
+          ...(dto.sidebarColor !== undefined && { sidebarColor: dto.sidebarColor }),
           ...(dto.fontFamily !== undefined && { fontFamily: dto.fontFamily }),
           ...(dto.language !== undefined && { language: dto.language }),
           ...(dto.googleMapsApiKey !== undefined && { googleMapsApiKey: dto.googleMapsApiKey || null }),
@@ -114,6 +119,7 @@ export class SettingsService {
         theme: dto.theme ?? SYSTEM_DEFAULTS.theme,
         primaryColor: dto.primaryColor ?? SYSTEM_DEFAULTS.primaryColor,
         accentColor: dto.accentColor ?? SYSTEM_DEFAULTS.accentColor,
+        sidebarColor: dto.sidebarColor ?? SYSTEM_DEFAULTS.sidebarColor,
         fontFamily: dto.fontFamily ?? SYSTEM_DEFAULTS.fontFamily,
         language: dto.language ?? SYSTEM_DEFAULTS.language,
         googleMapsApiKey: dto.googleMapsApiKey ?? SYSTEM_DEFAULTS.googleMapsApiKey,
@@ -438,6 +444,30 @@ export class SettingsService {
         heroImageUrl: fileUrl,
       },
     });
+  }
+
+  async updateInnerBgImage(fileUrl: string) {
+    const existing = await this.prisma.systemSettings.findFirst();
+    if (existing) {
+      return this.prisma.systemSettings.update({ where: { id: existing.id }, data: { innerBgImageUrl: fileUrl } });
+    }
+    return this.prisma.systemSettings.create({ data: { innerBgImageUrl: fileUrl } });
+  }
+
+  async updateLoginBgImage(fileUrl: string) {
+    const existing = await this.prisma.systemSettings.findFirst();
+    if (existing) {
+      return this.prisma.systemSettings.update({ where: { id: existing.id }, data: { loginBgImageUrl: fileUrl } });
+    }
+    return this.prisma.systemSettings.create({ data: { loginBgImageUrl: fileUrl } });
+  }
+
+  async updateLoginLogoImage(fileUrl: string) {
+    const existing = await this.prisma.systemSettings.findFirst();
+    if (existing) {
+      return this.prisma.systemSettings.update({ where: { id: existing.id }, data: { loginLogoUrl: fileUrl } });
+    }
+    return this.prisma.systemSettings.create({ data: { loginLogoUrl: fileUrl } });
   }
 
   // ──────────────────────────────────────────────

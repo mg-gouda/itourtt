@@ -18,6 +18,11 @@ export class UpdateSystemSettingsDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^#[0-9a-fA-F]{6}$/, { message: 'sidebarColor must be a valid hex color (e.g. #41004c)' })
+  sidebarColor?: string;
+
+  @IsOptional()
+  @IsString()
   fontFamily?: string;
 
   @IsOptional()

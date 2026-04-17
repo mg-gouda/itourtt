@@ -1420,9 +1420,13 @@ model SystemSettings {
   theme            String   @default("dark")
   primaryColor     String   @default("#3b82f6") @map("primary_color")
   accentColor      String   @default("#8b5cf6") @map("accent_color")
+  sidebarColor     String   @default("#41004c") @map("sidebar_color")
   fontFamily       String   @default("Geist") @map("font_family")
   language         String   @default("en")
   googleMapsApiKey String?  @map("google_maps_api_key")
+  innerBgImageUrl  String?  @map("inner_bg_image_url")
+  loginBgImageUrl  String?  @map("login_bg_image_url")
+  loginLogoUrl     String?  @map("login_logo_url")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 

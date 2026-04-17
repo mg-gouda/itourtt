@@ -146,12 +146,12 @@
   --ring: oklch(0.65 0.15 250);
 }
 
-/* Sidebar gradient: brand purple → deep purple */
+/* Sidebar gradient: uses --sidebar CSS variable (dynamically overridden by theme) */
 .sidebar-gradient {
   background: linear-gradient(
     180deg,
-    #41004c 0%,
-    #2a0034 100%
+    var(--sidebar, #41004c) 0%,
+    color-mix(in srgb, var(--sidebar, #41004c) 70%, black) 100%
   );
 }
 
@@ -161,9 +161,16 @@
   color: oklch(0.141 0.005 285.823);
 }
 
-/* Glass body background for dark mode */
+/* Glass body background for dark mode — optionally overlaid with an uploaded image */
 .dark body {
   background: #341539;
+}
+
+body.has-inner-bg {
+  background-image: var(--inner-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
 /* Fix sticky table headers inside horizontal-scroll containers.

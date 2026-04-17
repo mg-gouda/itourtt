@@ -74,6 +74,51 @@ export class SettingsController {
   }
 
   // ──────────────────────────────────────────────
+  // POST /settings/system/inner-bg — upload dashboard inner background image (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Post('system/inner-bg')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  async uploadInnerBgImage(@UploadedFile() file: any) {
+    const url = '/uploads/' + file.filename;
+    await this.settingsService.updateInnerBgImage(url);
+    return { url };
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/system/login-bg — upload login background image (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Post('system/login-bg')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  async uploadLoginBgImage(@UploadedFile() file: any) {
+    const url = '/uploads/' + file.filename;
+    await this.settingsService.updateLoginBgImage(url);
+    return { url };
+  }
+
+  // ──────────────────────────────────────────────
+  // POST /settings/system/login-logo — upload login logo image (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Post('system/login-logo')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  async uploadLoginLogoImage(@UploadedFile() file: any) {
+    const url = '/uploads/' + file.filename;
+    await this.settingsService.updateLoginLogoImage(url);
+    return { url };
+  }
+
+  // ──────────────────────────────────────────────
   // GET /settings/license-status — check license validity (authenticated)
   // ──────────────────────────────────────────────
 

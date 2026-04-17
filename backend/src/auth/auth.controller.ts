@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Delete,
   Body,
@@ -25,6 +26,15 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly prisma: PrismaService,
   ) {}
+
+  @Get('login-config')
+  async getLoginConfig() {
+    const settings = await this.prisma.systemSettings.findFirst();
+    return {
+      loginBgImageUrl: settings?.loginBgImageUrl ?? null,
+      loginLogoUrl: settings?.loginLogoUrl ?? null,
+    };
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

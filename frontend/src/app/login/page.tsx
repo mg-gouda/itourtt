@@ -26,6 +26,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const { login, isLoading, error, isAccountLocked, isAuthenticated, hydrate } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [loginBgUrl, setLoginBgUrl] = useState<string | null>(null);
+  const [loginLogoUrl, setLoginLogoUrl] = useState<string | null>(null);
   const t = useT();
 
   const isDisplaced = searchParams.get("reason") === "displaced";
@@ -42,6 +44,14 @@ function LoginForm() {
   useEffect(() => {
     hydrate();
     setMounted(true);
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+    fetch(`${apiBase}/auth/login-config`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.loginBgImageUrl) setLoginBgUrl(d.loginBgImageUrl.startsWith("http") ? d.loginBgImageUrl : apiBase + d.loginBgImageUrl);
+        if (d.loginLogoUrl) setLoginLogoUrl(d.loginLogoUrl.startsWith("http") ? d.loginLogoUrl : apiBase + d.loginLogoUrl);
+      })
+      .catch(() => {});
   }, [hydrate]);
 
   useEffect(() => {
@@ -69,7 +79,7 @@ function LoginForm() {
       <div
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: "url('/login-bg.webp')",
+          backgroundImage: loginBgUrl ? `url('${loginBgUrl}')` : "url('/login-bg.webp')",
           backgroundSize: "cover",
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
@@ -82,7 +92,7 @@ function LoginForm() {
           {/* Logo / Brand */}
           <div className="mb-6 flex flex-col items-center gap-3">
             <Image
-              src="/favicon.svg"
+              src={loginLogoUrl ?? "/favicon.svg"}
               alt="iTourTT"
               width={56}
               height={56}
