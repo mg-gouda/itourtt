@@ -166,6 +166,15 @@
   background: #341539;
 }
 
+/* Fix sticky table headers inside horizontal-scroll containers.
+   overflow-x:auto creates a scroll container that captures sticky,
+   so we make the wrapper scroll on Y too (with max-height) so
+   thead sticky top-0 fires within the container. */
+.\[overflow-y\:clip\] {
+  overflow-y: auto;
+  max-height: calc(100vh - 300px);
+}
+
 /* iOS safe area for bottom tab bars */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
