@@ -38,7 +38,7 @@ const memStore = memoryStorage();
 
 class UpdateJobStatusDto {
   @IsString()
-  @IsIn(['IN_PROGRESS', 'CANCELLED'])
+  @IsIn(['IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
   status!: string;
 
   @IsNumber()

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -255,6 +255,8 @@ interface RepScoreRow {
   destinationAirport: { name: string; code: string } | null;
   destinationZone: { name: string } | null;
   destinationHotel: { name: string } | null;
+  flightNo: string | null;
+  carrier: string | null;
   attendance: boolean;
   appearance: boolean;
   work: boolean;
@@ -271,6 +273,7 @@ interface RepScoreReport {
   totalScore: number;
   avgScore: number;
   count: number;
+  totalFee: number;
 }
 
 interface DriverScoreRow {
@@ -515,6 +518,7 @@ const REP_FEES_DEFAULT_KEYS = REP_FEES_COLUMNS.map((c) => c.key);
 
 const REP_SCORE_COLUMNS: ColumnDef[] = [
   { key: "internalRef", label: "Job Ref" },
+  { key: "flightNo", label: "Flight No" },
   { key: "serviceType", label: "Type" },
   { key: "paxCount", label: "Pax", className: "text-right" },
   { key: "repName", label: "Rep" },
@@ -526,6 +530,7 @@ const REP_SCORE_COLUMNS: ColumnDef[] = [
   { key: "work", label: <>Work<br /><span className="text-muted-foreground">30pt</span></>, className: "text-center" },
   { key: "review", label: <>Rev<br /><span className="text-muted-foreground">35pt</span></>, className: "text-center" },
   { key: "total", label: "Score", className: "text-right" },
+  { key: "fee", label: "Fee", className: "text-right" },
   { key: "evaluation", label: "Evaluation" },
 ];
 const REP_SCORE_DEFAULT_KEYS = REP_SCORE_COLUMNS.map((c) => c.key);
@@ -2532,57 +2537,98 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                     <ColumnVisibilityControl columns={REP_SCORE_COLUMNS} visibility={repScoreColOrder.visibility} onSave={repScoreColOrder.saveVisibility} />
                   </div>
                   <div className="overflow-x-auto [overflow-y:clip]">
-                    <Table>
-                      <DraggableTableHeader
-                        columns={REP_SCORE_COLUMNS}
-                        columnOrder={repScoreColOrder.columns}
-                        onReorder={repScoreColOrder.reorder}
-                        visibility={repScoreColOrder.visibility}
-                      />
-                      <TableBody>
-                        {repScoreData.rows.map((row, idx) => {
-                          const evalColor =
-                            row.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
-                            row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
-                            row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
-                            "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
-                          const check = <span className="text-emerald-500 font-bold text-sm">✓</span>;
-                          const dash = <span className="text-muted-foreground text-sm">—</span>;
-                          return (
-                            <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
-                              {repScoreColOrder.columns.filter((col) => repScoreColOrder.visibility[col] !== false).map((col) => {
-                                switch (col) {
-                                  case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
-                                  case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
-                                  case "paxCount": return <TableCell key={col} className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>;
-                                  case "repName": return <TableCell key={col} className="text-xs text-muted-foreground">{row.repName}</TableCell>;
-                                  case "route": return (
-                                    <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">
-                                      {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
+                    {(() => {
+                      const visibleCols = repScoreColOrder.columns.filter((col) => repScoreColOrder.visibility[col] !== false);
+                      const colSpanAll = visibleCols.length;
+                      // Group rows by flightNo, preserving order of first occurrence
+                      const groups: Array<{ flightNo: string; rows: RepScoreRow[] }> = [];
+                      const seen = new Map<string, RepScoreRow[]>();
+                      for (const row of repScoreData.rows) {
+                        const key = row.flightNo?.trim() || "TBD";
+                        if (!seen.has(key)) { seen.set(key, []); groups.push({ flightNo: key, rows: seen.get(key)! }); }
+                        seen.get(key)!.push(row);
+                      }
+                      return (
+                        <Table>
+                          <DraggableTableHeader
+                            columns={REP_SCORE_COLUMNS}
+                            columnOrder={repScoreColOrder.columns}
+                            onReorder={repScoreColOrder.reorder}
+                            visibility={repScoreColOrder.visibility}
+                          />
+                          <TableBody>
+                            {groups.map((group) => {
+                              const groupFee = group.rows.reduce((s, r) => s + r.fee, 0);
+                              return (
+                                <React.Fragment key={group.flightNo}>
+                                  <TableRow className="bg-blue-500/10 border-blue-500/20">
+                                    <TableCell colSpan={colSpanAll} className="py-1.5 px-3">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20 font-mono text-xs">
+                                          {group.flightNo}
+                                        </Badge>
+                                        <span className="text-xs text-muted-foreground">{group.rows.length} job{group.rows.length !== 1 ? "s" : ""}</span>
+                                      </div>
                                     </TableCell>
-                                  );
-                                  case "hotel": return <TableCell key={col} className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>;
-                                  case "status": return <TableCell key={col}><StatusBadge status={row.status} /></TableCell>;
-                                  case "attendance": return <TableCell key={col} className="text-center">{row.attendance ? check : dash}</TableCell>;
-                                  case "appearance": return <TableCell key={col} className="text-center">{row.appearance ? check : dash}</TableCell>;
-                                  case "work": return <TableCell key={col} className="text-center">{row.work ? check : dash}</TableCell>;
-                                  case "review": return <TableCell key={col} className="text-center">{row.review ? check : dash}</TableCell>;
-                                  case "total": return <TableCell key={col} className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>;
-                                  case "evaluation": return <TableCell key={col}><Badge variant="outline" className={`text-xs ${evalColor}`}>{row.evaluation}</Badge></TableCell>;
-                                  default: return null;
-                                }
-                              })}
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+                                  </TableRow>
+                                  {group.rows.map((row, idx) => {
+                                    const evalColor =
+                                      row.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                                      row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                                      row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                                      "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
+                                    const check = <span className="text-emerald-500 font-bold text-sm">✓</span>;
+                                    const dash = <span className="text-muted-foreground text-sm">—</span>;
+                                    return (
+                                      <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
+                                        {visibleCols.map((col) => {
+                                          switch (col) {
+                                            case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
+                                            case "flightNo": return <TableCell key={col} className="font-mono text-xs text-muted-foreground">{row.flightNo || "—"}</TableCell>;
+                                            case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
+                                            case "paxCount": return <TableCell key={col} className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>;
+                                            case "repName": return <TableCell key={col} className="text-xs text-muted-foreground">{row.repName}</TableCell>;
+                                            case "route": return (
+                                              <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">
+                                                {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
+                                              </TableCell>
+                                            );
+                                            case "hotel": return <TableCell key={col} className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>;
+                                            case "status": return <TableCell key={col}><StatusBadge status={row.status} /></TableCell>;
+                                            case "attendance": return <TableCell key={col} className="text-center">{row.attendance ? check : dash}</TableCell>;
+                                            case "appearance": return <TableCell key={col} className="text-center">{row.appearance ? check : dash}</TableCell>;
+                                            case "work": return <TableCell key={col} className="text-center">{row.work ? check : dash}</TableCell>;
+                                            case "review": return <TableCell key={col} className="text-center">{row.review ? check : dash}</TableCell>;
+                                            case "total": return <TableCell key={col} className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>;
+                                            case "fee": return <TableCell key={col} className="text-right font-mono text-sm text-emerald-600 dark:text-emerald-400">{row.fee > 0 ? `${row.fee} EGP` : "—"}</TableCell>;
+                                            case "evaluation": return <TableCell key={col}><Badge variant="outline" className={`text-xs ${evalColor}`}>{row.evaluation}</Badge></TableCell>;
+                                            default: return null;
+                                          }
+                                        })}
+                                      </TableRow>
+                                    );
+                                  })}
+                                  <TableRow className="bg-muted/30 border-t border-border">
+                                    <TableCell colSpan={colSpanAll - 1} className="text-right text-xs text-muted-foreground py-1 pr-2">
+                                      Subtotal ({group.rows.length} jobs)
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono font-semibold text-sm text-emerald-600 dark:text-emerald-400 py-1">
+                                      {groupFee} EGP
+                                    </TableCell>
+                                  </TableRow>
+                                </React.Fragment>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      );
+                    })()}
                     <div className="mt-3 flex items-center justify-between border-t border-border pt-3 px-1">
                       <span className="text-sm text-muted-foreground">
-                        {repScoreData.count} job{repScoreData.count !== 1 ? "s" : ""} scored · Total {repScoreData.totalScore} pts
+                        {repScoreData.count} job{repScoreData.count !== 1 ? "s" : ""} scored · Avg {repScoreData.avgScore} / 100
                       </span>
-                      <span className="text-base font-medium text-emerald-600 dark:text-emerald-400">
-                        Average: {repScoreData.avgScore} / 100
+                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                        Total: {repScoreData.totalFee ?? repScoreData.rows.reduce((s, r) => s + r.fee, 0)} EGP
                       </span>
                     </div>
                   </div>
@@ -2607,31 +2653,54 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                 <table>
                   <thead>
                     <tr>
-                      <th>Job Ref</th><th>Type</th><th>Pax</th><th>Rep</th><th>Route</th><th>Hotel</th><th>Status</th>
-                      <th>Att (20)</th><th>App (15)</th><th>Work (30)</th><th>Rev (35)</th><th>Score</th><th>Evaluation</th>
+                      <th>Job Ref</th><th>Flight No</th><th>Type</th><th>Pax</th><th>Rep</th><th>Route</th><th>Hotel</th><th>Status</th>
+                      <th>Att (20)</th><th>App (15)</th><th>Work (30)</th><th>Rev (35)</th><th>Score</th><th>Fee</th><th>Evaluation</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {repScoreData.rows.map((row) => (
-                      <tr key={row.jobId}>
-                        <td>{row.internalRef}</td>
-                        <td>{row.serviceType}</td>
-                        <td className="text-right">{row.paxCount}</td>
-                        <td>{row.repName}</td>
-                        <td>{(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}</td>
-                        <td>{row.destinationHotel?.name || "—"}</td>
-                        <td>{row.status}</td>
-                        <td className="text-center">{row.attendance ? "✓" : "—"}</td>
-                        <td className="text-center">{row.appearance ? "✓" : "—"}</td>
-                        <td className="text-center">{row.work ? "✓" : "—"}</td>
-                        <td className="text-center">{row.review ? "✓" : "—"}</td>
-                        <td className="text-right">{row.total}</td>
-                        <td>{row.evaluation}</td>
-                      </tr>
-                    ))}
+                    {(() => {
+                      const printGroups: Array<{ flightNo: string; rows: RepScoreRow[] }> = [];
+                      const seen = new Map<string, RepScoreRow[]>();
+                      for (const row of repScoreData.rows) {
+                        const key = row.flightNo?.trim() || "TBD";
+                        if (!seen.has(key)) { seen.set(key, []); printGroups.push({ flightNo: key, rows: seen.get(key)! }); }
+                        seen.get(key)!.push(row);
+                      }
+                      return printGroups.map((group) => (
+                        <React.Fragment key={group.flightNo}>
+                          <tr style={{ background: "#e8f0fe" }}>
+                            <td colSpan={15} style={{ fontWeight: "bold", padding: "4px 8px" }}>Flight: {group.flightNo} ({group.rows.length} jobs)</td>
+                          </tr>
+                          {group.rows.map((row) => (
+                            <tr key={row.jobId}>
+                              <td>{row.internalRef}</td>
+                              <td>{row.flightNo || "—"}</td>
+                              <td>{row.serviceType}</td>
+                              <td className="text-right">{row.paxCount}</td>
+                              <td>{row.repName}</td>
+                              <td>{(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}</td>
+                              <td>{row.destinationHotel?.name || "—"}</td>
+                              <td>{row.status}</td>
+                              <td className="text-center">{row.attendance ? "✓" : "—"}</td>
+                              <td className="text-center">{row.appearance ? "✓" : "—"}</td>
+                              <td className="text-center">{row.work ? "✓" : "—"}</td>
+                              <td className="text-center">{row.review ? "✓" : "—"}</td>
+                              <td className="text-right">{row.total}</td>
+                              <td className="text-right">{row.fee > 0 ? `${row.fee} EGP` : "—"}</td>
+                              <td>{row.evaluation}</td>
+                            </tr>
+                          ))}
+                          <tr style={{ background: "#f5f5f5", fontWeight: "bold" }}>
+                            <td colSpan={13} className="text-right">Subtotal</td>
+                            <td className="text-right">{group.rows.reduce((s, r) => s + r.fee, 0)} EGP</td>
+                            <td></td>
+                          </tr>
+                        </React.Fragment>
+                      ));
+                    })()}
                     <tr className="total-row">
-                      <td colSpan={11}>Average Score ({repScoreData.count} jobs)</td>
-                      <td className="text-right">{repScoreData.avgScore}</td>
+                      <td colSpan={13}>Total ({repScoreData.count} jobs · Avg {repScoreData.avgScore} / 100)</td>
+                      <td className="text-right">{repScoreData.totalFee ?? repScoreData.rows.reduce((s, r) => s + r.fee, 0)} EGP</td>
                       <td></td>
                     </tr>
                   </tbody>

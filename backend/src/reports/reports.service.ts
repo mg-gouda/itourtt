@@ -767,6 +767,7 @@ export class ReportsService {
             destinationAirport: { select: { name: true, code: true } },
             destinationZone: { select: { name: true } },
             destinationHotel: { select: { name: true } },
+            flight: { select: { flightNo: true, carrier: true } },
           },
         },
       },
@@ -792,6 +793,8 @@ export class ReportsService {
         destinationAirport: s.trafficJob.destinationAirport,
         destinationZone: s.trafficJob.destinationZone,
         destinationHotel: s.trafficJob.destinationHotel,
+        flightNo: s.trafficJob.flight?.flightNo ?? null,
+        carrier: s.trafficJob.flight?.carrier ?? null,
         attendance: s.attendance,
         appearance: s.appearance,
         work: s.work,
@@ -804,8 +807,9 @@ export class ReportsService {
 
     const totalScore = rows.reduce((sum, r) => sum + r.total, 0);
     const avgScore = rows.length > 0 ? Math.round((totalScore / rows.length) * 10) / 10 : 0;
+    const totalFee = rows.reduce((sum, r) => sum + r.fee, 0);
 
-    return { from, to, rows, totalScore, avgScore, count: rows.length };
+    return { from, to, rows, totalScore, avgScore, count: rows.length, totalFee };
   }
 
   // ─────────────────────────────────────────────
