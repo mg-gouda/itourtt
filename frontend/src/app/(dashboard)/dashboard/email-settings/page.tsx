@@ -110,8 +110,11 @@ export default function EmailSettingsPage() {
     try {
       await api.post("/settings/email/test", { email: testEmail });
       toast.success(t("emailSettings.testSent"));
-    } catch {
-      toast.error(t("emailSettings.testFailed"));
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        t("emailSettings.testFailed");
+      toast.error(message);
     } finally {
       setTesting(false);
     }
