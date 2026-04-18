@@ -2,8 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import * as express from 'express';
 import * as path from 'path';
+import * as dns from 'dns';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
+
+// Force IPv4 for all outbound connections — the pod has no IPv6 route
+// and smtp.office365.com (and other hosts) may resolve to IPv6 first.
+dns.setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
