@@ -2,7 +2,12 @@ import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { resolve4 } from 'dns';
+import { promisify } from 'util';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+const resolve4Async = promisify(resolve4);
+
 import {
   bookingConfirmationTemplate,
   paymentReceiptTemplate,
@@ -91,16 +96,7 @@ export class EmailService {
 
     const host = this.config.get<string>('SMTP_HOST');
     if (host) {
-      this.transporter = nodemailer.createTransport({
-        host,
-        port: this.config.get<number>('SMTP_PORT', 587),
-        secure: this.config.get<boolean>('SMTP_SECURE', false),
-        auth: {
-          user: this.config.get<string>('SMTP_USER'),
-          pass: this.config.get<string>('SMTP_PASS'),
-        },
-      });
-      this.logger.log(`Email transporter configured with host: ${host}`);
+      this.logger.log(`SMTP_HOST env set to ${host} — will resolve IPv4 on first send`);
     } else {
       this.logger.warn('SMTP_HOST not configured via env — will check DB settings on first send');
     }
@@ -110,25 +106,56 @@ export class EmailService {
   private async ensureTransporter(): Promise<void> {
     if (this.transporter || this.dbInitialized) return;
 
+    // Check env vars first (takes priority)
+    const envHost = this.config.get<string>('SMTP_HOST');
+    if (envHost) {
+      const resolvedHost = await this.resolveToIPv4(envHost);
+      this.transporter = nodemailer.createTransport({
+        host: resolvedHost,
+        port: this.config.get<number>('SMTP_PORT', 587),
+        secure: this.config.get<boolean>('SMTP_SECURE', false),
+        tls: { servername: envHost },
+        auth: {
+          user: this.config.get<string>('SMTP_USER'),
+          pass: this.config.get<string>('SMTP_PASS'),
+        },
+      });
+      this.dbInitialized = true;
+      this.logger.log(`Email transporter from env: ${envHost} → ${resolvedHost}`);
+      return;
+    }
+
     try {
       const settings = await this.prisma.emailSettings.findFirst();
       if (settings?.smtpHost) {
+        const resolvedHost = await this.resolveToIPv4(settings.smtpHost);
         this.transporter = nodemailer.createTransport({
-          host: settings.smtpHost,
+          host: resolvedHost,
           port: settings.smtpPort,
           secure: settings.smtpSecure,
+          tls: { servername: settings.smtpHost },
           auth: {
             user: settings.smtpUser ?? undefined,
             pass: settings.smtpPass ?? undefined,
           },
         });
         this.fromAddress = settings.fromAddress;
-        this.logger.log(`Email transporter configured from DB with host: ${settings.smtpHost}`);
+        this.logger.log(`Email transporter configured from DB: ${settings.smtpHost} → ${resolvedHost}`);
       }
     } catch (err) {
       this.logger.error(`Failed to load email settings from DB: ${(err as Error).message}`);
     } finally {
       this.dbInitialized = true;
+    }
+  }
+
+  /** Resolve hostname to IPv4 to avoid ENETUNREACH on IPv6-only pods. */
+  private async resolveToIPv4(hostname: string): Promise<string> {
+    try {
+      const addrs = await resolve4Async(hostname);
+      return addrs[0] ?? hostname;
+    } catch {
+      return hostname;
     }
   }
 
