@@ -745,21 +745,19 @@ export class ExportService {
         color: rgb(0, 0, 0),
       });
 
-      // Draw rep name at bottom-right corner (size 10pt)
-      const repName = job.assignment?.rep?.name;
-      if (repName) {
-        const repDisplay = arabicize(repName);
-        const repFont = pickFont(repName);
-        const repSize = 10;
-        const repW = repFont.widthOfTextAtSize(repDisplay, repSize);
-        page.drawText(repDisplay, {
-          x: pageWidth - margin - 8 - repW,
-          y: margin + 8,
-          size: repSize,
-          font: repFont,
-          color: rgb(0.3, 0.3, 0.3),
-        });
-      }
+      // Draw rep name at bottom-right corner (size 10pt), always — fallback to "—"
+      const repName = job.assignment?.rep?.name ?? '—';
+      const repDisplay = arabicize(repName);
+      const repFont = pickFont(repName);
+      const repSize = 10;
+      const repW = repFont.widthOfTextAtSize(repDisplay, repSize);
+      page.drawText(repDisplay, {
+        x: pageWidth - margin - 8 - repW,
+        y: margin + 8,
+        size: repSize,
+        font: repFont,
+        color: rgb(0.3, 0.3, 0.3),
+      });
     }
 
     const pdfBytes = await pdfDoc.save();

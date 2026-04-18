@@ -24,6 +24,7 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsString, IsIn, IsOptional, IsNumber, IsBoolean } from 'class-validator';
+import { stampEvidenceImage } from '../common/utils/stamp-image.js';
 
 const uploadsDir = path.join(process.cwd(), 'uploads', 'no-show');
 if (!fs.existsSync(uploadsDir)) {
@@ -145,7 +146,7 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show');
+    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude);
 
     const result = await this.driverPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'No-show evidence submitted');
@@ -169,7 +170,7 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed');
+    const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed', latitude, longitude);
 
     const result = await this.driverPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'Completed evidence submitted');
@@ -211,16 +212,23 @@ export class DriverPortalController {
     jobId: string,
     driveType: 'rep' | 'driver' | 'no-show',
     localSubdir: string,
+    lat?: number,
+    lng?: number,
   ): Promise<string[]> {
     const urls: string[] = [];
     const uploadsBase = path.join(process.cwd(), 'uploads');
 
     for (const file of files) {
-      const uniqueName = Date.now() + '-' + file.originalname;
-      const mimeType = file.mimetype || 'image/jpeg';
+      const buffer =
+        lat !== undefined && lng !== undefined
+          ? await stampEvidenceImage(file.buffer, lat, lng).catch(() => file.buffer)
+          : file.buffer;
+
+      const uniqueName = Date.now() + '-' + file.originalname.replace(/\.[^.]+$/, '') + '.jpg';
+      const mimeType = 'image/jpeg';
 
       const driveId = await this.googleDriveService.uploadFile(
-        file.buffer,
+        buffer,
         uniqueName,
         mimeType,
         jobId,
@@ -233,7 +241,7 @@ export class DriverPortalController {
         const dir = path.join(uploadsBase, localSubdir);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         const localPath = path.join(dir, uniqueName);
-        fs.writeFileSync(localPath, file.buffer);
+        fs.writeFileSync(localPath, buffer);
         urls.push(`/uploads/${localSubdir}/${uniqueName}`);
       }
     }

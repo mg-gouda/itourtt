@@ -24,6 +24,7 @@ import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsString, IsIn, IsOptional, IsNumber } from 'class-validator';
 import * as path from 'path';
 import * as fs from 'fs';
+import { stampEvidenceImage } from '../common/utils/stamp-image.js';
 
 // Fallback disk storage (used when Drive is not configured)
 const uploadsBase = path.join(process.cwd(), 'uploads');
@@ -127,7 +128,7 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show');
+    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude);
 
     const result = await this.repPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'No-show evidence submitted');
@@ -151,7 +152,7 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'in-place');
+    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'in-place', latitude, longitude);
 
     const result = await this.repPortalService.submitInPlace(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'In-place evidence submitted');
@@ -175,7 +176,7 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'completed');
+    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'completed', latitude, longitude);
 
     const result = await this.repPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'Completed evidence submitted');
@@ -243,15 +244,22 @@ export class RepPortalController {
     jobId: string,
     driveType: 'rep' | 'driver' | 'no-show',
     localSubdir: string,
+    lat?: number,
+    lng?: number,
   ): Promise<string[]> {
     const urls: string[] = [];
 
     for (const file of files) {
-      const uniqueName = Date.now() + '-' + file.originalname;
-      const mimeType = file.mimetype || 'image/jpeg';
+      const buffer =
+        lat !== undefined && lng !== undefined
+          ? await stampEvidenceImage(file.buffer, lat, lng).catch(() => file.buffer)
+          : file.buffer;
+
+      const uniqueName = Date.now() + '-' + file.originalname.replace(/\.[^.]+$/, '') + '.jpg';
+      const mimeType = 'image/jpeg';
 
       const driveId = await this.googleDriveService.uploadFile(
-        file.buffer,
+        buffer,
         uniqueName,
         mimeType,
         jobId,
@@ -264,7 +272,7 @@ export class RepPortalController {
         // Drive not configured — save to local disk as fallback
         const dir = path.join(uploadsBase, localSubdir);
         const localPath = path.join(dir, uniqueName);
-        fs.writeFileSync(localPath, file.buffer);
+        fs.writeFileSync(localPath, buffer);
         urls.push(`/uploads/${localSubdir}/${uniqueName}`);
       }
     }
