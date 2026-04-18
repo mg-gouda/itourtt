@@ -109,7 +109,6 @@ export class EmailService {
   /** Lazily load SMTP config from DB if env vars aren't set. */
   private async ensureTransporter(): Promise<void> {
     if (this.transporter || this.dbInitialized) return;
-    this.dbInitialized = true;
 
     try {
       const settings = await this.prisma.emailSettings.findFirst();
@@ -128,6 +127,8 @@ export class EmailService {
       }
     } catch (err) {
       this.logger.error(`Failed to load email settings from DB: ${(err as Error).message}`);
+    } finally {
+      this.dbInitialized = true;
     }
   }
 
@@ -211,6 +212,12 @@ export class EmailService {
   }
 
   async sendTestEmail(to: string): Promise<void> {
+    await this.ensureTransporter();
+
+    if (!this.transporter) {
+      throw new Error('SMTP is not configured. Save your email settings first.');
+    }
+
     const html = `
       <div style="font-family:Arial,sans-serif;padding:20px;">
         <h2 style="color:#333;">iTour TT — Test Email</h2>
@@ -220,7 +227,16 @@ export class EmailService {
         <p style="color:#999;font-size:12px;">Sent at ${new Date().toLocaleString('en-GB', { timeZone: 'Africa/Cairo' })} (Cairo time)</p>
       </div>
     `;
-    await this.send(to, 'iTour TT — SMTP Test', html);
+
+    // Intentionally NOT wrapped in try/catch — let errors propagate so the
+    // caller receives the real SMTP failure reason instead of a false success.
+    await this.transporter.sendMail({
+      from: this.fromAddress,
+      to,
+      subject: 'iTour TT — SMTP Test',
+      html,
+    });
+    this.logger.log(`Test email sent to ${to}`);
   }
 
   private async send(to: string, subject: string, html: string): Promise<void> {
