@@ -1022,7 +1022,7 @@ export class ReportsService {
         inPlaceEvidence: {
           select: { id: true, imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
         },
-        flight: { select: { arrivalTime: true } },
+        flight: { select: { arrivalTime: true, flightNo: true } },
       },
       orderBy: { jobDate: 'asc' },
     });
@@ -1039,6 +1039,7 @@ export class ReportsService {
         serviceDate: j.jobDate,
         serviceType: j.serviceType,
         time: j.serviceType === 'ARR' ? (j.flight?.arrivalTime ?? null) : (j.pickUpTime ?? null),
+        flightNo: j.flight?.flightNo ?? null,
         priceAmount: j.priceAmount ? Number(j.priceAmount) : null,
         priceCurrency: j.priceCurrency,
         transferPrice: j.transferPrice ? Number(j.transferPrice) : null,

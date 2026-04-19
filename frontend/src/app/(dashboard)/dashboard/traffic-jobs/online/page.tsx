@@ -103,16 +103,17 @@ interface TrafficJob {
   destinationAirportId: string | null;
   destinationZoneId: string | null;
   destinationHotelId: string | null;
-  agent?: { legalName: string } | null;
-  originAirport?: { name: string; code: string } | null;
-  originZone?: { name: string } | null;
-  originHotel?: { name: string } | null;
-  destinationAirport?: { name: string; code: string } | null;
-  destinationZone?: { name: string } | null;
-  destinationHotel?: { name: string } | null;
+  agent?: { id: string; legalName: string; tradeName?: string } | null;
+  originAirport?: { id: string; name: string; code: string } | null;
+  originZone?: { id: string; name: string } | null;
+  originHotel?: { id: string; name: string } | null;
+  destinationAirport?: { id: string; name: string; code: string } | null;
+  destinationZone?: { id: string; name: string } | null;
+  destinationHotel?: { id: string; name: string } | null;
   fromZone?: { name: string } | null;
   toZone?: { name: string } | null;
-  flight?: { flightNo: string; terminal?: string; arrivalTime?: string; departureTime?: string } | null;
+  jobServiceTypeId?: string | null;
+  flight?: { flightNo: string; carrier?: string; terminal?: string; arrivalTime?: string; departureTime?: string } | null;
   assignment?: {
     vehicle?: { plateNumber: string };
     driver?: { name: string };
@@ -350,8 +351,8 @@ export default function OnlineJobPage() {
 
     setEditingJobId(job.id);
 
-    const originSelectedId = job.originAirportId || job.originZoneId || job.originHotelId || "";
-    const destinationSelectedId = job.destinationAirportId || job.destinationZoneId || job.destinationHotelId || "";
+    const originSelectedId = job.originAirportId || job.originAirport?.id || job.originZoneId || job.originZone?.id || job.originHotelId || job.originHotel?.id || "";
+    const destinationSelectedId = job.destinationAirportId || job.destinationAirport?.id || job.destinationZoneId || job.destinationZone?.id || job.destinationHotelId || job.destinationHotel?.id || "";
 
     const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
     const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
@@ -359,18 +360,18 @@ export default function OnlineJobPage() {
 
     setForm({
       bookingStatus: "UPDATED",
-      agentId: job.agentId || "",
+      agentId: job.agentId || (job.agent as any)?.id || "",
       agentRef: job.agentRef || "",
       serviceType: job.serviceType,
       jobDate: job.jobDate?.split("T")[0] || "",
       adultCount: String(job.adultCount),
       childCount: String(job.childCount),
-      originAirportId: job.originAirportId || "",
-      originZoneId: job.originZoneId || "",
-      originHotelId: job.originHotelId || "",
-      destinationAirportId: job.destinationAirportId || "",
-      destinationZoneId: job.destinationZoneId || "",
-      destinationHotelId: job.destinationHotelId || "",
+      originAirportId: job.originAirportId || job.originAirport?.id || "",
+      originZoneId: job.originZoneId || job.originZone?.id || "",
+      originHotelId: job.originHotelId || job.originHotel?.id || "",
+      destinationAirportId: job.destinationAirportId || job.destinationAirport?.id || "",
+      destinationZoneId: job.destinationZoneId || job.destinationZone?.id || "",
+      destinationHotelId: job.destinationHotelId || job.destinationHotel?.id || "",
       originSelectedId,
       destinationSelectedId,
       clientName: job.clientName || "",
@@ -388,8 +389,8 @@ export default function OnlineJobPage() {
       collectionCurrency: job.collectionCurrency || "EGP",
       transferPrice: job.transferPrice ? String(job.transferPrice) : "",
       transferPriceCurrency: job.transferPriceCurrency || "EGP",
-      requestedVehicleTypeId: job.requestedVehicleTypeId || "",
-      jobServiceTypeId: (job as any).jobServiceType?.id || "",
+      requestedVehicleTypeId: job.requestedVehicleTypeId || job.requestedVehicleType?.id || "",
+      jobServiceTypeId: job.jobServiceTypeId || (job as any).jobServiceType?.id || "",
       flightNo: job.flight?.flightNo || "",
       terminal: job.flight?.terminal || "",
       arrivalTime,

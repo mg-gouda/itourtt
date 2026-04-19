@@ -347,6 +347,7 @@ interface JobStatusReport {
     driverJobStatus: string | null;
     repName: string | null;
     driverName: string | null;
+    flightNo: string | null;
     driverEvidence: EvidenceItem[];
   }>;
 }
@@ -572,6 +573,7 @@ const JOB_STATUS_COLUMNS: ColumnDef[] = [
   { key: "status", label: "Status" },
   { key: "repJobStatus", label: "Rep Status" },
   { key: "driverJobStatus", label: "Driver Status" },
+  { key: "flightNo", label: "Flight No" },
   { key: "evidence", label: "Evidence" },
 ];
 const JOB_STATUS_DEFAULT_KEYS = JOB_STATUS_COLUMNS.map((c) => c.key);
@@ -705,6 +707,10 @@ export default function ReportsPage() {
   const [deductions, setDeductions] = useState<Record<string, number>>({});
   // repNetTotals: repId → final computed net total (overrides server totalAmount in the list)
   const [repNetTotals, setRepNetTotals] = useState<Record<string, number>>({});
+  const [evidenceViewOpen, setEvidenceViewOpen] = useState(false);
+  const [evidenceViewJobRef, setEvidenceViewJobRef] = useState<string>("");
+  const [evidenceViewUrls, setEvidenceViewUrls] = useState<string[]>([]);
+  const [evidenceViewLoading, setEvidenceViewLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const dispatchPrintRef = useRef<HTMLDivElement>(null);
   const driverPrintRef = useRef<HTMLDivElement>(null);
@@ -1161,6 +1167,26 @@ export default function ReportsPage() {
 
   const generateEvidencePdf = (row: EvidenceReportRow) =>
     downloadEvidenceZip(row.jobId, row.internalRef);
+
+  const openEvidenceView = async (imageUrls: string[], jobRef: string) => {
+    setEvidenceViewJobRef(jobRef);
+    setEvidenceViewUrls([]);
+    setEvidenceViewOpen(true);
+    setEvidenceViewLoading(true);
+    try {
+      const objectUrls = await Promise.all(
+        imageUrls.map(async (fileId) => {
+          const res = await api.get(`/export/evidence-file/${fileId}`, { responseType: "blob" });
+          return URL.createObjectURL(res.data);
+        })
+      );
+      setEvidenceViewUrls(objectUrls);
+    } catch {
+      toast.error("Failed to load evidence images");
+    } finally {
+      setEvidenceViewLoading(false);
+    }
+  };
 
   const fetchRepScore = async () => {
     setRepScoreLoading(true);
@@ -3143,6 +3169,7 @@ export default function ReportsPage() {
                         {jobStatusColOrder.visibility["status"] !== false && <SortableHeader label={t("common.status")} sortKey="status" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
                         {jobStatusColOrder.visibility["repJobStatus"] !== false && <SortableHeader label={t("reports.repJobStatus")} sortKey="repJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
                         {jobStatusColOrder.visibility["driverJobStatus"] !== false && <SortableHeader label={t("reports.driverJobStatus")} sortKey="driverJobStatus" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
+                        {jobStatusColOrder.visibility["flightNo"] !== false && <SortableHeader label="Flight No" sortKey="flightNo" currentKey={jobStatusSort.sortKey} currentDir={jobStatusSort.sortDir} onSort={jobStatusSort.onSort} />}
                         {jobStatusColOrder.visibility["evidence"] !== false && <TableHead className="text-muted-foreground font-semibold text-xs">{t("reports.driverEvidence")}</TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -3189,6 +3216,11 @@ export default function ReportsPage() {
                           {jobStatusColOrder.visibility["driverJobStatus"] !== false && (
                             <TableCell>
                               {job.driverJobStatus ? <StatusBadge status={job.driverJobStatus} /> : "\u2014"}
+                            </TableCell>
+                          )}
+                          {jobStatusColOrder.visibility["flightNo"] !== false && (
+                            <TableCell className="font-mono text-sm text-muted-foreground">
+                              {job.flightNo || "\u2014"}
                             </TableCell>
                           )}
                           {jobStatusColOrder.visibility["evidence"] !== false && (
@@ -3737,6 +3769,7 @@ export default function ReportsPage() {
                         <TableHead className="text-muted-foreground text-xs text-right">Fee</TableHead>
                         <TableHead className="text-muted-foreground text-xs text-right">Deductions</TableHead>
                         <TableHead className="text-muted-foreground text-xs">Eval</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Photos</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -3881,6 +3914,20 @@ export default function ReportsPage() {
                                 </Badge>
                               ) : "\u2014"}
                             </TableCell>
+                            <TableCell>
+                              {hasInPlace && fee.inPlaceEvidence?.imageUrls?.length ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openEvidenceView(fee.inPlaceEvidence!.imageUrls, fee.trafficJob.internalRef)}
+                                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                >
+                                  <Camera className="h-3.5 w-3.5" />
+                                  Display
+                                </button>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">\u2014</span>
+                              )}
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -3930,6 +3977,47 @@ export default function ReportsPage() {
               })()}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── EVIDENCE IMAGE VIEWER ─── */}
+      <Dialog
+        open={evidenceViewOpen}
+        onOpenChange={(open) => {
+          setEvidenceViewOpen(open);
+          if (!open) {
+            evidenceViewUrls.forEach((u) => URL.revokeObjectURL(u));
+            setEvidenceViewUrls([]);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-border bg-popover text-foreground sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              Evidence Photos — {evidenceViewJobRef}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            {evidenceViewLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : evidenceViewUrls.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-8">No images available.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {evidenceViewUrls.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={url}
+                      alt={`Evidence ${i + 1}`}
+                      className="w-full rounded-md border border-border object-cover aspect-video hover:opacity-80 transition-opacity"
+                    />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
