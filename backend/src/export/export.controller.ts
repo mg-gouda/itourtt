@@ -286,6 +286,26 @@ export class ExportController {
   }
 
   // ──────────────────────────────────────────────
+  // GET /export/odoo/evidence-zip/:jobId
+  // Download all evidence images for a job as a ZIP file.
+  // ──────────────────────────────────────────────
+
+  @Get('evidence-zip/:jobId')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.evidence')
+  async downloadEvidenceZip(
+    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Res() res: express.Response,
+  ) {
+    try {
+      await this.exportService.streamEvidenceZip(jobId, res);
+    } catch (err: any) {
+      if (err?.status === 404) throw new NotFoundException(err.message);
+      throw new InternalServerErrorException('Failed to generate evidence ZIP');
+    }
+  }
+
+  // ──────────────────────────────────────────────
   // GET /export/odoo/evidence-file/:fileId
   // Proxy a Drive file through the backend (JWT-guarded).
   // Accessible to all dashboard roles — dispatchers/managers view evidence images.

@@ -1121,145 +1121,25 @@ export default function ReportsPage() {
   const exportSupplierJobsPdf = () =>
     printFromRef(supplierJobsPrintRef, `Supplier Jobs - ${supplierJobsFrom} to ${supplierJobsTo}`);
 
-  const openEvidenceHtml = async (jobId: string, ref: string) => {
+  const downloadEvidenceZip = async (jobId: string, ref: string) => {
     setEvidencePdfLoading((prev) => new Set(prev).add(jobId));
     try {
-      const { data } = await api.get(`/export/odoo/evidence-data/${jobId}`);
-      const ev = data.data ?? data;
-
-      // Fetch all images in parallel and convert to data URIs.
-      // imageUrls can be either a Drive file ID or a legacy local path (/uploads/...).
-      // Local paths are served as static files by the backend — they cannot be routed
-      // through evidence-file/:fileId because the path contains slashes that break
-      // Express route matching (/:param only matches a single segment).
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
-      const allUrls: string[] = [
-        ...ev.evidence.noShow.flatMap((e: any) => e.imageUrls),
-        ...ev.evidence.inPlace.flatMap((e: any) => e.imageUrls),
-        ...ev.evidence.completed.flatMap((e: any) => e.imageUrls),
-      ];
-      const dataUriMap: Record<string, string> = {};
-      await Promise.all(
-        allUrls.map(async (url: string) => {
-          try {
-            let blob: Blob;
-            if (url.startsWith("/uploads/")) {
-              // Legacy local file — fetch directly from backend static server (no auth required)
-              const res = await fetch(`${API_BASE}${url}`);
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              blob = await res.blob();
-            } else {
-              // Google Drive file ID — use authenticated proxy
-              const imgRes = await api.get(`/export/odoo/evidence-file/${url}`, { responseType: "blob" });
-              blob = imgRes.data;
-            }
-            dataUriMap[url] = await new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
-            });
-          } catch { /* skip broken images */ }
-        })
-      );
-
-      const fmtDate = (d: string | null) => d ? new Date(d).toLocaleString("en-GB", { timeZone: "Africa/Cairo" }) : "—";
-      const j = ev.job;
-
-      const evidenceSection = (label: string, items: any[]) => {
-        if (!items.length) return "";
-        return `
-          <div class="section-title">${label}</div>
-          ${items.map((e: any) => `
-            <div class="evidence-block">
-              <div class="meta">Submitted by: ${e.submittedBy || "—"} &nbsp;|&nbsp; ${fmtDate(e.createdAt)}
-                ${e.gpsMapLink ? ` &nbsp;|&nbsp; <a href="${e.gpsMapLink}" target="_blank">GPS</a>` : ""}
-              </div>
-              <div class="img-grid">
-                ${(e.imageUrls || []).map((id: string) =>
-                  dataUriMap[id]
-                    ? `<img src="${dataUriMap[id]}" alt="evidence" />`
-                    : `<div class="img-placeholder">Image unavailable</div>`
-                ).join("")}
-              </div>
-            </div>
-          `).join("")}`;
-      };
-
-      const logoHtml = ev.logoUrl
-        ? `<img src="${ev.logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
-        : `<span style="font-size:18px;font-weight:700;">${ev.companyName}</span>`;
-
-      const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Evidence — ${j.internalRef}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;padding:24px;color:#111;font-size:13px}
-  .header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:20px}
-  .header-title{font-size:18px;font-weight:700;text-align:center;flex:1}
-  h2{font-size:14px;font-weight:700;margin-bottom:10px;color:#333}
-  .info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 16px;margin-bottom:16px;padding:12px;background:#f8f8f8;border-radius:6px}
-  .info-item dt{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.4px}
-  .info-item dd{font-size:12px;font-weight:600;margin-top:2px}
-  .section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:6px 10px;background:#eee;border-radius:4px;margin:16px 0 8px}
-  .evidence-block{margin-bottom:14px}
-  .meta{font-size:10px;color:#555;padding:4px 0;border-bottom:1px solid #eee;margin-bottom:8px}
-  .img-grid{display:flex;flex-wrap:wrap;gap:8px}
-  .img-grid img{width:200px;height:140px;object-fit:cover;border-radius:4px;border:1px solid #ddd}
-  .img-placeholder{width:200px;height:140px;background:#eee;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999}
-  .footer{margin-top:32px;padding-top:10px;border-top:1px solid #ccc;font-size:10px;color:#666;display:flex;justify-content:space-between}
-  @media print{body{padding:0}.footer{position:fixed;bottom:16px;left:24px;right:24px}}
-</style>
-</head><body>
-<div class="header">
-  <div style="width:160px">${logoHtml}</div>
-  <div class="header-title">Job Evidence Report</div>
-  <div style="width:160px;text-align:right;font-size:11px;color:#555">${j.internalRef}</div>
-</div>
-<h2>Job Details</h2>
-<div class="info-grid">
-  <div class="info-item"><dt>Internal Ref</dt><dd>${j.internalRef}</dd></div>
-  <div class="info-item"><dt>Agent Ref</dt><dd>${j.agentRef || "—"}</dd></div>
-  <div class="info-item"><dt>Service Type</dt><dd>${j.serviceType}</dd></div>
-  <div class="info-item"><dt>Status</dt><dd>${j.status}</dd></div>
-  <div class="info-item"><dt>Pax</dt><dd>${j.paxCount}</dd></div>
-  <div class="info-item"><dt>Date</dt><dd>${fmtDate(j.jobDate)}</dd></div>
-  <div class="info-item"><dt>Agent</dt><dd>${j.agentName || "—"}</dd></div>
-  <div class="info-item"><dt>From</dt><dd>${j.route.fromZone || j.route.originAirport || j.route.originHotel || "—"}</dd></div>
-  <div class="info-item"><dt>To</dt><dd>${j.route.toZone || j.route.destinationAirport || j.route.destinationHotel || "—"}</dd></div>
-  ${j.flight ? `<div class="info-item"><dt>Flight</dt><dd>${j.flight.flightNo || "—"}${j.flight.carrier ? ` (${j.flight.carrier})` : ""}</dd></div>` : ""}
-  ${j.assignment?.vehicle ? `<div class="info-item"><dt>Vehicle</dt><dd>${j.assignment.vehicle.plateNumber} (${j.assignment.vehicle.vehicleType})</dd></div>` : ""}
-  ${j.assignment?.driver ? `<div class="info-item"><dt>Driver</dt><dd>${j.assignment.driver.name}</dd></div>` : ""}
-  ${j.assignment?.rep ? `<div class="info-item"><dt>Rep</dt><dd>${j.assignment.rep.name}</dd></div>` : ""}
-</div>
-${evidenceSection("In-Place Evidence", ev.evidence.inPlace)}
-${evidenceSection("Completed Evidence", ev.evidence.completed)}
-${evidenceSection("No-Show Evidence", ev.evidence.noShow)}
-${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.noShow.length)
-  ? '<p style="color:#999;font-size:12px;padding:20px 0">No evidence submitted for this job.</p>'
-  : ""}
-<div class="footer">
-  <span>Generated: ${new Date().toLocaleString("en-GB", { timeZone: "Africa/Cairo" })}</span>
-  <span>${ev.companyName}</span>
-</div>
-</body></html>`;
-
-      const win = window.open("", "_blank");
-      if (!win) { toast.error(t("reports.allowPopups")); return; }
-      win.document.write(html);
-      win.document.close();
-      win.focus();
-      // Delay print until images are decoded (they're data URIs so load is near-instant)
-      win.onload = () => win.print();
-      setTimeout(() => { try { win.print(); } catch { /* already triggered */ } }, 500);
+      const res = await api.get(`/export/odoo/evidence-zip/${jobId}`, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `evidence_${ref}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch {
-      toast.error("Failed to generate evidence report");
+      toast.error("Failed to download evidence ZIP");
     } finally {
       setEvidencePdfLoading((prev) => { const s = new Set(prev); s.delete(jobId); return s; });
     }
   };
 
   const downloadDriverEvidencePdf = (job: JobStatusReport["jobs"][number]) =>
-    openEvidenceHtml(job.id, job.internalRef);
+    downloadEvidenceZip(job.id, job.internalRef);
 
   const fetchEvidenceReport = async () => {
     setEvidenceLoading(true);
@@ -1280,7 +1160,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
   };
 
   const generateEvidencePdf = (row: EvidenceReportRow) =>
-    openEvidenceHtml(row.jobId, row.internalRef);
+    downloadEvidenceZip(row.jobId, row.internalRef);
 
   const fetchRepScore = async () => {
     setRepScoreLoading(true);
@@ -3277,7 +3157,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50 disabled:cursor-wait"
                                 >
                                   <Printer className="h-3.5 w-3.5" />
-                                  {evidencePdfLoading.has(job.id) ? "Generating…" : "PDF"}
+                                  {evidencePdfLoading.has(job.id) ? "Zipping…" : "ZIP"}
                                 </button>
                               ) : (
                                 <span className="text-muted-foreground text-xs">\u2014</span>
@@ -3464,7 +3344,7 @@ ${(!ev.evidence.inPlace.length && !ev.evidence.completed.length && !ev.evidence.
                                     disabled={evidencePdfLoading.has(row.jobId)}
                                   >
                                     <Camera className="h-3 w-3" />
-                                    {evidencePdfLoading.has(row.jobId) ? "Generating…" : `${totalImages} photo${totalImages !== 1 ? "s" : ""}`}
+                                    {evidencePdfLoading.has(row.jobId) ? "Zipping…" : `${totalImages} photo${totalImages !== 1 ? "s" : ""}`}
                                   </Button>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">—</span>

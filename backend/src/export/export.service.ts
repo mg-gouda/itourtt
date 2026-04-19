@@ -8,6 +8,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createRequire } from 'module';
 import sharp from 'sharp';
+import archiver from 'archiver';
+import type { Response } from 'express';
 
 const _require = createRequire(import.meta.url);
 const { convertArabic } = _require('arabic-reshaper') as { convertArabic: (t: string) => string };
@@ -1518,6 +1520,75 @@ export class ExportService {
       default:
         return 'Miscellaneous';
     }
+  }
+
+  // ─────────────────────────────────────────────
+  // EVIDENCE ZIP — stream all evidence images for a job as a .zip
+  // ─────────────────────────────────────────────
+
+  async streamEvidenceZip(jobId: string, res: Response): Promise<void> {
+    const job = await this.prisma.trafficJob.findUnique({
+      where: { id: jobId },
+      select: {
+        internalRef: true,
+        status: true,
+        noShowEvidence:  { select: { imageUrls: true }, orderBy: { createdAt: 'asc' } },
+        inPlaceEvidence: { select: { imageUrls: true }, orderBy: { createdAt: 'asc' } },
+        completedEvidence: { select: { imageUrls: true }, orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    if (!job) throw new NotFoundException('Job not found');
+
+    const ref = job.internalRef.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const status = (job.status as string).toLowerCase();
+
+    const uploadsDir = path.resolve('uploads');
+
+    const fetchImageBuffer = async (url: string): Promise<Buffer | null> => {
+      if (isDriveFileId(url)) {
+        return this.googleDrive.getFileBuffer(url);
+      }
+      // Legacy local file
+      const localPath = path.join(uploadsDir, url.replace(/^\/uploads\//, ''));
+      if (fs.existsSync(localPath)) return fs.readFileSync(localPath);
+      return null;
+    };
+
+    const guessExt = (url: string) => {
+      const m = url.match(/\.(jpe?g|png|webp|gif)(\?|$)/i);
+      return m ? `.${m[1].toLowerCase().replace('jpeg', 'jpg')}` : '.jpg';
+    };
+
+    type EvidenceGroup = { type: string; urls: string[] };
+    const groups: EvidenceGroup[] = [
+      { type: 'noshow',    urls: job.noShowEvidence.flatMap((e) => e.imageUrls) },
+      { type: 'inplace',   urls: job.inPlaceEvidence.flatMap((e) => e.imageUrls) },
+      { type: 'completed', urls: job.completedEvidence.flatMap((e) => e.imageUrls) },
+    ];
+
+    const zipName = `evidence_${ref}.zip`;
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${zipName}"`,
+    });
+
+    const archive = archiver('zip', { zlib: { level: 6 } });
+    archive.pipe(res);
+
+    for (const { type, urls } of groups) {
+      let n = 1;
+      for (const url of urls) {
+        const buf = await fetchImageBuffer(url);
+        if (!buf) continue;
+        const ext = guessExt(url);
+        const filename = `${ref}-${status}-${type}-${n}${ext}`;
+        archive.append(buf, { name: filename });
+        n++;
+      }
+    }
+
+    await archive.finalize();
   }
 
   private async fetchAllInBatches<T extends { id: string }>(
