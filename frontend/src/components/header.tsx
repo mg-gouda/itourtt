@@ -110,6 +110,7 @@ interface Notification {
   isRead: boolean;
   trafficJobId: string | null;
   createdAt: string;
+  metadata?: Record<string, unknown> | null;
   trafficJob?: { internalRef: string; bookingStatus: string; status: string } | null;
 }
 
