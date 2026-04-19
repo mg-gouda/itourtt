@@ -138,7 +138,7 @@ export class TrafficJobsService {
         supplierCarType: { select: { id: true, vehicleType: { select: { id: true, name: true } } } },
       },
     },
-    noShowEvidence: { select: { id: true, imageUrl: true, createdAt: true } },
+    noShowEvidence: { select: { id: true, imageUrls: true, createdAt: true } },
   };
 
   async findAll(filter: JobFilterDto) {
