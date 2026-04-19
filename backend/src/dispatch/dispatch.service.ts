@@ -37,25 +37,39 @@ export class DispatchService {
     const jobDate = new Date(date);
 
     const baseInclude = {
-      agent: true,
-      customer: true,
-      originAirport: true,
-      originZone: true,
-      originHotel: { include: { zone: true } },
-      destinationAirport: true,
-      destinationZone: true,
-      destinationHotel: { include: { zone: true } },
-      fromZone: true,
-      toZone: true,
-      requestedVehicleType: true,
-      flight: true,
+      agent: { select: { id: true, legalName: true, tradeName: true } },
+      customer: { select: { id: true, legalName: true, tradeName: true } },
+      originAirport: { select: { id: true, name: true, code: true } },
+      originZone: { select: { id: true, name: true } },
+      originHotel: { select: { id: true, name: true, zone: { select: { id: true, name: true } } } },
+      destinationAirport: { select: { id: true, name: true, code: true } },
+      destinationZone: { select: { id: true, name: true } },
+      destinationHotel: { select: { id: true, name: true, zone: { select: { id: true, name: true } } } },
+      fromZone: { select: { id: true, name: true } },
+      toZone: { select: { id: true, name: true } },
+      requestedVehicleType: { select: { id: true, name: true, seatCapacity: true } },
+      flight: { select: { id: true, flightNo: true, carrier: true, arrivalTime: true, departureTime: true } },
+      jobServiceType: { select: { id: true, name: true } },
       assignment: {
-        include: {
-          vehicle: { include: { vehicleType: true } },
-          driver: true,
-          rep: true,
+        select: {
+          id: true,
+          vehicleId: true,
+          driverId: true,
+          repId: true,
+          supplierId: true,
+          supplierCarTypeId: true,
+          driverStatus: true,
+          repStatus: true,
+          supplierStatus: true,
+          externalDriverName: true,
+          externalDriverPhone: true,
+          remarks: true,
+          supplierNotes: true,
+          vehicle: { select: { id: true, plateNumber: true, vehicleType: { select: { id: true, name: true, seatCapacity: true } } } },
+          driver: { select: { id: true, name: true, mobileNumber: true } },
+          rep: { select: { id: true, name: true } },
           supplier: { select: { id: true, legalName: true, tradeName: true } },
-          supplierCarType: { include: { vehicleType: true } },
+          supplierCarType: { select: { id: true, vehicleType: { select: { id: true, name: true, seatCapacity: true } } } },
         },
       },
     };
@@ -624,7 +638,7 @@ export class DispatchService {
   // AVAILABLE RESOURCES
   // ─────────────────────────────────────────────
 
-  async getAvailableVehicles(date: string, supplierId?: string) {
+  async getAvailableVehicles(date: string, supplierId?: string, q?: string) {
     const jobDate = new Date(date);
 
     const busyAssignments = await this.prisma.trafficAssignment.findMany({
@@ -686,7 +700,15 @@ export class DispatchService {
       deletedAt: null,
     }));
 
-    return [...vehicleResults, ...carTypeResults];
+    const all = [...vehicleResults, ...carTypeResults];
+    if (!q) return all;
+    const lower = q.toLowerCase();
+    return all.filter(
+      (v) =>
+        v.plateNumber?.toLowerCase().includes(lower) ||
+        v.vehicleType?.name?.toLowerCase().includes(lower) ||
+        (v as any).supplier?.legalName?.toLowerCase().includes(lower),
+    );
   }
 
   async getAvailableSuppliers() {
@@ -728,7 +750,7 @@ export class DispatchService {
    * Returns all active drivers, optionally filtered by supplier.
    * No time-based restrictions — drivers can be freely assigned.
    */
-  async getAvailableDrivers(date: string, jobId?: string, supplierId?: string) {
+  async getAvailableDrivers(date: string, jobId?: string, supplierId?: string, q?: string) {
     const supplierFilter = supplierId === 'owned'
       ? { supplierId: null }
       : supplierId
@@ -736,9 +758,15 @@ export class DispatchService {
         : {};
 
     return this.prisma.driver.findMany({
-      where: { deletedAt: null, isActive: true, ...supplierFilter },
+      where: {
+        deletedAt: null,
+        isActive: true,
+        ...supplierFilter,
+        ...(q ? { name: { contains: q, mode: 'insensitive' as const } } : {}),
+      },
       include: { supplier: { select: { id: true, legalName: true, tradeName: true } } },
       orderBy: { name: 'asc' },
+      take: q ? 20 : undefined,
     });
   }
 
@@ -747,13 +775,18 @@ export class DispatchService {
    * based on same-flight sharing rules.
    * Returns empty for non-ARR/DEP jobs (rep assignment only for Arrival/Departure).
    */
-  async getAvailableReps(date: string, jobId?: string) {
+  async getAvailableReps(date: string, jobId?: string, q?: string) {
     const jobDate = new Date(date);
 
     if (!jobId) {
       return this.prisma.rep.findMany({
-        where: { deletedAt: null, isActive: true },
+        where: {
+          deletedAt: null,
+          isActive: true,
+          ...(q ? { name: { contains: q, mode: 'insensitive' as const } } : {}),
+        },
         orderBy: { name: 'asc' },
+        take: q ? 20 : undefined,
       });
     }
 

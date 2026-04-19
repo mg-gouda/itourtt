@@ -13,7 +13,7 @@ export class PermissionsGuard implements CanActivate {
     { permissions: Set<string>; expiresAt: number }
   >();
 
-  private static CACHE_TTL_MS = 60_000; // 60 seconds
+  private static CACHE_TTL_MS = 300_000; // 5 minutes
 
   constructor(
     private reflector: Reflector,

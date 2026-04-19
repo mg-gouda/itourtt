@@ -302,6 +302,7 @@ model Airport {
   fromFees               DriverTripFee[]      @relation("FeeFromAirport")
   toFees                 DriverTripFee[]      @relation("FeeToAirport")
 
+  @@index([countryId])
   @@map("airports")
 }
 
@@ -320,6 +321,7 @@ model City {
   airport   Airport   @relation(fields: [airportId], references: [id])
   zones     Zone[]
 
+  @@index([airportId])
   @@map("cities")
 }
 
@@ -360,6 +362,7 @@ model Zone {
   serviceTypesFrom     JobServiceType[]      @relation("ServiceTypeFromZone")
   serviceTypesTo       JobServiceType[]      @relation("ServiceTypeToZone")
 
+  @@index([cityId])
   @@map("zones")
 }
 
@@ -383,6 +386,7 @@ model Hotel {
   jobsDestination  TrafficJob[]    @relation("JobDestHotel")
   guestBookings    GuestBooking[]
 
+  @@index([zoneId])
   @@map("hotels")
 }
 
@@ -434,6 +438,8 @@ model Vehicle {
   assignments    TrafficAssignment[]
   compliance     VehicleCompliance?
 
+  @@index([vehicleTypeId])
+  @@index([supplierId])
   @@map("vehicles")
 }
 
@@ -508,6 +514,7 @@ model Driver {
   notifications  DriverNotification[]
   driverJobScores DriverJobScore[]
 
+  @@index([supplierId])
   @@map("drivers")
 }
 
@@ -523,6 +530,8 @@ model DriverVehicle {
   vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
 
   @@unique([driverId, vehicleId])
+  @@index([driverId])
+  @@index([vehicleId])
   @@map("driver_vehicles")
 }
 
@@ -1088,6 +1097,14 @@ model TrafficJob {
   @@index([customerId])
   @@index([status])
   @@index([bookingChannel])
+  @@index([serviceType])
+  @@index([fromZoneId])
+  @@index([toZoneId])
+  @@index([requestedVehicleTypeId])
+  @@index([deletedAt])
+  @@index([createdById])
+  @@index([jobDate, status])
+  @@index([jobDate, deletedAt])
   @@map("traffic_jobs")
 }
 
@@ -1135,6 +1152,14 @@ model TrafficAssignment {
   assignedBy       User             @relation("AssignedBy", fields: [assignedById], references: [id])
   statusChangeLogs StatusChangeLog[]
 
+  @@index([driverId])
+  @@index([repId])
+  @@index([vehicleId])
+  @@index([supplierId])
+  @@index([supplierCarTypeId])
+  @@index([assignedById])
+  @@index([driverId, trafficJobId])
+  @@index([repId, trafficJobId])
   @@map("traffic_assignments")
 }
 
@@ -1210,6 +1235,9 @@ model DriverTripFee {
   vehicleType  VehicleType?       @relation(fields: [vehicleTypeId], references: [id])
   tariff       DriverPriceTariff? @relation(fields: [tariffId], references: [id])
 
+  @@index([driverId])
+  @@index([trafficJobId])
+  @@index([driverId, trafficJobId])
   @@map("driver_trip_fees")
 }
 
@@ -1238,6 +1266,8 @@ model DriverPriceTariff {
   fees           DriverTripFee[]
 
   @@index([fromZoneId, toZoneId])
+  @@index([vehicleTypeId])
+  @@index([jobServiceTypeId])
   @@map("driver_price_tariffs")
 }
 
@@ -1271,6 +1301,9 @@ model RepFee {
   rep          Rep        @relation(fields: [repId], references: [id])
   trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
 
+  @@index([repId])
+  @@index([trafficJobId])
+  @@index([repId, trafficJobId])
   @@map("rep_fees")
 }
 
@@ -1287,6 +1320,9 @@ model SupplierCost {
   supplier     Supplier   @relation(fields: [supplierId], references: [id])
   trafficJob   TrafficJob @relation(fields: [trafficJobId], references: [id])
 
+  @@index([supplierId])
+  @@index([trafficJobId])
+  @@index([supplierId, trafficJobId])
   @@map("supplier_costs")
 }
 
@@ -1335,6 +1371,8 @@ model InvoiceLine {
   invoice      AgentInvoice @relation(fields: [invoiceId], references: [id])
   trafficJob   TrafficJob?  @relation(fields: [trafficJobId], references: [id])
 
+  @@index([invoiceId])
+  @@index([trafficJobId])
   @@map("invoice_lines")
 }
 
@@ -1353,6 +1391,7 @@ model Payment {
 
   agentInvoice    AgentInvoice  @relation(fields: [agentInvoiceId], references: [id])
 
+  @@index([agentInvoiceId])
   @@map("payments")
 }
 
@@ -1536,6 +1575,9 @@ model WhatsappNotificationLog {
   template   WhatsappTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@unique([trafficJobId, recipientPhone, templateId])
+  @@index([trafficJobId])
+  @@index([status])
+  @@index([trafficJobId, status])
   @@map("whatsapp_notification_logs")
 }
 

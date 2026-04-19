@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import * as express from 'express';
 import * as path from 'path';
 import * as dns from 'dns';
+import compression from 'compression';
 import { AppModule } from './app.module.js';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
 
@@ -15,6 +16,9 @@ async function bootstrap() {
     rawBody: true,
   });
   const logger = new Logger('Bootstrap');
+
+  // Compress all responses (gzip) — reduces payload 70-90% for large JSON
+  app.use(compression());
 
   // Serve uploaded files statically (logos, favicons, etc.)
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));

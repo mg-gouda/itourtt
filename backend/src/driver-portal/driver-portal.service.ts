@@ -33,6 +33,26 @@ export class DriverPortalService {
     private readonly noShowDisputeService: NoShowDisputeService,
   ) {}
 
+  // Minimal fields for list cards — no agent/customer details
+  private readonly jobSummaryInclude = {
+    originAirport: { select: { name: true } },
+    originZone: { select: { name: true } },
+    originHotel: { select: { name: true, zone: { select: { name: true } } } },
+    destinationAirport: { select: { name: true } },
+    destinationZone: { select: { name: true } },
+    destinationHotel: { select: { name: true, zone: { select: { name: true } } } },
+    fromZone: { select: { name: true } },
+    toZone: { select: { name: true } },
+    flight: { select: { flightNumber: true, arrivalTime: true, departureTime: true } },
+    assignment: {
+      include: {
+        vehicle: { select: { plateNumber: true, vehicleType: { select: { name: true } } } },
+        rep: { select: { name: true, mobileNumber: true } },
+      },
+    },
+  };
+
+  // Full include for detail views and mutation responses
   private readonly jobInclude = {
     originAirport: true,
     originZone: true,
@@ -80,7 +100,7 @@ export class DriverPortalService {
       },
       include: {
         trafficJob: {
-          include: this.jobInclude,
+          include: this.jobSummaryInclude,
         },
       },
       orderBy: { createdAt: 'asc' },
@@ -113,7 +133,7 @@ export class DriverPortalService {
       include: {
         trafficJob: {
           include: {
-            ...this.jobInclude,
+            ...this.jobSummaryInclude,
             driverFees: {
               where: { driverId },
               select: { amount: true, currency: true },

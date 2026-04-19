@@ -61,29 +61,45 @@ export class ExportController {
 
   @Get('invoices')
   @Permissions('finance.exports.invoices')
-  async exportInvoices(@Res() res: express.Response) {
-    const buffer = await this.exportService.exportInvoices();
+  async exportInvoices(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Res() res: express.Response,
+  ) {
+    const buffer = await this.exportService.exportInvoices(dateFrom, dateTo);
     this.sendXlsx(res, buffer, 'odoo_customer_invoices');
   }
 
   @Get('vendor-bills')
   @Permissions('finance.exports.vendorBills')
-  async exportVendorBills(@Res() res: express.Response) {
-    const buffer = await this.exportService.exportVendorBills();
+  async exportVendorBills(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Res() res: express.Response,
+  ) {
+    const buffer = await this.exportService.exportVendorBills(dateFrom, dateTo);
     this.sendXlsx(res, buffer, 'odoo_vendor_bills');
   }
 
   @Get('payments')
   @Permissions('finance.exports.payments')
-  async exportPayments(@Res() res: express.Response) {
-    const buffer = await this.exportService.exportPayments();
+  async exportPayments(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Res() res: express.Response,
+  ) {
+    const buffer = await this.exportService.exportPayments(dateFrom, dateTo);
     this.sendXlsx(res, buffer, 'odoo_payments');
   }
 
   @Get('journals')
   @Permissions('finance.exports.journals')
-  async exportJournalEntries(@Res() res: express.Response) {
-    const buffer = await this.exportService.exportJournalEntries();
+  async exportJournalEntries(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Res() res: express.Response,
+  ) {
+    const buffer = await this.exportService.exportJournalEntries(dateFrom, dateTo);
     this.sendXlsx(res, buffer, 'odoo_journal_entries');
   }
 

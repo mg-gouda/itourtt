@@ -81,8 +81,9 @@ export class DispatchController {
   async getAvailableVehicles(
     @Query() query: DispatchDayDto,
     @Query('supplierId') supplierId?: string,
+    @Query('q') q?: string,
   ) {
-    const vehicles = await this.dispatchService.getAvailableVehicles(query.date, supplierId);
+    const vehicles = await this.dispatchService.getAvailableVehicles(query.date, supplierId, q);
     return new ApiResponse(vehicles);
   }
 
@@ -91,8 +92,9 @@ export class DispatchController {
     @Query() query: DispatchDayDto,
     @Query('jobId') jobId?: string,
     @Query('supplierId') supplierId?: string,
+    @Query('q') q?: string,
   ) {
-    const drivers = await this.dispatchService.getAvailableDrivers(query.date, jobId, supplierId);
+    const drivers = await this.dispatchService.getAvailableDrivers(query.date, jobId, supplierId, q);
     return new ApiResponse(drivers);
   }
 
@@ -100,8 +102,9 @@ export class DispatchController {
   async getAvailableReps(
     @Query() query: DispatchDayDto,
     @Query('jobId') jobId?: string,
+    @Query('q') q?: string,
   ) {
-    const reps = await this.dispatchService.getAvailableReps(query.date, jobId);
+    const reps = await this.dispatchService.getAvailableReps(query.date, jobId, q);
     return new ApiResponse(reps);
   }
 

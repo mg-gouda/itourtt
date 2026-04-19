@@ -95,11 +95,15 @@ export class ExportService {
   // ─────────────────────────────────────────────
 
   async exportCustomers(): Promise<Buffer> {
-    const agents = await this.prisma.agent.findMany({
-      where: { deletedAt: null },
-      include: { creditTerms: true },
-      orderBy: { legalName: 'asc' },
-    });
+    const agents = await this.fetchAllInBatches((cursor) =>
+      this.prisma.agent.findMany({
+        where: { deletedAt: null },
+        include: { creditTerms: true },
+        orderBy: { legalName: 'asc' },
+        take: 1000,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      }),
+    );
 
     const rows = agents.map((a) => ({
       name: a.legalName,
@@ -129,10 +133,14 @@ export class ExportService {
   // ─────────────────────────────────────────────
 
   async exportSuppliers(): Promise<Buffer> {
-    const suppliers = await this.prisma.supplier.findMany({
-      where: { deletedAt: null },
-      orderBy: { legalName: 'asc' },
-    });
+    const suppliers = await this.fetchAllInBatches((cursor) =>
+      this.prisma.supplier.findMany({
+        where: { deletedAt: null },
+        orderBy: { legalName: 'asc' },
+        take: 1000,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      }),
+    );
 
     const rows = suppliers.map((s) => ({
       name: s.legalName,
@@ -158,9 +166,10 @@ export class ExportService {
   // CUSTOMER INVOICES (AgentInvoice → account.move out_invoice)
   // ─────────────────────────────────────────────
 
-  async exportInvoices(): Promise<Buffer> {
+  async exportInvoices(dateFrom?: string, dateTo?: string): Promise<Buffer> {
+    const dateFilter = this.buildDateFilter(dateFrom, dateTo, 'invoiceDate');
     const invoices = await this.prisma.agentInvoice.findMany({
-      where: { status: { not: 'CANCELLED' } },
+      where: { status: { not: 'CANCELLED' }, ...dateFilter },
       include: {
         agent: true,
         customer: true,
@@ -171,6 +180,7 @@ export class ExportService {
         },
       },
       orderBy: { invoiceDate: 'asc' },
+      take: 50_000,
     });
 
     const rows: Record<string, unknown>[] = [];
@@ -204,8 +214,10 @@ export class ExportService {
   // VENDOR BILLS (SupplierCost → account.move in_invoice)
   // ─────────────────────────────────────────────
 
-  async exportVendorBills(): Promise<Buffer> {
+  async exportVendorBills(dateFrom?: string, dateTo?: string): Promise<Buffer> {
+    const dateFilter = this.buildDateFilter(dateFrom, dateTo, 'createdAt');
     const costs = await this.prisma.supplierCost.findMany({
+      where: { ...dateFilter },
       include: {
         supplier: true,
         trafficJob: {
@@ -217,6 +229,7 @@ export class ExportService {
         },
       },
       orderBy: { createdAt: 'asc' },
+      take: 50_000,
     });
 
     const rows = costs.map((c) => {
@@ -249,8 +262,10 @@ export class ExportService {
   // PAYMENTS (Payment → account.payment)
   // ─────────────────────────────────────────────
 
-  async exportPayments(): Promise<Buffer> {
+  async exportPayments(dateFrom?: string, dateTo?: string): Promise<Buffer> {
+    const dateFilter = this.buildDateFilter(dateFrom, dateTo, 'paymentDate');
     const payments = await this.prisma.payment.findMany({
+      where: { ...dateFilter },
       include: {
         agentInvoice: {
           include: {
@@ -260,6 +275,7 @@ export class ExportService {
         },
       },
       orderBy: { paymentDate: 'asc' },
+      take: 50_000,
     });
 
     const rows = payments.map((p) => ({
@@ -281,8 +297,10 @@ export class ExportService {
   // JOURNAL ENTRIES
   // ─────────────────────────────────────────────
 
-  async exportJournalEntries(): Promise<Buffer> {
+  async exportJournalEntries(dateFrom?: string, dateTo?: string): Promise<Buffer> {
+    const dateFilter = this.buildDateFilter(dateFrom, dateTo, 'entryDate');
     const entries = await this.prisma.journalEntry.findMany({
+      where: { ...dateFilter },
       include: {
         lines: {
           include: {
@@ -291,6 +309,7 @@ export class ExportService {
         },
       },
       orderBy: { entryDate: 'asc' },
+      take: 50_000,
     });
 
     const rows: Record<string, unknown>[] = [];
@@ -1501,6 +1520,20 @@ export class ExportService {
     }
   }
 
+  private async fetchAllInBatches<T extends { id: string }>(
+    fetcher: (cursor: string | null) => Promise<T[]>,
+  ): Promise<T[]> {
+    const all: T[] = [];
+    let cursor: string | null = null;
+    while (true) {
+      const batch = await fetcher(cursor);
+      all.push(...batch);
+      if (batch.length < 1000) break;
+      cursor = batch[batch.length - 1].id;
+    }
+    return all;
+  }
+
   private createWorkbook(
     data: Record<string, unknown>[],
     sheetName: string,
@@ -1777,5 +1810,22 @@ export class ExportService {
     });
 
     return { total: rows.length, rows };
+  }
+
+  /** Build a Prisma date range filter for a given field. Both bounds are optional. */
+  private buildDateFilter(
+    dateFrom: string | undefined,
+    dateTo: string | undefined,
+    field: string,
+  ): Record<string, unknown> {
+    if (!dateFrom && !dateTo) return {};
+    const filter: Record<string, Date> = {};
+    if (dateFrom) filter['gte'] = new Date(dateFrom);
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      filter['lte'] = end;
+    }
+    return { [field]: filter };
   }
 }

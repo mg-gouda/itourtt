@@ -790,6 +790,7 @@ export class FinanceService {
 
     const transferLines: Array<{ trafficJobId: string; description: string; amount: number }> = [];
     const driverTipLines: Array<{ trafficJobId: string; description: string; amount: number }> = [];
+    const pendingPriceUpdates: Array<{ id: string; price: number }> = [];
 
     for (const job of jobs) {
       const vehicleTypeId = job.assignment?.vehicle?.vehicleTypeId;
@@ -811,12 +812,9 @@ export class FinanceService {
       const routeDescription = `${fromName} → ${toName}`;
       const vehicleName = job.assignment?.vehicle?.vehicleType?.name || 'Vehicle';
 
-      // Save override price back to TrafficJob
+      // Collect override price — will be batch-updated after the loop
       if (override?.transferPrice !== undefined) {
-        await this.prisma.trafficJob.update({
-          where: { id: job.id },
-          data: { priceAmount: override.transferPrice },
-        });
+        pendingPriceUpdates.push({ id: job.id, price: override.transferPrice });
       }
 
       if (transferPrice > 0) {
@@ -833,6 +831,18 @@ export class FinanceService {
           amount: driverTip,
         });
       }
+    }
+
+    // Batch-update all override prices in a single transaction (replaces per-job updates)
+    if (pendingPriceUpdates.length > 0) {
+      await this.prisma.$transaction(
+        pendingPriceUpdates.map(({ id, price }) =>
+          this.prisma.trafficJob.update({
+            where: { id },
+            data: { priceAmount: price },
+          }),
+        ),
+      );
     }
 
     const results: { transferInvoice: unknown; driverTipInvoice: unknown } = {

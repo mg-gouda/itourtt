@@ -46,9 +46,25 @@ const ENTITY_MAP: Record<string, string> = {
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+type AuditEntry = {
+  userId: string;
+  userName: string;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  summary: string;
+  details?: Record<string, unknown>;
+  ipAddress: string | null;
+};
+
+const FLUSH_INTERVAL_MS = 5_000;
+const FLUSH_BATCH_SIZE = 200;
+
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
   private readonly logger = new Logger('AuditLog');
+  private queue: AuditEntry[] = [];
+  private flushTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -72,15 +88,12 @@ export class AuditInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap(() => {
-        // Fire-and-forget: persist to database without blocking response
-        this.persistLog(method, path, userId, userName, body, ip).catch(
-          (err) => this.logger.warn(`Failed to persist audit log: ${err.message}`),
-        );
+        this.enqueue(method, path, userId, userName, body, ip);
       }),
     );
   }
 
-  private async persistLog(
+  private enqueue(
     method: string,
     path: string,
     userId: string | undefined,
@@ -95,18 +108,40 @@ export class AuditInterceptor implements NestInterceptor {
     const summary = `${action} ${entity}${entityId ? ` (${entityId.slice(0, 8)}…)` : ''}`;
     const sanitized = this.sanitizeBody(body);
 
-    await this.prisma.activityLog.create({
-      data: {
-        userId,
-        userName,
-        action,
-        entity,
-        entityId,
-        summary,
-        details: sanitized && Object.keys(sanitized).length > 0 ? sanitized : undefined,
-        ipAddress: ip || null,
-      },
+    this.queue.push({
+      userId,
+      userName,
+      action,
+      entity,
+      entityId,
+      summary,
+      details: sanitized && Object.keys(sanitized).length > 0 ? sanitized : undefined,
+      ipAddress: ip || null,
     });
+
+    // Flush immediately if batch is full
+    if (this.queue.length >= FLUSH_BATCH_SIZE) {
+      this.flush();
+      return;
+    }
+
+    // Schedule a flush if not already scheduled
+    if (!this.flushTimer) {
+      this.flushTimer = setTimeout(() => this.flush(), FLUSH_INTERVAL_MS);
+    }
+  }
+
+  private flush() {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    if (this.queue.length === 0) return;
+
+    const batch = this.queue.splice(0, FLUSH_BATCH_SIZE);
+    this.prisma.activityLog
+      .createMany({ data: batch as any })
+      .catch((err) => this.logger.warn(`Failed to flush audit logs: ${err.message}`));
   }
 
   private methodToAction(method: string): string {

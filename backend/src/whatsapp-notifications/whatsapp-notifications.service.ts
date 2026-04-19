@@ -23,16 +23,16 @@ function maskToken(token: string | null | undefined): string | null {
   return '****' + token.slice(-4);
 }
 
-/** Job include clause used in all notification queries */
+/** Job select clause used in all notification queries — only fields needed for message building */
 const JOB_INCLUDE = {
-  originAirport: true,
-  originHotel: { include: { zone: true } },
-  originZone: true,
-  destinationAirport: true,
-  destinationHotel: { include: { zone: true } },
-  destinationZone: true,
+  originAirport: { select: { name: true } },
+  originHotel: { select: { name: true, zone: { select: { name: true } } } },
+  originZone: { select: { name: true } },
+  destinationAirport: { select: { name: true } },
+  destinationHotel: { select: { name: true, zone: { select: { name: true } } } },
+  destinationZone: { select: { name: true } },
   assignment: {
-    include: {
+    select: {
       driver: { select: { name: true, mobileNumber: true } },
       rep: { select: { name: true, mobileNumber: true } },
     },

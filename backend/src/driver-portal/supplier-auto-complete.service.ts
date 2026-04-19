@@ -11,7 +11,7 @@ export class SupplierAutoCompleteService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  @Cron('* * * * *') // every minute
+  @Cron('*/5 * * * *') // every 5 minutes
   async autoCompleteSupplierJobs() {
     const now = new Date();
 

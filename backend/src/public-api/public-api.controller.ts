@@ -12,6 +12,7 @@ import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 
 @Controller('public')
+@Throttle({ default: { limit: 120, ttl: 60000 } }) // 120 req/min per IP for all public endpoints
 export class PublicApiController {
   constructor(private readonly publicApiService: PublicApiService) {}
 

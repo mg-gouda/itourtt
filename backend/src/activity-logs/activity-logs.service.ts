@@ -1,11 +1,29 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { QueryActivityLogDto } from './dto/query-activity-log.dto.js';
 
+const RETENTION_DAYS = 90;
+
 @Injectable()
 export class ActivityLogsService {
+  private readonly logger = new Logger(ActivityLogsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Purge activity logs older than 90 days — runs every Sunday at 03:00 Cairo time */
+  @Cron('0 3 * * 0', { timeZone: 'Africa/Cairo' })
+  async purgeOldActivityLogs() {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
+    const { count } = await this.prisma.activityLog.deleteMany({
+      where: { createdAt: { lt: cutoff } },
+    });
+    if (count > 0) {
+      this.logger.log(`Purged ${count} activity log entries older than ${RETENTION_DAYS} days`);
+    }
+  }
 
   async findAll(query: QueryActivityLogDto) {
     const page = query.page ?? 1;
