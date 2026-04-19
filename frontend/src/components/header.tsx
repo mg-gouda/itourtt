@@ -3,8 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, User, Settings, HelpCircle, Menu, Bell, Check, CheckCheck, ChevronRight } from "lucide-react";
+import { LogOut, User, Settings, HelpCircle, Menu, Bell, Check, CheckCheck, ChevronRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -113,14 +120,30 @@ export function Header() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [flightDelayQueue, setFlightDelayQueue] = useState<Notification[]>([]);
+  const [acceptingDelay, setAcceptingDelay] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const shownDelayIds = useRef<Set<string>>(new Set());
 
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
       const { data } = await api.get<{ data: { notifications: Notification[]; unreadCount: number } }>("/notifications");
-      setNotifications(data.data.notifications);
+      const all = data.data.notifications;
+      setNotifications(all);
       setUnreadCount(data.data.unreadCount);
+
+      // Surface unread FLIGHT_DELAY notifications as blocking modals
+      const pendingDelays = all.filter(
+        (n) => n.type === "FLIGHT_DELAY" && !n.isRead && !shownDelayIds.current.has(n.id)
+      );
+      if (pendingDelays.length > 0) {
+        pendingDelays.forEach((n) => shownDelayIds.current.add(n.id));
+        setFlightDelayQueue((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id));
+          return [...prev, ...pendingDelays.filter((n) => !existingIds.has(n.id))];
+        });
+      }
     } catch {
       // Silently fail — user might not have permission
     }
@@ -148,6 +171,18 @@ export function Header() {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch { /* ignore */ }
+  };
+
+  const acceptFlightDelay = async (notif: Notification) => {
+    setAcceptingDelay(true);
+    try {
+      await api.patch(`/notifications/${notif.id}/read`);
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch { /* ignore */ } finally {
+      setAcceptingDelay(false);
+      setFlightDelayQueue((prev) => prev.filter((n) => n.id !== notif.id));
+    }
   };
 
   const formatTime = (dateStr: string) => {
@@ -300,6 +335,73 @@ export function Header() {
       </div>
 
       <MobileSidebar open={mobileNavOpen} onOpenChange={setMobileNavOpen} />
+
+      {/* Flight Delay Blocking Modal — one at a time, queue-based */}
+      {flightDelayQueue.length > 0 && (() => {
+        const notif = flightDelayQueue[0];
+        const meta = notif.metadata as { repName?: string; newArrivalTime?: string } | null;
+        const newArrivalDisplay = meta?.newArrivalTime
+          ? new Date(meta.newArrivalTime).toLocaleString("en-GB", {
+              timeZone: "Africa/Cairo",
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })
+          : null;
+        return (
+          <Dialog open modal>
+            <DialogContent
+              className="max-w-md [&>button:first-of-type]:hidden"
+              onInteractOutside={(e) => e.preventDefault()}
+              onEscapeKeyDown={(e) => e.preventDefault()}
+              onPointerDownOutside={(e) => e.preventDefault()}
+            >
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-amber-600">
+                  <AlertTriangle className="h-5 w-5" />
+                  Flight Delay Alert
+                </DialogTitle>
+                <DialogDescription asChild>
+                  <div className="space-y-3 pt-2 text-sm text-foreground">
+                    <p className="font-medium">{notif.title}</p>
+                    {meta?.repName && (
+                      <p className="text-muted-foreground">
+                        Reported by: <span className="font-medium text-foreground">{meta.repName}</span>
+                      </p>
+                    )}
+                    {newArrivalDisplay && (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
+                        <p className="text-xs text-muted-foreground">New Arrival Time</p>
+                        <p className="text-lg font-bold text-amber-700 dark:text-amber-400">{newArrivalDisplay}</p>
+                      </div>
+                    )}
+                    <p className="text-muted-foreground text-xs">
+                      The flight time has been automatically updated in the system. Please review the dispatch and online jobs pages.
+                    </p>
+                    {flightDelayQueue.length > 1 && (
+                      <p className="text-xs text-muted-foreground">
+                        {flightDelayQueue.length - 1} more alert{flightDelayQueue.length - 1 > 1 ? "s" : ""} pending.
+                      </p>
+                    )}
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end pt-2">
+                <Button
+                  onClick={() => acceptFlightDelay(notif)}
+                  disabled={acceptingDelay}
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  {acceptingDelay ? "Accepting…" : "Accept & Acknowledge"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </header>
   );
 }

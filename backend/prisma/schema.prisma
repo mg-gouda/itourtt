@@ -61,6 +61,7 @@ enum NotificationType {
   JOB_ASSIGNED
   JOB_UPDATED
   GENERAL
+  FLIGHT_DELAY
 }
 
 enum VehicleOwnership {

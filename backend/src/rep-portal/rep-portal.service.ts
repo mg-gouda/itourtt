@@ -656,7 +656,7 @@ export class RepPortalService {
           userId: r.id,
           title,
           message,
-          type: 'GENERAL' as const,
+          type: 'FLIGHT_DELAY' as const,
           trafficJobId: jobId,
           metadata: { repName, newArrivalTime: newTime.toISOString() },
         })),
