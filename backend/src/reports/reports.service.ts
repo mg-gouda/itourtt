@@ -771,7 +771,7 @@ export class ReportsService {
           },
         },
       },
-      orderBy: [{ trafficJob: { jobDate: 'asc' } }, { rep: { name: 'asc' } }],
+      orderBy: [{ rep: { name: 'asc' } }, { trafficJob: { jobDate: 'asc' } }],
     });
 
     const rows = scores.map((s) => {

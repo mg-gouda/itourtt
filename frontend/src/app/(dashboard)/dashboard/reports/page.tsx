@@ -2420,87 +2420,117 @@ export default function ReportsPage() {
                     {(() => {
                       const visibleCols = repScoreColOrder.columns.filter((col) => repScoreColOrder.visibility[col] !== false);
                       const colSpanAll = visibleCols.length;
-                      // Group rows by flightNo, preserving order of first occurrence
-                      const groups: Array<{ flightNo: string; rows: RepScoreRow[] }> = [];
-                      const seen = new Map<string, RepScoreRow[]>();
+
+                      // Group: rep → flight (same logic as Rep Fees modal groupByFlight)
+                      const repMap = new Map<string, { repId: string; repName: string; rows: RepScoreRow[] }>();
                       for (const row of repScoreData.rows) {
-                        const key = row.flightNo?.trim() || "TBD";
-                        if (!seen.has(key)) { seen.set(key, []); groups.push({ flightNo: key, rows: seen.get(key)! }); }
-                        seen.get(key)!.push(row);
+                        if (!repMap.has(row.repId)) repMap.set(row.repId, { repId: row.repId, repName: row.repName, rows: [] });
+                        repMap.get(row.repId)!.rows.push(row);
                       }
+                      const repGroups = Array.from(repMap.values());
+
+                      const flightGroupRows = (rows: RepScoreRow[]) => {
+                        const fMap = new Map<string, { flightNo: string; carrier: string; rows: RepScoreRow[] }>();
+                        for (const row of rows) {
+                          const flightNo = row.flightNo?.trim() || "No Flight";
+                          const carrier = row.carrier || "";
+                          const key = `${flightNo}|${carrier}`;
+                          if (!fMap.has(key)) fMap.set(key, { flightNo, carrier, rows: [] });
+                          fMap.get(key)!.rows.push(row);
+                        }
+                        return Array.from(fMap.values());
+                      };
+
+                      const check = <span className="text-emerald-500 font-bold text-sm">✓</span>;
+                      const dash = <span className="text-muted-foreground text-sm">—</span>;
+
                       return (
-                        <Table>
-                          <DraggableTableHeader
-                            columns={REP_SCORE_COLUMNS}
-                            columnOrder={repScoreColOrder.columns}
-                            onReorder={repScoreColOrder.reorder}
-                            visibility={repScoreColOrder.visibility}
-                          />
-                          <TableBody>
-                            {groups.map((group) => {
-                              const groupFee = group.rows.reduce((s, r) => s + r.fee, 0);
-                              return (
-                                <React.Fragment key={group.flightNo}>
-                                  <TableRow className="bg-blue-500/10 border-blue-500/20">
-                                    <TableCell colSpan={colSpanAll} className="py-1.5 px-3">
-                                      <div className="flex items-center gap-2">
+                        <div className="space-y-6">
+                          {repGroups.map((repGroup) => {
+                            const repTotal = repGroup.rows.reduce((s, r) => s + r.fee, 0);
+                            const flightGroups = flightGroupRows(repGroup.rows);
+                            return (
+                              <div key={repGroup.repId}>
+                                {/* Rep header — same style as Rep Fees list row */}
+                                <div className="flex items-center justify-between px-3 py-2 mb-2 rounded-md bg-muted/50 border border-border">
+                                  <span className="font-semibold text-sm text-foreground">{repGroup.repName}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {repGroup.rows.length} job{repGroup.rows.length !== 1 ? "s" : ""} &nbsp;·&nbsp;
+                                    <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{repTotal} EGP</span>
+                                  </span>
+                                </div>
+                                {flightGroups.map((fGroup) => {
+                                  const groupFee = fGroup.rows.reduce((s, r) => s + r.fee, 0);
+                                  return (
+                                    <div key={`${fGroup.flightNo}|${fGroup.carrier}`} className="mb-4">
+                                      {/* Flight sub-header — same style as Rep Fees modal */}
+                                      <div className="flex items-center gap-2 mb-1 px-1">
                                         <Badge variant="outline" className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20 font-mono text-xs">
-                                          {group.flightNo}
+                                          {fGroup.flightNo}
                                         </Badge>
-                                        <span className="text-xs text-muted-foreground">{group.rows.length} job{group.rows.length !== 1 ? "s" : ""}</span>
+                                        {fGroup.carrier && <span className="text-xs text-muted-foreground">{fGroup.carrier}</span>}
+                                        <span className="text-xs text-muted-foreground">{fGroup.rows.length} job{fGroup.rows.length !== 1 ? "s" : ""}</span>
                                       </div>
-                                    </TableCell>
-                                  </TableRow>
-                                  {group.rows.map((row, idx) => {
-                                    const evalColor =
-                                      row.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
-                                      row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
-                                      row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
-                                      "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
-                                    const check = <span className="text-emerald-500 font-bold text-sm">✓</span>;
-                                    const dash = <span className="text-muted-foreground text-sm">—</span>;
-                                    return (
-                                      <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
-                                        {visibleCols.map((col) => {
-                                          switch (col) {
-                                            case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
-                                            case "flightNo": return <TableCell key={col} className="font-mono text-xs text-muted-foreground">{row.flightNo || "—"}</TableCell>;
-                                            case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
-                                            case "paxCount": return <TableCell key={col} className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>;
-                                            case "repName": return <TableCell key={col} className="text-xs text-muted-foreground">{row.repName}</TableCell>;
-                                            case "route": return (
-                                              <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">
-                                                {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
-                                              </TableCell>
+                                      <Table>
+                                        <DraggableTableHeader
+                                          columns={REP_SCORE_COLUMNS}
+                                          columnOrder={repScoreColOrder.columns}
+                                          onReorder={repScoreColOrder.reorder}
+                                          visibility={repScoreColOrder.visibility}
+                                        />
+                                        <TableBody>
+                                          {fGroup.rows.map((row, idx) => {
+                                            const evalColor =
+                                              row.evaluation === "Excellent" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" :
+                                              row.evaluation === "Good" ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20" :
+                                              row.evaluation === "Average" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20" :
+                                              "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20";
+                                            return (
+                                              <TableRow key={row.jobId} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
+                                                {visibleCols.map((col) => {
+                                                  switch (col) {
+                                                    case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
+                                                    case "flightNo": return <TableCell key={col} className="font-mono text-xs text-muted-foreground">{row.flightNo || "—"}</TableCell>;
+                                                    case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
+                                                    case "paxCount": return <TableCell key={col} className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>;
+                                                    case "repName": return <TableCell key={col} className="text-xs text-muted-foreground">{row.repName}</TableCell>;
+                                                    case "route": return (
+                                                      <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">
+                                                        {(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}
+                                                      </TableCell>
+                                                    );
+                                                    case "hotel": return <TableCell key={col} className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>;
+                                                    case "status": return <TableCell key={col}><StatusBadge status={row.status} /></TableCell>;
+                                                    case "attendance": return <TableCell key={col} className="text-center">{row.attendance ? check : dash}</TableCell>;
+                                                    case "appearance": return <TableCell key={col} className="text-center">{row.appearance ? check : dash}</TableCell>;
+                                                    case "work": return <TableCell key={col} className="text-center">{row.work ? check : dash}</TableCell>;
+                                                    case "review": return <TableCell key={col} className="text-center">{row.review ? check : dash}</TableCell>;
+                                                    case "total": return <TableCell key={col} className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>;
+                                                    case "fee": return <TableCell key={col} className="text-right font-mono text-sm text-emerald-600 dark:text-emerald-400">{row.fee > 0 ? `${row.fee} EGP` : "—"}</TableCell>;
+                                                    case "evaluation": return <TableCell key={col}><Badge variant="outline" className={`text-xs ${evalColor}`}>{row.evaluation}</Badge></TableCell>;
+                                                    default: return null;
+                                                  }
+                                                })}
+                                              </TableRow>
                                             );
-                                            case "hotel": return <TableCell key={col} className="text-xs text-muted-foreground">{row.destinationHotel?.name || "—"}</TableCell>;
-                                            case "status": return <TableCell key={col}><StatusBadge status={row.status} /></TableCell>;
-                                            case "attendance": return <TableCell key={col} className="text-center">{row.attendance ? check : dash}</TableCell>;
-                                            case "appearance": return <TableCell key={col} className="text-center">{row.appearance ? check : dash}</TableCell>;
-                                            case "work": return <TableCell key={col} className="text-center">{row.work ? check : dash}</TableCell>;
-                                            case "review": return <TableCell key={col} className="text-center">{row.review ? check : dash}</TableCell>;
-                                            case "total": return <TableCell key={col} className="text-right font-mono font-semibold text-sm">{row.total}</TableCell>;
-                                            case "fee": return <TableCell key={col} className="text-right font-mono text-sm text-emerald-600 dark:text-emerald-400">{row.fee > 0 ? `${row.fee} EGP` : "—"}</TableCell>;
-                                            case "evaluation": return <TableCell key={col}><Badge variant="outline" className={`text-xs ${evalColor}`}>{row.evaluation}</Badge></TableCell>;
-                                            default: return null;
-                                          }
-                                        })}
-                                      </TableRow>
-                                    );
-                                  })}
-                                  <TableRow className="bg-muted/30 border-t border-border">
-                                    <TableCell colSpan={colSpanAll - 1} className="text-right text-xs text-muted-foreground py-1 pr-2">
-                                      Subtotal ({group.rows.length} jobs)
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono font-semibold text-sm text-emerald-600 dark:text-emerald-400 py-1">
-                                      {groupFee} EGP
-                                    </TableCell>
-                                  </TableRow>
-                                </React.Fragment>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
+                                          })}
+                                          <TableRow className="bg-muted/30 border-t border-border">
+                                            <TableCell colSpan={colSpanAll - 1} className="text-right text-xs text-muted-foreground py-1 pr-2">
+                                              Subtotal ({fGroup.rows.length} job{fGroup.rows.length !== 1 ? "s" : ""})
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono font-semibold text-sm text-emerald-600 dark:text-emerald-400 py-1">
+                                              {groupFee} EGP
+                                            </TableCell>
+                                          </TableRow>
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
                       );
                     })()}
                     <div className="mt-3 flex items-center justify-between border-t border-border pt-3 px-1">
@@ -2539,44 +2569,58 @@ export default function ReportsPage() {
                   </thead>
                   <tbody>
                     {(() => {
-                      const printGroups: Array<{ flightNo: string; rows: RepScoreRow[] }> = [];
-                      const seen = new Map<string, RepScoreRow[]>();
+                      // Print: same rep → flight grouping as the on-screen view
+                      const printRepMap = new Map<string, { repName: string; rows: RepScoreRow[] }>();
                       for (const row of repScoreData.rows) {
-                        const key = row.flightNo?.trim() || "TBD";
-                        if (!seen.has(key)) { seen.set(key, []); printGroups.push({ flightNo: key, rows: seen.get(key)! }); }
-                        seen.get(key)!.push(row);
+                        if (!printRepMap.has(row.repId)) printRepMap.set(row.repId, { repName: row.repName, rows: [] });
+                        printRepMap.get(row.repId)!.rows.push(row);
                       }
-                      return printGroups.map((group) => (
-                        <React.Fragment key={group.flightNo}>
-                          <tr style={{ background: "#e8f0fe" }}>
-                            <td colSpan={15} style={{ fontWeight: "bold", padding: "4px 8px" }}>Flight: {group.flightNo} ({group.rows.length} jobs)</td>
-                          </tr>
-                          {group.rows.map((row) => (
-                            <tr key={row.jobId}>
-                              <td>{row.internalRef}</td>
-                              <td>{row.flightNo || "—"}</td>
-                              <td>{row.serviceType}</td>
-                              <td className="text-right">{row.paxCount}</td>
-                              <td>{row.repName}</td>
-                              <td>{(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}</td>
-                              <td>{row.destinationHotel?.name || "—"}</td>
-                              <td>{row.status}</td>
-                              <td className="text-center">{row.attendance ? "✓" : "—"}</td>
-                              <td className="text-center">{row.appearance ? "✓" : "—"}</td>
-                              <td className="text-center">{row.work ? "✓" : "—"}</td>
-                              <td className="text-center">{row.review ? "✓" : "—"}</td>
-                              <td className="text-right">{row.total}</td>
-                              <td className="text-right">{row.fee > 0 ? `${row.fee} EGP` : "—"}</td>
-                              <td>{row.evaluation}</td>
-                            </tr>
-                          ))}
-                          <tr style={{ background: "#f5f5f5", fontWeight: "bold" }}>
-                            <td colSpan={13} className="text-right">Subtotal</td>
-                            <td className="text-right">{group.rows.reduce((s, r) => s + r.fee, 0)} EGP</td>
-                            <td></td>
-                          </tr>
-                        </React.Fragment>
-                      ));
+                      return Array.from(printRepMap.values()).flatMap(({ repName, rows }) => {
+                        const fMap = new Map<string, { flightNo: string; carrier: string; rows: RepScoreRow[] }>();
+                        for (const row of rows) {
+                          const flightNo = row.flightNo?.trim() || "No Flight";
+                          const carrier = row.carrier || "";
+                          const key = `${flightNo}|${carrier}`;
+                          if (!fMap.has(key)) fMap.set(key, { flightNo, carrier, rows: [] });
+                          fMap.get(key)!.rows.push(row);
+                        }
+                        return [
+                          <tr key={`rep-${repName}`} style={{ background: "#4a0080", color: "#fff" }}>
+                            <td colSpan={15} style={{ fontWeight: "bold", padding: "4px 8px" }}>{repName}</td>
+                          </tr>,
+                          ...Array.from(fMap.values()).flatMap((group) => [
+                            <tr key={`${repName}-${group.flightNo}|${group.carrier}`} style={{ background: "#e8f0fe" }}>
+                              <td colSpan={15} style={{ fontWeight: "bold", padding: "4px 8px" }}>
+                                Flight: {group.flightNo}{group.carrier ? ` · ${group.carrier}` : ""} ({group.rows.length} job{group.rows.length !== 1 ? "s" : ""})
+                              </td>
+                            </tr>,
+                            ...group.rows.map((row) => (
+                              <tr key={row.jobId}>
+                                <td>{row.internalRef}</td>
+                                <td>{row.flightNo || "—"}</td>
+                                <td>{row.serviceType}</td>
+                                <td className="text-right">{row.paxCount}</td>
+                                <td>{row.repName}</td>
+                                <td>{(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}</td>
+                                <td>{row.destinationHotel?.name || "—"}</td>
+                                <td>{row.status}</td>
+                                <td className="text-center">{row.attendance ? "✓" : "—"}</td>
+                                <td className="text-center">{row.appearance ? "✓" : "—"}</td>
+                                <td className="text-center">{row.work ? "✓" : "—"}</td>
+                                <td className="text-center">{row.review ? "✓" : "—"}</td>
+                                <td className="text-right">{row.total}</td>
+                                <td className="text-right">{row.fee > 0 ? `${row.fee} EGP` : "—"}</td>
+                                <td>{row.evaluation}</td>
+                              </tr>
+                            )),
+                            <tr key={`sub-${repName}-${group.flightNo}`} style={{ background: "#f5f5f5", fontWeight: "bold" }}>
+                              <td colSpan={13} className="text-right">Subtotal</td>
+                              <td className="text-right">{group.rows.reduce((s, r) => s + r.fee, 0)} EGP</td>
+                              <td></td>
+                            </tr>,
+                          ]),
+                        ];
+                      });
                     })()}
                     <tr className="total-row">
                       <td colSpan={13}>Total ({repScoreData.count} jobs · Avg {repScoreData.avgScore} / 100)</td>
