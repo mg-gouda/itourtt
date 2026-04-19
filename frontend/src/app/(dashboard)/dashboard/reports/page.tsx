@@ -202,7 +202,7 @@ interface RepFeeReport {
       amount: number;
       status: string;
       repStatus: string | null;
-      inPlaceEvidence: { imageUrls: string[]; gpsMapLink: string | null; createdAt: string } | null;
+      inPlaceEvidence: Array<{ imageUrls: string[]; gpsMapLink: string | null; createdAt: string }>;
       repJobScore: RepJobScore | null;
       trafficJob: {
         id: string;
@@ -3776,7 +3776,7 @@ export default function ReportsPage() {
                       {group.jobs.map((fee, idx) => {
                         const jobId = fee.trafficJob.id;
                         const isArr = fee.trafficJob.serviceType === "ARR";
-                        const hasInPlace = !!fee.inPlaceEvidence;
+                        const hasInPlace = fee.inPlaceEvidence.length > 0;
                         const isCompleted = fee.repStatus === "COMPLETED" || fee.trafficJob.status === "COMPLETED";
                         const currentScore = scoreEdits[jobId] ?? fee.repJobScore;
                         const isSaving = scoreSaving[jobId] ?? false;
@@ -3915,10 +3915,10 @@ export default function ReportsPage() {
                               ) : "\u2014"}
                             </TableCell>
                             <TableCell>
-                              {hasInPlace && fee.inPlaceEvidence?.imageUrls?.length ? (
+                              {hasInPlace && fee.inPlaceEvidence.flatMap(e => e.imageUrls).length > 0 ? (
                                 <button
                                   type="button"
-                                  onClick={() => openEvidenceView(fee.inPlaceEvidence!.imageUrls, fee.trafficJob.internalRef)}
+                                  onClick={() => openEvidenceView(fee.inPlaceEvidence.flatMap(e => e.imageUrls), fee.trafficJob.internalRef)}
                                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                                 >
                                   <Camera className="h-3.5 w-3.5" />
