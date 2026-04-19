@@ -285,6 +285,26 @@ export class ReportsController {
     return new ApiResponse(result);
   }
 
+  @Get('visa')
+  @Permissions('reports.visa')
+  async visaReport(@Query() query: DateRangeQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.visaReport(query.from, query.to);
+    return new ApiResponse(result);
+  }
+
+  @Get('sales')
+  @Permissions('reports.sales')
+  async salesReport(@Query() query: DateRangeQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.salesReport(query.from, query.to);
+    return new ApiResponse(result);
+  }
+
   @Get('job-status')
   @Permissions('reports.jobStatus')
   async jobStatusReport(@Query() query: JobStatusQueryDto) {

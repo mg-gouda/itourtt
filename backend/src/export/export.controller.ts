@@ -254,6 +254,38 @@ export class ExportController {
   }
 
   // ──────────────────────────────────────────────
+  // GET /export/odoo/visa
+  // Visa report XLSX export — date range filter.
+  // ──────────────────────────────────────────────
+  @Get('visa')
+  @Permissions('reports.visa')
+  async exportVisa(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportVisaReport(from, to);
+    this.sendXlsx(res, buffer, `visa_${from}_${to}`);
+  }
+
+  // ──────────────────────────────────────────────
+  // GET /export/odoo/sales
+  // Sales report XLSX export — date range filter.
+  // ──────────────────────────────────────────────
+  @Get('sales')
+  @Permissions('reports.sales')
+  async exportSales(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportSalesReport(from, to);
+    this.sendXlsx(res, buffer, `sales_${from}_${to}`);
+  }
+
+  // ──────────────────────────────────────────────
   // GET /export/odoo/evidence-data/:jobId
   // Returns structured JSON for evidence HTML rendering on the client.
   // ──────────────────────────────────────────────

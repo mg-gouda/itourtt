@@ -48,7 +48,7 @@ export class DispatchService {
       fromZone: { select: { id: true, name: true } },
       toZone: { select: { id: true, name: true } },
       requestedVehicleType: { select: { id: true, name: true, seatCapacity: true } },
-      flight: { select: { id: true, flightNo: true, carrier: true, arrivalTime: true, departureTime: true } },
+      flight: { select: { id: true, flightNo: true, carrier: true, terminal: true, arrivalTime: true, departureTime: true } },
       jobServiceType: { select: { id: true, name: true } },
       assignment: {
         select: {

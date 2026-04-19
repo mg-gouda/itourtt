@@ -1053,4 +1053,70 @@ export class ReportsService {
       })),
     };
   }
+
+  // ─────────────────────────────────────────────
+  // VISA REPORT
+  // ─────────────────────────────────────────────
+
+  async visaReport(from: string, to: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: {
+        jobDate: { gte: fromDate, lte: toDate },
+        deletedAt: null,
+        flight: { isNot: null },
+      },
+      include: {
+        flight: { select: { flightNo: true, arrivalTime: true, departureTime: true, terminal: true } },
+      },
+      orderBy: [{ jobDate: 'asc' }, { flight: { arrivalTime: 'asc' } }],
+    });
+
+    const rows = jobs.map((j) => ({
+      clientName: j.clientName ?? '—',
+      flightNo: j.flight?.flightNo ?? '—',
+      arrivalTime: j.flight?.arrivalTime ?? j.flight?.departureTime ?? null,
+      terminal: j.flight?.terminal ?? '—',
+    }));
+
+    return { from, to, count: rows.length, rows };
+  }
+
+  // ─────────────────────────────────────────────
+  // SALES REPORT
+  // ─────────────────────────────────────────────
+
+  async salesReport(from: string, to: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: {
+        jobDate: { gte: fromDate, lte: toDate },
+        deletedAt: null,
+      },
+      include: {
+        flight: { select: { flightNo: true, arrivalTime: true, departureTime: true, terminal: true } },
+        destinationHotel: { select: { name: true } },
+        originHotel: { select: { name: true } },
+      },
+      orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
+    });
+
+    const rows = jobs.map((j) => ({
+      internalRef: j.internalRef,
+      agentRef: j.agentRef ?? '—',
+      flightNo: j.flight?.flightNo ?? '—',
+      terminal: j.flight?.terminal ?? '—',
+      arrivalTime: j.flight?.arrivalTime ?? j.flight?.departureTime ?? null,
+      pax: j.paxCount,
+      hotelName: j.destinationHotel?.name ?? j.originHotel?.name ?? '—',
+      clientName: j.clientName ?? '—',
+      clientNumber: j.clientMobile ?? '—',
+    }));
+
+    return { from, to, count: rows.length, rows };
+  }
 }

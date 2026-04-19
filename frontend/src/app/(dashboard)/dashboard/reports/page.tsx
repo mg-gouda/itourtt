@@ -441,6 +441,39 @@ interface SupplierJobsReport {
   rows: SupplierJobRow[];
 }
 
+interface VisaReportRow {
+  clientName: string;
+  flightNo: string;
+  arrivalTime: string | null;
+  terminal: string;
+}
+
+interface VisaReport {
+  from: string;
+  to: string;
+  count: number;
+  rows: VisaReportRow[];
+}
+
+interface SalesReportRow {
+  internalRef: string;
+  agentRef: string;
+  flightNo: string;
+  terminal: string;
+  arrivalTime: string | null;
+  pax: number;
+  hotelName: string;
+  clientName: string;
+  clientNumber: string;
+}
+
+interface SalesReport {
+  from: string;
+  to: string;
+  count: number;
+  rows: SalesReportRow[];
+}
+
 // ────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────
@@ -614,6 +647,27 @@ const CAR_JOBS_COLUMNS: ColumnDef[] = [
 ];
 const CAR_JOBS_DEFAULT_KEYS = CAR_JOBS_COLUMNS.map((c) => c.key);
 
+const VISA_COLUMNS: ColumnDef[] = [
+  { key: "clientName", label: "Client Name" },
+  { key: "flightNo", label: "Flight Number" },
+  { key: "arrivalTime", label: "Arrival Time" },
+  { key: "terminal", label: "Terminal" },
+];
+const VISA_DEFAULT_KEYS = VISA_COLUMNS.map((c) => c.key);
+
+const SALES_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Internal Ref" },
+  { key: "agentRef", label: "Agent Ref" },
+  { key: "flightNo", label: "Flight No." },
+  { key: "terminal", label: "Terminal" },
+  { key: "arrivalTime", label: "Arrival Time" },
+  { key: "pax", label: "Pax", className: "text-right" },
+  { key: "hotelName", label: "Hotel Name" },
+  { key: "clientName", label: "Client Name" },
+  { key: "clientNumber", label: "Client Number" },
+];
+const SALES_DEFAULT_KEYS = SALES_COLUMNS.map((c) => c.key);
+
 // ────────────────────────────────────────────
 // Stat Card
 // ────────────────────────────────────────────
@@ -658,6 +712,8 @@ export default function ReportsPage() {
   const canEvidence = usePermission("reports.evidence");
   const canSupplierJobs = usePermission("reports.supplierJobs");
   const canCarJobs = usePermission("reports.carJobs");
+  const canVisa = usePermission("reports.visa");
+  const canSales = usePermission("reports.sales");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -785,6 +841,20 @@ export default function ReportsPage() {
   const [evidenceData, setEvidenceData] = useState<EvidenceReport | null>(null);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
 
+  // Visa Report
+  const [visaFrom, setVisaFrom] = useState(thirtyDaysAgo);
+  const [visaTo, setVisaTo] = useState(today);
+  const [visaData, setVisaData] = useState<VisaReport | null>(null);
+  const [visaLoading, setVisaLoading] = useState(false);
+  const visaPrintRef = useRef<HTMLDivElement>(null);
+
+  // Sales Report
+  const [salesFrom, setSalesFrom] = useState(thirtyDaysAgo);
+  const [salesTo, setSalesTo] = useState(today);
+  const [salesData, setSalesData] = useState<SalesReport | null>(null);
+  const [salesLoading, setSalesLoading] = useState(false);
+  const salesPrintRef = useRef<HTMLDivElement>(null);
+
   // Derived: filtered compliance data and unique vehicle types
   const complianceVehicleTypes = Array.from(new Set(complianceData.map((v) => v.vehicleTypeName).filter(Boolean))).sort();
   const filteredComplianceData = complianceData.filter((v) => {
@@ -803,6 +873,8 @@ export default function ReportsPage() {
   const jobStatusSort = useSortable(jobStatusData?.jobs || []);
   const supplierJobsSort = useSortable(supplierJobsData?.rows || []);
   const carJobsSort = useSortable(carJobsData?.rows || []);
+  const visaSort = useSortable(visaData?.rows || []);
+  const salesSort = useSortable(salesData?.rows || []);
 
   // Column order hooks for drag-and-drop reordering
   const dispatchColOrder = useColumnPreferences("dispatch", DISPATCH_DEFAULT_KEYS);
@@ -817,6 +889,8 @@ export default function ReportsPage() {
   const evidenceColOrder = useColumnPreferences("evidence", EVIDENCE_DEFAULT_KEYS);
   const supplierJobsColOrder = useColumnPreferences("supplier_jobs", SUPPLIER_JOBS_DEFAULT_KEYS);
   const carJobsColOrder = useColumnPreferences("car_jobs", CAR_JOBS_DEFAULT_KEYS);
+  const visaColOrder = useColumnPreferences("visa", VISA_DEFAULT_KEYS);
+  const salesColOrder = useColumnPreferences("sales", SALES_DEFAULT_KEYS);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -1176,7 +1250,7 @@ export default function ReportsPage() {
     try {
       const objectUrls = await Promise.all(
         imageUrls.map(async (fileId) => {
-          const res = await api.get(`/export/evidence-file/${fileId}`, { responseType: "blob" });
+          const res = await api.get(`/export/odoo/evidence-file/${fileId}`, { responseType: "blob" });
           return URL.createObjectURL(res.data);
         })
       );
@@ -1398,6 +1472,50 @@ export default function ReportsPage() {
   };
   const exportCompliancePdf = () => printFromRef(compliancePrintRef, "Vehicle Compliance Report");
 
+  // ── Visa Report ──
+  const fetchVisa = async () => {
+    setVisaLoading(true);
+    try {
+      const { data } = await api.get(`/reports/visa?from=${visaFrom}&to=${visaTo}`);
+      setVisaData(data.data || data);
+    } catch {
+      toast.error("Failed to load visa report");
+    } finally {
+      setVisaLoading(false);
+    }
+  };
+
+  const exportVisaExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/visa?from=${visaFrom}&to=${visaTo}`, { responseType: "blob" });
+      downloadBlob(new Blob([res.data]), `visa_${visaFrom}_${visaTo}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+
+  const exportVisaPdf = () => printFromRef(visaPrintRef, `Visa Report - ${visaFrom} to ${visaTo}`);
+
+  // ── Sales Report ──
+  const fetchSales = async () => {
+    setSalesLoading(true);
+    try {
+      const { data } = await api.get(`/reports/sales?from=${salesFrom}&to=${salesTo}`);
+      setSalesData(data.data || data);
+    } catch {
+      toast.error("Failed to load sales report");
+    } finally {
+      setSalesLoading(false);
+    }
+  };
+
+  const exportSalesExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/sales?from=${salesFrom}&to=${salesTo}`, { responseType: "blob" });
+      downloadBlob(new Blob([res.data]), `sales_${salesFrom}_${salesTo}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+
+  const exportSalesPdf = () => printFromRef(salesPrintRef, `Sales Report - ${salesFrom} to ${salesTo}`);
+
   // Compute final net total for a rep using current scoreEdits / missedJobs / deductions
   function computeRepNet(fees: RepFeeReportRep["fees"]): number {
     const gross = fees.reduce((sum, fee) => {
@@ -1560,6 +1678,24 @@ export default function ReportsPage() {
             >
               <Car className="h-3.5 w-3.5" />
               Car Jobs
+            </TabsTrigger>
+          )}
+          {canVisa && (
+            <TabsTrigger
+              value="visa"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              Visa
+            </TabsTrigger>
+          )}
+          {canSales && (
+            <TabsTrigger
+              value="sales"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <DollarSign className="h-3.5 w-3.5" />
+              Sales
             </TabsTrigger>
           )}
         </TabsList>
@@ -3709,6 +3845,166 @@ export default function ReportsPage() {
             )}
           </TabsContent>
         )}
+
+        {/* ─── VISA REPORT ─── */}
+        {canVisa && (
+          <TabsContent value="visa" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <Label className="text-muted-foreground text-xs">From</Label>
+                  <Input type="date" value={visaFrom} onChange={(e) => setVisaFrom(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">To</Label>
+                  <Input type="date" value={visaTo} onChange={(e) => setVisaTo(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <Button onClick={fetchVisa} disabled={visaLoading} className="gap-1.5">
+                  {visaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Generate
+                </Button>
+                {visaData && (
+                  <>
+                    <Button variant="outline" onClick={exportVisaExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> Excel
+                    </Button>
+                    <Button variant="outline" onClick={exportVisaPdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> PDF
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            {visaData && (
+              <>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <StatCard label="Total Records" value={visaData.count} />
+                  <StatCard label="Period" value={`${visaData.from} → ${visaData.to}`} />
+                </div>
+
+                <div className="overflow-x-auto rounded-md border border-border" ref={visaPrintRef}>
+                  <Table>
+                    <DraggableTableHeader
+                      columns={VISA_COLUMNS}
+                      columnOrder={visaColOrder.columns}
+                      onReorder={visaColOrder.reorder}
+                      visibility={visaColOrder.visibility}
+                    />
+                    <TableBody>
+                      {visaSort.sortedData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={VISA_COLUMNS.length} className="py-8 text-center text-muted-foreground text-sm">
+                            No records found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        visaSort.sortedData.map((row, idx) => (
+                          <TableRow key={idx} className="border-border hover:bg-muted/30">
+                            {visaColOrder.columns.filter((col) => visaColOrder.visibility[col] !== false).map((col) => {
+                              switch (col) {
+                                case "clientName": return <TableCell key={col} className="text-sm">{row.clientName}</TableCell>;
+                                case "flightNo": return <TableCell key={col} className="text-xs font-mono">{row.flightNo}</TableCell>;
+                                case "arrivalTime": return <TableCell key={col} className="text-xs font-mono">{row.arrivalTime ? new Date(row.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
+                                case "terminal": return <TableCell key={col} className="text-xs">{row.terminal}</TableCell>;
+                                default: return null;
+                              }
+                            })}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <ColumnVisibilityControl columns={VISA_COLUMNS} visibility={visaColOrder.visibility} onSave={visaColOrder.saveVisibility} />
+              </>
+            )}
+          </TabsContent>
+        )}
+
+        {/* ─── SALES REPORT ─── */}
+        {canSales && (
+          <TabsContent value="sales" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <Label className="text-muted-foreground text-xs">From</Label>
+                  <Input type="date" value={salesFrom} onChange={(e) => setSalesFrom(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">To</Label>
+                  <Input type="date" value={salesTo} onChange={(e) => setSalesTo(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <Button onClick={fetchSales} disabled={salesLoading} className="gap-1.5">
+                  {salesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Generate
+                </Button>
+                {salesData && (
+                  <>
+                    <Button variant="outline" onClick={exportSalesExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> Excel
+                    </Button>
+                    <Button variant="outline" onClick={exportSalesPdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> PDF
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            {salesData && (
+              <>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <StatCard label="Total Records" value={salesData.count} />
+                  <StatCard label="Period" value={`${salesData.from} → ${salesData.to}`} />
+                </div>
+
+                <div className="overflow-x-auto rounded-md border border-border" ref={salesPrintRef}>
+                  <Table>
+                    <DraggableTableHeader
+                      columns={SALES_COLUMNS}
+                      columnOrder={salesColOrder.columns}
+                      onReorder={salesColOrder.reorder}
+                      visibility={salesColOrder.visibility}
+                    />
+                    <TableBody>
+                      {salesSort.sortedData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={SALES_COLUMNS.length} className="py-8 text-center text-muted-foreground text-sm">
+                            No records found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        salesSort.sortedData.map((row, idx) => (
+                          <TableRow key={idx} className="border-border hover:bg-muted/30">
+                            {salesColOrder.columns.filter((col) => salesColOrder.visibility[col] !== false).map((col) => {
+                              switch (col) {
+                                case "internalRef": return <TableCell key={col} className="text-xs font-mono">{row.internalRef}</TableCell>;
+                                case "agentRef": return <TableCell key={col} className="text-xs">{row.agentRef}</TableCell>;
+                                case "flightNo": return <TableCell key={col} className="text-xs font-mono">{row.flightNo}</TableCell>;
+                                case "terminal": return <TableCell key={col} className="text-xs">{row.terminal}</TableCell>;
+                                case "arrivalTime": return <TableCell key={col} className="text-xs font-mono">{row.arrivalTime ? new Date(row.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
+                                case "pax": return <TableCell key={col} className="text-xs text-right">{row.pax}</TableCell>;
+                                case "hotelName": return <TableCell key={col} className="text-sm">{row.hotelName}</TableCell>;
+                                case "clientName": return <TableCell key={col} className="text-sm">{row.clientName}</TableCell>;
+                                case "clientNumber": return <TableCell key={col} className="text-xs font-mono">{row.clientNumber}</TableCell>;
+                                default: return null;
+                              }
+                            })}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <ColumnVisibilityControl columns={SALES_COLUMNS} visibility={salesColOrder.visibility} onSave={salesColOrder.saveVisibility} />
+              </>
+            )}
+          </TabsContent>
+        )}
+
       </Tabs>
 
       {/* ─── REP FEE DETAIL MODAL ─── */}

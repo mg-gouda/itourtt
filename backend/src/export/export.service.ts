@@ -1883,6 +1883,80 @@ export class ExportService {
     return { total: rows.length, rows };
   }
 
+  async exportVisaReport(from: string, to: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: {
+        jobDate: { gte: fromDate, lte: toDate },
+        deletedAt: null,
+        flight: { isNot: null },
+      },
+      include: {
+        flight: { select: { flightNo: true, arrivalTime: true, departureTime: true, terminal: true } },
+      },
+      orderBy: [{ jobDate: 'asc' }, { flight: { arrivalTime: 'asc' } }],
+    });
+
+    const rows = jobs.map((j) => ({
+      'Client Name': j.clientName ?? '—',
+      'Flight Number': j.flight?.flightNo ?? '—',
+      'Arrival Time': j.flight?.arrivalTime
+        ? j.flight.arrivalTime.toISOString().slice(0, 16).replace('T', ' ')
+        : (j.flight?.departureTime
+          ? j.flight.departureTime.toISOString().slice(0, 16).replace('T', ' ')
+          : '—'),
+      'Terminal': j.flight?.terminal ?? '—',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Visa Report');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  async exportSalesReport(from: string, to: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: {
+        jobDate: { gte: fromDate, lte: toDate },
+        deletedAt: null,
+      },
+      include: {
+        flight: { select: { flightNo: true, arrivalTime: true, departureTime: true, terminal: true } },
+        destinationHotel: { select: { name: true } },
+        originHotel: { select: { name: true } },
+      },
+      orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
+    });
+
+    const rows = jobs.map((j) => ({
+      'Internal Ref': j.internalRef,
+      'Agent Ref': j.agentRef ?? '—',
+      'Flight No.': j.flight?.flightNo ?? '—',
+      'Terminal': j.flight?.terminal ?? '—',
+      'Arrival Time': j.flight?.arrivalTime
+        ? j.flight.arrivalTime.toISOString().slice(0, 16).replace('T', ' ')
+        : (j.flight?.departureTime
+          ? j.flight.departureTime.toISOString().slice(0, 16).replace('T', ' ')
+          : '—'),
+      'Pax': j.paxCount,
+      'Hotel Name': j.destinationHotel?.name ?? j.originHotel?.name ?? '—',
+      'Client Name': j.clientName ?? '—',
+      'Client Number': j.clientMobile ?? '—',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Sales Report');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
   /** Build a Prisma date range filter for a given field. Both bounds are optional. */
   private buildDateFilter(
     dateFrom: string | undefined,
