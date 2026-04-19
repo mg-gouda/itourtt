@@ -891,7 +891,7 @@ export default function OnlineJobPage() {
           </div>
 
           {/* Line 3: Origin + Destination + Flight Info */}
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-[17fr_17fr_2fr_2fr_2fr] gap-3">
             {canRoute && (
             <>
             <div className="min-w-0 space-y-1.5">
