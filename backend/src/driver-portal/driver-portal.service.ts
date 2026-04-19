@@ -43,7 +43,7 @@ export class DriverPortalService {
     destinationHotel: { select: { name: true, zone: { select: { name: true } } } },
     fromZone: { select: { name: true } },
     toZone: { select: { name: true } },
-    flight: { select: { flightNumber: true, arrivalTime: true, departureTime: true } },
+    flight: { select: { flightNo: true, arrivalTime: true, departureTime: true } },
     assignment: {
       include: {
         vehicle: { select: { plateNumber: true, vehicleType: { select: { name: true } } } },
