@@ -201,6 +201,7 @@ interface RepFeeReport {
       id: string;
       amount: number;
       status: string;
+      isPosted: boolean;
       repStatus: string | null;
       inPlaceEvidence: Array<{ imageUrls: string[]; gpsMapLink: string | null; createdAt: string }>;
       repJobScore: RepJobScore | null;
