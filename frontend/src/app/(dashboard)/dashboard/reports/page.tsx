@@ -4121,7 +4121,14 @@ export default function ReportsPage() {
                               {fee.trafficJob.hotel?.name || "\u2014"}
                             </TableCell>
                             <TableCell>
-                              <StatusBadge status={fee.status} />
+                              <div className="flex flex-col gap-1">
+                                <StatusBadge status={fee.status} />
+                                {fee.isPosted && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/20 px-2 py-0.5 text-[10px] font-medium text-sky-600 dark:text-sky-400">
+                                    ✓ Posted
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
                             {/* Missed — disables all score checkboxes */}
                             <TableCell className="text-center">

@@ -30,6 +30,9 @@ COPY --from=builder /app/src/prisma/seed.ts ./src/prisma/seed.ts
 COPY --from=builder /app/src/permissions/permission-registry.ts ./src/permissions/permission-registry.ts
 COPY --from=builder /app/tsconfig.json ./
 
+# Install system fonts so librsvg can render SVG text without squares
+RUN apk add --no-cache font-dejavu fontconfig && fc-cache -f
+
 # Create uploads directory and copy font assets
 RUN mkdir -p /app/uploads
 COPY --from=builder /app/fonts ./fonts

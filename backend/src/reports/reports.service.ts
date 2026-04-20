@@ -513,7 +513,8 @@ export class ReportsService {
       const feeEntry = {
         id: existingFee?.id || a.id,
         amount,
-        status: existingFee ? 'POSTED' : a.trafficJob.status,
+        status: a.trafficJob.status,
+        isPosted: !!existingFee,
         repStatus: a.repStatus,
         inPlaceEvidence: a.trafficJob.inPlaceEvidence,
         repJobScore: rjs

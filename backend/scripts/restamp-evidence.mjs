@@ -14,17 +14,10 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import sharp from 'sharp';
 import { google } from 'googleapis';
-import * as fs from 'fs';
-import * as path from 'path';
 import { Readable } from 'stream';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// ── Font embedding (same as stamp-image.ts) ──────────────────────────────
-const fontPath = path.join(process.cwd(), 'fonts', 'DejaVuSans-Bold.ttf');
-const FONT_B64 = fs.existsSync(fontPath) ? fs.readFileSync(fontPath).toString('base64') : null;
-console.log('Font loaded:', !!FONT_B64);
+// Font is installed system-wide via font-dejavu Alpine package.
+// librsvg resolves "DejaVu Sans" from the fontconfig cache.
 
 // ── Drive file ID detection ───────────────────────────────────────────────
 function isDriveFileId(v) {
@@ -55,17 +48,12 @@ async function stampImage(buffer, lat, lng, date) {
   const line2Y = line1Y + lineH;
 
   const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const fontFace = FONT_B64
-    ? `<defs><style>@font-face{font-family:'DV';src:url('data:font/truetype;base64,${FONT_B64}') format('truetype');font-weight:bold;}</style></defs>`
-    : '';
-  const fontFamily = FONT_B64 ? 'DV' : 'monospace';
 
   const svg = Buffer.from(
     `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">` +
-    fontFace +
     `<rect x="0" y="${h - bgH}" width="${w}" height="${bgH}" fill="rgba(0,0,0,0.65)"/>` +
-    `<text x="${pad}" y="${line1Y}" fill="#FFD700" font-family="${fontFamily}" font-size="${fontSize}" font-weight="bold">${esc(dateLine)}</text>` +
-    `<text x="${pad}" y="${line2Y}" fill="#FFD700" font-family="${fontFamily}" font-size="${fontSize}" font-weight="bold">${esc(gpsLine)}</text>` +
+    `<text x="${pad}" y="${line1Y}" fill="#FFD700" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(dateLine)}</text>` +
+    `<text x="${pad}" y="${line2Y}" fill="#FFD700" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(gpsLine)}</text>` +
     `</svg>`
   );
 
