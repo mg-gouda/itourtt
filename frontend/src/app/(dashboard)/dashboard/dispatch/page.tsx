@@ -1643,9 +1643,12 @@ export default function DispatchPage() {
   // Agent / Customer filter
   const [filterAgentCustomer, setFilterAgentCustomer] = useState<string>("ALL");
 
-  // Derive unique agent/customer options from loaded jobs
+  // Vehicle Type filter
+  const [filterVehicleType, setFilterVehicleType] = useState<string>("ALL");
+
+  const allJobs = useMemo(() => [...arrivals, ...departures, ...cityTransfers], [arrivals, departures, cityTransfers]);
+
   const agentCustomerOptions = useMemo(() => {
-    const allJobs = [...arrivals, ...departures, ...cityTransfers];
     const map = new Map<string, string>();
     for (const job of allJobs) {
       if (job.bookingChannel === "ONLINE" && job.agent?.legalName) {
@@ -1657,9 +1660,21 @@ export default function DispatchPage() {
     return Array.from(map.entries())
       .map(([key, label]) => ({ key, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [arrivals, departures, cityTransfers]);
+  }, [allJobs]);
 
-  const filterJobs = useCallback((jobs: Job[], query: string, agentCustomerKey: string) => {
+  const vehicleTypeOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const job of allJobs) {
+      if (job.requestedVehicleType?.id && job.requestedVehicleType?.name) {
+        map.set(job.requestedVehicleType.id, job.requestedVehicleType.name);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allJobs]);
+
+  const filterJobs = useCallback((jobs: Job[], query: string, agentCustomerKey: string, vehicleTypeId: string) => {
     return jobs.filter((job) => {
       // Agent/Customer filter
       if (agentCustomerKey !== "ALL") {
@@ -1667,6 +1682,10 @@ export default function DispatchPage() {
           ? `agent:${job.agent?.legalName || ""}`
           : `customer:${job.customer?.legalName || ""}`;
         if (jobKey !== agentCustomerKey) return false;
+      }
+      // Vehicle Type filter
+      if (vehicleTypeId !== "ALL") {
+        if (job.requestedVehicleType?.id !== vehicleTypeId) return false;
       }
       // Text search filter
       if (query.trim()) {
@@ -1688,13 +1707,12 @@ export default function DispatchPage() {
     });
   }, []);
 
-  const filteredArrivals = useMemo(() => filterJobs(arrivals, searchQuery, filterAgentCustomer), [arrivals, searchQuery, filterAgentCustomer, filterJobs]);
-  const filteredDepartures = useMemo(() => filterJobs(departures, searchQuery, filterAgentCustomer), [departures, searchQuery, filterAgentCustomer, filterJobs]);
-  const filteredCityTransfers = useMemo(() => filterJobs(cityTransfers, searchQuery, filterAgentCustomer), [cityTransfers, searchQuery, filterAgentCustomer, filterJobs]);
+  const filteredArrivals = useMemo(() => filterJobs(arrivals, searchQuery, filterAgentCustomer, filterVehicleType), [arrivals, searchQuery, filterAgentCustomer, filterVehicleType, filterJobs]);
+  const filteredDepartures = useMemo(() => filterJobs(departures, searchQuery, filterAgentCustomer, filterVehicleType), [departures, searchQuery, filterAgentCustomer, filterVehicleType, filterJobs]);
+  const filteredCityTransfers = useMemo(() => filterJobs(cityTransfers, searchQuery, filterAgentCustomer, filterVehicleType), [cityTransfers, searchQuery, filterAgentCustomer, filterVehicleType, filterJobs]);
 
   // Derive initial car sources from existing vehicle assignments
   useEffect(() => {
-    const allJobs = [...arrivals, ...departures, ...cityTransfers];
     const initial: Record<string, string> = {};
     for (const job of allJobs) {
       if (job.assignment?.vehicleId) {
@@ -1712,7 +1730,7 @@ export default function DispatchPage() {
       }
     }
     setJobSources((prev) => ({ ...initial, ...prev }));
-  }, [arrivals, departures, cityTransfers, vehicles]);
+  }, [allJobs, vehicles]);
 
   const setJobSource = useCallback((jobId: string, source: string) => {
     setJobSources((prev) => ({ ...prev, [jobId]: source }));
@@ -2540,6 +2558,22 @@ export default function DispatchPage() {
                   ))}
                 </SelectContent>
               </Select>
+
+              {vehicleTypeOptions.length > 0 && (
+                <Select value={filterVehicleType} onValueChange={setFilterVehicleType}>
+                  <SelectTrigger className="w-44 h-9 border-border bg-card text-foreground text-sm">
+                    <SelectValue placeholder={t("dispatch.filterByVehicleType")} />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover text-foreground max-h-60">
+                    <SelectItem value="ALL">{t("dispatch.allVehicleTypes")}</SelectItem>
+                    {vehicleTypeOptions.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id}>
+                        {opt.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <TabsContent value="split">
