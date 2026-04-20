@@ -133,6 +133,8 @@ export default function TrafficJobsPage() {
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [signDate, setSignDate] = useState(localDateStr(new Date()));
   const [evidenceJob, setEvidenceJob] = useState<TrafficJob | null>(null);
+  const [evidenceBlobUrls, setEvidenceBlobUrls] = useState<Map<string, string>>(new Map());
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -170,6 +172,29 @@ export default function TrafficJobsPage() {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  const isDriveId = (url: string) => /^[A-Za-z0-9_-]{20,}$/.test(url);
+
+  const openEvidenceDialog = async (job: TrafficJob) => {
+    setEvidenceJob(job);
+    const allUrls = (job.noShowEvidence ?? []).flatMap((ev) => ev.imageUrls ?? []);
+    const driveIds = allUrls.filter(isDriveId);
+    if (driveIds.length === 0) return;
+    setEvidenceLoading(true);
+    const map = new Map<string, string>();
+    await Promise.all(
+      driveIds.map(async (fileId) => {
+        try {
+          const res = await api.get(`/export/odoo/evidence-file/${fileId}`, { responseType: "blob" });
+          map.set(fileId, URL.createObjectURL(res.data));
+        } catch {
+          // leave missing — broken img is better than crashing
+        }
+      })
+    );
+    setEvidenceBlobUrls(map);
+    setEvidenceLoading(false);
+  };
 
   const handlePrintSigns = async () => {
     if (!signDate) {
@@ -371,7 +396,7 @@ export default function TrafficJobsPage() {
         return (
           <TableCell key={key}>
             {job.status === "NO_SHOW" ? (
-              <span data-no-show="true" className="cursor-pointer hover:underline inline-flex items-center gap-1" title="Click to view no-show evidence" onClick={() => setEvidenceJob(job)}>
+              <span data-no-show="true" className="cursor-pointer hover:underline inline-flex items-center gap-1" title="Click to view no-show evidence" onClick={() => openEvidenceDialog(job)}>
                 <StatusBadge status={job.status} />
                 {(job.noShowEvidence?.length ?? 0) > 0 && <Image className="h-3 w-3 opacity-70" />}
               </span>
@@ -403,7 +428,7 @@ export default function TrafficJobsPage() {
               <span
                 data-no-show={job.assignment.repStatus === "NO_SHOW" ? "true" : undefined}
                 className={job.assignment.repStatus === "NO_SHOW" ? "cursor-pointer hover:underline" : ""}
-                onClick={job.assignment.repStatus === "NO_SHOW" ? () => setEvidenceJob(job) : undefined}
+                onClick={job.assignment.repStatus === "NO_SHOW" ? () => openEvidenceDialog(job) : undefined}
               >
                 <StatusBadge status={job.assignment.repStatus} />
               </span>
@@ -680,7 +705,7 @@ export default function TrafficJobsPage() {
       </Dialog>
 
       {/* No-Show Evidence Modal */}
-      <Dialog open={!!evidenceJob} onOpenChange={(o) => !o && setEvidenceJob(null)}>
+      <Dialog open={!!evidenceJob} onOpenChange={(o) => { if (!o) { setEvidenceJob(null); setEvidenceBlobUrls(new Map()); } }}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -689,10 +714,15 @@ export default function TrafficJobsPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-2 max-h-[70vh] overflow-y-auto">
-            {(evidenceJob?.noShowEvidence ?? []).length === 0 && (
+            {evidenceLoading && (
+              <div className="flex items-center justify-center py-6 gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading images…
+              </div>
+            )}
+            {!evidenceLoading && (evidenceJob?.noShowEvidence ?? []).length === 0 && (
               <p className="text-center text-sm text-muted-foreground py-6">No evidence submitted yet.</p>
             )}
-            {(evidenceJob?.noShowEvidence ?? []).map((ev, i) => {
+            {!evidenceLoading && (evidenceJob?.noShowEvidence ?? []).map((ev, i) => {
               const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
               return (
               <div key={ev.id} className="rounded-lg border border-border p-4 space-y-3">
@@ -706,11 +736,14 @@ export default function TrafficJobsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {(ev.imageUrls ?? []).map((url, j) => {
-                    const fullUrl = url.startsWith("http") ? url : `${apiBase}${url}`;
+                    const resolvedUrl = isDriveId(url)
+                      ? (evidenceBlobUrls.get(url) ?? null)
+                      : (url.startsWith("http") ? url : `${apiBase}${url}`);
+                    if (!resolvedUrl) return null;
                     return (
-                      <a key={j} href={fullUrl} target="_blank" rel="noopener noreferrer"
+                      <a key={j} href={resolvedUrl} target="_blank" rel="noopener noreferrer"
                         className="block overflow-hidden rounded-md border border-border hover:opacity-80 transition-opacity">
-                        <img src={fullUrl} alt={`Evidence ${i + 1}-${j + 1}`}
+                        <img src={resolvedUrl} alt={`Evidence ${i + 1}-${j + 1}`}
                           className="h-40 w-full object-cover" />
                       </a>
                     );
