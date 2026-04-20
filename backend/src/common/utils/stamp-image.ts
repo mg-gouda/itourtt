@@ -19,6 +19,7 @@ export async function stampEvidenceImage(
   buffer: Buffer,
   lat: number,
   lng: number,
+  date?: Date,
 ): Promise<Buffer> {
   // Auto-rotate first so width/height match what the user sees
   const rotated = await sharp(buffer).rotate().toBuffer();
@@ -26,7 +27,7 @@ export async function stampEvidenceImage(
   const w = meta.width ?? 1280;
   const h = meta.height ?? 960;
 
-  const now = new Date();
+  const now = date ?? new Date();
   const dateLine = now.toLocaleString('en-GB', {
     timeZone: 'Africa/Cairo',
     year: 'numeric',
