@@ -22,6 +22,7 @@ import {
   X,
   ChevronDown,
   Check,
+  Eye,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,8 +93,8 @@ interface Job {
   custRepMeetingTime: string | null;
   pickUpTime: string | null;
   dispatchUnlockedAt: string | null;
-  agent?: { legalName: string } | null;
-  customer?: { legalName: string } | null;
+  agent?: { legalName: string; phone?: string | null } | null;
+  customer?: { legalName: string; phone?: string | null } | null;
   originAirport?: { name: string; code: string } | null;
   originZone?: { name: string } | null;
   originHotel?: { name: string } | null;
@@ -895,6 +896,185 @@ function CollectionCells({ job }: { job: Job }) {
   );
 }
 
+// ────────────────────────────────────────────
+// JobDetailModal – read-only full job view
+// ────────────────────────────────────────────
+
+function DetailRow({ label, value }: { label: string; value?: string | number | null }) {
+  if (value === null || value === undefined || value === "") return null;
+  return (
+    <div className="flex gap-2 text-sm">
+      <span className="w-40 shrink-0 text-muted-foreground">{label}</span>
+      <span className="text-foreground break-words">{String(value)}</span>
+    </div>
+  );
+}
+
+function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 border-b border-border pb-1">
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open: boolean; onClose: () => void; locale: string }) {
+  if (!job) return null;
+
+  const origin =
+    job.originAirport ? `${job.originAirport.name} (${job.originAirport.code})`
+    : job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—";
+
+  const destination =
+    job.destinationAirport ? `${job.destinationAirport.name} (${job.destinationAirport.code})`
+    : job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—";
+
+  const isOwned = !job.assignment?.supplierId;
+  const vehicleTypeName =
+    job.assignment?.vehicle?.vehicleType?.name ||
+    job.assignment?.supplierCarType?.vehicleType?.name || null;
+  const seatCapacity =
+    job.assignment?.vehicle?.vehicleType?.seatCapacity ||
+    job.assignment?.supplierCarType?.vehicleType?.seatCapacity || null;
+  const driverName = isOwned
+    ? job.assignment?.driver?.name
+    : job.assignment?.externalDriverName;
+  const driverMobile = isOwned
+    ? job.assignment?.driver?.mobileNumber
+    : job.assignment?.externalDriverPhone;
+
+  const extras: string[] = [];
+  if (job.boosterSeat) extras.push(`Booster Seat ×${job.boosterSeatQty}`);
+  if (job.babySeat) extras.push(`Baby Seat ×${job.babySeatQty}`);
+  if (job.wheelChair) extras.push(`Wheelchair ×${job.wheelChairQty}`);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-base">{job.internalRef}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5 pt-2">
+          {/* Identification */}
+          <DetailSection title="Identification">
+            <DetailRow label="Internal Ref" value={job.internalRef} />
+            <DetailRow label="Agent Ref" value={job.agentRef} />
+          </DetailSection>
+
+          {/* Booking */}
+          <DetailSection title="Booking">
+            <DetailRow label="Booking Channel" value={job.bookingChannel} />
+            {job.bookingChannel === "ONLINE" ? (
+              <>
+                <DetailRow label="Agent" value={job.agent?.legalName} />
+                <DetailRow label="Agent Phone" value={job.agent?.phone} />
+              </>
+            ) : (
+              <>
+                <DetailRow label="Customer" value={job.customer?.legalName} />
+                <DetailRow label="Customer Phone" value={job.customer?.phone} />
+              </>
+            )}
+          </DetailSection>
+
+          {/* Service & Status */}
+          <DetailSection title="Service & Status">
+            <DetailRow label="Service Type" value={job.serviceType} />
+            <DetailRow label="Job Date" value={job.jobDate ? new Date(job.jobDate).toLocaleDateString() : null} />
+            <DetailRow label="Status" value={job.status} />
+          </DetailSection>
+
+          {/* Passengers */}
+          <DetailSection title="Passengers">
+            <DetailRow label="Client Name" value={job.clientName} />
+            <DetailRow label="Adults" value={job.adultCount} />
+            <DetailRow label="Children" value={job.childCount} />
+            <DetailRow label="Total Pax" value={job.paxCount} />
+          </DetailSection>
+
+          {/* Route */}
+          <DetailSection title="Route">
+            <DetailRow label="Origin" value={origin} />
+            <DetailRow label="Destination" value={destination} />
+          </DetailSection>
+
+          {/* Flight */}
+          {job.flight && (
+            <DetailSection title="Flight">
+              <DetailRow label="Flight Number" value={job.flight.flightNo} />
+              <DetailRow label="Carrier" value={job.flight.carrier} />
+              <DetailRow label="Terminal" value={job.flight.terminal} />
+              {job.flight.arrivalTime && (
+                <DetailRow label="Arrival Time" value={fmtTime(job.flight.arrivalTime, locale)} />
+              )}
+              {job.flight.departureTime && (
+                <DetailRow label="Departure Time" value={fmtTime(job.flight.departureTime, locale)} />
+              )}
+            </DetailSection>
+          )}
+
+          {/* Timing */}
+          <DetailSection title="Timing">
+            <DetailRow label="Pick Up Time" value={job.pickUpTime ? fmtTime(job.pickUpTime, locale) : null} />
+          </DetailSection>
+
+          {/* Customer Rep Contact */}
+          {(job.custRepName || job.custRepMobile || job.custRepMeetingPoint || job.custRepMeetingTime) && (
+            <DetailSection title="Customer Rep Contact">
+              <DetailRow label="Rep Name" value={job.custRepName} />
+              <DetailRow label="Rep Mobile" value={job.custRepMobile} />
+              <DetailRow label="Meeting Point" value={job.custRepMeetingPoint} />
+              <DetailRow label="Meeting Time" value={job.custRepMeetingTime} />
+            </DetailSection>
+          )}
+
+          {/* Assignment */}
+          {job.assignment && (
+            <DetailSection title="Assignment">
+              <DetailRow label="Vehicle Source" value={isOwned ? "Owned" : "Supplier"} />
+              <DetailRow label="Vehicle Plate" value={job.assignment.vehicle?.plateNumber} />
+              <DetailRow label="Vehicle Type" value={vehicleTypeName} />
+              <DetailRow label="Seat Capacity" value={seatCapacity} />
+              <DetailRow label="Driver Name" value={driverName} />
+              <DetailRow label="Driver Mobile" value={driverMobile} />
+              <DetailRow label="Rep" value={job.assignment.rep?.name} />
+              <DetailRow label="Remarks" value={job.assignment.remarks} />
+            </DetailSection>
+          )}
+
+          {/* Requested Vehicle */}
+          {job.requestedVehicleType && (
+            <DetailSection title="Requested Vehicle">
+              <DetailRow label="Vehicle Type" value={job.requestedVehicleType.name} />
+            </DetailSection>
+          )}
+
+          {/* Extras */}
+          {extras.length > 0 && (
+            <DetailSection title="Extras">
+              {extras.map((e) => (
+                <DetailRow key={e} label="" value={e} />
+              ))}
+            </DetailSection>
+          )}
+
+          {/* Collection */}
+          {job.collectionRequired && (
+            <DetailSection title="Collection">
+              <DetailRow label="Amount" value={job.collectionAmount} />
+              <DetailRow label="Currency" value={job.collectionCurrency} />
+            </DetailSection>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // JobGrid with inline editing
 // ────────────────────────────────────────────
 
@@ -949,6 +1129,7 @@ function JobGrid({
   canAssignRep?: boolean;
   savedRowId?: string | null;
 }) {
+  const [detailJob, setDetailJob] = useState<Job | null>(null);
   const t = useT();
   const locale = useLocaleId();
   const cellRefs = useRef<Map<string, HTMLTableCellElement>>(new Map());
@@ -1012,10 +1193,13 @@ function JobGrid({
   }
 
   return (
+    <>
+    <JobDetailModal job={detailJob} open={!!detailJob} onClose={() => setDetailJob(null)} locale={locale} />
     <div className="overflow-x-auto [overflow-y:clip]">
       <Table>
         <TableHeader>
           <TableRow className="border-border bg-muted">
+            <TableHead className="text-muted-foreground text-xs w-8" />
             {showLockColumn && <TableHead className="text-muted-foreground text-xs w-8" />}
             <TableHead className="text-muted-foreground text-xs w-28">{t("dispatch.ref")}</TableHead>
             <TableHead className="text-muted-foreground text-xs">{t("dispatch.agent")}</TableHead>
@@ -1049,6 +1233,16 @@ function JobGrid({
                 key={job.id}
                 className={`border-border transition-colors duration-300 ${statusRowClass[job.status] || stripe} ${job.status === "CANCELLED" ? "[&_td]:line-through [&_td]:text-red-900 dark:[&_td]:text-red-800" : ""} ${savedRowId === job.id ? "bg-green-500/10" : ""}`}
               >
+                <TableCell className="w-8 px-1">
+                  <button
+                    type="button"
+                    onClick={() => setDetailJob(job)}
+                    className="flex h-6 w-6 items-center justify-center rounded hover:bg-muted/50 transition-colors"
+                    title="View job details"
+                  >
+                    <Eye className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
+                  </button>
+                </TableCell>
                 {showLockColumn && (
                   <TableCell className="w-8 px-1">
                     {canUnlock && onToggleLock ? (
@@ -1313,6 +1507,7 @@ function JobGrid({
         </TableBody>
       </Table>
     </div>
+    </>
   );
 }
 

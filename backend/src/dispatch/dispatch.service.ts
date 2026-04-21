@@ -37,8 +37,8 @@ export class DispatchService {
     const jobDate = new Date(date);
 
     const baseInclude = {
-      agent: { select: { id: true, legalName: true, tradeName: true } },
-      customer: { select: { id: true, legalName: true, tradeName: true } },
+      agent: { select: { id: true, legalName: true, tradeName: true, phone: true } },
+      customer: { select: { id: true, legalName: true, tradeName: true, phone: true } },
       originAirport: { select: { id: true, name: true, code: true } },
       originZone: { select: { id: true, name: true } },
       originHotel: { select: { id: true, name: true, zone: { select: { id: true, name: true } } } },
