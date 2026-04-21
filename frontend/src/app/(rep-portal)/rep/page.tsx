@@ -796,6 +796,8 @@ function JobCard({
                 variant="default"
                 className="gap-1.5"
                 onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
+                disabled={repStatus !== "IN_PLACE"}
+                title={repStatus !== "IN_PLACE" ? "Mark In Place first before completing" : undefined}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 {t("portal.complete")}

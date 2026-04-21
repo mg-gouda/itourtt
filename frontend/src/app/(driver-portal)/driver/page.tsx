@@ -713,16 +713,18 @@ function DriverJobCard({
               variant="default"
               className="gap-1.5"
               onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
-              disabled={(job.collectionRequired && !job.collectionCollected) || !canComplete}
+              disabled={driverStatus !== "IN_PROGRESS" || (job.collectionRequired && !job.collectionCollected) || !canComplete}
               title={
-                job.collectionRequired && !job.collectionCollected
+                driverStatus !== "IN_PROGRESS"
+                  ? "Start the job (In Progress) first before completing"
+                  : job.collectionRequired && !job.collectionCollected
                   ? (t("portal.collectionRequiredBeforeComplete") || "Collect payment before completing")
                   : completeBlockMsg || undefined
               }
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               {t("portal.complete")}
-              {!canComplete && completeBlockMsg && (
+              {!canComplete && driverStatus === "IN_PROGRESS" && completeBlockMsg && (
                 <span className="ml-1 text-[10px] opacity-70">({completeBlockMsg})</span>
               )}
             </Button>

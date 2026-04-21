@@ -15,7 +15,7 @@ const DRIVER_ALLOWED_STATUSES: DriverJobStatus[] = ['IN_PROGRESS', 'CANCELLED'];
 const DRIVER_TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
 const DRIVER_VALID_TRANSITIONS: Record<string, string[]> = {
-  PENDING: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
+  PENDING: ['IN_PROGRESS', 'CANCELLED'],
   IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
   COMPLETED: [],
   CANCELLED: [],
@@ -299,8 +299,8 @@ export class DriverPortalService {
     if (DRIVER_TERMINAL_STATUSES.includes(currentStatus)) {
       throw new BadRequestException(`Driver status is already terminal: "${currentStatus}"`);
     }
-    if (!['PENDING', 'IN_PROGRESS'].includes(currentStatus)) {
-      throw new BadRequestException(`Cannot complete job from "${currentStatus}"`);
+    if (currentStatus !== 'IN_PROGRESS') {
+      throw new BadRequestException(`Cannot complete job: must be In Progress first`);
     }
 
     // Time guard: at least 15 minutes after job time
