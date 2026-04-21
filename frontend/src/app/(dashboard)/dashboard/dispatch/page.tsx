@@ -87,6 +87,7 @@ interface Job {
   childCount: number;
   paxCount: number;
   clientName: string | null;
+  clientMobile: string | null;
   custRepName: string | null;
   custRepMobile: string | null;
   custRepMeetingPoint: string | null;
@@ -900,12 +901,17 @@ function CollectionCells({ job }: { job: Job }) {
 // JobDetailModal – read-only full job view
 // ────────────────────────────────────────────
 
-function DetailRow({ label, value }: { label: string; value?: string | number | null }) {
+function DetailRow({ label, value, phone }: { label: string; value?: string | number | null; phone?: boolean }) {
   if (value === null || value === undefined || value === "") return null;
+  const str = String(value);
   return (
     <div className="flex gap-2 text-sm">
       <span className="w-40 shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-foreground break-words">{String(value)}</span>
+      {phone ? (
+        <a href={`tel:${str}`} className="text-blue-500 underline break-words">{str}</a>
+      ) : (
+        <span className="text-foreground break-words">{str}</span>
+      )}
     </div>
   );
 }
@@ -971,12 +977,12 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
               {job.bookingChannel === "ONLINE" ? (
                 <>
                   <DetailRow label="Agent" value={job.agent?.legalName} />
-                  <DetailRow label="Agent Phone" value={job.agent?.phone} />
+                  <DetailRow label="Agent Phone" value={job.agent?.phone} phone />
                 </>
               ) : (
                 <>
                   <DetailRow label="Customer" value={job.customer?.legalName} />
-                  <DetailRow label="Customer Phone" value={job.customer?.phone} />
+                  <DetailRow label="Customer Phone" value={job.customer?.phone} phone />
                 </>
               )}
             </DetailSection>
@@ -989,6 +995,7 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
 
             <DetailSection title="Passengers">
               <DetailRow label="Client Name" value={job.clientName} />
+              <DetailRow label="Client Number" value={job.clientMobile} phone />
               <DetailRow label="Adults" value={job.adultCount} />
               <DetailRow label="Children" value={job.childCount} />
               <DetailRow label="Total Pax" value={job.paxCount} />
@@ -1023,7 +1030,7 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
             {(job.custRepName || job.custRepMobile || job.custRepMeetingPoint || job.custRepMeetingTime) && (
               <DetailSection title="Customer Rep Contact">
                 <DetailRow label="Rep Name" value={job.custRepName} />
-                <DetailRow label="Rep Mobile" value={job.custRepMobile} />
+                <DetailRow label="Rep Mobile" value={job.custRepMobile} phone />
                 <DetailRow label="Meeting Point" value={job.custRepMeetingPoint} />
                 <DetailRow label="Meeting Time" value={job.custRepMeetingTime} />
               </DetailSection>
@@ -1036,7 +1043,7 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
                 <DetailRow label="Vehicle Type" value={vehicleTypeName} />
                 <DetailRow label="Seat Capacity" value={seatCapacity} />
                 <DetailRow label="Driver Name" value={driverName} />
-                <DetailRow label="Driver Mobile" value={driverMobile} />
+                <DetailRow label="Driver Mobile" value={driverMobile} phone />
                 <DetailRow label="Rep" value={job.assignment.rep?.name} />
                 <DetailRow label="Remarks" value={job.assignment.remarks} />
               </DetailSection>
