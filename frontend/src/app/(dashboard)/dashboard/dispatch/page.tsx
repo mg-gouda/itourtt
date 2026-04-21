@@ -953,122 +953,116 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto" style={{ width: "85vw", maxWidth: "85vw" }}>
         <DialogHeader>
           <DialogTitle className="font-mono text-base">{job.internalRef}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 pt-2">
-          {/* Identification */}
-          <DetailSection title="Identification">
-            <DetailRow label="Internal Ref" value={job.internalRef} />
-            <DetailRow label="Agent Ref" value={job.agentRef} />
-          </DetailSection>
+        <div className="pt-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "50px" }}>
+          {/* Left column */}
+          <div className="space-y-5">
+            <DetailSection title="Identification">
+              <DetailRow label="Internal Ref" value={job.internalRef} />
+              <DetailRow label="Agent Ref" value={job.agentRef} />
+            </DetailSection>
 
-          {/* Booking */}
-          <DetailSection title="Booking">
-            <DetailRow label="Booking Channel" value={job.bookingChannel} />
-            {job.bookingChannel === "ONLINE" ? (
-              <>
-                <DetailRow label="Agent" value={job.agent?.legalName} />
-                <DetailRow label="Agent Phone" value={job.agent?.phone} />
-              </>
-            ) : (
-              <>
-                <DetailRow label="Customer" value={job.customer?.legalName} />
-                <DetailRow label="Customer Phone" value={job.customer?.phone} />
-              </>
+            <DetailSection title="Booking">
+              <DetailRow label="Booking Channel" value={job.bookingChannel} />
+              {job.bookingChannel === "ONLINE" ? (
+                <>
+                  <DetailRow label="Agent" value={job.agent?.legalName} />
+                  <DetailRow label="Agent Phone" value={job.agent?.phone} />
+                </>
+              ) : (
+                <>
+                  <DetailRow label="Customer" value={job.customer?.legalName} />
+                  <DetailRow label="Customer Phone" value={job.customer?.phone} />
+                </>
+              )}
+            </DetailSection>
+
+            <DetailSection title="Service & Status">
+              <DetailRow label="Service Type" value={job.serviceType} />
+              <DetailRow label="Job Date" value={job.jobDate ? new Date(job.jobDate).toLocaleDateString() : null} />
+              <DetailRow label="Status" value={job.status} />
+            </DetailSection>
+
+            <DetailSection title="Passengers">
+              <DetailRow label="Client Name" value={job.clientName} />
+              <DetailRow label="Adults" value={job.adultCount} />
+              <DetailRow label="Children" value={job.childCount} />
+              <DetailRow label="Total Pax" value={job.paxCount} />
+            </DetailSection>
+
+            <DetailSection title="Route">
+              <DetailRow label="Origin" value={origin} />
+              <DetailRow label="Destination" value={destination} />
+            </DetailSection>
+
+            {job.flight && (
+              <DetailSection title="Flight">
+                <DetailRow label="Flight Number" value={job.flight.flightNo} />
+                <DetailRow label="Carrier" value={job.flight.carrier} />
+                <DetailRow label="Terminal" value={job.flight.terminal} />
+                {job.flight.arrivalTime && (
+                  <DetailRow label="Arrival Time" value={fmtTime(job.flight.arrivalTime, locale)} />
+                )}
+                {job.flight.departureTime && (
+                  <DetailRow label="Departure Time" value={fmtTime(job.flight.departureTime, locale)} />
+                )}
+              </DetailSection>
             )}
-          </DetailSection>
 
-          {/* Service & Status */}
-          <DetailSection title="Service & Status">
-            <DetailRow label="Service Type" value={job.serviceType} />
-            <DetailRow label="Job Date" value={job.jobDate ? new Date(job.jobDate).toLocaleDateString() : null} />
-            <DetailRow label="Status" value={job.status} />
-          </DetailSection>
-
-          {/* Passengers */}
-          <DetailSection title="Passengers">
-            <DetailRow label="Client Name" value={job.clientName} />
-            <DetailRow label="Adults" value={job.adultCount} />
-            <DetailRow label="Children" value={job.childCount} />
-            <DetailRow label="Total Pax" value={job.paxCount} />
-          </DetailSection>
-
-          {/* Route */}
-          <DetailSection title="Route">
-            <DetailRow label="Origin" value={origin} />
-            <DetailRow label="Destination" value={destination} />
-          </DetailSection>
-
-          {/* Flight */}
-          {job.flight && (
-            <DetailSection title="Flight">
-              <DetailRow label="Flight Number" value={job.flight.flightNo} />
-              <DetailRow label="Carrier" value={job.flight.carrier} />
-              <DetailRow label="Terminal" value={job.flight.terminal} />
-              {job.flight.arrivalTime && (
-                <DetailRow label="Arrival Time" value={fmtTime(job.flight.arrivalTime, locale)} />
-              )}
-              {job.flight.departureTime && (
-                <DetailRow label="Departure Time" value={fmtTime(job.flight.departureTime, locale)} />
-              )}
+            <DetailSection title="Timing">
+              <DetailRow label="Pick Up Time" value={job.pickUpTime ? fmtTime(job.pickUpTime, locale) : null} />
             </DetailSection>
-          )}
+          </div>
 
-          {/* Timing */}
-          <DetailSection title="Timing">
-            <DetailRow label="Pick Up Time" value={job.pickUpTime ? fmtTime(job.pickUpTime, locale) : null} />
-          </DetailSection>
+          {/* Right column */}
+          <div className="space-y-5">
+            {(job.custRepName || job.custRepMobile || job.custRepMeetingPoint || job.custRepMeetingTime) && (
+              <DetailSection title="Customer Rep Contact">
+                <DetailRow label="Rep Name" value={job.custRepName} />
+                <DetailRow label="Rep Mobile" value={job.custRepMobile} />
+                <DetailRow label="Meeting Point" value={job.custRepMeetingPoint} />
+                <DetailRow label="Meeting Time" value={job.custRepMeetingTime} />
+              </DetailSection>
+            )}
 
-          {/* Customer Rep Contact */}
-          {(job.custRepName || job.custRepMobile || job.custRepMeetingPoint || job.custRepMeetingTime) && (
-            <DetailSection title="Customer Rep Contact">
-              <DetailRow label="Rep Name" value={job.custRepName} />
-              <DetailRow label="Rep Mobile" value={job.custRepMobile} />
-              <DetailRow label="Meeting Point" value={job.custRepMeetingPoint} />
-              <DetailRow label="Meeting Time" value={job.custRepMeetingTime} />
-            </DetailSection>
-          )}
+            {job.assignment && (
+              <DetailSection title="Assignment">
+                <DetailRow label="Vehicle Source" value={isOwned ? "Owned" : "Supplier"} />
+                <DetailRow label="Vehicle Plate" value={job.assignment.vehicle?.plateNumber} />
+                <DetailRow label="Vehicle Type" value={vehicleTypeName} />
+                <DetailRow label="Seat Capacity" value={seatCapacity} />
+                <DetailRow label="Driver Name" value={driverName} />
+                <DetailRow label="Driver Mobile" value={driverMobile} />
+                <DetailRow label="Rep" value={job.assignment.rep?.name} />
+                <DetailRow label="Remarks" value={job.assignment.remarks} />
+              </DetailSection>
+            )}
 
-          {/* Assignment */}
-          {job.assignment && (
-            <DetailSection title="Assignment">
-              <DetailRow label="Vehicle Source" value={isOwned ? "Owned" : "Supplier"} />
-              <DetailRow label="Vehicle Plate" value={job.assignment.vehicle?.plateNumber} />
-              <DetailRow label="Vehicle Type" value={vehicleTypeName} />
-              <DetailRow label="Seat Capacity" value={seatCapacity} />
-              <DetailRow label="Driver Name" value={driverName} />
-              <DetailRow label="Driver Mobile" value={driverMobile} />
-              <DetailRow label="Rep" value={job.assignment.rep?.name} />
-              <DetailRow label="Remarks" value={job.assignment.remarks} />
-            </DetailSection>
-          )}
+            {job.requestedVehicleType && (
+              <DetailSection title="Requested Vehicle">
+                <DetailRow label="Vehicle Type" value={job.requestedVehicleType.name} />
+              </DetailSection>
+            )}
 
-          {/* Requested Vehicle */}
-          {job.requestedVehicleType && (
-            <DetailSection title="Requested Vehicle">
-              <DetailRow label="Vehicle Type" value={job.requestedVehicleType.name} />
-            </DetailSection>
-          )}
+            {extras.length > 0 && (
+              <DetailSection title="Extras">
+                {extras.map((e) => (
+                  <DetailRow key={e} label="" value={e} />
+                ))}
+              </DetailSection>
+            )}
 
-          {/* Extras */}
-          {extras.length > 0 && (
-            <DetailSection title="Extras">
-              {extras.map((e) => (
-                <DetailRow key={e} label="" value={e} />
-              ))}
-            </DetailSection>
-          )}
-
-          {/* Collection */}
-          {job.collectionRequired && (
-            <DetailSection title="Collection">
-              <DetailRow label="Amount" value={job.collectionAmount} />
-              <DetailRow label="Currency" value={job.collectionCurrency} />
-            </DetailSection>
-          )}
+            {job.collectionRequired && (
+              <DetailSection title="Collection">
+                <DetailRow label="Amount" value={job.collectionAmount} />
+                <DetailRow label="Currency" value={job.collectionCurrency} />
+              </DetailSection>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
