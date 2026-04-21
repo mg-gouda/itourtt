@@ -151,6 +151,7 @@ export class TrafficJobsService {
       },
     },
     noShowEvidence: { select: { id: true, imageUrls: true, createdAt: true } },
+    createdBy: { select: { id: true, name: true } },
   };
 
   async findAll(filter: JobFilterDto) {
