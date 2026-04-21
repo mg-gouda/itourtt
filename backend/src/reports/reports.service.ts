@@ -957,6 +957,7 @@ export class ReportsService {
       originHotel: j.originHotel,
       destinationHotel: j.destinationHotel,
       flight: j.flight,
+      pickUpTime: j.pickUpTime ?? null,
       driverName: resolveDriverName(j.assignment),
       repName: j.assignment?.rep?.name ?? null,
       assignment: j.assignment
@@ -1116,6 +1117,39 @@ export class ReportsService {
       hotelName: j.destinationHotel?.name ?? j.originHotel?.name ?? '—',
       clientName: j.clientName ?? '—',
       clientNumber: j.clientMobile ?? '—',
+    }));
+
+    return { from, to, count: rows.length, rows };
+  }
+
+  // ─────────────────────────────────────────────
+  // DEPARTURE REPORT
+  // ─────────────────────────────────────────────
+
+  async departureReport(from: string, to: string, serviceType?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const where: Record<string, unknown> = {
+      jobDate: { gte: fromDate, lte: toDate },
+      deletedAt: null,
+    };
+    if (serviceType && serviceType !== 'ALL') {
+      where.serviceType = serviceType as ServiceType;
+    }
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      orderBy: [{ jobDate: 'asc' }, { pickUpTime: 'asc' }],
+    });
+
+    const rows = jobs.map((j) => ({
+      serviceDate: j.jobDate,
+      customerName: j.clientName ?? '—',
+      customerNumber: j.clientMobile ?? '—',
+      pax: j.paxCount,
+      pickupTime: j.pickUpTime ?? null,
+      serviceType: j.serviceType,
     }));
 
     return { from, to, count: rows.length, rows };

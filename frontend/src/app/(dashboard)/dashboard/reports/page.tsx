@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Camera,
   Truck,
+  Plane,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import JobDetailModal from "@/components/job-detail-modal";
@@ -220,6 +221,7 @@ interface RepFeeReport {
         destinationZone?: { name: string } | null;
         destinationHotel?: { name: string } | null;
         hotel: { name: string } | null;
+        pickUpTime: string | null;
         flight: {
           flightNo: string;
           carrier: string;
@@ -377,6 +379,7 @@ interface EvidenceReportRow {
   destinationAirport: { name: string; code: string } | null;
   originHotel: { name: string } | null;
   destinationHotel: { name: string } | null;
+  pickUpTime: string | null;
   flight: {
     flightNo: string;
     carrier: string;
@@ -473,6 +476,22 @@ interface SalesReport {
   to: string;
   count: number;
   rows: SalesReportRow[];
+}
+
+interface DepartureReportRow {
+  serviceDate: string;
+  customerName: string;
+  customerNumber: string;
+  pax: number;
+  pickupTime: string | null;
+  serviceType: string;
+}
+
+interface DepartureReport {
+  from: string;
+  to: string;
+  count: number;
+  rows: DepartureReportRow[];
 }
 
 // ────────────────────────────────────────────
@@ -618,6 +637,8 @@ const EVIDENCE_COLUMNS: ColumnDef[] = [
   { key: "agentRef", label: "Agent Ref" },
   { key: "jobDate", label: "Date" },
   { key: "serviceType", label: "Type" },
+  { key: "arrivalFlightTime", label: "Arr. Flight Time" },
+  { key: "departurePickupTime", label: "Dep. Pickup Time" },
   { key: "status", label: "Status" },
   { key: "repName", label: "Rep" },
   { key: "driverName", label: "Driver" },
@@ -669,6 +690,16 @@ const SALES_COLUMNS: ColumnDef[] = [
 ];
 const SALES_DEFAULT_KEYS = SALES_COLUMNS.map((c) => c.key);
 
+const DEPARTURE_COLUMNS: ColumnDef[] = [
+  { key: "serviceDate", label: "Service Date" },
+  { key: "customerName", label: "Customer Name" },
+  { key: "customerNumber", label: "Customer Number" },
+  { key: "pax", label: "Pax", className: "text-right" },
+  { key: "pickupTime", label: "Pickup Time" },
+  { key: "serviceType", label: "Service Type" },
+];
+const DEPARTURE_DEFAULT_KEYS = DEPARTURE_COLUMNS.map((c) => c.key);
+
 // ────────────────────────────────────────────
 // Stat Card
 // ────────────────────────────────────────────
@@ -715,6 +746,7 @@ export default function ReportsPage() {
   const canCarJobs = usePermission("reports.carJobs");
   const canVisa = usePermission("reports.visa");
   const canSales = usePermission("reports.sales");
+  const canDeparture = usePermission("reports.departure");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -856,6 +888,14 @@ export default function ReportsPage() {
   const [salesLoading, setSalesLoading] = useState(false);
   const salesPrintRef = useRef<HTMLDivElement>(null);
 
+  // Departure Report
+  const [departureFrom, setDepartureFrom] = useState(thirtyDaysAgo);
+  const [departureTo, setDepartureTo] = useState(today);
+  const [departureServiceType, setDepartureServiceType] = useState("DEP");
+  const [departureData, setDepartureData] = useState<DepartureReport | null>(null);
+  const [departureLoading, setDepartureLoading] = useState(false);
+  const departurePrintRef = useRef<HTMLDivElement>(null);
+
   // Derived: filtered compliance data and unique vehicle types
   const complianceVehicleTypes = Array.from(new Set(complianceData.map((v) => v.vehicleTypeName).filter(Boolean))).sort();
   const filteredComplianceData = complianceData.filter((v) => {
@@ -876,6 +916,7 @@ export default function ReportsPage() {
   const carJobsSort = useSortable(carJobsData?.rows || []);
   const visaSort = useSortable(visaData?.rows || []);
   const salesSort = useSortable(salesData?.rows || []);
+  const departureSort = useSortable(departureData?.rows || []);
 
   // Column order hooks for drag-and-drop reordering
   const dispatchColOrder = useColumnPreferences("dispatch", DISPATCH_DEFAULT_KEYS);
@@ -892,6 +933,7 @@ export default function ReportsPage() {
   const carJobsColOrder = useColumnPreferences("car_jobs", CAR_JOBS_DEFAULT_KEYS);
   const visaColOrder = useColumnPreferences("visa", VISA_DEFAULT_KEYS);
   const salesColOrder = useColumnPreferences("sales", SALES_DEFAULT_KEYS);
+  const departureColOrder = useColumnPreferences("departure", DEPARTURE_DEFAULT_KEYS);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -1517,6 +1559,22 @@ export default function ReportsPage() {
 
   const exportSalesPdf = () => printFromRef(salesPrintRef, `Sales Report - ${salesFrom} to ${salesTo}`);
 
+  // ── Departure Report ──
+  const fetchDeparture = async () => {
+    setDepartureLoading(true);
+    try {
+      const stParam = departureServiceType !== "ALL" ? `&serviceType=${departureServiceType}` : "";
+      const { data } = await api.get(`/reports/departure?from=${departureFrom}&to=${departureTo}${stParam}`);
+      setDepartureData(data.data || data);
+    } catch {
+      toast.error("Failed to load departure report");
+    } finally {
+      setDepartureLoading(false);
+    }
+  };
+
+  const exportDeparturePdf = () => printFromRef(departurePrintRef, `Departure Report - ${departureFrom} to ${departureTo}`);
+
   // Compute final net total for a rep using current scoreEdits / missedJobs / deductions
   function computeRepNet(fees: RepFeeReportRep["fees"]): number {
     const gross = fees.reduce((sum, fee) => {
@@ -1697,6 +1755,15 @@ export default function ReportsPage() {
             >
               <DollarSign className="h-3.5 w-3.5" />
               Sales
+            </TabsTrigger>
+          )}
+          {canDeparture && (
+            <TabsTrigger
+              value="departure"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <Plane className="h-3.5 w-3.5" />
+              Departure
             </TabsTrigger>
           )}
         </TabsList>
@@ -3513,6 +3580,8 @@ export default function ReportsPage() {
                         {evidenceColOrder.visibility["agentRef"] !== false && <TableHead className="text-muted-foreground text-xs">Agent Ref</TableHead>}
                         {evidenceColOrder.visibility["jobDate"] !== false && <TableHead className="text-muted-foreground text-xs">Date</TableHead>}
                         {evidenceColOrder.visibility["serviceType"] !== false && <TableHead className="text-muted-foreground text-xs">Type</TableHead>}
+                        {evidenceColOrder.visibility["arrivalFlightTime"] !== false && <TableHead className="text-muted-foreground text-xs">Arr. Flight Time</TableHead>}
+                        {evidenceColOrder.visibility["departurePickupTime"] !== false && <TableHead className="text-muted-foreground text-xs">Dep. Pickup Time</TableHead>}
                         {evidenceColOrder.visibility["status"] !== false && <TableHead className="text-muted-foreground text-xs">Status</TableHead>}
                         {evidenceColOrder.visibility["repName"] !== false && <TableHead className="text-muted-foreground text-xs">{t("reports.repName")}</TableHead>}
                         {evidenceColOrder.visibility["driverName"] !== false && <TableHead className="text-muted-foreground text-xs">{t("dispatch.driverName")}</TableHead>}
@@ -3537,6 +3606,16 @@ export default function ReportsPage() {
                             {evidenceColOrder.visibility["serviceType"] !== false && (
                               <TableCell>
                                 <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
+                              </TableCell>
+                            )}
+                            {evidenceColOrder.visibility["arrivalFlightTime"] !== false && (
+                              <TableCell className="text-xs font-mono text-muted-foreground">
+                                {row.flight?.arrivalTime ? new Date(row.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}
+                              </TableCell>
+                            )}
+                            {evidenceColOrder.visibility["departurePickupTime"] !== false && (
+                              <TableCell className="text-xs font-mono text-muted-foreground">
+                                {row.pickUpTime ? new Date(row.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}
                               </TableCell>
                             )}
                             {evidenceColOrder.visibility["status"] !== false && (
@@ -4006,6 +4085,96 @@ export default function ReportsPage() {
           </TabsContent>
         )}
 
+        {/* ─── DEPARTURE REPORT ─── */}
+        {canDeparture && (
+          <TabsContent value="departure" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <Label className="text-muted-foreground text-xs">From</Label>
+                  <Input type="date" value={departureFrom} onChange={(e) => setDepartureFrom(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">To</Label>
+                  <Input type="date" value={departureTo} onChange={(e) => setDepartureTo(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Service Type</Label>
+                  <Select value={departureServiceType} onValueChange={setDepartureServiceType}>
+                    <SelectTrigger className="mt-1 w-36 border-border bg-card text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Types</SelectItem>
+                      <SelectItem value="ARR">ARR</SelectItem>
+                      <SelectItem value="DEP">DEP</SelectItem>
+                      <SelectItem value="DAY_TOUR">Day Tour</SelectItem>
+                      <SelectItem value="ONE_WAY_TRANSFER">One Way Transfer</SelectItem>
+                      <SelectItem value="TWO_WAY_TRANSFER">2 Way Transfer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={fetchDeparture} disabled={departureLoading} className="gap-1.5">
+                  {departureLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Generate
+                </Button>
+                {departureData && (
+                  <Button variant="outline" onClick={exportDeparturePdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> PDF
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            {departureData && (
+              <>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <StatCard label="Total Records" value={departureData.count} />
+                  <StatCard label="Period" value={`${departureData.from} → ${departureData.to}`} />
+                </div>
+
+                <div className="overflow-x-auto rounded-md border border-border" ref={departurePrintRef}>
+                  <Table>
+                    <DraggableTableHeader
+                      columns={DEPARTURE_COLUMNS}
+                      columnOrder={departureColOrder.columns}
+                      onReorder={departureColOrder.reorder}
+                      visibility={departureColOrder.visibility}
+                    />
+                    <TableBody>
+                      {departureSort.sortedData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={DEPARTURE_COLUMNS.length} className="py-8 text-center text-muted-foreground text-sm">
+                            No records found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        departureSort.sortedData.map((row, idx) => (
+                          <TableRow key={idx} className="border-border hover:bg-muted/30">
+                            {departureColOrder.columns.filter((col) => departureColOrder.visibility[col] !== false).map((col) => {
+                              switch (col) {
+                                case "serviceDate": return <TableCell key={col} className="text-xs font-mono">{row.serviceDate ? new Date(row.serviceDate).toLocaleDateString(locale) : "—"}</TableCell>;
+                                case "customerName": return <TableCell key={col} className="text-sm">{row.customerName}</TableCell>;
+                                case "customerNumber": return <TableCell key={col} className="text-xs font-mono">{row.customerNumber}</TableCell>;
+                                case "pax": return <TableCell key={col} className="text-xs text-right">{row.pax}</TableCell>;
+                                case "pickupTime": return <TableCell key={col} className="text-xs font-mono">{row.pickupTime ? new Date(row.pickupTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
+                                case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
+                                default: return null;
+                              }
+                            })}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <ColumnVisibilityControl columns={DEPARTURE_COLUMNS} visibility={departureColOrder.visibility} onSave={departureColOrder.saveVisibility} />
+              </>
+            )}
+          </TabsContent>
+        )}
+
       </Tabs>
 
       {/* ─── REP FEE DETAIL MODAL ─── */}
@@ -4055,6 +4224,8 @@ export default function ReportsPage() {
                           {t("dispatch.pax")}
                         </TableHead>
                         <TableHead className="text-muted-foreground text-xs">Route</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Arr. Flight</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Dep. Pickup</TableHead>
                         <TableHead className="text-muted-foreground text-xs">{t("locations.hotel")}</TableHead>
                         <TableHead className="text-muted-foreground text-xs">{t("common.status")}</TableHead>
                         <TableHead className="text-muted-foreground text-xs text-center">Missed</TableHead>
@@ -4117,6 +4288,12 @@ export default function ReportsPage() {
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                               {(fee.trafficJob.originAirport?.code || fee.trafficJob.fromZone?.name || fee.trafficJob.originZone?.name || fee.trafficJob.originHotel?.name || "\u2014")}{" \u2192 "}{(fee.trafficJob.destinationAirport?.code || fee.trafficJob.toZone?.name || fee.trafficJob.destinationZone?.name || fee.trafficJob.destinationHotel?.name || "\u2014")}
+                            </TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground">
+                              {fee.trafficJob.flight?.arrivalTime ? new Date(fee.trafficJob.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "\u2014"}
+                            </TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground">
+                              {fee.trafficJob.pickUpTime ? new Date(fee.trafficJob.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "\u2014"}
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm">
                               {fee.trafficJob.hotel?.name || "\u2014"}

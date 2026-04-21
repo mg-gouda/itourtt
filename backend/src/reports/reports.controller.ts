@@ -108,6 +108,18 @@ class DriverScoreQueryDto {
   driverId?: string;
 }
 
+class DepartureQueryDto {
+  @IsString()
+  from!: string;
+
+  @IsString()
+  to!: string;
+
+  @IsOptional()
+  @IsString()
+  serviceType?: string;
+}
+
 class UpsertRepScoreDto {
   @IsBoolean()
   attendance!: boolean;
@@ -302,6 +314,20 @@ export class ReportsController {
       throw new BadRequestException('from and to query parameters are required');
     }
     const result = await this.reportsService.salesReport(query.from, query.to);
+    return new ApiResponse(result);
+  }
+
+  @Get('departure')
+  @Permissions('reports.departure')
+  async departureReport(@Query() query: DepartureQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.departureReport(
+      query.from,
+      query.to,
+      query.serviceType,
+    );
     return new ApiResponse(result);
   }
 
