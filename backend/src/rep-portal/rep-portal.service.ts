@@ -871,4 +871,19 @@ export class RepPortalService {
     if (!job) throw new NotFoundException('Job not found or not assigned to you');
     return job;
   }
+
+  async getJobStampMeta(jobId: string) {
+    const job = await this.prisma.trafficJob.findUnique({
+      where: { id: jobId },
+      select: {
+        status: true,
+        assignment: { select: { driver: { select: { name: true } }, rep: { select: { name: true } } } },
+      },
+    });
+    return {
+      rep: job?.assignment?.rep?.name ?? null,
+      driver: job?.assignment?.driver?.name ?? null,
+      status: job?.status ?? null,
+    };
+  }
 }

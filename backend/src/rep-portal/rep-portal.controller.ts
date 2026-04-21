@@ -24,7 +24,7 @@ import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsString, IsIn, IsOptional, IsNumber } from 'class-validator';
 import * as path from 'path';
 import * as fs from 'fs';
-import { stampEvidenceImage } from '../common/utils/stamp-image.js';
+import { stampEvidenceImage, StampMeta } from '../common/utils/stamp-image.js';
 
 // Fallback disk storage (used when Drive is not configured)
 const uploadsBase = path.join(process.cwd(), 'uploads');
@@ -128,7 +128,8 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude);
+    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch(() => undefined);
+    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'No-show evidence submitted');
@@ -152,7 +153,8 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'in-place', latitude, longitude);
+    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch(() => undefined);
+    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'in-place', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitInPlace(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'In-place evidence submitted');
@@ -176,7 +178,8 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'completed', latitude, longitude);
+    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch(() => undefined);
+    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'completed', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'Completed evidence submitted');
@@ -246,13 +249,14 @@ export class RepPortalController {
     localSubdir: string,
     lat?: number,
     lng?: number,
+    meta?: StampMeta,
   ): Promise<string[]> {
     const urls: string[] = [];
 
     for (const file of files) {
       const buffer =
         lat !== undefined && lng !== undefined
-          ? await stampEvidenceImage(file.buffer, lat, lng).catch(() => file.buffer)
+          ? await stampEvidenceImage(file.buffer, lat, lng, undefined, meta).catch(() => file.buffer)
           : file.buffer;
 
       const uniqueName = Date.now() + '-' + file.originalname.replace(/\.[^.]+$/, '') + '.jpg';

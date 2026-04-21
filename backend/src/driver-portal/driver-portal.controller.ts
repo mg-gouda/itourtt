@@ -24,7 +24,7 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsString, IsIn, IsOptional, IsNumber, IsBoolean } from 'class-validator';
-import { stampEvidenceImage } from '../common/utils/stamp-image.js';
+import { stampEvidenceImage, StampMeta } from '../common/utils/stamp-image.js';
 
 const uploadsDir = path.join(process.cwd(), 'uploads', 'no-show');
 if (!fs.existsSync(uploadsDir)) {
@@ -146,7 +146,8 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude);
+    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch(() => undefined);
+    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
 
     const result = await this.driverPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'No-show evidence submitted');
@@ -170,7 +171,8 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed', latitude, longitude);
+    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch(() => undefined);
+    const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed', latitude, longitude, stampMeta);
 
     const result = await this.driverPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'Completed evidence submitted');
@@ -214,6 +216,7 @@ export class DriverPortalController {
     localSubdir: string,
     lat?: number,
     lng?: number,
+    meta?: StampMeta,
   ): Promise<string[]> {
     const urls: string[] = [];
     const uploadsBase = path.join(process.cwd(), 'uploads');
@@ -221,7 +224,7 @@ export class DriverPortalController {
     for (const file of files) {
       const buffer =
         lat !== undefined && lng !== undefined
-          ? await stampEvidenceImage(file.buffer, lat, lng).catch(() => file.buffer)
+          ? await stampEvidenceImage(file.buffer, lat, lng, undefined, meta).catch(() => file.buffer)
           : file.buffer;
 
       const uniqueName = Date.now() + '-' + file.originalname.replace(/\.[^.]+$/, '') + '.jpg';
