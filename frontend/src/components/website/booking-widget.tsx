@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MapPin,
@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  Car,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,12 @@ interface LocationNode {
   name: string;
   type: string;
   children?: LocationNode[];
+}
+
+interface VehicleType {
+  id: string;
+  name: string;
+  capacity: number;
 }
 
 interface BookingWidgetProps {
@@ -117,144 +124,6 @@ function Field({
   );
 }
 
-/* ─── Google Maps Script Loader ─── */
-function useGoogleMaps(apiKey: string) {
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!apiKey) { setLoaded(false); return; }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((window as any).google?.maps?.places) { setLoaded(true); return; }
-    // Script already in DOM — poll until places is ready (avoids missed load event)
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existing) {
-      const poll = setInterval(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((window as any).google?.maps?.places) { clearInterval(poll); setLoaded(true); }
-      }, 100);
-      return () => clearInterval(poll);
-    }
-    // Use callback= so Google only fires it after ALL libraries (incl. Places) are ready.
-    // loading=async causes onload to fire before Places is initialized — do not use it.
-    const cb = `__gmcb_${Math.random().toString(36).slice(2)}`;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any)[cb] = () => { delete (window as any)[cb]; setLoaded(true); };
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=${cb}`;
-    script.async = true;
-    script.defer = true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    script.onerror = () => { delete (window as any)[cb]; };
-    document.head.appendChild(script);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return () => { delete (window as any)[cb]; };
-  }, [apiKey]);
-
-  return loaded;
-}
-
-/* ─── Places Autocomplete ─── */
-function PlacesAutocomplete({
-  value,
-  onChange,
-  onSelect,
-  placeholder,
-  mapsLoaded,
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  onSelect: (place: { name: string; placeId: string }) => void;
-  placeholder: string;
-  mapsLoaded: boolean;
-}) {
-  const [predictions, setPredictions] = useState<
-    Array<{ place_id: string; description: string }>
-  >([]);
-  const [open, setOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const apiModeRef = useRef<'new' | 'legacy' | null>(null);
-
-  useEffect(() => {
-    if (!mapsLoaded) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const g = (window as any).google?.maps?.places;
-    if (g?.AutocompleteService) apiModeRef.current = 'legacy';
-    else if (g?.AutocompleteSuggestion) apiModeRef.current = 'new';
-  }, [mapsLoaded]);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const handleInput = async (text: string) => {
-    onChange(text);
-    if (!text || text.length < 2 || !apiModeRef.current) {
-      setPredictions([]); setOpen(false); return;
-    }
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const g = (window as any).google.maps.places;
-      if (apiModeRef.current === 'new') {
-        const { suggestions } = await g.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-          input: text, language: 'en',
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const results = (suggestions || []).map((s: any) => ({
-          place_id: s.placePrediction?.placeId || '',
-          description: s.placePrediction?.text?.text || '',
-        }));
-        setPredictions(results);
-        setOpen(results.length > 0);
-      } else {
-        const service = new g.AutocompleteService();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        service.getPlacePredictions({ input: text }, (results: any[] | null) => {
-          setPredictions(results || []);
-          setOpen((results?.length ?? 0) > 0);
-        });
-      }
-    } catch { setPredictions([]); setOpen(false); }
-  };
-
-  return (
-    <div ref={wrapperRef} className="relative">
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => handleInput(e.target.value)}
-        onFocus={() => predictions.length > 0 && setOpen(true)}
-        placeholder={placeholder}
-        className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-      />
-      {open && predictions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-[100] mt-1.5 max-h-48 overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-xl">
-          {predictions.map((p) => (
-            <button
-              key={p.place_id}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                onSelect({ name: p.description, placeId: p.place_id });
-                onChange(p.description);
-                setPredictions([]); setOpen(false);
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
-            >
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-300" />
-              {p.description}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ─── Booking Widget ─── */
 export function BookingWidget({ settings }: BookingWidgetProps) {
   const router = useRouter();
@@ -262,36 +131,24 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
 
   const [activeTab, setActiveTab] = useState<Tab>('ARR');
   const [locations, setLocations] = useState<LocationNode[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState('');
   const [showQuote, setShowQuote] = useState(false);
   const [luggage, setLuggage] = useState(2);
-  const [placeSearch, setPlaceSearch] = useState('');
-  const [googleKey, setGoogleKey] = useState('');
   const [showAddons, setShowAddons] = useState(false);
 
   const t = useWT();
-  const mapsLoaded = useGoogleMaps(googleKey);
 
   useEffect(() => {
     store.setField('serviceType', activeTab);
     setShowQuote(false);
-    setPlaceSearch('');
+    store.setField('fromZoneId', '');
+    store.setField('toZoneId', '');
+    store.setField('originAirportId', '');
+    store.setField('destinationAirportId', '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
-
-  const extractAirports = useCallback(
-    (nodes: LocationNode[]): { id: string; name: string }[] => {
-      const airports: { id: string; name: string }[] = [];
-      const traverse = (node: LocationNode) => {
-        if (node.type === 'AIRPORT') airports.push({ id: node.id, name: node.name });
-        if (node.children) node.children.forEach(traverse);
-      };
-      nodes.forEach(traverse);
-      return airports;
-    },
-    [],
-  );
 
   useEffect(() => {
     fetch(`${API}/locations`)
@@ -299,43 +156,84 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
       .then((data) => setLocations(Array.isArray(data) ? data : data.data || []))
       .catch(() => setLocations([]));
 
-    fetch(`${API}/google-maps-key`)
+    fetch(`${API}/vehicle-types`)
       .then((r) => r.json())
-      .then((data) => setGoogleKey(data?.data?.apiKey ?? data?.apiKey ?? ''))
-      .catch(() => {});
+      .then((data) => setVehicleTypes(Array.isArray(data) ? data : data.data || []))
+      .catch(() => setVehicleTypes([]));
   }, []);
 
-  const airports = extractAirports(locations);
-  const isArr = activeTab === 'ARR';
+  /* Extract flat list of airports from tree */
+  const airports = useCallback(
+    (nodes: LocationNode[]): { id: string; name: string }[] => {
+      const list: { id: string; name: string }[] = [];
+      const walk = (n: LocationNode) => {
+        if (n.type === 'AIRPORT') list.push({ id: n.id, name: n.name });
+        n.children?.forEach(walk);
+      };
+      nodes.forEach(walk);
+      return list;
+    },
+    [],
+  )(locations);
+
+  /* Extract flat list of zones from tree */
+  const zones = useCallback(
+    (nodes: LocationNode[]): { id: string; name: string }[] => {
+      const list: { id: string; name: string }[] = [];
+      const walk = (n: LocationNode) => {
+        if (n.type === 'ZONE') list.push({ id: n.id, name: n.name });
+        n.children?.forEach(walk);
+      };
+      nodes.forEach(walk);
+      return list;
+    },
+    [],
+  )(locations);
+
+  /* Get the first zone that sits under a given airport in the tree */
+  const firstZoneForAirport = useCallback(
+    (nodes: LocationNode[], airportId: string): string | null => {
+      for (const country of nodes) {
+        for (const airport of country.children ?? []) {
+          if (airport.id === airportId && airport.type === 'AIRPORT') {
+            for (const city of airport.children ?? []) {
+              for (const zone of city.children ?? []) {
+                if (zone.type === 'ZONE') return zone.id;
+              }
+            }
+          }
+        }
+      }
+      return null;
+    },
+    [],
+  );
+
+  /* When airport is selected, auto-resolve the airport-side zone for pricing */
+  const handleAirportChange = (airportId: string) => {
+    const isArr = activeTab === 'ARR';
+    store.setField(isArr ? 'originAirportId' : 'destinationAirportId', airportId);
+    const zoneId = firstZoneForAirport(locations, airportId);
+    if (zoneId) store.setField(isArr ? 'fromZoneId' : 'toZoneId', zoneId);
+    setShowQuote(false);
+  };
 
   const handleGetQuote = async () => {
     setQuoteError('');
     setQuoting(true);
     setShowQuote(false);
     try {
-      const body: Record<string, unknown> = {
-        serviceType: activeTab,
-        jobDate: store.jobDate,
-        pickupTime: store.pickupTime,
-        paxCount: store.paxCount,
-        extras: store.extras,
-      };
-      if (isArr) {
-        body.originAirportId = store.originAirportId;
-        body.toPlace = store.toPlaceName;
-        body.toPlaceId = store.toPlaceId;
-      } else {
-        body.destinationAirportId = store.destinationAirportId;
-        body.fromPlace = store.fromPlaceName;
-        body.fromPlaceId = store.fromPlaceId;
-      }
-      if (store.fromZoneId) body.fromZoneId = store.fromZoneId;
-      if (store.toZoneId) body.toZoneId = store.toZoneId;
-
       const res = await fetch(`${API}/quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          serviceType: activeTab,
+          fromZoneId: store.fromZoneId,
+          toZoneId: store.toZoneId,
+          vehicleTypeId: store.vehicleTypeId,
+          paxCount: store.paxCount,
+          extras: store.extras,
+        }),
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -358,9 +256,18 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
     }
   };
 
+  const isArr = activeTab === 'ARR';
   const airportValue = isArr ? store.originAirportId : store.destinationAirportId;
-  const placeName = isArr ? store.toPlaceName : store.fromPlaceName;
-  const canQuote = airportValue && placeName && store.jobDate && store.pickupTime && store.paxCount > 0;
+  const hotelZone = isArr ? store.toZoneId : store.fromZoneId;
+  const canQuote =
+    airportValue &&
+    hotelZone &&
+    store.fromZoneId &&
+    store.toZoneId &&
+    store.vehicleTypeId &&
+    store.jobDate &&
+    store.pickupTime &&
+    store.paxCount > 0;
   const pc = settings.primaryColor;
 
   const addonCount =
@@ -433,7 +340,7 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
           </Field>
         </div>
 
-        {/* Row 2: Airport ↔ Place — inlined to avoid inner-component remount on every keypress */}
+        {/* Row 2: Airport ↔ Hotel Zone */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
           {/* Airport field */}
           <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
@@ -444,10 +351,7 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
               </p>
               <Select
                 value={isArr ? store.originAirportId : store.destinationAirportId}
-                onValueChange={(v) => {
-                  store.setField(isArr ? 'originAirportId' : 'destinationAirportId', v);
-                  setShowQuote(false);
-                }}
+                onValueChange={handleAirportChange}
               >
                 <SelectTrigger className={selectCls}>
                   <SelectValue placeholder={t('booking.selectAirport')} />
@@ -461,24 +365,55 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
             </div>
           </div>
 
-          {/* Place field (hotel / address) — PlacesAutocomplete must never remount mid-typing */}
+          {/* Hotel / Stay Area Zone */}
           <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
             <MapPin className="h-4 w-4 shrink-0" style={{ color: isArr ? '#dc2626' : '#16a34a' }} />
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 {isArr ? `${t('booking.dropoffHotel')} *` : `${t('booking.pickupHotel')} *`}
               </p>
-              <PlacesAutocomplete
-                value={placeSearch}
-                onChange={(v) => { setPlaceSearch(v); setShowQuote(false); }}
-                onSelect={(place) => {
-                  store.setField(isArr ? 'toPlaceName' : 'fromPlaceName', place.name);
-                  store.setField(isArr ? 'toPlaceId' : 'fromPlaceId', place.placeId);
+              <Select
+                value={hotelZone}
+                onValueChange={(v) => {
+                  store.setField(isArr ? 'toZoneId' : 'fromZoneId', v);
+                  setShowQuote(false);
                 }}
-                placeholder={t('booking.searchLocation')}
-                mapsLoaded={mapsLoaded}
-              />
+              >
+                <SelectTrigger className={selectCls}>
+                  <SelectValue placeholder={t('booking.searchLocation')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {zones.map((z) => (
+                    <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+        </div>
+
+        {/* Row 3: Vehicle Type */}
+        <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+          <Car className="h-4 w-4 shrink-0" style={{ color: pc }} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              Vehicle Type *
+            </p>
+            <Select
+              value={store.vehicleTypeId}
+              onValueChange={(v) => { store.setField('vehicleTypeId', v); setShowQuote(false); }}
+            >
+              <SelectTrigger className={selectCls}>
+                <SelectValue placeholder="Select vehicle" />
+              </SelectTrigger>
+              <SelectContent>
+                {vehicleTypes.map((vt) => (
+                  <SelectItem key={vt.id} value={vt.id}>
+                    {vt.name} (up to {vt.capacity} pax)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
