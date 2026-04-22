@@ -1285,24 +1285,36 @@ export default function ReportsPage() {
   const generateEvidencePdf = (row: EvidenceReportRow) =>
     downloadEvidenceZip(row.jobId, row.internalRef);
 
+  const isDriveId = (url: string) => /^[A-Za-z0-9_-]{20,}$/.test(url);
+
   const openEvidenceView = async (imageUrls: string[], jobRef: string) => {
     setEvidenceViewJobRef(jobRef);
     setEvidenceViewUrls([]);
     setEvidenceViewOpen(true);
     setEvidenceViewLoading(true);
-    try {
-      const objectUrls = await Promise.all(
-        imageUrls.map(async (fileId) => {
-          const res = await api.get(`/export/odoo/evidence-file/${fileId}`, { responseType: "blob" });
-          return URL.createObjectURL(res.data);
-        })
-      );
-      setEvidenceViewUrls(objectUrls);
-    } catch {
-      toast.error("Failed to load evidence images");
-    } finally {
-      setEvidenceViewLoading(false);
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+    const resolved = await Promise.all(
+      imageUrls.map(async (url) => {
+        if (isDriveId(url)) {
+          try {
+            const res = await api.get(`/export/odoo/evidence-file/${url}`, { responseType: "blob" });
+            return URL.createObjectURL(res.data);
+          } catch {
+            return null;
+          }
+        }
+        // Local path like /uploads/no-show/filename.jpg
+        return url.startsWith("http") ? url : `${apiBase}${url}`;
+      })
+    );
+    const loaded = resolved.filter(Boolean) as string[];
+    setEvidenceViewUrls(loaded);
+    if (loaded.length === 0 && imageUrls.length > 0) {
+      toast.error("Failed to load evidence images — Google Drive may not be configured");
+    } else if (loaded.length < imageUrls.length) {
+      toast.error("Some evidence images could not be loaded");
     }
+    setEvidenceViewLoading(false);
   };
 
   const fetchRepScore = async () => {
@@ -4467,7 +4479,7 @@ export default function ReportsPage() {
         onOpenChange={(open) => {
           setEvidenceViewOpen(open);
           if (!open) {
-            evidenceViewUrls.forEach((u) => URL.revokeObjectURL(u));
+            evidenceViewUrls.forEach((u) => { if (u.startsWith("blob:")) URL.revokeObjectURL(u); });
             setEvidenceViewUrls([]);
           }
         }}
