@@ -74,15 +74,6 @@ export class RepPortalController {
     return new ApiResponse(result);
   }
 
-  @Get('jobs/:jobId')
-  async getJobDetail(
-    @CurrentUser('id') userId: string,
-    @Param('jobId') jobId: string,
-  ) {
-    const job = await this.repPortalService.findJobDetail(userId, jobId);
-    return new ApiResponse(job);
-  }
-
   @Get('jobs/history')
   async getJobHistory(
     @CurrentUser('id') userId: string,
@@ -92,6 +83,15 @@ export class RepPortalController {
     const today = new Date().toISOString().split('T')[0];
     const result = await this.repPortalService.getJobHistory(userId, dateFrom || today, dateTo || today);
     return new ApiResponse(result);
+  }
+
+  @Get('jobs/:jobId')
+  async getJobDetail(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    const job = await this.repPortalService.findJobDetail(userId, jobId);
+    return new ApiResponse(job);
   }
 
   @Patch('jobs/:jobId/status')
