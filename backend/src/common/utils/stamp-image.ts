@@ -4,6 +4,7 @@ export interface StampMeta {
   rep?: string | null;
   driver?: string | null;
   status?: string | null;
+  portalStatus?: string | null;
 }
 
 /**
@@ -42,9 +43,10 @@ export async function stampEvidenceImage(
   const repLine    = meta?.rep    ? `Rep: ${meta.rep}` : null;
   const driverLine = meta?.driver ? `Driver: ${meta.driver}` : null;
   const peopleLine = [repLine, driverLine].filter(Boolean).join('   |   ') || null;
-  const statusLine = meta?.status ? `Status: ${meta.status.replace(/_/g, ' ')}` : null;
+  const statusLine = meta?.status ? `Job Status: ${meta.status.replace(/_/g, ' ')}` : null;
+  const portalLine = meta?.portalStatus ?? null;
 
-  const extraLines = [peopleLine, statusLine].filter(Boolean) as string[];
+  const extraLines = [peopleLine, statusLine, portalLine].filter(Boolean) as string[];
   const totalLines = 2 + extraLines.length;
 
   const fontSize = Math.max(16, Math.min(52, Math.round(w * 0.022)));
@@ -55,22 +57,15 @@ export async function stampEvidenceImage(
   const esc = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  const baseY  = h - bgH + pad + lineH - Math.round(fontSize * 0.2);
-  const line1Y = baseY;
-  const line2Y = baseY + lineH;
-  const line3Y = baseY + lineH * 2;
-  const line4Y = baseY + lineH * 3;
+  const baseY = h - bgH + pad + lineH - Math.round(fontSize * 0.2);
 
   let textNodes =
-    `<text x="${pad}" y="${line1Y}" fill="#FFD700" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(dateLine)}</text>` +
-    `<text x="${pad}" y="${line2Y}" fill="#FFD700" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(gpsLine)}</text>`;
+    `<text x="${pad}" y="${baseY}" fill="#FFD700" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(dateLine)}</text>` +
+    `<text x="${pad}" y="${baseY + lineH}" fill="#FFD700" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(gpsLine)}</text>`;
 
-  if (extraLines[0]) {
-    textNodes += `<text x="${pad}" y="${line3Y}" fill="#FFFFFF" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(extraLines[0])}</text>`;
-  }
-  if (extraLines[1]) {
-    textNodes += `<text x="${pad}" y="${line4Y}" fill="#FFFFFF" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(extraLines[1])}</text>`;
-  }
+  extraLines.forEach((line, i) => {
+    textNodes += `<text x="${pad}" y="${baseY + lineH * (i + 2)}" fill="#FFFFFF" font-family="DejaVu Sans,sans-serif" font-size="${fontSize}" font-weight="bold">${esc(line)}</text>`;
+  });
 
   const svg = Buffer.from(
     `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">` +

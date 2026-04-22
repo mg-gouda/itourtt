@@ -128,7 +128,7 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch(() => undefined);
+    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
@@ -153,7 +153,7 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch(() => undefined);
+    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'in-place', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitInPlace(userId, jobId, imageUrls, latitude, longitude);
@@ -178,7 +178,7 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch(() => undefined);
+    const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'completed', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);

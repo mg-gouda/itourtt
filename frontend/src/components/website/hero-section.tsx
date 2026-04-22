@@ -43,19 +43,25 @@ export function HeroSection({ settings, children }: HeroSectionProps) {
       />
 
       {/* Content */}
-      <div className="relative px-4 py-20 sm:py-28 lg:py-36">
-        <div className="mx-auto max-w-4xl text-center">
+      <div className="relative px-4 pb-16 pt-16 sm:pb-20 sm:pt-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <div
+            className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white/80 backdrop-blur-sm"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Private Airport Transfers · Egypt
+          </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
             {settings.heroTitle}
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-white/70 sm:text-xl">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/65 sm:text-lg">
             {settings.heroSubtitle}
           </p>
         </div>
 
         {/* Booking Widget slot */}
         {children && (
-          <div className="mx-auto mt-12 max-w-4xl sm:mt-16">{children}</div>
+          <div className="mx-auto mt-10 max-w-2xl sm:mt-12">{children}</div>
         )}
       </div>
 

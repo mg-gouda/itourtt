@@ -696,13 +696,21 @@ export class DriverPortalService {
       where: { id: jobId },
       select: {
         status: true,
-        assignment: { select: { driver: { select: { name: true } }, rep: { select: { name: true } } } },
+        assignment: {
+          select: {
+            driverStatus: true,
+            driver: { select: { name: true } },
+            rep: { select: { name: true } },
+          },
+        },
       },
     });
+    const ds = job?.assignment?.driverStatus;
     return {
       rep: job?.assignment?.rep?.name ?? null,
       driver: job?.assignment?.driver?.name ?? null,
       status: job?.status ?? null,
+      portalStatus: ds ? `Driver: ${ds.replace(/_/g, ' ')}` : null,
     };
   }
 }
