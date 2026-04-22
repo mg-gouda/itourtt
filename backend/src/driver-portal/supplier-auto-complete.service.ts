@@ -2,8 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-const SUPPLIER_AUTO_COMPLETE_MINUTES = 80;
-const DRIVER_TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
+const TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
 @Injectable()
 export class SupplierAutoCompleteService {
@@ -11,48 +10,40 @@ export class SupplierAutoCompleteService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  @Cron('*/5 * * * *') // every 5 minutes
-  async autoCompleteSupplierJobs() {
-    const now = new Date();
+  @Cron('0 0 * * *') // daily at midnight — auto-close yesterday's supplier driver & DEP rep statuses
+  async autoCompleteJobs() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
+    this.logger.log(
+      `Midnight auto-complete: processing jobs on ${yesterday.toDateString()}`,
+    );
+
+    await this.autoCompleteSupplierDrivers(yesterday, today);
+    await this.autoCompleteDepReps(yesterday, today);
+  }
+
+  private async autoCompleteSupplierDrivers(from: Date, to: Date) {
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         supplierId: { not: null },
-        driverStatus: { notIn: DRIVER_TERMINAL_STATUSES as any },
+        driverStatus: { notIn: TERMINAL_STATUSES as any },
         trafficJob: {
           deletedAt: null,
-          status: { notIn: DRIVER_TERMINAL_STATUSES as any },
+          status: { notIn: TERMINAL_STATUSES as any },
+          jobDate: { gte: from, lt: to },
         },
       },
-      include: {
-        trafficJob: {
-          include: { flight: true },
-        },
-      },
+      include: { trafficJob: true },
     });
 
     for (const assignment of assignments) {
       const job = assignment.trafficJob;
-
-      // Determine the reference job time
-      const flight = (job as any).flight;
-      const jobTime =
-        job.serviceType === 'ARR'
-          ? (flight?.arrivalTime ?? null)
-          : (job.pickUpTime ?? null);
-
-      if (!jobTime) continue;
-
-      const autoCompleteAt = new Date(
-        new Date(jobTime).getTime() + SUPPLIER_AUTO_COMPLETE_MINUTES * 60 * 1000,
-      );
-
-      if (now < autoCompleteAt) continue;
-
       this.logger.log(
-        `Auto-completing supplier job ${job.internalRef} (${assignment.id}) — ${SUPPLIER_AUTO_COMPLETE_MINUTES}min past job time`,
+        `Auto-completing driver for supplier job ${job.internalRef}`,
       );
-
       try {
         await this.prisma.$transaction(async (tx) => {
           await tx.trafficAssignment.update({
@@ -73,40 +64,104 @@ export class SupplierAutoCompleteService {
             },
           });
 
-          const isDepJob = job.serviceType === 'DEP';
-          const repAssigned = !!assignment.repId;
-          const repCompleted = assignment.repStatus === 'COMPLETED';
-          const shouldCompleteJob = !repAssigned || repCompleted || isDepJob;
-
-          if (shouldCompleteJob) {
-            await tx.trafficJob.update({
-              where: { id: job.id },
-              data: { status: 'COMPLETED' as any },
-            });
-
-            if (assignment.driverId && job.fromZoneId && job.toZoneId) {
-              const existingFee = await tx.driverTripFee.findFirst({
-                where: { driverId: assignment.driverId, trafficJobId: job.id },
-              });
-              if (!existingFee) {
-                await tx.driverTripFee.create({
-                  data: {
-                    driverId: assignment.driverId,
-                    trafficJobId: job.id,
-                    fromZoneId: job.fromZoneId,
-                    toZoneId: job.toZoneId,
-                    amount: 0,
-                    currency: 'EGP',
-                  },
-                });
-              }
-            }
-          }
+          await this.maybeCompleteJob(tx, assignment.id, job);
         });
       } catch (err) {
         this.logger.error(
-          `Failed to auto-complete supplier job ${job.internalRef}: ${err}`,
+          `Failed driver auto-complete for job ${job.internalRef}: ${err}`,
         );
+      }
+    }
+  }
+
+  private async autoCompleteDepReps(from: Date, to: Date) {
+    const assignments = await this.prisma.trafficAssignment.findMany({
+      where: {
+        repId: { not: null },
+        repStatus: { notIn: TERMINAL_STATUSES as any },
+        trafficJob: {
+          serviceType: 'DEP',
+          deletedAt: null,
+          status: { notIn: TERMINAL_STATUSES as any },
+          jobDate: { gte: from, lt: to },
+        },
+      },
+      include: { trafficJob: true },
+    });
+
+    for (const assignment of assignments) {
+      const job = assignment.trafficJob;
+      this.logger.log(
+        `Auto-completing rep for DEP job ${job.internalRef}`,
+      );
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.trafficAssignment.update({
+            where: { id: assignment.id },
+            data: { repStatus: 'COMPLETED' as any },
+          });
+
+          await tx.statusChangeLog.create({
+            data: {
+              assignmentId: assignment.id,
+              changedBy: 'SYSTEM',
+              changedById: assignment.id,
+              previousStatus: assignment.repStatus as any,
+              newStatus: 'COMPLETED' as any,
+              gpsLatitude: 0,
+              gpsLongitude: 0,
+              gpsMapLink: 'Auto-completed by system (DEP job)',
+            },
+          });
+
+          await this.maybeCompleteJob(tx, assignment.id, job);
+        });
+      } catch (err) {
+        this.logger.error(
+          `Failed rep auto-complete for DEP job ${job.internalRef}: ${err}`,
+        );
+      }
+    }
+  }
+
+  // Re-reads fresh assignment state to decide if the overall job is now done
+  private async maybeCompleteJob(
+    tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+    assignmentId: string,
+    job: { id: string; internalRef: string; fromZoneId: string | null; toZoneId: string | null },
+  ) {
+    const fresh = await tx.trafficAssignment.findUnique({
+      where: { id: assignmentId },
+    });
+    if (!fresh) return;
+
+    const driverDone =
+      !fresh.driverId || TERMINAL_STATUSES.includes(fresh.driverStatus as string);
+    const repDone =
+      !fresh.repId || TERMINAL_STATUSES.includes(fresh.repStatus as string);
+
+    if (!driverDone || !repDone) return;
+
+    await tx.trafficJob.update({
+      where: { id: job.id },
+      data: { status: 'COMPLETED' as any },
+    });
+
+    if (fresh.driverId && job.fromZoneId && job.toZoneId) {
+      const existingFee = await tx.driverTripFee.findFirst({
+        where: { driverId: fresh.driverId, trafficJobId: job.id },
+      });
+      if (!existingFee) {
+        await tx.driverTripFee.create({
+          data: {
+            driverId: fresh.driverId,
+            trafficJobId: job.id,
+            fromZoneId: job.fromZoneId,
+            toZoneId: job.toZoneId,
+            amount: 0,
+            currency: 'EGP',
+          },
+        });
       }
     }
   }
