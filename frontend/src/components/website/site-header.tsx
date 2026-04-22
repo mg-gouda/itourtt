@@ -60,6 +60,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
           src={settings.siteLogoUrl}
           alt={settings.siteName}
           className="h-9 w-auto shrink-0 object-contain"
+          style={{ minWidth: '60px' }}
         />
       ) : (
         <>

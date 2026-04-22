@@ -291,9 +291,6 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
 
   const airports = extractAirports(locations);
   const isArr = activeTab === 'ARR';
-  const airportField = isArr ? 'originAirportId' : 'destinationAirportId';
-  const airportValue = isArr ? store.originAirportId : store.destinationAirportId;
-  const placeStoreField = isArr ? 'to' : 'from';
 
   const handleGetQuote = async () => {
     setQuoteError('');
@@ -345,6 +342,7 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
     }
   };
 
+  const airportValue = isArr ? store.originAirportId : store.destinationAirportId;
   const placeName = isArr ? store.toPlaceName : store.fromPlaceName;
   const canQuote = airportValue && placeName && store.jobDate && store.pickupTime && store.paxCount > 0;
   const pc = settings.primaryColor;
@@ -357,51 +355,6 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
 
   const selectCls =
     'w-full border-0 bg-transparent text-gray-900 shadow-none hover:bg-transparent focus:ring-0 h-auto p-0 text-sm';
-
-  const AirportSelect = ({ color }: { color: string }) => (
-    <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-      <Plane className="h-4 w-4 shrink-0" style={{ color }} />
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-          {isArr ? `${t('booking.arrivalAirport')} *` : `${t('booking.departureAirport')} *`}
-        </p>
-        <Select
-          value={airportValue}
-          onValueChange={(v) => { store.setField(airportField, v); setShowQuote(false); }}
-        >
-          <SelectTrigger className={selectCls}>
-            <SelectValue placeholder={t('booking.selectAirport')} />
-          </SelectTrigger>
-          <SelectContent>
-            {airports.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
-
-  const PlaceField = ({ color, label }: { color: string; label: string }) => (
-    <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-      <MapPin className="h-4 w-4 shrink-0" style={{ color }} />
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-          {label}
-        </p>
-        <PlacesAutocomplete
-          value={placeSearch}
-          onChange={(v) => { setPlaceSearch(v); setShowQuote(false); }}
-          onSelect={(place) => {
-            store.setField(`${placeStoreField}PlaceName`, place.name);
-            store.setField(`${placeStoreField}PlaceId`, place.placeId);
-          }}
-          placeholder={t('booking.searchLocation')}
-          mapsLoaded={mapsLoaded}
-        />
-      </div>
-    </div>
-  );
 
   return (
     <div className="overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
@@ -464,19 +417,53 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
           </Field>
         </div>
 
-        {/* Row 2: Airport ↔ Place */}
+        {/* Row 2: Airport ↔ Place — inlined to avoid inner-component remount on every keypress */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-          {isArr ? (
-            <>
-              <AirportSelect color="#16a34a" />
-              <PlaceField color="#dc2626" label={`${t('booking.dropoffHotel')} *`} />
-            </>
-          ) : (
-            <>
-              <PlaceField color="#16a34a" label={`${t('booking.pickupHotel')} *`} />
-              <AirportSelect color="#dc2626" />
-            </>
-          )}
+          {/* Airport field */}
+          <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+            <Plane className="h-4 w-4 shrink-0" style={{ color: isArr ? '#16a34a' : '#dc2626' }} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                {isArr ? `${t('booking.arrivalAirport')} *` : `${t('booking.departureAirport')} *`}
+              </p>
+              <Select
+                value={isArr ? store.originAirportId : store.destinationAirportId}
+                onValueChange={(v) => {
+                  store.setField(isArr ? 'originAirportId' : 'destinationAirportId', v);
+                  setShowQuote(false);
+                }}
+              >
+                <SelectTrigger className={selectCls}>
+                  <SelectValue placeholder={t('booking.selectAirport')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {airports.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Place field (hotel / address) — PlacesAutocomplete must never remount mid-typing */}
+          <div className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+            <MapPin className="h-4 w-4 shrink-0" style={{ color: isArr ? '#dc2626' : '#16a34a' }} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                {isArr ? `${t('booking.dropoffHotel')} *` : `${t('booking.pickupHotel')} *`}
+              </p>
+              <PlacesAutocomplete
+                value={placeSearch}
+                onChange={(v) => { setPlaceSearch(v); setShowQuote(false); }}
+                onSelect={(place) => {
+                  store.setField(isArr ? 'toPlaceName' : 'fromPlaceName', place.name);
+                  store.setField(isArr ? 'toPlaceId' : 'fromPlaceId', place.placeId);
+                }}
+                placeholder={t('booking.searchLocation')}
+                mapsLoaded={mapsLoaded}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Add-ons toggle */}
