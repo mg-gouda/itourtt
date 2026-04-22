@@ -9,9 +9,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
 import { NoShowDisputeService } from './no-show-dispute.service.js';
 
-type DriverJobStatus = 'IN_PROGRESS' | 'CANCELLED';
+type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
-const DRIVER_ALLOWED_STATUSES: DriverJobStatus[] = ['IN_PROGRESS', 'CANCELLED'];
+const DRIVER_ALLOWED_STATUSES: DriverJobStatus[] = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 const DRIVER_TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
 const DRIVER_VALID_TRANSITIONS: Record<string, string[]> = {

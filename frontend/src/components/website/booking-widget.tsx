@@ -36,7 +36,7 @@ import { localDateStr } from '@/lib/utils';
 import type { SiteSettings } from '@/lib/site-settings';
 import { useWT } from '@/lib/website-i18n';
 
-const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/public`;
+const API = `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/public`;
 
 type Tab = 'ARR' | 'DEP';
 
@@ -125,13 +125,29 @@ function useGoogleMaps(apiKey: string) {
     if (!apiKey) { setLoaded(false); return; }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((window as any).google?.maps?.places) { setLoaded(true); return; }
+    // Script already in DOM — poll until places is ready (avoids missed load event)
     const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existing) { existing.addEventListener('load', () => setLoaded(true)); return; }
+    if (existing) {
+      const poll = setInterval(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((window as any).google?.maps?.places) { clearInterval(poll); setLoaded(true); }
+      }, 100);
+      return () => clearInterval(poll);
+    }
+    // Use callback= so Google only fires it after ALL libraries (incl. Places) are ready.
+    // loading=async causes onload to fire before Places is initialized — do not use it.
+    const cb = `__gmcb_${Math.random().toString(36).slice(2)}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any)[cb] = () => { delete (window as any)[cb]; setLoaded(true); };
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=${cb}`;
     script.async = true;
-    script.onload = () => setLoaded(true);
+    script.defer = true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    script.onerror = () => { delete (window as any)[cb]; };
     document.head.appendChild(script);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return () => { delete (window as any)[cb]; };
   }, [apiKey]);
 
   return loaded;

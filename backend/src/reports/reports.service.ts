@@ -1097,6 +1097,7 @@ export class ReportsService {
     const jobs = await this.prisma.trafficJob.findMany({
       where: {
         jobDate: { gte: fromDate, lte: toDate },
+        serviceType: 'ARR',
         deletedAt: null,
       },
       include: {
