@@ -128,7 +128,7 @@ export function NoShowEvidenceDialog({
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success(`Job ${jobRef} marked as NO SHOW with evidence`);
+      toast.success(t("noShow.successToast").replace("{ref}", jobRef));
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
@@ -156,7 +156,7 @@ export function NoShowEvidenceDialog({
           {/* Images */}
           <div>
             <label className="text-sm font-medium text-foreground">
-              {t("noShow.photo1")?.replace("1", "")}Photos ({images.length}/{MAX_IMAGES})
+              {t("noShow.photos")} ({images.length}/{MAX_IMAGES})
             </label>
             <input
               ref={fileInputRef}
@@ -204,7 +204,7 @@ export function NoShowEvidenceDialog({
                     ) : (
                       <>
                         <Plus className="h-5 w-5" />
-                        <span className="text-[10px]">Add more</span>
+                        <span className="text-[10px]">{t("noShow.addMore")}</span>
                       </>
                     )}
                   </div>

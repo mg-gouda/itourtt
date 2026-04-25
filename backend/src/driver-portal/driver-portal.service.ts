@@ -700,14 +700,13 @@ export class DriverPortalService {
           select: {
             driverStatus: true,
             driver: { select: { name: true } },
-            rep: { select: { name: true } },
           },
         },
       },
     });
     const ds = job?.assignment?.driverStatus;
     return {
-      rep: job?.assignment?.rep?.name ?? null,
+      rep: null,
       driver: job?.assignment?.driver?.name ?? null,
       status: job?.status ?? null,
       portalStatus: ds ? `Driver: ${ds.replace(/_/g, ' ')}` : null,

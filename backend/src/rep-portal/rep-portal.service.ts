@@ -880,7 +880,6 @@ export class RepPortalService {
         assignment: {
           select: {
             repStatus: true,
-            driver: { select: { name: true } },
             rep: { select: { name: true } },
           },
         },
@@ -889,7 +888,7 @@ export class RepPortalService {
     const rs = job?.assignment?.repStatus;
     return {
       rep: job?.assignment?.rep?.name ?? null,
-      driver: job?.assignment?.driver?.name ?? null,
+      driver: null,
       status: job?.status ?? null,
       portalStatus: rs ? `Rep: ${rs.replace(/_/g, ' ')}` : null,
     };

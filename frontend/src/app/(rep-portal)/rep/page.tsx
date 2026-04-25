@@ -213,14 +213,14 @@ export default function RepDashboardPage() {
   const confirmStatusChange = async () => {
     setUpdating(true);
     try {
-      toast.info("Capturing location...");
+      toast.info(t("portal.capturingLocation"));
       const gps = await captureGPS();
       await api.patch(`/rep-portal/jobs/${confirmDialog.jobId}/status`, {
         status: confirmDialog.status,
         latitude: gps.lat,
         longitude: gps.lng,
       });
-      toast.success(`Job ${confirmDialog.jobRef} marked as ${confirmDialog.status.replace("_", " ")}`);
+      toast.success(t("portal.jobMarkedAs").replace("{ref}", confirmDialog.jobRef).replace("{status}", confirmDialog.status.replace("_", " ")));
       setConfirmDialog({ open: false, jobId: "", jobRef: "", status: "" });
       fetchJobs();
     } catch (err: unknown) {
@@ -241,7 +241,7 @@ export default function RepDashboardPage() {
       await api.patch(`/rep-portal/jobs/${flightDelayDialog.jobId}/flight-delay`, {
         arrivalTime: newArrivalTime,
       });
-      toast.success(`Flight delay reported for ${flightDelayDialog.jobRef}. Operators have been notified.`);
+      toast.success(t("portal.flightDelayReported").replace("{ref}", flightDelayDialog.jobRef));
       setFlightDelayDialog({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
       setFlightDelayDate("");
       setFlightDelayTime("");
@@ -249,7 +249,7 @@ export default function RepDashboardPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to report flight delay";
+          ?.message || t("portal.flightDelayFailed");
       toast.error(message);
     } finally {
       setSendingDelay(false);
@@ -548,18 +548,16 @@ export default function RepDashboardPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-400" />
-              Report Flight Delay
+              {t("portal.reportFlightDelay")}
             </DialogTitle>
             <DialogDescription>
-              Report a new arrival time for job{" "}
-              <span className="font-semibold">{flightDelayDialog.jobRef}</span>.
-              Dispatch operators will be notified immediately.
+              {t("portal.reportFlightDelayDesc").replace("{ref}", flightDelayDialog.jobRef)}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">New Arrival Date</label>
+                <label className="text-sm font-medium text-foreground">{t("portal.newArrivalDate")}</label>
                 <input
                   type="date"
                   value={flightDelayDate}
@@ -568,7 +566,7 @@ export default function RepDashboardPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">New Arrival Time</label>
+                <label className="text-sm font-medium text-foreground">{t("portal.newArrivalTime")}</label>
                 <input
                   type="time"
                   value={flightDelayTime}
@@ -596,7 +594,7 @@ export default function RepDashboardPage() {
               className="bg-amber-600 hover:bg-amber-700"
             >
               {sendingDelay && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Report Delay
+              {t("portal.reportDelay")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -648,7 +646,7 @@ function JobCard({
     const start = new Date(arr.getTime() - 10 * 60 * 1000);
     const end = new Date(arr.getTime() + 80 * 60 * 1000);
     const fmt = (d: Date) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
-    return `Available ${fmt(start)} – ${fmt(end)}`;
+    return t("portal.availableWindow").replace("{start}", fmt(start)).replace("{end}", fmt(end));
   })();
 
   return (
@@ -740,7 +738,7 @@ function JobCard({
         {/* Online client info */}
         {job.bookingChannel === "ONLINE" && (job.clientName || job.clientMobile) && (
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-md border border-blue-500/20 bg-blue-500/5 px-2.5 py-1.5 text-xs">
-            <span className="text-blue-400 font-medium">Online Client:</span>
+            <span className="text-blue-400 font-medium">{t("portal.onlineClient")}:</span>
             {job.clientName && <span className="text-foreground font-semibold">{job.clientName}</span>}
             {job.clientMobile && (
               <a href={`tel:${job.clientMobile}`} className="text-blue-400 underline">
@@ -797,7 +795,7 @@ function JobCard({
                 className="gap-1.5"
                 onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
                 disabled={repStatus !== "IN_PLACE"}
-                title={repStatus !== "IN_PLACE" ? "Mark In Place first before completing" : undefined}
+                title={repStatus !== "IN_PLACE" ? t("portal.markInPlaceFirst") : undefined}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 {t("portal.complete")}
@@ -830,7 +828,7 @@ function JobCard({
               onClick={() => onFlightDelay(job.id, job.internalRef, job.flight?.arrivalTime ?? null)}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
-              Flight Delay
+              {t("portal.flightDelay")}
             </Button>
           )}
         </div>

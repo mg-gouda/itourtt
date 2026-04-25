@@ -213,14 +213,14 @@ export default function DriverDashboardPage() {
   const confirmStatusChange = async () => {
     setUpdating(true);
     try {
-      toast.info("Capturing location...");
+      toast.info(t("portal.capturingLocation"));
       const gps = await captureGPS();
       await api.patch(`/driver-portal/jobs/${confirmDialog.jobId}/status`, {
         status: confirmDialog.status,
         latitude: gps.lat,
         longitude: gps.lng,
       });
-      toast.success(`Job ${confirmDialog.jobRef} marked as ${confirmDialog.status.replace("_", " ")}`);
+      toast.success(t("portal.jobMarkedAs").replace("{ref}", confirmDialog.jobRef).replace("{status}", confirmDialog.status.replace("_", " ")));
       setConfirmDialog({ open: false, jobId: "", jobRef: "", status: "" });
       fetchJobs();
     } catch (err: unknown) {
@@ -536,10 +536,10 @@ function DriverJobCard({
   const canStartProgress = !jobTime || now >= jobTime;
   const canComplete = !jobTime || now >= new Date(jobTime.getTime() + 15 * 60 * 1000);
   const progressBlockMsg = jobTime && !canStartProgress
-    ? `Available from ${jobTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    ? `${t("portal.availableFrom")} ${jobTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "";
   const completeBlockMsg = jobTime && !canComplete
-    ? `Available from ${new Date(jobTime.getTime() + 15 * 60 * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + 15 * 60 * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "";
 
   return (
@@ -632,7 +632,7 @@ function DriverJobCard({
         {/* Online client info */}
         {job.bookingChannel === "ONLINE" && (job.clientName || job.clientMobile) && (
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-md border border-blue-500/20 bg-blue-500/5 px-2.5 py-1.5 text-xs">
-            <span className="text-blue-400 font-medium">Online Client:</span>
+            <span className="text-blue-400 font-medium">{t("portal.onlineClient")}:</span>
             {job.clientName && <span className="text-foreground font-semibold">{job.clientName}</span>}
             {job.clientMobile && (
               <a href={`tel:${job.clientMobile}`} className="text-blue-400 underline">
@@ -716,7 +716,7 @@ function DriverJobCard({
               disabled={driverStatus !== "IN_PROGRESS" || (job.collectionRequired && !job.collectionCollected) || !canComplete}
               title={
                 driverStatus !== "IN_PROGRESS"
-                  ? "Start the job (In Progress) first before completing"
+                  ? t("portal.startInProgressFirst")
                   : job.collectionRequired && !job.collectionCollected
                   ? (t("portal.collectionRequiredBeforeComplete") || "Collect payment before completing")
                   : completeBlockMsg || undefined

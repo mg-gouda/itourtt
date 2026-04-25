@@ -124,13 +124,13 @@ export function CompletedEvidenceDialog({
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success(`Job ${jobRef} marked as Completed`);
+      toast.success(t("completed.success").replace("{ref}", jobRef));
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to submit completed evidence";
+          ?.message || t("completed.failedSubmit");
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -141,9 +141,9 @@ export function CompletedEvidenceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Complete Job</DialogTitle>
+          <DialogTitle>{t("completed.title")}</DialogTitle>
           <DialogDescription>
-            Mark job <span className="font-semibold">{jobRef}</span> as Completed. Upload at least one photo as evidence.
+            {t("completed.markJob")} <span className="font-semibold">{jobRef}</span> {t("completed.asCompleted")} {t("completed.uploadPhotos")}
           </DialogDescription>
         </DialogHeader>
 
@@ -151,7 +151,7 @@ export function CompletedEvidenceDialog({
           {/* Images */}
           <div>
             <label className="text-sm font-medium text-foreground">
-              Photos ({images.length} added)
+              {t("completed.photos")} ({images.length})
             </label>
             <input
               ref={fileInputRef}
@@ -252,7 +252,7 @@ export function CompletedEvidenceDialog({
             className="bg-green-600 hover:bg-green-700"
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Mark Completed
+            {t("completed.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>
