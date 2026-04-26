@@ -97,55 +97,47 @@ export class RepPortalService {
     const from = new Date(dateFrom);
     const to = new Date(dateTo);
 
-    const [rep, assignments] = await Promise.all([
-      this.prisma.rep.findUniqueOrThrow({
-        where: { id: repId },
-        select: { feePerFlight: true },
-      }),
-      this.prisma.trafficAssignment.findMany({
-        where: {
-          repId,
-          repStatus: { in: REP_TERMINAL_STATUSES as any },
-          trafficJob: {
-            jobDate: { gte: from, lte: to },
-            deletedAt: null,
-          },
+    const assignments = await this.prisma.trafficAssignment.findMany({
+      where: {
+        repId,
+        repStatus: { in: REP_TERMINAL_STATUSES as any },
+        trafficJob: {
+          jobDate: { gte: from, lte: to },
+          deletedAt: null,
         },
-        include: {
-          trafficJob: {
-            include: {
-              ...this.jobInclude,
-              repFees: {
-                where: { repId },
-                select: { amount: true, currency: true },
-              },
+      },
+      include: {
+        trafficJob: {
+          include: {
+            ...this.jobInclude,
+            repJobScore: {
+              select: { attendance: true, appearance: true, work: true, review: true },
             },
           },
         },
-        orderBy: { createdAt: 'asc' },
-      }),
-    ]);
-
-    const feePerFlight = Number(rep.feePerFlight);
+      },
+      orderBy: { createdAt: 'asc' },
+    });
 
     return {
       dateFrom,
       dateTo,
       repId,
       jobs: assignments.map((a) => {
-        const existingFee = a.trafficJob.repFees[0];
-        const isCompletedArr =
-          a.repStatus === 'COMPLETED' &&
-          a.trafficJob.serviceType === 'ARR';
-
+        const s = a.trafficJob.repJobScore;
+        let feeEarned: number | null = null;
+        if (s) {
+          const total =
+            (s.attendance ? 20 : 0) +
+            (s.appearance ? 15 : 0) +
+            (s.work ? 30 : 0) +
+            (s.review ? 35 : 0);
+          feeEarned = total >= 90 ? 50 : total >= 75 ? 40 : total >= 61 ? 30 : 20;
+        }
         return {
           ...a.trafficJob,
           repStatus: a.repStatus,
-          feeEarned: existingFee
-            ? Number(existingFee.amount)
-            : isCompletedArr
-              ? feePerFlight
-              : null,
+          feeEarned,
         };
       }),
     };

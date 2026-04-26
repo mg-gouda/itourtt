@@ -7,6 +7,7 @@ import {
   Car,
   Building2,
   DollarSign,
+  Eye,
   Loader2,
   RefreshCw,
   Search,
@@ -4230,6 +4231,7 @@ export default function ReportsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border bg-muted">
+                        <TableHead className="w-8 px-1" />
                         <TableHead className="text-muted-foreground text-xs">{t("reports.jobRef")}</TableHead>
                         <TableHead className="text-muted-foreground text-xs">{t("jobs.type")}</TableHead>
                         <TableHead className="text-muted-foreground text-xs text-right">
@@ -4280,6 +4282,16 @@ export default function ReportsPage() {
                             key={fee.id}
                             className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                           >
+                            <TableCell className="w-8 px-1">
+                              <button
+                                type="button"
+                                onClick={() => setJobDetailId(fee.trafficJob.id)}
+                                className="flex h-6 w-6 items-center justify-center rounded hover:bg-muted/50 transition-colors"
+                                title="View job details"
+                              >
+                                <Eye className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-foreground transition-colors" />
+                              </button>
+                            </TableCell>
                             <TableCell className="text-foreground font-mono text-xs">
                               {fee.trafficJob.internalRef}
                             </TableCell>
