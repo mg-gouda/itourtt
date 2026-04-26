@@ -34,6 +34,10 @@ const completedUploadsDir = path.join(process.cwd(), 'uploads', 'completed');
 if (!fs.existsSync(completedUploadsDir)) {
   fs.mkdirSync(completedUploadsDir, { recursive: true });
 }
+const inProgressUploadsDir = path.join(process.cwd(), 'uploads', 'in-progress');
+if (!fs.existsSync(inProgressUploadsDir)) {
+  fs.mkdirSync(inProgressUploadsDir, { recursive: true });
+}
 
 const memStore = memoryStorage();
 
@@ -151,6 +155,31 @@ export class DriverPortalController {
 
     const result = await this.driverPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'No-show evidence submitted');
+  }
+
+  @Post('jobs/:jobId/in-progress')
+  @UseInterceptors(FilesInterceptor('images', 10, { storage: memStore }))
+  async submitInProgress(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { latitude: string; longitude: string },
+  ) {
+    if (!files || files.length < 1) {
+      throw new BadRequestException('At least one image is required for in-progress evidence');
+    }
+
+    const latitude = parseFloat(body.latitude);
+    const longitude = parseFloat(body.longitude);
+    if (isNaN(latitude) || isNaN(longitude)) {
+      throw new BadRequestException('Valid GPS coordinates are required');
+    }
+
+    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
+    const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'in-progress', latitude, longitude, stampMeta);
+
+    const result = await this.driverPortalService.submitInProgress(userId, jobId, imageUrls, latitude, longitude);
+    return new ApiResponse(result, 'In-progress evidence submitted');
   }
 
   @Post('jobs/:jobId/completed')

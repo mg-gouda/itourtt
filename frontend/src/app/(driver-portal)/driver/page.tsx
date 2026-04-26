@@ -37,6 +37,7 @@ import {
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { CompletedEvidenceDialog } from "@/components/completed-evidence-dialog";
+import { InProgressEvidenceDialog } from "@/components/in-progress-evidence-dialog";
 import JobDetailModal from "@/components/job-detail-modal";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
@@ -144,6 +145,11 @@ export default function DriverDashboardPage() {
     jobId: string;
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
+  const [inProgressDialog, setInProgressDialog] = useState<{
+    open: boolean;
+    jobId: string;
+    jobRef: string;
+  }>({ open: false, jobId: "", jobRef: "" });
   const [updating, setUpdating] = useState(false);
   const [collectingJobId, setCollectingJobId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
@@ -205,6 +211,10 @@ export default function DriverDashboardPage() {
     }
     if (status === "COMPLETED") {
       setCompletedDialog({ open: true, jobId, jobRef });
+      return;
+    }
+    if (status === "IN_PROGRESS") {
+      setInProgressDialog({ open: true, jobId, jobRef });
       return;
     }
     setConfirmDialog({ open: true, jobId, jobRef, status });
@@ -488,6 +498,18 @@ export default function DriverDashboardPage() {
         }}
         jobId={completedDialog.jobId}
         jobRef={completedDialog.jobRef}
+        portalApiBase="/driver-portal"
+        onSuccess={fetchJobs}
+      />
+
+      {/* In Progress Evidence Dialog */}
+      <InProgressEvidenceDialog
+        open={inProgressDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setInProgressDialog({ open: false, jobId: "", jobRef: "" });
+        }}
+        jobId={inProgressDialog.jobId}
+        jobRef={inProgressDialog.jobRef}
         portalApiBase="/driver-portal"
         onSuccess={fetchJobs}
       />

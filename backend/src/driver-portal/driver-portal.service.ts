@@ -261,6 +261,106 @@ export class DriverPortalService {
     });
   }
 
+  async submitInProgress(
+    userId: string,
+    jobId: string,
+    imageUrls: string[],
+    latitude: number,
+    longitude: number,
+  ) {
+    const driver = await this.prisma.driver.findFirst({
+      where: { userId, deletedAt: null },
+      include: { user: { select: { name: true } } },
+    });
+    if (!driver) throw new ForbiddenException('No driver profile linked to this account');
+    const driverId = driver.id;
+    const submittedByLabel = `DRIVER-${driver.user?.name ?? 'Unknown'}`;
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { driverId, trafficJobId: jobId },
+      include: {
+        trafficJob: {
+          include: {
+            originAirport: true,
+            originZone: true,
+            originHotel: { include: { zone: true } },
+            flight: true,
+          },
+        },
+      },
+    });
+
+    if (!assignment) throw new NotFoundException('Job not found or not assigned to you');
+
+    this.checkDriverTimelock(assignment.trafficJob);
+    this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
+
+    const currentStatus = assignment.driverStatus;
+    if (currentStatus !== 'PENDING') {
+      throw new BadRequestException(
+        `Cannot start job: current status is "${currentStatus}"`,
+      );
+    }
+
+    // Time guard: cannot start before job time
+    const flight = (assignment.trafficJob as any).flight;
+    const jobTime =
+      assignment.trafficJob.serviceType === 'ARR'
+        ? (flight?.arrivalTime ?? null)
+        : (assignment.trafficJob.pickUpTime ?? null);
+    if (jobTime && new Date() < new Date(jobTime)) {
+      const timeStr = new Date(jobTime).toLocaleTimeString('en-GB', {
+        timeZone: 'Africa/Cairo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      throw new BadRequestException(
+        `Cannot start job before the scheduled time (${timeStr})`,
+      );
+    }
+
+    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.trafficAssignment.update({
+        where: { id: assignment.id },
+        data: { driverStatus: 'IN_PROGRESS' as any },
+        include: { trafficJob: { include: this.jobInclude } },
+      });
+
+      await tx.inProgressEvidence.create({
+        data: {
+          trafficJobId: jobId,
+          imageUrls,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+          submittedBy: submittedByLabel,
+          submittedById: driverId,
+        },
+      });
+
+      await tx.statusChangeLog.create({
+        data: {
+          assignmentId: assignment.id,
+          changedBy: 'DRIVER',
+          changedById: driverId,
+          previousStatus: currentStatus as any,
+          newStatus: 'IN_PROGRESS' as any,
+          gpsLatitude: latitude,
+          gpsLongitude: longitude,
+          gpsMapLink,
+        },
+      });
+
+      return {
+        ...updated.trafficJob,
+        driverStatus: updated.driverStatus,
+      };
+    });
+  }
+
   async submitCompleted(
     userId: string,
     jobId: string,
