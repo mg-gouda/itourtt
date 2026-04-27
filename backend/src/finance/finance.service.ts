@@ -1184,6 +1184,7 @@ export class FinanceService {
     const where: Record<string, unknown> = {
       collectionRequired: true,
       deletedAt: null,
+      status: { notIn: ['CANCELLED', 'NO_SHOW'] },
     };
 
     if (filters.status === 'PENDING') {
