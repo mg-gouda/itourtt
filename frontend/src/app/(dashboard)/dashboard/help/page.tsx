@@ -24,6 +24,12 @@ import {
   Lightbulb,
   Globe,
   Tag,
+  DollarSignIcon,
+  Cloud,
+  Palette,
+  Mail,
+  Settings2,
+  BusFront,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
@@ -79,6 +85,12 @@ const sections: HelpSection[] = [
   { id: "whatsapp", icon: MessageCircle, titleKey: "help.whatsapp.title", overviewKey: "help.whatsapp.overview", stepsKey: "help.whatsapp.steps", tipsKey: "help.whatsapp.tips" },
   { id: "guest-bookings", icon: Globe, titleKey: "help.guestBookings.title", overviewKey: "help.guestBookings.overview", stepsKey: "help.guestBookings.steps", tipsKey: "help.guestBookings.tips" },
   { id: "public-prices", icon: Tag, titleKey: "help.publicPrices.title", overviewKey: "help.publicPrices.overview", stepsKey: "help.publicPrices.steps", tipsKey: "help.publicPrices.tips" },
+  { id: "driver-tariffs", icon: DollarSign, titleKey: "help.driverTariffs.title", overviewKey: "help.driverTariffs.overview", stepsKey: "help.driverTariffs.steps", tipsKey: "help.driverTariffs.tips" },
+  { id: "google-drive", icon: Cloud, titleKey: "help.googleDrive.title", overviewKey: "help.googleDrive.overview", stepsKey: "help.googleDrive.steps", tipsKey: "help.googleDrive.tips" },
+  { id: "styling", icon: Palette, titleKey: "help.styling.title", overviewKey: "help.styling.overview", stepsKey: "help.styling.steps", tipsKey: "help.styling.tips" },
+  { id: "email-settings", icon: Mail, titleKey: "help.emailSettings.title", overviewKey: "help.emailSettings.overview", stepsKey: "help.emailSettings.steps", tipsKey: "help.emailSettings.tips" },
+  { id: "job-control", icon: Settings2, titleKey: "help.jobControl.title", overviewKey: "help.jobControl.overview", stepsKey: "help.jobControl.steps", tipsKey: "help.jobControl.tips" },
+  { id: "car-dispatch", icon: BusFront, titleKey: "help.carDispatch.title", overviewKey: "help.carDispatch.overview", stepsKey: "help.carDispatch.steps", tipsKey: "help.carDispatch.tips" },
 ];
 
 // ─── Main Page ──────────────────────────────────────────────

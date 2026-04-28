@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>iTourTT — Enterprise Transport & Traffic Management System</title>
-  <meta name="description" content="Production-grade transport, traffic, and accounting system for Egypt-based transfer operations. Fully compatible with Odoo ERP.">
+  <meta name="description" content="Production-grade transport, traffic, and accounting system for Egypt-based transfer operations. Fully compatible with Odoo ERP. v3.4.0">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +18,7 @@
       --blue: #278ACC;
       --green: #72BA5A;
       --orange: #E89638;
+      --purple: #41004c;
       --dark: #0a0e1a;
       --dark-card: #111827;
       --dark-border: #1f2937;
@@ -70,7 +71,7 @@
     }
     .nav-links {
       display: flex;
-      gap: 32px;
+      gap: 28px;
       list-style: none;
     }
     .nav-links a {
@@ -110,10 +111,10 @@
       background:
         radial-gradient(ellipse 80% 60% at 50% 0%, rgba(53, 144, 132, 0.15) 0%, transparent 60%),
         radial-gradient(ellipse 60% 50% at 80% 80%, rgba(24, 43, 107, 0.2) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 40% at 20% 60%, rgba(232, 150, 56, 0.08) 0%, transparent 60%);
+        radial-gradient(ellipse 40% 40% at 20% 60%, rgba(65, 0, 76, 0.12) 0%, transparent 60%);
       pointer-events: none;
     }
-    .hero-content { position: relative; max-width: 800px; }
+    .hero-content { position: relative; max-width: 840px; }
     .hero-badge {
       display: inline-flex;
       align-items: center;
@@ -127,7 +128,8 @@
       color: var(--teal);
       margin-bottom: 24px;
     }
-    .hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--teal); border-radius: 50%; }
+    .hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--teal); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
     .hero h1 {
       font-size: clamp(2.5rem, 5vw, 4rem);
       font-weight: 800;
@@ -144,7 +146,7 @@
     .hero p {
       font-size: 1.15rem;
       color: var(--text-muted);
-      max-width: 600px;
+      max-width: 620px;
       margin: 0 auto 36px;
       line-height: 1.7;
     }
@@ -230,7 +232,7 @@
     .section-subtitle {
       font-size: 1.05rem;
       color: var(--text-muted);
-      max-width: 600px;
+      max-width: 620px;
       line-height: 1.7;
     }
 
@@ -242,10 +244,10 @@
       padding: 48px 24px;
     }
     .stats-grid {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 32px;
       text-align: center;
     }
@@ -288,11 +290,12 @@
       margin-bottom: 20px;
       font-size: 1.4rem;
     }
-    .fi-teal { background: rgba(53, 144, 132, 0.15); color: var(--teal); }
-    .fi-blue { background: rgba(39, 138, 204, 0.15); color: var(--blue); }
+    .fi-teal   { background: rgba(53, 144, 132, 0.15); color: var(--teal); }
+    .fi-blue   { background: rgba(39, 138, 204, 0.15); color: var(--blue); }
     .fi-orange { background: rgba(232, 150, 56, 0.15); color: var(--orange); }
-    .fi-green { background: rgba(114, 186, 90, 0.15); color: var(--green); }
-    .fi-navy { background: rgba(24, 43, 107, 0.2); color: #6b8cff; }
+    .fi-green  { background: rgba(114, 186, 90, 0.15); color: var(--green); }
+    .fi-navy   { background: rgba(24, 43, 107, 0.2); color: #6b8cff; }
+    .fi-purple { background: rgba(65, 0, 76, 0.25); color: #c084fc; }
     .feature-card h3 {
       font-size: 1.1rem;
       font-weight: 700;
@@ -301,7 +304,22 @@
     }
     .feature-card p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; }
 
-    /* ── SHOWCASE (screenshot sections) ── */
+    /* ── NEW BADGE ── */
+    .new-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 100px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    /* ── SHOWCASE ── */
     .showcase {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -351,10 +369,46 @@
       margin-top: 1px;
     }
 
+    /* ── SCREENSHOTS GALLERY ── */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 48px;
+    }
+    .gallery-item {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--dark-border);
+      background: var(--dark-card);
+      transition: all 0.3s;
+    }
+    .gallery-item:hover {
+      border-color: rgba(53,144,132,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .gallery-item img {
+      width: 100%;
+      display: block;
+    }
+    .gallery-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+      color: var(--text-bright);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 16px 12px 10px;
+    }
+
     /* ── TECH STACK ── */
     .tech-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 16px;
       margin-top: 48px;
     }
@@ -385,6 +439,23 @@
       font-size: 0.875rem;
       color: var(--text);
       font-weight: 500;
+    }
+
+    /* ── REPORT TABS ── */
+    .report-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .report-tab {
+      background: rgba(53,144,132,0.08);
+      border: 1px solid rgba(53,144,132,0.2);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--teal);
     }
 
     /* ── CTA ── */
@@ -428,11 +499,13 @@
       .features-grid { grid-template-columns: repeat(2, 1fr); }
       .showcase { grid-template-columns: 1fr; gap: 32px; }
       .showcase.reverse { direction: ltr; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+      .gallery-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 640px) {
       .features-grid { grid-template-columns: 1fr; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+      .gallery-grid { grid-template-columns: 1fr; }
       .nav-links { display: none; }
       .nav-toggle { display: block; }
       .nav-links.open {
@@ -476,8 +549,9 @@
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
       <li><a href="#dispatch">Dispatch</a></li>
+      <li><a href="#portals">Portals</a></li>
+      <li><a href="#reports">Reports</a></li>
       <li><a href="#finance">Finance</a></li>
-      <li><a href="#security">Security</a></li>
       <li><a href="#tech">Tech Stack</a></li>
       <li><a href="#contact" class="nav-cta">Live Demo</a></li>
     </ul>
@@ -487,14 +561,15 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-content fade-up">
-    <div class="hero-badge">Production-Ready v3.1.0</div>
+    <div class="hero-badge">Production-Ready · v3.4.0</div>
     <h1>Enterprise Transport &<br><span class="gradient">Traffic Management</span></h1>
-    <p>A full-stack system for Egypt-based transfer operations — from booking and dispatch to invoicing and Odoo ERP export. Built for scale, designed for speed.</p>
+    <p>A full-stack system for Egypt-based transfer operations — from booking and dispatch to driver scoring, evidence management, and Odoo ERP export. Built for scale, deployed on Kubernetes.</p>
     <div class="hero-buttons">
       <a href="https://fulvago.itourtt.cloud" target="_blank" class="btn btn-primary">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
         Live Demo
       </a>
+      <!-- <a href="https://tranning.itourtt.cloud" target="_blank" class="btn btn-secondary">Training Env</a> -->
       <a href="#features" class="btn btn-secondary">Explore Features</a>
     </div>
   </div>
@@ -509,7 +584,7 @@
 <section class="stats">
   <div class="stats-grid">
     <div class="fade-up">
-      <div class="stat-number">20+</div>
+      <div class="stat-number">30+</div>
       <div class="stat-label">System Modules</div>
     </div>
     <div class="fade-up">
@@ -517,12 +592,16 @@
       <div class="stat-label">User Roles</div>
     </div>
     <div class="fade-up">
-      <div class="stat-number">3</div>
+      <div class="stat-number">4</div>
       <div class="stat-label">Dedicated Portals</div>
     </div>
     <div class="fade-up">
-      <div class="stat-number">2</div>
-      <div class="stat-label">Languages (EN/AR)</div>
+      <div class="stat-number">7</div>
+      <div class="stat-label">UI Languages</div>
+    </div>
+    <div class="fade-up">
+      <div class="stat-number">15+</div>
+      <div class="stat-label">Report Types</div>
     </div>
   </div>
 </section>
@@ -540,63 +619,106 @@
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
         </div>
         <h3>Dispatch Console</h3>
-        <p>Excel-like daily grid with ARR/DEP split view, inline editing, keyboard navigation, and real-time conflict detection.</p>
+        <p>Excel-like daily grid with ARR/DEP split view, inline editing, keyboard navigation, vehicle type filter, terminal column, real-time conflict detection, and a full job detail modal with 85vw 2-column layout.</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon fi-blue">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
         </div>
         <h3>Traffic Jobs</h3>
-        <p>B2B and online booking management with auto-generated references, bulk import/export, and full lifecycle tracking.</p>
+        <p>B2B and online booking channels with auto-generated references, bulk Excel import/export, 12+ service types, client number in passengers, and full lifecycle tracking from creation to completion.</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon fi-orange">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
         </div>
         <h3>Finance & Invoicing</h3>
-        <p>Multi-currency invoicing, Egyptian tax compliance, automated invoice cycles, and one-click Odoo ERP exports.</p>
+        <p>Multi-currency invoicing, Egyptian tax compliance, automated invoice cycles, and one-click Odoo ERP exports for partners, invoices, vendor bills, payments, and combined statements.</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon fi-green">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg>
         </div>
         <h3>Location Hierarchy</h3>
-        <p>Country &rarr; Airport &rarr; City &rarr; Zone &rarr; Hotel. Zones are the pricing unit for all route-based calculations.</p>
+        <p>Country → Airport → City → Zone → Hotel. Zones are the pricing unit. Google Maps verified coordinates for geofencing enforcement on all portals (500m radius check on status updates).</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon fi-navy">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8zM5.5 18a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18.5 18a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/></svg>
         </div>
         <h3>Fleet Management</h3>
-        <p>Vehicle types with capacity enforcement, compliance document tracking, supplier integration, and driver assignment.</p>
+        <p>Vehicle types with capacity enforcement, compliance document tracking with expiry alerts, supplier integration, and seamless driver assignment through the dispatch console.</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon fi-teal">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
         </div>
         <h3>Agent & Customer CRM</h3>
-        <p>Full legal profiles, credit limits, customizable zone-to-zone price lists, document storage, and invoice cycles.</p>
+        <p>Full legal profiles, credit limits and credit days, customizable zone-to-zone price lists per vehicle type, invoice cycle settings (weekly/biweekly/monthly), and legal document storage.</p>
+      </div>
+      <!-- NEW -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-purple">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <h3>Driver Tariffs & Scoring <span class="new-badge">NEW</span></h3>
+        <p>Zone-to-zone pricing grid with airport endpoint support, Excel template import, and Service Types manager. Per-trip scoring (attendance, appearance, cleanliness, maintenance, work) with score-based fee adjustment and driver score reports grouped by flight.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-blue">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13l3 3 3-3"/></svg>
+        </div>
+        <h3>Evidence Management <span class="new-badge">NEW</span></h3>
+        <p>In-Place, In-Progress, and No-Show evidence photos uploaded from portals and stored in Google Drive. Evidence images are server-stamped with driver/rep name, job status, date, and GPS location. ZIP download and PDF report generation.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-orange">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <h3>Theme Customizer <span class="new-badge">NEW</span></h3>
+        <p>style live theme editor with real-time preview. Customize sidebar background image, login page background, company logo, favicon, colors, and dark/light mode — all without code changes.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-green">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3>Flight Delay Modal <span class="new-badge">NEW</span></h3>
+        <p>Real-time blocking modal alerts operators and managers when a flight is delayed. Midnight cron automatically completes supplier driver and departure rep statuses. Enforces In Place → In Progress → Complete status flow on portals.</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon fi-blue">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         </div>
         <h3>WhatsApp Notifications</h3>
-        <p>Three-template system — booking confirmation, driver assignment, and scheduled reminders with minute-accurate delivery.</p>
+        <p>Three-template system — Booking Confirmation, Driver Assigned, and Day-Before Reminder with minute-accurate delivery. Variables: {{clientName}}, {{driverName}}, {{serviceDate}}, {{origin}}, {{destination}}, and more.</p>
       </div>
       <div class="feature-card fade-up">
-        <div class="feature-icon fi-orange">
+        <div class="feature-icon fi-teal">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </div>
         <h3>Reports & Analytics</h3>
-        <p>Daily dispatch, driver trips, rep fees, agent statements, revenue reports — all with Excel export and date filters.</p>
+        <p>15+ report types: Dispatch, Drivers, Driver Score, Agent Statement, Rep Fees, Rep Score, Revenue, Compliance, Evidence, Supplier Jobs, Car Jobs, Visa, Sales, Departure — all with Excel export, column visibility, and drag-and-drop reorder.</p>
       </div>
       <div class="feature-card fade-up">
-        <div class="feature-icon fi-green">
+        <div class="feature-icon fi-orange">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <h3>Odoo ERP Integration</h3>
-        <p>Five one-click exports directly importable into Odoo — partners, invoices, vendor bills, payments, and combined.</p>
+        <p>Five one-click exports directly importable into Odoo — res.partner, account.move, account.payment, vendor bills, and combined. No Odoo customization required. CSV/XLSX with external ID mapping.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-purple">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3>Performance Optimizations <span class="new-badge">NEW</span></h3>
+        <p>Sticky table headers on all listing and report pages. Per-column visibility controls with memory. Drag-and-drop column reorder. Loading skeletons across all 30+ dashboard routes. Lazy loading for heavy data grids.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-navy">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        </div>
+        <h3>Google Drive Integration <span class="new-badge">NEW</span></h3>
+        <p>Evidence photos automatically uploaded to a configured Google Shared Drive. OAuth2 flow managed from the admin dashboard. Supports large file batches with allDrives API calls for shared drive compatibility.</p>
       </div>
     </div>
   </div>
@@ -610,12 +732,15 @@
       <div class="showcase-text">
         <div class="section-label">Real-Time Operations</div>
         <h3>Dispatch Console</h3>
-        <p>The nerve center of your operations. A daily view that splits arrivals and departures, with Excel-like inline editing and real-time conflict validation.</p>
+        <p>The nerve center of daily operations. A single-day view that splits arrivals and departures, with Excel-like inline editing, real-time conflict validation, and a complete job detail modal accessible via eye icon.</p>
         <ul class="showcase-list">
-          <li>Split assignment — dispatchers handle vehicles, online operators handle reps</li>
-          <li>Vehicle fleet overview with automatic time-overlap conflict detection</li>
+          <li>Vehicle type filter to show only relevant fleet segments</li>
+          <li>Terminal column for precise airport pickup/dropoff</li>
+          <li>Split assignment — dispatchers manage vehicles, operators manage reps</li>
+          <li>Eye icon opens 85vw 2-column job detail modal with full trip info</li>
           <li>48-hour time-lock with manual unlock for authorized users</li>
-          <li>Permission-based access — each role sees only what they can control</li>
+          <li>Flight delay blocking modal alerts operators in real-time</li>
+          <li>Permission-based cell rendering — each role sees only what they can control</li>
         </ul>
       </div>
     </div>
@@ -630,12 +755,187 @@
       <div class="showcase-text">
         <div class="section-label">Booking Management</div>
         <h3>Traffic Jobs</h3>
-        <p>Manage every booking from creation to completion. Support for 12+ service types, bulk Excel import, and full audit trail.</p>
+        <p>Manage every booking from creation to completion. Support for 12+ service types across B2B (agent) and Online (direct) channels, with bulk Excel import and full audit trail.</p>
         <ul class="showcase-list">
-          <li>B2B (agent) and online (direct) booking channels</li>
           <li>Auto-generated internal references (ITT-XXXX)</li>
-          <li>Pax count validated against vehicle capacity</li>
+          <li>Client number in passengers section with clickable tel: links</li>
+          <li>Pax count validated against assigned vehicle capacity</li>
           <li>Multi-currency collection amounts with exchange rates</li>
+          <li>Status progression: Pending → Assigned → Completed / No Show</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DRIVER TARIFFS & SCORING SHOWCASE -->
+<section style="background: var(--dark-card);">
+  <div class="container">
+    <div class="showcase fade-up">
+      <img src="screenshots/12-driver-tariffs.png" alt="Driver Tariffs" class="showcase-img">
+      <div class="showcase-text">
+        <div class="section-label">Driver Management</div>
+        <h3>Driver Tariffs & Scoring</h3>
+        <p>A comprehensive tariff matrix with airport endpoint support. Import prices from Excel templates, manage service type associations, and track per-trip performance scores that influence driver fee adjustments.</p>
+        <ul class="showcase-list">
+          <li>Zone-to-zone tariff grid with airport as origin/destination</li>
+          <li>Excel template download and bulk import</li>
+          <li>Service Types manager — link tariffs to ARR, DEP, CITY types</li>
+          <li>5-dimension scoring: attendance, appearance, car cleanliness, maintenance, work quality</li>
+          <li>Driver Score Report grouped by flight with score-adjusted fee</li>
+          <li>Backfill migration script for retroactive fee recalculation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REPORTS SHOWCASE -->
+<section id="reports">
+  <div class="container">
+    <div class="showcase reverse fade-up">
+      <img src="screenshots/09-reports.png" alt="Reports" class="showcase-img">
+      <div class="showcase-text">
+        <div class="section-label">Analytics & Reporting</div>
+        <h3>15+ Report Types</h3>
+        <p>Comprehensive operational and financial reporting with drag-and-drop column reorder, per-column visibility toggles, sticky headers, and Excel export on every report.</p>
+        <ul class="showcase-list">
+          <li>Dispatch, Drivers, Agent Statement, Revenue, Compliance</li>
+          <li>Rep Fees & Rep Score (grouped by flight)</li>
+          <li>Driver Score Report with attendance/appearance breakdown</li>
+          <li>Evidence Report with image viewer and ZIP download</li>
+          <li>Supplier Jobs, Car Jobs, Visa, Sales, Departure reports</li>
+          <li>All reports: column reorder, visibility control, Excel export</li>
+        </ul>
+        <div class="report-tabs" style="margin-top:20px">
+          <span class="report-tab">Dispatch</span>
+          <span class="report-tab">Drivers</span>
+          <span class="report-tab">Driver Score</span>
+          <span class="report-tab">Agent</span>
+          <span class="report-tab">Rep Fees</span>
+          <span class="report-tab">Rep Score</span>
+          <span class="report-tab">Revenue</span>
+          <span class="report-tab">Compliance</span>
+          <span class="report-tab">Evidence</span>
+          <span class="report-tab">Supplier Jobs</span>
+          <span class="report-tab">Car Jobs</span>
+          <span class="report-tab">Visa</span>
+          <span class="report-tab">Sales</span>
+          <span class="report-tab">Departure</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PORTALS SECTION -->
+<section id="portals" style="background: var(--dark-card);">
+  <div class="container">
+    <div class="section-label">Self-Service Access</div>
+    <h2 class="section-title">Dedicated Portals</h2>
+    <p class="section-subtitle">Drivers, reps, suppliers, and B2C customers get their own mobile-friendly portals with real-time GPS tracking, evidence upload, and status management.</p>
+
+    <!-- Driver Portal Showcase -->
+    <div class="showcase fade-up" style="margin-top: 48px;">
+      <img src="screenshots/23-driver-portal.png" alt="Driver Portal" class="showcase-img">
+      <div class="showcase-text">
+        <div class="section-label">Driver Portal</div>
+        <h3>Driver Self-Service</h3>
+        <p>A mobile-optimized portal giving drivers real-time access to their daily assignments. Status updates are enforced sequentially and require GPS proximity verification.</p>
+        <ul class="showcase-list">
+          <li>View daily assignments with flight number, route, and pax count</li>
+          <li>Enforced status flow: In Place → In Progress → Complete</li>
+          <li>Upload In-Place, In-Progress, and No-Show evidence photos</li>
+          <li>Evidence images stamped with name, status, date & GPS location</li>
+          <li>History page — view past completed trips and earnings</li>
+          <li>Supplier driver auto-complete via midnight cron</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Rep Portal Showcase -->
+    <div class="showcase reverse fade-up" style="margin-top: 64px;">
+      <img src="screenshots/24-rep-portal.png" alt="Rep Portal" class="showcase-img">
+      <div class="showcase-text">
+        <div class="section-label">Rep Portal</div>
+        <h3>Representative Self-Service</h3>
+        <p>Field representatives manage their airport and hotel assignments with GPS-verified status updates, evidence submission, and full history of completed flights.</p>
+        <ul class="showcase-list">
+          <li>View flight assignments with ARR/DEP details and client info</li>
+          <li>Enforced status flow: In Place → In Progress → Complete / No Show</li>
+          <li>Evidence image viewer in rep detail modal</li>
+          <li>Rep Score modal with per-flight score breakdown</li>
+          <li>History page — past completed jobs and fee totals</li>
+          <li>Departure rep auto-complete via midnight cron</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Supplier & B2C -->
+    <div class="features-grid" style="margin-top: 64px;">
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-orange">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <h3>Supplier Portal</h3>
+        <p>External transport providers manage their own fleet, drivers, and pricing. Self-service resource management with B2B assignment mode supporting owned vs supplier vehicle selection.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-teal">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+        </div>
+        <h3>B2C Website <span class="new-badge">NEW</span></h3>
+        <p>7-language public booking site (EN, AR, DE, FR, IT, NL, RU) with live price quotes, booking widget, and a fully customizable CMS managed from the admin dashboard.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon fi-navy">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8zM5.5 18a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18.5 18a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/></svg>
+        </div>
+        <h3>Car Dispatch</h3>
+        <p>Dedicated dispatch console for Fulvago-branded car transfers. Separate from the main dispatch grid, with its own assignment workflow and reporting pipeline.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVIDENCE & GOOGLE DRIVE SHOWCASE -->
+<section>
+  <div class="container">
+    <div class="showcase fade-up">
+      <img src="screenshots/16-google-drive.png" alt="Google Drive Integration" class="showcase-img">
+      <div class="showcase-text">
+        <div class="section-label">Cloud Storage</div>
+        <h3>Google Drive Integration <span class="new-badge">NEW</span></h3>
+        <p>All evidence photos are automatically uploaded to a configured Google Shared Drive. The admin panel manages the full OAuth2 lifecycle — connect, authorize, and revoke in one place.</p>
+        <ul class="showcase-list">
+          <li>OAuth2 authorization flow from the admin dashboard</li>
+          <li>Evidence stored in organized Drive folders per job</li>
+          <li>Images served via API proxy — no direct Drive URL exposure</li>
+          <li>allDrives API calls ensure compatibility with Shared Drives</li>
+          <li>Server-side image stamping with DejaVu font embedded in SVG</li>
+          <li>EXIF auto-rotation for mobile camera uploads</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STYLING SHOWCASE -->
+<section style="background: var(--dark-card);">
+  <div class="container">
+    <div class="showcase reverse fade-up">
+      <img src="screenshots/15-styling.png" alt="Theme Customizer" class="showcase-img">
+      <div class="showcase-text">
+        <div class="section-label">Branding & Theming</div>
+        <h3>Style Theme Customizer <span class="new-badge">NEW</span></h3>
+        <p>Full live theme editor with instant preview. Operators can completely white-label the system — from colors and logos to background images — without any code changes or deployment.</p>
+        <ul class="showcase-list">
+          <li>Purple navbar (#41004c) with dark body (#341539) default theme</li>
+          <li>Upload custom sidebar background image</li>
+          <li>Upload custom login page background</li>
+          <li>Upload company logo and favicon</li>
+          <li>Dark/light mode toggle with system preference detection</li>
+          <li>Glass-effect cards and dialogs throughout the UI</li>
         </ul>
       </div>
     </div>
@@ -643,7 +943,7 @@
 </section>
 
 <!-- FINANCE SHOWCASE -->
-<section id="finance" style="background: var(--dark-card);">
+<section id="finance">
   <div class="container">
     <div class="showcase fade-up">
       <img src="screenshots/07-finance.png" alt="Finance Module" class="showcase-img">
@@ -656,13 +956,15 @@
           <li>Automatic invoice generation per agent cycle (weekly, biweekly, monthly)</li>
           <li>Five Odoo-ready Excel exports with external ID mapping</li>
           <li>Driver fees, rep fees, and supplier costs tracked per trip</li>
+          <li>Multi-currency with exchange rate stored per transaction</li>
+          <li>Egyptian tax rules: VAT, withholding tax, stamp duty</li>
         </ul>
       </div>
     </div>
   </div>
 </section>
 
-<!-- USERS & ROLES SHOWCASE -->
+<!-- USERS & ROLES -->
 <section id="security">
   <div class="container">
     <div class="showcase reverse fade-up">
@@ -670,12 +972,13 @@
       <div class="showcase-text">
         <div class="section-label">Enterprise Security</div>
         <h3>Roles & Permissions</h3>
-        <p>Granular role-based access control with 13 system roles. Every page, action, and column is permission-aware.</p>
+        <p>Granular role-based access control with 13 system roles. Every page, button, column, and API endpoint is permission-aware. Full audit trail on all changes.</p>
         <ul class="showcase-list">
-          <li>13 pre-configured system roles with customizable permissions</li>
-          <li>Field-level access control (e.g., assign vehicles vs. assign reps)</li>
+          <li>13 pre-configured system roles with customizable permission trees</li>
+          <li>Field-level access control (assign vehicles vs. assign reps)</li>
           <li>Full audit trail on every create, update, and delete action</li>
           <li>JWT authentication with automatic refresh token rotation</li>
+          <li>Module-level and action-level permissions per role</li>
         </ul>
       </div>
     </div>
@@ -698,34 +1001,97 @@
   </div>
 </section>
 
-<!-- PORTALS -->
+<!-- SCREENSHOT GALLERY -->
 <section style="background: var(--dark-card);">
   <div class="container">
-    <div class="section-label">Self-Service Access</div>
-    <h2 class="section-title">Dedicated Portals</h2>
-    <p class="section-subtitle">Drivers, reps, and suppliers get their own mobile-friendly portals with real-time GPS tracking and status updates.</p>
+    <div class="section-label">System Screenshots</div>
+    <h2 class="section-title">Every Module, Captured</h2>
+    <p class="section-subtitle">A full visual tour of the iTourTT production system running at fulvago.itourtt.cloud.</p>
 
-    <div class="features-grid" style="margin-top: 48px;">
-      <div class="feature-card fade-up">
-        <div class="feature-icon fi-teal">
-          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        </div>
-        <h3>Driver Portal</h3>
-        <p>View daily assignments, update trip status with live GPS location, submit no-show evidence with geo-tagged photos, and track earnings.</p>
+    <div class="gallery-grid">
+      <div class="gallery-item fade-up">
+        <img src="screenshots/01-login.png" alt="Login Page">
+        <div class="gallery-label">Login — Glass Effect</div>
       </div>
-      <div class="feature-card fade-up">
-        <div class="feature-icon fi-blue">
-          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
-        <h3>Rep Portal</h3>
-        <p>Track flight assignments, update job status with GPS verification, submit evidence for no-show cases, and view fee history.</p>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/04-dispatch.png" alt="Dispatch Console">
+        <div class="gallery-label">Dispatch Console</div>
       </div>
-      <div class="feature-card fade-up">
-        <div class="feature-icon fi-orange">
-          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </div>
-        <h3>Supplier Portal</h3>
-        <p>External transport providers manage their own fleet, drivers, and pricing. Self-service resource management with full visibility.</p>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/03-traffic-jobs.png" alt="Traffic Jobs">
+        <div class="gallery-label">Traffic Jobs (B2B)</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/03b-online-jobs.png" alt="Online Jobs">
+        <div class="gallery-label">Online Jobs</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/07-finance.png" alt="Finance">
+        <div class="gallery-label">Finance & Invoicing</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/09-reports.png" alt="Reports">
+        <div class="gallery-label">Reports (15+ Types)</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/12-driver-tariffs.png" alt="Driver Tariffs">
+        <div class="gallery-label">Driver Tariffs</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/08-drivers.png" alt="Drivers">
+        <div class="gallery-label">Drivers</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/08b-reps.png" alt="Reps">
+        <div class="gallery-label">Reps (Representatives)</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/23-driver-portal.png" alt="Driver Portal">
+        <div class="gallery-label">Driver Portal</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/24-rep-portal.png" alt="Rep Portal">
+        <div class="gallery-label">Rep Portal</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/25-supplier-portal.png" alt="Supplier Portal">
+        <div class="gallery-label">Supplier Portal</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/15-styling.png" alt="Theme Customizer">
+        <div class="gallery-label">Theme Customizer</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/16-google-drive.png" alt="Google Drive">
+        <div class="gallery-label">Google Drive Integration</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/26-b2c-website.png" alt="B2C Website">
+        <div class="gallery-label">B2C Public Website</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/05-agents.png" alt="Agents">
+        <div class="gallery-label">Agents CRM</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/06-vehicles.png" alt="Vehicles">
+        <div class="gallery-label">Fleet Management</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/11-locations.png" alt="Locations">
+        <div class="gallery-label">Location Hierarchy</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/10-users.png" alt="Users">
+        <div class="gallery-label">Users & Permissions</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/17-whatsapp.png" alt="WhatsApp">
+        <div class="gallery-label">WhatsApp Notifications</div>
+      </div>
+      <div class="gallery-item fade-up">
+        <img src="screenshots/21-car-dispatch.png" alt="Car Dispatch">
+        <div class="gallery-label">Car Dispatch</div>
       </div>
     </div>
   </div>
@@ -736,7 +1102,7 @@
   <div class="container">
     <div class="section-label">Built to Last</div>
     <h2 class="section-title">Modern Tech Stack</h2>
-    <p class="section-subtitle">Enterprise-grade architecture with the latest frameworks, deployed on Kubernetes for reliability.</p>
+    <p class="section-subtitle">Enterprise-grade architecture with the latest frameworks, deployed on Kubernetes with automated certificate management.</p>
 
     <div class="tech-grid">
       <div class="tech-item fade-up">
@@ -753,11 +1119,11 @@
       </div>
       <div class="tech-item fade-up">
         <div class="tech-name">PostgreSQL</div>
-        <div class="tech-desc">Database</div>
+        <div class="tech-desc">Primary DB</div>
       </div>
       <div class="tech-item fade-up">
-        <div class="tech-name">Prisma</div>
-        <div class="tech-desc">ORM</div>
+        <div class="tech-name">Prisma ORM</div>
+        <div class="tech-desc">Schema & Migrations</div>
       </div>
       <div class="tech-item fade-up">
         <div class="tech-name">Tailwind CSS</div>
@@ -780,12 +1146,28 @@
         <div class="tech-desc">Auth & Permissions</div>
       </div>
       <div class="tech-item fade-up">
+        <div class="tech-name">Google Drive API</div>
+        <div class="tech-desc">Evidence Storage</div>
+      </div>
+      <div class="tech-item fade-up">
         <div class="tech-name">Odoo ERP</div>
         <div class="tech-desc">Export Compatible</div>
       </div>
       <div class="tech-item fade-up">
         <div class="tech-name">WhatsApp API</div>
-        <div class="tech-desc">Notifications</div>
+        <div class="tech-desc">Twilio Notifications</div>
+      </div>
+      <div class="tech-item fade-up">
+        <div class="tech-name">Google Maps API</div>
+        <div class="tech-desc">Geofencing & Coords</div>
+      </div>
+      <div class="tech-item fade-up">
+        <div class="tech-name">cert-manager</div>
+        <div class="tech-desc">Let's Encrypt SSL</div>
+      </div>
+      <div class="tech-item fade-up">
+        <div class="tech-name">Sharp + SVG</div>
+        <div class="tech-desc">Image Stamping</div>
       </div>
     </div>
   </div>
@@ -802,7 +1184,7 @@
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
         Live Demo (Production)
       </a>
-      <a href="https://tranning.itourtt.cloud" target="_blank" class="btn btn-secondary">Training Environment</a>
+      <!-- <a href="https://tranning.itourtt.cloud" target="_blank" class="btn btn-secondary">Training Environment</a> -->
       <a href="mailto:mggouda@gmail.com?subject=iTourTT%20Inquiry" class="btn btn-secondary">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         Contact Us
@@ -816,12 +1198,12 @@
   <div class="footer-inner">
     <div class="footer-brand">
       <img src="favicon.svg" alt="iTourTT">
-      <span>iTourTT v3.1.0</span>
+      <span>iTourTT v3.4.0</span>
     </div>
     <div class="footer-links">
-      <a href="mailto:mggouda@gmail.com">mggouda@gmail.com</a>
-      <a href="mailto:gouda@inspirebs.onmicrosoft.com">gouda@inspirebs.onmicrosoft.com</a>
-      <a href="https://github.com/mg-gouda/itourtt" target="_blank">GitHub</a>
+      <a href="mailto:mggouda@gmail.com">Info Email</a>
+      <a href="mailto:gouda@inspirebs.onmicrosoft.com">Get A Quote</a>
+      <!-- <a href="https://github.com/mg-gouda/itourtt" target="_blank">GitHub</a> -->
     </div>
     <div class="footer-copy">&copy; 2026 Mohamed Gouda. All rights reserved. Proprietary software.</div>
   </div>
@@ -831,9 +1213,7 @@
 <script>
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-      }
+      if (entry.isIntersecting) entry.target.classList.add('visible');
     });
   }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
