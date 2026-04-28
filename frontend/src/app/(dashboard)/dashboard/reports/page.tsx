@@ -423,11 +423,14 @@ interface CarJobRow {
   driver: string;
   jobStatus: string;
   plateNumber: string;
+  transferPrice: number | null;
+  transferPriceCurrency: string;
 }
 
 interface CarJobsReport {
   total: number;
   rows: CarJobRow[];
+  totals: { USD: number; EUR: number; EGP: number };
 }
 
 interface SupplierJobRow {
@@ -667,6 +670,9 @@ const CAR_JOBS_COLUMNS: ColumnDef[] = [
   { key: "plateNumber", label: "Vehicle" },
   { key: "driver", label: "Driver" },
   { key: "jobStatus", label: "Job Status" },
+  { key: "usdPrice", label: "USD Transfer Price" },
+  { key: "eurPrice", label: "EUR Transfer Price" },
+  { key: "egpPrice", label: "EGP Transfer Price" },
 ];
 const CAR_JOBS_DEFAULT_KEYS = CAR_JOBS_COLUMNS.map((c) => c.key);
 
@@ -3902,6 +3908,9 @@ export default function ReportsPage() {
                           {carJobsColOrder.visibility["plateNumber"] !== false && <SortableHeader label="Vehicle" sortKey="plateNumber" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
                           {carJobsColOrder.visibility["driver"] !== false && <SortableHeader label="Driver" sortKey="driver" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
                           {carJobsColOrder.visibility["jobStatus"] !== false && <SortableHeader label="Job Status" sortKey="jobStatus" currentKey={carJobsSort.sortKey} currentDir={carJobsSort.sortDir} onSort={carJobsSort.onSort} />}
+                          {carJobsColOrder.visibility["usdPrice"] !== false && <TableHead className="text-right font-semibold text-green-600 dark:text-green-400">USD Transfer Price</TableHead>}
+                          {carJobsColOrder.visibility["eurPrice"] !== false && <TableHead className="text-right font-semibold text-blue-600 dark:text-blue-400">EUR Transfer Price</TableHead>}
+                          {carJobsColOrder.visibility["egpPrice"] !== false && <TableHead className="text-right font-semibold text-amber-600 dark:text-amber-400">EGP Transfer Price</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -3923,8 +3932,58 @@ export default function ReportsPage() {
                                 <StatusBadge status={row.jobStatus} />
                               </TableCell>
                             )}
+                            {carJobsColOrder.visibility["usdPrice"] !== false && (
+                              <TableCell className="text-right text-sm font-mono">
+                                {row.transferPriceCurrency === "USD" && row.transferPrice !== null
+                                  ? row.transferPrice.toFixed(2)
+                                  : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                            )}
+                            {carJobsColOrder.visibility["eurPrice"] !== false && (
+                              <TableCell className="text-right text-sm font-mono">
+                                {row.transferPriceCurrency === "EUR" && row.transferPrice !== null
+                                  ? row.transferPrice.toFixed(2)
+                                  : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                            )}
+                            {carJobsColOrder.visibility["egpPrice"] !== false && (
+                              <TableCell className="text-right text-sm font-mono">
+                                {row.transferPriceCurrency === "EGP" && row.transferPrice !== null
+                                  ? row.transferPrice.toFixed(2)
+                                  : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))}
+                        <TableRow className="border-t-2 border-border bg-muted/50 font-semibold">
+                          <TableCell colSpan={
+                            [
+                              carJobsColOrder.visibility["jobRef"] !== false,
+                              carJobsColOrder.visibility["agentName"] !== false,
+                              carJobsColOrder.visibility["serviceDate"] !== false,
+                              carJobsColOrder.visibility["origin"] !== false,
+                              carJobsColOrder.visibility["destination"] !== false,
+                              carJobsColOrder.visibility["plateNumber"] !== false,
+                              carJobsColOrder.visibility["driver"] !== false,
+                              carJobsColOrder.visibility["jobStatus"] !== false,
+                            ].filter(Boolean).length
+                          } className="text-sm text-muted-foreground">Totals</TableCell>
+                          {carJobsColOrder.visibility["usdPrice"] !== false && (
+                            <TableCell className="text-right text-sm font-mono font-bold text-green-600 dark:text-green-400">
+                              {carJobsData.totals.USD > 0 ? `USD ${carJobsData.totals.USD.toFixed(2)}` : "—"}
+                            </TableCell>
+                          )}
+                          {carJobsColOrder.visibility["eurPrice"] !== false && (
+                            <TableCell className="text-right text-sm font-mono font-bold text-blue-600 dark:text-blue-400">
+                              {carJobsData.totals.EUR > 0 ? `EUR ${carJobsData.totals.EUR.toFixed(2)}` : "—"}
+                            </TableCell>
+                          )}
+                          {carJobsColOrder.visibility["egpPrice"] !== false && (
+                            <TableCell className="text-right text-sm font-mono font-bold text-amber-600 dark:text-amber-400">
+                              {carJobsData.totals.EGP > 0 ? `EGP ${carJobsData.totals.EGP.toFixed(2)}` : "—"}
+                            </TableCell>
+                          )}
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>

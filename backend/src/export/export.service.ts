@@ -1877,10 +1877,19 @@ export class ExportService {
         driver: a.driver?.name ?? '—',
         jobStatus: job.status,
         plateNumber: a.vehicle?.plateNumber ?? '—',
+        transferPrice: job.transferPrice ? Number(job.transferPrice) : null,
+        transferPriceCurrency: job.transferPriceCurrency ?? 'EGP',
       };
     });
 
-    return { total: rows.length, rows };
+    const totals = { USD: 0, EUR: 0, EGP: 0 };
+    for (const r of rows) {
+      if (r.transferPrice !== null && r.transferPriceCurrency in totals) {
+        totals[r.transferPriceCurrency as keyof typeof totals] += r.transferPrice;
+      }
+    }
+
+    return { total: rows.length, rows, totals };
   }
 
   async exportVisaReport(from: string, to: string): Promise<Buffer> {

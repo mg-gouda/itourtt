@@ -604,6 +604,9 @@ export class RepPortalService {
       throw new BadRequestException('Invalid date/time format');
     }
 
+    const oldArrivalTime: string | null =
+      (assignment.trafficJob as any).flight?.arrivalTime?.toISOString() ?? null;
+
     await this.prisma.trafficFlight.update({
       where: { trafficJobId: jobId },
       data: { arrivalTime: newTime },
@@ -648,9 +651,9 @@ export class RepPortalService {
           userId: r.id,
           title,
           message,
-          type: 'FLIGHT_DELAY' as const,
+          type: 'FLIGHT_DELAY' as any,
           trafficJobId: jobId,
-          metadata: { repName, newArrivalTime: newTime.toISOString() },
+          metadata: { repName, oldArrivalTime, newArrivalTime: newTime.toISOString() },
         })),
       });
     }

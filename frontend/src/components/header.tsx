@@ -260,6 +260,12 @@ export function Header() {
                   onClick={() => {
                     if (!n.isRead) markAsRead(n.id);
                     setNotifOpen(false);
+                    if (n.type === "FLIGHT_DELAY") {
+                      setFlightDelayQueue((prev) => {
+                        if (prev.some((q) => q.id === n.id)) return prev;
+                        return [...prev, n];
+                      });
+                    }
                   }}
                 >
                   <div className="flex-1 min-w-0">
@@ -340,18 +346,18 @@ export function Header() {
       {/* Flight Delay Blocking Modal — one at a time, queue-based */}
       {flightDelayQueue.length > 0 && (() => {
         const notif = flightDelayQueue[0];
-        const meta = notif.metadata as { repName?: string; newArrivalTime?: string } | null;
-        const newArrivalDisplay = meta?.newArrivalTime
-          ? new Date(meta.newArrivalTime).toLocaleString("en-GB", {
-              timeZone: "Africa/Cairo",
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })
-          : null;
+        const meta = notif.metadata as { repName?: string; oldArrivalTime?: string | null; newArrivalTime?: string } | null;
+        const fmt = (iso: string) => new Date(iso).toLocaleString("en-GB", {
+          timeZone: "Africa/Cairo",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        const oldArrivalDisplay = meta?.oldArrivalTime ? fmt(meta.oldArrivalTime) : null;
+        const newArrivalDisplay = meta?.newArrivalTime ? fmt(meta.newArrivalTime) : null;
         return (
           <Dialog open modal>
             <DialogContent
@@ -373,10 +379,20 @@ export function Header() {
                         Reported by: <span className="font-medium text-foreground">{meta.repName}</span>
                       </p>
                     )}
-                    {newArrivalDisplay && (
-                      <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
-                        <p className="text-xs text-muted-foreground">New Arrival Time</p>
-                        <p className="text-lg font-bold text-amber-700 dark:text-amber-400">{newArrivalDisplay}</p>
+                    {(oldArrivalDisplay || newArrivalDisplay) && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {oldArrivalDisplay && (
+                          <div className="rounded-md border border-border bg-muted/50 px-3 py-2">
+                            <p className="text-xs text-muted-foreground mb-0.5">Original Arrival Time</p>
+                            <p className="text-sm font-semibold text-foreground line-through decoration-red-500">{oldArrivalDisplay}</p>
+                          </div>
+                        )}
+                        {newArrivalDisplay && (
+                          <div className={`rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950 ${!oldArrivalDisplay ? "col-span-2" : ""}`}>
+                            <p className="text-xs text-muted-foreground mb-0.5">New Arrival Time</p>
+                            <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{newArrivalDisplay}</p>
+                          </div>
+                        )}
                       </div>
                     )}
                     <p className="text-muted-foreground text-xs">
