@@ -67,7 +67,7 @@ interface TrafficJob {
   id: string;
   internalRef: string;
   agentRef: string | null;
-  bookingChannel: "ONLINE" | "B2B";
+  bookingChannel: "ONLINE" | "B2B" | "B2C";
   serviceType: string;
   jobDate: string;
   status: string;
@@ -305,7 +305,7 @@ export default function OnlineJobPage() {
     try {
       setLoading(true);
       const params: Record<string, string> = {
-        bookingChannel: "ONLINE",
+        bookingChannel: "ONLINE,B2C",
         page: String(page),
         limit: String(limit),
       };

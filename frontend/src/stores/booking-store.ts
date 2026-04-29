@@ -43,6 +43,9 @@ interface BookingState {
   paymentGateway: string;
   // Result
   bookingRef: string;
+  accountCreated: boolean;
+  accountEmail: string | null;
+  accountPassword: string | null;
   // Actions
   setField: (field: string, value: unknown) => void;
   setQuote: (price: number, currency: string, breakdown: Record<string, unknown>) => void;
@@ -79,6 +82,9 @@ const initialState = {
   paymentMethod: '',
   paymentGateway: '',
   bookingRef: '',
+  accountCreated: false,
+  accountEmail: null,
+  accountPassword: null,
 };
 
 export const useBookingStore = create<BookingState>((set) => ({

@@ -79,7 +79,7 @@ interface Job {
   id: string;
   internalRef: string;
   agentRef: string | null;
-  bookingChannel: "ONLINE" | "B2B";
+  bookingChannel: "ONLINE" | "B2B" | "B2C";
   serviceType: string;
   jobDate: string;
   status: string;
@@ -973,7 +973,7 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
             </DetailSection>
 
             <DetailSection title="Booking">
-              <DetailRow label="Booking Channel" value={job.bookingChannel} />
+              <DetailRow label="Booking Channel" value={job.bookingChannel === "B2C" ? "B2C Website" : job.bookingChannel} />
               {job.bookingChannel === "ONLINE" ? (
                 <>
                   <DetailRow label="Agent" value={job.agent?.legalName} />

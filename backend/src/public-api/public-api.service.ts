@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
 import { GuestBookingsService } from '../guest-bookings/guest-bookings.service.js';
+import { B2CService } from '../b2c/b2c.service.js';
 import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import {
@@ -25,6 +26,7 @@ export class PublicApiService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly guestBookingsService: GuestBookingsService,
+    private readonly b2cService: B2CService,
   ) {}
 
   // ─── Google Maps API Key ─────────────────────────────────
@@ -150,6 +152,42 @@ export class PublicApiService {
       seatCapacity: vt.seatCapacity,
       capacity: vt.seatCapacity,
     }));
+  }
+
+  // ─── Vehicle Quotes (all options for a route) ───────────
+
+  async getVehicleQuotes(dto: {
+    serviceType: string;
+    fromZoneId: string;
+    toZoneId: string;
+    paxCount: number;
+  }) {
+    const priceItems = await this.prisma.publicPriceItem.findMany({
+      where: {
+        serviceType: dto.serviceType as any,
+        fromZoneId: dto.fromZoneId,
+        toZoneId: dto.toZoneId,
+        vehicleType: { seatCapacity: { gte: dto.paxCount }, isActive: true },
+      },
+      include: { vehicleType: true },
+      orderBy: { price: 'asc' },
+    });
+
+    return {
+      options: priceItems.map((item) => ({
+        vehicleTypeId: item.vehicleTypeId,
+        vehicleTypeName: item.vehicleType.name,
+        seatCapacity: item.vehicleType.seatCapacity,
+        imageUrl: (item.vehicleType as any).imageUrl ?? null,
+        description: (item.vehicleType as any).description ?? null,
+        price: Number(item.price),
+        currency: item.currency,
+        driverTip: Number(item.driverTip),
+        boosterSeatPrice: Number(item.boosterSeatPrice),
+        babySeatPrice: Number(item.babySeatPrice),
+        wheelChairPrice: Number(item.wheelChairPrice),
+      })),
+    };
   }
 
   // ─── Quote ──────────────────────────────────────────────
@@ -297,7 +335,7 @@ export class PublicApiService {
         guestCountry: dto.guestCountry,
         serviceType: dto.serviceType as ServiceType,
         jobDate: new Date(dto.jobDate),
-        pickupTime: dto.pickupTime ? new Date(dto.pickupTime) : null,
+        pickupTime: dto.pickupTime ? new Date(`${dto.jobDate}T${dto.pickupTime}:00`) : null,
         fromZoneId: dto.fromZoneId,
         toZoneId: dto.toZoneId,
         hotelId: dto.hotelId,
@@ -360,11 +398,29 @@ export class PublicApiService {
         this.logger.error(`Failed to send confirmation email: ${err.message}`),
       );
 
-    // Auto-convert to traffic job so it appears in dispatch & traffic jobs pool
-    // For PAY_ON_ARRIVAL: convert immediately
-    // For ONLINE: convert immediately (payment tracking stays on GuestBooking record)
+    // Create or find B2C client account
+    let accountCreated = false;
+    let b2cClientId: string | null = null;
+    let accountPassword: string | null = null;
     try {
-      // Use a system user ID for auto-conversion; find first admin
+      const result = await this.b2cService.ensureB2CClientAccount(
+        booking.guestEmail,
+        booking.guestPhone,
+        booking.guestName,
+      );
+      b2cClientId = result.user.id;
+      accountCreated = result.isNew;
+      if (result.isNew) accountPassword = result.rawPassword ?? null;
+      await this.prisma.guestBooking.update({
+        where: { id: booking.id },
+        data: { b2cClientId },
+      });
+    } catch (err) {
+      this.logger.error(`Failed to create B2C account for ${booking.guestEmail}: ${err.message}`);
+    }
+
+    // Auto-convert to traffic job so it appears in dispatch & traffic jobs pool
+    try {
       const systemUser = await this.prisma.user.findFirst({
         where: { role: 'ADMIN', isActive: true },
         select: { id: true },
@@ -381,6 +437,9 @@ export class PublicApiService {
       bookingRef: booking.bookingRef,
       booking,
       paymentRequired: isOnline,
+      accountCreated,
+      accountEmail: accountCreated ? booking.guestEmail : null,
+      accountPassword,
     };
   }
 

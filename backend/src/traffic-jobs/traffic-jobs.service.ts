@@ -173,7 +173,11 @@ export class TrafficJobsService {
       where.serviceType = serviceType;
     }
     if (bookingChannel) {
-      where.bookingChannel = bookingChannel;
+      if (bookingChannel.includes(',')) {
+        where.bookingChannel = { in: bookingChannel.split(',') };
+      } else {
+        where.bookingChannel = bookingChannel;
+      }
     }
     if (search) {
       where.OR = [

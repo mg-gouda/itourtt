@@ -5,6 +5,7 @@ import { PublicApiController } from './public-api.controller.js';
 import { PublicApiService } from './public-api.service.js';
 import { EmailModule } from '../email/email.module.js';
 import { GuestBookingsModule } from '../guest-bookings/guest-bookings.module.js';
+import { B2CModule } from '../b2c/b2c.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { GuestBookingsModule } from '../guest-bookings/guest-bookings.module.js'
     ]),
     EmailModule,
     GuestBookingsModule,
+    B2CModule,
   ],
   controllers: [PublicApiController],
   providers: [

@@ -1,0 +1,266 @@
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcryptjs';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { EmailService } from '../email/email.service.js';
+import { B2CLoginDto, B2CChangePasswordDto, B2CAmendBookingDto } from './dto/b2c.dto.js';
+
+
+@Injectable()
+export class B2CService {
+  private readonly logger = new Logger(B2CService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
+  ) {}
+
+  async ensureB2CClientAccount(email: string, phone: string, name: string) {
+    const existing = await this.prisma.user.findFirst({
+      where: { email, role: 'B2C_CLIENT' as any },
+    });
+    if (existing) return { user: existing, isNew: false };
+
+    const passwordHash = await bcrypt.hash(phone, 10);
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        name,
+        passwordHash,
+        role: 'B2C_CLIENT' as any,
+        isActive: true,
+      },
+    });
+    return { user, isNew: true, rawPassword: phone };
+  }
+
+  async login(dto: B2CLoginDto) {
+    const user = await this.prisma.user.findFirst({
+      where: { email: dto.email, role: 'B2C_CLIENT' as any, isActive: true },
+    });
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    const valid = await bcrypt.compare(dto.phone, user.passwordHash ?? '');
+    if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+    const payload = { sub: user.id, role: user.role, email: user.email };
+    const secret = this.configService.get<string>('JWT_SECRET');
+    const token = this.jwtService.sign(payload, { secret, expiresIn: '30d' });
+
+    return {
+      token,
+      user: { id: user.id, name: user.name, email: user.email },
+    };
+  }
+
+  async changePassword(clientId: string, dto: B2CChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: clientId } });
+    if (!user) throw new NotFoundException('Account not found');
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash ?? '');
+    if (!valid) throw new BadRequestException('Current password is incorrect');
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({ where: { id: clientId }, data: { passwordHash } });
+    return { success: true };
+  }
+
+  async getBookings(clientId: string) {
+    return this.prisma.guestBooking.findMany({
+      where: { b2cClientId: clientId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        fromZone: { select: { id: true, name: true } },
+        toZone: { select: { id: true, name: true } },
+        originAirport: { select: { id: true, name: true } },
+        destinationAirport: { select: { id: true, name: true } },
+        hotel: { select: { id: true, name: true } },
+        vehicleType: { select: { id: true, name: true } },
+        trafficJob: {
+          select: {
+            id: true,
+            internalRef: true,
+            status: true,
+            assignment: {
+              select: {
+                vehicle: { select: { plateNumber: true, carBrand: true, carModel: true } },
+                driver: { select: { name: true, mobileNumber: true } },
+                rep: { select: { name: true, mobileNumber: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async getBooking(clientId: string, ref: string) {
+    const booking = await this.prisma.guestBooking.findFirst({
+      where: { bookingRef: ref, b2cClientId: clientId },
+      include: {
+        fromZone: { select: { id: true, name: true } },
+        toZone: { select: { id: true, name: true } },
+        originAirport: { select: { id: true, name: true } },
+        destinationAirport: { select: { id: true, name: true } },
+        hotel: { select: { id: true, name: true } },
+        vehicleType: { select: { id: true, name: true } },
+        trafficJob: {
+          select: {
+            id: true,
+            internalRef: true,
+            status: true,
+            assignment: {
+              select: {
+                vehicle: { select: { plateNumber: true, carBrand: true, carModel: true } },
+                driver: { select: { name: true, mobileNumber: true } },
+                rep: { select: { name: true, mobileNumber: true } },
+              },
+            },
+            flight: { select: { flightNo: true, carrier: true, terminal: true } },
+          },
+        },
+      },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return booking;
+  }
+
+  async amendBooking(clientId: string, ref: string, dto: B2CAmendBookingDto) {
+    const booking = await this.prisma.guestBooking.findFirst({
+      where: { bookingRef: ref, b2cClientId: clientId },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (!['CONFIRMED', 'CONVERTED'].includes(booking.bookingStatus)) {
+      throw new BadRequestException(`Cannot amend a booking with status ${booking.bookingStatus}`);
+    }
+
+    const jobDateTime = new Date(booking.jobDate);
+    if (booking.pickupTime) {
+      const pt = booking.pickupTime;
+      jobDateTime.setHours(pt.getHours(), pt.getMinutes(), 0, 0);
+    }
+    const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / 3_600_000;
+    if (hoursUntilJob < 24) {
+      throw new BadRequestException('Amendments must be made at least 24 hours before the job');
+    }
+
+    const updateData: Record<string, any> = { amendedAt: new Date() };
+    if (dto.jobDate) updateData.jobDate = new Date(dto.jobDate);
+    if (dto.pickupTime) {
+      const dateStr = dto.jobDate ?? booking.jobDate.toISOString().split('T')[0];
+      updateData.pickupTime = new Date(`${dateStr}T${dto.pickupTime}:00`);
+    }
+    if (dto.paxCount !== undefined) updateData.paxCount = dto.paxCount;
+
+    const updated = await this.prisma.guestBooking.update({
+      where: { id: booking.id },
+      data: updateData,
+    });
+
+    if (booking.trafficJobId) {
+      const jobUpdate: Record<string, any> = {};
+      if (dto.jobDate) jobUpdate.jobDate = updateData.jobDate;
+      if (dto.pickupTime) jobUpdate.pickUpTime = updateData.pickupTime;
+      if (dto.paxCount !== undefined) {
+        jobUpdate.paxCount = dto.paxCount;
+        jobUpdate.adultCount = dto.paxCount;
+      }
+      if (Object.keys(jobUpdate).length > 0) {
+        await this.prisma.trafficJob.update({
+          where: { id: booking.trafficJobId },
+          data: jobUpdate,
+        });
+      }
+    }
+
+    return updated;
+  }
+
+  async cancelBooking(clientId: string, ref: string) {
+    const booking = await this.prisma.guestBooking.findFirst({
+      where: { bookingRef: ref, b2cClientId: clientId },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (!['CONFIRMED', 'CONVERTED'].includes(booking.bookingStatus)) {
+      throw new BadRequestException(`Cannot cancel a booking with status ${booking.bookingStatus}`);
+    }
+
+    const jobDateTime = new Date(booking.jobDate);
+    if (booking.pickupTime) {
+      const pt = booking.pickupTime;
+      jobDateTime.setHours(pt.getHours(), pt.getMinutes(), 0, 0);
+    }
+    const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / 3_600_000;
+    if (hoursUntilJob < 48) {
+      throw new BadRequestException('Cancellations must be made at least 48 hours before the job');
+    }
+
+    await this.prisma.guestBooking.update({
+      where: { id: booking.id },
+      data: { bookingStatus: 'CANCELLED' as any },
+    });
+
+    if (booking.trafficJobId) {
+      await this.prisma.trafficJob.update({
+        where: { id: booking.trafficJobId },
+        data: { status: 'CANCELLED' as any },
+      }).catch(() => { /* job may already be non-cancellable */ });
+    }
+
+    return { success: true };
+  }
+
+  async sendAssignmentNotification(bookingRef: string) {
+    const booking = await this.prisma.guestBooking.findFirst({
+      where: { bookingRef },
+      include: {
+        b2cClient: { select: { email: true, name: true } },
+        trafficJob: {
+          include: {
+            assignment: {
+              include: {
+                vehicle: { select: { plateNumber: true, carBrand: true, carModel: true } },
+                driver: { select: { name: true, mobileNumber: true } },
+                rep: { select: { name: true, mobileNumber: true } },
+              },
+            },
+          },
+        },
+      },
+    }) as any;
+
+    if (!booking?.b2cClient?.email || !booking.trafficJob?.assignment) return;
+
+    const a = booking.trafficJob.assignment;
+    const lines: string[] = [];
+    if (a.vehicle) lines.push(`<li><strong>Vehicle:</strong> ${[a.vehicle.carBrand, a.vehicle.carModel].filter(Boolean).join(' ')} — ${a.vehicle.plateNumber}</li>`);
+    if (a.driver) lines.push(`<li><strong>Driver:</strong> ${a.driver.name} — ${a.driver.mobileNumber}</li>`);
+    if (a.rep) lines.push(`<li><strong>Rep:</strong> ${a.rep.name} — ${a.rep.mobileNumber}</li>`);
+
+    if (lines.length === 0) return;
+
+    const html = `
+      <p>Dear ${booking.b2cClient.name},</p>
+      <p>Your booking <strong>${bookingRef}</strong> has been assigned:</p>
+      <ul>${lines.join('')}</ul>
+      <p>You can view your booking at <a href="/w/account">My Account</a>.</p>
+    `;
+
+    await (this.emailService as any).send(
+      booking.b2cClient.email,
+      `Booking ${bookingRef} — Driver Assigned`,
+      html,
+    ).catch((err: Error) => this.logger.warn(`Failed to send assignment email: ${err.message}`));
+  }
+}

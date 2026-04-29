@@ -150,7 +150,8 @@ export class GuestBookingsService {
       const job = await tx.trafficJob.create({
         data: {
           internalRef,
-          bookingChannel: 'ONLINE' as BookingChannel,
+          bookingChannel: 'B2C' as BookingChannel,
+          agentRef: booking.bookingRef,
           serviceType: booking.serviceType as ServiceType,
           jobDate: booking.jobDate,
           adultCount: booking.paxCount,
@@ -176,6 +177,11 @@ export class GuestBookingsService {
           notes: booking.notes,
           status: 'PENDING',
           createdById: userId,
+          ...(booking.paymentMethod === 'PAY_ON_ARRIVAL' && {
+            collectionRequired: true,
+            collectionAmount: booking.total,
+            collectionCurrency: booking.currency,
+          }),
         },
       });
 

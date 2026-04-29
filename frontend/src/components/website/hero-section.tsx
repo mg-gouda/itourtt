@@ -61,7 +61,7 @@ export function HeroSection({ settings, children }: HeroSectionProps) {
 
         {/* Booking Widget slot */}
         {children && (
-          <div className="mx-auto mt-10 max-w-2xl sm:mt-12">{children}</div>
+          <div className="mx-auto mt-10 sm:mt-12 w-[85vw]">{children}</div>
         )}
       </div>
 

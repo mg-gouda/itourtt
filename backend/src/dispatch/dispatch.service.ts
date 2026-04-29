@@ -11,6 +11,7 @@ import { EmailService } from '../email/email.service.js';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { WhatsappNotificationsService } from '../whatsapp-notifications/whatsapp-notifications.service.js';
+import { B2CService } from '../b2c/b2c.service.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
 import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import type { ServiceType, JobStatus } from '../../generated/prisma/client.js';
@@ -27,6 +28,7 @@ export class DispatchService {
     private readonly pushService: PushNotificationsService,
     private readonly notificationsService: NotificationsService,
     private readonly whatsappService: WhatsappNotificationsService,
+    private readonly b2cService: B2CService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -259,7 +261,9 @@ export class DispatchService {
           rep: true,
           supplier: { select: { id: true, legalName: true, tradeName: true } },
           supplierCarType: { include: { vehicleType: true } },
-          trafficJob: true,
+          trafficJob: {
+            include: { guestBooking: { select: { bookingRef: true } } },
+          },
         },
       });
 
@@ -322,6 +326,13 @@ export class DispatchService {
       ).catch((err) =>
         this.logger.error(`Failed to send driver assignment email: ${err.message}`),
       );
+    }
+
+    // Send B2C client assignment notification (fire-and-forget)
+    if (assignment.trafficJob?.guestBooking?.bookingRef) {
+      this.b2cService
+        .sendAssignmentNotification(assignment.trafficJob.guestBooking.bookingRef)
+        .catch((err) => this.logger.error(`Failed to send B2C assignment notification: ${err.message}`));
     }
 
     // WhatsApp: trigger driver assigned (fire-and-forget)

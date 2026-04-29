@@ -61,7 +61,7 @@ interface TrafficJob {
   internalRef: string;
   agentRef: string | null;
   customerJobId: string | null;
-  bookingChannel: "ONLINE" | "B2B";
+  bookingChannel: "ONLINE" | "B2B" | "B2C";
   serviceType: string;
   jobDate: string;
   createdAt: string;
@@ -305,8 +305,14 @@ export default function TrafficJobsPage() {
       case "bookingChannel":
         return (
           <TableCell key={key}>
-            <Badge variant="outline" className={job.bookingChannel === "ONLINE" ? "bg-blue-500/10 text-blue-600 border-blue-500/30 text-xs" : "bg-amber-500/10 text-amber-600 border-amber-500/30 text-xs"}>
-              {job.bookingChannel}
+            <Badge variant="outline" className={
+              job.bookingChannel === "B2C"
+                ? "bg-purple-500/10 text-purple-600 border-purple-500/30 text-xs"
+                : job.bookingChannel === "ONLINE"
+                  ? "bg-blue-500/10 text-blue-600 border-blue-500/30 text-xs"
+                  : "bg-amber-500/10 text-amber-600 border-amber-500/30 text-xs"
+            }>
+              {job.bookingChannel === "B2C" ? "B2C Website" : job.bookingChannel}
             </Badge>
           </TableCell>
         );
@@ -329,7 +335,7 @@ export default function TrafficJobsPage() {
       case "agentCustomer":
         return (
           <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
-            {job.bookingChannel === "ONLINE" ? job.agent?.legalName || "\u2014" : job.customer?.legalName || "\u2014"}
+            {job.bookingChannel === "B2B" ? (job.customer?.legalName || "\u2014") : job.bookingChannel === "B2C" ? (job.agentRef || "\u2014") : (job.agent?.legalName || "\u2014")}
           </TableCell>
         );
       case "clientName":
@@ -619,7 +625,7 @@ export default function TrafficJobsPage() {
                   className={`border-border cursor-pointer transition-colors hover:bg-primary/10 ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
                   onClick={(e) => {
                     if ((e.target as HTMLElement).closest("[data-no-show]")) return;
-                    router.push(`/dashboard/traffic-jobs/${job.bookingChannel === "ONLINE" ? "online" : "b2b"}?edit=${job.id}`);
+                    router.push(`/dashboard/traffic-jobs/${job.bookingChannel === "B2B" ? "b2b" : "online"}?edit=${job.id}`);
                   }}
                 >
                   {columnOrder.filter((key) => visibility[key] !== false).map((key) => renderCell(key, job))}

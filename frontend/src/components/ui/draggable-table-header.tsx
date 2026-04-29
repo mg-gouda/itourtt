@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -79,6 +79,9 @@ export function DraggableTableHeader({
   prefixCells,
   visibility,
 }: DraggableTableHeaderProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -104,12 +107,13 @@ export function DraggableTableHeader({
   }
 
   return (
-    <TableHeader>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+      accessibility={mounted ? { container: document.body } : undefined}
+    >
+      <TableHeader>
         <SortableContext
           items={columnOrder}
           strategy={horizontalListSortingStrategy}
@@ -121,7 +125,7 @@ export function DraggableTableHeader({
             ))}
           </TableRow>
         </SortableContext>
-      </DndContext>
-    </TableHeader>
+      </TableHeader>
+    </DndContext>
   );
 }

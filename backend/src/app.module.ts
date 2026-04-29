@@ -31,6 +31,7 @@ import { PublicPricesModule } from './public-prices/public-prices.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { PublicApiModule } from './public-api/public-api.module.js';
 import { GuestBookingsModule } from './guest-bookings/guest-bookings.module.js';
+import { B2CModule } from './b2c/b2c.module.js';
 import { EmailModule } from './email/email.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { ImportTemplatesModule } from './import-templates/import-templates.module.js';
@@ -77,6 +78,7 @@ import { UserPreferencesModule } from './user-preferences/user-preferences.modul
     PaymentsModule,
     PublicApiModule,
     GuestBookingsModule,
+    B2CModule,
     NotificationsModule,
     ImportTemplatesModule,
     AiParserModule,

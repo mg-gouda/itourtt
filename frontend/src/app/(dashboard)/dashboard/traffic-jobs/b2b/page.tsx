@@ -86,7 +86,7 @@ interface TrafficJob {
   internalRef: string;
   agentRef: string | null;
   customerJobId: string | null;
-  bookingChannel: "ONLINE" | "B2B";
+  bookingChannel: "ONLINE" | "B2B" | "B2C";
   serviceType: string;
   jobDate: string;
   status: string;

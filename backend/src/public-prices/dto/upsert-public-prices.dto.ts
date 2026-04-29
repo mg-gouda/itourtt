@@ -10,9 +10,17 @@ import {
 import { Type } from 'class-transformer';
 
 export class PublicPriceItemDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   @IsNotEmpty()
   serviceType!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  transferType!: string;
 
   @IsString()
   fromZoneId!: string;
