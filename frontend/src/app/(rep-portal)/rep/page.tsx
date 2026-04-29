@@ -150,8 +150,9 @@ export default function RepDashboardPage() {
     open: boolean;
     jobId: string;
     jobRef: string;
+    oldServiceDate: string | null;
     currentArrivalTime: string | null;
-  }>({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
+  }>({ open: false, jobId: "", jobRef: "", oldServiceDate: null, currentArrivalTime: null });
   const [flightDelayDate, setFlightDelayDate] = useState("");
   const [flightDelayTime, setFlightDelayTime] = useState("");
   const [sendingDelay, setSendingDelay] = useState(false);
@@ -242,7 +243,7 @@ export default function RepDashboardPage() {
         arrivalTime: newArrivalTime,
       });
       toast.success(t("portal.flightDelayReported").replace("{ref}", flightDelayDialog.jobRef));
-      setFlightDelayDialog({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
+      setFlightDelayDialog({ open: false, jobId: "", jobRef: "", oldServiceDate: null, currentArrivalTime: null });
       setFlightDelayDate("");
       setFlightDelayTime("");
       fetchJobs();
@@ -359,10 +360,10 @@ export default function RepDashboardPage() {
                     key={job.id}
                     job={job}
                     onStatusChange={handleStatusChange}
-                    onFlightDelay={(jobId, jobRef, arrivalTime) => {
+                    onFlightDelay={(jobId, jobRef, jobDate, arrivalTime) => {
                       setFlightDelayDate(arrivalTime ? arrivalTime.split("T")[0] : localDateStr(new Date()));
                       setFlightDelayTime(arrivalTime ? new Date(arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "");
-                      setFlightDelayDialog({ open: true, jobId, jobRef, currentArrivalTime: arrivalTime });
+                      setFlightDelayDialog({ open: true, jobId, jobRef, oldServiceDate: jobDate, currentArrivalTime: arrivalTime });
                     }}
                     onViewDetail={setJobDetailId}
                     formatTime={formatTime}
@@ -383,10 +384,10 @@ export default function RepDashboardPage() {
                     key={job.id}
                     job={job}
                     onStatusChange={handleStatusChange}
-                    onFlightDelay={(jobId, jobRef, arrivalTime) => {
+                    onFlightDelay={(jobId, jobRef, jobDate, arrivalTime) => {
                       setFlightDelayDate(arrivalTime ? arrivalTime.split("T")[0] : localDateStr(new Date()));
                       setFlightDelayTime(arrivalTime ? new Date(arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "");
-                      setFlightDelayDialog({ open: true, jobId, jobRef, currentArrivalTime: arrivalTime });
+                      setFlightDelayDialog({ open: true, jobId, jobRef, oldServiceDate: jobDate, currentArrivalTime: arrivalTime });
                     }}
                     onViewDetail={setJobDetailId}
                     formatTime={formatTime}
@@ -538,7 +539,7 @@ export default function RepDashboardPage() {
         open={flightDelayDialog.open}
         onOpenChange={(open) => {
           if (!open) {
-            setFlightDelayDialog({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
+            setFlightDelayDialog({ open: false, jobId: "", jobRef: "", oldServiceDate: null, currentArrivalTime: null });
             setFlightDelayDate("");
             setFlightDelayTime("");
           }
@@ -555,6 +556,22 @@ export default function RepDashboardPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5">
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{t("portal.currentServiceDate")}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {flightDelayDialog.oldServiceDate ?? "—"}
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-muted-foreground">{t("portal.currentArrivalTime")}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {flightDelayDialog.currentArrivalTime
+                    ? new Date(flightDelayDialog.currentArrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })
+                    : "—"}
+                </p>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">{t("portal.newArrivalDate")}</label>
@@ -580,7 +597,7 @@ export default function RepDashboardPage() {
             <Button
               variant="outline"
               onClick={() => {
-                setFlightDelayDialog({ open: false, jobId: "", jobRef: "", currentArrivalTime: null });
+                setFlightDelayDialog({ open: false, jobId: "", jobRef: "", oldServiceDate: null, currentArrivalTime: null });
                 setFlightDelayDate("");
                 setFlightDelayTime("");
               }}
@@ -619,7 +636,7 @@ function JobCard({
 }: {
   job: RepJob;
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
-  onFlightDelay: (jobId: string, jobRef: string, arrivalTime: string | null) => void;
+  onFlightDelay: (jobId: string, jobRef: string, jobDate: string, arrivalTime: string | null) => void;
   onViewDetail: (jobId: string) => void;
   formatTime: (iso: string | null) => string | null;
 }) {
@@ -825,7 +842,7 @@ function JobCard({
               size="sm"
               variant="outline"
               className="gap-1.5 text-amber-400 hover:text-amber-300"
-              onClick={() => onFlightDelay(job.id, job.internalRef, job.flight?.arrivalTime ?? null)}
+              onClick={() => onFlightDelay(job.id, job.internalRef, job.jobDate, job.flight?.arrivalTime ?? null)}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
               {t("portal.flightDelay")}
