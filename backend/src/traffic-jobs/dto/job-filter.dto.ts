@@ -19,8 +19,8 @@ export class JobFilterDto extends PaginationDto {
   serviceType?: string;
 
   @IsOptional()
-  @IsIn(['ONLINE', 'B2B'])
-  bookingChannel?: 'ONLINE' | 'B2B';
+  @IsString()
+  bookingChannel?: string;
 
   @IsOptional()
   @IsString()
