@@ -47,8 +47,8 @@ export function LoginClient({ settings }: LoginClientProps) {
     <div className="min-h-screen pt-20 flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          {settings.logoUrl && (
-            <img src={settings.logoUrl} alt={settings.siteName} className="h-10 mx-auto mb-4 object-contain" />
+          {settings.siteLogoUrl && (
+            <img src={settings.siteLogoUrl} alt={settings.siteName} className="h-10 mx-auto mb-4 object-contain" />
           )}
           <h1 className="text-2xl font-bold text-gray-900">My Account</h1>
           <p className="mt-1 text-sm text-gray-500">Sign in to manage your bookings</p>
