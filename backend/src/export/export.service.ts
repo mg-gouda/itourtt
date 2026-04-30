@@ -1567,6 +1567,19 @@ export class ExportService {
       { type: 'completed', urls: job.completedEvidence.flatMap((e) => e.imageUrls) },
     ];
 
+    // Fetch all images in parallel across all groups to avoid serial Drive round-trips
+    const fetchWork = groups.flatMap(({ type, urls }) =>
+      urls.map((url, idx) => ({ type, idx: idx + 1, url })),
+    );
+    const fetched = await Promise.all(
+      fetchWork.map(async ({ type, idx, url }) => ({
+        type,
+        idx,
+        url,
+        buf: await fetchImageBuffer(url),
+      })),
+    );
+
     const zipName = `evidence_${ref}.zip`;
     res.set({
       'Content-Type': 'application/zip',
@@ -1574,18 +1587,16 @@ export class ExportService {
     });
 
     const archive = archiver('zip', { zlib: { level: 6 } });
+    archive.on('error', (err) => {
+      this.logger.error('Archive error during evidence ZIP', err);
+      if (!res.headersSent) res.status(500).end();
+    });
     archive.pipe(res);
 
-    for (const { type, urls } of groups) {
-      let n = 1;
-      for (const url of urls) {
-        const buf = await fetchImageBuffer(url);
-        if (!buf) continue;
-        const ext = guessExt(url);
-        const filename = `${ref}-${status}-${type}-${n}${ext}`;
-        archive.append(buf, { name: filename });
-        n++;
-      }
+    for (const { type, idx, url, buf } of fetched) {
+      if (!buf) continue;
+      const ext = guessExt(url);
+      archive.append(buf, { name: `${ref}-${status}-${type}-${idx}${ext}` });
     }
 
     await archive.finalize();
