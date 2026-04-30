@@ -1021,7 +1021,13 @@ export class ReportsService {
             supplier: { select: { legalName: true, tradeName: true } },
           },
         },
+        noShowEvidence: {
+          select: { id: true, imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
+        },
         inPlaceEvidence: {
+          select: { id: true, imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
+        },
+        completedEvidence: {
           select: { id: true, imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
         },
         flight: { select: { arrivalTime: true, flightNo: true } },
@@ -1051,7 +1057,11 @@ export class ReportsService {
         driverJobStatus: j.assignment?.driverStatus || null,
         repName: j.assignment?.rep?.name ?? null,
         driverName: resolveDriverName(j.assignment ?? null),
-        driverEvidence: j.inPlaceEvidence,
+        driverEvidence: [
+          ...j.noShowEvidence,
+          ...j.inPlaceEvidence,
+          ...j.completedEvidence,
+        ],
       })),
     };
   }
