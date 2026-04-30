@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
 import * as XLSX from 'xlsx';
@@ -87,6 +87,8 @@ function fontPaths() {
 
 @Injectable()
 export class ExportService {
+  private readonly logger = new Logger(ExportService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly googleDrive: GoogleDriveService,
