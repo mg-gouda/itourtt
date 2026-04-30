@@ -28,7 +28,7 @@ import { StepIndicator } from '@/components/public/step-indicator';
 import { useBookingStore } from '@/stores/booking-store';
 import { localDateStr } from "@/lib/utils";
 
-const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api`;
+const API = `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api`;
 const STEPS = ['Search', 'Details', 'Payment', 'Confirmation'];
 
 const SERVICE_TYPES = [

@@ -176,7 +176,7 @@ export default function SupplierDetailPage({
                 <span className="text-muted-foreground">National ID</span>
                 <p className="mt-1">
                   <a
-                    href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/${supplier.nationalIdImage}`}
+                    href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/${supplier.nationalIdImage}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline text-sm"

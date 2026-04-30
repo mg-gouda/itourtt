@@ -14,7 +14,7 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/use-permission";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 interface CompanySettingsData {
   companyName: string;

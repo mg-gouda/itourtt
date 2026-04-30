@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { useWT } from '@/lib/website-i18n';
 import type { SiteSettings } from '@/lib/site-settings';
 
-const API = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api`;
+const API = `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api`;
 
 const STATUS_STYLES: Record<string, { key: string; color: string; icon: React.ReactNode }> = {
   PENDING: { key: 'track.statusPending', color: 'bg-yellow-100 text-yellow-700', icon: <Clock className="h-4 w-4" /> },

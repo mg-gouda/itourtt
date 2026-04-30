@@ -729,7 +729,7 @@ export default function TrafficJobsPage() {
               <p className="text-center text-sm text-muted-foreground py-6">No evidence submitted yet.</p>
             )}
             {!evidenceLoading && (evidenceJob?.noShowEvidence ?? []).map((ev, i) => {
-              const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+              const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "";
               return (
               <div key={ev.id} className="rounded-lg border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
