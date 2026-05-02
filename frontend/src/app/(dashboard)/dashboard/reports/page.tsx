@@ -746,6 +746,7 @@ export default function ReportsPage() {
   const canDriverScore = usePermission("reports.driverScore");
   const canAgentStatement = usePermission("reports.agentStatement");
   const canRepFees = usePermission("reports.repFees");
+  const canRepScore = usePermission("reports.repScore");
   const canRevenue = usePermission("reports.revenue");
   const canVehicleCompliance = usePermission("reports.vehicleCompliance");
   const canJobStatus = usePermission("reports.jobStatus");
@@ -1646,6 +1647,7 @@ export default function ReportsPage() {
         canDriverScore ? "driver-score" :
         canAgentStatement ? "agent" :
         canRepFees ? "rep-fees" :
+        canRepScore ? "rep-score" :
         canRevenue ? "revenue" :
         canVehicleCompliance ? "compliance" :
         canJobStatus ? "job-status" :
@@ -1699,7 +1701,7 @@ export default function ReportsPage() {
               {t("reports.repFees")}
             </TabsTrigger>
           )}
-          {canRepFees && (
+          {canRepScore && (
             <TabsTrigger
               value="rep-score"
               className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
@@ -2593,7 +2595,7 @@ export default function ReportsPage() {
         </TabsContent>}
 
         {/* ─── REP SCORE REPORT ─── */}
-        {canRepFees && (
+        {canRepScore && (
           <TabsContent value="rep-score" className="space-y-4">
             <Card className="border-border bg-card p-4">
               <div className="flex flex-wrap items-end gap-3">

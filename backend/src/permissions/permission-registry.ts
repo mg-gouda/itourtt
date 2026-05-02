@@ -274,6 +274,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'reports.driverScore', labelKey: 'permissions.reports.driverScore' },
       { key: 'reports.agentStatement', labelKey: 'permissions.reports.agentStatement' },
       { key: 'reports.repFees', labelKey: 'permissions.reports.repFees' },
+      { key: 'reports.repScore', labelKey: 'permissions.reports.repScore' },
       { key: 'reports.revenue', labelKey: 'permissions.reports.revenue' },
       { key: 'reports.vehicleCompliance', labelKey: 'permissions.reports.vehicleCompliance' },
       { key: 'reports.jobStatus', labelKey: 'permissions.reports.jobStatus' },

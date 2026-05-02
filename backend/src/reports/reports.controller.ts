@@ -227,7 +227,7 @@ export class ReportsController {
   }
 
   @Put('rep-score/:jobId')
-  @Permissions('reports.repFees')
+  @Permissions('reports.repScore')
   async upsertRepScore(
     @Param('jobId', ParseUUIDPipe) jobId: string,
     @Body() body: UpsertRepScoreDto,
@@ -253,7 +253,7 @@ export class ReportsController {
   }
 
   @Get('rep-score')
-  @Permissions('reports.repFees')
+  @Permissions('reports.repScore')
   async repScoreReport(@Query() query: RepScoreQueryDto) {
     if (!query.from || !query.to) {
       throw new BadRequestException('from and to query parameters are required');
