@@ -1165,4 +1165,130 @@ export class ReportsService {
 
     return { from, to, count: rows.length, rows };
   }
+
+  async flightDelayReport(from: string, to: string, repName?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const notifications = await this.prisma.userNotification.findMany({
+      where: {
+        type: 'FLIGHT_DELAY' as any,
+        trafficJobId: { not: null },
+        createdAt: { gte: fromDate, lte: toDate },
+      },
+      include: {
+        trafficJob: {
+          select: {
+            internalRef: true,
+            agentRef: true,
+            jobDate: true,
+            assignment: { select: { rep: { select: { name: true } } } },
+          },
+        },
+      },
+      orderBy: [{ trafficJobId: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const seen = new Set<string>();
+    const rows: Array<{
+      internalRef: string;
+      agentRef: string | null;
+      jobDate: string | null;
+      oldArrivalDate: string | null;
+      oldArrivalTime: string | null;
+      newArrivalDate: string;
+      newArrivalTime: string;
+      reportedBy: string;
+      currentRepName: string | null;
+      reportedAt: string;
+    }> = [];
+
+    const fmtTime = (d: Date) =>
+      d.toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false });
+
+    for (const n of notifications) {
+      const meta = n.metadata as { repName?: string; oldArrivalTime?: string | null; newArrivalTime?: string } | null;
+      if (!meta?.newArrivalTime) continue;
+
+      const key = `${n.trafficJobId}|${meta.newArrivalTime}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const reportedBy = meta.repName ?? '—';
+      if (repName && repName !== 'ALL' && reportedBy !== repName) continue;
+
+      const currentRepName = (n.trafficJob as any)?.assignment?.rep?.name ?? null;
+      const oldArr = meta.oldArrivalTime ? new Date(meta.oldArrivalTime) : null;
+      const newArr = new Date(meta.newArrivalTime);
+
+      rows.push({
+        internalRef: (n.trafficJob as any)?.internalRef ?? '—',
+        agentRef: (n.trafficJob as any)?.agentRef ?? null,
+        jobDate: (n.trafficJob as any)?.jobDate?.toISOString().split('T')[0] ?? null,
+        oldArrivalDate: oldArr ? oldArr.toISOString().split('T')[0] : null,
+        oldArrivalTime: oldArr ? fmtTime(oldArr) : null,
+        newArrivalDate: newArr.toISOString().split('T')[0],
+        newArrivalTime: fmtTime(newArr),
+        reportedBy,
+        currentRepName: currentRepName && currentRepName !== reportedBy ? currentRepName : null,
+        reportedAt: n.createdAt.toISOString(),
+      });
+    }
+
+    return { from, to, count: rows.length, rows };
+  }
+
+  async flightDelayForJob(jobId: string) {
+    const notifications = await this.prisma.userNotification.findMany({
+      where: { type: 'FLIGHT_DELAY' as any, trafficJobId: jobId },
+      include: {
+        trafficJob: {
+          select: {
+            assignment: { select: { rep: { select: { name: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const seen = new Set<string>();
+    const events: Array<{
+      oldArrivalDate: string | null;
+      oldArrivalTime: string | null;
+      newArrivalDate: string;
+      newArrivalTime: string;
+      reportedBy: string;
+      currentRepName: string | null;
+      reportedAt: string;
+    }> = [];
+
+    const fmtTime = (d: Date) =>
+      d.toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false });
+
+    for (const n of notifications) {
+      const meta = n.metadata as { repName?: string; oldArrivalTime?: string | null; newArrivalTime?: string } | null;
+      if (!meta?.newArrivalTime) continue;
+
+      if (seen.has(meta.newArrivalTime)) continue;
+      seen.add(meta.newArrivalTime);
+
+      const reportedBy = meta.repName ?? '—';
+      const currentRepName = (n.trafficJob as any)?.assignment?.rep?.name ?? null;
+      const oldArr = meta.oldArrivalTime ? new Date(meta.oldArrivalTime) : null;
+      const newArr = new Date(meta.newArrivalTime);
+
+      events.push({
+        oldArrivalDate: oldArr ? oldArr.toISOString().split('T')[0] : null,
+        oldArrivalTime: oldArr ? fmtTime(oldArr) : null,
+        newArrivalDate: newArr.toISOString().split('T')[0],
+        newArrivalTime: fmtTime(newArr),
+        reportedBy,
+        currentRepName: currentRepName && currentRepName !== reportedBy ? currentRepName : null,
+        reportedAt: n.createdAt.toISOString(),
+      });
+    }
+
+    return { jobId, count: events.length, events };
+  }
 }

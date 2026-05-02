@@ -322,6 +322,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'reports.visa',             labelKey: 'permissions.reports.visa',             crudType: 'R' },
       { key: 'reports.sales',            labelKey: 'permissions.reports.sales',            crudType: 'R' },
       { key: 'reports.departure',        labelKey: 'permissions.reports.departure',        crudType: 'R' },
+      { key: 'reports.flightDelay',      labelKey: 'permissions.reports.flightDelay',      crudType: 'R' },
     ],
   },
 

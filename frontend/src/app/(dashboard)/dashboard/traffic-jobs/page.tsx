@@ -15,6 +15,7 @@ import {
   PlaneLanding,
   ChevronUp,
   ChevronDown,
+  AlertTriangle,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -125,6 +126,7 @@ export default function TrafficJobsPage() {
   const locale = useLocaleId();
   const router = useRouter();
   const canPrintSigns = usePermission("dispatch.exportButton") || usePermission("traffic-jobs.online.createJob");
+  const canFlightDelay = usePermission("reports.flightDelay");
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
@@ -135,6 +137,18 @@ export default function TrafficJobsPage() {
   const [evidenceJob, setEvidenceJob] = useState<TrafficJob | null>(null);
   const [evidenceBlobUrls, setEvidenceBlobUrls] = useState<Map<string, string>>(new Map());
   const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [flightDelayModalOpen, setFlightDelayModalOpen] = useState(false);
+  const [flightDelayModalRef, setFlightDelayModalRef] = useState("");
+  const [flightDelayEvents, setFlightDelayEvents] = useState<Array<{
+    oldArrivalDate: string | null;
+    oldArrivalTime: string | null;
+    newArrivalDate: string;
+    newArrivalTime: string;
+    reportedBy: string;
+    currentRepName: string | null;
+    reportedAt: string;
+  }>>([]);
+  const [flightDelayModalLoading, setFlightDelayModalLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -221,6 +235,22 @@ export default function TrafficJobsPage() {
     }
   };
 
+  const openFlightDelayModal = async (job: TrafficJob) => {
+    setFlightDelayModalRef(job.internalRef);
+    setFlightDelayEvents([]);
+    setFlightDelayModalOpen(true);
+    setFlightDelayModalLoading(true);
+    try {
+      const { data } = await api.get(`/reports/flight-delay/${job.id}`);
+      const result = data.data || data;
+      setFlightDelayEvents(result.events || []);
+    } catch {
+      toast.error("Failed to load flight delay data");
+    } finally {
+      setFlightDelayModalLoading(false);
+    }
+  };
+
   const filtered = jobs.filter((j) => {
     if (search) {
       const q = search.toLowerCase();
@@ -245,6 +275,7 @@ export default function TrafficJobsPage() {
     "extras", "printSign", "notes", "status", "bookingStatus",
     "driverStatus", "repStatus", "vehicleType", "transferPrice", "collection",
     "assignment", "custRep", "userLog",
+    ...(canFlightDelay ? ["flightDelay"] : []),
   ];
   const { columns: columnOrder, reorder, visibility, saveVisibility } = useColumnPreferences("traffic_jobs_all", DEFAULT_COLS);
 
@@ -288,6 +319,7 @@ export default function TrafficJobsPage() {
     { key: "assignment",     label: th(t("jobs.assignment")) },
     { key: "custRep",        label: th("Cust. Rep") },
     { key: "userLog",        label: th(t("jobs.userLog")) },
+    ...(canFlightDelay ? [{ key: "flightDelay", label: th("Flight Delay") }] : []),
   ];
 
   const renderCell = (key: string, job: TrafficJob): React.ReactNode => {
@@ -475,6 +507,19 @@ export default function TrafficJobsPage() {
         );
       case "userLog":
         return <TableCell key={key} className="text-xs text-muted-foreground whitespace-nowrap">{job.createdBy?.name || "\u2014"}</TableCell>;
+      case "flightDelay":
+        return (
+          <TableCell key={key}>
+            <button
+              data-no-show="true"
+              onClick={() => openFlightDelayModal(job)}
+              className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 hover:underline whitespace-nowrap"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              Flight Delay
+            </button>
+          </TableCell>
+        );
       default:
         return <TableCell key={key} />;
     }
@@ -705,6 +750,61 @@ export default function TrafficJobsPage() {
                 <Printer className="h-4 w-4" />
               )}
               {generatingSigns ? t("jobs.generatingSigns") : t("jobs.printSigns")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Flight Delay Modal */}
+      <Dialog open={flightDelayModalOpen} onOpenChange={setFlightDelayModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Flight Delay History — {flightDelayModalRef}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 max-h-[60vh] overflow-y-auto">
+            {flightDelayModalLoading && (
+              <div className="flex items-center justify-center py-8 gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              </div>
+            )}
+            {!flightDelayModalLoading && flightDelayEvents.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-8">No flight delays recorded for this job.</p>
+            )}
+            {!flightDelayModalLoading && flightDelayEvents.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border bg-muted">
+                    <TableHead className="text-xs">Old Arr. Date</TableHead>
+                    <TableHead className="text-xs">Old Arr. Time</TableHead>
+                    <TableHead className="text-xs text-amber-600 dark:text-amber-400">New Arr. Date</TableHead>
+                    <TableHead className="text-xs text-amber-600 dark:text-amber-400">New Arr. Time</TableHead>
+                    <TableHead className="text-xs">Reported By</TableHead>
+                    <TableHead className="text-xs">Current Rep</TableHead>
+                    <TableHead className="text-xs">Reported At</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {flightDelayEvents.map((ev, i) => (
+                    <TableRow key={i} className="border-border hover:bg-muted/30">
+                      <TableCell className="text-xs">{ev.oldArrivalDate ? new Date(ev.oldArrivalDate).toLocaleDateString(locale) : "—"}</TableCell>
+                      <TableCell className="text-xs font-mono">{ev.oldArrivalTime ?? "—"}</TableCell>
+                      <TableCell className="text-xs font-mono text-amber-600 dark:text-amber-400">{new Date(ev.newArrivalDate).toLocaleDateString(locale)}</TableCell>
+                      <TableCell className="text-xs font-mono text-amber-600 dark:text-amber-400">{ev.newArrivalTime}</TableCell>
+                      <TableCell className="text-sm">{ev.reportedBy}</TableCell>
+                      <TableCell className="text-sm">{ev.currentRepName ? <span className="text-blue-600 dark:text-blue-400">{ev.currentRepName}</span> : "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{new Date(ev.reportedAt).toLocaleString(locale, { timeZone: "Africa/Cairo" })}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFlightDelayModalOpen(false)} className="border-border">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

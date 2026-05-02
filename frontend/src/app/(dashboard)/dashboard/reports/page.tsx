@@ -498,6 +498,26 @@ interface DepartureReport {
   rows: DepartureReportRow[];
 }
 
+interface FlightDelayRow {
+  internalRef: string;
+  agentRef: string | null;
+  jobDate: string | null;
+  oldArrivalDate: string | null;
+  oldArrivalTime: string | null;
+  newArrivalDate: string;
+  newArrivalTime: string;
+  reportedBy: string;
+  currentRepName: string | null;
+  reportedAt: string;
+}
+
+interface FlightDelayReport {
+  from: string;
+  to: string;
+  count: number;
+  rows: FlightDelayRow[];
+}
+
 // ────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────
@@ -707,6 +727,19 @@ const DEPARTURE_COLUMNS: ColumnDef[] = [
 ];
 const DEPARTURE_DEFAULT_KEYS = DEPARTURE_COLUMNS.map((c) => c.key);
 
+const FLIGHT_DELAY_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Internal Ref" },
+  { key: "agentRef", label: "Agent Ref" },
+  { key: "jobDate", label: "Service Date" },
+  { key: "oldArrivalDate", label: "Old Arr. Date" },
+  { key: "oldArrivalTime", label: "Old Arr. Time" },
+  { key: "newArrivalDate", label: "New Arr. Date" },
+  { key: "newArrivalTime", label: "New Arr. Time" },
+  { key: "reportedBy", label: "Rep Name" },
+  { key: "currentRepName", label: "Current Rep" },
+];
+const FLIGHT_DELAY_DEFAULT_KEYS = FLIGHT_DELAY_COLUMNS.map((c) => c.key);
+
 // ────────────────────────────────────────────
 // Stat Card
 // ────────────────────────────────────────────
@@ -756,6 +789,7 @@ export default function ReportsPage() {
   const canVisa = usePermission("reports.visa");
   const canSales = usePermission("reports.sales");
   const canDeparture = usePermission("reports.departure");
+  const canFlightDelay = usePermission("reports.flightDelay");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -905,6 +939,14 @@ export default function ReportsPage() {
   const [departureLoading, setDepartureLoading] = useState(false);
   const departurePrintRef = useRef<HTMLDivElement>(null);
 
+  // Flight Delay Report
+  const [flightDelayFrom, setFlightDelayFrom] = useState(thirtyDaysAgo);
+  const [flightDelayTo, setFlightDelayTo] = useState(today);
+  const [flightDelayRepName, setFlightDelayRepName] = useState("ALL");
+  const [flightDelayData, setFlightDelayData] = useState<FlightDelayReport | null>(null);
+  const [flightDelayLoading, setFlightDelayLoading] = useState(false);
+  const flightDelayPrintRef = useRef<HTMLDivElement>(null);
+
   // Derived: filtered compliance data and unique vehicle types
   const complianceVehicleTypes = Array.from(new Set(complianceData.map((v) => v.vehicleTypeName).filter(Boolean))).sort();
   const filteredComplianceData = complianceData.filter((v) => {
@@ -926,6 +968,7 @@ export default function ReportsPage() {
   const visaSort = useSortable(visaData?.rows || []);
   const salesSort = useSortable(salesData?.rows || []);
   const departureSort = useSortable(departureData?.rows || []);
+  const flightDelaySort = useSortable(flightDelayData?.rows || []);
 
   // Column order hooks for drag-and-drop reordering
   const dispatchColOrder = useColumnPreferences("dispatch", DISPATCH_DEFAULT_KEYS);
@@ -943,6 +986,7 @@ export default function ReportsPage() {
   const visaColOrder = useColumnPreferences("visa", VISA_DEFAULT_KEYS);
   const salesColOrder = useColumnPreferences("sales", SALES_DEFAULT_KEYS);
   const departureColOrder = useColumnPreferences("departure", DEPARTURE_DEFAULT_KEYS);
+  const flightDelayColOrder = useColumnPreferences("flight_delay", FLIGHT_DELAY_DEFAULT_KEYS);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -1599,6 +1643,22 @@ export default function ReportsPage() {
 
   const exportDeparturePdf = () => printFromRef(departurePrintRef, `Departure Report - ${departureFrom} to ${departureTo}`);
 
+  // ── Flight Delay Report ──
+  const fetchFlightDelay = async () => {
+    setFlightDelayLoading(true);
+    try {
+      const repParam = flightDelayRepName !== "ALL" ? `&repName=${encodeURIComponent(flightDelayRepName)}` : "";
+      const { data } = await api.get(`/reports/flight-delay?from=${flightDelayFrom}&to=${flightDelayTo}${repParam}`);
+      setFlightDelayData(data.data || data);
+    } catch {
+      toast.error("Failed to load flight delay report");
+    } finally {
+      setFlightDelayLoading(false);
+    }
+  };
+
+  const exportFlightDelayPdf = () => printFromRef(flightDelayPrintRef, `Flight Delay Report - ${flightDelayFrom} to ${flightDelayTo}`);
+
   // Compute final net total for a rep using current scoreEdits / missedJobs / deductions
   function computeRepNet(fees: RepFeeReportRep["fees"]): number {
     const gross = fees.reduce((sum, fee) => {
@@ -1792,6 +1852,15 @@ export default function ReportsPage() {
             >
               <Plane className="h-3.5 w-3.5" />
               Departure
+            </TabsTrigger>
+          )}
+          {canFlightDelay && (
+            <TabsTrigger
+              value="flight-delay"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Flight Delay
             </TabsTrigger>
           )}
         </TabsList>
@@ -4251,6 +4320,103 @@ export default function ReportsPage() {
                 </div>
 
                 <ColumnVisibilityControl columns={DEPARTURE_COLUMNS} visibility={departureColOrder.visibility} onSave={departureColOrder.saveVisibility} />
+              </>
+            )}
+          </TabsContent>
+        )}
+
+        {/* ─── FLIGHT DELAY REPORT ─── */}
+        {canFlightDelay && (
+          <TabsContent value="flight-delay" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <Label className="text-muted-foreground text-xs">From</Label>
+                  <Input type="date" value={flightDelayFrom} onChange={(e) => setFlightDelayFrom(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">To</Label>
+                  <Input type="date" value={flightDelayTo} onChange={(e) => setFlightDelayTo(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Rep Name</Label>
+                  <Select value={flightDelayRepName} onValueChange={setFlightDelayRepName}>
+                    <SelectTrigger className="mt-1 w-48 border-border bg-card text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Reps</SelectItem>
+                      {repList.map((r) => (
+                        <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={fetchFlightDelay} disabled={flightDelayLoading} className="gap-1.5">
+                  {flightDelayLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Generate
+                </Button>
+                {flightDelayData && (
+                  <Button variant="outline" onClick={exportFlightDelayPdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> PDF
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            {flightDelayData && (
+              <>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <StatCard label="Total Delays" value={flightDelayData.count} />
+                  <StatCard label="Period" value={`${flightDelayData.from} → ${flightDelayData.to}`} />
+                </div>
+
+                <div className="overflow-x-auto rounded-md border border-border" ref={flightDelayPrintRef}>
+                  <Table>
+                    <DraggableTableHeader
+                      columns={FLIGHT_DELAY_COLUMNS}
+                      columnOrder={flightDelayColOrder.columns}
+                      onReorder={flightDelayColOrder.reorder}
+                      visibility={flightDelayColOrder.visibility}
+                    />
+                    <TableBody>
+                      {flightDelaySort.sortedData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={FLIGHT_DELAY_COLUMNS.length} className="py-8 text-center text-muted-foreground text-sm">
+                            No flight delays found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        flightDelaySort.sortedData.map((row, idx) => (
+                          <TableRow key={idx} className="border-border hover:bg-muted/30">
+                            {flightDelayColOrder.columns.filter((col) => flightDelayColOrder.visibility[col] !== false).map((col) => {
+                              switch (col) {
+                                case "internalRef": return <TableCell key={col} className="text-xs font-mono font-semibold">{row.internalRef}</TableCell>;
+                                case "agentRef": return <TableCell key={col} className="text-xs font-mono">{row.agentRef ?? "—"}</TableCell>;
+                                case "jobDate": return <TableCell key={col} className="text-xs">{row.jobDate ? new Date(row.jobDate).toLocaleDateString(locale) : "—"}</TableCell>;
+                                case "oldArrivalDate": return <TableCell key={col} className="text-xs">{row.oldArrivalDate ? new Date(row.oldArrivalDate).toLocaleDateString(locale) : "—"}</TableCell>;
+                                case "oldArrivalTime": return <TableCell key={col} className="text-xs font-mono">{row.oldArrivalTime ?? "—"}</TableCell>;
+                                case "newArrivalDate": return <TableCell key={col} className="text-xs text-amber-600 dark:text-amber-400">{new Date(row.newArrivalDate).toLocaleDateString(locale)}</TableCell>;
+                                case "newArrivalTime": return <TableCell key={col} className="text-xs font-mono text-amber-600 dark:text-amber-400">{row.newArrivalTime}</TableCell>;
+                                case "reportedBy": return <TableCell key={col} className="text-sm">{row.reportedBy}</TableCell>;
+                                case "currentRepName": return (
+                                  <TableCell key={col} className="text-sm">
+                                    {row.currentRepName ? (
+                                      <span className="text-blue-600 dark:text-blue-400">{row.currentRepName}</span>
+                                    ) : "—"}
+                                  </TableCell>
+                                );
+                                default: return null;
+                              }
+                            })}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <ColumnVisibilityControl columns={FLIGHT_DELAY_COLUMNS} visibility={flightDelayColOrder.visibility} onSave={flightDelayColOrder.saveVisibility} />
               </>
             )}
           </TabsContent>

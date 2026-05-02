@@ -120,6 +120,18 @@ class DepartureQueryDto {
   serviceType?: string;
 }
 
+class FlightDelayQueryDto {
+  @IsString()
+  from!: string;
+
+  @IsString()
+  to!: string;
+
+  @IsOptional()
+  @IsString()
+  repName?: string;
+}
+
 class UpsertRepScoreDto {
   @IsBoolean()
   attendance!: boolean;
@@ -348,6 +360,27 @@ export class ReportsController {
       query.driverStatus,
       query.serviceType,
     );
+    return new ApiResponse(result);
+  }
+
+  @Get('flight-delay')
+  @Permissions('reports.flightDelay')
+  async flightDelayReport(@Query() query: FlightDelayQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.flightDelayReport(
+      query.from,
+      query.to,
+      query.repName,
+    );
+    return new ApiResponse(result);
+  }
+
+  @Get('flight-delay/:jobId')
+  @Permissions('reports.flightDelay')
+  async flightDelayForJob(@Param('jobId', ParseUUIDPipe) jobId: string) {
+    const result = await this.reportsService.flightDelayForJob(jobId);
     return new ApiResponse(result);
   }
 }
