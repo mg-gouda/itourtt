@@ -1724,13 +1724,15 @@ export default function ReportsPage() {
               {t("reports.vehicleCompliance")}
             </TabsTrigger>
           )}
-          <TabsTrigger
-            value="job-status"
-            className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-          >
-            <ClipboardList className="h-3.5 w-3.5" />
-            {t("reports.jobStatus")}
-          </TabsTrigger>
+          {canJobStatus && (
+            <TabsTrigger
+              value="job-status"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              {t("reports.jobStatus")}
+            </TabsTrigger>
+          )}
           {canEvidence && (
             <TabsTrigger
               value="evidence"
