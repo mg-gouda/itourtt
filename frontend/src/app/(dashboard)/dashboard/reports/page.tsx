@@ -1718,7 +1718,7 @@ export default function ReportsPage() {
         canSupplierJobs ? "supplier-jobs" :
         canCarJobs ? "car-jobs" : "dispatch"
       } className="space-y-4">
-        <TabsList className="bg-card border border-border h-auto flex-wrap gap-y-1 justify-start">
+        <TabsList className="bg-card border border-border !h-auto flex-wrap w-full justify-start gap-y-1">
           {canDailyDispatch && (
             <TabsTrigger
               value="dispatch"
