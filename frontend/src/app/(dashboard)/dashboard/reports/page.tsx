@@ -743,6 +743,7 @@ export default function ReportsPage() {
 
   const canDailyDispatch = usePermission("reports.dailyDispatch");
   const canDriverTrips = usePermission("reports.driverTrips");
+  const canDriverScore = usePermission("reports.driverScore");
   const canAgentStatement = usePermission("reports.agentStatement");
   const canRepFees = usePermission("reports.repFees");
   const canRevenue = usePermission("reports.revenue");
@@ -1642,6 +1643,7 @@ export default function ReportsPage() {
       <Tabs defaultValue={
         canDailyDispatch ? "dispatch" :
         canDriverTrips ? "drivers" :
+        canDriverScore ? "driver-score" :
         canAgentStatement ? "agent" :
         canRepFees ? "rep-fees" :
         canRevenue ? "revenue" :
@@ -1670,7 +1672,7 @@ export default function ReportsPage() {
               {t("reports.driverTrips")}
             </TabsTrigger>
           )}
-          {canDriverTrips && (
+          {canDriverScore && (
             <TabsTrigger
               value="driver-score"
               className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
@@ -2060,7 +2062,7 @@ export default function ReportsPage() {
         </TabsContent>}
 
         {/* ─── DRIVER SCORE REPORT ─── */}
-        {canDriverTrips && (
+        {canDriverScore && (
           <TabsContent value="driver-score" className="space-y-4">
             <Card className="border-border bg-card p-4">
               <div className="flex flex-wrap items-end gap-3">

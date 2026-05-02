@@ -242,7 +242,7 @@ export class ReportsController {
   }
 
   @Put('driver-score/:jobId')
-  @Permissions('reports.driverTrips')
+  @Permissions('reports.driverScore')
   async upsertDriverScore(
     @Param('jobId') jobId: string,
     @Body() body: UpsertDriverScoreDto,
@@ -267,7 +267,7 @@ export class ReportsController {
   }
 
   @Get('driver-score')
-  @Permissions('reports.driverTrips')
+  @Permissions('reports.driverScore')
   async driverScoreReport(@Query() query: DriverScoreQueryDto) {
     if (!query.from || !query.to) {
       throw new BadRequestException('from and to query parameters are required');

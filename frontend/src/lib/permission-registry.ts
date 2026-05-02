@@ -309,6 +309,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     children: [
       { key: 'reports.dailyDispatch',    labelKey: 'permissions.reports.dailyDispatch',    crudType: 'R' },
       { key: 'reports.driverTrips',      labelKey: 'permissions.reports.driverTrips',      crudType: 'R' },
+      { key: 'reports.driverScore',      labelKey: 'permissions.reports.driverScore',      crudType: 'R' },
       { key: 'reports.agentStatement',   labelKey: 'permissions.reports.agentStatement',   crudType: 'R' },
       { key: 'reports.repFees',          labelKey: 'permissions.reports.repFees',          crudType: 'R' },
       { key: 'reports.revenue',          labelKey: 'permissions.reports.revenue',          crudType: 'R' },
