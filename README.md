@@ -1,4 +1,4 @@
-# iTourTT - Transport & Traffic Management System — v3.3.0
+# iTourTT - Transport & Traffic Management System — v3.4.0
 
 > **PROPRIETARY SOFTWARE** — This project is **not open source**. All rights reserved. Viewing the source code does not grant permission to use, copy, modify, or distribute it. See [LICENSE](LICENSE) for details. Unauthorized use will be prosecuted.
 
@@ -9,7 +9,6 @@ A production-grade, full-stack enterprise transport, traffic, and accounting sys
 | Environment | URL |
 |---|---|
 | Production (Fulvago) | https://fulvago.itourtt.cloud |
-| Training | https://tranning.itourtt.cloud |
 | TravelPlan | https://travelplan.itourtt.cloud |
 
 ## Overview
