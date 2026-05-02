@@ -968,6 +968,7 @@ export default function ReportsPage() {
 
   // Load owned active vehicles for car jobs filter
   useEffect(() => {
+    if (!canCarJobs) return;
     api
       .get("/export/odoo/car-jobs/vehicles")
       .then(({ data }) => {
@@ -976,10 +977,11 @@ export default function ReportsPage() {
         setOwnedVehicleList(list);
       })
       .catch(() => {});
-  }, []);
+  }, [canCarJobs]);
 
   // Load suppliers list for supplier jobs filter
   useEffect(() => {
+    if (!canSupplierJobs) return;
     api
       .get("/suppliers?limit=500")
       .then(({ data }) => {
@@ -990,10 +992,11 @@ export default function ReportsPage() {
         );
       })
       .catch(() => {});
-  }, []);
+  }, [canSupplierJobs]);
 
-  // Load drivers list for evidence report filter
+  // Load drivers list for driver trips & evidence report filters
   useEffect(() => {
+    if (!canDriverTrips && !canEvidence) return;
     api
       .get("/drivers?limit=500&isActive=true")
       .then(({ data }) => {
@@ -1001,7 +1004,7 @@ export default function ReportsPage() {
         setDriverList(list.map((d) => ({ id: d.id, name: d.name })));
       })
       .catch(() => {});
-  }, []);
+  }, [canDriverTrips, canEvidence]);
 
   // ── Fetch functions ──
 
