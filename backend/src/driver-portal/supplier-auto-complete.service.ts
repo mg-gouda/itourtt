@@ -24,6 +24,7 @@ export class SupplierAutoCompleteService {
 
     await this.autoCompleteDrivers(yesterday, today);
     await this.autoCompleteReps(yesterday, today);
+    await this.autoCompleteSuppliers(yesterday, today);
   }
 
   // Auto-complete all drivers (own + supplier) that didn't update via portal
@@ -126,6 +127,56 @@ export class SupplierAutoCompleteService {
     }
   }
 
+  // Auto-complete supplier status for jobs assigned to a supplier
+  private async autoCompleteSuppliers(from: Date, to: Date) {
+    const assignments = await this.prisma.trafficAssignment.findMany({
+      where: {
+        supplierId: { not: null },
+        supplierStatus: { notIn: TERMINAL_STATUSES as any },
+        trafficJob: {
+          deletedAt: null,
+          status: { notIn: TERMINAL_STATUSES as any },
+          jobDate: { gte: from, lt: to },
+        },
+      },
+      include: { trafficJob: true },
+    });
+
+    for (const assignment of assignments) {
+      const job = assignment.trafficJob;
+      this.logger.log(
+        `Auto-completing supplier for job ${job.internalRef} (was: ${assignment.supplierStatus})`,
+      );
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.trafficAssignment.update({
+            where: { id: assignment.id },
+            data: { supplierStatus: 'COMPLETED' as any },
+          });
+
+          await tx.statusChangeLog.create({
+            data: {
+              assignmentId: assignment.id,
+              changedBy: 'SYSTEM',
+              changedById: assignment.id,
+              previousStatus: assignment.supplierStatus as any,
+              newStatus: 'COMPLETED' as any,
+              gpsLatitude: 0,
+              gpsLongitude: 0,
+              gpsMapLink: 'Auto-completed by system (midnight)',
+            },
+          });
+
+          await this.maybeCompleteJob(tx, assignment.id, job);
+        });
+      } catch (err) {
+        this.logger.error(
+          `Failed supplier auto-complete for job ${job.internalRef}: ${err}`,
+        );
+      }
+    }
+  }
+
   private async maybeCompleteJob(
     tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
     assignmentId: string,
@@ -140,8 +191,10 @@ export class SupplierAutoCompleteService {
       !fresh.driverId || TERMINAL_STATUSES.includes(fresh.driverStatus as string);
     const repDone =
       !fresh.repId || TERMINAL_STATUSES.includes(fresh.repStatus as string);
+    const supplierDone =
+      !fresh.supplierId || TERMINAL_STATUSES.includes(fresh.supplierStatus as string);
 
-    if (!driverDone || !repDone) return;
+    if (!driverDone || !repDone || !supplierDone) return;
 
     await tx.trafficJob.update({
       where: { id: job.id },
