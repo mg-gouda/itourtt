@@ -652,15 +652,10 @@ function DriverJobCard({
         </div>
 
         {/* Online client info */}
-        {job.bookingChannel === "ONLINE" && (job.clientName || job.clientMobile) && (
+        {job.bookingChannel === "ONLINE" && job.clientName && (
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-md border border-blue-500/20 bg-blue-500/5 px-2.5 py-1.5 text-xs">
             <span className="text-blue-400 font-medium">{t("portal.onlineClient")}:</span>
-            {job.clientName && <span className="text-foreground font-semibold">{job.clientName}</span>}
-            {job.clientMobile && (
-              <a href={`tel:${job.clientMobile}`} className="text-blue-400 underline">
-                {job.clientMobile}
-              </a>
-            )}
+            <span className="text-foreground font-semibold">{job.clientName}</span>
           </div>
         )}
 
