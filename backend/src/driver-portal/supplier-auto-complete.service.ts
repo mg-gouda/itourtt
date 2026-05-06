@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const TERMINAL_STATUSES = ['COMPLETED', 'CANCELLED', 'NO_SHOW'];
+const CAIRO_TZ = 'Africa/Cairo';
 
 @Injectable()
 export class SupplierAutoCompleteService {
@@ -10,7 +11,7 @@ export class SupplierAutoCompleteService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  @Cron('0 0 * * *') // daily at midnight — auto-close yesterday's supplier driver & DEP rep statuses
+  @Cron('0 0 * * *', { timeZone: CAIRO_TZ })
   async autoCompleteJobs() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -21,14 +22,15 @@ export class SupplierAutoCompleteService {
       `Midnight auto-complete: processing jobs on ${yesterday.toDateString()}`,
     );
 
-    await this.autoCompleteSupplierDrivers(yesterday, today);
-    await this.autoCompleteDepReps(yesterday, today);
+    await this.autoCompleteDrivers(yesterday, today);
+    await this.autoCompleteReps(yesterday, today);
   }
 
-  private async autoCompleteSupplierDrivers(from: Date, to: Date) {
+  // Auto-complete all drivers (own + supplier) that didn't update via portal
+  private async autoCompleteDrivers(from: Date, to: Date) {
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
-        supplierId: { not: null },
+        driverId: { not: null },
         driverStatus: { notIn: TERMINAL_STATUSES as any },
         trafficJob: {
           deletedAt: null,
@@ -42,7 +44,7 @@ export class SupplierAutoCompleteService {
     for (const assignment of assignments) {
       const job = assignment.trafficJob;
       this.logger.log(
-        `Auto-completing driver for supplier job ${job.internalRef}`,
+        `Auto-completing driver for job ${job.internalRef} (was: ${assignment.driverStatus})`,
       );
       try {
         await this.prisma.$transaction(async (tx) => {
@@ -60,7 +62,7 @@ export class SupplierAutoCompleteService {
               newStatus: 'COMPLETED' as any,
               gpsLatitude: 0,
               gpsLongitude: 0,
-              gpsMapLink: 'Auto-completed by system (supplier car)',
+              gpsMapLink: 'Auto-completed by system (midnight)',
             },
           });
 
@@ -74,13 +76,13 @@ export class SupplierAutoCompleteService {
     }
   }
 
-  private async autoCompleteDepReps(from: Date, to: Date) {
+  // Auto-complete all rep statuses across all service types
+  private async autoCompleteReps(from: Date, to: Date) {
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         repId: { not: null },
         repStatus: { notIn: TERMINAL_STATUSES as any },
         trafficJob: {
-          serviceType: 'DEP',
           deletedAt: null,
           status: { notIn: TERMINAL_STATUSES as any },
           jobDate: { gte: from, lt: to },
@@ -92,7 +94,7 @@ export class SupplierAutoCompleteService {
     for (const assignment of assignments) {
       const job = assignment.trafficJob;
       this.logger.log(
-        `Auto-completing rep for DEP job ${job.internalRef}`,
+        `Auto-completing rep for ${job.serviceType} job ${job.internalRef} (was: ${assignment.repStatus})`,
       );
       try {
         await this.prisma.$transaction(async (tx) => {
@@ -110,7 +112,7 @@ export class SupplierAutoCompleteService {
               newStatus: 'COMPLETED' as any,
               gpsLatitude: 0,
               gpsLongitude: 0,
-              gpsMapLink: 'Auto-completed by system (DEP job)',
+              gpsMapLink: 'Auto-completed by system (midnight)',
             },
           });
 
@@ -118,13 +120,12 @@ export class SupplierAutoCompleteService {
         });
       } catch (err) {
         this.logger.error(
-          `Failed rep auto-complete for DEP job ${job.internalRef}: ${err}`,
+          `Failed rep auto-complete for job ${job.internalRef}: ${err}`,
         );
       }
     }
   }
 
-  // Re-reads fresh assignment state to decide if the overall job is now done
   private async maybeCompleteJob(
     tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
     assignmentId: string,
