@@ -13,22 +13,23 @@ export class SupplierAutoCompleteService {
 
   @Cron('0 0 * * *', { timeZone: CAIRO_TZ })
   async autoCompleteJobs() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    // Get Cairo "today" as a UTC-midnight Date so it matches @db.Date stored values
+    const nowUtc = new Date();
+    const cairoDateStr = nowUtc.toLocaleDateString('en-CA', { timeZone: CAIRO_TZ });
+    const [y, m, d] = cairoDateStr.split('-').map(Number);
+    const todayCairo = new Date(Date.UTC(y, m - 1, d));
 
     this.logger.log(
-      `Midnight auto-complete: processing jobs on ${yesterday.toDateString()}`,
+      `Midnight auto-complete: processing all past non-terminal jobs before ${todayCairo.toISOString()}`,
     );
 
-    await this.autoCompleteDrivers(yesterday, today);
-    await this.autoCompleteReps(yesterday, today);
-    await this.autoCompleteSuppliers(yesterday, today);
+    await this.autoCompleteDrivers(todayCairo);
+    await this.autoCompleteReps(todayCairo);
+    await this.autoCompleteSuppliers(todayCairo);
   }
 
   // Auto-complete all drivers (own + supplier) that didn't update via portal
-  private async autoCompleteDrivers(from: Date, to: Date) {
+  private async autoCompleteDrivers(before: Date) {
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         driverId: { not: null },
@@ -36,7 +37,7 @@ export class SupplierAutoCompleteService {
         trafficJob: {
           deletedAt: null,
           status: { notIn: TERMINAL_STATUSES as any },
-          jobDate: { gte: from, lt: to },
+          jobDate: { lt: before },
         },
       },
       include: { trafficJob: true },
@@ -78,7 +79,7 @@ export class SupplierAutoCompleteService {
   }
 
   // Auto-complete all rep statuses across all service types
-  private async autoCompleteReps(from: Date, to: Date) {
+  private async autoCompleteReps(before: Date) {
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         repId: { not: null },
@@ -86,7 +87,7 @@ export class SupplierAutoCompleteService {
         trafficJob: {
           deletedAt: null,
           status: { notIn: TERMINAL_STATUSES as any },
-          jobDate: { gte: from, lt: to },
+          jobDate: { lt: before },
         },
       },
       include: { trafficJob: true },
@@ -128,7 +129,7 @@ export class SupplierAutoCompleteService {
   }
 
   // Auto-complete supplier status for jobs assigned to a supplier
-  private async autoCompleteSuppliers(from: Date, to: Date) {
+  private async autoCompleteSuppliers(before: Date) {
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
         supplierId: { not: null },
@@ -136,7 +137,7 @@ export class SupplierAutoCompleteService {
         trafficJob: {
           deletedAt: null,
           status: { notIn: TERMINAL_STATUSES as any },
-          jobDate: { gte: from, lt: to },
+          jobDate: { lt: before },
         },
       },
       include: { trafficJob: true },
