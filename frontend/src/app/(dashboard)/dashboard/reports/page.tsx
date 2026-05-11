@@ -1265,6 +1265,21 @@ export default function ReportsPage() {
 
   const exportJobStatusPdf = () => printFromRef(jobStatusPrintRef, `Job Status Report - ${jobStatusFrom} to ${jobStatusTo}`);
 
+  const exportJobStatusExcel = async () => {
+    try {
+      const params = new URLSearchParams({ from: jobStatusFrom, to: jobStatusTo });
+      if (jobStatusFilter !== "ALL") params.set("status", jobStatusFilter);
+      if (jobStatusRepId !== "ALL") params.set("repId", jobStatusRepId);
+      if (jobStatusRepStatus !== "ALL") params.set("repStatus", jobStatusRepStatus);
+      if (jobStatusDriverStatus !== "ALL") params.set("driverStatus", jobStatusDriverStatus);
+      if (jobStatusServiceType !== "ALL") params.set("serviceType", jobStatusServiceType);
+      const res = await api.get(`/export/odoo/job-status?${params.toString()}`, { responseType: "blob" });
+      downloadBlob(res.data, `job_status_${jobStatusFrom}_to_${jobStatusTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export job status to Excel");
+    }
+  };
+
   const fetchCarJobs = async () => {
     setCarJobsLoading(true);
     try {
@@ -1281,6 +1296,17 @@ export default function ReportsPage() {
 
   const exportCarJobsPdf = () =>
     printFromRef(carJobsPrintRef, `Car Jobs - ${carJobsFrom} to ${carJobsTo}`);
+
+  const exportCarJobsExcel = async () => {
+    try {
+      const params = new URLSearchParams({ from: carJobsFrom, to: carJobsTo });
+      if (carJobsVehicleId !== "ALL") params.set("vehicleId", carJobsVehicleId);
+      const res = await api.get(`/export/odoo/car-jobs-excel?${params.toString()}`, { responseType: "blob" });
+      downloadBlob(res.data, `car_jobs_${carJobsFrom}_to_${carJobsTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export car jobs to Excel");
+    }
+  };
 
   const fetchSupplierJobs = async () => {
     setSupplierJobsLoading(true);
@@ -1299,6 +1325,18 @@ export default function ReportsPage() {
 
   const exportSupplierJobsPdf = () =>
     printFromRef(supplierJobsPrintRef, `Supplier Jobs - ${supplierJobsFrom} to ${supplierJobsTo}`);
+
+  const exportSupplierJobsExcel = async () => {
+    try {
+      const params = new URLSearchParams({ from: supplierJobsFrom, to: supplierJobsTo });
+      if (supplierJobsSupplierId !== "ALL") params.set("supplierId", supplierJobsSupplierId);
+      if (supplierJobsStatus !== "ALL") params.set("supplierStatus", supplierJobsStatus);
+      const res = await api.get(`/export/odoo/supplier-jobs-excel?${params.toString()}`, { responseType: "blob" });
+      downloadBlob(res.data, `supplier_jobs_${supplierJobsFrom}_to_${supplierJobsTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export supplier jobs to Excel");
+    }
+  };
 
   const downloadEvidenceZip = async (jobId: string, ref: string) => {
     setEvidencePdfLoading((prev) => new Set(prev).add(jobId));
@@ -1340,6 +1378,20 @@ export default function ReportsPage() {
 
   const generateEvidencePdf = (row: EvidenceReportRow) =>
     downloadEvidenceZip(row.jobId, row.internalRef);
+
+  const exportEvidenceExcel = async () => {
+    try {
+      const params = new URLSearchParams({ from: evidenceFrom, to: evidenceTo });
+      if (evidenceStatusFilter !== "ALL") params.set("status", evidenceStatusFilter);
+      if (evidenceAgentId !== "ALL") params.set("agentId", evidenceAgentId);
+      if (evidenceRepId !== "ALL") params.set("repId", evidenceRepId);
+      if (evidenceDriverId !== "ALL") params.set("driverId", evidenceDriverId);
+      const res = await api.get(`/export/odoo/evidence-excel?${params.toString()}`, { responseType: "blob" });
+      downloadBlob(res.data, `evidence_${evidenceFrom}_to_${evidenceTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export evidence report to Excel");
+    }
+  };
 
   const isDriveId = (url: string) => /^[A-Za-z0-9_-]{20,}$/.test(url);
 
@@ -1390,6 +1442,16 @@ export default function ReportsPage() {
 
   const exportRepScorePdf = () => printFromRef(repScorePrintRef, `Rep Score Report - ${repScoreFrom} to ${repScoreTo}`);
 
+  const exportRepScoreExcel = async () => {
+    try {
+      const repParam = repScoreRepId !== "ALL" ? `&repId=${repScoreRepId}` : "";
+      const res = await api.get(`/export/odoo/rep-score?from=${repScoreFrom}&to=${repScoreTo}${repParam}`, { responseType: "blob" });
+      downloadBlob(res.data, `rep_score_${repScoreFrom}_to_${repScoreTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export rep score to Excel");
+    }
+  };
+
   const fetchDriverScore = async () => {
     setDriverScoreLoading(true);
     try {
@@ -1406,6 +1468,16 @@ export default function ReportsPage() {
   };
 
   const exportDriverScorePdf = () => printFromRef(driverScorePrintRef, `Driver Score Report - ${driverScoreFrom} to ${driverScoreTo}`);
+
+  const exportDriverScoreExcel = async () => {
+    try {
+      const driverParam = driverScoreDriverId !== "ALL" ? `&driverId=${driverScoreDriverId}` : "";
+      const res = await api.get(`/export/odoo/driver-score?from=${driverScoreFrom}&to=${driverScoreTo}${driverParam}`, { responseType: "blob" });
+      downloadBlob(res.data, `driver_score_${driverScoreFrom}_to_${driverScoreTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export driver score to Excel");
+    }
+  };
 
   const exportRepFeesExcel = async () => {
     try {
@@ -1643,6 +1715,17 @@ export default function ReportsPage() {
 
   const exportDeparturePdf = () => printFromRef(departurePrintRef, `Departure Report - ${departureFrom} to ${departureTo}`);
 
+  const exportDepartureExcel = async () => {
+    try {
+      const params = new URLSearchParams({ from: departureFrom, to: departureTo });
+      if (departureServiceType !== "ALL") params.set("serviceType", departureServiceType);
+      const res = await api.get(`/export/odoo/departure?${params.toString()}`, { responseType: "blob" });
+      downloadBlob(res.data, `departure_${departureFrom}_to_${departureTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export departure report to Excel");
+    }
+  };
+
   // ── Flight Delay Report ──
   const fetchFlightDelay = async () => {
     setFlightDelayLoading(true);
@@ -1658,6 +1741,17 @@ export default function ReportsPage() {
   };
 
   const exportFlightDelayPdf = () => printFromRef(flightDelayPrintRef, `Flight Delay Report - ${flightDelayFrom} to ${flightDelayTo}`);
+
+  const exportFlightDelayExcel = async () => {
+    try {
+      const params = new URLSearchParams({ from: flightDelayFrom, to: flightDelayTo });
+      if (flightDelayRepName !== "ALL") params.set("repName", flightDelayRepName);
+      const res = await api.get(`/export/odoo/flight-delay?${params.toString()}`, { responseType: "blob" });
+      downloadBlob(res.data, `flight_delay_${flightDelayFrom}_to_${flightDelayTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export flight delay report to Excel");
+    }
+  };
 
   // Compute final net total for a rep using current scoreEdits / missedJobs / deductions
   function computeRepNet(fees: RepFeeReportRep["fees"]): number {
@@ -2177,10 +2271,16 @@ export default function ReportsPage() {
                   {t("common.search")}
                 </Button>
                 {driverScoreData && (
-                  <Button size="sm" variant="outline" onClick={exportDriverScorePdf} className="gap-1.5 ml-auto">
-                    <Printer className="h-3.5 w-3.5" />
-                    {t("reports.exportPdf")}
-                  </Button>
+                  <>
+                    <Button size="sm" variant="outline" onClick={exportDriverScorePdf} className="gap-1.5 ml-auto">
+                      <Printer className="h-3.5 w-3.5" />
+                      {t("reports.exportPdf")}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={exportDriverScoreExcel} className="gap-1.5">
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      {t("reports.excel")}
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>
@@ -2708,10 +2808,16 @@ export default function ReportsPage() {
                   {t("common.search")}
                 </Button>
                 {repScoreData && (
-                  <Button size="sm" variant="outline" onClick={exportRepScorePdf} className="gap-1.5 ml-auto">
-                    <Printer className="h-3.5 w-3.5" />
-                    {t("reports.exportPdf")}
-                  </Button>
+                  <>
+                    <Button size="sm" variant="outline" onClick={exportRepScorePdf} className="gap-1.5 ml-auto">
+                      <Printer className="h-3.5 w-3.5" />
+                      {t("reports.exportPdf")}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={exportRepScoreExcel} className="gap-1.5">
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      {t("reports.excel")}
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>
@@ -3422,9 +3528,14 @@ export default function ReportsPage() {
                 {t("reports.generate")}
               </Button>
               {jobStatusData && (
-                <Button variant="outline" onClick={exportJobStatusPdf} className="gap-1.5 border-border text-foreground">
-                  <Printer className="h-4 w-4" /> {t("reports.pdf")}
-                </Button>
+                <>
+                  <Button variant="outline" onClick={exportJobStatusPdf} className="gap-1.5 border-border text-foreground">
+                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                  </Button>
+                  <Button variant="outline" onClick={exportJobStatusExcel} className="gap-1.5 border-border text-foreground">
+                    <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                  </Button>
+                </>
               )}
             </div>
           </Card>
@@ -3643,6 +3754,11 @@ export default function ReportsPage() {
                   {evidenceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                   {t("reports.generate")}
                 </Button>
+                {evidenceData && (
+                  <Button variant="outline" onClick={exportEvidenceExcel} className="gap-1.5 border-border text-foreground">
+                    <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                  </Button>
+                )}
               </div>
             </Card>
 
@@ -3826,9 +3942,14 @@ export default function ReportsPage() {
                   {t("reports.generate")}
                 </Button>
                 {supplierJobsData && (
-                  <Button variant="outline" onClick={exportSupplierJobsPdf} className="gap-1.5 border-border text-foreground">
-                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={exportSupplierJobsPdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                    </Button>
+                    <Button variant="outline" onClick={exportSupplierJobsExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>
@@ -3947,9 +4068,14 @@ export default function ReportsPage() {
                   {t("reports.generate")}
                 </Button>
                 {carJobsData && (
-                  <Button variant="outline" onClick={exportCarJobsPdf} className="gap-1.5 border-border text-foreground">
-                    <Printer className="h-4 w-4" /> {t("reports.pdf")}
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={exportCarJobsPdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> {t("reports.pdf")}
+                    </Button>
+                    <Button variant="outline" onClick={exportCarJobsExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> {t("reports.excel")}
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>
@@ -4269,9 +4395,14 @@ export default function ReportsPage() {
                   Generate
                 </Button>
                 {departureData && (
-                  <Button variant="outline" onClick={exportDeparturePdf} className="gap-1.5 border-border text-foreground">
-                    <Printer className="h-4 w-4" /> PDF
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={exportDeparturePdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> PDF
+                    </Button>
+                    <Button variant="outline" onClick={exportDepartureExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> Excel
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>
@@ -4357,9 +4488,14 @@ export default function ReportsPage() {
                   Generate
                 </Button>
                 {flightDelayData && (
-                  <Button variant="outline" onClick={exportFlightDelayPdf} className="gap-1.5 border-border text-foreground">
-                    <Printer className="h-4 w-4" /> PDF
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={exportFlightDelayPdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> PDF
+                    </Button>
+                    <Button variant="outline" onClick={exportFlightDelayExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> Excel
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>

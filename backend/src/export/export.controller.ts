@@ -366,6 +366,119 @@ export class ExportController {
     result.stream.pipe(res);
   }
 
+  @Get('evidence-excel')
+  @Roles('ADMIN', 'MANAGER', 'DISPATCHER', 'ACCOUNTANT')
+  @Permissions('reports.evidence')
+  async exportEvidenceExcel(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('status') status: string,
+    @Query('agentId') agentId: string,
+    @Query('repId') repId: string,
+    @Query('driverId') driverId: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportEvidenceReport(from, to, status || undefined, agentId || undefined, repId || undefined, driverId || undefined);
+    this.sendXlsx(res, buffer, `evidence_${from}_${to}`);
+  }
+
+  @Get('driver-score')
+  @Permissions('reports.driverScore')
+  async exportDriverScore(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('driverId') driverId: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportDriverScoreReport(from, to, driverId || undefined);
+    this.sendXlsx(res, buffer, `driver_score_${from}_${to}`);
+  }
+
+  @Get('rep-score')
+  @Permissions('reports.repScore')
+  async exportRepScore(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('repId') repId: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportRepScoreReport(from, to, repId || undefined);
+    this.sendXlsx(res, buffer, `rep_score_${from}_${to}`);
+  }
+
+  @Get('job-status')
+  @Permissions('reports.jobStatus')
+  async exportJobStatus(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('status') status: string,
+    @Query('repId') repId: string,
+    @Query('repStatus') repStatus: string,
+    @Query('driverStatus') driverStatus: string,
+    @Query('serviceType') serviceType: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportJobStatusReport(from, to, status, repId, repStatus, driverStatus, serviceType);
+    this.sendXlsx(res, buffer, `job_status_${from}_${to}`);
+  }
+
+  @Get('departure')
+  @Permissions('reports.departure')
+  async exportDeparture(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('serviceType') serviceType: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportDepartureReport(from, to, serviceType || undefined);
+    this.sendXlsx(res, buffer, `departure_${from}_${to}`);
+  }
+
+  @Get('flight-delay')
+  @Permissions('reports.flightDelay')
+  async exportFlightDelay(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('repName') repName: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportFlightDelayReport(from, to, repName || undefined);
+    this.sendXlsx(res, buffer, `flight_delay_${from}_${to}`);
+  }
+
+  @Get('supplier-jobs-excel')
+  @Permissions('reports.supplierJobs')
+  async exportSupplierJobsExcel(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('supplierId') supplierId: string,
+    @Query('supplierStatus') supplierStatus: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportSupplierJobsExcel(from, to, supplierId || undefined, supplierStatus || undefined);
+    this.sendXlsx(res, buffer, `supplier_jobs_${from}_${to}`);
+  }
+
+  @Get('car-jobs-excel')
+  @Permissions('reports.carJobs')
+  async exportCarJobsExcel(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('vehicleId') vehicleId: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportCarJobsExcel(from, to, vehicleId || undefined);
+    this.sendXlsx(res, buffer, `car_jobs_${from}_${to}`);
+  }
+
   private sendXlsx(res: express.Response, buffer: Buffer, filename: string) {
     const date = new Date().toISOString().split('T')[0];
     res.set({

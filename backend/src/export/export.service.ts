@@ -1979,6 +1979,467 @@ export class ExportService {
     return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
   }
 
+  // ─────────────────────────────────────────────
+  // EVIDENCE EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportEvidenceReport(from: string, to: string, status?: string, agentId?: string, repId?: string, driverId?: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const where: Record<string, unknown> = { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null };
+    if (status && status !== 'ALL') where.status = status;
+    if (agentId) where.agentId = agentId;
+    if (repId || driverId) {
+      where.assignment = {
+        ...(repId ? { repId } : {}),
+        ...(driverId ? { driverId } : {}),
+      };
+    }
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: {
+        agent: { select: { legalName: true } },
+        fromZone: { select: { name: true } },
+        toZone: { select: { name: true } },
+        originAirport: { select: { name: true, code: true } },
+        destinationAirport: { select: { name: true, code: true } },
+        originHotel: { select: { name: true } },
+        destinationHotel: { select: { name: true } },
+        flight: { select: { flightNo: true, carrier: true } },
+        assignment: {
+          include: {
+            vehicle: { select: { plateNumber: true } },
+            driver: { select: { name: true } },
+            rep: { select: { name: true } },
+            supplier: { select: { legalName: true, tradeName: true } },
+          },
+        },
+        noShowEvidence: { select: { gpsMapLink: true, imageUrls: true } },
+        inPlaceEvidence: { select: { gpsMapLink: true, imageUrls: true } },
+        completedEvidence: { select: { gpsMapLink: true, imageUrls: true } },
+      },
+      orderBy: { jobDate: 'asc' },
+    });
+
+    function resolveDriver(a: typeof jobs[number]['assignment']) {
+      if (!a) return '—';
+      if (a.driver?.name) return a.driver.name;
+      if ((a as any).externalDriverName) return (a as any).externalDriverName;
+      if (a.supplier) return (a.supplier as any).tradeName ?? a.supplier.legalName;
+      return '—';
+    }
+
+    const rows = jobs.map((j) => {
+      const origin = j.originAirport ? `${j.originAirport.name} (${j.originAirport.code})` : (j.originHotel?.name ?? j.fromZone?.name ?? '—');
+      const dest = j.destinationAirport ? `${j.destinationAirport.name} (${j.destinationAirport.code})` : (j.destinationHotel?.name ?? j.toZone?.name ?? '—');
+      const noShowPhotos = j.noShowEvidence.reduce((s, e) => s + e.imageUrls.length, 0);
+      const inPlacePhotos = j.inPlaceEvidence.reduce((s, e) => s + e.imageUrls.length, 0);
+      const completedPhotos = j.completedEvidence.reduce((s, e) => s + e.imageUrls.length, 0);
+      const noShowGps = j.noShowEvidence.map((e) => e.gpsMapLink).filter(Boolean).join(', ');
+      const inPlaceGps = j.inPlaceEvidence.map((e) => e.gpsMapLink).filter(Boolean).join(', ');
+      const completedGps = j.completedEvidence.map((e) => e.gpsMapLink).filter(Boolean).join(', ');
+      return {
+        'Internal Ref': j.internalRef,
+        'Agent Name': j.agent?.legalName ?? '—',
+        'Agent Ref': j.agentRef ?? '—',
+        'Service Date': j.jobDate.toISOString().split('T')[0],
+        'Service Type': j.serviceType,
+        'Status': j.status,
+        'Pax': j.paxCount,
+        'Client': j.clientName ?? '—',
+        'Origin': origin,
+        'Destination': dest,
+        'Flight No': j.flight?.flightNo ?? '—',
+        'Driver': resolveDriver(j.assignment),
+        'Rep': j.assignment?.rep?.name ?? '—',
+        'Plate': j.assignment?.vehicle?.plateNumber ?? '—',
+        'Has Evidence': (noShowPhotos + inPlacePhotos + completedPhotos) > 0 ? 'Yes' : 'No',
+        'No-Show Photos': noShowPhotos,
+        'No-Show GPS': noShowGps || '—',
+        'In-Place Photos': inPlacePhotos,
+        'In-Place GPS': inPlaceGps || '—',
+        'Completed Photos': completedPhotos,
+        'Completed GPS': completedGps || '—',
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Evidence Report');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // DRIVER SCORE EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportDriverScoreReport(from: string, to: string, driverId?: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    function calcDriverScore(s: { attendance: boolean; appearance: boolean; carCleanliness: boolean; maintenance: boolean; work: boolean }) {
+      return (s.attendance ? 30 : 0) + (s.appearance ? 20 : 0) + (s.carCleanliness ? 10 : 0) + (s.maintenance ? 10 : 0) + (s.work ? 30 : 0);
+    }
+    function driverScoreToEval(total: number) {
+      if (total >= 90) return 'Excellent';
+      if (total >= 70) return 'Good';
+      if (total >= 50) return 'Average';
+      return 'Poor';
+    }
+    function driverScoreToMultiplier(total: number) {
+      if (total >= 90) return 1.0;
+      if (total >= 70) return 0.9;
+      if (total >= 50) return 0.75;
+      return 0.5;
+    }
+
+    const scores = await this.prisma.driverJobScore.findMany({
+      where: {
+        ...(driverId ? { driverId } : {}),
+        trafficJob: { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null },
+      },
+      include: {
+        driver: { select: { name: true } },
+        trafficJob: {
+          include: {
+            fromZone: { select: { name: true } },
+            toZone: { select: { name: true } },
+            originAirport: { select: { code: true } },
+            destinationAirport: { select: { code: true } },
+          },
+        },
+      },
+      orderBy: [{ trafficJob: { jobDate: 'asc' } }, { driver: { name: 'asc' } }],
+    });
+
+    const rows = scores.map((s) => {
+      const total = calcDriverScore(s);
+      const from = s.trafficJob.originAirport?.code ?? s.trafficJob.fromZone?.name ?? '—';
+      const to = s.trafficJob.destinationAirport?.code ?? s.trafficJob.toZone?.name ?? '—';
+      return {
+        'Internal Ref': s.trafficJob.internalRef,
+        'Job Date': s.trafficJob.jobDate.toISOString().split('T')[0],
+        'Service Type': s.trafficJob.serviceType,
+        'Pax': s.trafficJob.paxCount,
+        'Status': s.trafficJob.status,
+        'Driver': s.driver.name,
+        'Route': `${from} → ${to}`,
+        'Attendance': s.attendance ? 'Yes' : 'No',
+        'Appearance': s.appearance ? 'Yes' : 'No',
+        'Car Cleanliness': s.carCleanliness ? 'Yes' : 'No',
+        'Maintenance': s.maintenance ? 'Yes' : 'No',
+        'Work': s.work ? 'Yes' : 'No',
+        'Total Score': total,
+        'Fee %': Math.round(driverScoreToMultiplier(total) * 100),
+        'Evaluation': driverScoreToEval(total),
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Driver Score');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // REP SCORE EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportRepScoreReport(from: string, to: string, repId?: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    function calcRepScore(s: { attendance: boolean; appearance: boolean; work: boolean; review: boolean }) {
+      return (s.attendance ? 20 : 0) + (s.appearance ? 15 : 0) + (s.work ? 30 : 0) + (s.review ? 35 : 0);
+    }
+    function scoreToFeeAndEval(total: number) {
+      if (total >= 90) return { fee: 50, evaluation: 'Excellent' };
+      if (total >= 75) return { fee: 40, evaluation: 'Good' };
+      if (total >= 61) return { fee: 30, evaluation: 'Average' };
+      return { fee: 20, evaluation: 'Poor' };
+    }
+
+    const scores = await this.prisma.repJobScore.findMany({
+      where: {
+        ...(repId ? { repId } : {}),
+        trafficJob: { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null },
+      },
+      include: {
+        rep: { select: { name: true } },
+        trafficJob: {
+          include: {
+            originAirport: { select: { code: true } },
+            originHotel: { select: { name: true } },
+            originZone: { select: { name: true } },
+            destinationAirport: { select: { code: true } },
+            destinationHotel: { select: { name: true } },
+            destinationZone: { select: { name: true } },
+            flight: { select: { flightNo: true, carrier: true } },
+          },
+        },
+      },
+      orderBy: [{ rep: { name: 'asc' } }, { trafficJob: { jobDate: 'asc' } }],
+    });
+
+    const rows = scores.map((s) => {
+      const total = calcRepScore(s);
+      const { fee, evaluation } = scoreToFeeAndEval(total);
+      const origin = s.trafficJob.originAirport?.code ?? s.trafficJob.originHotel?.name ?? s.trafficJob.originZone?.name ?? '—';
+      const dest = s.trafficJob.destinationAirport?.code ?? s.trafficJob.destinationHotel?.name ?? s.trafficJob.destinationZone?.name ?? '—';
+      return {
+        'Internal Ref': s.trafficJob.internalRef,
+        'Service Type': s.trafficJob.serviceType,
+        'Pax': s.trafficJob.paxCount,
+        'Status': s.trafficJob.status,
+        'Rep': s.rep.name,
+        'Origin': origin,
+        'Destination': dest,
+        'Flight No': s.trafficJob.flight?.flightNo ?? '—',
+        'Carrier': s.trafficJob.flight?.carrier ?? '—',
+        'Attendance': s.attendance ? 'Yes' : 'No',
+        'Appearance': s.appearance ? 'Yes' : 'No',
+        'Work': s.work ? 'Yes' : 'No',
+        'Review': s.review ? 'Yes' : 'No',
+        'Total Score': total,
+        'Fee (EGP)': fee,
+        'Evaluation': evaluation,
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Rep Score');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // JOB STATUS EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportJobStatusReport(from: string, to: string, status?: string, repId?: string, repStatus?: string, driverStatus?: string, serviceType?: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const where: Record<string, unknown> = { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null };
+    if (status && status !== 'ALL') where.status = status;
+    if (serviceType && serviceType !== 'ALL') where.serviceType = serviceType;
+
+    const assignmentFilter: Record<string, unknown> = {};
+    if (repId && repId !== 'ALL') assignmentFilter.repId = repId;
+    if (repStatus && repStatus !== 'ALL') assignmentFilter.repStatus = repStatus;
+    if (driverStatus && driverStatus !== 'ALL') assignmentFilter.driverStatus = driverStatus;
+    if (Object.keys(assignmentFilter).length > 0) where.assignment = assignmentFilter;
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: {
+        agent: { select: { legalName: true, tradeName: true } },
+        assignment: {
+          select: {
+            driverStatus: true,
+            repStatus: true,
+            externalDriverName: true,
+            driver: { select: { name: true } },
+            rep: { select: { name: true } },
+            supplier: { select: { legalName: true, tradeName: true } },
+          },
+        },
+        flight: { select: { arrivalTime: true, flightNo: true } },
+      },
+      orderBy: { jobDate: 'asc' },
+    });
+
+    function resolveDriver(a: { driver?: { name: string } | null; externalDriverName?: string | null; supplier?: { tradeName?: string | null; legalName: string } | null } | null) {
+      if (!a) return '—';
+      if (a.driver?.name) return a.driver.name;
+      if (a.externalDriverName) return a.externalDriverName;
+      if (a.supplier) return a.supplier.tradeName ?? a.supplier.legalName;
+      return '—';
+    }
+
+    const rows = jobs.map((j) => ({
+      'Internal Ref': j.internalRef,
+      'Agent Ref': j.agentRef ?? '—',
+      'Agent': j.agent?.tradeName ?? j.agent?.legalName ?? '—',
+      'Service Date': j.jobDate.toISOString().split('T')[0],
+      'Service Type': j.serviceType,
+      'Time': j.serviceType === 'ARR' ? (j.flight?.arrivalTime?.toISOString().slice(11, 16) ?? '—') : (j.pickUpTime ?? '—'),
+      'Flight No': j.flight?.flightNo ?? '—',
+      'Price': j.priceAmount ? Number(j.priceAmount) : '—',
+      'Price Currency': j.priceCurrency ?? '—',
+      'Transfer Price': j.transferPrice ? Number(j.transferPrice) : '—',
+      'Transfer Currency': j.transferPriceCurrency ?? '—',
+      'Status': j.status,
+      'Rep Status': j.assignment?.repStatus ?? '—',
+      'Driver Status': j.assignment?.driverStatus ?? '—',
+      'Rep': j.assignment?.rep?.name ?? '—',
+      'Driver': resolveDriver(j.assignment ?? null),
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Job Status');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // DEPARTURE EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportDepartureReport(from: string, to: string, serviceType?: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const where: Record<string, unknown> = { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null };
+    if (serviceType && serviceType !== 'ALL') where.serviceType = serviceType;
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      orderBy: [{ jobDate: 'asc' }, { pickUpTime: 'asc' }],
+    });
+
+    const rows = jobs.map((j) => ({
+      'Service Date': j.jobDate.toISOString().split('T')[0],
+      'Service Type': j.serviceType,
+      'Customer Name': j.clientName ?? '—',
+      'Customer Number': j.clientMobile ?? '—',
+      'Pax': j.paxCount,
+      'Pickup Time': j.pickUpTime ?? '—',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Departure Report');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // FLIGHT DELAY EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportFlightDelayReport(from: string, to: string, repName?: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const notifications = await this.prisma.userNotification.findMany({
+      where: {
+        type: 'FLIGHT_DELAY' as any,
+        trafficJobId: { not: null },
+        createdAt: { gte: fromDate, lte: toDate },
+      },
+      include: {
+        trafficJob: {
+          select: {
+            internalRef: true,
+            agentRef: true,
+            jobDate: true,
+            assignment: { select: { rep: { select: { name: true } } } },
+          },
+        },
+      },
+      orderBy: [{ trafficJobId: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const fmtTime = (d: Date) =>
+      d.toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false });
+
+    const seen = new Set<string>();
+    const rows: Record<string, unknown>[] = [];
+
+    for (const n of notifications) {
+      const meta = n.metadata as { repName?: string; oldArrivalTime?: string | null; newArrivalTime?: string } | null;
+      if (!meta?.newArrivalTime) continue;
+      const key = `${n.trafficJobId}|${meta.newArrivalTime}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const reportedBy = meta.repName ?? '—';
+      if (repName && repName !== 'ALL' && reportedBy !== repName) continue;
+
+      const currentRepName = (n.trafficJob as any)?.assignment?.rep?.name ?? null;
+      const oldArr = meta.oldArrivalTime ? new Date(meta.oldArrivalTime) : null;
+      const newArr = new Date(meta.newArrivalTime);
+
+      rows.push({
+        'Internal Ref': (n.trafficJob as any)?.internalRef ?? '—',
+        'Agent Ref': (n.trafficJob as any)?.agentRef ?? '—',
+        'Job Date': (n.trafficJob as any)?.jobDate?.toISOString().split('T')[0] ?? '—',
+        'Old Arrival Date': oldArr ? oldArr.toISOString().split('T')[0] : '—',
+        'Old Arrival Time': oldArr ? fmtTime(oldArr) : '—',
+        'New Arrival Date': newArr.toISOString().split('T')[0],
+        'New Arrival Time': fmtTime(newArr),
+        'Reported By': reportedBy,
+        'Current Rep': currentRepName && currentRepName !== reportedBy ? currentRepName : '—',
+        'Reported At': n.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+      });
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Flight Delay');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // SUPPLIER JOBS EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportSupplierJobsExcel(from: string, to: string, supplierId?: string, supplierStatus?: string): Promise<Buffer> {
+    const { rows } = await this.getSupplierJobsReport({ from, to, supplierId, supplierStatus });
+
+    const data = rows.map((r) => ({
+      'Job Ref': r.jobRef,
+      'Agent Name': r.agentName,
+      'Agent Ref': r.agentRef,
+      'Service Date': r.serviceDate instanceof Date ? r.serviceDate.toISOString().split('T')[0] : String(r.serviceDate).split('T')[0],
+      'Route': r.route,
+      'Supplier': r.supplierName,
+      'Supplier Status': r.supplierStatus,
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    this.autoSizeColumns(ws, data);
+    XLSX.utils.book_append_sheet(wb, ws, 'Supplier Jobs');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // CAR JOBS EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportCarJobsExcel(from: string, to: string, vehicleId?: string): Promise<Buffer> {
+    const { rows } = await this.getCarJobsReport({ from, to, vehicleId });
+
+    const data = rows.map((r) => ({
+      'Job Ref': r.jobRef,
+      'Agent Name': r.agentName,
+      'Service Date': r.serviceDate instanceof Date ? r.serviceDate.toISOString().split('T')[0] : String(r.serviceDate).split('T')[0],
+      'Origin': r.origin,
+      'Destination': r.destination,
+      'Driver': r.driver,
+      'Status': r.jobStatus,
+      'Plate Number': r.plateNumber,
+      'Transfer Price': r.transferPrice ?? '—',
+      'Currency': r.transferPriceCurrency,
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    this.autoSizeColumns(ws, data);
+    XLSX.utils.book_append_sheet(wb, ws, 'Car Jobs');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
   /** Build a Prisma date range filter for a given field. Both bounds are optional. */
   private buildDateFilter(
     dateFrom: string | undefined,
