@@ -1,5 +1,5 @@
 import {
-  IsOptional, IsString, IsDateString,
+  IsOptional, IsString, IsDateString, Matches,
   IsInt, IsIn, IsBoolean, IsNumber, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -32,6 +32,7 @@ export class UpdateJobDto {
 
   @IsOptional()
   @IsDateString()
+  @Matches(/^[2-9]\d{3}-/, { message: 'jobDate year must be 2000 or later' })
   jobDate?: string;
 
   @IsOptional()

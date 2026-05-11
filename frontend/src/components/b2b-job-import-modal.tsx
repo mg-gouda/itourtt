@@ -442,6 +442,7 @@ export function B2BJobImportModal({
                             type="date"
                             value={job.jobDate}
                             onChange={(e) => updateJob(idx, "jobDate", e.target.value)}
+                            min="2020-01-01"
                             className="h-7 w-32 text-xs border-border bg-transparent"
                           />
                         </TableCell>

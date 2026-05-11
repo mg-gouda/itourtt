@@ -838,6 +838,7 @@ function CarDispatchContent() {
               type="date"
               value={jobDate}
               onChange={(e) => setJobDate(e.target.value)}
+              min="2020-01-01"
               className="h-9 w-[160px]"
             />
           </div>

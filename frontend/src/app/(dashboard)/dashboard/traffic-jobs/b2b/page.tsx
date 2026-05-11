@@ -853,6 +853,7 @@ export default function B2BJobPage() {
                 type="date"
                 value={form.jobDate}
                 onChange={(e) => updateForm({ jobDate: e.target.value })}
+                min="2020-01-01"
                 className={cn("border-border bg-card text-foreground h-9", !form.jobDate && "border-red-500")}
                 required
               />

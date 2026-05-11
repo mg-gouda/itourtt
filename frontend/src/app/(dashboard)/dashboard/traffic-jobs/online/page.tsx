@@ -804,6 +804,7 @@ export default function OnlineJobPage() {
                 type="date"
                 value={form.jobDate}
                 onChange={(e) => updateForm({ jobDate: e.target.value })}
+                min="2020-01-01"
                 className="border-border bg-card text-foreground h-9"
               />
             </div>

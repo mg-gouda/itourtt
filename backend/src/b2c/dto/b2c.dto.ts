@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsNotEmpty, IsInt, Min, IsOptional } from 'class-validator';
+import { IsEmail, IsString, IsNotEmpty, IsInt, Min, IsOptional, IsDateString, Matches } from 'class-validator';
 
 export class B2CLoginDto {
   @IsEmail()
@@ -21,7 +21,8 @@ export class B2CChangePasswordDto {
 
 export class B2CAmendBookingDto {
   @IsOptional()
-  @IsString()
+  @IsDateString()
+  @Matches(/^[2-9]\d{3}-/, { message: 'jobDate year must be 2000 or later' })
   jobDate?: string;
 
   @IsOptional()
