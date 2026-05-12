@@ -132,7 +132,7 @@ export class JobLocksService {
       supplier: 'supplierUnlockedAt',
       edit: 'editUnlockedAt',
       b2c: 'dispatchUnlockedAt',
-      online: 'dispatchUnlockedAt',
+      online: 'editUnlockedAt',
     };
     return map[tab];
   }
@@ -146,7 +146,7 @@ export class JobLocksService {
       supplier: { supplierUnlockedAt: now, supplierUnlockedById: userId },
       edit: { editUnlockedAt: now, editUnlockedById: userId },
       b2c: { dispatchUnlockedAt: now, dispatchUnlockedById: userId },
-      online: { dispatchUnlockedAt: now, dispatchUnlockedById: userId },
+      online: { editUnlockedAt: now, editUnlockedById: userId },
     };
     return map[tab];
   }
@@ -159,7 +159,7 @@ export class JobLocksService {
       supplier: { supplierUnlockedAt: null, supplierUnlockedById: null },
       edit: { editUnlockedAt: null, editUnlockedById: null },
       b2c: { dispatchUnlockedAt: null, dispatchUnlockedById: null },
-      online: { dispatchUnlockedAt: null, dispatchUnlockedById: null },
+      online: { editUnlockedAt: null, editUnlockedById: null },
     };
     return map[tab];
   }
