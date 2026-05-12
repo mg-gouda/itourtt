@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-type LockTab = 'dispatcher' | 'driver' | 'rep' | 'supplier' | 'edit' | 'b2c';
+type LockTab = 'dispatcher' | 'driver' | 'rep' | 'supplier' | 'edit' | 'b2c' | 'online';
 
 const PAGE_SIZE = 50;
 
@@ -41,6 +41,8 @@ export class JobLocksService {
       };
     } else if (tab === 'b2c') {
       baseWhere.bookingChannel = 'B2C';
+    } else if (tab === 'online') {
+      baseWhere.bookingChannel = 'ONLINE';
     }
 
     const select = {
@@ -130,6 +132,7 @@ export class JobLocksService {
       supplier: 'supplierUnlockedAt',
       edit: 'editUnlockedAt',
       b2c: 'dispatchUnlockedAt',
+      online: 'dispatchUnlockedAt',
     };
     return map[tab];
   }
@@ -143,6 +146,7 @@ export class JobLocksService {
       supplier: { supplierUnlockedAt: now, supplierUnlockedById: userId },
       edit: { editUnlockedAt: now, editUnlockedById: userId },
       b2c: { dispatchUnlockedAt: now, dispatchUnlockedById: userId },
+      online: { dispatchUnlockedAt: now, dispatchUnlockedById: userId },
     };
     return map[tab];
   }
@@ -155,6 +159,7 @@ export class JobLocksService {
       supplier: { supplierUnlockedAt: null, supplierUnlockedById: null },
       edit: { editUnlockedAt: null, editUnlockedById: null },
       b2c: { dispatchUnlockedAt: null, dispatchUnlockedById: null },
+      online: { dispatchUnlockedAt: null, dispatchUnlockedById: null },
     };
     return map[tab];
   }

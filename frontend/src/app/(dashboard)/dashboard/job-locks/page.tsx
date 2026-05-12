@@ -37,7 +37,7 @@ const JOB_LOCKS_COL_DEFS: ColumnDef[] = [
 
 const PAGE_SIZE = 50;
 
-type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit" | "b2c";
+type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit" | "b2c" | "online";
 
 interface JobLockItem {
   id: string;
@@ -93,6 +93,7 @@ function getEntityName(job: JobLockItem, tab: LockTab): string {
     case "edit":
       return job.agent?.legalName || job.customer?.legalName || "-";
     case "b2c":
+    case "online":
       return job.clientName || "-";
     default:
       return "-";
@@ -107,6 +108,7 @@ export default function JobLocksPage() {
   const canLockSupplier = usePermission("job-locks.supplier");
   const canLockEdit = usePermission("job-locks.edit");
   const canLockB2C = usePermission("job-locks.b2c");
+  const canLockOnline = usePermission("job-locks.online");
   const lockPermissions: Record<LockTab, boolean> = {
     dispatcher: canLockDispatcher,
     driver: canLockDriver,
@@ -114,6 +116,7 @@ export default function JobLocksPage() {
     supplier: canLockSupplier,
     edit: canLockEdit,
     b2c: canLockB2C,
+    online: canLockOnline,
   };
   const defaults = getDefaultDateRange();
   const [activeTab, setActiveTab] = useState<LockTab>("dispatcher");
@@ -221,6 +224,9 @@ export default function JobLocksPage() {
             <TabsTrigger value="b2c">
               {t("jobLocks.tabs.b2c")}
             </TabsTrigger>
+            <TabsTrigger value="online">
+              {t("jobLocks.tabs.online")}
+            </TabsTrigger>
           </TabsList>
 
           {/* Filters */}
@@ -273,7 +279,7 @@ export default function JobLocksPage() {
           </div>
 
           {/* Table content (same for all tabs) */}
-          {(["dispatcher", "driver", "rep", "supplier", "edit", "b2c"] as LockTab[]).map((tab) => (
+          {(["dispatcher", "driver", "rep", "supplier", "edit", "b2c", "online"] as LockTab[]).map((tab) => (
             <TabsContent key={tab} value={tab}>
               <JobLocksTable
                 jobs={jobs}

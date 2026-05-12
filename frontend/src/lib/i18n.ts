@@ -675,6 +675,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "jobLocks.tabs.supplier": "Supplier",
     "jobLocks.tabs.edit": "B2B Edit",
     "jobLocks.tabs.b2c": "B2C",
+    "jobLocks.tabs.online": "Online",
     "jobLocks.filters.dateFrom": "Date From",
     "jobLocks.filters.dateTo": "Date To",
     "jobLocks.filters.search": "Search by job ref...",

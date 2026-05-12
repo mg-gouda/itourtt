@@ -209,4 +209,36 @@ export class JobLocksController {
     const result = await this.jobLocksService.lockJob('b2c', id);
     return new ApiResponse(result, 'Job locked for B2C');
   }
+
+  // ─── ONLINE ───
+
+  @Get('online')
+  @Permissions('job-locks.online')
+  async getOnlineJobs(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const result = await this.jobLocksService.findJobs('online', dateFrom, dateTo, search, Number(page) || 1, Number(limit) || 50);
+    return new ApiResponse(result);
+  }
+
+  @Post('online/:id/unlock')
+  @Permissions('job-locks.online')
+  async unlockOnline(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    const result = await this.jobLocksService.unlockJob('online', id, userId);
+    return new ApiResponse(result, 'Job unlocked for Online');
+  }
+
+  @Post('online/:id/lock')
+  @Permissions('job-locks.online')
+  async lockOnline(@Param('id') id: string) {
+    const result = await this.jobLocksService.lockJob('online', id);
+    return new ApiResponse(result, 'Job locked for Online');
+  }
 }
