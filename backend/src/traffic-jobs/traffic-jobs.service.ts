@@ -739,6 +739,31 @@ export class TrafficJobsService {
     });
   }
 
+  async uploadEvidence(
+    jobId: string,
+    type: 'driver' | 'rep',
+    imageUrls: string[],
+    uploadedById: string,
+  ) {
+    const submittedBy = type === 'driver' ? 'DRIVER-Admin' : 'REP-Admin';
+
+    await this.prisma.completedEvidence.upsert({
+      where: { trafficJobId_submittedBy: { trafficJobId: jobId, submittedBy } },
+      create: {
+        trafficJobId: jobId,
+        imageUrls,
+        gpsLatitude: 0,
+        gpsLongitude: 0,
+        gpsMapLink: '',
+        submittedBy,
+        submittedById: uploadedById,
+      },
+      update: { imageUrls },
+    });
+
+    return { jobId, type, count: imageUrls.length };
+  }
+
   /**
    * Derive an abbreviation from the company name by taking the first letter
    * of each word, uppercased. e.g. "iTour TT" → "ITT", "Travel Plan" → "TP".

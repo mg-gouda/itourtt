@@ -5,9 +5,10 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 import { WhatsappNotificationsModule } from '../whatsapp-notifications/whatsapp-notifications.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { DriverTariffsModule } from '../driver-tariffs/driver-tariffs.module.js';
+import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 
 @Module({
-  imports: [NotificationsModule, WhatsappNotificationsModule, SettingsModule, DriverTariffsModule],
+  imports: [NotificationsModule, WhatsappNotificationsModule, SettingsModule, DriverTariffsModule, GoogleDriveModule],
   controllers: [TrafficJobsController],
   providers: [TrafficJobsService],
   exports: [TrafficJobsService],

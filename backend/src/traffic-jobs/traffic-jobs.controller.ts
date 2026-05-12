@@ -8,9 +8,17 @@ import {
   Body,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
+  BadRequestException,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import * as path from 'path';
+import * as fs from 'fs';
 import { TrafficJobsService } from './traffic-jobs.service.js';
+import { GoogleDriveService } from '../google-drive/google-drive.service.js';
 import { CreateJobDto } from './dto/create-job.dto.js';
 import { BulkCreateJobsDto } from './dto/bulk-create-jobs.dto.js';
 import { JobFilterDto } from './dto/job-filter.dto.js';
@@ -25,10 +33,15 @@ import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 
+const memStore = memoryStorage();
+
 @Controller('traffic-jobs')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class TrafficJobsController {
-  constructor(private readonly trafficJobsService: TrafficJobsService) {}
+  constructor(
+    private readonly trafficJobsService: TrafficJobsService,
+    private readonly googleDriveService: GoogleDriveService,
+  ) {}
 
   @Get()
   @Roles('ADMIN', 'MANAGER', 'DISPATCHER')
@@ -108,6 +121,44 @@ export class TrafficJobsController {
   async remove(@Param('id') id: string) {
     const result = await this.trafficJobsService.remove(id);
     return new ApiResponse(result, 'Traffic job deleted successfully');
+  }
+
+  @Post(':id/upload-evidence')
+  @Roles('ADMIN')
+  @UseInterceptors(FilesInterceptor('images', 10, { storage: memStore }))
+  async uploadEvidence(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body('type') type: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    if (!files?.length) throw new BadRequestException('At least one image is required');
+    if (type !== 'driver' && type !== 'rep') throw new BadRequestException('type must be driver or rep');
+
+    const urls: string[] = [];
+    const uploadsBase = path.join(process.cwd(), 'uploads');
+    for (const file of files) {
+      const uniqueName = `${Date.now()}-${file.originalname.replace(/\.[^.]+$/, '')}.jpg`;
+      const driveId = await this.googleDriveService.uploadFile(
+        file.buffer,
+        uniqueName,
+        'image/jpeg',
+        id,
+        type as 'driver' | 'rep',
+      );
+      if (driveId) {
+        urls.push(driveId);
+      } else {
+        const subdir = type === 'driver' ? 'completed' : 'rep-completed';
+        const dir = path.join(uploadsBase, subdir);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, uniqueName), file.buffer);
+        urls.push(`/uploads/${subdir}/${uniqueName}`);
+      }
+    }
+
+    const result = await this.trafficJobsService.uploadEvidence(id, type as 'driver' | 'rep', urls, userId);
+    return new ApiResponse(result, 'Evidence uploaded successfully');
   }
 
   @Post('recalculate-driver-fees')

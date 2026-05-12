@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, CheckCircle2 } from "lucide-react";
+import { Search, Loader2, CheckCircle2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -65,6 +65,38 @@ export default function JobControlPage() {
   const [repStatus, setRepStatus]       = useState<string>("");
   const [driverStatus, setDriverStatus] = useState<string>("");
   const [saving, setSaving]             = useState(false);
+
+  // Evidence upload
+  const [driverFiles, setDriverFiles] = useState<FileList | null>(null);
+  const [repFiles, setRepFiles]       = useState<FileList | null>(null);
+  const [uploadingDriver, setUploadingDriver] = useState(false);
+  const [uploadingRep, setUploadingRep]       = useState(false);
+  const driverInputRef = useRef<HTMLInputElement>(null);
+  const repInputRef    = useRef<HTMLInputElement>(null);
+
+  const uploadEvidence = async (type: "driver" | "rep") => {
+    if (!selected) return;
+    const files = type === "driver" ? driverFiles : repFiles;
+    if (!files?.length) { toast.error("Select at least one image"); return; }
+
+    const setter = type === "driver" ? setUploadingDriver : setUploadingRep;
+    setter(true);
+    try {
+      const formData = new FormData();
+      formData.append("type", type);
+      Array.from(files).forEach((f) => formData.append("images", f));
+      await api.post(`/traffic-jobs/${selected.id}/upload-evidence`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success(`${type === "driver" ? "Driver" : "Rep"} evidence uploaded`);
+      if (type === "driver") { setDriverFiles(null); if (driverInputRef.current) driverInputRef.current.value = ""; }
+      else                   { setRepFiles(null);    if (repInputRef.current)    repInputRef.current.value    = ""; }
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setter(false);
+    }
+  };
 
   const search = useCallback(async () => {
     if (!query.trim()) return;
@@ -258,6 +290,75 @@ export default function JobControlPage() {
               {!selected.assignment && (
                 <p className="text-xs text-muted-foreground">No assignment yet</p>
               )}
+            </div>
+          </div>
+
+          {/* ── Evidence upload ── */}
+          <div className="border-t pt-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Driver evidence */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Driver Evidence</Label>
+              <p className="text-xs text-muted-foreground">Upload on behalf of the driver (stored as driver evidence)</p>
+              <input
+                ref={driverInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => setDriverFiles(e.target.files)}
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => driverInputRef.current?.click()}
+                  className="flex-1 text-xs"
+                >
+                  {driverFiles?.length ? `${driverFiles.length} file(s) selected` : "Choose images…"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!driverFiles?.length || uploadingDriver}
+                  onClick={() => uploadEvidence("driver")}
+                >
+                  {uploadingDriver ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Rep evidence */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Rep Evidence</Label>
+              <p className="text-xs text-muted-foreground">Upload on behalf of the rep (stored as rep evidence)</p>
+              <input
+                ref={repInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => setRepFiles(e.target.files)}
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => repInputRef.current?.click()}
+                  className="flex-1 text-xs"
+                >
+                  {repFiles?.length ? `${repFiles.length} file(s) selected` : "Choose images…"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!repFiles?.length || uploadingRep}
+                  onClick={() => uploadEvidence("rep")}
+                >
+                  {uploadingRep ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
             </div>
           </div>
 
