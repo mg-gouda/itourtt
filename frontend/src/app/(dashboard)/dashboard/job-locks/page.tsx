@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Lock, LockOpen, Loader2, Search } from "lucide-react";
+import { Lock, LockOpen, Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,9 @@ const JOB_LOCKS_COL_DEFS: ColumnDef[] = [
   { key: "provider", label: "Provider" },
 ];
 
-type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit";
+const PAGE_SIZE = 50;
+
+type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit" | "b2c";
 
 interface JobLockItem {
   id: string;
@@ -58,6 +60,13 @@ interface JobLockItem {
       supplier?: { id: string; legalName: string } | null;
     } | null;
   } | null;
+}
+
+interface PagedResult {
+  data: JobLockItem[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 function getDefaultDateRange() {
@@ -83,6 +92,8 @@ function getEntityName(job: JobLockItem, tab: LockTab): string {
       return job.assignment.vehicle?.supplier?.legalName || "-";
     case "edit":
       return job.agent?.legalName || job.customer?.legalName || "-";
+    case "b2c":
+      return job.clientName || "-";
     default:
       return "-";
   }
@@ -94,12 +105,15 @@ export default function JobLocksPage() {
   const canLockDriver = usePermission("job-locks.driver");
   const canLockRep = usePermission("job-locks.rep");
   const canLockSupplier = usePermission("job-locks.supplier");
+  const canLockEdit = usePermission("job-locks.edit");
+  const canLockB2C = usePermission("job-locks.b2c");
   const lockPermissions: Record<LockTab, boolean> = {
     dispatcher: canLockDispatcher,
     driver: canLockDriver,
     rep: canLockRep,
     supplier: canLockSupplier,
-    edit: canLockDispatcher, // edit tab uses dispatcher permission as fallback
+    edit: canLockEdit,
+    b2c: canLockB2C,
   };
   const defaults = getDefaultDateRange();
   const [activeTab, setActiveTab] = useState<LockTab>("dispatcher");
@@ -107,17 +121,27 @@ export default function JobLocksPage() {
   const [dateTo, setDateTo] = useState(defaults.dateTo);
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState<JobLockItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
 
   const fetchJobs = useCallback(
-    async (tab: LockTab, from: string, to: string, searchStr: string) => {
+    async (tab: LockTab, from: string, to: string, searchStr: string, pageNum: number) => {
       setLoading(true);
       try {
-        const params = new URLSearchParams({ dateFrom: from, dateTo: to });
+        const params = new URLSearchParams({
+          dateFrom: from,
+          dateTo: to,
+          page: String(pageNum),
+          limit: String(PAGE_SIZE),
+        });
         if (searchStr) params.set("search", searchStr);
         const res = await api.get(`/job-locks/${tab}?${params.toString()}`);
-        setJobs(res.data.data);
+        const result: PagedResult = res.data.data;
+        setJobs(result.data);
+        setTotal(result.total);
+        setPage(result.page);
       } catch {
         toast.error(t("jobLocks.toggleFailed"));
       } finally {
@@ -128,14 +152,21 @@ export default function JobLocksPage() {
   );
 
   const handleSearch = () => {
-    fetchJobs(activeTab, dateFrom, dateTo, search);
+    setPage(1);
+    fetchJobs(activeTab, dateFrom, dateTo, search, 1);
   };
 
   const handleTabChange = (tab: string) => {
     const lockTab = tab as LockTab;
     setActiveTab(lockTab);
     setJobs([]);
-    fetchJobs(lockTab, dateFrom, dateTo, search);
+    setTotal(0);
+    setPage(1);
+    fetchJobs(lockTab, dateFrom, dateTo, search, 1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    fetchJobs(activeTab, dateFrom, dateTo, search, newPage);
   };
 
   const handleToggleLock = async (job: JobLockItem) => {
@@ -157,6 +188,8 @@ export default function JobLocksPage() {
       setToggling(null);
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="space-y-6">
@@ -184,6 +217,9 @@ export default function JobLocksPage() {
             </TabsTrigger>
             <TabsTrigger value="edit">
               {t("jobLocks.tabs.edit")}
+            </TabsTrigger>
+            <TabsTrigger value="b2c">
+              {t("jobLocks.tabs.b2c")}
             </TabsTrigger>
           </TabsList>
 
@@ -237,17 +273,46 @@ export default function JobLocksPage() {
           </div>
 
           {/* Table content (same for all tabs) */}
-          {["dispatcher", "driver", "rep", "supplier", "edit"].map((tab) => (
+          {(["dispatcher", "driver", "rep", "supplier", "edit", "b2c"] as LockTab[]).map((tab) => (
             <TabsContent key={tab} value={tab}>
               <JobLocksTable
                 jobs={jobs}
-                tab={tab as LockTab}
+                tab={tab}
                 loading={loading}
                 toggling={toggling}
                 onToggleLock={handleToggleLock}
-                canToggle={lockPermissions[tab as LockTab]}
+                canToggle={lockPermissions[tab]}
                 t={t}
               />
+              {/* Pagination */}
+              {!loading && total > 0 && (
+                <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>
+                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total} jobs
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={page <= 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="tabular-nums">
+                      {page} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={page >= totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           ))}
         </Tabs>
@@ -298,62 +363,62 @@ function JobLocksTable({
         <ColumnVisibilityControl columns={JOB_LOCKS_COL_DEFS} visibility={jlColVis} onSave={saveJlColVis} />
       </div>
       <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {isVis("lock") && <TableHead className="w-16">{t("jobLocks.table.lock")}</TableHead>}
-            {isVis("ref") && <TableHead>{t("jobLocks.table.ref")}</TableHead>}
-            {isVis("entity") && <TableHead>{t("jobLocks.table.entity")}</TableHead>}
-            {isVis("route") && <TableHead>{t("jobLocks.table.route")}</TableHead>}
-            {isVis("date") && <TableHead>{t("jobLocks.table.date")}</TableHead>}
-            {isVis("status") && <TableHead>{t("jobLocks.table.status")}</TableHead>}
-            {isVis("provider") && <TableHead>{t("jobLocks.table.provider")}</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {jobs.map((job) => {
-            const isToggling = toggling === job.id;
-            const route = [
-              job.fromZone?.name,
-              job.toZone?.name,
-            ]
-              .filter(Boolean)
-              .join(" → ");
-            const provider =
-              job.agent?.legalName || job.customer?.legalName || "-";
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {isVis("lock") && <TableHead className="w-16">{t("jobLocks.table.lock")}</TableHead>}
+              {isVis("ref") && <TableHead>{t("jobLocks.table.ref")}</TableHead>}
+              {isVis("entity") && <TableHead>{t("jobLocks.table.entity")}</TableHead>}
+              {isVis("route") && <TableHead>{t("jobLocks.table.route")}</TableHead>}
+              {isVis("date") && <TableHead>{t("jobLocks.table.date")}</TableHead>}
+              {isVis("status") && <TableHead>{t("jobLocks.table.status")}</TableHead>}
+              {isVis("provider") && <TableHead>{t("jobLocks.table.provider")}</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {jobs.map((job) => {
+              const isToggling = toggling === job.id;
+              const route = [
+                job.fromZone?.name,
+                job.toZone?.name,
+              ]
+                .filter(Boolean)
+                .join(" → ");
+              const provider =
+                job.agent?.legalName || job.customer?.legalName || "-";
 
-            return (
-              <TableRow key={job.id}>
-                {isVis("lock") && (
-                  <TableCell>
-                    {canToggle ? (
-                      <button onClick={() => onToggleLock(job)} disabled={isToggling} className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted" title={job.isUnlocked ? t("jobLocks.lock") : t("jobLocks.unlock")}>
-                        {isToggling ? <Loader2 className="h-4 w-4 animate-spin" /> : job.isUnlocked ? <LockOpen className="h-4 w-4 text-green-500" /> : <Lock className="h-4 w-4 text-amber-500" />}
-                      </button>
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center">
-                        {job.isUnlocked ? <LockOpen className="h-4 w-4 text-green-500/50" /> : <Lock className="h-4 w-4 text-amber-500/50" />}
-                      </div>
-                    )}
-                  </TableCell>
-                )}
-                {isVis("ref") && <TableCell className="font-mono text-xs">{job.internalRef}</TableCell>}
-                {isVis("entity") && <TableCell>{getEntityName(job, tab)}</TableCell>}
-                {isVis("route") && <TableCell className="text-sm">{route || "-"}</TableCell>}
-                {isVis("date") && <TableCell className="text-sm">{new Date(job.jobDate).toLocaleDateString()}</TableCell>}
-                {isVis("status") && (
-                  <TableCell>
-                    <Badge variant={job.isUnlocked ? "default" : "secondary"} className={job.isUnlocked ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"}>
-                      {job.isUnlocked ? t("jobLocks.unlocked") : t("jobLocks.locked")}
-                    </Badge>
-                  </TableCell>
-                )}
-                {isVis("provider") && <TableCell className="text-sm">{provider}</TableCell>}
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+              return (
+                <TableRow key={job.id}>
+                  {isVis("lock") && (
+                    <TableCell>
+                      {canToggle ? (
+                        <button onClick={() => onToggleLock(job)} disabled={isToggling} className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted" title={job.isUnlocked ? t("jobLocks.lock") : t("jobLocks.unlock")}>
+                          {isToggling ? <Loader2 className="h-4 w-4 animate-spin" /> : job.isUnlocked ? <LockOpen className="h-4 w-4 text-green-500" /> : <Lock className="h-4 w-4 text-amber-500" />}
+                        </button>
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center">
+                          {job.isUnlocked ? <LockOpen className="h-4 w-4 text-green-500/50" /> : <Lock className="h-4 w-4 text-amber-500/50" />}
+                        </div>
+                      )}
+                    </TableCell>
+                  )}
+                  {isVis("ref") && <TableCell className="font-mono text-xs">{job.internalRef}</TableCell>}
+                  {isVis("entity") && <TableCell>{getEntityName(job, tab)}</TableCell>}
+                  {isVis("route") && <TableCell className="text-sm">{route || "-"}</TableCell>}
+                  {isVis("date") && <TableCell className="text-sm">{new Date(job.jobDate).toLocaleDateString()}</TableCell>}
+                  {isVis("status") && (
+                    <TableCell>
+                      <Badge variant={job.isUnlocked ? "default" : "secondary"} className={job.isUnlocked ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"}>
+                        {job.isUnlocked ? t("jobLocks.unlocked") : t("jobLocks.locked")}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {isVis("provider") && <TableCell className="text-sm">{provider}</TableCell>}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
     </>
   );

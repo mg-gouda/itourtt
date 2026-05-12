@@ -1,15 +1,25 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-type LockTab = 'dispatcher' | 'driver' | 'rep' | 'supplier' | 'edit';
+type LockTab = 'dispatcher' | 'driver' | 'rep' | 'supplier' | 'edit' | 'b2c';
+
+const PAGE_SIZE = 50;
 
 @Injectable()
 export class JobLocksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findJobs(tab: LockTab, dateFrom: string, dateTo: string, search?: string) {
+  async findJobs(
+    tab: LockTab,
+    dateFrom: string,
+    dateTo: string,
+    search?: string,
+    page = 1,
+    limit = PAGE_SIZE,
+  ) {
     const from = new Date(dateFrom);
     const to = new Date(dateTo);
+    const skip = (page - 1) * limit;
 
     const baseWhere: Record<string, unknown> = {
       jobDate: { gte: from, lte: to },
@@ -29,50 +39,59 @@ export class JobLocksService {
       baseWhere.assignment = {
         is: { vehicle: { supplierId: { not: null } } },
       };
+    } else if (tab === 'b2c') {
+      baseWhere.bookingChannel = 'B2C';
     }
 
-    const jobs = await this.prisma.trafficJob.findMany({
-      where: baseWhere,
-      orderBy: { jobDate: 'desc' },
-      select: {
-        id: true,
-        internalRef: true,
-        jobDate: true,
-        serviceType: true,
-        status: true,
-        clientName: true,
-        dispatchUnlockedAt: true,
-        driverUnlockedAt: true,
-        repUnlockedAt: true,
-        supplierUnlockedAt: true,
-        editUnlockedAt: true,
-        agent: { select: { legalName: true } },
-        customer: { select: { legalName: true } },
-        fromZone: { select: { name: true } },
-        toZone: { select: { name: true } },
-        assignment: {
-          select: {
-            driver: { select: { id: true, name: true } },
-            rep: { select: { id: true, name: true } },
-            vehicle: {
-              select: {
-                id: true,
-                plateNumber: true,
-                supplier: { select: { id: true, legalName: true } },
-              },
+    const select = {
+      id: true,
+      internalRef: true,
+      jobDate: true,
+      serviceType: true,
+      status: true,
+      clientName: true,
+      dispatchUnlockedAt: true,
+      driverUnlockedAt: true,
+      repUnlockedAt: true,
+      supplierUnlockedAt: true,
+      editUnlockedAt: true,
+      agent: { select: { legalName: true } },
+      customer: { select: { legalName: true } },
+      fromZone: { select: { name: true } },
+      toZone: { select: { name: true } },
+      assignment: {
+        select: {
+          driver: { select: { id: true, name: true } },
+          rep: { select: { id: true, name: true } },
+          vehicle: {
+            select: {
+              id: true,
+              plateNumber: true,
+              supplier: { select: { id: true, legalName: true } },
             },
           },
         },
       },
-    });
+    };
 
-    return jobs.map((job) => {
-      const unlockField = this.getUnlockField(tab);
-      return {
-        ...job,
-        isUnlocked: !!(job as any)[unlockField],
-      };
-    });
+    const [jobs, total] = await Promise.all([
+      this.prisma.trafficJob.findMany({
+        where: baseWhere,
+        orderBy: { jobDate: 'desc' },
+        skip,
+        take: limit,
+        select,
+      }),
+      this.prisma.trafficJob.count({ where: baseWhere }),
+    ]);
+
+    const unlockField = this.getUnlockField(tab);
+    const data = jobs.map((job) => ({
+      ...job,
+      isUnlocked: !!(job as any)[unlockField],
+    }));
+
+    return { data, total, page, limit };
   }
 
   async unlockJob(tab: LockTab, jobId: string, userId: string) {
@@ -110,6 +129,7 @@ export class JobLocksService {
       rep: 'repUnlockedAt',
       supplier: 'supplierUnlockedAt',
       edit: 'editUnlockedAt',
+      b2c: 'dispatchUnlockedAt',
     };
     return map[tab];
   }
@@ -122,6 +142,7 @@ export class JobLocksService {
       rep: { repUnlockedAt: now, repUnlockedById: userId },
       supplier: { supplierUnlockedAt: now, supplierUnlockedById: userId },
       edit: { editUnlockedAt: now, editUnlockedById: userId },
+      b2c: { dispatchUnlockedAt: now, dispatchUnlockedById: userId },
     };
     return map[tab];
   }
@@ -133,6 +154,7 @@ export class JobLocksService {
       rep: { repUnlockedAt: null, repUnlockedById: null },
       supplier: { supplierUnlockedAt: null, supplierUnlockedById: null },
       edit: { editUnlockedAt: null, editUnlockedById: null },
+      b2c: { dispatchUnlockedAt: null, dispatchUnlockedById: null },
     };
     return map[tab];
   }

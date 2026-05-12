@@ -630,6 +630,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'job-locks.rep',        labelKey: 'permissions.jobLocks.rep',        crudType: 'R' },
       { key: 'job-locks.supplier',   labelKey: 'permissions.jobLocks.supplier',   crudType: 'R' },
       { key: 'job-locks.edit',       labelKey: 'permissions.jobLocks.edit',       crudType: 'U' },
+      { key: 'job-locks.b2c',        labelKey: 'permissions.jobLocks.b2c',        crudType: 'U' },
     ],
   },
 

@@ -5,7 +5,6 @@ import {
   Param,
   Query,
   UseGuards,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { JobLocksService } from './job-locks.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -27,8 +26,10 @@ export class JobLocksController {
     @Query('dateFrom') dateFrom: string,
     @Query('dateTo') dateTo: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const result = await this.jobLocksService.findJobs('dispatcher', dateFrom, dateTo, search);
+    const result = await this.jobLocksService.findJobs('dispatcher', dateFrom, dateTo, search, Number(page) || 1, Number(limit) || 50);
     return new ApiResponse(result);
   }
 
@@ -57,8 +58,10 @@ export class JobLocksController {
     @Query('dateFrom') dateFrom: string,
     @Query('dateTo') dateTo: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const result = await this.jobLocksService.findJobs('driver', dateFrom, dateTo, search);
+    const result = await this.jobLocksService.findJobs('driver', dateFrom, dateTo, search, Number(page) || 1, Number(limit) || 50);
     return new ApiResponse(result);
   }
 
@@ -87,8 +90,10 @@ export class JobLocksController {
     @Query('dateFrom') dateFrom: string,
     @Query('dateTo') dateTo: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const result = await this.jobLocksService.findJobs('rep', dateFrom, dateTo, search);
+    const result = await this.jobLocksService.findJobs('rep', dateFrom, dateTo, search, Number(page) || 1, Number(limit) || 50);
     return new ApiResponse(result);
   }
 
@@ -117,8 +122,10 @@ export class JobLocksController {
     @Query('dateFrom') dateFrom: string,
     @Query('dateTo') dateTo: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const result = await this.jobLocksService.findJobs('supplier', dateFrom, dateTo, search);
+    const result = await this.jobLocksService.findJobs('supplier', dateFrom, dateTo, search, Number(page) || 1, Number(limit) || 50);
     return new ApiResponse(result);
   }
 
@@ -147,8 +154,10 @@ export class JobLocksController {
     @Query('dateFrom') dateFrom: string,
     @Query('dateTo') dateTo: string,
     @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    const result = await this.jobLocksService.findJobs('edit', dateFrom, dateTo, search);
+    const result = await this.jobLocksService.findJobs('edit', dateFrom, dateTo, search, Number(page) || 1, Number(limit) || 50);
     return new ApiResponse(result);
   }
 
@@ -167,5 +176,37 @@ export class JobLocksController {
   async lockEdit(@Param('id') id: string) {
     const result = await this.jobLocksService.lockJob('edit', id);
     return new ApiResponse(result, 'Job locked for editing');
+  }
+
+  // ─── B2C ───
+
+  @Get('b2c')
+  @Permissions('job-locks.b2c')
+  async getB2CJobs(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const result = await this.jobLocksService.findJobs('b2c', dateFrom, dateTo, search, Number(page) || 1, Number(limit) || 50);
+    return new ApiResponse(result);
+  }
+
+  @Post('b2c/:id/unlock')
+  @Permissions('job-locks.b2c')
+  async unlockB2C(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    const result = await this.jobLocksService.unlockJob('b2c', id, userId);
+    return new ApiResponse(result, 'Job unlocked for B2C');
+  }
+
+  @Post('b2c/:id/lock')
+  @Permissions('job-locks.b2c')
+  async lockB2C(@Param('id') id: string) {
+    const result = await this.jobLocksService.lockJob('b2c', id);
+    return new ApiResponse(result, 'Job locked for B2C');
   }
 }
