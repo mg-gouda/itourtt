@@ -296,9 +296,9 @@ export class DriverPortalService {
     this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
 
     const currentStatus = assignment.driverStatus;
-    if (currentStatus !== 'PENDING') {
+    if (currentStatus !== 'PENDING' && currentStatus !== 'IN_PROGRESS') {
       throw new BadRequestException(
-        `Cannot start job: current status is "${currentStatus}"`,
+        `Cannot submit in-progress evidence: current status is "${currentStatus}"`,
       );
     }
 
@@ -308,7 +308,7 @@ export class DriverPortalService {
       assignment.trafficJob.serviceType === 'ARR'
         ? (flight?.arrivalTime ?? null)
         : (assignment.trafficJob.pickUpTime ?? null);
-    if (jobTime && new Date() < new Date(jobTime)) {
+    if (currentStatus === 'PENDING' && jobTime && new Date() < new Date(jobTime)) {
       const timeStr = new Date(jobTime).toLocaleTimeString('en-GB', {
         timeZone: 'Africa/Cairo',
         hour: '2-digit',
@@ -321,11 +321,12 @@ export class DriverPortalService {
     }
 
     const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const alreadyStarted = currentStatus === 'IN_PROGRESS';
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.trafficAssignment.update({
         where: { id: assignment.id },
-        data: { driverStatus: 'IN_PROGRESS' as any },
+        data: alreadyStarted ? {} : { driverStatus: 'IN_PROGRESS' as any },
         include: { trafficJob: { include: this.jobInclude } },
       });
 
@@ -341,18 +342,20 @@ export class DriverPortalService {
         },
       });
 
-      await tx.statusChangeLog.create({
-        data: {
-          assignmentId: assignment.id,
-          changedBy: 'DRIVER',
-          changedById: driverId,
-          previousStatus: currentStatus as any,
-          newStatus: 'IN_PROGRESS' as any,
-          gpsLatitude: latitude,
-          gpsLongitude: longitude,
-          gpsMapLink,
-        },
-      });
+      if (!alreadyStarted) {
+        await tx.statusChangeLog.create({
+          data: {
+            assignmentId: assignment.id,
+            changedBy: 'DRIVER',
+            changedById: driverId,
+            previousStatus: currentStatus as any,
+            newStatus: 'IN_PROGRESS' as any,
+            gpsLatitude: latitude,
+            gpsLongitude: longitude,
+            gpsMapLink,
+          },
+        });
+      }
 
       return {
         ...updated.trafficJob,
