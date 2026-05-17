@@ -994,7 +994,7 @@ export default function ReportsPage() {
   // Review Report
   const [reviewFrom, setReviewFrom] = useState(thirtyDaysAgo);
   const [reviewTo, setReviewTo] = useState(today);
-  const [reviewStatus, setReviewStatus] = useState("ALL");
+  const [reviewStatus, setReviewStatus] = useState<string[]>([]);
   const [reviewData, setReviewData] = useState<ReviewReport | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const reviewPrintRef = useRef<HTMLDivElement>(null);
@@ -1812,7 +1812,7 @@ export default function ReportsPage() {
     setReviewLoading(true);
     try {
       const params = new URLSearchParams({ from: reviewFrom, to: reviewTo });
-      if (reviewStatus !== "ALL") params.set("status", reviewStatus);
+      if (reviewStatus.length > 0) params.set("status", reviewStatus.join(","));
       const { data } = await api.get(`/reports/review?${params.toString()}`);
       setReviewData(data.data || data);
     } catch {
@@ -1825,7 +1825,7 @@ export default function ReportsPage() {
   const exportReviewExcel = async () => {
     try {
       const params = new URLSearchParams({ from: reviewFrom, to: reviewTo });
-      if (reviewStatus !== "ALL") params.set("status", reviewStatus);
+      if (reviewStatus.length > 0) params.set("status", reviewStatus.join(","));
       const res = await api.get(`/export/odoo/review?${params.toString()}`, { responseType: "blob" });
       downloadBlob(res.data, `review_${reviewFrom}_${reviewTo}.xlsx`);
     } catch { toast.error(t("reports.failedExcel")); }
@@ -4680,21 +4680,38 @@ export default function ReportsPage() {
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Job Status</Label>
-                  <Select value={reviewStatus} onValueChange={setReviewStatus}>
-                    <SelectTrigger className="mt-1 w-40 border-border bg-card text-foreground">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Statuses</SelectItem>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                      <SelectItem value="IN_PLACE">In Place</SelectItem>
-                      <SelectItem value="COMPLETED">Completed</SelectItem>
-                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                      <SelectItem value="NO_SHOW">No Show</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="mt-1 w-48 justify-between border-border bg-card text-foreground font-normal">
+                        <span className="truncate">
+                          {reviewStatus.length === 0
+                            ? "All Statuses"
+                            : reviewStatus.map((s) => s.replace(/_/g, " ")).join(", ")}
+                        </span>
+                        <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-2" align="start">
+                      {(["PENDING","ASSIGNED","IN_PROGRESS","IN_PLACE","COMPLETED","CANCELLED","NO_SHOW"] as const).map((s) => (
+                        <label key={s} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent">
+                          <Checkbox
+                            checked={reviewStatus.includes(s)}
+                            onCheckedChange={(checked) =>
+                              setReviewStatus((prev) =>
+                                checked ? [...prev, s] : prev.filter((x) => x !== s)
+                              )
+                            }
+                          />
+                          {s.replace(/_/g, " ")}
+                        </label>
+                      ))}
+                      {reviewStatus.length > 0 && (
+                        <Button variant="ghost" size="sm" className="mt-1 w-full text-xs" onClick={() => setReviewStatus([])}>
+                          Clear
+                        </Button>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <Button onClick={fetchReview} disabled={reviewLoading} className="gap-1.5">
                   {reviewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}

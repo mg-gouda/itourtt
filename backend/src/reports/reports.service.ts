@@ -891,7 +891,10 @@ export class ReportsService {
       jobDate: { gte: fromDate, lte: toDate },
       deletedAt: null,
     };
-    if (status && status !== 'ALL') where.status = status;
+    if (status && status !== 'ALL') {
+      const statusList = status.split(',').map((s) => s.trim()).filter(Boolean);
+      where.status = statusList.length === 1 ? statusList[0] : { in: statusList };
+    }
     if (agentId) where.agentId = agentId;
     if (repId || driverId) {
       where.assignment = {
