@@ -920,6 +920,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.statusFilter": "Status",
     "reports.allStatuses": "All Statuses",
     "reports.allReps": "All Reps",
+    "permissions.reports.review": "Review Report",
 
     // ── Users ──
     "users.title": "Users",
@@ -938,9 +939,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "users.savePermissions": "Save Permissions",
     "users.created": "Created",
     "users.deactivate": "Deactivate",
+    "users.reactivate": "Reactivate",
     "users.userCreated": "User created",
     "users.userUpdated": "User updated",
     "users.userDeactivated": "User deactivated",
+    "users.userReactivated": "User reactivated",
     "users.permissionsSaved": "Permissions saved",
     "users.defaultsSeeded": "Default permissions seeded",
     "users.allFieldsRequired": "All fields are required",
@@ -948,6 +951,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "users.failedCreateUser": "Failed to create user",
     "users.failedUpdateUser": "Failed to update user",
     "users.failedDeactivateUser": "Failed to deactivate user",
+    "users.failedReactivateUser": "Failed to reactivate user",
     "users.failedSavePermissions": "Failed to save permissions",
     "users.failedSeedDefaults": "Failed to seed defaults",
 
@@ -2506,6 +2510,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.statusFilter": "الحالة",
     "reports.allStatuses": "جميع الحالات",
     "reports.allReps": "جميع المرافقين",
+    "permissions.reports.review": "تقرير المراجعة",
 
     // ── Users ──
     "users.title": "\u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u0648\u0646",
@@ -2524,9 +2529,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "users.savePermissions": "\u062D\u0641\u0638 \u0627\u0644\u0635\u0644\u0627\u062D\u064A\u0627\u062A",
     "users.created": "\u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0625\u0646\u0634\u0627\u0621",
     "users.deactivate": "\u062A\u0639\u0637\u064A\u0644",
+    "users.reactivate": "\u062A\u0641\u0639\u064A\u0644",
     "users.userCreated": "\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
     "users.userUpdated": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
     "users.userDeactivated": "\u062A\u0645 \u062A\u0639\u0637\u064A\u0644 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
+    "users.userReactivated": "\u062A\u0645 \u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
     "users.permissionsSaved": "\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0635\u0644\u0627\u062D\u064A\u0627\u062A",
     "users.defaultsSeeded": "\u062A\u0645 \u062A\u0639\u064A\u064A\u0646 \u0627\u0644\u0635\u0644\u0627\u062D\u064A\u0627\u062A \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629",
     "users.allFieldsRequired": "\u062C\u0645\u064A\u0639 \u0627\u0644\u062D\u0642\u0648\u0644 \u0645\u0637\u0644\u0648\u0628\u0629",
@@ -2534,6 +2541,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "users.failedCreateUser": "\u0641\u0634\u0644 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
     "users.failedUpdateUser": "\u0641\u0634\u0644 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
     "users.failedDeactivateUser": "\u0641\u0634\u0644 \u062A\u0639\u0637\u064A\u0644 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
+    "users.failedReactivateUser": "\u0641\u0634\u0644 \u062A\u0641\u0639\u064A\u0644 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
     "users.failedSavePermissions": "\u0641\u0634\u0644 \u062D\u0641\u0638 \u0627\u0644\u0635\u0644\u0627\u062D\u064A\u0627\u062A",
     "users.failedSeedDefaults": "\u0641\u0634\u0644 \u062A\u0639\u064A\u064A\u0646 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0627\u062A",
 

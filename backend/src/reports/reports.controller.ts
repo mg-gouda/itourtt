@@ -383,4 +383,14 @@ export class ReportsController {
     const result = await this.reportsService.flightDelayForJob(jobId);
     return new ApiResponse(result);
   }
+
+  @Get('review')
+  @Permissions('reports.review')
+  async reviewReport(@Query() query: DateRangeQueryDto & { status?: string }) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.reviewReport(query.from, query.to, query.status);
+    return new ApiResponse(result);
+  }
 }

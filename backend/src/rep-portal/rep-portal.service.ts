@@ -82,13 +82,21 @@ export class RepPortalService {
       orderBy: { createdAt: 'asc' },
     });
 
+    const resolveTime = (job: any): number => {
+      const t = job.serviceType === 'ARR'
+        ? (job.flight?.arrivalTime ?? null)
+        : (job.pickUpTime ?? null);
+      return t ? new Date(t).getTime() : Number.MAX_SAFE_INTEGER;
+    };
+
+    const jobs = assignments
+      .map((a) => ({ ...a.trafficJob, repStatus: a.repStatus }))
+      .sort((a, b) => resolveTime(a) - resolveTime(b));
+
     return {
       date: jobDate.toISOString().split('T')[0],
       repId,
-      jobs: assignments.map((a) => ({
-        ...a.trafficJob,
-        repStatus: a.repStatus,
-      })),
+      jobs,
     };
   }
 

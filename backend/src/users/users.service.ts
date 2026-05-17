@@ -178,14 +178,26 @@ export class UsersService {
 
     const user = await this.prisma.user.update({
       where: { id },
-      data: {
-        isActive: false,
-        deletedAt: new Date(),
-      },
+      data: { isActive: false },
       omit: SAFE_USER_OMIT,
     });
 
     return user;
+  }
+
+  async reactivate(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user || user.deletedAt !== null) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: true },
+      omit: SAFE_USER_OMIT,
+    });
+
+    return updated;
   }
 
   // ──────────────────────────────────────────────

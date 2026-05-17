@@ -479,6 +479,19 @@ export class ExportController {
     this.sendXlsx(res, buffer, `car_jobs_${from}_${to}`);
   }
 
+  @Get('review')
+  @Permissions('reports.review')
+  async exportReview(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('status') status: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportReviewReport(from, to, status || undefined);
+    this.sendXlsx(res, buffer, `review_${from}_${to}`);
+  }
+
   private sendXlsx(res: express.Response, buffer: Buffer, filename: string) {
     const date = new Date().toISOString().split('T')[0];
     res.set({

@@ -293,6 +293,17 @@ export default function UsersPage() {
     }
   }
 
+  // ─── Reactivate user ──────────────────────────────────────────────────────
+  async function handleReactivate(id: string) {
+    try {
+      await api.patch(`/users/${id}/reactivate`);
+      toast.success(t("users.userReactivated"));
+      fetchUsers();
+    } catch {
+      toast.error(t("users.failedReactivateUser"));
+    }
+  }
+
   // ─── Permission matrix change ─────────────────────────────────────────────
   function handlePermissionsChange(next: Set<string>) {
     setGrantedKeys(next);
@@ -483,6 +494,7 @@ export default function UsersPage() {
                           <TableCell className="text-right">
                             {canEditUser && <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => openEdit(user)}>{t("common.edit")}</Button>}
                             {canDeactivateUser && user.isActive && <Button variant="ghost" size="sm" className="text-red-500/70 hover:text-red-500" onClick={() => handleDeactivate(user.id)}>{t("users.deactivate")}</Button>}
+                            {canDeactivateUser && !user.isActive && <Button variant="ghost" size="sm" className="text-emerald-600/70 hover:text-emerald-600" onClick={() => handleReactivate(user.id)}>{t("users.reactivate")}</Button>}
                           </TableCell>
                         )}
                       </TableRow>

@@ -518,6 +518,29 @@ interface FlightDelayReport {
   rows: FlightDelayRow[];
 }
 
+interface ReviewReportRow {
+  internalRef: string;
+  agentName: string;
+  agentRef: string;
+  serviceDate: string;
+  serviceType: string;
+  status: string;
+  pax: number;
+  clientName: string;
+  origin: string;
+  destination: string;
+  driverName: string;
+  repName: string;
+  notes: string;
+}
+
+interface ReviewReport {
+  from: string;
+  to: string;
+  count: number;
+  rows: ReviewReportRow[];
+}
+
 // ────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────
@@ -740,6 +763,23 @@ const FLIGHT_DELAY_COLUMNS: ColumnDef[] = [
 ];
 const FLIGHT_DELAY_DEFAULT_KEYS = FLIGHT_DELAY_COLUMNS.map((c) => c.key);
 
+const REVIEW_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Internal Ref" },
+  { key: "agentName", label: "Agent Name" },
+  { key: "agentRef", label: "Agent Ref" },
+  { key: "serviceDate", label: "Service Date" },
+  { key: "serviceType", label: "Service Type" },
+  { key: "status", label: "Status" },
+  { key: "pax", label: "Pax", className: "text-right" },
+  { key: "clientName", label: "Client" },
+  { key: "origin", label: "Origin" },
+  { key: "destination", label: "Destination" },
+  { key: "driverName", label: "Driver Name" },
+  { key: "repName", label: "Rep Name" },
+  { key: "notes", label: "Notes" },
+];
+const REVIEW_DEFAULT_KEYS = REVIEW_COLUMNS.map((c) => c.key);
+
 // ────────────────────────────────────────────
 // Stat Card
 // ────────────────────────────────────────────
@@ -790,6 +830,7 @@ export default function ReportsPage() {
   const canSales = usePermission("reports.sales");
   const canDeparture = usePermission("reports.departure");
   const canFlightDelay = usePermission("reports.flightDelay");
+  const canReview = usePermission("reports.review");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -947,6 +988,14 @@ export default function ReportsPage() {
   const [flightDelayLoading, setFlightDelayLoading] = useState(false);
   const flightDelayPrintRef = useRef<HTMLDivElement>(null);
 
+  // Review Report
+  const [reviewFrom, setReviewFrom] = useState(thirtyDaysAgo);
+  const [reviewTo, setReviewTo] = useState(today);
+  const [reviewStatus, setReviewStatus] = useState("ALL");
+  const [reviewData, setReviewData] = useState<ReviewReport | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const reviewPrintRef = useRef<HTMLDivElement>(null);
+
   // Derived: filtered compliance data and unique vehicle types
   const complianceVehicleTypes = Array.from(new Set(complianceData.map((v) => v.vehicleTypeName).filter(Boolean))).sort();
   const filteredComplianceData = complianceData.filter((v) => {
@@ -969,6 +1018,7 @@ export default function ReportsPage() {
   const salesSort = useSortable(salesData?.rows || []);
   const departureSort = useSortable(departureData?.rows || []);
   const flightDelaySort = useSortable(flightDelayData?.rows || []);
+  const reviewSort = useSortable(reviewData?.rows || []);
 
   // Column order hooks for drag-and-drop reordering
   const dispatchColOrder = useColumnPreferences("dispatch", DISPATCH_DEFAULT_KEYS);
@@ -987,6 +1037,7 @@ export default function ReportsPage() {
   const salesColOrder = useColumnPreferences("sales", SALES_DEFAULT_KEYS);
   const departureColOrder = useColumnPreferences("departure", DEPARTURE_DEFAULT_KEYS);
   const flightDelayColOrder = useColumnPreferences("flight_delay", FLIGHT_DELAY_DEFAULT_KEYS);
+  const reviewColOrder = useColumnPreferences("review", REVIEW_DEFAULT_KEYS);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -1753,6 +1804,32 @@ export default function ReportsPage() {
     }
   };
 
+  // ── Review Report ──
+  const fetchReview = async () => {
+    setReviewLoading(true);
+    try {
+      const params = new URLSearchParams({ from: reviewFrom, to: reviewTo });
+      if (reviewStatus !== "ALL") params.set("status", reviewStatus);
+      const { data } = await api.get(`/reports/review?${params.toString()}`);
+      setReviewData(data.data || data);
+    } catch {
+      toast.error("Failed to load review report");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const exportReviewExcel = async () => {
+    try {
+      const params = new URLSearchParams({ from: reviewFrom, to: reviewTo });
+      if (reviewStatus !== "ALL") params.set("status", reviewStatus);
+      const res = await api.get(`/export/odoo/review?${params.toString()}`, { responseType: "blob" });
+      downloadBlob(res.data, `review_${reviewFrom}_${reviewTo}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+
+  const exportReviewPdf = () => printFromRef(reviewPrintRef, `Review Report - ${reviewFrom} to ${reviewTo}`);
+
   // Compute final net total for a rep using current scoreEdits / missedJobs / deductions
   function computeRepNet(fees: RepFeeReportRep["fees"]): number {
     const gross = fees.reduce((sum, fee) => {
@@ -1955,6 +2032,15 @@ export default function ReportsPage() {
             >
               <AlertTriangle className="h-3.5 w-3.5" />
               Flight Delay
+            </TabsTrigger>
+          )}
+          {canReview && (
+            <TabsTrigger
+              value="review"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              Review
             </TabsTrigger>
           )}
         </TabsList>
@@ -4553,6 +4639,110 @@ export default function ReportsPage() {
                 </div>
 
                 <ColumnVisibilityControl columns={FLIGHT_DELAY_COLUMNS} visibility={flightDelayColOrder.visibility} onSave={flightDelayColOrder.saveVisibility} />
+              </>
+            )}
+          </TabsContent>
+        )}
+
+        {/* ─── REVIEW REPORT ─── */}
+        {canReview && (
+          <TabsContent value="review" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <Label className="text-muted-foreground text-xs">From</Label>
+                  <Input type="date" value={reviewFrom} onChange={(e) => setReviewFrom(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">To</Label>
+                  <Input type="date" value={reviewTo} onChange={(e) => setReviewTo(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Job Status</Label>
+                  <Select value={reviewStatus} onValueChange={setReviewStatus}>
+                    <SelectTrigger className="mt-1 w-40 border-border bg-card text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Statuses</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                      <SelectItem value="IN_PLACE">In Place</SelectItem>
+                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                      <SelectItem value="NO_SHOW">No Show</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={fetchReview} disabled={reviewLoading} className="gap-1.5">
+                  {reviewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Generate
+                </Button>
+                {reviewData && (
+                  <>
+                    <Button variant="outline" onClick={exportReviewExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> Excel
+                    </Button>
+                    <Button variant="outline" onClick={exportReviewPdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> PDF
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            {reviewData && (
+              <>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <StatCard label="Total Records" value={reviewData.count} />
+                  <StatCard label="Period" value={`${reviewData.from} → ${reviewData.to}`} />
+                </div>
+
+                <div className="overflow-x-auto rounded-md border border-border" ref={reviewPrintRef}>
+                  <Table>
+                    <DraggableTableHeader
+                      columns={REVIEW_COLUMNS}
+                      columnOrder={reviewColOrder.columns}
+                      onReorder={reviewColOrder.reorder}
+                      visibility={reviewColOrder.visibility}
+                    />
+                    <TableBody>
+                      {reviewSort.sortedData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={REVIEW_COLUMNS.length} className="py-8 text-center text-muted-foreground text-sm">
+                            No records found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        reviewSort.sortedData.map((row, idx) => (
+                          <TableRow key={idx} className="border-border hover:bg-muted/30">
+                            {reviewColOrder.columns.filter((col) => reviewColOrder.visibility[col] !== false).map((col) => {
+                              switch (col) {
+                                case "internalRef": return <TableCell key={col} className="text-xs font-mono">{row.internalRef}</TableCell>;
+                                case "agentName": return <TableCell key={col} className="text-xs">{row.agentName}</TableCell>;
+                                case "agentRef": return <TableCell key={col} className="text-xs font-mono">{row.agentRef}</TableCell>;
+                                case "serviceDate": return <TableCell key={col} className="text-xs">{row.serviceDate ? new Date(row.serviceDate).toLocaleDateString(locale) : "—"}</TableCell>;
+                                case "serviceType": return <TableCell key={col} className="text-xs"><Badge variant="secondary">{row.serviceType}</Badge></TableCell>;
+                                case "status": return <TableCell key={col} className="text-xs"><Badge variant="outline">{row.status}</Badge></TableCell>;
+                                case "pax": return <TableCell key={col} className="text-xs text-right">{row.pax}</TableCell>;
+                                case "clientName": return <TableCell key={col} className="text-xs">{row.clientName}</TableCell>;
+                                case "origin": return <TableCell key={col} className="text-xs">{row.origin}</TableCell>;
+                                case "destination": return <TableCell key={col} className="text-xs">{row.destination}</TableCell>;
+                                case "driverName": return <TableCell key={col} className="text-xs">{row.driverName}</TableCell>;
+                                case "repName": return <TableCell key={col} className="text-xs">{row.repName}</TableCell>;
+                                case "notes": return <TableCell key={col} className="text-xs text-muted-foreground max-w-48 truncate">{row.notes || "—"}</TableCell>;
+                                default: return null;
+                              }
+                            })}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <ColumnVisibilityControl columns={REVIEW_COLUMNS} visibility={reviewColOrder.visibility} onSave={reviewColOrder.saveVisibility} />
               </>
             )}
           </TabsContent>

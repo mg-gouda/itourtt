@@ -187,4 +187,16 @@ export class UsersController {
   async deactivate(@Param('id') id: string) {
     return this.usersService.deactivate(id);
   }
+
+  // ──────────────────────────────────────────────
+  // PATCH /users/:id/reactivate — reactivate user (ADMIN only)
+  // ──────────────────────────────────────────────
+
+  @Patch(':id/reactivate')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('users.table.deactivate')
+  async reactivate(@Param('id') id: string) {
+    return this.usersService.reactivate(id);
+  }
 }

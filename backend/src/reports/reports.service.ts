@@ -1291,4 +1291,62 @@ export class ReportsService {
 
     return { jobId, count: events.length, events };
   }
+
+  // ─────────────────────────────────────────────
+  // REVIEW REPORT
+  // ─────────────────────────────────────────────
+
+  async reviewReport(from: string, to: string, status?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const where: Record<string, unknown> = {
+      jobDate: { gte: fromDate, lte: toDate },
+      deletedAt: null,
+    };
+    if (status && status !== 'ALL') {
+      where.status = status;
+    }
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: {
+        agent: { select: { legalName: true, tradeName: true } },
+        originAirport: { select: { code: true } },
+        originZone: { select: { name: true } },
+        originHotel: { select: { name: true } },
+        destinationAirport: { select: { code: true } },
+        destinationZone: { select: { name: true } },
+        destinationHotel: { select: { name: true } },
+        assignment: {
+          select: {
+            driver: { select: { name: true } },
+            externalDriverName: true,
+            supplier: { select: { legalName: true, tradeName: true } },
+            rep: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
+    });
+
+    const rows = jobs.map((j) => ({
+      internalRef: j.internalRef,
+      agentName: j.agent?.tradeName ?? j.agent?.legalName ?? '—',
+      agentRef: j.agentRef ?? '—',
+      serviceDate: j.jobDate,
+      serviceType: j.serviceType,
+      status: j.status,
+      pax: j.paxCount,
+      clientName: j.clientName ?? '—',
+      origin: j.originHotel?.name ?? j.originZone?.name ?? j.originAirport?.code ?? '—',
+      destination: j.destinationHotel?.name ?? j.destinationZone?.name ?? j.destinationAirport?.code ?? '—',
+      driverName: resolveDriverName(j.assignment ?? null) ?? '—',
+      repName: j.assignment?.rep?.name ?? '—',
+      notes: j.notes ?? '',
+    }));
+
+    return { from, to, count: rows.length, rows };
+  }
 }

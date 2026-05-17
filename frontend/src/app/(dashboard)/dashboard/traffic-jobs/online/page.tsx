@@ -53,6 +53,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 interface Agent {
   id: string;
   legalName: string;
+  currency?: string | null;
   refPattern?: string | null;
   refExample?: string | null;
 }
@@ -1048,7 +1049,7 @@ export default function OnlineJobPage() {
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <Checkbox
                   checked={form.collectionRequired}
-                  onCheckedChange={(v) => updateForm({ collectionRequired: v === true, ...(!v ? { collectionAmount: "", collectionCurrency: "EGP" } : {}) })}
+                  onCheckedChange={(v) => updateForm({ collectionRequired: v === true, ...(!v ? { collectionAmount: "", collectionCurrency: "EGP" } : { collectionCurrency: selectedAgent?.currency || "EGP" }) })}
                 />
                 {t("jobs.collection") || "Collection"}
                 {form.collectionRequired && (

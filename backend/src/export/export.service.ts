@@ -2440,6 +2440,71 @@ export class ExportService {
     return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
   }
 
+  // ─────────────────────────────────────────────
+  // REVIEW REPORT EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportReviewReport(from: string, to: string, status?: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const where: Record<string, unknown> = { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null };
+    if (status && status !== 'ALL') where.status = status;
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: {
+        agent: { select: { legalName: true, tradeName: true } },
+        originAirport: { select: { code: true } },
+        originZone: { select: { name: true } },
+        originHotel: { select: { name: true } },
+        destinationAirport: { select: { code: true } },
+        destinationZone: { select: { name: true } },
+        destinationHotel: { select: { name: true } },
+        assignment: {
+          select: {
+            driver: { select: { name: true } },
+            externalDriverName: true,
+            supplier: { select: { legalName: true, tradeName: true } },
+            rep: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
+    });
+
+    function resolveDriver(a: { driver?: { name: string } | null; externalDriverName?: string | null; supplier?: { tradeName?: string | null; legalName: string } | null } | null) {
+      if (!a) return '—';
+      if (a.driver?.name) return a.driver.name;
+      if (a.externalDriverName) return a.externalDriverName;
+      if (a.supplier) return a.supplier.tradeName ?? a.supplier.legalName;
+      return '—';
+    }
+
+    const rows = jobs.map((j) => ({
+      'Internal Ref': j.internalRef,
+      'Agent Name': j.agent?.tradeName ?? j.agent?.legalName ?? '—',
+      'Agent Ref': j.agentRef ?? '—',
+      'Service Date': j.jobDate.toISOString().split('T')[0],
+      'Service Type': j.serviceType,
+      'Status': j.status,
+      'Pax': j.paxCount,
+      'Client': j.clientName ?? '—',
+      'Origin': j.originHotel?.name ?? j.originZone?.name ?? j.originAirport?.code ?? '—',
+      'Destination': j.destinationHotel?.name ?? j.destinationZone?.name ?? j.destinationAirport?.code ?? '—',
+      'Driver Name': resolveDriver(j.assignment ?? null),
+      'Rep Name': j.assignment?.rep?.name ?? '—',
+      'Notes': j.notes ?? '',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Review Report');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
   /** Build a Prisma date range filter for a given field. Both bounds are optional. */
   private buildDateFilter(
     dateFrom: string | undefined,
