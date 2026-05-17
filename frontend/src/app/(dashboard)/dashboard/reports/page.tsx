@@ -20,6 +20,7 @@ import {
   Camera,
   Truck,
   Plane,
+  ChevronDown,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import JobDetailModal from "@/components/job-detail-modal";
@@ -51,6 +52,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
@@ -900,7 +903,7 @@ export default function ReportsPage() {
   // Job Status
   const [jobStatusFrom, setJobStatusFrom] = useState(thirtyDaysAgo);
   const [jobStatusTo, setJobStatusTo] = useState(today);
-  const [jobStatusFilter, setJobStatusFilter] = useState("ALL");
+  const [jobStatusFilter, setJobStatusFilter] = useState<string[]>([]);
   const [jobStatusRepId, setJobStatusRepId] = useState("ALL");
   const [jobStatusRepStatus, setJobStatusRepStatus] = useState("ALL");
   const [jobStatusDriverStatus, setJobStatusDriverStatus] = useState("ALL");
@@ -1298,7 +1301,7 @@ export default function ReportsPage() {
   const fetchJobStatus = async () => {
     setJobStatusLoading(true);
     try {
-      const statusParam = jobStatusFilter !== "ALL" ? `&status=${jobStatusFilter}` : "";
+      const statusParam = jobStatusFilter.length > 0 ? `&status=${jobStatusFilter.join(",")}` : "";
       const repParam = jobStatusRepId !== "ALL" ? `&repId=${jobStatusRepId}` : "";
       const repStatusParam = jobStatusRepStatus !== "ALL" ? `&repStatus=${jobStatusRepStatus}` : "";
       const driverStatusParam = jobStatusDriverStatus !== "ALL" ? `&driverStatus=${jobStatusDriverStatus}` : "";
@@ -1319,7 +1322,7 @@ export default function ReportsPage() {
   const exportJobStatusExcel = async () => {
     try {
       const params = new URLSearchParams({ from: jobStatusFrom, to: jobStatusTo });
-      if (jobStatusFilter !== "ALL") params.set("status", jobStatusFilter);
+      if (jobStatusFilter.length > 0) params.set("status", jobStatusFilter.join(","));
       if (jobStatusRepId !== "ALL") params.set("repId", jobStatusRepId);
       if (jobStatusRepStatus !== "ALL") params.set("repStatus", jobStatusRepStatus);
       if (jobStatusDriverStatus !== "ALL") params.set("driverStatus", jobStatusDriverStatus);
@@ -3506,20 +3509,38 @@ export default function ReportsPage() {
             <div className="flex items-end gap-3 flex-wrap">
               <div>
                 <Label className="text-muted-foreground text-xs">{t("reports.statusFilter")}</Label>
-                <Select value={jobStatusFilter} onValueChange={setJobStatusFilter}>
-                  <SelectTrigger className="mt-1 w-44 border-border bg-card text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">{t("reports.allStatuses")}</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                    <SelectItem value="NO_SHOW">No Show</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="mt-1 w-48 justify-between border-border bg-card text-foreground font-normal">
+                      <span className="truncate">
+                        {jobStatusFilter.length === 0
+                          ? t("reports.allStatuses")
+                          : jobStatusFilter.map((s) => s.replace("_", " ")).join(", ")}
+                      </span>
+                      <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2" align="start">
+                    {(["PENDING","ASSIGNED","IN_PROGRESS","COMPLETED","CANCELLED","NO_SHOW"] as const).map((s) => (
+                      <label key={s} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent">
+                        <Checkbox
+                          checked={jobStatusFilter.includes(s)}
+                          onCheckedChange={(checked) =>
+                            setJobStatusFilter((prev) =>
+                              checked ? [...prev, s] : prev.filter((x) => x !== s)
+                            )
+                          }
+                        />
+                        {s.replace("_", " ")}
+                      </label>
+                    ))}
+                    {jobStatusFilter.length > 0 && (
+                      <Button variant="ghost" size="sm" className="mt-1 w-full text-xs" onClick={() => setJobStatusFilter([])}>
+                        Clear
+                      </Button>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>

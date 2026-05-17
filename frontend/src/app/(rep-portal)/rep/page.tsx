@@ -754,7 +754,7 @@ function JobCard({
             </span>
           ) : job.assignment?.externalDriverName ? (
             <span className="text-xs">
-              {t("portal.driverLabel")} {job.assignment.externalDriverName}
+              {t("portal.driverLabel")} <span className="font-medium text-amber-500">Supp.</span> {job.assignment.externalDriverName}
               {job.assignment.externalDriverPhone && ` (${job.assignment.externalDriverPhone})`}
               {job.assignment.supplier && (
                 <span className="text-muted-foreground"> — {job.assignment.supplier.tradeName ?? job.assignment.supplier.legalName}</span>

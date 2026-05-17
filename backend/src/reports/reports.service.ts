@@ -992,7 +992,8 @@ export class ReportsService {
       deletedAt: null,
     };
     if (status && status !== 'ALL') {
-      where.status = status;
+      const statusList = status.split(',').map((s) => s.trim()).filter(Boolean);
+      where.status = statusList.length === 1 ? statusList[0] : { in: statusList };
     }
     if (serviceType && serviceType !== 'ALL') {
       where.serviceType = serviceType as ServiceType;
