@@ -81,6 +81,9 @@ interface DriverJob {
   assignment?: {
     vehicle?: { plateNumber: string; vehicleType?: { name: string } };
     rep?: { name: string; mobileNumber: string };
+    externalDriverName?: string | null;
+    externalDriverPhone?: string | null;
+    supplier?: { tradeName?: string | null; legalName: string };
   };
   collectionRequired: boolean;
   collectionAmount: number | null;
@@ -647,6 +650,16 @@ function DriverJobCard({
             <span className="flex items-center gap-1 text-xs">
               <User className="h-3.5 w-3.5" />
               {t("portal.repLabel")} {job.assignment.rep.name} ({job.assignment.rep.mobileNumber})
+            </span>
+          )}
+          {job.assignment?.externalDriverName && (
+            <span className="flex items-center gap-1 text-xs">
+              <User className="h-3.5 w-3.5" />
+              {t("portal.driverLabel")} {job.assignment.externalDriverName}
+              {job.assignment.externalDriverPhone && ` (${job.assignment.externalDriverPhone})`}
+              {job.assignment.supplier && (
+                <span className="text-muted-foreground"> — {job.assignment.supplier.tradeName ?? job.assignment.supplier.legalName}</span>
+              )}
             </span>
           )}
         </div>
