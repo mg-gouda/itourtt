@@ -45,7 +45,9 @@ export class RepPortalService {
       include: {
         vehicle: { include: { vehicleType: true } },
         driver: { select: { name: true, mobileNumber: true } },
+        supplier: { select: { tradeName: true, legalName: true } },
       },
+      // externalDriverName and externalDriverPhone are scalar fields — always included
     },
   };
 

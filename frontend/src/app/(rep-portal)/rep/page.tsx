@@ -79,6 +79,9 @@ interface RepJob {
   assignment?: {
     vehicle?: { plateNumber: string; vehicleType?: { name: string } };
     driver?: { name: string; mobileNumber: string };
+    externalDriverName?: string | null;
+    externalDriverPhone?: string | null;
+    supplier?: { tradeName?: string | null; legalName: string };
   };
 }
 
@@ -745,11 +748,19 @@ function JobCard({
               )}
             </span>
           )}
-          {job.assignment?.driver && (
+          {job.assignment?.driver ? (
             <span className="text-xs">
               {t("portal.driverLabel")} {job.assignment.driver.name} ({job.assignment.driver.mobileNumber})
             </span>
-          )}
+          ) : job.assignment?.externalDriverName ? (
+            <span className="text-xs">
+              {t("portal.driverLabel")} {job.assignment.externalDriverName}
+              {job.assignment.externalDriverPhone && ` (${job.assignment.externalDriverPhone})`}
+              {job.assignment.supplier && (
+                <span className="text-muted-foreground"> — {job.assignment.supplier.tradeName ?? job.assignment.supplier.legalName}</span>
+              )}
+            </span>
+          ) : null}
         </div>
 
         {/* Online client info */}
