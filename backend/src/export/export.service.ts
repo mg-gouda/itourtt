@@ -712,25 +712,8 @@ export class ExportService {
 
       let currentY = pageHeight - margin - 20;
 
-      // Draw logo centered at top — 90% of page width
-      if (logoImage) {
-        const logoDims = logoImage.scale(1);
-        const maxLogoWidth = pageWidth * 0.9;
-        const scale = maxLogoWidth / logoDims.width;
-        const logoW = logoDims.width * scale;
-        const logoH = logoDims.height * scale;
-        const logoX = (pageWidth - logoW) / 2;
-        currentY -= logoH;
-        page.drawImage(logoImage, {
-          x: logoX,
-          y: currentY,
-          width: logoW,
-          height: logoH,
-        });
-        currentY -= 25;
-      } else {
-        currentY -= 60;
-      }
+      // Logo hidden until further notice
+      currentY -= 60;
 
       // Draw "Mr/Mrs" text below logo, left-aligned
       page.drawText('Mr/Mrs', {
