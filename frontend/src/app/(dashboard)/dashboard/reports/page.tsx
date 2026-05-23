@@ -532,6 +532,8 @@ interface ReviewReportRow {
   clientName: string;
   origin: string;
   destination: string;
+  transferPrice: number | null;
+  transferPriceCurrency: string;
   driverName: string;
   repName: string;
   notes: string;
@@ -777,6 +779,8 @@ const REVIEW_COLUMNS: ColumnDef[] = [
   { key: "clientName", label: "Client" },
   { key: "origin", label: "Origin" },
   { key: "destination", label: "Destination" },
+  { key: "transferPrice", label: "Tr. Price", className: "text-right" },
+  { key: "transferPriceCurrency", label: "Tr. Cur" },
   { key: "driverName", label: "Driver Name" },
   { key: "repName", label: "Rep Name" },
   { key: "notes", label: "Notes" },
@@ -4767,6 +4771,8 @@ export default function ReportsPage() {
                                 case "clientName": return <TableCell key={col} className="text-xs">{row.clientName}</TableCell>;
                                 case "origin": return <TableCell key={col} className="text-xs">{row.origin}</TableCell>;
                                 case "destination": return <TableCell key={col} className="text-xs">{row.destination}</TableCell>;
+                                case "transferPrice": return <TableCell key={col} className="text-xs text-right text-sky-500">{row.transferPrice != null ? row.transferPrice.toLocaleString() : "—"}</TableCell>;
+                                case "transferPriceCurrency": return <TableCell key={col} className="text-xs text-sky-500">{row.transferPrice != null ? row.transferPriceCurrency : "—"}</TableCell>;
                                 case "driverName": return <TableCell key={col} className="text-xs">{row.driverName}</TableCell>;
                                 case "repName": return <TableCell key={col} className="text-xs">{row.repName}</TableCell>;
                                 case "notes": return <TableCell key={col} className="text-xs text-muted-foreground max-w-48 truncate">{row.notes || "—"}</TableCell>;

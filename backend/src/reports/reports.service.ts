@@ -1347,6 +1347,8 @@ export class ReportsService {
       clientName: j.clientName ?? '—',
       origin: j.originHotel?.name ?? j.originZone?.name ?? j.originAirport?.code ?? '—',
       destination: j.destinationHotel?.name ?? j.destinationZone?.name ?? j.destinationAirport?.code ?? '—',
+      transferPrice: j.transferPrice ?? null,
+      transferPriceCurrency: j.transferPriceCurrency ?? '—',
       driverName: resolveDriverName(j.assignment ?? null) ?? '—',
       repName: j.assignment?.rep?.name ?? '—',
       notes: j.notes ?? '',

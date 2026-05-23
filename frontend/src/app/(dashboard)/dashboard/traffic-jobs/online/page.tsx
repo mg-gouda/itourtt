@@ -739,7 +739,7 @@ export default function OnlineJobPage() {
             {canProvider && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.transferProvider")} *</Label>
-              <Select value={form.agentId} onValueChange={(v) => updateForm({ agentId: v, agentRef: "" })}>
+              <Select value={form.agentId} onValueChange={(v) => { const ag = agents.find((a) => a.id === v); updateForm({ agentId: v, agentRef: "", transferPriceCurrency: ag?.currency || "EGP" }); }}>
                 <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
                   <SelectValue placeholder={t("jobs.selectAgent")} className="truncate" />
                 </SelectTrigger>
