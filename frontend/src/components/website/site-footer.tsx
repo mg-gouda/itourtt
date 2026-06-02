@@ -99,6 +99,7 @@ function useQuickLinks() {
     { label: t('nav.home'), href: '/w' },
     { label: t('nav.bookNow'), href: '/w/book' },
     { label: t('nav.trackBooking'), href: '/w/booking/lookup' },
+    { label: t('nav.myAccount'), href: '/w/account' },
   ];
 }
 

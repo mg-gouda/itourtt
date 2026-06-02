@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Menu, X, Globe } from 'lucide-react';
+import { Menu, X, Globe, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SiteSettings, NavLink } from '@/lib/site-settings';
 import { cn } from '@/lib/utils';
@@ -138,6 +138,19 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
     );
   };
 
+  const AccountBtn = ({ className }: { className?: string }) => (
+    <Link
+      href="/w/account"
+      className={cn(
+        'flex items-center gap-1.5 text-sm font-medium text-white/80 transition-colors hover:text-white',
+        className,
+      )}
+    >
+      <User className="h-4 w-4" />
+      {t('nav.myAccount')}
+    </Link>
+  );
+
   const BookNowBtn = ({ className }: { className?: string }) => (
     <Button
       asChild
@@ -184,6 +197,14 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/w/account"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <User className="h-4 w-4" />
+              {t('nav.myAccount')}
+            </Link>
             <div className="mt-4 px-3">
               <BookNowBtn className="w-full" />
             </div>
@@ -217,6 +238,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             <div className="hidden items-center gap-6 md:flex">
               <NavItems className="flex items-center gap-6" />
               <LanguageSwitcher />
+              <AccountBtn />
               <BookNowBtn />
             </div>
             <HamburgerBtn />
@@ -248,6 +270,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             {/* Bottom: Nav centered */}
             <div className="hidden items-center justify-center gap-6 pb-3 md:flex">
               <NavItems className="flex items-center gap-6" />
+              <AccountBtn />
               <BookNowBtn />
             </div>
           </div>
@@ -276,6 +299,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             <div className="hidden items-center gap-6 md:flex">
               <NavItems className="flex items-center gap-6" />
               <LanguageSwitcher />
+              <AccountBtn />
               <BookNowBtn />
             </div>
             <HamburgerBtn />
@@ -299,6 +323,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
             <Logo />
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
+              <AccountBtn />
               <BookNowBtn />
               <HamburgerBtn />
             </div>
@@ -321,6 +346,7 @@ export function SiteHeader({ settings }: SiteHeaderProps) {
           <div className="hidden items-center gap-6 md:flex">
             <NavItems className="flex items-center gap-6" />
             <LanguageSwitcher />
+            <AccountBtn />
             <BookNowBtn />
           </div>
           <HamburgerBtn />

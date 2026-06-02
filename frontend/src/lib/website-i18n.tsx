@@ -60,6 +60,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.home": "Home",
     "nav.bookNow": "Book Now",
     "nav.trackBooking": "Track Booking",
+    "nav.myAccount": "My Account",
     "nav.menu": "Menu",
 
     // Booking Widget
@@ -208,6 +209,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.home": "الرئيسية",
     "nav.bookNow": "احجز الآن",
     "nav.trackBooking": "تتبع الحجز",
+    "nav.myAccount": "حسابي",
     "nav.menu": "القائمة",
 
     // Booking Widget
@@ -355,6 +357,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.home": "Startseite",
     "nav.bookNow": "Jetzt buchen",
     "nav.trackBooking": "Buchung verfolgen",
+    "nav.myAccount": "Mein Konto",
     "nav.menu": "Menü",
 
     // Booking Widget
@@ -504,6 +507,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.home": "Accueil",
     "nav.bookNow": "Réserver",
     "nav.trackBooking": "Suivre la réservation",
+    "nav.myAccount": "Mon compte",
     "nav.menu": "Menu",
 
     // Booking Widget
@@ -657,6 +661,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.home": "Home",
     "nav.bookNow": "Prenota ora",
     "nav.trackBooking": "Traccia prenotazione",
+    "nav.myAccount": "Il mio account",
     "nav.menu": "Menu",
 
     // Booking Widget
@@ -810,6 +815,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.home": "Home",
     "nav.bookNow": "Nu boeken",
     "nav.trackBooking": "Boeking volgen",
+    "nav.myAccount": "Mijn account",
     "nav.menu": "Menu",
 
     // Booking Widget
@@ -964,6 +970,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "nav.home": "Главная",
     "nav.bookNow": "Забронировать",
     "nav.trackBooking": "Отследить бронирование",
+    "nav.myAccount": "Мой аккаунт",
     "nav.menu": "Меню",
 
     // Booking Widget
