@@ -546,6 +546,17 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     ],
   },
 
+  // ─── B2C EXTRAS ───
+  {
+    key: 'extras',
+    labelKey: 'permissions.extras',
+    children: [
+      { key: 'extras.addButton', labelKey: 'permissions.extras.addButton' },
+      { key: 'extras.editButton', labelKey: 'permissions.extras.editButton' },
+      { key: 'extras.deleteButton', labelKey: 'permissions.extras.deleteButton' },
+    ],
+  },
+
   // ─── DRIVER TARIFFS ───
   {
     key: 'driver-tariffs',

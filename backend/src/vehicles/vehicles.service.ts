@@ -25,6 +25,13 @@ export class VehiclesService {
       data: {
         name: dto.name,
         seatCapacity: dto.seatCapacity,
+        imageUrl: dto.imageUrl ?? null,
+        description: dto.description ?? null,
+        wifi: dto.wifi ?? false,
+        airConditioning: dto.airConditioning ?? false,
+        gpsTracked: dto.gpsTracked ?? false,
+        luggageCapacity: dto.luggageCapacity ?? null,
+        transmission: dto.transmission ?? null,
       },
     });
   }
@@ -37,6 +44,13 @@ export class VehiclesService {
       data: {
         name: dto.name,
         seatCapacity: dto.seatCapacity,
+        ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl || null }),
+        ...(dto.description !== undefined && { description: dto.description || null }),
+        ...(dto.wifi !== undefined && { wifi: dto.wifi }),
+        ...(dto.airConditioning !== undefined && { airConditioning: dto.airConditioning }),
+        ...(dto.gpsTracked !== undefined && { gpsTracked: dto.gpsTracked }),
+        ...(dto.luggageCapacity !== undefined && { luggageCapacity: dto.luggageCapacity ?? null }),
+        ...(dto.transmission !== undefined && { transmission: dto.transmission ?? null }),
       },
     });
   }

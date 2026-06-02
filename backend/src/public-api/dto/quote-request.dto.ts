@@ -5,8 +5,10 @@ import {
   Min,
   IsOptional,
   ValidateNested,
+  IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CustomExtraSelectionDto } from './custom-extra-selection.dto.js';
 
 export class ExtrasDto {
   @IsInt()
@@ -50,4 +52,10 @@ export class QuoteRequestDto {
   @ValidateNested()
   @Type(() => ExtrasDto)
   extras?: ExtrasDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CustomExtraSelectionDto)
+  customExtras?: CustomExtraSelectionDto[];
 }

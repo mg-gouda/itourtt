@@ -8,6 +8,11 @@ interface BookingExtras {
   wheelChairQty: number;
 }
 
+interface CustomExtraSelection {
+  extraId: string;
+  qty: number;
+}
+
 interface BookingState {
   // Step 1 - Search
   serviceType: string;
@@ -37,6 +42,7 @@ interface BookingState {
   carrier: string;
   terminal: string;
   extras: BookingExtras;
+  customExtras: CustomExtraSelection[];
   notes: string;
   // Step 3 - Payment
   paymentMethod: string;
@@ -49,6 +55,7 @@ interface BookingState {
   // Actions
   setField: (field: string, value: unknown) => void;
   setQuote: (price: number, currency: string, breakdown: Record<string, unknown>) => void;
+  setCustomExtraQty: (extraId: string, qty: number) => void;
   reset: () => void;
 }
 
@@ -78,6 +85,7 @@ const initialState = {
   carrier: '',
   terminal: '',
   extras: { boosterSeatQty: 0, babySeatQty: 0, wheelChairQty: 0 },
+  customExtras: [],
   notes: '',
   paymentMethod: '',
   paymentGateway: '',
@@ -101,6 +109,14 @@ export const useBookingStore = create<BookingState>((set) => ({
 
   setQuote: (price: number, currency: string, breakdown: Record<string, unknown>) =>
     set({ quotePrice: price, quoteCurrency: currency, quoteBreakdown: breakdown }),
+
+  setCustomExtraQty: (extraId: string, qty: number) =>
+    set((state) => {
+      const others = state.customExtras.filter((e) => e.extraId !== extraId);
+      return {
+        customExtras: qty > 0 ? [...others, { extraId, qty }] : others,
+      };
+    }),
 
   reset: () => set(initialState),
 }));

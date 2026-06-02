@@ -28,6 +28,7 @@ import { JobLocksModule } from './job-locks/job-locks.module.js';
 import { SupplierPortalModule } from './supplier-portal/supplier-portal.module.js';
 import { ActivityLogsModule } from './activity-logs/activity-logs.module.js';
 import { PublicPricesModule } from './public-prices/public-prices.module.js';
+import { ExtrasModule } from './extras/extras.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { PublicApiModule } from './public-api/public-api.module.js';
 import { GuestBookingsModule } from './guest-bookings/guest-bookings.module.js';
@@ -73,6 +74,7 @@ import { UserPreferencesModule } from './user-preferences/user-preferences.modul
     SupplierPortalModule,
     ActivityLogsModule,
     PublicPricesModule,
+    ExtrasModule,
     DriverTariffsModule,
     JobServiceTypesModule,
     PaymentsModule,

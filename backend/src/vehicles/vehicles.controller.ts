@@ -77,6 +77,18 @@ export class VehiclesController {
     return this.vehiclesService.updateVehicleType(id, dto);
   }
 
+  @Post('types/image')
+  @Roles('ADMIN')
+  @Permissions('vehicles.types.addButton')
+  @UseInterceptors(FileInterceptor('file', { storage: uploadStorage }))
+  uploadVehicleTypeImage(@UploadedFile() file: any) {
+    if (!file) {
+      return new ApiResponse({ url: null }, 'No file uploaded');
+    }
+    const url = '/uploads/' + file.filename;
+    return new ApiResponse({ url }, 'Image uploaded');
+  }
+
   // ─── Vehicles ─────────────────────────────────────────────
 
   @Get()

@@ -2,13 +2,22 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Car, Plus, Loader2, Trash2, FileDown, FileUp, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { Car, Plus, Loader2, Trash2, FileDown, FileUp, FileSpreadsheet, AlertTriangle, ImagePlus, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -56,7 +65,18 @@ interface VehicleType {
   id: string;
   name: string;
   seatCapacity: number;
+  imageUrl?: string | null;
+  description?: string | null;
+  wifi?: boolean;
+  airConditioning?: boolean;
+  transmission?: "MANUAL" | "AUTOMATIC" | null;
+  luggageCapacity?: number | null;
+  gpsTracked?: boolean;
 }
+
+// Resolve an uploaded "/uploads/..." path to an absolute URL for display.
+const resolveUploadUrl = (url: string) =>
+  url.startsWith("http") ? url : `${process.env.NEXT_PUBLIC_API_URL ?? ""}${url}`;
 
 interface Vehicle {
   id: string;
@@ -103,6 +123,16 @@ export default function VehiclesPage() {
   const [typeSubmitting, setTypeSubmitting] = useState(false);
   const [typeName, setTypeName] = useState("");
   const [typeSeatCapacity, setTypeSeatCapacity] = useState("");
+  const [typeImageUrl, setTypeImageUrl] = useState("");
+  const [typeDescription, setTypeDescription] = useState("");
+  const [typeImageUploading, setTypeImageUploading] = useState(false);
+  const typeImageInputRef = useRef<HTMLInputElement>(null);
+  // Amenities
+  const [typeWifi, setTypeWifi] = useState(false);
+  const [typeAirConditioning, setTypeAirConditioning] = useState(false);
+  const [typeGpsTracked, setTypeGpsTracked] = useState(false);
+  const [typeLuggageCapacity, setTypeLuggageCapacity] = useState("");
+  const [typeTransmission, setTypeTransmission] = useState<"" | "MANUAL" | "AUTOMATIC">("");
 
   // Vehicles state
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -197,6 +227,9 @@ export default function VehiclesPage() {
       await api.post("/vehicles/types", {
         name: typeName.trim(),
         seatCapacity: capacity,
+        imageUrl: typeImageUrl || null,
+        description: typeDescription.trim() || null,
+        ...typeAmenityPayload(),
       });
       toast.success(t("vehicles.typeCreated"));
       setTypeDialogOpen(false);
@@ -214,8 +247,52 @@ export default function VehiclesPage() {
     setEditingType(type);
     setTypeName(type.name);
     setTypeSeatCapacity(String(type.seatCapacity));
+    setTypeImageUrl(type.imageUrl || "");
+    setTypeDescription(type.description || "");
+    setTypeWifi(!!type.wifi);
+    setTypeAirConditioning(!!type.airConditioning);
+    setTypeGpsTracked(!!type.gpsTracked);
+    setTypeLuggageCapacity(
+      type.luggageCapacity != null ? String(type.luggageCapacity) : "",
+    );
+    setTypeTransmission(type.transmission ?? "");
     setEditTypeDialogOpen(true);
   }
+
+  // Build the amenity portion of the create/update payload.
+  const typeAmenityPayload = () => ({
+    wifi: typeWifi,
+    airConditioning: typeAirConditioning,
+    gpsTracked: typeGpsTracked,
+    luggageCapacity: typeLuggageCapacity.trim()
+      ? parseInt(typeLuggageCapacity, 10)
+      : null,
+    transmission: typeTransmission || null,
+  });
+
+  // ─── Upload Vehicle Type Image ─────────────────────────────────
+  const handleTypeImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTypeImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await api.post("/vehicles/types/image", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const url = data?.data?.url ?? data?.url;
+      if (url) setTypeImageUrl(url);
+      toast.success(t("vehicles.imageUploaded"));
+    } catch {
+      toast.error(t("vehicles.failedUploadImage"));
+    } finally {
+      setTypeImageUploading(false);
+      if (typeImageInputRef.current) typeImageInputRef.current.value = "";
+    }
+  };
 
   const handleUpdateType = async () => {
     if (!editingType) return;
@@ -234,6 +311,9 @@ export default function VehiclesPage() {
       await api.patch(`/vehicles/types/${editingType.id}`, {
         name: typeName.trim(),
         seatCapacity: capacity,
+        imageUrl: typeImageUrl || null,
+        description: typeDescription.trim() || null,
+        ...typeAmenityPayload(),
       });
       toast.success(t("vehicles.typeUpdated"));
       setEditTypeDialogOpen(false);
@@ -251,7 +331,150 @@ export default function VehiclesPage() {
   const resetTypeForm = () => {
     setTypeName("");
     setTypeSeatCapacity("");
+    setTypeImageUrl("");
+    setTypeDescription("");
+    setTypeWifi(false);
+    setTypeAirConditioning(false);
+    setTypeGpsTracked(false);
+    setTypeLuggageCapacity("");
+    setTypeTransmission("");
   };
+
+  // ─── Shared image + description fields for type dialogs ─────────
+  // Defined as a function (not a component) so the dialog state isn't
+  // remounted on each keystroke, which would drop textarea focus.
+  const vehicleTypeMediaFields = () => (
+    <>
+      <div className="space-y-2">
+        <Label className="text-muted-foreground">
+          {t("vehicles.typeImage")}
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          {t("vehicles.typeImageHint")}
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-md border border-border bg-card">
+            {typeImageUrl ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={resolveUploadUrl(typeImageUrl)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTypeImageUrl("")}
+                  className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
+                  aria-label={t("common.remove")}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                <ImagePlus className="h-6 w-6" />
+              </div>
+            )}
+          </div>
+          <div>
+            <input
+              ref={typeImageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleTypeImageUpload}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={typeImageUploading}
+              onClick={() => typeImageInputRef.current?.click()}
+              className="gap-1.5"
+            >
+              {typeImageUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ImagePlus className="h-4 w-4" />
+              )}
+              {typeImageUrl ? t("vehicles.changeImage") : t("vehicles.uploadImage")}
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="type-description" className="text-muted-foreground">
+          {t("vehicles.typeDescription")}
+        </Label>
+        <Textarea
+          id="type-description"
+          rows={3}
+          maxLength={300}
+          placeholder={t("vehicles.typeDescriptionPlaceholder")}
+          value={typeDescription}
+          onChange={(e) => setTypeDescription(e.target.value)}
+          className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+
+      {/* ── Amenities (shown on B2C vehicle cards) ── */}
+      <div className="space-y-3 rounded-md border border-border p-3">
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("vehicles.amenities")}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground">
+              {t("vehicles.transmission")}
+            </Label>
+            <Select
+              value={typeTransmission || "NONE"}
+              onValueChange={(v) =>
+                setTypeTransmission(v === "NONE" ? "" : (v as "MANUAL" | "AUTOMATIC"))
+              }
+            >
+              <SelectTrigger className="border-border bg-card text-foreground">
+                <SelectValue placeholder={t("vehicles.notSpecified")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">{t("vehicles.notSpecified")}</SelectItem>
+                <SelectItem value="AUTOMATIC">{t("vehicles.automatic")}</SelectItem>
+                <SelectItem value="MANUAL">{t("vehicles.manual")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground">
+              {t("vehicles.luggageCapacity")}
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              placeholder="e.g. 3"
+              value={typeLuggageCapacity}
+              onChange={(e) => setTypeLuggageCapacity(e.target.value)}
+              className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+        </div>
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-muted-foreground">{t("vehicles.wifi")}</Label>
+            <Switch checked={typeWifi} onCheckedChange={setTypeWifi} />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-muted-foreground">{t("vehicles.airConditioning")}</Label>
+            <Switch checked={typeAirConditioning} onCheckedChange={setTypeAirConditioning} />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-muted-foreground">{t("vehicles.gpsTracked")}</Label>
+            <Switch checked={typeGpsTracked} onCheckedChange={setTypeGpsTracked} />
+          </div>
+        </div>
+      </div>
+    </>
+  );
 
   // ─── Resolve type name for vehicles table ──────────────────────
   const getTypeName = (vehicle: Vehicle) => {
@@ -679,6 +902,7 @@ export default function VehiclesPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            {vehicleTypeMediaFields()}
           </div>
           <DialogFooter>
             <Button
@@ -804,7 +1028,10 @@ export default function VehiclesPage() {
         open={editTypeDialogOpen}
         onOpenChange={(open) => {
           setEditTypeDialogOpen(open);
-          if (!open) setEditingType(null);
+          if (!open) {
+            setEditingType(null);
+            resetTypeForm();
+          }
         }}
       >
         <DialogContent className="border-border bg-popover text-foreground">
@@ -838,6 +1065,7 @@ export default function VehiclesPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground"
               />
             </div>
+            {vehicleTypeMediaFields()}
           </div>
           <DialogFooter>
             <Button

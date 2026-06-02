@@ -51,6 +51,7 @@ export function DetailsClient({ settings }: DetailsClientProps) {
           terminal: store.terminal || undefined,
           carrier: store.carrier || undefined,
           extras: store.extras,
+          customExtras: store.customExtras.length > 0 ? store.customExtras : undefined,
           notes: store.notes || undefined,
           paymentMethod: 'PAY_ON_ARRIVAL',
         }),
@@ -212,7 +213,7 @@ export function DetailsClient({ settings }: DetailsClientProps) {
                 <span>Transfer</span>
                 <span className="font-medium text-gray-900">{store.quoteCurrency} {store.quotePrice.toFixed(2)}</span>
               </div>
-              {(store.extras.babySeatQty + store.extras.boosterSeatQty + store.extras.wheelChairQty) > 0 && (
+              {(store.extras.babySeatQty + store.extras.boosterSeatQty + store.extras.wheelChairQty + store.customExtras.reduce((s, e) => s + e.qty, 0)) > 0 && (
                 <div className="flex justify-between text-gray-400 text-xs">
                   <span>Extras included</span>
                   <span>✓</span>

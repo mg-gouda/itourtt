@@ -1,12 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plane, Clock, Users, Baby, Armchair, Accessibility, Briefcase, ChevronRight } from 'lucide-react';
+import { Plane, Clock, Users, Baby, Armchair, Accessibility, Briefcase, ChevronRight, Sparkles } from 'lucide-react';
 import { useBookingStore } from '@/stores/booking-store';
 import type { SiteSettings } from '@/lib/site-settings';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+const API = `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/public`;
+
+interface CatalogExtra {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+}
 
 interface FlightClientProps { settings: SiteSettings; }
 
@@ -32,9 +42,31 @@ export function FlightClient({ settings }: FlightClientProps) {
   const pc = settings.primaryColor;
   const isArr = store.serviceType === 'ARR';
 
+  const [catalogExtras, setCatalogExtras] = useState<CatalogExtra[]>([]);
+
   useEffect(() => {
     if (!store.vehicleTypeId) { router.replace('/w/book'); }
   }, [store.vehicleTypeId, router]);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${API}/extras`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (active) setCatalogExtras(Array.isArray(j.data) ? j.data : []);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const qtyFor = (id: string) =>
+    store.customExtras.find((e) => e.extraId === id)?.qty ?? 0;
+
+  // Sum catalog extras priced in the quote currency.
+  const customExtrasTotal = catalogExtras.reduce((sum, ex) => {
+    if (ex.currency !== store.quoteCurrency) return sum;
+    return sum + ex.price * qtyFor(ex.id);
+  }, 0);
 
   const canContinue = store.flightNo.trim().length > 0;
 
@@ -149,6 +181,33 @@ export function FlightClient({ settings }: FlightClientProps) {
             ))}
           </div>
 
+          {/* Managed catalog extras */}
+          {catalogExtras.length > 0 && (
+            <div className="space-y-4 pt-2 border-t border-gray-100">
+              {catalogExtras.map((ex) => (
+                <div key={ex.id} className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100">
+                      <Sparkles className="h-4 w-4 text-gray-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{ex.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {ex.description ? `${ex.description} · ` : ''}
+                        {ex.currency} {ex.price.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <Stepper
+                    value={qtyFor(ex.id)}
+                    onChange={(v) => store.setCustomExtraQty(ex.id, v)}
+                    min={0} max={10} color={pc}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="space-y-1.5 pt-2">
             <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Special Requests</Label>
             <textarea
@@ -168,7 +227,14 @@ export function FlightClient({ settings }: FlightClientProps) {
             style={{ background: `linear-gradient(135deg, ${pc}12, ${pc}06)`, border: `1px solid ${pc}25` }}>
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-0.5">Your price</p>
-              <p className="text-xl font-extrabold text-gray-900">{store.quoteCurrency} {store.quotePrice.toFixed(2)}</p>
+              <p className="text-xl font-extrabold text-gray-900">
+                {store.quoteCurrency} {(store.quotePrice + customExtrasTotal).toFixed(2)}
+              </p>
+              {customExtrasTotal > 0 && (
+                <p className="text-xs text-gray-400">
+                  incl. {store.quoteCurrency} {customExtrasTotal.toFixed(2)} extras
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Users className="h-3.5 w-3.5" />

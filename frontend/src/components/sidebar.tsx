@@ -32,6 +32,7 @@ import {
   SlidersHorizontal,
   Receipt,
   HardDrive,
+  PackagePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -90,6 +91,7 @@ export const navigation: NavItem[] = [
     children: [
       { type: "link", nameKey: "sidebar.websiteCms", href: "/dashboard/website", icon: Palette, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
+      { type: "link", nameKey: "sidebar.extras", href: "/dashboard/extras", icon: PackagePlus, permissionKey: "extras" },
     ],
   },
   { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },

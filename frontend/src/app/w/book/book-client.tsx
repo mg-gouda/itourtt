@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Clock, CalendarDays, MapPin, Plane, ChevronRight, Car, Loader2, AlertCircle } from 'lucide-react';
+import { Users, Clock, CalendarDays, MapPin, Plane, ChevronRight, Car, Loader2, AlertCircle, Wifi, Snowflake, Cog, Briefcase, Navigation } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBookingStore } from '@/stores/booking-store';
 import type { SiteSettings } from '@/lib/site-settings';
@@ -15,6 +15,11 @@ interface VehicleOption {
   seatCapacity: number;
   imageUrl: string | null;
   description: string | null;
+  wifi: boolean;
+  airConditioning: boolean;
+  transmission: 'MANUAL' | 'AUTOMATIC' | null;
+  luggageCapacity: number | null;
+  gpsTracked: boolean;
   price: number;
   currency: string;
   driverTip: number;
@@ -184,6 +189,36 @@ export function BookNowClient({ settings }: BookNowClientProps) {
                   </div>
                   {opt.description && (
                     <p className="text-sm text-gray-500 leading-relaxed line-clamp-2">{opt.description}</p>
+                  )}
+                  {/* Amenities */}
+                  {(opt.airConditioning || opt.wifi || opt.gpsTracked || opt.transmission || opt.luggageCapacity != null) && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {opt.airConditioning && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
+                          <Snowflake className="h-3 w-3" /> A/C
+                        </span>
+                      )}
+                      {opt.wifi && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
+                          <Wifi className="h-3 w-3" /> Wi-Fi
+                        </span>
+                      )}
+                      {opt.transmission && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600 capitalize">
+                          <Cog className="h-3 w-3" /> {opt.transmission.toLowerCase()}
+                        </span>
+                      )}
+                      {opt.luggageCapacity != null && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
+                          <Briefcase className="h-3 w-3" /> {opt.luggageCapacity}
+                        </span>
+                      )}
+                      {opt.gpsTracked && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">
+                          <Navigation className="h-3 w-3" /> GPS
+                        </span>
+                      )}
+                    </div>
                   )}
                   <div className="mt-4 flex items-center justify-between">
                     <span className="text-xs text-gray-400">Per vehicle · all inclusive</span>

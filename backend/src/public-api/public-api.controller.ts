@@ -40,6 +40,12 @@ export class PublicApiController {
     return new ApiResponse(result);
   }
 
+  @Get('extras')
+  async getExtras() {
+    const result = await this.publicApiService.getExtras();
+    return new ApiResponse(result);
+  }
+
   @Post('vehicle-quotes')
   async getVehicleQuotes(@Body() body: { serviceType: string; fromZoneId: string; toZoneId: string; paxCount: number }) {
     const result = await this.publicApiService.getVehicleQuotes(body);

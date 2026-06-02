@@ -178,8 +178,13 @@ export class PublicApiService {
         vehicleTypeId: item.vehicleTypeId,
         vehicleTypeName: item.vehicleType.name,
         seatCapacity: item.vehicleType.seatCapacity,
-        imageUrl: (item.vehicleType as any).imageUrl ?? null,
-        description: (item.vehicleType as any).description ?? null,
+        imageUrl: item.vehicleType.imageUrl ?? null,
+        description: item.vehicleType.description ?? null,
+        wifi: item.vehicleType.wifi,
+        airConditioning: item.vehicleType.airConditioning,
+        transmission: item.vehicleType.transmission ?? null,
+        luggageCapacity: item.vehicleType.luggageCapacity ?? null,
+        gpsTracked: item.vehicleType.gpsTracked,
         price: Number(item.price),
         currency: item.currency,
         driverTip: Number(item.driverTip),
@@ -188,6 +193,51 @@ export class PublicApiService {
         wheelChairPrice: Number(item.wheelChairPrice),
       })),
     };
+  }
+
+  // ─── B2C Extras catalog (public) ────────────────────────
+
+  async getExtras() {
+    const extras = await this.prisma.b2cExtra.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+    return extras.map((e) => ({
+      id: e.id,
+      name: e.name,
+      description: e.description,
+      price: Number(e.price),
+      currency: e.currency,
+      imageUrl: e.imageUrl,
+    }));
+  }
+
+  // Resolve selected catalog extras and total their cost.
+  // Only extras priced in the booking currency are charged, to avoid
+  // silently mixing currencies in a single total.
+  private async computeCustomExtras(
+    selections: { extraId: string; qty: number }[] | undefined,
+    bookingCurrency: string,
+  ): Promise<{ total: number; lines: Record<string, number> }> {
+    const lines: Record<string, number> = {};
+    if (!selections || selections.length === 0) return { total: 0, lines };
+
+    const ids = selections.map((s) => s.extraId);
+    const extras = await this.prisma.b2cExtra.findMany({
+      where: { id: { in: ids }, isActive: true },
+    });
+    const byId = new Map(extras.map((e) => [e.id, e]));
+
+    let total = 0;
+    for (const sel of selections) {
+      const extra = byId.get(sel.extraId);
+      if (!extra || sel.qty <= 0) continue;
+      if (extra.currency !== bookingCurrency) continue;
+      const cost = sel.qty * Number(extra.price);
+      total += cost;
+      lines[extra.name] = cost;
+    }
+    return { total, lines };
   }
 
   // ─── Quote ──────────────────────────────────────────────
@@ -242,6 +292,14 @@ export class PublicApiService {
       extrasTotal += cost;
       extrasBreakdown.wheelChair = cost;
     }
+
+    // Managed B2C catalog extras
+    const custom = await this.computeCustomExtras(
+      dto.customExtras,
+      priceItem.currency,
+    );
+    extrasTotal += custom.total;
+    Object.assign(extrasBreakdown, custom.lines);
 
     const subtotal = basePrice + driverTip + extrasTotal;
     const taxRate = 0; // Tax applied at invoice level per Egyptian law if needed
@@ -307,6 +365,13 @@ export class PublicApiService {
       extrasTotal += dto.extras.wheelChairQty * Number(priceItem.wheelChairPrice);
     }
 
+    // Managed B2C catalog extras
+    const custom = await this.computeCustomExtras(
+      dto.customExtras,
+      priceItem.currency,
+    );
+    extrasTotal += custom.total;
+
     const subtotal = basePrice + driverTip + extrasTotal;
     const taxAmount = 0;
     const total = subtotal + taxAmount;
@@ -346,7 +411,10 @@ export class PublicApiService {
         terminal: dto.terminal,
         paxCount: dto.paxCount,
         vehicleTypeId: dto.vehicleTypeId,
-        extras: dto.extras ? (dto.extras as object) : undefined,
+        extras:
+          dto.extras || (dto.customExtras && dto.customExtras.length > 0)
+            ? ({ ...dto.extras, customExtras: dto.customExtras ?? [] } as object)
+            : undefined,
         notes: dto.notes,
         subtotal,
         taxAmount,

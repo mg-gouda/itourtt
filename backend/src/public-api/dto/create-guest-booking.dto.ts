@@ -7,8 +7,10 @@ import {
   IsOptional,
   IsIn,
   ValidateNested,
+  IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CustomExtraSelectionDto } from './custom-extra-selection.dto.js';
 
 export class BookingExtrasDto {
   @IsInt()
@@ -100,6 +102,12 @@ export class CreateGuestBookingDto {
   @ValidateNested()
   @Type(() => BookingExtrasDto)
   extras?: BookingExtrasDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CustomExtraSelectionDto)
+  customExtras?: CustomExtraSelectionDto[];
 
   @IsString()
   @IsOptional()
