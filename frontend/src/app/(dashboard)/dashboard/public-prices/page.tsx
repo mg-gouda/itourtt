@@ -354,7 +354,7 @@ export default function PublicPricesPage() {
     try {
       const buf  = await file.arrayBuffer();
       const wb   = XLSX.read(buf, { type: "array" });
-      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const ws   = wb.Sheets["Prices"] ?? wb.Sheets[wb.SheetNames[0]];
       const rawParsed = XLSX.utils.sheet_to_json<Record<string, string | number>>(ws, { defval: "" });
       // Strip asterisks from header keys (template uses "service_type*" etc.)
       const raw = rawParsed.map((r) =>
