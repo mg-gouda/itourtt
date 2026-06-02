@@ -1,126 +1,215 @@
 # B2C Website Separation Plan
 
-## Goal
-Extract the public B2C website (`/w/` routes) from the main Next.js dashboard app into a
-standalone Next.js project deployed on its own server/domain, while the dashboard stays
-on its current server.
+Extract the public B2C booking website out of the dashboard monorepo into a
+**standalone Next.js app** in its own repo, deployed on its **own VPS**.
+
+> Status: **planning** — no code changes yet. This document is the agreed plan.
 
 ---
 
-## Current Structure
+## 0. Locked decisions
 
-```
-frontend/src/
-  app/
-    w/                        ← B2C routes (to be moved)
-      layout.tsx
-      page.tsx
-      landing-client.tsx
-      website-shell.tsx
-      book/                   ← booking form
-      booking/                ← booking lookup
-  components/
-    website/                  ← website-only UI components (to be moved)
-      booking-widget.tsx
-      features-section.tsx
-      hero-section.tsx
-      site-footer.tsx
-      site-header.tsx
-  lib/
-    website-i18n.tsx          ← 7-language i18n for website (to be moved)
-```
-
-Backend API endpoints consumed by the B2C site:
-- `GET  /settings/site`         — site settings (colors, text, logo)
-- `POST /bookings/quote`        — quote request
-- `POST /bookings/widget`       — booking submission
-- `GET  /bookings/lookup/:ref`  — booking lookup by reference
-- `GET  /locations/…`           — hotel/airport/zone selectors
+| Topic | Decision |
+|-------|----------|
+| New repo | `https://github.com/mg-gouda/iTourTT-B2CSite` (already created) |
+| Hosting | **New dedicated VPS** `31.97.45.33` (standalone Docker, *not* the k3s cluster) |
+| Domain | `transferra.ae` — **DNS not pointed yet** (will A-record to `31.97.45.33` later) |
+| Backend API | B2C calls the **existing** backend at `https://fulvago.itourtt.cloud/api` (add CORS) |
+| Backend changes | **None** except adding the new origin to `CORS_ORIGINS` |
+| Brand | **Single brand** — `transferra.ae` only. No multi-brand B2C for now. |
+| Payments | **PAY_ON_ARRIVAL only** for launch. Online card payment is **deferred** to a later phase. |
 
 ---
 
-## New Structure
+## 1. Architecture
 
+**Before** — one Next.js app serves both dashboard and `/w` B2C routes:
 ```
-repo root/
-  frontend/          ← main dashboard (unchanged, /w/ routes removed)
-  itour-website/     ← new standalone Next.js app (B2C only)
-    src/
-      app/
-        layout.tsx
-        page.tsx               ← landing
-        book/page.tsx          ← booking form
-        booking/page.tsx       ← booking lookup
-      components/
-        booking-widget.tsx
-        features-section.tsx
-        hero-section.tsx
-        site-footer.tsx
-        site-header.tsx
-      lib/
-        website-i18n.tsx
-        api.ts                 ← thin API client (NEXT_PUBLIC_API_URL)
-    .env.example
-    next.config.ts
-    package.json
-    Dockerfile
+fulvago.itourtt.cloud (k3s, VPS 72.62.45.40)
+  ├── /            dashboard
+  ├── /w/**        B2C site         ← to be extracted
+  └── /api/**      backend (NestJS)
 ```
+
+**After**:
+```
+fulvago.itourtt.cloud (k3s, VPS 72.62.45.40)   ← unchanged
+  ├── /            dashboard (no /w routes)
+  └── /api/**      backend  (CORS now allows transferra.ae)
+
+transferra.ae  (VPS 31.97.45.33, standalone Docker)   ← NEW
+  └── iTourTT-B2CSite  →  fetches https://fulvago.itourtt.cloud/api/**
+```
+
+Auth note: the B2C portal uses its own `b2c_token` in `localStorage` and the
+`/api/w-api/*` endpoints — completely independent of the dashboard session, so
+cross-origin tokens are not a concern (Bearer header, not cookies).
 
 ---
 
-## Implementation Steps
+## 2. Inventory — what moves to the new repo
 
-### 1. Scaffold `itour-website/`
+### Routes (`frontend/src/app/w/**` → new `src/app/**`, dropping the `w` segment)
+```
+w/layout.tsx              → app/layout.tsx (merge with root layout: fonts, theme)
+w/website-shell.tsx       → app/website-shell.tsx
+w/page.tsx                → app/page.tsx                 (landing)
+w/landing-client.tsx      → app/landing-client.tsx
+w/book/**                 → app/book/**                 (vehicle → flight → details)
+w/booking/lookup/**       → app/booking/lookup/**        (track booking)
+w/login/**                → app/login/**                (B2C client login)
+w/account/**              → app/account/**              (account + bookings + amend)
+```
+
+### Components (`frontend/src/components/website/**` → `src/components/**`)
+`site-header.tsx`, `site-footer.tsx`, `hero-section.tsx`, `features-section.tsx`, `booking-widget.tsx`
+
+### Shared libs/stores
+`lib/site-settings.ts`, `lib/website-i18n.tsx`, `lib/utils.ts` (`cn`), `stores/booking-store.ts`
+
+### shadcn/ui primitives needed
+`input, label, button, select, popover, card, badge`
+
+---
+
+## 3. Backend API surface consumed (NO backend code changes)
+
+`/api/public/*` (public-api controller):
+- `GET  website-settings`, `GET google-maps-key`, `GET locations`
+- `GET  vehicle-types`, `POST vehicle-quotes`, `POST quote`
+- `GET  extras`
+- `POST bookings`  (create guest booking)
+
+`/api/w-api/*` (b2c controller — client portal):
+- `POST login`, `POST change-password`
+- `GET  bookings`, `GET bookings/:ref`, `PATCH bookings/:ref`, `DELETE bookings/:ref`
+
+---
+
+## 4. Required code changes during the port (the real work)
+
+1. **Strip the `/w` prefix everywhere.** Standalone serves at root.
+   - Route folders: `app/w/book` → `app/book`, etc.
+   - Every `href="/w/..."`, `router.push('/w/...')`, `router.replace('/w/...')`,
+     nav-link `href`, footer quick-links, and the redirect targets in
+     `account-client` / `login-client`.
+   - Note: `site-header` Logo already links `/` and Book Now `/book` — those
+     become *correct* at root; only the `/w/...` ones need rewriting.
+
+2. **Make `/uploads/` image URLs absolute.** Images (vehicle photos, site logo,
+   favicon) come back as bare paths like `/uploads/x.jpg`. On `transferra.ae`
+   those resolve to the wrong host. Add a resolver that prefixes
+   `NEXT_PUBLIC_API_URL` and apply it to: vehicle-card images, `siteLogoUrl`,
+   `siteFaviconUrl`, and any other rendered `/uploads/...`.
+
+3. **API base URL.** Add `src/lib/api.ts` (thin client) and confirm
+   `site-settings.ts` SSR path: it currently does
+   `INTERNAL_API_URL ?? NEXT_PUBLIC_API_URL ?? localhost`. On the new VPS
+   `INTERNAL_API_URL` is unset, so SSR falls back to `NEXT_PUBLIC_API_URL` —
+   which must be set **both at build time** (client bundle) **and runtime** (SSR).
+
+4. **Root layout merge.** The new app needs a real root `app/layout.tsx`
+   (`<html><body>`, `Toaster`, `globals.css` with the theme tokens) combined
+   with the dynamic-font / theming logic currently in `w/layout.tsx`.
+
+---
+
+## 5. Phased steps
+
+### Phase 1 — Scaffold the new repo (local)
 ```bash
-cd /home/gouda/iTourTT
-npx create-next-app@latest itour-website --ts --tailwind --app --no-src-dir --no-eslint
+git clone git@github.com:mg-gouda/iTourTT-B2CSite.git
+cd iTourTT-B2CSite
+npx create-next-app@latest . --ts --tailwind --app --src-dir --no-eslint --import-alias "@/*"
+npx shadcn@latest init
+npx shadcn@latest add input label button select popover card badge
 ```
 
-### 2. Copy B2C assets
-- Move `frontend/src/app/w/**` → `itour-website/src/app/`
-- Move `frontend/src/components/website/**` → `itour-website/src/components/`
-- Move `frontend/src/lib/website-i18n.tsx` → `itour-website/src/lib/`
-- Create `itour-website/src/lib/api.ts` pointing to `NEXT_PUBLIC_API_URL`
+### Phase 2 — Port code
+- Copy routes, components, libs, store per §2.
+- Apply the four changes in §4 (prefix strip, absolute uploads, api.ts, layout).
+- Add `.env.example`:
+  ```
+  NEXT_PUBLIC_API_URL=https://fulvago.itourtt.cloud
+  NEXT_PUBLIC_GOOGLE_MAPS_KEY=...        # if maps used in selectors
+  ```
+- `npm run build` until clean; smoke-test locally against the live API.
 
-### 3. Update main frontend
-- Delete `frontend/src/app/w/` and `frontend/src/components/website/`
-- Remove `website-i18n.tsx` from `frontend/src/lib/`
-- Remove any `/w` links from the dashboard sidebar/header if present
+### Phase 3 — Backend CORS (dashboard repo, 1 line + redeploy)
+- Add to the backend deployment's `CORS_ORIGINS`:
+  `https://transferra.ae,https://www.transferra.ae` (+ a temp `http://31.97.45.33`
+  origin for pre-DNS testing if accessed by IP).
+- `kubectl set env` or values update, then `./deploy.sh all`.
 
-### 4. Backend CORS update
-In `backend/src/main.ts`, add the new website domain to the `cors` origins list.
+### Phase 4 — Containerize
+- `Dockerfile` mirroring `frontend/Dockerfile` (Next standalone output).
+  Pass `NEXT_PUBLIC_API_URL` as a **build-arg** (baked into client) and also as a
+  **runtime env** (for SSR).
+- `docker-compose.yml` (app on :3000) for the new VPS.
 
-### 5. Environment variables
+### Phase 5 — New VPS (`31.97.45.33`)
+- Install Docker + Docker Compose.
+- nginx reverse proxy `:80/:443` → app `:3000`; proxy `/uploads` is **not**
+  needed (images use absolute backend URLs per §4.2).
+- TLS via certbot/Let's Encrypt — **after** DNS points (until then test over
+  `http://31.97.45.33`).
+- Deploy: build image, `docker compose up -d`.
 
-**`itour-website/.env.production`**
-```
-NEXT_PUBLIC_API_URL=https://api.itourtt.cloud    # or the backend URL
-NEXT_PUBLIC_GOOGLE_MAPS_KEY=...                  # if used
-```
+### Phase 6 — Remove `/w` from the dashboard (only AFTER new site verified)
+- Delete `app/w/**`, `components/website/**`, and now-unused `site-settings.ts`,
+  `website-i18n.tsx`, `booking-store.ts` from `frontend/`.
+- Remove `/w` links from the dashboard.
+- `./deploy.sh all`.
 
-**`frontend/.env.production`** — no changes needed.
-
-### 6. Dockerfile for `itour-website/`
-Standard Next.js standalone Dockerfile (same pattern as `frontend/Dockerfile`).
-
-### 7. DNS / hosting
-| App | Domain | Server |
-|-----|--------|--------|
-| Dashboard (`frontend/`) | `fulvago.itourtt.cloud` | current VPS (k3s) |
-| B2C Website (`itour-website/`) | e.g. `www.itourtt.cloud` | new server or separate k3s namespace |
+### Phase 7 — DNS cutover
+- A-record `transferra.ae` + `www` → `31.97.45.33`.
+- Issue TLS, smoke-test full flow (search → quote → extras → book → confirmation;
+  login → account → bookings → amend/cancel).
 
 ---
 
-## Key Decisions to Make Before Implementation
+## 6. Resolved decisions & remaining checks
 
-1. **New domain** for the B2C site (e.g. `www.itourtt.cloud`, `booking.itourtt.cloud`)
-2. **Hosting target**: same VPS (new k3s namespace) or separate server?
-3. **shadcn/ui**: confirm whether to install it in the new project or simplify components
-4. **`/dashboard/website` admin panel**: stays in the main app (no change needed)
+**Resolved:**
+- **Online payments — deferred.** Launch is PAY_ON_ARRIVAL only (current `/w`
+  behavior). Do **not** port the `(public)` payment flow now. See §8 (Future).
+- **Multi-brand — no.** Single brand `transferra.ae`. Global `site-settings`
+  is fine as-is; no per-host settings work needed.
+
+**Still to check during execution:**
+1. **Google Maps key** exposure on the new origin (add `transferra.ae` to the
+   key's HTTP-referrer allowlist).
+2. **`app/(public)/**` in the dashboard repo** — leave untouched for now; it is
+   the reference we port from when online payment is added later (§8). Do not
+   delete it in Phase 6.
 
 ---
 
-## What Does NOT Change
-- Backend API — no new endpoints needed
-- Dashboard admin panel for site settings (`/dashboard/website`)
-- All existing frontend routes and functionality
+## 7. Rollback
+
+Until Phase 6, the `/w` site stays live on `fulvago` — the new site is purely
+additive. If anything fails, just don't cut over DNS; nothing in production is
+touched except the additive CORS origin (harmless).
+
+---
+
+## 8. Future phase — online card payment (deferred)
+
+Not in scope for launch, but the path is known so we don't paint ourselves into
+a corner:
+- Keep the booking-store `paymentMethod` field and the `/api/public/bookings`
+  contract (it already accepts `ONLINE` + `paymentGateway`).
+- When needed, port the payment pages from the dashboard repo's
+  `app/(public)/**` group (`book/payment`, `payment/success`, `payment/cancel`)
+  into the B2C app and switch `details-client` from hardcoded `PAY_ON_ARRIVAL`
+  to a method choice.
+- Confirm gateway redirect/return URLs use the `transferra.ae` origin.
+- This is why `app/(public)/**` is **not** deleted from the dashboard repo in
+  Phase 6 — it stays as the reference implementation.
+
+---
+
+## What does NOT change
+- Backend API code (only a CORS origin added).
+- Dashboard app and all its routes.
+- The `/dashboard/website` admin panel that edits site settings.
