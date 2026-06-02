@@ -117,7 +117,7 @@ export function FlightClient({ settings }: FlightClientProps) {
                 placeholder="e.g. MS777"
                 value={store.flightNo}
                 onChange={(e) => store.setField('flightNo', e.target.value.toUpperCase())}
-                className="border-gray-200 bg-gray-50 focus-visible:ring-1 uppercase"
+                className="border-gray-200 bg-gray-50 text-gray-800 focus-visible:ring-1 uppercase"
                 style={{ '--tw-ring-color': pc } as React.CSSProperties}
               />
             </div>
@@ -129,7 +129,7 @@ export function FlightClient({ settings }: FlightClientProps) {
                 placeholder="e.g. T1"
                 value={store.terminal}
                 onChange={(e) => store.setField('terminal', e.target.value)}
-                className="border-gray-200 bg-gray-50 focus-visible:ring-1"
+                className="border-gray-200 bg-gray-50 text-gray-800 focus-visible:ring-1"
                 style={{ '--tw-ring-color': pc } as React.CSSProperties}
               />
             </div>
@@ -143,7 +143,7 @@ export function FlightClient({ settings }: FlightClientProps) {
               placeholder="e.g. London Heathrow"
               value={store.carrier}
               onChange={(e) => store.setField('carrier', e.target.value)}
-              className="border-gray-200 bg-gray-50 focus-visible:ring-1"
+              className="border-gray-200 bg-gray-50 text-gray-800 focus-visible:ring-1"
               style={{ '--tw-ring-color': pc } as React.CSSProperties}
             />
           </div>
