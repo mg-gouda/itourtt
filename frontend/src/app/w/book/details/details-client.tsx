@@ -10,6 +10,13 @@ import { Label } from '@/components/ui/label';
 
 const API = `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/public`;
 
+interface CatalogExtra {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+}
+
 interface DetailsClientProps { settings: SiteSettings; }
 
 export function DetailsClient({ settings }: DetailsClientProps) {
@@ -19,10 +26,31 @@ export function DetailsClient({ settings }: DetailsClientProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [catalogExtras, setCatalogExtras] = useState<CatalogExtra[]>([]);
 
   useEffect(() => {
     if (!store.vehicleTypeId || !store.flightNo) { router.replace('/w/book/flight'); }
   }, [store.vehicleTypeId, store.flightNo, router]);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${API}/extras`)
+      .then((r) => r.json())
+      .then((j) => { if (active) setCatalogExtras(Array.isArray(j.data) ? j.data : []); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  // Line items for the selected catalog extras (in the quote currency).
+  const extraLines = store.customExtras
+    .map((sel) => {
+      const ex = catalogExtras.find((c) => c.id === sel.extraId);
+      if (!ex || ex.currency !== store.quoteCurrency) return null;
+      return { name: ex.name, qty: sel.qty, cost: ex.price * sel.qty };
+    })
+    .filter((l): l is { name: string; qty: number; cost: number } => l !== null);
+  const customExtrasTotal = extraLines.reduce((s, l) => s + l.cost, 0);
+  const grandTotal = (store.quotePrice ?? 0) + customExtrasTotal;
 
   const canSubmit = store.guestName.trim() && store.guestEmail.trim() && store.guestPhone.trim();
 
@@ -213,15 +241,21 @@ export function DetailsClient({ settings }: DetailsClientProps) {
                 <span>Transfer</span>
                 <span className="font-medium text-gray-900">{store.quoteCurrency} {store.quotePrice.toFixed(2)}</span>
               </div>
-              {(store.extras.babySeatQty + store.extras.boosterSeatQty + store.extras.wheelChairQty + store.customExtras.reduce((s, e) => s + e.qty, 0)) > 0 && (
+              {extraLines.map((line) => (
+                <div key={line.name} className="flex justify-between text-gray-600">
+                  <span>{line.name}{line.qty > 1 ? ` × ${line.qty}` : ''}</span>
+                  <span className="font-medium text-gray-900">{store.quoteCurrency} {line.cost.toFixed(2)}</span>
+                </div>
+              ))}
+              {(store.extras.babySeatQty + store.extras.boosterSeatQty + store.extras.wheelChairQty) > 0 && (
                 <div className="flex justify-between text-gray-400 text-xs">
-                  <span>Extras included</span>
+                  <span>Seat extras included</span>
                   <span>✓</span>
                 </div>
               )}
               <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
                 <span>Total</span>
-                <span style={{ color: pc }}>{store.quoteCurrency} {store.quotePrice.toFixed(2)}</span>
+                <span style={{ color: pc }}>{store.quoteCurrency} {grandTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
