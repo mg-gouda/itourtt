@@ -627,6 +627,24 @@ async function main() {
       console.log('Agent price seeding skipped (removed from default seed).');
     }
 
+    // ─── B2C WEBSITE AGENT (always seeded; selectable in online job form) ───
+    // Bookings made on the public B2C site are attributed to this agent.
+    const existingB2cAgent = await prisma.agent.findFirst({
+      where: { legalName: 'B2C Website', deletedAt: null },
+    });
+    if (!existingB2cAgent) {
+      const b2cAgent = await prisma.agent.create({
+        data: {
+          legalName: 'B2C Website',
+          tradeName: 'B2C Website',
+          isActive: true,
+        },
+      });
+      console.log(`B2C Website agent created: ${b2cAgent.id}`);
+    } else {
+      console.log('B2C Website agent already exists.');
+    }
+
     console.log('\nSeed completed successfully.');
   } finally {
     await prisma.$disconnect();
