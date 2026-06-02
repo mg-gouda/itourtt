@@ -135,11 +135,27 @@ npx shadcn@latest add input label button select popover card badge
   ```
 - `npm run build` until clean; smoke-test locally against the live API.
 
-### Phase 3 — Backend CORS (dashboard repo, 1 line + redeploy)
-- Add to the backend deployment's `CORS_ORIGINS`:
-  `https://transferra.ae,https://www.transferra.ae` (+ a temp `http://31.97.45.33`
-  origin for pre-DNS testing if accessed by IP).
-- `kubectl set env` or values update, then `./deploy.sh all`.
+### Phase 3 — Backend CORS — ✅ DONE
+`CORS_ORIGINS` is read at runtime from the `backend-secret` Secret (via
+`envFrom`), **not** from the repo. Applied to **production only** (B2C calls the
+production backend):
+```bash
+kubectl patch secret backend-secret -n itour-production --type merge \
+  -p '{"stringData":{"CORS_ORIGINS":"https://fulvago.itourtt.cloud,https://transferra.ae,https://www.transferra.ae,http://31.97.45.33"}}'
+kubectl rollout restart deployment/backend -n itour-production
+```
+Verified: `transferra.ae` and `31.97.45.33` reflected in `access-control-allow-origin`;
+unknown origins rejected. The `http://31.97.45.33` entry is temporary for
+pre-DNS testing — drop it once `transferra.ae` is live on HTTPS.
+
+> ⚠️ This is a **live, out-of-repo** secret edit. If `backend-secret` is ever
+> recreated, the new origins must be re-added. Not captured by `deploy.sh`.
+>
+> ⚠️ Gotcha hit during this step: `deploy.sh`'s image-cleanup had pruned
+> `itourtt-backend:3.4.0` from k3s containerd (running pods kept their snapshot,
+> but new pods got `ErrImageNeverPull`). Fixed by re-importing:
+> `docker save itourtt-backend:3.4.0 | k3s ctr images import -`. Self-heals on the
+> next full `./deploy.sh`, but ad-hoc pod restarts can fail until then.
 
 ### Phase 4 — Containerize
 - `Dockerfile` mirroring `frontend/Dockerfile` (Next standalone output).
