@@ -7,6 +7,7 @@ import {
   IsBoolean,
   IsInt,
   IsIn,
+  IsArray,
 } from 'class-validator';
 
 const CURRENCIES = ['EGP', 'USD', 'EUR', 'GBP', 'SAR'];
@@ -35,6 +36,16 @@ export class UpsertExtraDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  occupiesSeat?: boolean;
+
+  // Vehicle type IDs this extra is restricted to. Empty/omitted = any vehicle.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allowedVehicleTypeIds?: string[];
 
   @IsOptional()
   @IsInt()

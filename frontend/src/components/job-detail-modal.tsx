@@ -32,12 +32,7 @@ interface JobDetail {
   priceCurrency: string | null;
   transferPrice: number | null;
   transferPriceCurrency: string | null;
-  boosterSeat: boolean;
-  boosterSeatQty: number;
-  babySeat: boolean;
-  babySeatQty: number;
-  wheelChair: boolean;
-  wheelChairQty: number;
+  jobExtras?: { name: string; qty: number }[];
   printSign: boolean;
   collectionRequired: boolean;
   collectionAmount: number | null;
@@ -149,10 +144,9 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
     job?.destinationZone?.name ||
     "—";
 
-  const extras: string[] = [];
-  if (job?.boosterSeat) extras.push(`Booster Seat ×${job.boosterSeatQty}`);
-  if (job?.babySeat) extras.push(`Baby Seat ×${job.babySeatQty}`);
-  if (job?.wheelChair) extras.push(`Wheelchair ×${job.wheelChairQty}`);
+  const extras: string[] = (job?.jobExtras || [])
+    .filter((e) => e.qty > 0)
+    .map((e) => `${e.name} ×${e.qty}`);
   if (job?.printSign) extras.push("Print Sign");
 
   return (

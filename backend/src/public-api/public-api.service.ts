@@ -18,6 +18,15 @@ import {
   GuestBookingStatus,
 } from '../../generated/prisma/enums.js';
 
+// A snapshot of one extra at booking time, carried through to the converted job.
+export interface ExtraSnapshotItem {
+  extraId: string | null;
+  name: string;
+  qty: number;
+  unitAmount: number;
+  currency: string;
+}
+
 @Injectable()
 export class PublicApiService {
   private readonly logger = new Logger(PublicApiService.name);
@@ -218,13 +227,25 @@ export class PublicApiService {
   private async computeCustomExtras(
     selections: { extraId: string; qty: number }[] | undefined,
     bookingCurrency: string,
-  ): Promise<{ total: number; lines: Record<string, number> }> {
+    vehicleTypeId?: string,
+  ): Promise<{
+    total: number;
+    lines: Record<string, number>;
+    items: ExtraSnapshotItem[];
+    seatUnits: number;
+    vehicleViolations: { name: string; allowed: string[] }[];
+  }> {
     const lines: Record<string, number> = {};
-    if (!selections || selections.length === 0) return { total: 0, lines };
+    const items: ExtraSnapshotItem[] = [];
+    const vehicleViolations: { name: string; allowed: string[] }[] = [];
+    let seatUnits = 0;
+    if (!selections || selections.length === 0)
+      return { total: 0, lines, items, seatUnits, vehicleViolations };
 
     const ids = selections.map((s) => s.extraId);
     const extras = await this.prisma.b2cExtra.findMany({
       where: { id: { in: ids }, isActive: true },
+      include: { allowedVehicleTypes: { include: { vehicleType: { select: { id: true, name: true } } } } },
     });
     const byId = new Map(extras.map((e) => [e.id, e]));
 
@@ -232,12 +253,72 @@ export class PublicApiService {
     for (const sel of selections) {
       const extra = byId.get(sel.extraId);
       if (!extra || sel.qty <= 0) continue;
+      // Snapshot every selected extra (incl. cross-currency) for the job record.
+      items.push({
+        extraId: extra.id,
+        name: extra.name,
+        qty: sel.qty,
+        unitAmount: Number(extra.price),
+        currency: extra.currency,
+      });
+      // Seat-occupying extras count against vehicle capacity.
+      if (extra.occupiesSeat) seatUnits += sel.qty;
+      // Vehicle-type restriction: extra only fits certain vehicle types.
+      if (
+        extra.allowedVehicleTypes.length > 0 &&
+        vehicleTypeId &&
+        !extra.allowedVehicleTypes.some((a) => a.vehicleTypeId === vehicleTypeId)
+      ) {
+        vehicleViolations.push({
+          name: extra.name,
+          allowed: extra.allowedVehicleTypes.map((a) => a.vehicleType.name),
+        });
+      }
+      // Only same-currency extras contribute to the booking total.
       if (extra.currency !== bookingCurrency) continue;
       const cost = sel.qty * Number(extra.price);
       total += cost;
       lines[extra.name] = cost;
     }
-    return { total, lines };
+    return { total, lines, items, seatUnits, vehicleViolations };
+  }
+
+  // Throws if any selected extra is restricted to vehicle types other than the chosen one.
+  private assertVehicleTypeAllowed(violations: { name: string; allowed: string[] }[]) {
+    if (violations.length === 0) return;
+    const v = violations[0];
+    throw new BadRequestException(
+      `"${v.name}" can only be carried by: ${v.allowed.join(', ')}. ` +
+        `Please change your vehicle type.`,
+    );
+  }
+
+  // Total seats consumed by extras: legacy seat fields (always seats) + catalog
+  // extras flagged occupiesSeat.
+  private legacySeatUnits(
+    extras: { boosterSeatQty?: number; babySeatQty?: number; wheelChairQty?: number } | undefined,
+  ): number {
+    if (!extras) return 0;
+    return (extras.boosterSeatQty || 0) + (extras.babySeatQty || 0) + (extras.wheelChairQty || 0);
+  }
+
+  // Snapshot the legacy seat extras (booster/baby/wheelchair) priced from the route's
+  // price item, so they carry through to the converted job alongside catalog extras.
+  private buildLegacySeatItems(
+    extras: { boosterSeatQty?: number; babySeatQty?: number; wheelChairQty?: number } | undefined,
+    priceItem: { boosterSeatPrice: unknown; babySeatPrice: unknown; wheelChairPrice: unknown; currency: string },
+  ): ExtraSnapshotItem[] {
+    const items: ExtraSnapshotItem[] = [];
+    if (!extras) return items;
+    const push = (name: string, qty: number | undefined, price: unknown) => {
+      if (qty && qty > 0) {
+        items.push({ extraId: null, name, qty, unitAmount: Number(price), currency: priceItem.currency });
+      }
+    };
+    push('Booster Seat', extras.boosterSeatQty, priceItem.boosterSeatPrice);
+    push('Baby Seat', extras.babySeatQty, priceItem.babySeatPrice);
+    push('Wheelchair', extras.wheelChairQty, priceItem.wheelChairPrice);
+    return items;
   }
 
   // ─── Quote ──────────────────────────────────────────────
@@ -297,9 +378,23 @@ export class PublicApiService {
     const custom = await this.computeCustomExtras(
       dto.customExtras,
       priceItem.currency,
+      dto.vehicleTypeId,
     );
     extrasTotal += custom.total;
     Object.assign(extrasBreakdown, custom.lines);
+
+    // Reject extras that require a different vehicle type (e.g. cargo gear needs a van).
+    this.assertVehicleTypeAllowed(custom.vehicleViolations);
+
+    // Seat-occupying extras share the cabin with passengers — enforce capacity.
+    const seatExtras = this.legacySeatUnits(dto.extras) + custom.seatUnits;
+    if (dto.paxCount + seatExtras > priceItem.vehicleType.seatCapacity) {
+      throw new BadRequestException(
+        `Passengers (${dto.paxCount}) plus seat-occupying extras (${seatExtras}) exceed the ` +
+          `${priceItem.vehicleType.name} capacity (${priceItem.vehicleType.seatCapacity}). ` +
+          `Please choose a larger vehicle.`,
+      );
+    }
 
     const subtotal = basePrice + driverTip + extrasTotal;
     const taxRate = 0; // Tax applied at invoice level per Egyptian law if needed
@@ -369,8 +464,28 @@ export class PublicApiService {
     const custom = await this.computeCustomExtras(
       dto.customExtras,
       priceItem.currency,
+      dto.vehicleTypeId,
     );
     extrasTotal += custom.total;
+
+    // Reject extras that require a different vehicle type (e.g. cargo gear needs a van).
+    this.assertVehicleTypeAllowed(custom.vehicleViolations);
+
+    // Seat-occupying extras share the cabin with passengers — enforce capacity.
+    const seatExtras = this.legacySeatUnits(dto.extras) + custom.seatUnits;
+    if (dto.paxCount + seatExtras > priceItem.vehicleType.seatCapacity) {
+      throw new BadRequestException(
+        `Passengers (${dto.paxCount}) plus seat-occupying extras (${seatExtras}) exceed the ` +
+          `${priceItem.vehicleType.name} capacity (${priceItem.vehicleType.seatCapacity}). ` +
+          `Please choose a larger vehicle.`,
+      );
+    }
+
+    // Unified extras snapshot (legacy seats + catalog) carried through to the job.
+    const snapshotItems = [
+      ...this.buildLegacySeatItems(dto.extras, priceItem),
+      ...custom.items,
+    ];
 
     const subtotal = basePrice + driverTip + extrasTotal;
     const taxAmount = 0;
@@ -413,7 +528,7 @@ export class PublicApiService {
         vehicleTypeId: dto.vehicleTypeId,
         extras:
           dto.extras || (dto.customExtras && dto.customExtras.length > 0)
-            ? ({ ...dto.extras, customExtras: dto.customExtras ?? [] } as object)
+            ? ({ ...dto.extras, customExtras: dto.customExtras ?? [], items: snapshotItems } as object)
             : undefined,
         notes: dto.notes,
         subtotal,

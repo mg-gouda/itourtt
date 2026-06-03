@@ -42,6 +42,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { type JobExtra } from "@/components/job-extras-editor";
 
 /* ────────────────────────────── Types ────────────────────────────── */
 
@@ -96,12 +97,7 @@ interface JobRow {
   description: string; // origin → destination
   pickUpTime: string; // HH:mm
   driverId: string;
-  boosterSeat: boolean;
-  boosterSeatQty: number;
-  babySeat: boolean;
-  babySeatQty: number;
-  wheelChair: boolean;
-  wheelChairQty: number;
+  extras: JobExtra[];
   collectionAmount: string;
   collectionCurrency: string;
   custRepName: string;
@@ -148,12 +144,7 @@ function newJobRow(): JobRow {
     description: "",
     pickUpTime: "",
     driverId: "",
-    boosterSeat: false,
-    boosterSeatQty: 0,
-    babySeat: false,
-    babySeatQty: 0,
-    wheelChair: false,
-    wheelChairQty: 0,
+    extras: [],
     collectionAmount: "",
     collectionCurrency: "EGP",
     custRepName: "",
@@ -498,12 +489,15 @@ function CarDispatchContent() {
         description: "",
         pickUpTime: j.pickUpTime ? new Date(j.pickUpTime).toTimeString().slice(0, 5) : "",
         driverId: j.assignment?.driverId || "",
-        boosterSeat: j.boosterSeat || false,
-        boosterSeatQty: j.boosterSeatQty || 0,
-        babySeat: j.babySeat || false,
-        babySeatQty: j.babySeatQty || 0,
-        wheelChair: j.wheelChair || false,
-        wheelChairQty: j.wheelChairQty || 0,
+        extras: ((j.jobExtras || []) as JobExtra[]).map((e) => ({
+          id: e.id,
+          extraId: e.extraId ?? null,
+          name: e.name,
+          qty: Number(e.qty),
+          unitAmount: Number(e.unitAmount),
+          currency: e.currency,
+          source: e.source,
+        })),
         collectionAmount: j.collectionAmount ? String(j.collectionAmount) : "",
         collectionCurrency: j.collectionCurrency || "EGP",
         custRepName: j.custRepName || "",
@@ -683,12 +677,16 @@ function CarDispatchContent() {
         customerJobId: job.customerJobId?.trim() || undefined,
         custRepName: job.custRepName || undefined,
         custRepMobile: job.custRepMobile || undefined,
-        boosterSeat: job.boosterSeat,
-        boosterSeatQty: job.boosterSeatQty,
-        babySeat: job.babySeat,
-        babySeatQty: job.babySeatQty,
-        wheelChair: job.wheelChair,
-        wheelChairQty: job.wheelChairQty,
+        extras: job.extras
+          .filter((e) => e.name && e.qty > 0)
+          .map((e) => ({
+            extraId: e.extraId ?? undefined,
+            name: e.name,
+            qty: e.qty,
+            unitAmount: e.unitAmount,
+            currency: e.currency,
+            source: e.source,
+          })),
         pickUpTime: job.pickUpTime
           ? `${jobDate}T${job.pickUpTime}:00`
           : undefined,

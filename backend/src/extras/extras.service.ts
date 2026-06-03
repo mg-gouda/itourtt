@@ -7,11 +7,22 @@ import type { Currency } from '../../generated/prisma/enums.js';
 export class ExtrasService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly allowedInclude = {
+    allowedVehicleTypes: {
+      include: { vehicleType: { select: { id: true, name: true } } },
+    },
+  };
+
   // Admin: full list (active + inactive), ordered for management.
   async findAll() {
-    return this.prisma.b2cExtra.findMany({
+    const extras = await this.prisma.b2cExtra.findMany({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      include: this.allowedInclude,
     });
+    return extras.map((e) => ({
+      ...e,
+      allowedVehicleTypeIds: e.allowedVehicleTypes.map((a) => a.vehicleTypeId),
+    }));
   }
 
   // Public: only active extras for the B2C booking flow.
@@ -19,6 +30,7 @@ export class ExtrasService {
     const extras = await this.prisma.b2cExtra.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      include: this.allowedInclude,
     });
     return extras.map((e) => ({
       id: e.id,
@@ -27,6 +39,9 @@ export class ExtrasService {
       price: Number(e.price),
       currency: e.currency,
       imageUrl: e.imageUrl,
+      occupiesSeat: e.occupiesSeat,
+      allowedVehicleTypeIds: e.allowedVehicleTypes.map((a) => a.vehicleTypeId),
+      allowedVehicleTypeNames: e.allowedVehicleTypes.map((a) => a.vehicleType.name),
     }));
   }
 
@@ -39,7 +54,13 @@ export class ExtrasService {
         currency: (dto.currency as Currency) ?? 'EGP',
         imageUrl: dto.imageUrl ?? null,
         isActive: dto.isActive ?? true,
+        occupiesSeat: dto.occupiesSeat ?? false,
         sortOrder: dto.sortOrder ?? 0,
+        ...(dto.allowedVehicleTypeIds && dto.allowedVehicleTypeIds.length > 0 && {
+          allowedVehicleTypes: {
+            create: dto.allowedVehicleTypeIds.map((vehicleTypeId) => ({ vehicleTypeId })),
+          },
+        }),
       },
     });
   }
@@ -56,7 +77,15 @@ export class ExtrasService {
         ...(dto.currency !== undefined && { currency: dto.currency as Currency }),
         ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl || null }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.occupiesSeat !== undefined && { occupiesSeat: dto.occupiesSeat }),
         ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
+        // Replace the allowed-vehicle-type set when provided.
+        ...(dto.allowedVehicleTypeIds !== undefined && {
+          allowedVehicleTypes: {
+            deleteMany: {},
+            create: dto.allowedVehicleTypeIds.map((vehicleTypeId) => ({ vehicleTypeId })),
+          },
+        }),
       },
     });
   }

@@ -1136,6 +1136,7 @@ export class FinanceService {
           originHotel: { select: { id: true, name: true } },
           destinationHotel: { select: { id: true, name: true } },
           flight: { select: { flightNo: true, carrier: true } },
+          jobExtras: { select: { qty: true, unitAmount: true, currency: true } },
           assignment: {
             include: {
               vehicle: {
@@ -1167,10 +1168,15 @@ export class FinanceService {
         const key = `${job.serviceType}-${job.fromZoneId}-${job.toZoneId}-${vehicleTypeId}`;
         const priceItem = priceMap.get(key);
         if (priceItem) {
-          suggestedUnitPrice = Number(priceItem.price)
-            + (job.boosterSeatQty > 0 ? job.boosterSeatQty * Number(priceItem.boosterSeatPrice) : 0)
-            + (job.babySeatQty > 0 ? job.babySeatQty * Number(priceItem.babySeatPrice) : 0)
-            + (job.wheelChairQty > 0 ? job.wheelChairQty * Number(priceItem.wheelChairPrice) : 0);
+          // Add managed extras priced in the same currency as the route price.
+          const extrasTotal = (job.jobExtras ?? []).reduce(
+            (sum, e) =>
+              e.currency === priceItem.currency
+                ? sum + e.qty * Number(e.unitAmount)
+                : sum,
+            0,
+          );
+          suggestedUnitPrice = Number(priceItem.price) + extrasTotal;
         }
       }
 

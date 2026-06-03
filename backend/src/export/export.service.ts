@@ -530,6 +530,7 @@ export class ExportService {
       fromZone: true,
       toZone: true,
       flight: true,
+      jobExtras: { orderBy: { createdAt: 'asc' as const } },
       assignment: {
         include: {
           vehicle: { include: { vehicleType: true } },
@@ -609,9 +610,10 @@ export class ExportService {
         'Driver Mobile': job.assignment?.driver?.mobileNumber || '',
         'Rep': job.assignment?.rep?.name || '',
         'Rep Mobile': job.assignment?.rep?.mobileNumber || '',
-        'Booster Seat': job.boosterSeat ? `Yes (${job.boosterSeatQty})` : 'No',
-        'Baby Seat': job.babySeat ? `Yes (${job.babySeatQty})` : 'No',
-        'Wheelchair': job.wheelChair ? `Yes (${job.wheelChairQty})` : 'No',
+        'Extras': (job.jobExtras ?? [])
+          .filter((e: any) => e.qty > 0)
+          .map((e: any) => `${e.name} x${e.qty}`)
+          .join(', '),
         'Print Sign': job.printSign ? 'Yes' : 'No',
         'Notes': job.notes || '',
       };
@@ -626,9 +628,7 @@ export class ExportService {
         const headers = Object.keys(mapJob({
           internalRef: '', bookingChannel: '', status: '',
           adultCount: '', childCount: '', paxCount: '',
-          boosterSeat: false, boosterSeatQty: 0,
-          babySeat: false, babySeatQty: 0,
-          wheelChair: false, wheelChairQty: 0,
+          jobExtras: [],
           printSign: false,
         }));
         const ws = XLSX.utils.aoa_to_sheet([headers]);

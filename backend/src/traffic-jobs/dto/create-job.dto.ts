@@ -3,6 +3,7 @@ import {
   IsInt, IsIn, IsBoolean, IsNumber, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { JobExtraInputDto } from './job-extra-input.dto.js';
 
 export class FlightInfoDto {
   @IsNotEmpty()
@@ -100,32 +101,11 @@ export class CreateJobDto {
   @IsString()
   clientMobile?: string;
 
+  // Managed extras (catalog-driven). Replaces the legacy booster/baby/wheelchair fields.
   @IsOptional()
-  @IsBoolean()
-  boosterSeat?: boolean;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  boosterSeatQty?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  babySeat?: boolean;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  babySeatQty?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  wheelChair?: boolean;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  wheelChairQty?: number;
+  @ValidateNested({ each: true })
+  @Type(() => JobExtraInputDto)
+  extras?: JobExtraInputDto[];
 
   @IsOptional()
   @IsBoolean()

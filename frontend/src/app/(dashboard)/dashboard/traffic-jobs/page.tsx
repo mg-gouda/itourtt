@@ -75,12 +75,7 @@ interface TrafficJob {
   clientMobile: string | null;
   pickUpTime: string | null;
   notes: string | null;
-  boosterSeat: boolean;
-  boosterSeatQty: number;
-  babySeat: boolean;
-  babySeatQty: number;
-  wheelChair: boolean;
-  wheelChairQty: number;
+  jobExtras?: { name: string; qty: number }[];
   printSign: boolean;
   transferPrice: number | null;
   transferPriceCurrency: string;
@@ -411,11 +406,10 @@ export default function TrafficJobsPage() {
       case "extras":
         return (
           <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
-            {[
-              job.boosterSeat && `Booster x${job.boosterSeatQty}`,
-              job.babySeat && `Baby x${job.babySeatQty}`,
-              job.wheelChair && `WC x${job.wheelChairQty}`,
-            ].filter(Boolean).join(", ") || "\u2014"}
+            {(job.jobExtras || [])
+              .filter((e) => e.qty > 0)
+              .map((e) => `${e.name} \u00d7${e.qty}`)
+              .join(", ") || "\u2014"}
           </TableCell>
         );
       case "printSign":

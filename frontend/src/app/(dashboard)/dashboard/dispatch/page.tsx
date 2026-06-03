@@ -135,12 +135,7 @@ interface Job {
   collectionRequired: boolean;
   collectionAmount: number | null;
   collectionCurrency: string | null;
-  boosterSeat: boolean;
-  boosterSeatQty: number;
-  babySeat: boolean;
-  babySeatQty: number;
-  wheelChair: boolean;
-  wheelChairQty: number;
+  jobExtras?: { name: string; qty: number }[];
   requestedVehicleTypeId: string | null;
   requestedVehicleType?: { id: string; name: string } | null;
 }
@@ -868,11 +863,10 @@ function SummaryFooter({
 // ────────────────────────────────────────────
 
 function ExtrasCell({ job }: { job: Job }) {
-  const parts = [
-    job.boosterSeat && `Booster×${job.boosterSeatQty}`,
-    job.babySeat    && `Baby×${job.babySeatQty}`,
-    job.wheelChair  && `WC×${job.wheelChairQty}`,
-  ].filter(Boolean).join(", ");
+  const parts = (job.jobExtras || [])
+    .filter((e) => e.qty > 0)
+    .map((e) => `${e.name}×${e.qty}`)
+    .join(", ");
   return (
     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
       {parts || "—"}
@@ -952,10 +946,9 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
     ? job.assignment?.driver?.mobileNumber
     : job.assignment?.externalDriverPhone;
 
-  const extras: string[] = [];
-  if (job.boosterSeat) extras.push(`Booster Seat ×${job.boosterSeatQty}`);
-  if (job.babySeat) extras.push(`Baby Seat ×${job.babySeatQty}`);
-  if (job.wheelChair) extras.push(`Wheelchair ×${job.wheelChairQty}`);
+  const extras: string[] = (job.jobExtras || [])
+    .filter((e) => e.qty > 0)
+    .map((e) => `${e.name} ×${e.qty}`);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>

@@ -140,6 +140,12 @@ enum BookingChannel {
   B2C
 }
 
+// Where a traffic-job extra originated: the public B2C booking, or manual operator entry.
+enum JobExtraSource {
+  B2C
+  MANUAL
+}
+
 enum InvoiceType {
   TRANSFER
   DRIVER_TIP
@@ -434,6 +440,7 @@ model VehicleType {
   supplierCarTypes  SupplierCarType[]
   driverTariffs     DriverPriceTariff[]
   driverTripFees    DriverTripFee[]
+  allowedForExtras  B2cExtraVehicleType[]
 
   @@map("vehicle_types")
 }
@@ -610,6 +617,9 @@ model Agent {
   refPattern  String?   @map("ref_pattern")
   refExample  String?   @map("ref_example")
   isActive    Boolean   @default(true) @map("is_active")
+  // Stable marker for the single seeded "website" agent. Its display name tracks
+  // WebsiteSettings.siteName; this flag lets the convert flow find it reliably.
+  isB2cWebsite Boolean  @default(false) @map("is_b2c_website")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
@@ -836,11 +846,51 @@ model B2cExtra {
   currency    Currency @default(EGP)
   imageUrl    String?  @map("image_url")
   isActive    Boolean  @default(true) @map("is_active")
+  // Whether this extra occupies a physical seat (counts against vehicle capacity).
+  occupiesSeat Boolean @default(false) @map("occupies_seat")
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  jobUsages           TrafficJobExtra[]
+  // If non-empty, this extra can only be carried by these vehicle types (e.g. cargo
+  // gear that needs a van). Empty = available on any vehicle.
+  allowedVehicleTypes B2cExtraVehicleType[]
+
   @@map("b2c_extras")
+}
+
+// Restricts a catalog extra to specific vehicle types (cargo-space requirement).
+model B2cExtraVehicleType {
+  extraId       String      @map("extra_id")
+  vehicleTypeId String      @map("vehicle_type_id")
+  extra         B2cExtra    @relation(fields: [extraId], references: [id], onDelete: Cascade)
+  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+
+  @@id([extraId, vehicleTypeId])
+  @@index([vehicleTypeId])
+  @@map("b2c_extra_vehicle_types")
+}
+
+// A single extra attached to a traffic job. Snapshots the catalog name/price so the
+// job's history survives catalog edits or deletion (extraId is nulled on delete).
+model TrafficJobExtra {
+  id           String         @id @default(uuid())
+  trafficJobId String         @map("traffic_job_id")
+  extraId      String?        @map("extra_id")
+  name         String
+  qty          Int            @default(1)
+  unitAmount   Decimal        @default(0) @map("unit_amount") @db.Decimal(15, 2)
+  currency     Currency       @default(EGP)
+  source       JobExtraSource @default(MANUAL)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  trafficJob   TrafficJob     @relation(fields: [trafficJobId], references: [id], onDelete: Cascade)
+  extra        B2cExtra?      @relation(fields: [extraId], references: [id], onDelete: SetNull)
+
+  @@index([trafficJobId])
+  @@map("traffic_job_extras")
 }
 
 // ─────────────────────────────────────────────
@@ -1040,12 +1090,6 @@ model TrafficJob {
 
   clientName      String?        @map("client_name")
   clientMobile    String?        @map("client_mobile")
-  boosterSeat     Boolean        @default(false) @map("booster_seat")
-  boosterSeatQty  Int            @default(0) @map("booster_seat_qty")
-  babySeat        Boolean        @default(false) @map("baby_seat")
-  babySeatQty     Int            @default(0) @map("baby_seat_qty")
-  wheelChair      Boolean        @default(false) @map("wheel_chair")
-  wheelChairQty   Int            @default(0) @map("wheel_chair_qty")
   printSign       Boolean        @default(false) @map("print_sign")
   pickUpTime      DateTime?      @map("pick_up_time")
   notes           String?
@@ -1120,6 +1164,7 @@ model TrafficJob {
 
   flight                TrafficFlight?
   assignment            TrafficAssignment?
+  jobExtras             TrafficJobExtra[]
   driverFees            DriverTripFee[]
   repFees               RepFee[]
   supplierCosts         SupplierCost[]

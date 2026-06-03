@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plane, Clock, Users, Baby, Armchair, Accessibility, Briefcase, ChevronRight, Sparkles } from 'lucide-react';
+import { Plane, Clock, Users, Briefcase, ChevronRight, Sparkles } from 'lucide-react';
 import { useBookingStore } from '@/stores/booking-store';
 import type { SiteSettings } from '@/lib/site-settings';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,9 @@ interface CatalogExtra {
   description: string | null;
   price: number;
   currency: string;
+  occupiesSeat: boolean;
+  allowedVehicleTypeIds: string[];
+  allowedVehicleTypeNames: string[];
 }
 
 interface FlightClientProps { settings: SiteSettings; }
@@ -43,6 +46,7 @@ export function FlightClient({ settings }: FlightClientProps) {
   const isArr = store.serviceType === 'ARR';
 
   const [catalogExtras, setCatalogExtras] = useState<CatalogExtra[]>([]);
+  const [seatAlert, setSeatAlert] = useState<string | null>(null);
 
   useEffect(() => {
     if (!store.vehicleTypeId) { router.replace('/w/book'); }
@@ -61,6 +65,40 @@ export function FlightClient({ settings }: FlightClientProps) {
 
   const qtyFor = (id: string) =>
     store.customExtras.find((e) => e.extraId === id)?.qty ?? 0;
+
+  // Seat-occupying extras (baby/booster seat, wheelchair) share the cabin with the
+  // passengers, so pax + those extras must fit the selected vehicle's capacity.
+  const seatCapacity = Number(store.quoteBreakdown?.seatCapacity ?? 0);
+  const seatExtrasUsed = catalogExtras.reduce(
+    (sum, ex) => (ex.occupiesSeat ? sum + qtyFor(ex.id) : sum),
+    0,
+  );
+  const seatsLeft = seatCapacity > 0 ? seatCapacity - store.paxCount - seatExtrasUsed : Infinity;
+
+  // Guard an extra's quantity change against vehicle-type restriction and capacity.
+  const changeExtraQty = (ex: CatalogExtra, next: number) => {
+    const increasing = next > qtyFor(ex.id);
+    if (
+      increasing &&
+      ex.allowedVehicleTypeIds.length > 0 &&
+      !ex.allowedVehicleTypeIds.includes(store.vehicleTypeId)
+    ) {
+      setSeatAlert(
+        `"${ex.name}" can only be carried by: ${ex.allowedVehicleTypeNames.join(', ')}.` +
+          ` Please change your vehicle type to add it.`,
+      );
+      return;
+    }
+    if (ex.occupiesSeat && increasing && seatsLeft <= 0) {
+      setSeatAlert(
+        `This vehicle seats ${seatCapacity}. With ${store.paxCount} passenger${store.paxCount !== 1 ? 's' : ''}` +
+          ` and the extras already selected there's no seat left. Please choose a larger vehicle type to add more.`,
+      );
+      return;
+    }
+    setSeatAlert(null);
+    store.setCustomExtraQty(ex.id, next);
+  };
 
   // Sum catalog extras priced in the quote currency.
   const customExtrasTotal = catalogExtras.reduce((sum, ex) => {
@@ -156,34 +194,14 @@ export function FlightClient({ settings }: FlightClientProps) {
             Optional Extras
           </h2>
 
-          <div className="space-y-4">
-            {[
-              { icon: Baby, label: 'Baby Seat', sub: 'For infants up to 13 kg', key: 'babySeatQty' as const, price: store.quoteBreakdown?.babySeatPrice as number ?? 0 },
-              { icon: Armchair, label: 'Booster Seat', sub: 'For children 15–36 kg', key: 'boosterSeatQty' as const, price: store.quoteBreakdown?.boosterSeatPrice as number ?? 0 },
-              { icon: Accessibility, label: 'Wheelchair', sub: 'Collapsible wheelchair space', key: 'wheelChairQty' as const, price: store.quoteBreakdown?.wheelChairPrice as number ?? 0 },
-            ].map(({ icon: Icon, label, sub, key }) => (
-              <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100">
-                    <Icon className="h-4 w-4 text-gray-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{label}</p>
-                    <p className="text-xs text-gray-400">{sub}</p>
-                  </div>
-                </div>
-                <Stepper
-                  value={store.extras[key]}
-                  onChange={(v) => store.setField(`extras.${key}`, v)}
-                  min={0} max={5} color={pc}
-                />
-              </div>
-            ))}
-          </div>
-
           {/* Managed catalog extras */}
           {catalogExtras.length > 0 && (
-            <div className="space-y-4 pt-2 border-t border-gray-100">
+            <div className="space-y-4">
+              {seatAlert && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  {seatAlert}
+                </div>
+              )}
               {catalogExtras.map((ex) => (
                 <div key={ex.id} className="flex items-center justify-between py-2">
                   <div className="flex items-center gap-3">
@@ -195,13 +213,19 @@ export function FlightClient({ settings }: FlightClientProps) {
                       <p className="text-xs text-gray-400">
                         {ex.description ? `${ex.description} · ` : ''}
                         {ex.currency} {ex.price.toFixed(2)}
+                        {ex.occupiesSeat ? ' · occupies a seat' : ''}
+                        {ex.allowedVehicleTypeIds.length > 0
+                          ? ` · ${ex.allowedVehicleTypeNames.join('/')} only`
+                          : ''}
                       </p>
                     </div>
                   </div>
                   <Stepper
                     value={qtyFor(ex.id)}
-                    onChange={(v) => store.setCustomExtraQty(ex.id, v)}
-                    min={0} max={10} color={pc}
+                    onChange={(v) => changeExtraQty(ex, v)}
+                    min={0}
+                    max={ex.occupiesSeat ? qtyFor(ex.id) + Math.max(0, seatsLeft) : 10}
+                    color={pc}
                   />
                 </div>
               ))}

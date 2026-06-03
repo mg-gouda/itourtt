@@ -247,12 +247,6 @@ export function DetailsClient({ settings }: DetailsClientProps) {
                   <span className="font-medium text-gray-900">{store.quoteCurrency} {line.cost.toFixed(2)}</span>
                 </div>
               ))}
-              {(store.extras.babySeatQty + store.extras.boosterSeatQty + store.extras.wheelChairQty) > 0 && (
-                <div className="flex justify-between text-gray-400 text-xs">
-                  <span>Seat extras included</span>
-                  <span>✓</span>
-                </div>
-              )}
               <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
                 <span>Total</span>
                 <span style={{ color: pc }}>{store.quoteCurrency} {grandTotal.toFixed(2)}</span>

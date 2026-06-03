@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +48,14 @@ interface Extra {
   price: number | string;
   currency: string;
   isActive: boolean;
+  occupiesSeat: boolean;
+  allowedVehicleTypeIds?: string[];
   sortOrder: number;
+}
+
+interface VehicleTypeOption {
+  id: string;
+  name: string;
 }
 
 export default function ExtrasPage() {
@@ -69,6 +77,9 @@ export default function ExtrasPage() {
   const [currency, setCurrency] = useState("EGP");
   const [sortOrder, setSortOrder] = useState("0");
   const [isActive, setIsActive] = useState(true);
+  const [occupiesSeat, setOccupiesSeat] = useState(false);
+  const [allowedVehicleTypeIds, setAllowedVehicleTypeIds] = useState<string[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeOption[]>([]);
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Extra | null>(null);
@@ -92,6 +103,13 @@ export default function ExtrasPage() {
     fetchExtras();
   }, [fetchExtras]);
 
+  useEffect(() => {
+    api
+      .get("/vehicles/types")
+      .then(({ data }) => setVehicleTypes(Array.isArray(data) ? data : data.data || []))
+      .catch(() => setVehicleTypes([]));
+  }, []);
+
   const resetForm = () => {
     setName("");
     setDescription("");
@@ -99,6 +117,8 @@ export default function ExtrasPage() {
     setCurrency("EGP");
     setSortOrder("0");
     setIsActive(true);
+    setOccupiesSeat(false);
+    setAllowedVehicleTypeIds([]);
   };
 
   const openAdd = () => {
@@ -115,6 +135,8 @@ export default function ExtrasPage() {
     setCurrency(extra.currency);
     setSortOrder(String(extra.sortOrder));
     setIsActive(extra.isActive);
+    setOccupiesSeat(extra.occupiesSeat ?? false);
+    setAllowedVehicleTypeIds(extra.allowedVehicleTypeIds ?? []);
     setDialogOpen(true);
   };
 
@@ -135,6 +157,8 @@ export default function ExtrasPage() {
       currency,
       sortOrder: parseInt(sortOrder, 10) || 0,
       isActive,
+      occupiesSeat,
+      allowedVehicleTypeIds,
     };
     setSubmitting(true);
     try {
@@ -356,6 +380,38 @@ export default function ExtrasPage() {
               <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                 <Label className="text-muted-foreground">{t("extras.active")}</Label>
                 <Switch checked={isActive} onCheckedChange={setIsActive} />
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                <div className="flex flex-col">
+                  <Label className="text-muted-foreground">{t("extras.occupiesSeat") || "Occupies a seat"}</Label>
+                  <span className="text-xs text-muted-foreground/70">
+                    {t("extras.occupiesSeatHint") || "Counts against vehicle capacity"}
+                  </span>
+                </div>
+                <Switch checked={occupiesSeat} onCheckedChange={setOccupiesSeat} />
+              </div>
+              <div className="rounded-md border border-border px-3 py-2 space-y-2">
+                <div className="flex flex-col">
+                  <Label className="text-muted-foreground">{t("extras.allowedVehicleTypes") || "Allowed vehicle types"}</Label>
+                  <span className="text-xs text-muted-foreground/70">
+                    {t("extras.allowedVehicleTypesHint") || "Leave empty to allow any vehicle"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {vehicleTypes.map((vt) => (
+                    <label key={vt.id} className="flex items-center gap-2 text-sm text-foreground">
+                      <Checkbox
+                        checked={allowedVehicleTypeIds.includes(vt.id)}
+                        onCheckedChange={(c) =>
+                          setAllowedVehicleTypeIds((prev) =>
+                            c === true ? [...prev, vt.id] : prev.filter((id) => id !== vt.id),
+                          )
+                        }
+                      />
+                      {vt.name}
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

@@ -97,12 +97,7 @@ interface TrafficJob {
   clientName: string | null;
   pickUpTime: string | null;
   notes: string | null;
-  boosterSeat: boolean;
-  boosterSeatQty: number;
-  babySeat: boolean;
-  babySeatQty: number;
-  wheelChair: boolean;
-  wheelChairQty: number;
+  jobExtras?: { name: string; qty: number }[];
   createdAt: string;
   editUnlockedAt: string | null;
   customerId: string | null;
@@ -706,11 +701,10 @@ export default function B2BJobPage() {
       case "pax":
         return <TableCell key={key} className="text-muted-foreground text-xs">{job.paxCount}</TableCell>;
       case "extras": {
-        const extras: string[] = [];
-        if (job.boosterSeatQty > 0) extras.push(`B:${job.boosterSeatQty}`);
-        if (job.babySeatQty > 0) extras.push(`I:${job.babySeatQty}`);
-        if (job.wheelChairQty > 0) extras.push(`W:${job.wheelChairQty}`);
-        return <TableCell key={key} className="text-muted-foreground text-xs">{extras.length > 0 ? extras.join(" ") : "\u2014"}</TableCell>;
+        const extras = (job.jobExtras || [])
+          .filter((e) => e.qty > 0)
+          .map((e) => `${e.name} \u00d7${e.qty}`);
+        return <TableCell key={key} className="text-muted-foreground text-xs">{extras.length > 0 ? extras.join(", ") : "\u2014"}</TableCell>;
       }
       case "notes":
         return (

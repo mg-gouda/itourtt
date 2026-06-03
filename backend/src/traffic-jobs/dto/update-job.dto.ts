@@ -4,6 +4,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { FlightInfoDto } from './create-job.dto.js';
+import { JobExtraInputDto } from './job-extra-input.dto.js';
 
 export class UpdateJobDto {
   @IsOptional()
@@ -77,32 +78,11 @@ export class UpdateJobDto {
   @IsString()
   clientMobile?: string;
 
+  // Managed extras (catalog-driven). When provided, replaces the job's full extras set.
   @IsOptional()
-  @IsBoolean()
-  boosterSeat?: boolean;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  boosterSeatQty?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  babySeat?: boolean;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  babySeatQty?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  wheelChair?: boolean;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  wheelChairQty?: number;
+  @ValidateNested({ each: true })
+  @Type(() => JobExtraInputDto)
+  extras?: JobExtraInputDto[];
 
   @IsOptional()
   @IsBoolean()

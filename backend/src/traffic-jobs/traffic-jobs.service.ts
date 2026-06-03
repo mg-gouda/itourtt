@@ -53,6 +53,7 @@ export class TrafficJobsService {
     toZone: true,
     requestedVehicleType: true,
     flight: true,
+    jobExtras: { orderBy: { createdAt: 'asc' as const } },
     createdBy: { select: { id: true, name: true } },
     assignment: {
       include: {
@@ -96,12 +97,18 @@ export class TrafficJobsService {
     transferPriceCurrency: true,
     priceAmount: true,
     priceCurrency: true,
-    boosterSeat: true,
-    boosterSeatQty: true,
-    babySeat: true,
-    babySeatQty: true,
-    wheelChair: true,
-    wheelChairQty: true,
+    jobExtras: {
+      select: {
+        id: true,
+        extraId: true,
+        name: true,
+        qty: true,
+        unitAmount: true,
+        currency: true,
+        source: true,
+      },
+      orderBy: { createdAt: 'asc' as const },
+    },
     createdAt: true,
     updatedAt: true,
     editUnlockedAt: true,
@@ -307,12 +314,18 @@ export class TrafficJobsService {
           toZoneId,
           clientName: dto.clientName,
           clientMobile: dto.clientMobile,
-          boosterSeat: dto.boosterSeat ?? false,
-          boosterSeatQty: dto.boosterSeatQty ?? 0,
-          babySeat: dto.babySeat ?? false,
-          babySeatQty: dto.babySeatQty ?? 0,
-          wheelChair: dto.wheelChair ?? false,
-          wheelChairQty: dto.wheelChairQty ?? 0,
+          ...(dto.extras && dto.extras.length > 0 && {
+            jobExtras: {
+              create: dto.extras.map((e) => ({
+                extraId: e.extraId ?? null,
+                name: e.name,
+                qty: e.qty,
+                unitAmount: e.unitAmount,
+                currency: e.currency as any,
+                source: (e.source as any) ?? 'MANUAL',
+              })),
+            },
+          }),
           printSign: dto.printSign ?? false,
           pickUpTime: dto.pickUpTime ? new Date(dto.pickUpTime) : null,
           notes: dto.notes,
@@ -475,12 +488,20 @@ export class TrafficJobsService {
       if (dto.jobDate !== undefined) data.jobDate = new Date(dto.jobDate);
       if (dto.clientName !== undefined) data.clientName = dto.clientName;
       if (dto.clientMobile !== undefined) data.clientMobile = dto.clientMobile;
-      if (dto.boosterSeat !== undefined) data.boosterSeat = dto.boosterSeat;
-      if (dto.boosterSeatQty !== undefined) data.boosterSeatQty = dto.boosterSeatQty;
-      if (dto.babySeat !== undefined) data.babySeat = dto.babySeat;
-      if (dto.babySeatQty !== undefined) data.babySeatQty = dto.babySeatQty;
-      if (dto.wheelChair !== undefined) data.wheelChair = dto.wheelChair;
-      if (dto.wheelChairQty !== undefined) data.wheelChairQty = dto.wheelChairQty;
+      // Replace the full extras set when provided (delete-and-recreate).
+      if (dto.extras !== undefined) {
+        data.jobExtras = {
+          deleteMany: {},
+          create: dto.extras.map((e) => ({
+            extraId: e.extraId ?? null,
+            name: e.name,
+            qty: e.qty,
+            unitAmount: e.unitAmount,
+            currency: e.currency as any,
+            source: (e.source as any) ?? 'MANUAL',
+          })),
+        };
+      }
       if (dto.printSign !== undefined) data.printSign = dto.printSign;
       if (dto.pickUpTime !== undefined) data.pickUpTime = dto.pickUpTime ? new Date(dto.pickUpTime) : null;
       if (dto.notes !== undefined) data.notes = dto.notes;

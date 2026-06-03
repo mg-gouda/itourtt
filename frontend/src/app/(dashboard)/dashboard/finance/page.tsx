@@ -92,12 +92,7 @@ interface FetchedJob {
   jobDate: string;
   serviceType: string;
   paxCount: number;
-  boosterSeat?: boolean;
-  boosterSeatQty?: number;
-  babySeat?: boolean;
-  babySeatQty?: number;
-  wheelChair?: boolean;
-  wheelChairQty?: number;
+  jobExtras?: { name: string; qty: number }[];
   fromZone?: { name: string } | null;
   toZone?: { name: string } | null;
   originAirport?: { code: string; name: string } | null;
@@ -2007,11 +2002,10 @@ export default function FinancePage() {
                                   (job.originAirport?.code || job.fromZone?.name || job.originHotel?.name || "?") +
                                   " > " +
                                   (job.destinationAirport?.code || job.toZone?.name || job.destinationHotel?.name || "?");
-                                const extras = [
-                                  job.boosterSeat && job.boosterSeatQty ? `Booster x${job.boosterSeatQty}` : "",
-                                  job.babySeat && job.babySeatQty ? `Baby x${job.babySeatQty}` : "",
-                                  job.wheelChair && job.wheelChairQty ? `WC x${job.wheelChairQty}` : "",
-                                ].filter(Boolean).join(", ");
+                                const extras = (job.jobExtras || [])
+                                  .filter((e) => e.qty > 0)
+                                  .map((e) => `${e.name} ×${e.qty}`)
+                                  .join(", ");
                                 return (
                                   <TableRow
                                     key={job.id}

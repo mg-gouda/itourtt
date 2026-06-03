@@ -13,6 +13,8 @@ import type {
   BookingChannel,
   GuestBookingStatus,
   B2CPaymentStatus,
+  Currency,
+  JobExtraSource,
 } from '../../generated/prisma/enums.js';
 
 @Injectable()
@@ -144,13 +146,29 @@ export class GuestBookingsService {
         originHotelId = booking.hotelId;
       }
 
-      // Parse extras for seats/wheelchair
+      // Extras snapshot persisted at booking time (legacy seats + catalog selections).
       const extras = (booking.extras as Record<string, unknown>) || {};
+      const snapshotItems = Array.isArray(extras.items)
+        ? (extras.items as Array<{
+            extraId: string | null;
+            name: string;
+            qty: number;
+            unitAmount: number;
+            currency: string;
+          }>)
+        : [];
+
+      // Link the single seeded website agent so B2C jobs show the site's public name.
+      const websiteAgent = await tx.agent.findFirst({
+        where: { isB2cWebsite: true, deletedAt: null },
+        select: { id: true },
+      });
 
       const job = await tx.trafficJob.create({
         data: {
           internalRef,
           bookingChannel: 'B2C' as BookingChannel,
+          agentId: websiteAgent?.id ?? null,
           agentRef: booking.bookingRef,
           serviceType: booking.serviceType as ServiceType,
           jobDate: booking.jobDate,
@@ -167,12 +185,18 @@ export class GuestBookingsService {
           toZoneId: booking.toZoneId,
           clientName: booking.guestName,
           clientMobile: booking.guestPhone,
-          boosterSeat: !!extras.boosterSeat,
-          boosterSeatQty: (extras.boosterSeatQty as number) || 0,
-          babySeat: !!extras.babySeat,
-          babySeatQty: (extras.babySeatQty as number) || 0,
-          wheelChair: !!extras.wheelChair,
-          wheelChairQty: (extras.wheelChairQty as number) || 0,
+          ...(snapshotItems.length > 0 && {
+            jobExtras: {
+              create: snapshotItems.map((it) => ({
+                extraId: it.extraId ?? null,
+                name: it.name,
+                qty: it.qty,
+                unitAmount: it.unitAmount,
+                currency: it.currency as Currency,
+                source: 'B2C' as JobExtraSource,
+              })),
+            },
+          }),
           pickUpTime: booking.pickupTime,
           notes: booking.notes,
           status: 'PENDING',

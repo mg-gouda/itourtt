@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { LocationCombobox } from "@/components/location-combobox";
 import { SearchableCombobox } from "@/components/searchable-combobox";
+import { JobExtrasEditor, type JobExtra } from "@/components/job-extras-editor";
 import api from "@/lib/api";
 import { usePermission } from "@/hooks/use-permission";
 import { useT, useLocaleId } from "@/lib/i18n";
@@ -88,12 +89,7 @@ interface TrafficJob {
   transferPriceCurrency: string;
   requestedVehicleTypeId: string | null;
   requestedVehicleType?: { id: string; name: string } | null;
-  boosterSeat: boolean;
-  boosterSeatQty: number;
-  babySeat: boolean;
-  babySeatQty: number;
-  wheelChair: boolean;
-  wheelChairQty: number;
+  jobExtras: JobExtra[];
   printSign: boolean;
   createdAt: string;
   editUnlockedAt: string | null;
@@ -151,12 +147,7 @@ interface FormState {
   destinationSelectedId: string;
   clientName: string;
   clientMobile: string;
-  boosterSeat: boolean;
-  boosterSeatQty: string;
-  babySeat: boolean;
-  babySeatQty: string;
-  wheelChair: boolean;
-  wheelChairQty: string;
+  extras: JobExtra[];
   pickUpTime: string;
   notes: string;
   collectionRequired: boolean;
@@ -190,12 +181,7 @@ const defaultForm: FormState = {
   destinationSelectedId: "",
   clientName: "",
   clientMobile: "",
-  boosterSeat: false,
-  boosterSeatQty: "1",
-  babySeat: false,
-  babySeatQty: "1",
-  wheelChair: false,
-  wheelChairQty: "1",
+  extras: [],
   pickUpTime: "",
   notes: "",
   collectionRequired: false,
@@ -377,12 +363,15 @@ export default function OnlineJobPage() {
       destinationSelectedId,
       clientName: job.clientName || "",
       clientMobile: job.clientMobile || "",
-      boosterSeat: job.boosterSeat,
-      boosterSeatQty: String(job.boosterSeatQty || 1),
-      babySeat: job.babySeat,
-      babySeatQty: String(job.babySeatQty || 1),
-      wheelChair: job.wheelChair,
-      wheelChairQty: String(job.wheelChairQty || 1),
+      extras: (job.jobExtras || []).map((e) => ({
+        id: e.id,
+        extraId: e.extraId ?? null,
+        name: e.name,
+        qty: Number(e.qty),
+        unitAmount: Number(e.unitAmount),
+        currency: e.currency,
+        source: e.source,
+      })),
       pickUpTime,
       notes: job.notes || "",
       collectionRequired: job.collectionRequired || false,
@@ -456,12 +445,16 @@ export default function OnlineJobPage() {
 
       payload.clientName = form.clientName.trim();
       payload.clientMobile = form.clientMobile.trim();
-      payload.boosterSeat = form.boosterSeat;
-      if (form.boosterSeat) payload.boosterSeatQty = parseInt(form.boosterSeatQty) || 1;
-      payload.babySeat = form.babySeat;
-      if (form.babySeat) payload.babySeatQty = parseInt(form.babySeatQty) || 1;
-      payload.wheelChair = form.wheelChair;
-      if (form.wheelChair) payload.wheelChairQty = parseInt(form.wheelChairQty) || 1;
+      payload.extras = form.extras
+        .filter((e) => e.name && e.qty > 0)
+        .map((e) => ({
+          extraId: e.extraId ?? undefined,
+          name: e.name,
+          qty: e.qty,
+          unitAmount: e.unitAmount,
+          currency: e.currency,
+          source: e.source,
+        }));
       payload.printSign = form.serviceType === "ARR";
 
       payload.collectionRequired = form.collectionRequired;
@@ -632,11 +625,10 @@ export default function OnlineJobPage() {
           </TableCell>
         );
       case "extras": {
-        const extras: string[] = [];
-        if (job.boosterSeatQty > 0) extras.push(`B:${job.boosterSeatQty}`);
-        if (job.babySeatQty > 0) extras.push(`I:${job.babySeatQty}`);
-        if (job.wheelChairQty > 0) extras.push(`W:${job.wheelChairQty}`);
-        return <TableCell key={key} className="text-muted-foreground text-xs">{extras.length > 0 ? extras.join(" ") : "\u2014"}</TableCell>;
+        const extras = (job.jobExtras || [])
+          .filter((e) => e.qty > 0)
+          .map((e) => `${e.name} \u00d7${e.qty}`);
+        return <TableCell key={key} className="text-muted-foreground text-xs">{extras.length > 0 ? extras.join(", ") : "\u2014"}</TableCell>;
       }
       case "collectionAmt":
         return (
@@ -988,63 +980,18 @@ export default function OnlineJobPage() {
             <hr className="flex-1 border-border" />
           </div>
 
-          {/* Line 4: Extras */}
+          {/* Line 4: Managed extras + Collection */}
           {canExtras && (
-          <div className="grid grid-cols-5 gap-3">
-            <div className="min-w-0 flex items-center">
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <Checkbox
-                  checked={form.boosterSeat}
-                  onCheckedChange={(v) => updateForm({ boosterSeat: v === true })}
-                />
-                {t("jobs.boosterSeat")}
-                {form.boosterSeat && (
-                  <Input
-                    type="number"
-                    min="1"
-                    value={form.boosterSeatQty}
-                    onChange={(e) => updateForm({ boosterSeatQty: e.target.value })}
-                    className="border-border bg-card text-foreground h-7 w-14 text-center"
-                  />
-                )}
-              </label>
+          <div className="space-y-3">
+            <div className="grid grid-cols-[2fr_4rem_6rem_5rem_auto] gap-2 px-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              <span>{t("jobs.extras") || "Extras"}</span>
+              <span className="text-center">{t("jobs.qty") || "Qty"}</span>
+              <span className="text-right">{t("jobs.amount") || "Amount"}</span>
+              <span>{t("jobs.currency") || "Cur."}</span>
+              <span />
             </div>
-            <div className="min-w-0 flex items-center">
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <Checkbox
-                  checked={form.babySeat}
-                  onCheckedChange={(v) => updateForm({ babySeat: v === true })}
-                />
-                {t("jobs.babySeat")}
-                {form.babySeat && (
-                  <Input
-                    type="number"
-                    min="1"
-                    value={form.babySeatQty}
-                    onChange={(e) => updateForm({ babySeatQty: e.target.value })}
-                    className="border-border bg-card text-foreground h-7 w-14 text-center"
-                  />
-                )}
-              </label>
-            </div>
-            <div className="min-w-0 flex items-center">
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <Checkbox
-                  checked={form.wheelChair}
-                  onCheckedChange={(v) => updateForm({ wheelChair: v === true })}
-                />
-                {t("jobs.wheelchair")}
-                {form.wheelChair && (
-                  <Input
-                    type="number"
-                    min="1"
-                    value={form.wheelChairQty}
-                    onChange={(e) => updateForm({ wheelChairQty: e.target.value })}
-                    className="border-border bg-card text-foreground h-7 w-14 text-center"
-                  />
-                )}
-              </label>
-            </div>
+            <JobExtrasEditor value={form.extras} onChange={(extras) => updateForm({ extras })} />
+            <div className="grid grid-cols-5 gap-3">
             <div className="min-w-0 flex items-center">
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <Checkbox
@@ -1076,6 +1023,7 @@ export default function OnlineJobPage() {
                   </>
                 )}
               </label>
+            </div>
             </div>
           </div>
           )}

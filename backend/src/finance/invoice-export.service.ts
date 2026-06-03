@@ -30,6 +30,7 @@ export class InvoiceExportService {
                 originHotel: { select: { name: true } },
                 destinationHotel: { select: { name: true } },
                 flight: { select: { flightNo: true, carrier: true } },
+                jobExtras: { select: { name: true, qty: true } },
                 assignment: {
                   include: {
                     vehicle: {
@@ -69,17 +70,10 @@ export class InvoiceExportService {
   }
 
   private buildExtras(job: any): string {
-    const parts: string[] = [];
-    if (job.boosterSeat && job.boosterSeatQty > 0) {
-      parts.push(`Booster x${job.boosterSeatQty}`);
-    }
-    if (job.babySeat && job.babySeatQty > 0) {
-      parts.push(`Baby x${job.babySeatQty}`);
-    }
-    if (job.wheelChair && job.wheelChairQty > 0) {
-      parts.push(`Wheelchair x${job.wheelChairQty}`);
-    }
-    return parts.join(', ');
+    return (job.jobExtras ?? [])
+      .filter((e: any) => e.qty > 0)
+      .map((e: any) => `${e.name} x${e.qty}`)
+      .join(', ');
   }
 
   private formatDate(date: Date | string): string {

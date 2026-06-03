@@ -627,22 +627,57 @@ async function main() {
       console.log('Agent price seeding skipped (removed from default seed).');
     }
 
+    // ─── MANAGED EXTRAS CATALOG (seed the former hard-coded seat extras) ───
+    for (const ex of [
+      { name: 'Booster Seat', sortOrder: 1 },
+      { name: 'Baby Seat', sortOrder: 2 },
+      { name: 'Wheelchair', sortOrder: 3 },
+    ]) {
+      const existing = await prisma.b2cExtra.findFirst({ where: { name: ex.name } });
+      if (!existing) {
+        await prisma.b2cExtra.create({
+          data: { name: ex.name, price: 0, currency: 'EGP', isActive: true, occupiesSeat: true, sortOrder: ex.sortOrder },
+        });
+        console.log(`Extra seeded: ${ex.name}`);
+      } else if (!existing.occupiesSeat) {
+        await prisma.b2cExtra.update({ where: { id: existing.id }, data: { occupiesSeat: true } });
+      }
+    }
+
     // ─── B2C WEBSITE AGENT (always seeded; selectable in online job form) ───
-    // Bookings made on the public B2C site are attributed to this agent.
-    const existingB2cAgent = await prisma.agent.findFirst({
-      where: { legalName: 'B2C Website', deletedAt: null },
+    // Bookings made on the public B2C site are attributed to this agent. Its display
+    // name tracks the website's public name (WebsiteSettings.siteName), while the
+    // isB2cWebsite flag is the stable key the convert flow uses to find it.
+    const websiteSettings = await prisma.websiteSettings.findFirst({
+      select: { siteName: true },
     });
+    const siteName = websiteSettings?.siteName?.trim() || 'iTour Transfers';
+
+    // Find by stable marker first; fall back to the original seeded name for first run.
+    const existingB2cAgent =
+      (await prisma.agent.findFirst({
+        where: { isB2cWebsite: true, deletedAt: null },
+      })) ??
+      (await prisma.agent.findFirst({
+        where: { legalName: 'B2C Website', deletedAt: null },
+      }));
+
     if (!existingB2cAgent) {
       const b2cAgent = await prisma.agent.create({
         data: {
-          legalName: 'B2C Website',
-          tradeName: 'B2C Website',
+          legalName: siteName,
+          tradeName: siteName,
           isActive: true,
+          isB2cWebsite: true,
         },
       });
-      console.log(`B2C Website agent created: ${b2cAgent.id}`);
+      console.log(`Website agent created: ${b2cAgent.id} (${siteName})`);
     } else {
-      console.log('B2C Website agent already exists.');
+      await prisma.agent.update({
+        where: { id: existingB2cAgent.id },
+        data: { legalName: siteName, tradeName: siteName, isB2cWebsite: true },
+      });
+      console.log(`Website agent updated to site name: ${siteName}`);
     }
 
     console.log('\nSeed completed successfully.');
