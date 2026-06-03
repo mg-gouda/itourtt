@@ -11,32 +11,14 @@ export function HeroSection({ settings, children }: HeroSectionProps) {
   const hasImage = !!settings.heroImageUrl;
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50">
-      {/* Subtle brand-tinted glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at top, ${settings.primaryColor}14 0%, transparent 55%)`,
-        }}
-      />
-
-      {/* Optional background image overlay */}
+    <section className="relative overflow-hidden bg-white">
+      {/* Background image, displayed as-is (no overlay/gradient) */}
       {hasImage && (
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.06]"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${settings.heroImageUrl})` }}
         />
       )}
-
-      {/* Subtle grid pattern */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(0,0,0,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.4) 1px, transparent 1px)',
-          backgroundSize: '64px 64px',
-        }}
-      />
 
       {/* Content */}
       <div className="relative px-4 pb-16 pt-16 sm:pb-20 sm:pt-20">
