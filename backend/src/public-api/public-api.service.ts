@@ -210,6 +210,11 @@ export class PublicApiService {
     const extras = await this.prisma.b2cExtra.findMany({
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      include: {
+        allowedVehicleTypes: {
+          include: { vehicleType: { select: { id: true, name: true } } },
+        },
+      },
     });
     return extras.map((e) => ({
       id: e.id,
@@ -218,6 +223,9 @@ export class PublicApiService {
       price: Number(e.price),
       currency: e.currency,
       imageUrl: e.imageUrl,
+      occupiesSeat: e.occupiesSeat,
+      allowedVehicleTypeIds: e.allowedVehicleTypes.map((a) => a.vehicleTypeId),
+      allowedVehicleTypeNames: e.allowedVehicleTypes.map((a) => a.vehicleType.name),
     }));
   }
 
