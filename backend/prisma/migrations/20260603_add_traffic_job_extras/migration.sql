@@ -6,9 +6,9 @@ ALTER TABLE "agents" ADD COLUMN IF NOT EXISTS "is_b2c_website" BOOLEAN NOT NULL 
 
 -- Extras attached to a traffic job, snapshotting the catalog name/price.
 CREATE TABLE IF NOT EXISTS "traffic_job_extras" (
-    "id"             UUID            NOT NULL DEFAULT gen_random_uuid(),
-    "traffic_job_id" UUID            NOT NULL,
-    "extra_id"       UUID,
+    "id"             TEXT            NOT NULL DEFAULT gen_random_uuid()::text,
+    "traffic_job_id" TEXT            NOT NULL,
+    "extra_id"       TEXT,
     "name"           TEXT            NOT NULL,
     "qty"            INTEGER         NOT NULL DEFAULT 1,
     "unit_amount"    DECIMAL(15,2)   NOT NULL DEFAULT 0,

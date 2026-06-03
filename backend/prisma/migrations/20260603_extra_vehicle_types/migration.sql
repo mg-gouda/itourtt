@@ -1,7 +1,7 @@
 -- Restricts a catalog extra to specific vehicle types (cargo-space requirement).
 CREATE TABLE IF NOT EXISTS "b2c_extra_vehicle_types" (
-    "extra_id"        UUID NOT NULL,
-    "vehicle_type_id" UUID NOT NULL,
+    "extra_id"        TEXT NOT NULL,
+    "vehicle_type_id" TEXT NOT NULL,
 
     CONSTRAINT "b2c_extra_vehicle_types_pkey" PRIMARY KEY ("extra_id", "vehicle_type_id")
 );
