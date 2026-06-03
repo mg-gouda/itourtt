@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plane, Clock, Users, Briefcase, ChevronRight, Sparkles } from 'lucide-react';
+import { Plane, Clock, Users, Briefcase, ChevronRight, Sparkles, Car, AlertCircle } from 'lucide-react';
 import { useBookingStore } from '@/stores/booking-store';
 import type { SiteSettings } from '@/lib/site-settings';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,24 @@ interface CatalogExtra {
   occupiesSeat: boolean;
   allowedVehicleTypeIds: string[];
   allowedVehicleTypeNames: string[];
+}
+
+interface VehicleOption {
+  vehicleTypeId: string;
+  vehicleTypeName: string;
+  seatCapacity: number;
+  price: number;
+  currency: string;
+  driverTip: number;
+}
+
+// Why the guest can't add an extra to the current vehicle, plus the change
+// they were attempting — used to offer larger/compatible vehicles inline.
+interface CapacityAlert {
+  reason: 'capacity' | 'vehicle-type';
+  message: string;
+  extra: CatalogExtra;
+  desiredQty: number;
 }
 
 interface FlightClientProps { settings: SiteSettings; }
@@ -46,7 +64,8 @@ export function FlightClient({ settings }: FlightClientProps) {
   const isArr = store.serviceType === 'ARR';
 
   const [catalogExtras, setCatalogExtras] = useState<CatalogExtra[]>([]);
-  const [seatAlert, setSeatAlert] = useState<string | null>(null);
+  const [vehicleOptions, setVehicleOptions] = useState<VehicleOption[]>([]);
+  const [capacityAlert, setCapacityAlert] = useState<CapacityAlert | null>(null);
 
   useEffect(() => {
     if (!store.vehicleTypeId) { router.replace('/w/book'); }
@@ -63,6 +82,30 @@ export function FlightClient({ settings }: FlightClientProps) {
     return () => { active = false; };
   }, []);
 
+  // Load the same vehicle options the guest saw on step 1, so they can swap to a
+  // larger / compatible vehicle right here without going back to the search.
+  useEffect(() => {
+    if (!store.fromZoneId || !store.toZoneId || !store.serviceType) return;
+    let active = true;
+    fetch(`${API}/vehicle-quotes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        serviceType: store.serviceType,
+        fromZoneId: store.fromZoneId,
+        toZoneId: store.toZoneId,
+        paxCount: store.paxCount,
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j) => {
+        const data = j.data ?? j;
+        if (active) setVehicleOptions(data.options ?? []);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [store.fromZoneId, store.toZoneId, store.serviceType, store.paxCount]);
+
   const qtyFor = (id: string) =>
     store.customExtras.find((e) => e.extraId === id)?.qty ?? 0;
 
@@ -76,6 +119,8 @@ export function FlightClient({ settings }: FlightClientProps) {
   const seatsLeft = seatCapacity > 0 ? seatCapacity - store.paxCount - seatExtrasUsed : Infinity;
 
   // Guard an extra's quantity change against vehicle-type restriction and capacity.
+  // Instead of silently disabling the control, surface a clear alert the moment
+  // the guest tries to add an extra that won't fit the current vehicle.
   const changeExtraQty = (ex: CatalogExtra, next: number) => {
     const increasing = next > qtyFor(ex.id);
     if (
@@ -83,21 +128,71 @@ export function FlightClient({ settings }: FlightClientProps) {
       ex.allowedVehicleTypeIds.length > 0 &&
       !ex.allowedVehicleTypeIds.includes(store.vehicleTypeId)
     ) {
-      setSeatAlert(
-        `"${ex.name}" can only be carried by: ${ex.allowedVehicleTypeNames.join(', ')}.` +
-          ` Please change your vehicle type to add it.`,
-      );
+      setCapacityAlert({
+        reason: 'vehicle-type',
+        extra: ex,
+        desiredQty: next,
+        message:
+          `"${ex.name}" can only be carried by ${ex.allowedVehicleTypeNames.join(', ')}.` +
+          ` Switch your vehicle below to add it — no need to start your search over.`,
+      });
       return;
     }
     if (ex.occupiesSeat && increasing && seatsLeft <= 0) {
-      setSeatAlert(
-        `This vehicle seats ${seatCapacity}. With ${store.paxCount} passenger${store.paxCount !== 1 ? 's' : ''}` +
-          ` and the extras already selected there's no seat left. Please choose a larger vehicle type to add more.`,
-      );
+      setCapacityAlert({
+        reason: 'capacity',
+        extra: ex,
+        desiredQty: next,
+        message:
+          `This ${seatCapacity}-seat vehicle is full with ${store.paxCount} passenger${store.paxCount !== 1 ? 's' : ''}` +
+          ` and the extras already selected. Switch to a larger vehicle below to add "${ex.name}" — no need to start your search over.`,
+      });
       return;
     }
-    setSeatAlert(null);
+    setCapacityAlert(null);
     store.setCustomExtraQty(ex.id, next);
+  };
+
+  // Seat usage by every seat-occupying extra except the given one — used to test
+  // whether a candidate vehicle could fit pax + extras + the pending addition.
+  const seatExtrasExcluding = (extraId: string) =>
+    catalogExtras.reduce(
+      (sum, ex) => (ex.occupiesSeat && ex.id !== extraId ? sum + qtyFor(ex.id) : sum),
+      0,
+    );
+
+  // Larger / compatible vehicles that would actually fit the blocked selection.
+  // Vehicles too small (or not allowed for the extra) are excluded, so the guest
+  // can never switch into a vehicle that still wouldn't work.
+  const vehiclesForAlert = (alert: CapacityAlert): VehicleOption[] => {
+    const { extra, desiredQty } = alert;
+    const requiredSeats =
+      store.paxCount +
+      seatExtrasExcluding(extra.id) +
+      (extra.occupiesSeat ? desiredQty : 0);
+    return vehicleOptions.filter((opt) => {
+      if (opt.vehicleTypeId === store.vehicleTypeId) return false;
+      if (
+        extra.allowedVehicleTypeIds.length > 0 &&
+        !extra.allowedVehicleTypeIds.includes(opt.vehicleTypeId)
+      ) {
+        return false;
+      }
+      return opt.seatCapacity >= requiredSeats;
+    });
+  };
+
+  // Swap the vehicle in place (re-quoting price + capacity) and apply the extra
+  // the guest was trying to add, all without leaving this step.
+  const switchVehicle = (opt: VehicleOption, alert: CapacityAlert) => {
+    store.setField('vehicleTypeId', opt.vehicleTypeId);
+    store.setQuote(opt.price, opt.currency, {
+      vehicleType: opt.vehicleTypeName,
+      seatCapacity: opt.seatCapacity,
+      driverTip: opt.driverTip,
+    });
+    store.setCustomExtraQty(alert.extra.id, alert.desiredQty);
+    setCapacityAlert(null);
   };
 
   // Sum catalog extras priced in the quote currency.
@@ -197,11 +292,45 @@ export function FlightClient({ settings }: FlightClientProps) {
           {/* Managed catalog extras */}
           {catalogExtras.length > 0 && (
             <div className="space-y-4">
-              {seatAlert && (
-                <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  {seatAlert}
-                </div>
-              )}
+              {capacityAlert && (() => {
+                const candidates = vehiclesForAlert(capacityAlert);
+                return (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-xs text-amber-800 space-y-2.5">
+                    <p className="flex items-start gap-2 font-medium leading-relaxed">
+                      <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                      <span>{capacityAlert.message}</span>
+                    </p>
+                    {candidates.length > 0 ? (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+                          Change vehicle
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {candidates.map((opt) => (
+                            <button
+                              key={opt.vehicleTypeId}
+                              type="button"
+                              onClick={() => switchVehicle(opt, capacityAlert)}
+                              className="flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-1.5 transition hover:border-amber-400 hover:shadow-sm"
+                            >
+                              <Car className="h-3.5 w-3.5 text-amber-600" />
+                              <span className="font-semibold text-gray-900">{opt.vehicleTypeName}</span>
+                              <span className="text-gray-400">· up to {opt.seatCapacity}</span>
+                              <span className="font-bold" style={{ color: pc }}>
+                                {opt.currency} {opt.price.toFixed(2)}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-amber-700">
+                        No other vehicle on this route can carry the selected passengers and extras.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               {catalogExtras.map((ex) => (
                 <div key={ex.id} className="flex items-center justify-between py-2">
                   <div className="flex items-center gap-3">
@@ -224,7 +353,7 @@ export function FlightClient({ settings }: FlightClientProps) {
                     value={qtyFor(ex.id)}
                     onChange={(v) => changeExtraQty(ex, v)}
                     min={0}
-                    max={ex.occupiesSeat ? qtyFor(ex.id) + Math.max(0, seatsLeft) : 10}
+                    max={10}
                     color={pc}
                   />
                 </div>

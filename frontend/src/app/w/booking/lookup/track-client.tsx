@@ -128,20 +128,19 @@ export function TrackBookingClient({ settings }: TrackBookingClientProps) {
   return (
     <>
       {/* Hero banner */}
-      <section
-        className="relative overflow-hidden px-4 py-16 sm:py-20"
-        style={{
-          background: `linear-gradient(135deg, ${settings.heroGradientFrom} 0%, ${settings.heroGradientTo} 100%)`,
-        }}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(59,130,246,0.12)_0%,transparent_60%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(139,92,246,0.08)_0%,transparent_60%)]" />
+      <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50 px-4 py-16 sm:py-20">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse at top, ${pc}14 0%, transparent 55%)`,
+          }}
+        />
 
         <div className="relative mx-auto max-w-3xl text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
             {t('track.title')}
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-base text-white/70">
+          <p className="mx-auto mt-3 max-w-2xl text-base text-gray-500">
             {t('track.enterRef')}
           </p>
 
@@ -152,7 +151,7 @@ export function TrackBookingClient({ settings }: TrackBookingClientProps) {
               value={searchRef}
               onChange={(e) => setSearchRef(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1 border-white/20 bg-white/10 text-white placeholder:text-white/40 focus-visible:ring-white/30"
+              className="flex-1 border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus-visible:ring-1"
             />
             <Button
               onClick={handleSearch}

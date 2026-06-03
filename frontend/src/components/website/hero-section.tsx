@@ -11,33 +11,29 @@ export function HeroSection({ settings, children }: HeroSectionProps) {
   const hasImage = !!settings.heroImageUrl;
 
   return (
-    <section className="relative overflow-hidden">
-      {/* Background gradient */}
+    <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50">
+      {/* Subtle brand-tinted glow */}
       <div
-        className="absolute inset-0"
+        className="pointer-events-none absolute inset-0"
         style={{
-          background: `linear-gradient(135deg, ${settings.heroGradientFrom} 0%, ${settings.heroGradientTo} 100%)`,
+          background: `radial-gradient(ellipse at top, ${settings.primaryColor}14 0%, transparent 55%)`,
         }}
       />
 
       {/* Optional background image overlay */}
       {hasImage && (
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.06]"
           style={{ backgroundImage: `url(${settings.heroImageUrl})` }}
         />
       )}
 
-      {/* Decorative glow */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(59,130,246,0.12)_0%,transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(139,92,246,0.08)_0%,transparent_60%)]" />
-
       {/* Subtle grid pattern */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+            'linear-gradient(rgba(0,0,0,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.4) 1px, transparent 1px)',
           backgroundSize: '64px 64px',
         }}
       />
@@ -46,15 +42,15 @@ export function HeroSection({ settings, children }: HeroSectionProps) {
       <div className="relative px-4 pb-16 pt-16 sm:pb-20 sm:pt-20">
         <div className="mx-auto max-w-3xl text-center">
           <div
-            className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white/80 backdrop-blur-sm"
+            className="mb-5 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gray-500 shadow-sm"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Private Airport Transfers · Egypt
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
             {settings.heroTitle}
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/65 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-gray-500 sm:text-lg">
             {settings.heroSubtitle}
           </p>
         </div>

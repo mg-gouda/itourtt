@@ -67,6 +67,7 @@ export function DetailsClient({ settings }: DetailsClientProps) {
           destinationAirportId: store.destinationAirportId || undefined,
           fromZoneId: store.fromZoneId,
           toZoneId: store.toZoneId,
+          hotelId: store.hotelId || undefined,
           vehicleTypeId: store.vehicleTypeId,
           jobDate: store.jobDate,
           pickupTime: store.pickupTime,

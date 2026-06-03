@@ -86,25 +86,25 @@ export function BookNowClient({ settings }: BookNowClientProps) {
     : '';
 
   return (
-    <div className="min-h-screen pt-16" style={{ background: `linear-gradient(160deg, ${settings.heroGradientFrom} 0%, ${settings.heroGradientTo} 100%)` }}>
+    <div className="min-h-screen pt-16 bg-gray-50">
       {/* Header bar */}
-      <div className="border-b border-white/10 bg-black/20 backdrop-blur-sm px-4 py-3">
-        <div className="mx-auto max-w-5xl flex flex-wrap items-center gap-4 text-sm text-white/80">
-          <button onClick={() => router.push('/w')} className="flex items-center gap-1.5 text-white/60 hover:text-white transition text-xs">
+      <div className="border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
+        <div className="mx-auto max-w-5xl flex flex-wrap items-center gap-4 text-sm text-gray-600">
+          <button onClick={() => router.push('/w')} className="flex items-center gap-1.5 text-gray-500 hover:text-gray-900 transition text-xs">
             ← Edit Search
           </button>
           <span className="flex items-center gap-1.5">
-            <Plane className="h-3.5 w-3.5" style={{ color: isArr ? '#4ade80' : '#f87171' }} />
+            <Plane className="h-3.5 w-3.5" style={{ color: isArr ? '#16a34a' : '#dc2626' }} />
             {isArr ? 'Arrival' : 'Departure'} Transfer
           </span>
           {dateDisplay && (
             <span className="flex items-center gap-1.5">
-              <CalendarDays className="h-3.5 w-3.5 opacity-60" />
+              <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
               {dateDisplay} · {store.pickupTime}
             </span>
           )}
           <span className="flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 opacity-60" />
+            <Users className="h-3.5 w-3.5 text-gray-400" />
             {store.paxCount} passenger{store.paxCount !== 1 ? 's' : ''}
           </span>
         </div>
@@ -117,71 +117,66 @@ export function BookNowClient({ settings }: BookNowClientProps) {
             <div key={step} className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
-                  style={i === 0 ? { backgroundColor: pc, color: 'white' } : { backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}>
+                  style={i === 0 ? { backgroundColor: pc, color: 'white' } : { backgroundColor: '#f3f4f6', color: '#9ca3af' }}>
                   {i + 1}
                 </div>
-                <span className={`text-sm font-medium ${i === 0 ? 'text-white' : 'text-white/40'}`}>{step}</span>
+                <span className={`text-sm font-medium ${i === 0 ? 'text-gray-900' : 'text-gray-400'}`}>{step}</span>
               </div>
-              {i < 2 && <ChevronRight className="h-4 w-4 text-white/20" />}
+              {i < 2 && <ChevronRight className="h-4 w-4 text-gray-300" />}
             </div>
           ))}
         </div>
 
-        <h2 className="text-2xl font-bold text-white text-center mb-2">Choose your vehicle</h2>
-        <p className="text-white/60 text-center text-sm mb-8">All prices are per vehicle, not per person.</p>
+        <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">Choose your vehicle</h2>
+        <p className="text-gray-500 text-center text-sm mb-8">All prices are per vehicle, not per person.</p>
 
         {loading && (
           <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
         )}
 
         {error && (
-          <div className="rounded-2xl bg-red-500/10 border border-red-500/20 p-6 text-center text-red-300 flex flex-col items-center gap-2">
+          <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center text-red-600 flex flex-col items-center gap-2">
             <AlertCircle className="h-6 w-6" />
             <p>{error}</p>
-            <button onClick={() => router.push('/w')} className="mt-2 text-sm underline text-red-200 hover:text-white">Go back and try again</button>
+            <button onClick={() => router.push('/w')} className="mt-2 text-sm underline text-red-500 hover:text-red-700">Go back and try again</button>
           </div>
         )}
 
         {!loading && !error && options.length === 0 && (
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-10 text-center text-white/50">
-            <Car className="h-10 w-10 mx-auto mb-3 opacity-30" />
+          <div className="rounded-2xl bg-white border border-gray-200 p-10 text-center text-gray-500 shadow-sm">
+            <Car className="h-10 w-10 mx-auto mb-3 text-gray-300" />
             <p className="font-medium">No vehicles available for this route.</p>
             <p className="text-sm mt-1">Try a different date or passenger count.</p>
-            <button onClick={() => router.push('/w')} className="mt-4 text-sm underline hover:text-white">Edit search</button>
+            <button onClick={() => router.push('/w')} className="mt-4 text-sm underline hover:text-gray-900">Edit search</button>
           </div>
         )}
 
         {!loading && !error && options.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col gap-4">
             {options.map((opt) => (
               <button
                 key={opt.vehicleTypeId}
                 type="button"
                 onClick={() => selectVehicle(opt)}
-                className="group relative overflow-hidden rounded-2xl bg-white text-left shadow-lg transition-all hover:shadow-2xl hover:-translate-y-0.5"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-left shadow-sm transition-all hover:shadow-md hover:border-gray-300 sm:flex-row"
               >
                 {/* Vehicle image */}
-                <div className="relative h-40 bg-gray-100 overflow-hidden">
+                <div className="relative h-44 shrink-0 bg-gray-100 overflow-hidden sm:h-auto sm:w-64">
                   {opt.imageUrl ? (
                     <img src={opt.imageUrl} alt={opt.vehicleTypeName} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                   ) : (
-                    <div className="flex h-full items-center justify-center">
+                    <div className="flex h-full min-h-[11rem] items-center justify-center">
                       <Car className="h-16 w-16 text-gray-300" />
                     </div>
                   )}
-                  {/* Price badge */}
-                  <div className="absolute bottom-3 right-3 rounded-xl px-3 py-1.5 text-white text-sm font-bold shadow-lg"
-                    style={{ backgroundColor: pc }}>
-                    {opt.currency} {opt.price.toFixed(2)}
-                  </div>
                 </div>
 
                 {/* Info */}
-                <div className="p-4">
+                <div className="flex flex-1 flex-col p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-bold text-gray-900 text-base">{opt.vehicleTypeName}</h3>
+                    <h3 className="font-bold text-gray-900 text-base sm:text-lg">{opt.vehicleTypeName}</h3>
                     <span className="flex items-center gap-1 text-xs text-gray-500 shrink-0">
                       <Users className="h-3.5 w-3.5" />
                       up to {opt.seatCapacity}
@@ -220,10 +215,13 @@ export function BookNowClient({ settings }: BookNowClientProps) {
                       )}
                     </div>
                   )}
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Per vehicle · all inclusive</span>
-                    <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: pc }}>
-                      Select <ChevronRight className="h-3.5 w-3.5" />
+                  <div className="mt-4 flex items-end justify-between gap-3 pt-4 border-t border-gray-100 sm:mt-auto">
+                    <div className="flex flex-col">
+                      <span className="text-xl font-extrabold text-gray-900">{opt.currency} {opt.price.toFixed(2)}</span>
+                      <span className="text-xs text-gray-400">Per vehicle · all inclusive</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform group-hover:scale-[1.02]" style={{ backgroundColor: pc }}>
+                      Book now <ChevronRight className="h-4 w-4" />
                     </span>
                   </div>
                 </div>

@@ -209,7 +209,10 @@ export class GuestBookingsService {
         },
       });
 
-      // Create TrafficFlight if flightNo is provided
+      // Create TrafficFlight if flightNo is provided. The time the guest entered
+      // in the booking engine (booking.pickupTime) is the flight arrival time for
+      // ARR transfers and the departure time for DEP transfers, so reflect it in
+      // the matching flight field shown in the admin/dispatch area.
       if (booking.flightNo) {
         await tx.trafficFlight.create({
           data: {
@@ -217,6 +220,8 @@ export class GuestBookingsService {
             flightNo: booking.flightNo,
             carrier: booking.carrier,
             terminal: booking.terminal,
+            arrivalTime: booking.serviceType === 'ARR' ? booking.pickupTime : null,
+            departureTime: booking.serviceType === 'DEP' ? booking.pickupTime : null,
           },
         });
       }

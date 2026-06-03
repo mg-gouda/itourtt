@@ -23,6 +23,7 @@ interface BookingState {
   toPlaceName: string;
   toPlaceId: string;
   hotelId: string;
+  hotelName: string;
   originAirportId: string;
   destinationAirportId: string;
   jobDate: string;
@@ -68,6 +69,7 @@ const initialState = {
   toPlaceName: '',
   toPlaceId: '',
   hotelId: '',
+  hotelName: '',
   originAirportId: '',
   destinationAirportId: '',
   jobDate: '',

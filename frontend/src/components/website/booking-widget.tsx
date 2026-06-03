@@ -13,6 +13,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import {
   format,
@@ -29,13 +31,7 @@ import {
   startOfDay,
 } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { useBookingStore } from '@/stores/booking-store';
 import type { SiteSettings } from '@/lib/site-settings';
 import { useWT } from '@/lib/website-i18n';
@@ -220,7 +216,102 @@ function Cell({ icon: Icon, iconColor, label, children }: {
   );
 }
 
-const selectCls = 'w-full border-0 bg-transparent text-gray-900 shadow-none hover:bg-transparent focus:ring-0 h-auto p-0 text-sm font-medium';
+/* ─── Searchable combobox ───
+ * Popover-based (no cmdk) so it drops into the public B2C site unchanged.
+ * Options may carry an optional `group`; consecutive options sharing a group
+ * render under one heading, and the query also matches on group name so e.g.
+ * typing a zone reveals all its hotels. */
+interface ComboOption { value: string; label: string; group?: string }
+
+function SearchableSelect({
+  value,
+  onValueChange,
+  options,
+  placeholder,
+  primaryColor,
+  disabled = false,
+  emptyText = 'No results',
+}: {
+  value: string;
+  onValueChange: (v: string) => void;
+  options: ComboOption[];
+  placeholder: string;
+  primaryColor: string;
+  disabled?: boolean;
+  emptyText?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const selected = options.find((o) => o.value === value);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? options.filter(
+        (o) => o.label.toLowerCase().includes(q) || (o.group ?? '').toLowerCase().includes(q),
+      )
+    : options;
+
+  // Group consecutive options, preserving the incoming order.
+  const groups: { name: string | undefined; items: ComboOption[] }[] = [];
+  for (const o of filtered) {
+    const last = groups[groups.length - 1];
+    if (last && last.name === o.group) last.items.push(o);
+    else groups.push({ name: o.group, items: [o] });
+  }
+
+  const close = () => { setOpen(false); setQuery(''); };
+
+  return (
+    <Popover open={open} onOpenChange={(v) => (v ? setOpen(true) : close())}>
+      <PopoverTrigger asChild disabled={disabled}>
+        <button type="button" disabled={disabled}
+          className="flex w-full items-center justify-between gap-1 text-left disabled:cursor-not-allowed disabled:opacity-50">
+          <span className={cn('truncate text-sm', selected ? 'font-medium text-gray-900' : 'text-gray-400')}>
+            {selected ? selected.label : placeholder}
+          </span>
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={8}
+        className="w-[var(--radix-popover-trigger-width)] min-w-56 p-0">
+        <div className="flex items-center gap-2 border-b px-3 py-2">
+          <Search className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+          <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search…"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400" />
+        </div>
+        <div className="max-h-64 overflow-y-auto py-1">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-6 text-center text-xs text-gray-400">{emptyText}</div>
+          ) : (
+            groups.map((g, gi) => (
+              <div key={g.name ?? gi}>
+                {g.name && (
+                  <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    {g.name}
+                  </p>
+                )}
+                {g.items.map((o) => {
+                  const active = o.value === value;
+                  return (
+                    <button key={o.value} type="button"
+                      onClick={() => { onValueChange(o.value); close(); }}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50"
+                      style={active ? { color: primaryColor } : undefined}>
+                      <span className="truncate">{o.label}</span>
+                      {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 /* ─── Booking Widget ─── */
 export function BookingWidget({ settings }: BookingWidgetProps) {
@@ -255,12 +346,33 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
     return list;
   }, [])(locations);
 
-  const zones = useCallback((nodes: LocationNode[]): { id: string; name: string }[] => {
-    const list: { id: string; name: string }[] = [];
-    const walk = (n: LocationNode) => { if (n.type === 'ZONE') list.push({ id: n.id, name: n.name }); n.children?.forEach(walk); };
-    nodes.forEach(walk);
-    return list;
-  }, [])(locations);
+  // Zones (each with its hotels) that sit under the selected airport, so the
+  // destination list is cascaded to that airport instead of every zone globally.
+  const zonesForAirport = useCallback(
+    (nodes: LocationNode[], airportId: string): { id: string; name: string; hotels: { id: string; name: string }[] }[] => {
+      if (!airportId) return [];
+      const list: { id: string; name: string; hotels: { id: string; name: string }[] }[] = [];
+      for (const country of nodes) {
+        for (const airport of country.children ?? []) {
+          if (airport.id !== airportId || airport.type !== 'AIRPORT') continue;
+          for (const city of airport.children ?? []) {
+            for (const zone of city.children ?? []) {
+              if (zone.type !== 'ZONE') continue;
+              list.push({
+                id: zone.id,
+                name: zone.name,
+                hotels: (zone.children ?? [])
+                  .filter((h) => h.type === 'HOTEL')
+                  .map((h) => ({ id: h.id, name: h.name })),
+              });
+            }
+          }
+        }
+      }
+      return list;
+    },
+    [],
+  );
 
   const firstZoneForAirport = useCallback((nodes: LocationNode[], airportId: string): string | null => {
     for (const country of nodes) {
@@ -294,17 +406,52 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
     store.setField(isArr ? 'originAirportId' : 'destinationAirportId', airportId);
     const zoneId = firstZoneForAirport(locations, airportId);
     if (zoneId) store.setField(isArr ? 'fromZoneId' : 'toZoneId', zoneId);
+    // Changing the airport changes which destinations are available, so reset
+    // the previously chosen destination zone / hotel.
+    store.setField(isArr ? 'toZoneId' : 'fromZoneId', '');
+    store.setField('hotelId', '');
+    store.setField('hotelName', '');
+  };
+
+  const isArr = activeTab === 'ARR';
+  const airportValue = isArr ? store.originAirportId : store.destinationAirportId;
+  const hotelZone = isArr ? store.toZoneId : store.fromZoneId;
+  const pc = settings.primaryColor;
+
+  // Destination options cascaded to the selected airport. The airport's own zone
+  // (auto-selected as the airport side of the route) is excluded so it isn't
+  // offered as a drop-off / pick-up hotel destination.
+  const airportSideZone = isArr ? store.fromZoneId : store.toZoneId;
+  const destZones = zonesForAirport(locations, airportValue).filter((z) => z.id !== airportSideZone);
+
+  // Value encodes whether a specific hotel or a whole zone ("Anywhere in …") was
+  // picked: `h:<hotelId>:<zoneId>` or `z:<zoneId>`.
+  const selectedDestValue = store.hotelId
+    ? `h:${store.hotelId}:${hotelZone}`
+    : hotelZone
+      ? `z:${hotelZone}`
+      : '';
+
+  const handleDestinationChange = (value: string) => {
+    const [kind, a, b] = value.split(':');
+    const zoneField = isArr ? 'toZoneId' : 'fromZoneId';
+    if (kind === 'h') {
+      store.setField(zoneField, b);
+      store.setField('hotelId', a);
+      const hotel = destZones.flatMap((z) => z.hotels).find((h) => h.id === a);
+      store.setField('hotelName', hotel?.name ?? '');
+    } else {
+      store.setField(zoneField, a);
+      store.setField('hotelId', '');
+      store.setField('hotelName', '');
+    }
   };
 
   const handleSearch = () => {
     router.push('/w/book');
   };
 
-  const isArr = activeTab === 'ARR';
-  const airportValue = isArr ? store.originAirportId : store.destinationAirportId;
-  const hotelZone = isArr ? store.toZoneId : store.fromZoneId;
   const canSearch = airportValue && hotelZone && store.fromZoneId && store.toZoneId && store.jobDate && store.pickupTime && store.paxCount > 0;
-  const pc = settings.primaryColor;
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
@@ -330,18 +477,30 @@ export function BookingWidget({ settings }: BookingWidgetProps) {
 
           <Cell icon={Plane} iconColor={isArr ? '#16a34a' : '#dc2626'}
             label={isArr ? `${t('booking.arrivalAirport')} *` : `${t('booking.departureAirport')} *`}>
-            <Select value={isArr ? store.originAirportId : store.destinationAirportId} onValueChange={handleAirportChange}>
-              <SelectTrigger className={selectCls}><SelectValue placeholder={t('booking.selectAirport')} /></SelectTrigger>
-              <SelectContent>{airports.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent>
-            </Select>
+            <SearchableSelect
+              value={isArr ? store.originAirportId : store.destinationAirportId}
+              onValueChange={handleAirportChange}
+              options={airports.map((a) => ({ value: a.id, label: a.name }))}
+              placeholder={t('booking.selectAirport')}
+              primaryColor={pc}
+              emptyText={t('booking.selectAirport')}
+            />
           </Cell>
 
           <Cell icon={MapPin} iconColor={isArr ? '#dc2626' : '#16a34a'}
             label={isArr ? `${t('booking.dropoffHotel')} *` : `${t('booking.pickupHotel')} *`}>
-            <Select value={hotelZone} onValueChange={(v) => store.setField(isArr ? 'toZoneId' : 'fromZoneId', v)}>
-              <SelectTrigger className={selectCls}><SelectValue placeholder={t('booking.searchLocation')} /></SelectTrigger>
-              <SelectContent>{zones.map((z) => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}</SelectContent>
-            </Select>
+            <SearchableSelect
+              value={selectedDestValue}
+              onValueChange={handleDestinationChange}
+              options={destZones.flatMap((z) => [
+                { value: `z:${z.id}`, label: `Anywhere in ${z.name}`, group: z.name },
+                ...z.hotels.map((h) => ({ value: `h:${h.id}:${z.id}`, label: h.name, group: z.name })),
+              ])}
+              placeholder={airportValue ? t('booking.searchLocation') : t('booking.selectAirport')}
+              primaryColor={pc}
+              disabled={!airportValue}
+              emptyText="No destinations found for this airport."
+            />
           </Cell>
 
           <Cell icon={CalendarDays} iconColor={pc} label={`${t('booking.date')} *`}>
