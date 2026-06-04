@@ -55,6 +55,7 @@ export class CityPagesService {
       heroHeadline: dto.heroHeadline,
       heroImageUrl: dto.heroImageUrl,
       introText: dto.introText,
+      contentHtml: dto.contentHtml,
       bodyJson: dto.bodyJson as object | undefined,
       faqJson: dto.faqJson as object | undefined,
       metaTitle: dto.metaTitle,

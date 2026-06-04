@@ -27,6 +27,7 @@ export class UpsertCityPageDto {
   @IsOptional() @IsString() @MaxLength(200) heroHeadline?: string;
   @IsOptional() @IsString() heroImageUrl?: string;
   @IsOptional() @IsString() introText?: string;
+  @IsOptional() @IsString() contentHtml?: string;
 
   // Flexible JSON content — array of { heading, body } / { question, answer }.
   @IsOptional() @IsArray() bodyJson?: CityPageBodySectionDto[];

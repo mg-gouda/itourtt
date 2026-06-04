@@ -2000,6 +2000,7 @@ model CityPage {
   heroHeadline String? @map("hero_headline")
   heroImageUrl String? @map("hero_image_url")
   introText    String? @map("intro_text") @db.Text
+  contentHtml  String? @map("content_html") @db.Text // rich HTML body (WordPress-style)
   bodyJson     Json?   @map("body_json") // [{ heading, body }]
   faqJson      Json?   @map("faq_json") // [{ question, answer }]
 
