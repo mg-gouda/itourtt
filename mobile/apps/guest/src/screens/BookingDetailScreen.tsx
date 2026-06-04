@@ -28,7 +28,7 @@ const STATUS_COLORS: Record<GuestBookingStatus, { bg: string; text: string; bord
 export function BookingDetailScreen() {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
-  const { bookingRef } = route.params;
+  const { bookingRef, email } = route.params;
 
   const [booking, setBooking] = useState<GuestBooking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,7 @@ export function BookingDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      const { data: resData } = await publicApi.getBooking(bookingRef);
+      const { data: resData } = await publicApi.getBooking(bookingRef, email);
       const bk = (resData as any)?.data ?? resData;
       setBooking(bk as GuestBooking);
     } catch (err: any) {
@@ -47,7 +47,7 @@ export function BookingDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [bookingRef]);
+  }, [bookingRef, email]);
 
   useEffect(() => {
     fetchBooking();
@@ -65,7 +65,7 @@ export function BookingDetailScreen() {
           onPress: async () => {
             setCancelling(true);
             try {
-              await publicApi.cancelBooking(bookingRef);
+              await publicApi.cancelBooking(bookingRef, email);
               Alert.alert('Cancelled', 'Your booking has been cancelled.');
               fetchBooking();
             } catch (err: any) {
@@ -80,7 +80,7 @@ export function BookingDetailScreen() {
         },
       ],
     );
-  }, [bookingRef, fetchBooking]);
+  }, [bookingRef, email, fetchBooking]);
 
   if (loading) {
     return (

@@ -13,12 +13,16 @@ import {
 } from '@nestjs/common';
 import { B2CService } from './b2c.service.js';
 import { B2CLoginDto, B2CChangePasswordDto, B2CAmendBookingDto } from './dto/b2c.dto.js';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { Public } from '../common/decorators/public.decorator.js';
 
 @Controller('w-api')
 export class B2CController {
   constructor(private readonly b2cService: B2CService) {}
 
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: B2CLoginDto) {

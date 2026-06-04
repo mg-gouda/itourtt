@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
@@ -39,6 +39,7 @@ import { ImportTemplatesModule } from './import-templates/import-templates.modul
 import { AiParserModule } from './ai-parser/ai-parser.module.js';
 import { PushNotificationsModule } from './push-notifications/push-notifications.module.js';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { DriverTariffsModule } from './driver-tariffs/driver-tariffs.module.js';
 import { JobServiceTypesModule } from './job-service-types/job-service-types.module.js';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
@@ -91,6 +92,8 @@ import { UserPreferencesModule } from './user-preferences/user-preferences.modul
   providers: [
     AppService,
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    // Deny-by-default: every route requires a valid JWT unless marked @Public().
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })
 export class AppModule {}

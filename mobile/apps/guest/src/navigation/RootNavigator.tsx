@@ -17,7 +17,7 @@ export type RootStackParamList = {
   Payment: undefined;
   Confirmation: undefined;
   BookingLookup: undefined;
-  BookingDetail: { bookingRef: string };
+  BookingDetail: { bookingRef: string; email: string };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();

@@ -122,4 +122,10 @@ export class CreateGuestBookingDto {
   @IsOptional()
   @IsIn(['STRIPE', 'EGYPT_BANK', 'DUBAI_BANK'])
   paymentGateway?: string;
+
+  // Cloudflare Turnstile token. Only enforced when TURNSTILE_SECRET is set on
+  // the backend (see CaptchaService) — keeps the field optional/inert otherwise.
+  @IsString()
+  @IsOptional()
+  captchaToken?: string;
 }

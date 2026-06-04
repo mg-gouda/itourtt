@@ -25,11 +25,12 @@ export const publicApi = {
     return api.post<GuestBooking>('/public/bookings', data);
   },
 
-  getBooking(ref: string) {
-    return api.get<GuestBooking>(`/public/bookings/${ref}`);
+  // Lookup/cancel require the email used to create the booking (ownership check).
+  getBooking(ref: string, email: string) {
+    return api.post<GuestBooking>(`/public/bookings/${ref}/lookup`, { email });
   },
 
-  cancelBooking(ref: string) {
-    return api.post(`/public/bookings/${ref}/cancel`);
+  cancelBooking(ref: string, email: string) {
+    return api.post(`/public/bookings/${ref}/cancel`, { email });
   },
 };

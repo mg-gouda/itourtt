@@ -4,17 +4,26 @@ import {
   Post,
   Param,
   Body,
+  Ip,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { PublicApiService } from './public-api.service.js';
 import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
+import { VehicleQuotesRequestDto } from './dto/vehicle-quotes-request.dto.js';
+import { BookingAccessDto } from './dto/booking-access.dto.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
+import { Public } from '../common/decorators/public.decorator.js';
+import { CaptchaService } from '../common/services/captcha.service.js';
 
+@Public() // Unauthenticated B2C surface — exempt from the global JwtAuthGuard.
 @Controller('public')
 @Throttle({ default: { limit: 120, ttl: 60000 } }) // 120 req/min per IP for all public endpoints
 export class PublicApiController {
-  constructor(private readonly publicApiService: PublicApiService) {}
+  constructor(
+    private readonly publicApiService: PublicApiService,
+    private readonly captchaService: CaptchaService,
+  ) {}
 
   @Get('website-settings')
   async getWebsiteSettings() {
@@ -46,12 +55,14 @@ export class PublicApiController {
     return new ApiResponse(result);
   }
 
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // pricing is scrape-prone — tighter cap
   @Post('vehicle-quotes')
-  async getVehicleQuotes(@Body() body: { serviceType: string; fromZoneId: string; toZoneId: string; paxCount: number }) {
-    const result = await this.publicApiService.getVehicleQuotes(body);
+  async getVehicleQuotes(@Body() dto: VehicleQuotesRequestDto) {
+    const result = await this.publicApiService.getVehicleQuotes(dto);
     return new ApiResponse(result);
   }
 
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @Post('quote')
   async getQuote(@Body() dto: QuoteRequestDto) {
     const result = await this.publicApiService.getQuote(dto);
@@ -60,20 +71,26 @@ export class PublicApiController {
 
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('bookings')
-  async createBooking(@Body() dto: CreateGuestBookingDto) {
+  async createBooking(@Body() dto: CreateGuestBookingDto, @Ip() ip: string) {
+    // Bot/abuse protection (no-op unless TURNSTILE_SECRET is configured).
+    await this.captchaService.assertValid(dto.captchaToken, ip);
     const result = await this.publicApiService.createBooking(dto);
     return new ApiResponse(result, 'Booking created successfully.');
   }
 
-  @Get('bookings/:ref')
-  async getBooking(@Param('ref') ref: string) {
-    const result = await this.publicApiService.getBooking(ref);
+  // Booking lookup requires the owner's email (sent in the body, not the URL,
+  // to keep PII out of access logs). Rate-limited to slow ref+email guessing.
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Post('bookings/:ref/lookup')
+  async getBooking(@Param('ref') ref: string, @Body() body: BookingAccessDto) {
+    const result = await this.publicApiService.getBooking(ref, body.email);
     return new ApiResponse(result);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('bookings/:ref/cancel')
-  async cancelBooking(@Param('ref') ref: string) {
-    const result = await this.publicApiService.cancelBooking(ref);
+  async cancelBooking(@Param('ref') ref: string, @Body() body: BookingAccessDto) {
+    const result = await this.publicApiService.cancelBooking(ref, body.email);
     return new ApiResponse(result, 'Booking cancelled successfully.');
   }
 }

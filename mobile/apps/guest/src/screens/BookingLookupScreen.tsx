@@ -13,35 +13,41 @@ const BLUE_PRIMARY = '#1D4ED8';
 export function BookingLookupScreen() {
   const navigation = useNavigation<Nav>();
   const [refInput, setRefInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLookup = useCallback(async () => {
     const trimmed = refInput.trim();
+    const email = emailInput.trim();
     if (!trimmed) {
       Alert.alert('Enter Reference', 'Please enter your booking reference number.');
+      return;
+    }
+    if (!email) {
+      Alert.alert('Enter Email', 'Please enter the email address used for the booking.');
       return;
     }
 
     setLoading(true);
     try {
-      const { data: resData } = await publicApi.getBooking(trimmed);
+      const { data: resData } = await publicApi.getBooking(trimmed, email);
       const booking = (resData as any)?.data ?? resData;
       if (!booking || (!booking.bookingRef && !booking.id)) {
-        Alert.alert('Not Found', 'No booking found with that reference.');
+        Alert.alert('Not Found', 'No booking found with that reference and email.');
         return;
       }
-      navigation.navigate('BookingDetail', { bookingRef: trimmed });
+      navigation.navigate('BookingDetail', { bookingRef: trimmed, email });
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 404) {
-        Alert.alert('Not Found', 'No booking found with that reference number.');
+        Alert.alert('Not Found', 'No booking found for that reference and email.');
       } else {
         Alert.alert('Error', err?.response?.data?.message || err?.message || 'Something went wrong.');
       }
     } finally {
       setLoading(false);
     }
-  }, [refInput, navigation]);
+  }, [refInput, emailInput, navigation]);
 
   return (
     <KeyboardAvoidingView
@@ -71,6 +77,17 @@ export function BookingLookupScreen() {
           value={refInput}
           onChangeText={setRefInput}
           autoCapitalize="characters"
+          returnKeyType="next"
+          containerStyle={{ width: '100%' }}
+        />
+
+        <Input
+          label="Email"
+          placeholder="Email used for the booking"
+          value={emailInput}
+          onChangeText={setEmailInput}
+          autoCapitalize="none"
+          keyboardType="email-address"
           returnKeyType="search"
           onSubmitEditing={handleLookup}
           containerStyle={{ width: '100%' }}

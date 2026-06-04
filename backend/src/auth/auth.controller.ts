@@ -16,8 +16,10 @@ import {
   RemoveDeviceTokenDto,
 } from './dto/device-token.dto.js';
 import type { AuthResponseDto } from './dto/auth-response.dto.js';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Public } from '../common/decorators/public.decorator.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Controller('auth')
@@ -27,6 +29,7 @@ export class AuthController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @Public()
   @Get('login-config')
   async getLoginConfig() {
     const settings = await this.prisma.systemSettings.findFirst();
@@ -36,18 +39,25 @@ export class AuthController {
     };
   }
 
+  // Brute-force protection: cap login attempts to 10/min per IP (tighter than
+  // the global default) so credential-stuffing is impractical.
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(loginDto.identifier, loginDto.password);
   }
 
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@Body() refreshDto: RefreshDto): Promise<AuthResponseDto> {
     return this.authService.refresh(refreshDto.refreshToken);
   }
 
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() body: { email: string }) {
@@ -55,6 +65,8 @@ export class AuthController {
     return { message: 'If this email is registered, a reset link has been sent.' };
   }
 
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() body: { email: string; token: string; newPassword: string }) {
