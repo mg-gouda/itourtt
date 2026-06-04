@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { Public } from '../common/decorators/public.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsString, IsNotEmpty } from 'class-validator';
 
@@ -48,7 +49,8 @@ export class PaymentsController {
     return new ApiResponse(result, 'Payment session created successfully');
   }
 
-  // ─── Stripe Webhook (NO AUTH) ──────────────────────────
+  // ─── Stripe Webhook (NO AUTH — verified by Stripe signature) ───
+  @Public()
   @Post('webhook/stripe')
   @HttpCode(200)
   async stripeWebhook(
@@ -63,6 +65,7 @@ export class PaymentsController {
   }
 
   // ─── Verify Payment Status (Public) ────────────────────
+  @Public()
   @Post('verify/:bookingRef')
   @HttpCode(200)
   async verifyPayment(@Param('bookingRef') bookingRef: string) {

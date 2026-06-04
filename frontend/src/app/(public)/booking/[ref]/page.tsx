@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Search,
@@ -69,27 +69,41 @@ interface BookingData {
 
 export default function BookingLookupPage() {
   const params = useParams();
-  const router = useRouter();
   const ref = params.ref as string;
 
   const [searchRef, setSearchRef] = useState('');
+  const [searchEmail, setSearchEmail] = useState('');
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
 
-  const fetchBooking = async (bookingRef: string) => {
+  // Lookup now requires the email used to make the booking (ownership check).
+  const fetchBooking = async (bookingRef: string, email: string) => {
     if (!bookingRef || bookingRef === 'lookup') return;
+    if (!email.trim()) {
+      setError('Please enter the email address used for the booking.');
+      return;
+    }
 
     setLoading(true);
     setError('');
     setBooking(null);
 
     try {
-      const res = await fetch(`${API}/public/bookings/${encodeURIComponent(bookingRef)}`);
+      const res = await fetch(
+        `${API}/public/bookings/${encodeURIComponent(bookingRef)}/lookup`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() }),
+        },
+      );
       if (!res.ok) {
         if (res.status === 404) {
-          throw new Error('Booking not found. Please check the reference and try again.');
+          throw new Error(
+            'No booking found for that reference and email. Please check both and try again.',
+          );
         }
         throw new Error('Failed to fetch booking details');
       }
@@ -103,15 +117,17 @@ export default function BookingLookupPage() {
     }
   };
 
+  // Pre-fill the reference from the URL but do NOT auto-fetch — the guest must
+  // supply their email before any data is returned.
   useEffect(() => {
     if (ref && ref !== 'lookup') {
-      fetchBooking(ref);
+      setSearchRef(ref);
     }
   }, [ref]);
 
   const handleSearch = () => {
-    if (searchRef.trim()) {
-      router.push(`/booking/${encodeURIComponent(searchRef.trim())}`);
+    if (searchRef.trim() && searchEmail.trim()) {
+      fetchBooking(searchRef.trim(), searchEmail.trim());
     }
   };
 
@@ -122,6 +138,8 @@ export default function BookingLookupPage() {
     try {
       const res = await fetch(`${API}/public/bookings/${encodeURIComponent(booking.bookingRef)}/cancel`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: searchEmail.trim() || booking.guestEmail }),
       });
 
       if (!res.ok) {
@@ -129,7 +147,7 @@ export default function BookingLookupPage() {
       }
 
       // Refresh booking data
-      await fetchBooking(booking.bookingRef);
+      await fetchBooking(booking.bookingRef, searchEmail.trim() || booking.guestEmail);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to cancel';
       setError(message);
@@ -151,23 +169,34 @@ export default function BookingLookupPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input
-              placeholder="Enter your booking reference (e.g. GB-240101-0001)"
+              placeholder="Booking reference (e.g. GB-240101-0001)"
               value={searchRef}
               onChange={(e) => setSearchRef(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="flex-1"
             />
+            <Input
+              type="email"
+              placeholder="Email used for the booking"
+              value={searchEmail}
+              onChange={(e) => setSearchEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="flex-1"
+            />
             <Button
               onClick={handleSearch}
-              disabled={!searchRef.trim()}
+              disabled={!searchRef.trim() || !searchEmail.trim()}
               className="gap-2 bg-blue-600 text-white hover:bg-blue-700"
             >
               <Search className="h-4 w-4" />
               Track
             </Button>
           </div>
+          <p className="mt-2 text-xs text-gray-500">
+            For your privacy, enter the email address used when booking to view its details.
+          </p>
         </CardContent>
       </Card>
 

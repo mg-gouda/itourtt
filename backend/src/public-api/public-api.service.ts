@@ -10,6 +10,7 @@ import { GuestBookingsService } from '../guest-bookings/guest-bookings.service.j
 import { B2CService } from '../b2c/b2c.service.js';
 import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
+import { VehicleQuotesRequestDto } from './dto/vehicle-quotes-request.dto.js';
 import {
   ServiceType,
   B2CPaymentMethod,
@@ -165,12 +166,7 @@ export class PublicApiService {
 
   // ─── Vehicle Quotes (all options for a route) ───────────
 
-  async getVehicleQuotes(dto: {
-    serviceType: string;
-    fromZoneId: string;
-    toZoneId: string;
-    paxCount: number;
-  }) {
+  async getVehicleQuotes(dto: VehicleQuotesRequestDto) {
     const priceItems = await this.prisma.publicPriceItem.findMany({
       where: {
         serviceType: dto.serviceType as any,
@@ -636,7 +632,7 @@ export class PublicApiService {
 
   // ─── Get Booking ────────────────────────────────────────
 
-  async getBooking(ref: string) {
+  async getBooking(ref: string, email: string) {
     const booking = await this.prisma.guestBooking.findUnique({
       where: { bookingRef: ref },
       include: {
@@ -646,28 +642,41 @@ export class PublicApiService {
         hotel: true,
         originAirport: true,
         destinationAirport: true,
-        paymentTransactions: {
-          orderBy: { createdAt: 'desc' },
-        },
       },
     });
 
-    if (!booking) {
-      throw new NotFoundException(`Booking with reference "${ref}" not found.`);
+    // Ownership check: the email must match the one used to make the booking.
+    // Return the SAME 404 for "not found" and "wrong email" so the endpoint
+    // cannot be used to confirm which references exist (enumeration).
+    if (!booking || !this.emailMatches(booking.guestEmail, email)) {
+      throw new NotFoundException(
+        `No booking found for reference "${ref}" with that email.`,
+      );
     }
 
     return booking;
   }
 
+  /** Case-insensitive, trimmed email comparison. */
+  private emailMatches(stored: string, provided: string): boolean {
+    return (
+      (stored ?? '').trim().toLowerCase() ===
+      (provided ?? '').trim().toLowerCase()
+    );
+  }
+
   // ─── Cancel Booking ─────────────────────────────────────
 
-  async cancelBooking(ref: string) {
+  async cancelBooking(ref: string, email: string) {
     const booking = await this.prisma.guestBooking.findUnique({
       where: { bookingRef: ref },
     });
 
-    if (!booking) {
-      throw new NotFoundException(`Booking with reference "${ref}" not found.`);
+    // Same ownership check as getBooking — only the booking owner may cancel.
+    if (!booking || !this.emailMatches(booking.guestEmail, email)) {
+      throw new NotFoundException(
+        `No booking found for reference "${ref}" with that email.`,
+      );
     }
 
     if (booking.bookingStatus === GuestBookingStatus.CONVERTED) {
