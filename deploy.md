@@ -1,23 +1,18 @@
 # Production Deployment
 
-The VPS runs **k3s** with two active namespaces:
+The VPS runs **k3s** with one active namespace:
 
 | Namespace | URL | Car Dispatch |
 |---|---|---|
 | `itour-production` | https://fulvago.itourtt.cloud | enabled |
-| `itour-travelplan` | https://travelplan.itourtt.cloud | disabled |
 
 ## Deploy
 
 ```bash
 cd /opt/itour
 
-# Deploy both environments (pulls from GitHub first)
-./deploy.sh all
-
-# Or deploy a single environment
+# Deploy production (pulls from GitHub first)
 ./deploy.sh production
-./deploy.sh travelplan
 ```
 
 The script will:
@@ -34,4 +29,3 @@ The script will:
 |---|---|
 | `itourtt-backend` | `3.3.12` |
 | `itourtt-frontend` (production) | `3.3.12-cardispatch` |
-| `itourtt-frontend` (travelplan) | `3.3.12` |

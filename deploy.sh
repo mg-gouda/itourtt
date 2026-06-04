@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-USAGE="Usage: $0 [production|travelplan|all]"
-ENV="${1:-all}"
+USAGE="Usage: $0 [production]"
+ENV="${1:-production}"
 
-if [[ "$ENV" != "production" && "$ENV" != "travelplan" && "$ENV" != "all" ]]; then
+if [[ "$ENV" != "production" ]]; then
   echo "$USAGE"
   exit 1
 fi
@@ -25,33 +25,12 @@ echo ""
 echo ">> Building backend image..."
 docker build --no-cache -t itourtt-backend:${VERSION} backend -q
 
-# ── Build frontend images (per-environment feature flags) ──
-# Production: Car Dispatch enabled
-# TravelPlan: Car Dispatch disabled
-
-needs_car_dispatch=false
-needs_standard=false
-
-if [[ "$ENV" == "production" || "$ENV" == "all" ]]; then
-  needs_car_dispatch=true
-fi
-if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
-  needs_standard=true
-fi
-
-if $needs_car_dispatch; then
-  echo ">> Building frontend image (with Car Dispatch)..."
-  docker build --no-cache \
-    --build-arg NEXT_PUBLIC_ENABLE_CAR_DISPATCH=true \
-    -t itourtt-frontend:${VERSION}-cardispatch frontend -q
-  docker save itourtt-frontend:${VERSION}-cardispatch | k3s ctr images import -
-fi
-
-if $needs_standard; then
-  echo ">> Building frontend image (standard)..."
-  docker build --no-cache -t itourtt-frontend:${VERSION} frontend -q
-  docker save itourtt-frontend:${VERSION} | k3s ctr images import -
-fi
+# ── Build frontend image (Production: Car Dispatch enabled) ──
+echo ">> Building frontend image (with Car Dispatch)..."
+docker build --no-cache \
+  --build-arg NEXT_PUBLIC_ENABLE_CAR_DISPATCH=true \
+  -t itourtt-frontend:${VERSION}-cardispatch frontend -q
+docker save itourtt-frontend:${VERSION}-cardispatch | k3s ctr images import -
 
 # Import backend image into k3s
 echo ">> Importing backend image into k3s..."
@@ -99,13 +78,7 @@ deploy_env() {
   echo ">> $label deployed successfully!"
 }
 
-if [[ "$ENV" == "production" || "$ENV" == "all" ]]; then
-  deploy_env "itour-production" "Production" "${VERSION}-cardispatch"
-fi
-
-if [[ "$ENV" == "travelplan" || "$ENV" == "all" ]]; then
-  deploy_env "itour-travelplan" "TravelPlan" "${VERSION}"
-fi
+deploy_env "itour-production" "Production" "${VERSION}-cardispatch"
 
 # ── Cleanup: aggressively remove old images to save disk space ──
 echo ""
@@ -140,5 +113,4 @@ df -h / | awk 'NR==2 {printf "   %s used of %s (%s free)\n", $3, $2, $4}'
 echo ""
 echo "=== Deployment complete ==="
 echo "Production:  https://fulvago.itourtt.cloud"
-echo "TravelPlan:  https://travelplan.itourtt.cloud"
 df -h / | awk 'NR==2 {printf "Disk:        %s used of %s (%s)\n", $3, $2, $5}'

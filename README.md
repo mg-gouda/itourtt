@@ -9,7 +9,6 @@ A production-grade, full-stack enterprise transport, traffic, and accounting sys
 | Environment | URL |
 |---|---|
 | Production (Fulvago) | https://fulvago.itourtt.cloud |
-| TravelPlan | https://travelplan.itourtt.cloud |
 
 ## Overview
 
