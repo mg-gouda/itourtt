@@ -608,6 +608,17 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'whatsapp.uploadMedia', labelKey: 'permissions.whatsapp.uploadMedia' },
     ],
   },
+
+  // ─── B2C WEBSITE CONTENT ───
+  {
+    key: 'website-content',
+    labelKey: 'permissions.websiteContent',
+    children: [
+      { key: 'website-content.cityPages', labelKey: 'permissions.websiteContent.cityPages' },
+      { key: 'website-content.blog', labelKey: 'permissions.websiteContent.blog' },
+      { key: 'website-content.pageSeo', labelKey: 'permissions.websiteContent.pageSeo' },
+    ],
+  },
 ];
 
 /**

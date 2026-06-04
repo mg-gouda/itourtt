@@ -33,6 +33,8 @@ import {
   Receipt,
   HardDrive,
   PackagePlus,
+  Newspaper,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -90,6 +92,9 @@ export const navigation: NavItem[] = [
     icon: Globe,
     children: [
       { type: "link", nameKey: "sidebar.websiteCms", href: "/dashboard/website", icon: Palette, permissionKey: "company" },
+      { type: "link", nameKey: "sidebar.destinations", href: "/dashboard/website/destinations", icon: MapPin, permissionKey: "website-content.cityPages" },
+      { type: "link", nameKey: "sidebar.blog", href: "/dashboard/website/blog", icon: Newspaper, permissionKey: "website-content.blog" },
+      { type: "link", nameKey: "sidebar.pageSeo", href: "/dashboard/website/seo", icon: Search, permissionKey: "website-content.pageSeo" },
       { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
       { type: "link", nameKey: "sidebar.extras", href: "/dashboard/extras", icon: PackagePlus, permissionKey: "extras" },
     ],
