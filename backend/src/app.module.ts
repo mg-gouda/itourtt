@@ -43,6 +43,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { DriverTariffsModule } from './driver-tariffs/driver-tariffs.module.js';
 import { JobServiceTypesModule } from './job-service-types/job-service-types.module.js';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
+import { WebsiteContentModule } from './website-content/website-content.module.js';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { UserPreferencesModule } from './user-preferences/user-preferences.modul
     AiParserModule,
     PushNotificationsModule,
     UserPreferencesModule,
+    WebsiteContentModule,
   ],
   controllers: [AppController],
   providers: [
