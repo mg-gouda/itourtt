@@ -28,6 +28,7 @@ import {
   Minus,
   Trash2,
   Braces,
+  Code2,
 } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -76,6 +77,9 @@ export function RichTextEditor({
   logoUrl,
 }: RichTextEditorProps) {
   const [logoSize, setLogoSize] = useState(50);
+  // "HTML source" mode — WordPress-style Text tab. When on, the user edits raw
+  // HTML in a textarea that is stored verbatim (tiptap's schema can't strip it).
+  const [htmlMode, setHtmlMode] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -105,6 +109,15 @@ export function RichTextEditor({
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
   const inTable = editor.isActive("table");
+
+  // Switch between visual (tiptap) and raw-HTML source editing.
+  const toggleHtmlMode = () => {
+    if (htmlMode) {
+      // Leaving source mode: load the edited HTML back into the visual editor.
+      editor.commands.setContent(content || "", { emitUpdate: false });
+    }
+    setHtmlMode((v) => !v);
+  };
 
   const getLogoFullUrl = () => {
     if (!logoUrl) return "";
@@ -140,6 +153,8 @@ export function RichTextEditor({
     <div className="overflow-hidden rounded-md border border-border bg-muted/50">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/80 px-2 py-1.5">
+        {!htmlMode && (
+        <>
         <ToolbarButton
           active={editor.isActive("bold")}
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -326,10 +341,33 @@ export function RichTextEditor({
             </div>
           </>
         )}
+        </>
+        )}
+
+        {/* HTML source toggle (WordPress-style "Text" tab) */}
+        <div className="ml-auto flex items-center gap-1">
+          <ToolbarButton
+            active={htmlMode}
+            onClick={toggleHtmlMode}
+            title={htmlMode ? "Back to visual editor" : "Edit HTML source"}
+          >
+            <Code2 className="h-4 w-4" />
+          </ToolbarButton>
+        </div>
       </div>
 
-      {/* Editor */}
-      <EditorContent editor={editor} />
+      {/* Editor body — visual or raw-HTML source */}
+      {htmlMode ? (
+        <textarea
+          value={content}
+          onChange={(e) => onChange(e.target.value)}
+          spellCheck={false}
+          placeholder={placeholder ?? "<p>Type or paste HTML…</p>"}
+          className="min-h-[200px] w-full resize-y bg-background p-3 font-mono text-xs leading-relaxed text-foreground focus:outline-none"
+        />
+      ) : (
+        <EditorContent editor={editor} />
+      )}
     </div>
   );
 }

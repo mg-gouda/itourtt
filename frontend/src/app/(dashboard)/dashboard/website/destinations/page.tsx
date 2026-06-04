@@ -45,6 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import api from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -67,6 +68,7 @@ interface CityPage {
   heroHeadline: string | null;
   heroImageUrl: string | null;
   introText: string | null;
+  contentHtml: string | null;
   bodyJson: BodySection[] | null;
   faqJson: FaqItem[] | null;
   metaTitle: string | null;
@@ -87,6 +89,7 @@ interface FormState {
   heroHeadline: string;
   heroImageUrl: string;
   introText: string;
+  contentHtml: string;
   bodyJson: BodySection[];
   faqJson: FaqItem[];
   metaTitle: string;
@@ -101,6 +104,7 @@ const emptyForm = (): FormState => ({
   heroHeadline: "",
   heroImageUrl: "",
   introText: "",
+  contentHtml: "",
   bodyJson: [],
   faqJson: [],
   metaTitle: "",
@@ -145,6 +149,7 @@ export default function DestinationsAdminPage() {
             heroHeadline: p.heroHeadline ?? "",
             heroImageUrl: p.heroImageUrl ?? "",
             introText: p.introText ?? "",
+            contentHtml: p.contentHtml ?? "",
             bodyJson: p.bodyJson ?? [],
             faqJson: p.faqJson ?? [],
             metaTitle: p.metaTitle ?? "",
@@ -373,6 +378,19 @@ export default function DestinationsAdminPage() {
                 onChange={(e) => set("introText", e.target.value)}
                 placeholder="Short introduction shown under the hero."
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Page content (rich / HTML)</Label>
+              <RichTextEditor
+                content={form.contentHtml}
+                onChange={(html) => set("contentHtml", html)}
+                placeholder="<p>Write the page body. Use the < > button to paste raw HTML.</p>"
+              />
+              <p className="text-xs text-muted-foreground">
+                Formatted content shown below the intro. Click the{" "}
+                <span className="font-mono">&lt;&gt;</span> button to paste raw HTML.
+              </p>
             </div>
 
             {/* Body sections */}
