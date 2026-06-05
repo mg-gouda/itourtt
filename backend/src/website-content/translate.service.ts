@@ -3,7 +3,8 @@ import {
   BadGatewayException,
   Logger,
 } from '@nestjs/common';
-import Anthropic from '@anthropic-ai/sdk';
+import { ConfigService } from '@nestjs/config';
+import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai';
 import { TranslationsService } from './translations.service.js';
 import { TranslateRequestDto } from './dto/translation.dto.js';
 
@@ -16,45 +17,46 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ru: 'Russian',
 };
 
-/** JSON-schema fragment for one source field (faqJson is structured; rest are strings). */
+/** Gemini responseSchema fragment for one source field (faqJson is structured). */
 function fieldSchema(key: string) {
   if (key === 'faqJson') {
     return {
-      type: 'array',
+      type: SchemaType.ARRAY,
       items: {
-        type: 'object',
+        type: SchemaType.OBJECT,
         properties: {
-          question: { type: 'string' },
-          answer: { type: 'string' },
+          question: { type: SchemaType.STRING },
+          answer: { type: SchemaType.STRING },
         },
         required: ['question', 'answer'],
-        additionalProperties: false,
       },
     };
   }
-  return { type: 'string' };
+  return { type: SchemaType.STRING };
 }
 
 @Injectable()
 export class TranslateService {
   private readonly logger = new Logger(TranslateService.name);
-  private client: Anthropic | null = null;
+  private genAI: GoogleGenerativeAI | null = null;
 
-  constructor(private readonly translations: TranslationsService) {}
-
-  private getClient(): Anthropic {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      throw new BadGatewayException(
-        'Auto-translate is unavailable: ANTHROPIC_API_KEY is not configured on the server.',
-      );
+  constructor(
+    private readonly translations: TranslationsService,
+    private readonly configService: ConfigService,
+  ) {
+    const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+    if (apiKey) {
+      this.genAI = new GoogleGenerativeAI(apiKey);
     }
-    if (!this.client) {
-      this.client = new Anthropic(); // reads ANTHROPIC_API_KEY from env
-    }
-    return this.client;
   }
 
   async translateEntity(dto: TranslateRequestDto) {
+    if (!this.genAI) {
+      throw new BadGatewayException(
+        'Auto-translate is unavailable: GEMINI_API_KEY is not configured on the server.',
+      );
+    }
+
     const languageName = LANGUAGE_NAMES[dto.locale];
     const source = await this.translations.getEnglishSource(dto.entity, dto.id);
 
@@ -63,14 +65,13 @@ export class TranslateService {
       return { locale: dto.locale, translation: {} };
     }
 
-    const schema = {
-      type: 'object',
+    const responseSchema = {
+      type: SchemaType.OBJECT,
       properties: Object.fromEntries(keys.map((k) => [k, fieldSchema(k)])),
       required: keys,
-      additionalProperties: false,
-    };
+    } as unknown as Schema;
 
-    const system = [
+    const systemInstruction = [
       `You are a professional translator for an Egyptian private airport-transfer booking service.`,
       `Translate the provided English content into ${languageName}.`,
       `Rules:`,
@@ -82,38 +83,25 @@ export class TranslateService {
       `- Return ONLY a JSON object whose keys exactly match the input keys.`,
     ].join('\n');
 
-    const userPayload = JSON.stringify(source);
-
     let translation: Record<string, unknown>;
     try {
-      const response = await this.getClient().messages.create({
-        model: 'claude-opus-4-8',
-        max_tokens: 16000,
-        system,
-        output_config: {
-          format: { type: 'json_schema', schema },
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        systemInstruction,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema,
+          temperature: 0.3,
         },
-        messages: [
-          {
-            role: 'user',
-            content: `Translate the values in this JSON to ${languageName}:\n${userPayload}`,
-          },
-        ],
       });
 
-      if (response.stop_reason === 'max_tokens') {
-        throw new BadGatewayException(
-          'Translation was truncated (content too long). Try translating shorter content.',
-        );
-      }
-
-      const text = response.content
-        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-        .map((b) => b.text)
-        .join('');
-      translation = JSON.parse(text) as Record<string, unknown>;
+      const result = await model.generateContent([
+        {
+          text: `Translate the values in this JSON to ${languageName}:\n${JSON.stringify(source)}`,
+        },
+      ]);
+      translation = JSON.parse(result.response.text()) as Record<string, unknown>;
     } catch (err) {
-      if (err instanceof BadGatewayException) throw err;
       this.logger.error(
         `Auto-translate failed for ${dto.entity}/${dto.id} → ${dto.locale}`,
         err instanceof Error ? err.stack : String(err),

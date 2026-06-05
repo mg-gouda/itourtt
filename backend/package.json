@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "iTour Transport & Traffic — Enterprise transport management system for Egypt-based transfer operations with dispatch, finance, Odoo ERP integration, AI-powered job import, and multi-portal access.",
   "author": "Mohamed Gouda <mggouda@gmail.com>",
   "private": true,
@@ -21,7 +21,6 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.1",
     "@fontsource/cairo": "^5.2.7",
     "@google/generative-ai": "^0.24.1",
     "@nestjs/common": "^11.0.1",
