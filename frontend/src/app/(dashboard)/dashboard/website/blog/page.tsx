@@ -53,7 +53,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import {
+  TranslationsPanel,
+  type TransFieldDef,
+} from "@/components/website/translations-panel";
 import api from "@/lib/api";
+
+const BLOG_TRANS_FIELDS: TransFieldDef[] = [
+  { key: "title", label: "Title", type: "text" },
+  { key: "excerpt", label: "Excerpt", type: "textarea" },
+  { key: "contentHtml", label: "Content (HTML)", type: "html" },
+  { key: "metaTitle", label: "Meta title", type: "text" },
+  { key: "metaDescription", label: "Meta description", type: "textarea" },
+];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 const assetUrl = (url?: string | null) =>
@@ -483,6 +495,22 @@ export default function BlogAdminPage() {
                 />
               </div>
             </div>
+
+            {/* Translations — only for an already-saved post */}
+            {editing && editing !== "new" && (
+              <TranslationsPanel
+                entity="blog_post"
+                id={editing.id}
+                fields={BLOG_TRANS_FIELDS}
+                englishSource={{
+                  title: form.title,
+                  excerpt: form.excerpt,
+                  contentHtml: form.contentHtml,
+                  metaTitle: form.metaTitle,
+                  metaDescription: form.metaDescription,
+                }}
+              />
+            )}
           </div>
 
           <DialogFooter>

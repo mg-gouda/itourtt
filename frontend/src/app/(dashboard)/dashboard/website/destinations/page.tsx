@@ -46,7 +46,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import {
+  TranslationsPanel,
+  type TransFieldDef,
+} from "@/components/website/translations-panel";
 import api from "@/lib/api";
+
+const CITY_TRANS_FIELDS: TransFieldDef[] = [
+  { key: "heroHeadline", label: "Hero headline", type: "text" },
+  { key: "introText", label: "Intro text", type: "textarea" },
+  { key: "contentHtml", label: "Page content (HTML)", type: "html" },
+  { key: "faqJson", label: "FAQ", type: "faq" },
+  { key: "metaTitle", label: "Meta title", type: "text" },
+  { key: "metaDescription", label: "Meta description", type: "textarea" },
+];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 const assetUrl = (url?: string | null) =>
@@ -510,6 +523,23 @@ export default function DestinationsAdminPage() {
                 />
               </div>
             </div>
+
+            {/* Translations — only for an already-created page */}
+            {editing?.page && (
+              <TranslationsPanel
+                entity="city_page"
+                id={editing.cityId}
+                fields={CITY_TRANS_FIELDS}
+                englishSource={{
+                  heroHeadline: form.heroHeadline,
+                  introText: form.introText,
+                  contentHtml: form.contentHtml,
+                  faqJson: form.faqJson,
+                  metaTitle: form.metaTitle,
+                  metaDescription: form.metaDescription,
+                }}
+              />
+            )}
           </div>
 
           <DialogFooter>

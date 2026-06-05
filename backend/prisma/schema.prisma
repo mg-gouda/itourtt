@@ -2011,7 +2011,8 @@ model CityPage {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  city City @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  city         City                  @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  translations CityPageTranslation[]
 
   @@index([isPublished, showInMenu])
   @@map("city_pages")
@@ -2049,7 +2050,8 @@ model BlogPost {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  categories BlogCategory[] @relation("BlogPostCategories")
+  categories   BlogCategory[]        @relation("BlogPostCategories")
+  translations BlogPostTranslation[]
 
   @@index([status, publishedAt])
   @@map("blog_posts")
@@ -2064,5 +2066,81 @@ model PageSeo {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
+  translations PageSeoTranslation[]
+
   @@map("page_seo")
+}
+
+// ─────────────────────────────────────────────
+// B2C CONTENT TRANSLATIONS (i18n)
+// ─────────────────────────────────────────────
+
+/// Non-English locales supported by the B2C site. English is the base content
+/// stored on the parent rows; translations only ever exist for these locales.
+enum Locale {
+  ar
+  de
+  fr
+  it
+  nl
+  ru
+}
+
+/// Per-locale translation of a destination landing page. Any null field falls
+/// back to the English base on the parent CityPage.
+model CityPageTranslation {
+  id              String   @id @default(uuid())
+  cityPageId      String   @map("city_page_id")
+  locale          Locale
+  heroHeadline    String?  @map("hero_headline")
+  introText       String?  @map("intro_text") @db.Text
+  contentHtml     String?  @map("content_html") @db.Text
+  faqJson         Json?    @map("faq_json")
+  metaTitle       String?  @map("meta_title")
+  metaDescription String?  @map("meta_description")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  cityPage CityPage @relation(fields: [cityPageId], references: [id], onDelete: Cascade)
+
+  @@unique([cityPageId, locale])
+  @@index([cityPageId, locale])
+  @@map("city_page_translations")
+}
+
+/// Per-locale translation of a blog post. Any null field falls back to English.
+model BlogPostTranslation {
+  id              String   @id @default(uuid())
+  blogPostId      String   @map("blog_post_id")
+  locale          Locale
+  title           String?
+  excerpt         String?  @db.Text
+  contentHtml     String?  @map("content_html") @db.Text
+  metaTitle       String?  @map("meta_title")
+  metaDescription String?  @map("meta_description")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  blogPost BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+
+  @@unique([blogPostId, locale])
+  @@index([blogPostId, locale])
+  @@map("blog_post_translations")
+}
+
+/// Per-locale translation of a static page's SEO meta. Falls back to English.
+model PageSeoTranslation {
+  id              String   @id @default(uuid())
+  pageSeoId       String   @map("page_seo_id")
+  locale          Locale
+  metaTitle       String?  @map("meta_title")
+  metaDescription String?  @map("meta_description")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  pageSeo PageSeo @relation(fields: [pageSeoId], references: [id], onDelete: Cascade)
+
+  @@unique([pageSeoId, locale])
+  @@index([pageSeoId, locale])
+  @@map("page_seo_translations")
 }

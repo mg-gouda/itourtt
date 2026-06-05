@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpsertPageSeoDto } from './dto/page-seo.dto.js';
+import { parseLocale } from './locale.util.js';
 
 /**
  * Static B2C pages that support editable SEO meta. The admin UI renders this
@@ -58,12 +59,22 @@ export class PageSeoService {
 
   // ─── Public ──────────────────────────────────────────
 
-  async getPublic(pageKey: string) {
+  async getPublic(pageKey: string, locale?: string) {
     const row = await this.prisma.pageSeo.findUnique({ where: { pageKey } });
-    return {
-      pageKey,
-      metaTitle: row?.metaTitle ?? null,
-      metaDescription: row?.metaDescription ?? null,
-    };
+    let metaTitle = row?.metaTitle ?? null;
+    let metaDescription = row?.metaDescription ?? null;
+
+    const loc = parseLocale(locale);
+    if (row && loc) {
+      const tr = await this.prisma.pageSeoTranslation.findUnique({
+        where: { pageSeoId_locale: { pageSeoId: row.id, locale: loc } },
+      });
+      if (tr) {
+        metaTitle = tr.metaTitle ?? metaTitle;
+        metaDescription = tr.metaDescription ?? metaDescription;
+      }
+    }
+
+    return { pageKey, metaTitle, metaDescription };
   }
 }

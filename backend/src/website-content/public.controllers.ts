@@ -19,8 +19,8 @@ export class CityPagesPublicController {
   }
 
   @Get(':slug')
-  async bySlug(@Param('slug') slug: string) {
-    return new ApiResponse(await this.service.getPublicBySlug(slug));
+  async bySlug(@Param('slug') slug: string, @Query('locale') locale?: string) {
+    return new ApiResponse(await this.service.getPublicBySlug(slug, locale));
   }
 }
 
@@ -36,12 +36,14 @@ export class BlogPublicController {
     @Query('pageSize') pageSize?: string,
     @Query('category') category?: string,
     @Query('tag') tag?: string,
+    @Query('locale') locale?: string,
   ) {
     const result = await this.service.listPublic({
       page: page ? parseInt(page, 10) : undefined,
       pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
       category,
       tag,
+      locale,
     });
     return new ApiResponse(result);
   }
@@ -52,8 +54,8 @@ export class BlogPublicController {
   }
 
   @Get(':slug')
-  async bySlug(@Param('slug') slug: string) {
-    return new ApiResponse(await this.service.getPublicBySlug(slug));
+  async bySlug(@Param('slug') slug: string, @Query('locale') locale?: string) {
+    return new ApiResponse(await this.service.getPublicBySlug(slug, locale));
   }
 }
 
@@ -64,7 +66,7 @@ export class PageSeoPublicController {
   constructor(private readonly service: PageSeoService) {}
 
   @Get(':pageKey')
-  async get(@Param('pageKey') pageKey: string) {
-    return new ApiResponse(await this.service.getPublic(pageKey));
+  async get(@Param('pageKey') pageKey: string, @Query('locale') locale?: string) {
+    return new ApiResponse(await this.service.getPublic(pageKey, locale));
   }
 }

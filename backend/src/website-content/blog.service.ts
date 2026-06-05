@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpsertBlogPostDto, UpsertBlogCategoryDto } from './dto/blog.dto.js';
 import { slugify } from './slug.util.js';
+import { parseLocale, overlayTranslation } from './locale.util.js';
 
 @Injectable()
 export class BlogService {
@@ -135,7 +136,13 @@ export class BlogService {
   // ─── Public ──────────────────────────────────────────
 
   /** Paginated published posts, optionally filtered by category slug or tag. */
-  async listPublic(opts: { page?: number; pageSize?: number; category?: string; tag?: string }) {
+  async listPublic(opts: {
+    page?: number;
+    pageSize?: number;
+    category?: string;
+    tag?: string;
+    locale?: string;
+  }) {
     const page = Math.max(1, opts.page ?? 1);
     const pageSize = Math.min(50, Math.max(1, opts.pageSize ?? 12));
 
@@ -145,13 +152,14 @@ export class BlogService {
       ...(opts.tag ? { tags: { has: opts.tag } } : {}),
     };
 
-    const [items, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.blogPost.findMany({
         where,
         orderBy: { publishedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
         select: {
+          id: true,
           slug: true,
           title: true,
           excerpt: true,
@@ -165,16 +173,50 @@ export class BlogService {
       this.prisma.blogPost.count({ where }),
     ]);
 
+    // Overlay translated title/excerpt for the requested locale, if any.
+    const loc = parseLocale(opts.locale);
+    const byId = new Map<string, { title: string | null; excerpt: string | null }>();
+    if (loc && rows.length) {
+      const trs = await this.prisma.blogPostTranslation.findMany({
+        where: { locale: loc, blogPostId: { in: rows.map((r) => r.id) } },
+        select: { blogPostId: true, title: true, excerpt: true },
+      });
+      for (const t of trs) byId.set(t.blogPostId, t);
+    }
+
+    // Drop the internal id from the public shape after translation lookup.
+    const items = rows.map(({ id, ...rest }) => {
+      const t = byId.get(id);
+      return {
+        ...rest,
+        title: t?.title ?? rest.title,
+        excerpt: t?.excerpt ?? rest.excerpt,
+      };
+    });
+
     return { items, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 
-  async getPublicBySlug(slug: string) {
+  async getPublicBySlug(slug: string, locale?: string) {
     const post = await this.prisma.blogPost.findFirst({
       where: { slug, status: 'PUBLISHED' },
       include: { categories: { select: { name: true, slug: true } } },
     });
     if (!post) throw new NotFoundException('Post not found.');
-    return post;
+
+    const loc = parseLocale(locale);
+    if (!loc) return post;
+
+    const tr = await this.prisma.blogPostTranslation.findUnique({
+      where: { blogPostId_locale: { blogPostId: post.id, locale: loc } },
+    });
+    return overlayTranslation(post, tr, [
+      'title',
+      'excerpt',
+      'contentHtml',
+      'metaTitle',
+      'metaDescription',
+    ]);
   }
 
   publicCategories() {

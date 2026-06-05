@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpsertCityPageDto } from './dto/city-page.dto.js';
 import { slugify } from './slug.util.js';
+import { parseLocale, overlayTranslation } from './locale.util.js';
 
 @Injectable()
 export class CityPagesService {
@@ -110,13 +111,31 @@ export class CityPagesService {
     }));
   }
 
-  /** Full published page for the B2C city/destination route. */
-  async getPublicBySlug(slug: string) {
+  /**
+   * Full published page for the B2C city/destination route. When a supported
+   * non-English locale is requested, translated fields overlay the English base
+   * (untranslated fields and heroImageUrl/city.name/bodyJson stay English).
+   */
+  async getPublicBySlug(slug: string, locale?: string) {
     const page = await this.prisma.cityPage.findFirst({
       where: { slug, isPublished: true },
       include: { city: { select: { name: true } } },
     });
     if (!page) throw new NotFoundException('Page not found.');
-    return page;
+
+    const loc = parseLocale(locale);
+    if (!loc) return page;
+
+    const tr = await this.prisma.cityPageTranslation.findUnique({
+      where: { cityPageId_locale: { cityPageId: page.id, locale: loc } },
+    });
+    return overlayTranslation(page, tr, [
+      'heroHeadline',
+      'introText',
+      'contentHtml',
+      'faqJson',
+      'metaTitle',
+      'metaDescription',
+    ]);
   }
 }
