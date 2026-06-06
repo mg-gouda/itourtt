@@ -193,6 +193,41 @@ export class EmailService {
     }
   }
 
+  /** Notify the team of a new B2C contact-form submission. */
+  async sendContactNotification(
+    to: string,
+    data: {
+      name: string;
+      email: string;
+      phone?: string | null;
+      subject?: string | null;
+      message: string;
+      createdAt: Date;
+    },
+  ): Promise<void> {
+    const esc = (v?: string | null) =>
+      (v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    const subject = `New contact message${data.subject ? `: ${esc(data.subject)}` : ''} — from ${esc(data.name)}`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;padding:20px;color:#333;">
+        <h2 style="margin:0 0 16px;">New contact message</h2>
+        <p><strong>Name:</strong> ${esc(data.name)}</p>
+        <p><strong>Email:</strong> <a href="mailto:${esc(data.email)}">${esc(data.email)}</a></p>
+        <p><strong>Phone:</strong> ${esc(data.phone) || '—'}</p>
+        <p><strong>Subject:</strong> ${esc(data.subject) || '—'}</p>
+        <p><strong>Message:</strong></p>
+        <p style="white-space:pre-wrap;border-left:3px solid #eee;padding-left:12px;">${esc(data.message)}</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
+        <p style="color:#999;font-size:12px;">Received ${data.createdAt.toISOString()} · reply directly to ${esc(data.email)}</p>
+      </div>
+    `;
+    await this.send(to, subject, html);
+  }
+
   async sendDisputeReport(
     to: string,
     subject: string,

@@ -44,6 +44,7 @@ import { DriverTariffsModule } from './driver-tariffs/driver-tariffs.module.js';
 import { JobServiceTypesModule } from './job-service-types/job-service-types.module.js';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
 import { WebsiteContentModule } from './website-content/website-content.module.js';
+import { ContactMessagesModule } from './contact-messages/contact-messages.module.js';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { WebsiteContentModule } from './website-content/website-content.module.j
     PushNotificationsModule,
     UserPreferencesModule,
     WebsiteContentModule,
+    ContactMessagesModule,
   ],
   controllers: [AppController],
   providers: [

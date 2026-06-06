@@ -2192,3 +2192,21 @@ model StaticPageTranslation {
   @@index([staticPageId, locale])
   @@map("static_page_translations")
 }
+
+/// Inbound contact-form submissions from the B2C site. Stored for the team to
+/// review in admin; also emailed to the configured contact address on receipt.
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String   @db.Text
+  ipAddress String?  @map("ip_address")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isRead, createdAt])
+  @@map("contact_messages")
+}

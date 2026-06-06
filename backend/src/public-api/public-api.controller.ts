@@ -11,6 +11,7 @@ import { PublicApiService } from './public-api.service.js';
 import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import { VehicleQuotesRequestDto } from './dto/vehicle-quotes-request.dto.js';
+import { ContactMessageDto } from './dto/contact-message.dto.js';
 import { BookingAccessDto } from './dto/booking-access.dto.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { Public } from '../common/decorators/public.decorator.js';
@@ -67,6 +68,14 @@ export class PublicApiController {
   async getQuote(@Body() dto: QuoteRequestDto) {
     const result = await this.publicApiService.getQuote(dto);
     return new ApiResponse(result);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // contact form — strict anti-abuse cap
+  @Post('contact')
+  async submitContact(@Body() dto: ContactMessageDto, @Ip() ip: string) {
+    await this.captchaService.assertValid(dto.captchaToken, ip);
+    const result = await this.publicApiService.submitContact(dto, ip);
+    return new ApiResponse(result, 'Message sent.');
   }
 
   @Throttle({ default: { limit: 10, ttl: 60000 } })

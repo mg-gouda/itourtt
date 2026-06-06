@@ -620,6 +620,12 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'website-content.pages', labelKey: 'permissions.websiteContent.pages' },
     ],
   },
+
+  // ─── CONTACT MESSAGES (B2C inbound) ───
+  {
+    key: 'contact-messages',
+    labelKey: 'permissions.contactMessages',
+  },
 ];
 
 /**

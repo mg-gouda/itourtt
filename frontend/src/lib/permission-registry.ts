@@ -690,6 +690,11 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'website-content.pages',     labelKey: 'permissions.websiteContent.pages',     crudType: 'section' },
     ],
   },
+  {
+    key: 'contact-messages',
+    labelKey: 'permissions.contactMessages',
+    crudType: 'section',
+  },
 ];
 
 /**

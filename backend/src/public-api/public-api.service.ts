@@ -11,6 +11,7 @@ import { B2CService } from '../b2c/b2c.service.js';
 import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import { VehicleQuotesRequestDto } from './dto/vehicle-quotes-request.dto.js';
+import { ContactMessageDto } from './dto/contact-message.dto.js';
 import {
   ServiceType,
   B2CPaymentMethod,
@@ -38,6 +39,54 @@ export class PublicApiService {
     private readonly guestBookingsService: GuestBookingsService,
     private readonly b2cService: B2CService,
   ) {}
+
+  // ─── Contact form ─────────────────────────────────────────
+
+  /**
+   * Persist a B2C contact-form submission and best-effort email the team.
+   * Email failure never fails the request — the message is already stored.
+   */
+  async submitContact(dto: ContactMessageDto, ip?: string) {
+    const saved = await this.prisma.contactMessage.create({
+      data: {
+        name: dto.name.trim(),
+        email: dto.email.trim(),
+        phone: dto.phone?.trim() || null,
+        subject: dto.subject?.trim() || null,
+        message: dto.message.trim(),
+        ipAddress: ip || null,
+      },
+    });
+
+    try {
+      const settings = await this.prisma.websiteSettings.findFirst();
+      const to =
+        settings?.contactEmail ||
+        process.env.CONTACT_EMAIL ||
+        process.env.SMTP_FROM ||
+        null;
+      if (to) {
+        await this.emailService.sendContactNotification(to, {
+          name: saved.name,
+          email: saved.email,
+          phone: saved.phone,
+          subject: saved.subject,
+          message: saved.message,
+          createdAt: saved.createdAt,
+        });
+      } else {
+        this.logger.warn(
+          'Contact message saved but no recipient configured (set contactEmail in website settings or CONTACT_EMAIL env).',
+        );
+      }
+    } catch (err) {
+      this.logger.error(
+        `Contact notification email failed: ${(err as Error).message}`,
+      );
+    }
+
+    return { ok: true };
+  }
 
   // ─── Google Maps API Key ─────────────────────────────────
 
