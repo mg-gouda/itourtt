@@ -338,8 +338,18 @@ export default function OnlineJobPage() {
 
     setEditingJobId(job.id);
 
-    const originSelectedId = job.originAirportId || job.originAirport?.id || job.originZoneId || job.originZone?.id || job.originHotelId || job.originHotel?.id || "";
-    const destinationSelectedId = job.destinationAirportId || job.destinationAirport?.id || job.destinationZoneId || job.destinationZone?.id || job.destinationHotelId || job.destinationHotel?.id || "";
+    // A job must carry exactly one origin and one destination FK. Legacy B2C jobs
+    // may have both a zone and a hotel set; collapse to the most specific node
+    // (airport → hotel → zone) so the form never re-submits a conflicting pair.
+    const originAirportId = job.originAirportId || job.originAirport?.id || "";
+    const originHotelId = originAirportId ? "" : (job.originHotelId || job.originHotel?.id || "");
+    const originZoneId = originAirportId || originHotelId ? "" : (job.originZoneId || job.originZone?.id || "");
+    const destinationAirportId = job.destinationAirportId || job.destinationAirport?.id || "";
+    const destinationHotelId = destinationAirportId ? "" : (job.destinationHotelId || job.destinationHotel?.id || "");
+    const destinationZoneId = destinationAirportId || destinationHotelId ? "" : (job.destinationZoneId || job.destinationZone?.id || "");
+
+    const originSelectedId = originAirportId || originHotelId || originZoneId || "";
+    const destinationSelectedId = destinationAirportId || destinationHotelId || destinationZoneId || "";
 
     const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
     const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
@@ -353,12 +363,12 @@ export default function OnlineJobPage() {
       jobDate: job.jobDate?.split("T")[0] || "",
       adultCount: String(job.adultCount),
       childCount: String(job.childCount),
-      originAirportId: job.originAirportId || job.originAirport?.id || "",
-      originZoneId: job.originZoneId || job.originZone?.id || "",
-      originHotelId: job.originHotelId || job.originHotel?.id || "",
-      destinationAirportId: job.destinationAirportId || job.destinationAirport?.id || "",
-      destinationZoneId: job.destinationZoneId || job.destinationZone?.id || "",
-      destinationHotelId: job.destinationHotelId || job.destinationHotel?.id || "",
+      originAirportId,
+      originZoneId,
+      originHotelId,
+      destinationAirportId,
+      destinationZoneId,
+      destinationHotelId,
       originSelectedId,
       destinationSelectedId,
       clientName: job.clientName || "",

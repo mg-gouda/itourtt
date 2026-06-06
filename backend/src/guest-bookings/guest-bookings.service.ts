@@ -129,21 +129,26 @@ export class GuestBookingsService {
       let originHotelId: string | null = null;
       let destinationHotelId: string | null = null;
 
+      // A traffic job requires EXACTLY ONE origin and one destination FK
+      // (airport, zone, or hotel). Pick the most specific hotel-side node:
+      // prefer the booked hotel, falling back to its zone. Setting both the zone
+      // and hotel would later fail the "exactly one" rule on edit/cancel.
       if (booking.serviceType === 'ARR') {
         originAirportId = booking.originAirportId;
-        destinationZoneId = booking.toZoneId;
-        destinationHotelId = booking.hotelId;
+        if (booking.hotelId) destinationHotelId = booking.hotelId;
+        else destinationZoneId = booking.toZoneId;
       } else if (booking.serviceType === 'DEP') {
         destinationAirportId = booking.destinationAirportId;
-        originZoneId = booking.fromZoneId;
-        originHotelId = booking.hotelId;
+        if (booking.hotelId) originHotelId = booking.hotelId;
+        else originZoneId = booking.fromZoneId;
       } else {
-        // For other service types, map directly
-        originAirportId = booking.originAirportId;
-        destinationAirportId = booking.destinationAirportId;
-        originZoneId = booking.originAirportId ? null : booking.fromZoneId;
-        destinationZoneId = booking.destinationAirportId ? null : booking.toZoneId;
-        originHotelId = booking.hotelId;
+        // Generic mapping: one FK per side, most specific first.
+        if (booking.originAirportId) originAirportId = booking.originAirportId;
+        else if (booking.hotelId) originHotelId = booking.hotelId;
+        else originZoneId = booking.fromZoneId;
+
+        if (booking.destinationAirportId) destinationAirportId = booking.destinationAirportId;
+        else destinationZoneId = booking.toZoneId;
       }
 
       // Extras snapshot persisted at booking time (legacy seats + catalog selections).

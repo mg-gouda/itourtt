@@ -10,8 +10,22 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
+import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
 import { B2CLoginDto, B2CChangePasswordDto, B2CAmendBookingDto } from './dto/b2c.dto.js';
 
+// Evidence relations on the linked traffic job, exposed to the guest so they can
+// follow up on no-show / delay / dispute. One row per submitter (driver/rep).
+const EVIDENCE_SELECT = {
+  select: { imageUrls: true, gpsMapLink: true, submittedBy: true, createdAt: true },
+} as const;
+
+// Stages shown to the guest, in chronological order.
+const EVIDENCE_STAGES = [
+  ['inPlaceEvidence', 'IN_PLACE'],
+  ['inProgressEvidence', 'IN_PROGRESS'],
+  ['completedEvidence', 'COMPLETED'],
+  ['noShowEvidence', 'NO_SHOW'],
+] as const;
 
 @Injectable()
 export class B2CService {
@@ -22,6 +36,7 @@ export class B2CService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly googleDriveService: GoogleDriveService,
   ) {}
 
   async ensureB2CClientAccount(email: string, phone: string, name: string) {
@@ -126,12 +141,96 @@ export class B2CService {
               },
             },
             flight: { select: { flightNo: true, carrier: true, terminal: true } },
+            inPlaceEvidence: EVIDENCE_SELECT,
+            inProgressEvidence: EVIDENCE_SELECT,
+            completedEvidence: EVIDENCE_SELECT,
+            noShowEvidence: EVIDENCE_SELECT,
           },
         },
       },
     });
     if (!booking) throw new NotFoundException('Booking not found');
-    return booking;
+
+    return { ...booking, evidence: this.buildEvidence(ref, booking.trafficJob) };
+  }
+
+  // Flatten the per-stage evidence relations into a single chronological list,
+  // rewriting each stored image (a Drive file id or a local /uploads path) into a
+  // URL the guest can fetch via the ownership-scoped proxy below.
+  private buildEvidence(ref: string, job: any) {
+    if (!job) return [];
+    const items: Array<{
+      stage: string;
+      by: 'DRIVER' | 'REP' | 'STAFF';
+      gpsMapLink: string | null;
+      createdAt: Date;
+      images: string[];
+    }> = [];
+
+    for (const [relation, stage] of EVIDENCE_STAGES) {
+      for (const ev of (job[relation] ?? []) as Array<{
+        imageUrls: string[];
+        gpsMapLink: string | null;
+        submittedBy: string;
+        createdAt: Date;
+      }>) {
+        // submittedBy is stored as "DRIVER-<name>" / "REP-<name>"; expose only the
+        // role to the guest, never the staff member's name.
+        const role = (ev.submittedBy ?? '').startsWith('REP')
+          ? 'REP'
+          : (ev.submittedBy ?? '').startsWith('DRIVER')
+            ? 'DRIVER'
+            : 'STAFF';
+        items.push({
+          stage,
+          by: role,
+          gpsMapLink: ev.gpsMapLink,
+          createdAt: ev.createdAt,
+          images: (ev.imageUrls ?? []).map((url) =>
+            isDriveFileId(url)
+              ? `/w-api/bookings/${encodeURIComponent(ref)}/evidence-file/${url}`
+              : url,
+          ),
+        });
+      }
+    }
+
+    return items.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  // Stream a single evidence image to the guest. The file id MUST belong to the
+  // evidence of a job the guest owns — otherwise this would be an open Drive proxy.
+  async getEvidenceFileStream(clientId: string, ref: string, fileId: string) {
+    if (!isDriveFileId(fileId)) throw new NotFoundException('File not found');
+
+    const booking = await this.prisma.guestBooking.findFirst({
+      where: { bookingRef: ref, b2cClientId: clientId },
+      select: {
+        trafficJob: {
+          select: {
+            inPlaceEvidence: { select: { imageUrls: true } },
+            inProgressEvidence: { select: { imageUrls: true } },
+            completedEvidence: { select: { imageUrls: true } },
+            noShowEvidence: { select: { imageUrls: true } },
+          },
+        },
+      },
+    });
+
+    const job: any = booking?.trafficJob;
+    if (!job) throw new NotFoundException('File not found');
+
+    const ownedIds = new Set<string>();
+    for (const [relation] of EVIDENCE_STAGES) {
+      for (const ev of (job[relation] ?? []) as Array<{ imageUrls: string[] }>) {
+        for (const url of ev.imageUrls ?? []) ownedIds.add(url);
+      }
+    }
+    if (!ownedIds.has(fileId)) throw new NotFoundException('File not found');
+
+    const result = await this.googleDriveService.getFileStream(fileId);
+    if (!result) throw new NotFoundException('File not found or Drive not configured');
+    return result;
   }
 
   async amendBooking(clientId: string, ref: string, dto: B2CAmendBookingDto) {

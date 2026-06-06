@@ -8,9 +8,11 @@ import {
   Param,
   UseGuards,
   Request,
+  Res,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { B2CService } from './b2c.service.js';
 import { B2CLoginDto, B2CChangePasswordDto, B2CAmendBookingDto } from './dto/b2c.dto.js';
 import { Throttle } from '@nestjs/throttler';
@@ -46,6 +48,24 @@ export class B2CController {
   @Get('bookings/:ref')
   getBooking(@Request() req: any, @Param('ref') ref: string) {
     return this.b2cService.getBooking(req.user.id, ref);
+  }
+
+  // Ownership-scoped proxy: streams a driver/rep evidence image, but only if the
+  // file belongs to a job the requesting guest owns (see service for the check).
+  @UseGuards(JwtAuthGuard)
+  @Get('bookings/:ref/evidence-file/:fileId')
+  async getEvidenceFile(
+    @Request() req: any,
+    @Param('ref') ref: string,
+    @Param('fileId') fileId: string,
+    @Res() res: Response,
+  ) {
+    const result = await this.b2cService.getEvidenceFileStream(req.user.id, ref, fileId);
+    res.set({
+      'Content-Type': result.mimeType,
+      'Cache-Control': 'private, max-age=3600',
+    });
+    result.stream.pipe(res);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -5,11 +5,13 @@ import { B2CController } from './b2c.controller.js';
 import { B2CService } from './b2c.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { EmailModule } from '../email/email.module.js';
+import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 
 @Module({
   imports: [
     PrismaModule,
     EmailModule,
+    GoogleDriveModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

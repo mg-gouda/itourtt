@@ -967,7 +967,7 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
 
             <DetailSection title="Booking">
               <DetailRow label="Booking Channel" value={job.bookingChannel === "B2C" ? "B2C Website" : job.bookingChannel} />
-              {job.bookingChannel === "ONLINE" ? (
+              {job.bookingChannel === "ONLINE" || job.bookingChannel === "B2C" ? (
                 <>
                   <DetailRow label="Agent" value={job.agent?.legalName} />
                   <DetailRow label="Agent Phone" value={job.agent?.phone} phone />
@@ -1269,7 +1269,7 @@ function JobGrid({
                   {job.internalRef}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {job.bookingChannel === "ONLINE"
+                  {job.bookingChannel === "ONLINE" || job.bookingChannel === "B2C"
                     ? job.agent?.legalName || "—"
                     : job.customer?.legalName || "—"}
                 </TableCell>
@@ -1840,7 +1840,7 @@ export default function DispatchPage() {
   const agentCustomerOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const job of allJobs) {
-      if (job.bookingChannel === "ONLINE" && job.agent?.legalName) {
+      if ((job.bookingChannel === "ONLINE" || job.bookingChannel === "B2C") && job.agent?.legalName) {
         map.set(`agent:${job.agent.legalName}`, job.agent.legalName);
       } else if (job.bookingChannel === "B2B" && job.customer?.legalName) {
         map.set(`customer:${job.customer.legalName}`, job.customer.legalName);
@@ -1867,7 +1867,7 @@ export default function DispatchPage() {
     return jobs.filter((job) => {
       // Agent/Customer filter
       if (agentCustomerKey !== "ALL") {
-        const jobKey = job.bookingChannel === "ONLINE"
+        const jobKey = job.bookingChannel === "ONLINE" || job.bookingChannel === "B2C"
           ? `agent:${job.agent?.legalName || ""}`
           : `customer:${job.customer?.legalName || ""}`;
         if (jobKey !== agentCustomerKey) return false;

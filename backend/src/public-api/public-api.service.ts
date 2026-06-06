@@ -167,16 +167,33 @@ export class PublicApiService {
   // ─── Vehicle Quotes (all options for a route) ───────────
 
   async getVehicleQuotes(dto: VehicleQuotesRequestDto) {
-    const priceItems = await this.prisma.publicPriceItem.findMany({
+    // Public prices are stored once per airport↔hotel-zone route (airport side as
+    // fromZone) and the same rows serve both ARR and DEP. A departure runs
+    // hotel→airport — the reverse of how the row is stored — so fall back to the
+    // swapped zone pair when the exact direction has no matching prices.
+    const vehicleWhere = { seatCapacity: { gte: dto.paxCount }, isActive: true };
+    let priceItems = await this.prisma.publicPriceItem.findMany({
       where: {
         serviceType: dto.serviceType as any,
         fromZoneId: dto.fromZoneId,
         toZoneId: dto.toZoneId,
-        vehicleType: { seatCapacity: { gte: dto.paxCount }, isActive: true },
+        vehicleType: vehicleWhere,
       },
       include: { vehicleType: true },
       orderBy: { price: 'asc' },
     });
+    if (priceItems.length === 0) {
+      priceItems = await this.prisma.publicPriceItem.findMany({
+        where: {
+          serviceType: dto.serviceType as any,
+          fromZoneId: dto.toZoneId,
+          toZoneId: dto.fromZoneId,
+          vehicleType: vehicleWhere,
+        },
+        include: { vehicleType: true },
+        orderBy: { price: 'asc' },
+      });
+    }
 
     return {
       options: priceItems.map((item) => ({
@@ -327,18 +344,35 @@ export class PublicApiService {
 
   // ─── Quote ──────────────────────────────────────────────
 
+  // Find a route price for a single vehicle type. Prices are stored once per
+  // airport↔hotel-zone route (airport side as fromZone) and the same row serves
+  // both ARR and DEP, so a departure (hotel→airport) falls back to the swapped
+  // zone pair when the exact direction has no match.
+  private async findRoutePriceItem(
+    serviceType: ServiceType,
+    fromZoneId: string,
+    toZoneId: string,
+    vehicleTypeId: string,
+  ) {
+    return (
+      (await this.prisma.publicPriceItem.findFirst({
+        where: { serviceType, fromZoneId, toZoneId, vehicleTypeId },
+        include: { vehicleType: true },
+      })) ??
+      (await this.prisma.publicPriceItem.findFirst({
+        where: { serviceType, fromZoneId: toZoneId, toZoneId: fromZoneId, vehicleTypeId },
+        include: { vehicleType: true },
+      }))
+    );
+  }
+
   async getQuote(dto: QuoteRequestDto) {
-    const priceItem = await this.prisma.publicPriceItem.findFirst({
-      where: {
-        serviceType: dto.serviceType as ServiceType,
-        fromZoneId: dto.fromZoneId,
-        toZoneId: dto.toZoneId,
-        vehicleTypeId: dto.vehicleTypeId,
-      },
-      include: {
-        vehicleType: true,
-      },
-    });
+    const priceItem = await this.findRoutePriceItem(
+      dto.serviceType as ServiceType,
+      dto.fromZoneId,
+      dto.toZoneId,
+      dto.vehicleTypeId,
+    );
 
     if (!priceItem) {
       throw new NotFoundException(
@@ -423,18 +457,13 @@ export class PublicApiService {
   // ─── Create Booking ─────────────────────────────────────
 
   async createBooking(dto: CreateGuestBookingDto) {
-    // Look up pricing
-    const priceItem = await this.prisma.publicPriceItem.findFirst({
-      where: {
-        serviceType: dto.serviceType as ServiceType,
-        fromZoneId: dto.fromZoneId,
-        toZoneId: dto.toZoneId,
-        vehicleTypeId: dto.vehicleTypeId,
-      },
-      include: {
-        vehicleType: true,
-      },
-    });
+    // Look up pricing (matches either zone orientation; see findRoutePriceItem)
+    const priceItem = await this.findRoutePriceItem(
+      dto.serviceType as ServiceType,
+      dto.fromZoneId,
+      dto.toZoneId,
+      dto.vehicleTypeId,
+    );
 
     if (!priceItem) {
       throw new NotFoundException(
