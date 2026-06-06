@@ -11,6 +11,7 @@ import {
   UpsertCityPageTranslationDto,
   UpsertBlogPostTranslationDto,
   UpsertPageSeoTranslationDto,
+  UpsertStaticPageTranslationDto,
 } from './dto/translation.dto.js';
 
 /** Validate a :locale route param into a supported Locale or 400. */
@@ -177,6 +178,53 @@ export class TranslationsService {
     return { success: true };
   }
 
+  // ─── Static pages (keyed by page id) ─────────────────────────────
+
+  private async assertStaticPage(id: string): Promise<void> {
+    const page = await this.prisma.staticPage.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!page) throw new NotFoundException('Page not found.');
+  }
+
+  async listStaticPageTranslations(staticPageId: string) {
+    await this.assertStaticPage(staticPageId);
+    const rows = await this.prisma.staticPageTranslation.findMany({
+      where: { staticPageId },
+    });
+    return { translations: this.byLocale(rows) };
+  }
+
+  async upsertStaticPageTranslation(
+    staticPageId: string,
+    rawLocale: string,
+    dto: UpsertStaticPageTranslationDto,
+  ) {
+    await this.assertStaticPage(staticPageId);
+    const locale = requireLocale(rawLocale);
+    const data = {
+      title: dto.title,
+      content: dto.content,
+      metaTitle: dto.metaTitle,
+      metaDescription: dto.metaDescription,
+    };
+    return this.prisma.staticPageTranslation.upsert({
+      where: { staticPageId_locale: { staticPageId, locale } },
+      create: { staticPageId, locale, ...data },
+      update: data,
+    });
+  }
+
+  async deleteStaticPageTranslation(staticPageId: string, rawLocale: string) {
+    await this.assertStaticPage(staticPageId);
+    const locale = requireLocale(rawLocale);
+    await this.prisma.staticPageTranslation.deleteMany({
+      where: { staticPageId, locale },
+    });
+    return { success: true };
+  }
+
   // ─── Shared helpers (also used by the auto-translate endpoint) ───
 
   /** Reduce translation rows to a { [locale]: row } map. */
@@ -189,9 +237,22 @@ export class TranslationsService {
 
   /** English source fields for the auto-translate endpoint, by entity. */
   async getEnglishSource(
-    entity: 'city_page' | 'blog_post' | 'page_seo',
+    entity: 'city_page' | 'blog_post' | 'page_seo' | 'static_page',
     id: string,
   ): Promise<Record<string, unknown>> {
+    if (entity === 'static_page') {
+      const page = await this.prisma.staticPage.findUnique({
+        where: { id },
+        select: {
+          title: true,
+          content: true,
+          metaTitle: true,
+          metaDescription: true,
+        },
+      });
+      if (!page) throw new NotFoundException('Page not found.');
+      return this.stripEmpty(page);
+    }
     if (entity === 'city_page') {
       const page = await this.prisma.cityPage.findUnique({
         where: { cityId: id },
@@ -231,7 +292,7 @@ export class TranslationsService {
 
   /** Persist an auto-translation result by reusing the matching upsert. */
   async saveTranslation(
-    entity: 'city_page' | 'blog_post' | 'page_seo',
+    entity: 'city_page' | 'blog_post' | 'page_seo' | 'static_page',
     id: string,
     locale: string,
     translation: Record<string, unknown>,
@@ -241,6 +302,9 @@ export class TranslationsService {
     }
     if (entity === 'blog_post') {
       return this.upsertBlogTranslation(id, locale, translation);
+    }
+    if (entity === 'static_page') {
+      return this.upsertStaticPageTranslation(id, locale, translation);
     }
     return this.upsertPageSeoTranslation(id, locale, translation);
   }

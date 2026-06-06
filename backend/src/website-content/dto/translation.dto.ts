@@ -13,6 +13,7 @@ export const TRANSLATABLE_ENTITIES = [
   'city_page',
   'blog_post',
   'page_seo',
+  'static_page',
 ] as const;
 export type TranslatableEntity = (typeof TRANSLATABLE_ENTITIES)[number];
 
@@ -37,6 +38,14 @@ export class UpsertBlogPostTranslationDto {
 
 /** Translation payload for a static page's SEO meta. */
 export class UpsertPageSeoTranslationDto {
+  @IsOptional() @IsString() @MaxLength(180) metaTitle?: string;
+  @IsOptional() @IsString() @MaxLength(320) metaDescription?: string;
+}
+
+/** Translation payload for a CMS static page. */
+export class UpsertStaticPageTranslationDto {
+  @IsOptional() @IsString() @MaxLength(200) title?: string;
+  @IsOptional() @IsString() content?: string;
   @IsOptional() @IsString() @MaxLength(180) metaTitle?: string;
   @IsOptional() @IsString() @MaxLength(320) metaDescription?: string;
 }

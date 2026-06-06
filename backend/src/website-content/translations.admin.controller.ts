@@ -14,6 +14,7 @@ import {
   UpsertCityPageTranslationDto,
   UpsertBlogPostTranslationDto,
   UpsertPageSeoTranslationDto,
+  UpsertStaticPageTranslationDto,
   TranslateRequestDto,
 } from './dto/translation.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -128,12 +129,45 @@ export class TranslationsAdminController {
     );
   }
 
+  // ── Static pages ──
+  @Get('admin/pages/:id/translations')
+  @Permissions('website-content.pages')
+  async listStaticPage(@Param('id') id: string) {
+    return new ApiResponse(await this.service.listStaticPageTranslations(id));
+  }
+
+  @Put('admin/pages/:id/translations/:locale')
+  @Permissions('website-content.pages')
+  async putStaticPage(
+    @Param('id') id: string,
+    @Param('locale') locale: string,
+    @Body() dto: UpsertStaticPageTranslationDto,
+  ) {
+    return new ApiResponse(
+      await this.service.upsertStaticPageTranslation(id, locale, dto),
+      'Saved.',
+    );
+  }
+
+  @Delete('admin/pages/:id/translations/:locale')
+  @Permissions('website-content.pages')
+  async deleteStaticPage(
+    @Param('id') id: string,
+    @Param('locale') locale: string,
+  ) {
+    return new ApiResponse(
+      await this.service.deleteStaticPageTranslation(id, locale),
+      'Deleted.',
+    );
+  }
+
   // ── Auto-translate (Claude) ──
   @Post('translate')
   @Permissions(
     'website-content.cityPages',
     'website-content.blog',
     'website-content.pageSeo',
+    'website-content.pages',
   )
   async autoTranslate(@Body() dto: TranslateRequestDto) {
     return new ApiResponse(await this.translate.translateEntity(dto));

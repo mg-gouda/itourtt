@@ -11,7 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import api from "@/lib/api";
 
-export type TranslatableEntity = "city_page" | "blog_post" | "page_seo";
+export type TranslatableEntity =
+  | "city_page"
+  | "blog_post"
+  | "page_seo"
+  | "static_page";
 type FieldType = "text" | "textarea" | "html" | "faq";
 
 export interface TransFieldDef {
@@ -38,6 +42,7 @@ const BASE_PATH: Record<TranslatableEntity, string> = {
   city_page: "city-pages",
   blog_post: "blog",
   page_seo: "page-seo",
+  static_page: "admin/pages",
 };
 
 type Draft = Record<string, unknown>;

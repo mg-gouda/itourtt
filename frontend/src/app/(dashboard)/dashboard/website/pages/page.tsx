@@ -37,7 +37,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import {
+  TranslationsPanel,
+  type TransFieldDef,
+} from "@/components/website/translations-panel";
 import api from "@/lib/api";
+
+const PAGE_TRANS_FIELDS: TransFieldDef[] = [
+  { key: "title", label: "Title", type: "text" },
+  { key: "content", label: "Content (HTML)", type: "html" },
+  { key: "metaTitle", label: "Meta title", type: "text" },
+  { key: "metaDescription", label: "Meta description", type: "textarea" },
+];
 
 interface StaticPage {
   id: string;
@@ -350,6 +361,21 @@ export default function StaticPagesAdminPage() {
                 />
               </div>
             </div>
+
+            {/* Translations — only for an already-saved page */}
+            {editing && editing !== "new" && (
+              <TranslationsPanel
+                entity="static_page"
+                id={editing.id}
+                fields={PAGE_TRANS_FIELDS}
+                englishSource={{
+                  title: form.title,
+                  content: form.content,
+                  metaTitle: form.metaTitle,
+                  metaDescription: form.metaDescription,
+                }}
+              />
+            )}
           </div>
 
           <DialogFooter>

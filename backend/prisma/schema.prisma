@@ -2094,6 +2094,8 @@ model StaticPage {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  translations StaticPageTranslation[]
+
   @@map("static_pages")
 }
 
@@ -2169,4 +2171,24 @@ model PageSeoTranslation {
   @@unique([pageSeoId, locale])
   @@index([pageSeoId, locale])
   @@map("page_seo_translations")
+}
+
+/// Per-locale translation of a CMS static page. Any null field falls back to
+/// the English base on the parent StaticPage.
+model StaticPageTranslation {
+  id              String   @id @default(uuid())
+  staticPageId    String   @map("static_page_id")
+  locale          Locale
+  title           String?
+  content         String?  @map("content") @db.Text
+  metaTitle       String?  @map("meta_title")
+  metaDescription String?  @map("meta_description") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  staticPage StaticPage @relation(fields: [staticPageId], references: [id], onDelete: Cascade)
+
+  @@unique([staticPageId, locale])
+  @@index([staticPageId, locale])
+  @@map("static_page_translations")
 }

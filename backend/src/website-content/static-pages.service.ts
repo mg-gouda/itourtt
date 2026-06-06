@@ -9,6 +9,7 @@ import {
   UpdateStaticPageDto,
 } from './dto/static-page.dto.js';
 import { slugify } from './slug.util.js';
+import { parseLocale, overlayTranslation } from './locale.util.js';
 
 @Injectable()
 export class StaticPagesService {
@@ -83,7 +84,7 @@ export class StaticPagesService {
    * each placement, ordered by menuOrder. Returns { nav, footer } arrays of
    * lightweight link descriptors.
    */
-  async menus() {
+  async menus(locale?: string) {
     const pages = await this.prisma.staticPage.findMany({
       where: {
         isPublished: true,
@@ -91,13 +92,29 @@ export class StaticPagesService {
       },
       orderBy: [{ menuOrder: 'asc' }, { title: 'asc' }],
       select: {
+        id: true,
         slug: true,
         title: true,
         showInNav: true,
         showInFooter: true,
       },
     });
-    const link = (p: (typeof pages)[number]) => ({ slug: p.slug, title: p.title });
+
+    // Overlay localized menu titles in one query when a locale is requested.
+    const loc = parseLocale(locale);
+    const titleByPage = new Map<string, string>();
+    if (loc && pages.length) {
+      const trs = await this.prisma.staticPageTranslation.findMany({
+        where: { staticPageId: { in: pages.map((p) => p.id) }, locale: loc },
+        select: { staticPageId: true, title: true },
+      });
+      for (const t of trs) if (t.title) titleByPage.set(t.staticPageId, t.title);
+    }
+
+    const link = (p: (typeof pages)[number]) => ({
+      slug: p.slug,
+      title: titleByPage.get(p.id) ?? p.title,
+    });
     return {
       nav: pages.filter((p) => p.showInNav).map(link),
       footer: pages.filter((p) => p.showInFooter).map(link),
@@ -105,12 +122,13 @@ export class StaticPagesService {
   }
 
   /** Published page by slug; 404 when missing or still a draft. */
-  async getPublicBySlug(slug: string) {
+  async getPublicBySlug(slug: string, locale?: string) {
     const page = await this.prisma.staticPage.findUnique({ where: { slug } });
     if (!page || !page.isPublished) {
       throw new NotFoundException('Page not found.');
     }
-    return {
+
+    const base = {
       slug: page.slug,
       title: page.title,
       content: page.content,
@@ -118,6 +136,19 @@ export class StaticPagesService {
       metaDescription: page.metaDescription,
       updatedAt: page.updatedAt,
     };
+
+    const loc = parseLocale(locale);
+    if (!loc) return base;
+
+    const tr = await this.prisma.staticPageTranslation.findUnique({
+      where: { staticPageId_locale: { staticPageId: page.id, locale: loc } },
+    });
+    return overlayTranslation(base, tr, [
+      'title',
+      'content',
+      'metaTitle',
+      'metaDescription',
+    ]);
   }
 
   // ─── Helpers ─────────────────────────────────────────

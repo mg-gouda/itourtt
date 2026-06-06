@@ -80,12 +80,12 @@ export class StaticPagesPublicController {
 
   /** Header/footer menu links: { nav: [...], footer: [...] }. */
   @Get()
-  async menus() {
-    return new ApiResponse(await this.service.menus());
+  async menus(@Query('locale') locale?: string) {
+    return new ApiResponse(await this.service.menus(locale));
   }
 
   @Get(':slug')
-  async bySlug(@Param('slug') slug: string) {
-    return new ApiResponse(await this.service.getPublicBySlug(slug));
+  async bySlug(@Param('slug') slug: string, @Query('locale') locale?: string) {
+    return new ApiResponse(await this.service.getPublicBySlug(slug, locale));
   }
 }
