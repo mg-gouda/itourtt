@@ -1,4 +1,44 @@
-import type { BookingEmailData, PaymentReceiptData, DriverAssignmentData, JobUpdateEmailData } from '../email.service.js';
+import type { BookingEmailData, PaymentReceiptData, StaffAssignmentData, JobUpdateEmailData } from '../email.service.js';
+
+/** Branding injected into the email header/footer. Guest-facing emails pass
+ *  B2C (Transfera) branding; internal emails fall back to DEFAULT_BRANDING. */
+export interface EmailBranding {
+  siteName: string;
+  contactEmail: string;
+  headerBg: string;
+  /** Absolute URL to a raster (PNG/JPG) logo. If null, the site name is shown as text. */
+  logoUrl?: string | null;
+  /** Sub-line shown under the site name when no logo is used. */
+  tagline?: string | null;
+  /** Absolute URL to the Terms & Conditions page. When set, a footer link is added. */
+  termsUrl?: string | null;
+  /** Absolute URL to the account login page. When set, a footer link is added. */
+  loginUrl?: string | null;
+}
+
+const DEFAULT_BRANDING: EmailBranding = {
+  siteName: 'iTour Transport & Traffic',
+  contactEmail: 'support@itour.local',
+  headerBg: '#1a1a2e',
+  logoUrl: null,
+  tagline: 'Your trusted transfer partner',
+  termsUrl: null,
+  loginUrl: null,
+};
+
+/** Human-readable service type for guests (the DB stores 3-letter codes). */
+function serviceLabel(serviceType: string): string {
+  switch (serviceType) {
+    case 'ARR':
+      return 'Arrival';
+    case 'DEP':
+      return 'Departure';
+    case 'CITY':
+      return 'City Tour';
+    default:
+      return serviceType;
+  }
+}
 
 const baseStyle = `
   body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f4f4f7; }
@@ -17,27 +57,37 @@ const baseStyle = `
   .footer { padding: 20px 32px; text-align: center; font-size: 12px; color: #a0a0b8; border-top: 1px solid #eee; }
 `;
 
-function wrap(content: string): string {
+function wrap(content: string, branding: EmailBranding = DEFAULT_BRANDING): string {
+  const headerInner = branding.logoUrl
+    ? `<img src="${branding.logoUrl}" alt="${branding.siteName}" style="max-height:44px;max-width:220px;height:auto;display:inline-block;" />`
+    : `<h1>${branding.siteName}</h1>${branding.tagline ? `<p>${branding.tagline}</p>` : ''}`;
+
+  const linkStyle = 'color:#a0a0b8;text-decoration:underline;';
+  const footerLinks = [
+    branding.termsUrl ? `<a href="${branding.termsUrl}" style="${linkStyle}">Terms &amp; Conditions</a>` : '',
+    branding.loginUrl ? `<a href="${branding.loginUrl}" style="${linkStyle}">Log in to my account</a>` : '',
+  ].filter(Boolean).join(' &nbsp;&middot;&nbsp; ');
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><style>${baseStyle}</style></head>
 <body>
 <div class="container">
-  <div class="header">
-    <h1>iTour Transport & Traffic</h1>
-    <p>Your trusted transfer partner</p>
+  <div class="header" style="background:${branding.headerBg};">
+    ${headerInner}
   </div>
   ${content}
   <div class="footer">
-    <p>iTour Transport & Traffic &copy; ${new Date().getFullYear()}</p>
-    <p>If you have questions, contact us at support@itour.local</p>
+    <p>${branding.siteName} &copy; ${new Date().getFullYear()}</p>
+    <p>If you have questions, contact us at <a href="mailto:${branding.contactEmail}" style="color:#a0a0b8;">${branding.contactEmail}</a></p>
+    ${footerLinks ? `<p>${footerLinks}</p>` : ''}
   </div>
 </div>
 </body>
 </html>`;
 }
 
-export function bookingConfirmationTemplate(data: BookingEmailData): string {
+export function bookingConfirmationTemplate(data: BookingEmailData, branding?: EmailBranding): string {
   return wrap(`
   <div class="body">
     <h2>Booking Confirmed!</h2>
@@ -46,7 +96,7 @@ export function bookingConfirmationTemplate(data: BookingEmailData): string {
     <div class="details">
       <table>
         <tr><td>Booking Ref</td><td>${data.bookingRef}</td></tr>
-        <tr><td>Service</td><td>${data.serviceType}</td></tr>
+        <tr><td>Service</td><td>${serviceLabel(data.serviceType)}</td></tr>
         <tr><td>Date</td><td>${data.jobDate}</td></tr>
         ${data.pickupTime ? `<tr><td>Pickup Time</td><td>${data.pickupTime}</td></tr>` : ''}
         <tr><td>From</td><td>${data.fromZone}</td></tr>
@@ -60,10 +110,10 @@ export function bookingConfirmationTemplate(data: BookingEmailData): string {
     </div>
     <div class="total">${data.currency} ${data.total.toFixed(2)}</div>
     <p>We look forward to serving you!</p>
-  </div>`);
+  </div>`, branding);
 }
 
-export function paymentReceiptTemplate(data: PaymentReceiptData): string {
+export function paymentReceiptTemplate(data: PaymentReceiptData, branding?: EmailBranding): string {
   return wrap(`
   <div class="body">
     <h2>Payment Received</h2>
@@ -79,10 +129,10 @@ export function paymentReceiptTemplate(data: PaymentReceiptData): string {
       </table>
     </div>
     <p>Thank you for your payment!</p>
-  </div>`);
+  </div>`, branding);
 }
 
-export function bookingCancellationTemplate(data: BookingEmailData): string {
+export function bookingCancellationTemplate(data: BookingEmailData, branding?: EmailBranding): string {
   return wrap(`
   <div class="body">
     <h2>Booking Cancelled</h2>
@@ -91,32 +141,65 @@ export function bookingCancellationTemplate(data: BookingEmailData): string {
     <div class="details">
       <table>
         <tr><td>Booking Ref</td><td>${data.bookingRef}</td></tr>
-        <tr><td>Service</td><td>${data.serviceType}</td></tr>
+        <tr><td>Service</td><td>${serviceLabel(data.serviceType)}</td></tr>
         <tr><td>Date</td><td>${data.jobDate}</td></tr>
         <tr><td>From</td><td>${data.fromZone}</td></tr>
         <tr><td>To</td><td>${data.toZone}</td></tr>
       </table>
     </div>
     <p>If this was a mistake or you need assistance, please contact our support team.</p>
-  </div>`);
+    <div style="background:#fff8e1;border-left:4px solid #f0c000;border-radius:6px;padding:14px 18px;margin:16px 0;">
+      <p style="margin:0;color:#4a4a68;font-size:14px;line-height:1.6;">
+        <strong style="color:#1a1a2e;">Refund Policy:</strong> The amount will be refunded to the same card you used in the payment process within 28 working days, excluding weekends and national holidays.
+      </p>
+    </div>
+  </div>`, branding);
 }
 
-export function driverAssignmentTemplate(data: DriverAssignmentData): string {
+export function staffAssignmentTemplate(data: StaffAssignmentData, branding?: EmailBranding): string {
+  const sectionTitle = 'font-weight:600;color:#1a1a2e;margin:18px 0 6px;';
+  // Arrival: guest is met at the airport. Departure: guest is picked up at the start point.
+  const meetingLabel = data.serviceType === 'DEP' ? 'Pickup Point' : 'Meeting Point';
+
+  const tripRows = `
+        ${data.meetingPoint ? `<tr><td>${meetingLabel}</td><td>${data.meetingPoint}</td></tr>` : ''}
+        ${data.pickupTime ? `<tr><td>Pickup Time</td><td>${data.pickupTime}</td></tr>` : ''}`;
+
   return wrap(`
   <div class="body">
-    <h2>Driver Assigned</h2>
+    <h2>Your Transfer Team is Ready</h2>
     <p>Dear ${data.guestName},</p>
-    <p>A driver has been assigned to your booking <strong>${data.bookingRef}</strong>.</p>
+    <p>Your representative and driver have been assigned to your booking <strong>${data.bookingRef}</strong>.</p>
+
+    ${tripRows.trim() ? `<div class="details"><table>${tripRows}</table></div>` : ''}
+
+    <p style="${sectionTitle}">Representative</p>
     <div class="details">
       <table>
-        <tr><td>Driver Name</td><td>${data.driverName}</td></tr>
-        <tr><td>Driver Phone</td><td>${data.driverPhone}</td></tr>
-        <tr><td>Vehicle</td><td>${data.vehicleType}${data.vehicleColor ? ` (${data.vehicleColor})` : ''}</td></tr>
-        <tr><td>Plate Number</td><td>${data.vehiclePlate}</td></tr>
+        <tr><td>Name</td><td>${data.repName}</td></tr>
+        ${data.repPhone ? `<tr><td>Phone</td><td>${data.repPhone}</td></tr>` : ''}
       </table>
     </div>
-    <p>Your driver will be waiting for you. Have a great trip!</p>
-  </div>`);
+
+    <p style="${sectionTitle}">Driver</p>
+    <div class="details">
+      <table>
+        <tr><td>Name</td><td>${data.driverName}</td></tr>
+        ${data.driverPhone ? `<tr><td>Phone</td><td>${data.driverPhone}</td></tr>` : ''}
+      </table>
+    </div>
+
+    ${data.vehicleType || data.vehiclePlate ? `
+    <p style="${sectionTitle}">Vehicle</p>
+    <div class="details">
+      <table>
+        ${data.vehicleType ? `<tr><td>Type</td><td>${data.vehicleType}${data.vehicleColor ? ` (${data.vehicleColor})` : ''}</td></tr>` : ''}
+        ${data.vehiclePlate ? `<tr><td>Plate Number</td><td>${data.vehiclePlate}</td></tr>` : ''}
+      </table>
+    </div>` : ''}
+
+    <p>Your representative and driver will be ready to assist you. Have a great trip!</p>
+  </div>`, branding);
 }
 
 export function jobUpdateNotificationTemplate(data: JobUpdateEmailData): string {

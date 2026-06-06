@@ -12,8 +12,9 @@ import {
   bookingConfirmationTemplate,
   paymentReceiptTemplate,
   bookingCancellationTemplate,
-  driverAssignmentTemplate,
+  staffAssignmentTemplate,
   jobUpdateNotificationTemplate,
+  type EmailBranding,
 } from './templates/index.js';
 
 export interface BookingEmailData {
@@ -45,10 +46,17 @@ export interface PaymentReceiptData {
   paidAt: string;
 }
 
-export interface DriverAssignmentData {
+export interface StaffAssignmentData {
   bookingRef: string;
   guestName: string;
   guestEmail: string;
+  serviceType: string;
+  /** Arrival → the airport the guest lands at; Departure → the pickup/start point. */
+  meetingPoint?: string;
+  /** Formatted pickup time (HH:MM). */
+  pickupTime?: string;
+  repName: string;
+  repPhone?: string;
   driverName: string;
   driverPhone: string;
   vehiclePlate: string;
@@ -165,24 +173,67 @@ export class EmailService {
     this.dbInitialized = false;
   }
 
+  /**
+   * Build B2C (Transfera) branding for guest-facing emails from the website
+   * settings configured in the admin area. Falls back to sensible defaults so
+   * emails keep sending if settings are missing. The logo must be a raster
+   * (PNG/JPG) image — email clients don't render SVG — so an SVG `siteLogoUrl`
+   * is ignored in favour of the bundled email-safe logo.
+   */
+  private async getGuestBranding(): Promise<EmailBranding> {
+    const base = this.config
+      .get<string>('PUBLIC_BACKEND_URL', 'https://fulvago.itourtt.cloud')
+      .replace(/\/+$/, '');
+    const siteUrl = this.config
+      .get<string>('PUBLIC_SITE_URL', 'https://transfera.ae')
+      .replace(/\/+$/, '');
+    // Email-safe fallback logo (yellow Transfera mark on dark header).
+    const fallbackLogo = `${base}/uploads/1780470940148-Transfera-Logo-Yellow-w-v1.jpg`;
+
+    const branding: EmailBranding = {
+      siteName: 'Transfera',
+      contactEmail: 'support@itour.local',
+      headerBg: '#191919',
+      logoUrl: fallbackLogo,
+      termsUrl: `${siteUrl}/terms-and-conditions`,
+      loginUrl: `${siteUrl}/login`,
+    };
+
+    try {
+      const ws = await this.prisma.websiteSettings.findFirst();
+      if (ws?.siteName) branding.siteName = ws.siteName;
+      if (ws?.contactEmail) branding.contactEmail = ws.contactEmail;
+      // Use the admin-configured logo only when it's a raster image.
+      if (ws?.siteLogoUrl && /\.(png|jpe?g|gif|webp)$/i.test(ws.siteLogoUrl)) {
+        branding.logoUrl = ws.siteLogoUrl.startsWith('http')
+          ? ws.siteLogoUrl
+          : `${base}${ws.siteLogoUrl}`;
+      }
+    } catch (err) {
+      this.logger.warn(`Could not load website settings for email branding: ${(err as Error).message}`);
+    }
+
+    return branding;
+  }
+
   async sendBookingConfirmation(data: BookingEmailData): Promise<void> {
-    const html = bookingConfirmationTemplate(data);
+    const html = bookingConfirmationTemplate(data, await this.getGuestBranding());
     await this.send(data.guestEmail, `Booking Confirmed - ${data.bookingRef}`, html);
   }
 
   async sendPaymentReceipt(data: PaymentReceiptData): Promise<void> {
-    const html = paymentReceiptTemplate(data);
+    const html = paymentReceiptTemplate(data, await this.getGuestBranding());
     await this.send(data.guestEmail, `Payment Receipt - ${data.bookingRef}`, html);
   }
 
   async sendBookingCancellation(data: BookingEmailData): Promise<void> {
-    const html = bookingCancellationTemplate(data);
+    const html = bookingCancellationTemplate(data, await this.getGuestBranding());
     await this.send(data.guestEmail, `Booking Cancelled - ${data.bookingRef}`, html);
   }
 
-  async sendDriverAssignment(data: DriverAssignmentData): Promise<void> {
-    const html = driverAssignmentTemplate(data);
-    await this.send(data.guestEmail, `Driver Assigned - ${data.bookingRef}`, html);
+  async sendStaffAssignment(data: StaffAssignmentData): Promise<void> {
+    const html = staffAssignmentTemplate(data, await this.getGuestBranding());
+    await this.send(data.guestEmail, `Staff Assigned - ${data.bookingRef}`, html);
   }
 
   async sendJobUpdateNotification(recipients: string[], data: JobUpdateEmailData): Promise<void> {

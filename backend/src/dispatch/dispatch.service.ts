@@ -317,14 +317,16 @@ export class DispatchService {
       ).catch(() => {});
     }
 
-    // Send driver assignment email if this job is linked to a guest booking
-    if (assignment.driverId && assignment.driver && assignment.vehicle) {
-      this.sendDriverAssignmentEmail(
+    // Send the staff-assignment email only once BOTH a driver and a rep are
+    // assigned. A brand-new assignment with both set qualifies immediately.
+    if (assignment.driverId && assignment.repId && assignment.driver && assignment.rep) {
+      this.sendStaffAssignmentEmail(
         assignment.trafficJob.id,
         assignment.driver,
+        assignment.rep,
         assignment.vehicle,
       ).catch((err) =>
-        this.logger.error(`Failed to send driver assignment email: ${err.message}`),
+        this.logger.error(`Failed to send staff assignment email: ${err.message}`),
       );
     }
 
@@ -355,26 +357,49 @@ export class DispatchService {
     return assignment;
   }
 
-  private async sendDriverAssignmentEmail(
+  private async sendStaffAssignmentEmail(
     trafficJobId: string,
-    driver: { name: string; phone?: string | null },
-    vehicle: { plateNumber: string; color?: string | null; vehicleType?: { name: string } | null },
+    driver: { name: string; mobileNumber?: string | null },
+    rep: { name: string; mobileNumber?: string | null },
+    vehicle: { plateNumber: string; color?: string | null; vehicleType?: { name: string } | null } | null,
   ) {
     const guestBooking = await this.prisma.guestBooking.findFirst({
       where: { trafficJobId },
+      include: {
+        fromZone: { select: { name: true } },
+        hotel: { select: { name: true } },
+        originAirport: { select: { name: true } },
+      },
     });
 
     if (!guestBooking) return;
 
-    await this.emailService.sendDriverAssignment({
+    // Meeting point: arrival → the airport the guest lands at; departure → the
+    // pickup/start point (hotel, else the origin zone).
+    const meetingPoint =
+      guestBooking.serviceType === 'ARR'
+        ? guestBooking.originAirport?.name ?? guestBooking.fromZone?.name ?? undefined
+        : guestBooking.hotel?.name ?? guestBooking.fromZone?.name ?? undefined;
+
+    // HH:MM, matching the format used by the other guest emails.
+    const pickupTime = guestBooking.pickupTime
+      ? guestBooking.pickupTime.toISOString().slice(11, 16)
+      : undefined;
+
+    await this.emailService.sendStaffAssignment({
       bookingRef: guestBooking.bookingRef,
       guestName: guestBooking.guestName,
       guestEmail: guestBooking.guestEmail,
+      serviceType: guestBooking.serviceType,
+      meetingPoint,
+      pickupTime,
+      repName: rep.name,
+      repPhone: rep.mobileNumber ?? undefined,
       driverName: driver.name,
-      driverPhone: driver.phone ?? '',
-      vehiclePlate: vehicle.plateNumber,
-      vehicleType: vehicle.vehicleType?.name ?? '',
-      vehicleColor: vehicle.color ?? undefined,
+      driverPhone: driver.mobileNumber ?? '',
+      vehiclePlate: vehicle?.plateNumber ?? '',
+      vehicleType: vehicle?.vehicleType?.name ?? '',
+      vehicleColor: vehicle?.color ?? undefined,
     });
   }
 
@@ -587,6 +612,23 @@ export class DispatchService {
     // WhatsApp: trigger driver assigned on reassignment (fire-and-forget)
     if (dto.driverId && dto.driverId !== existing.driverId) {
       this.whatsappService.triggerDriverAssigned(updated.trafficJobId).catch(() => {});
+    }
+
+    // Staff-assignment email: fire only on the transition to BOTH driver and
+    // rep being assigned — i.e. when this reassignment completes the pair.
+    // This means whoever is assigned second triggers it, and it won't re-fire
+    // on later edits once the pair is already complete.
+    const wasComplete = !!(existing.driverId && existing.repId);
+    const isComplete = !!(updated.driverId && updated.repId);
+    if (!wasComplete && isComplete && updated.driver && updated.rep) {
+      this.sendStaffAssignmentEmail(
+        updated.trafficJobId,
+        updated.driver,
+        updated.rep,
+        updated.vehicle,
+      ).catch((err) =>
+        this.logger.error(`Failed to send staff assignment email: ${err.message}`),
+      );
     }
 
     // Notify online users about the reassignment (fire-and-forget)
