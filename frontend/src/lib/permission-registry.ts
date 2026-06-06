@@ -687,6 +687,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'website-content.cityPages', labelKey: 'permissions.websiteContent.cityPages', crudType: 'section' },
       { key: 'website-content.blog',      labelKey: 'permissions.websiteContent.blog',      crudType: 'section' },
       { key: 'website-content.pageSeo',   labelKey: 'permissions.websiteContent.pageSeo',   crudType: 'section' },
+      { key: 'website-content.pages',     labelKey: 'permissions.websiteContent.pages',     crudType: 'section' },
     ],
   },
 ];

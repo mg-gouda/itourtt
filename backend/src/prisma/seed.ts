@@ -680,6 +680,21 @@ async function main() {
       console.log(`Website agent updated to site name: ${siteName}`);
     }
 
+    // CMS static pages for the B2C site (created as drafts until edited).
+    const staticPages = [
+      { slug: 'terms-and-conditions', title: 'Terms & Conditions' },
+      { slug: 'privacy-policy', title: 'Privacy Policy' },
+      { slug: 'about-us', title: 'About Us' },
+    ];
+    for (const page of staticPages) {
+      await prisma.staticPage.upsert({
+        where: { slug: page.slug },
+        update: {},
+        create: { slug: page.slug, title: page.title, isPublished: false },
+      });
+    }
+    console.log(`Static pages seeded: ${staticPages.map((p) => p.slug).join(', ')}`);
+
     console.log('\nSeed completed successfully.');
   } finally {
     await prisma.$disconnect();

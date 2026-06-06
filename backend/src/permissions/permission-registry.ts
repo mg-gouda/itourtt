@@ -617,6 +617,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'website-content.cityPages', labelKey: 'permissions.websiteContent.cityPages' },
       { key: 'website-content.blog', labelKey: 'permissions.websiteContent.blog' },
       { key: 'website-content.pageSeo', labelKey: 'permissions.websiteContent.pageSeo' },
+      { key: 'website-content.pages', labelKey: 'permissions.websiteContent.pages' },
     ],
   },
 ];

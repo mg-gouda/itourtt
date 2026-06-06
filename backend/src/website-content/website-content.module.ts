@@ -5,15 +5,18 @@ import { BlogService } from './blog.service.js';
 import { PageSeoService } from './page-seo.service.js';
 import { TranslationsService } from './translations.service.js';
 import { TranslateService } from './translate.service.js';
+import { StaticPagesService } from './static-pages.service.js';
 import { CityPagesAdminController } from './city-pages.admin.controller.js';
 import { BlogAdminController } from './blog.admin.controller.js';
 import { PageSeoAdminController } from './page-seo.admin.controller.js';
 import { TranslationsAdminController } from './translations.admin.controller.js';
+import { StaticPagesAdminController } from './static-pages.admin.controller.js';
 import { WebsiteContentUploadController } from './upload.controller.js';
 import {
   CityPagesPublicController,
   BlogPublicController,
   PageSeoPublicController,
+  StaticPagesPublicController,
 } from './public.controllers.js';
 
 @Module({
@@ -24,11 +27,13 @@ import {
     BlogAdminController,
     PageSeoAdminController,
     TranslationsAdminController,
+    StaticPagesAdminController,
     WebsiteContentUploadController,
     // Public (@Public)
     CityPagesPublicController,
     BlogPublicController,
     PageSeoPublicController,
+    StaticPagesPublicController,
   ],
   providers: [
     CityPagesService,
@@ -36,6 +41,7 @@ import {
     PageSeoService,
     TranslationsService,
     TranslateService,
+    StaticPagesService,
   ],
 })
 export class WebsiteContentModule {}

@@ -35,6 +35,7 @@ import {
   PackagePlus,
   Newspaper,
   Search,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -95,6 +96,7 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.destinations", href: "/dashboard/website/destinations", icon: MapPin, permissionKey: "website-content.cityPages" },
       { type: "link", nameKey: "sidebar.blog", href: "/dashboard/website/blog", icon: Newspaper, permissionKey: "website-content.blog" },
       { type: "link", nameKey: "sidebar.pageSeo", href: "/dashboard/website/seo", icon: Search, permissionKey: "website-content.pageSeo" },
+      { type: "link", nameKey: "sidebar.pages", href: "/dashboard/website/pages", icon: FileText, permissionKey: "website-content.pages" },
       { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
       { type: "link", nameKey: "sidebar.extras", href: "/dashboard/extras", icon: PackagePlus, permissionKey: "extras" },
     ],

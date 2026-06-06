@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { CityPagesService } from './city-pages.service.js';
 import { BlogService } from './blog.service.js';
 import { PageSeoService } from './page-seo.service.js';
+import { StaticPagesService } from './static-pages.service.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 
@@ -68,5 +69,23 @@ export class PageSeoPublicController {
   @Get(':pageKey')
   async get(@Param('pageKey') pageKey: string, @Query('locale') locale?: string) {
     return new ApiResponse(await this.service.getPublic(pageKey, locale));
+  }
+}
+
+@Public()
+@Throttle({ default: { limit: 240, ttl: 60000 } })
+@Controller('public/pages')
+export class StaticPagesPublicController {
+  constructor(private readonly service: StaticPagesService) {}
+
+  /** Header/footer menu links: { nav: [...], footer: [...] }. */
+  @Get()
+  async menus() {
+    return new ApiResponse(await this.service.menus());
+  }
+
+  @Get(':slug')
+  async bySlug(@Param('slug') slug: string) {
+    return new ApiResponse(await this.service.getPublicBySlug(slug));
   }
 }

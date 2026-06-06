@@ -2071,6 +2071,32 @@ model PageSeo {
   @@map("page_seo")
 }
 
+/// CMS-managed static content pages for the B2C site (Terms, Privacy, About …).
+/// WordPress-style: admins create pages, place them in the nav and/or footer
+/// menus, and set per-page SEO. The B2C site fetches a published page by slug
+/// via GET /public/pages/:slug and the menus via GET /public/pages.
+model StaticPage {
+  id          String   @id @default(uuid())
+  slug        String   @unique // terms-and-conditions | privacy-policy | about-us | …
+  title       String
+  content     String   @default("") @db.Text // rendered HTML for B2C display
+  isPublished Boolean  @default(false) @map("is_published")
+
+  // ── Menu placement ──
+  showInNav    Boolean @default(false) @map("show_in_nav")
+  showInFooter Boolean @default(false) @map("show_in_footer")
+  menuOrder    Int     @default(0) @map("menu_order")
+
+  // ── SEO ──
+  metaTitle       String? @map("meta_title")
+  metaDescription String? @map("meta_description") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("static_pages")
+}
+
 // ─────────────────────────────────────────────
 // B2C CONTENT TRANSLATIONS (i18n)
 // ─────────────────────────────────────────────
