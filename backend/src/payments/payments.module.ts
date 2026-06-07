@@ -4,6 +4,7 @@ import { PaymentsService } from './payments.service.js';
 import { StripeGateway } from './gateways/stripe.gateway.js';
 import { EgyptBankGateway } from './gateways/egypt-bank.gateway.js';
 import { DubaiBankGateway } from './gateways/dubai-bank.gateway.js';
+import { GetPayInGateway } from './gateways/getpayin.gateway.js';
 import { EmailModule } from '../email/email.module.js';
 
 @Module({
@@ -14,6 +15,7 @@ import { EmailModule } from '../email/email.module.js';
     StripeGateway,
     EgyptBankGateway,
     DubaiBankGateway,
+    GetPayInGateway,
   ],
   exports: [PaymentsService],
 })

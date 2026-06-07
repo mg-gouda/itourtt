@@ -33,6 +33,10 @@ services:
       CORS_ORIGINS: https://fulvago.${DOMAIN}
       NODE_ENV: production
       TZ: Africa/Cairo
+      GETPAYIN_BASE_URL: ${GETPAYIN_BASE_URL:-https://pay.getpayin.com}
+      GETPAYIN_AUTH_TOKEN: ${GETPAYIN_AUTH_TOKEN}
+      GETPAYIN_HASH_TOKEN: ${GETPAYIN_HASH_TOKEN}
+      B2C_SITE_URL: ${B2C_SITE_URL:-https://transfera.ae}
     volumes:
       - uploads:/app/uploads
     depends_on:

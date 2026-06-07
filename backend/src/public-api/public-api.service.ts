@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
 import { GuestBookingsService } from '../guest-bookings/guest-bookings.service.js';
 import { B2CService } from '../b2c/b2c.service.js';
+import { PaymentsService } from '../payments/payments.service.js';
 import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import { VehicleQuotesRequestDto } from './dto/vehicle-quotes-request.dto.js';
@@ -38,6 +39,7 @@ export class PublicApiService {
     private readonly emailService: EmailService,
     private readonly guestBookingsService: GuestBookingsService,
     private readonly b2cService: B2CService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   // ─── Contact form ─────────────────────────────────────────
@@ -587,6 +589,9 @@ export class PublicApiService {
 
     const paymentMethod = dto.paymentMethod as B2CPaymentMethod;
     const isOnline = paymentMethod === B2CPaymentMethod.ONLINE;
+    // Online payments default to the GetPayIn hosted checkout unless a specific
+    // gateway is requested.
+    const gatewayName = isOnline ? dto.paymentGateway || 'GETPAYIN' : null;
 
     const booking = await this.prisma.guestBooking.create({
       data: {
@@ -621,8 +626,8 @@ export class PublicApiService {
         paymentStatus: isOnline
           ? B2CPaymentStatus.PENDING as B2CPaymentStatus
           : B2CPaymentStatus.PENDING as B2CPaymentStatus,
-        paymentGateway: dto.paymentGateway
-          ? (dto.paymentGateway as B2CPaymentGateway)
+        paymentGateway: gatewayName
+          ? (gatewayName as B2CPaymentGateway)
           : null,
         bookingStatus: isOnline
           ? GuestBookingStatus.CONFIRMED as GuestBookingStatus
@@ -698,10 +703,31 @@ export class PublicApiService {
       this.logger.error(`Failed to auto-convert booking ${booking.bookingRef}: ${err.message}`);
     }
 
+    // For online payments, open a hosted-checkout session and hand the guest a
+    // redirect URL. A gateway failure must not lose the booking — we just return
+    // without a paymentUrl and the guest can retry payment from the booking page.
+    let paymentUrl: string | null = null;
+    if (isOnline && gatewayName) {
+      try {
+        const session = await this.paymentsService.createPaymentSession(
+          booking.bookingRef,
+          gatewayName,
+          '', // returnUrl — unused by GetPayIn (configured in its dashboard)
+          '', // cancelUrl — unused by GetPayIn
+        );
+        paymentUrl = session.checkoutUrl;
+      } catch (err) {
+        this.logger.error(
+          `Failed to create payment session for ${booking.bookingRef}: ${(err as Error).message}`,
+        );
+      }
+    }
+
     return {
       bookingRef: booking.bookingRef,
       booking,
       paymentRequired: isOnline,
+      paymentUrl,
       accountCreated,
       accountEmail: accountCreated ? booking.guestEmail : null,
       accountPassword,

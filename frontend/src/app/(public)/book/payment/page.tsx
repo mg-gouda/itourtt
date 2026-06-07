@@ -8,7 +8,6 @@ import {
   Banknote,
   Loader2,
   CheckCircle2,
-  Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,12 +25,6 @@ const SERVICE_LABELS: Record<string, string> = {
   ONE_WAY_TRANSFER: 'One Way Transfer',
   TWO_WAY_TRANSFER: 'Two Way Transfer',
 };
-
-const PAYMENT_GATEWAYS = [
-  { id: 'STRIPE', label: 'Stripe', description: 'Visa, Mastercard, and more' },
-  { id: 'EGYPT_BANK', label: 'Egypt Bank', description: 'Local Egyptian bank payment' },
-  { id: 'DUBAI_BANK', label: 'Dubai Bank', description: 'UAE bank payment' },
-];
 
 export default function BookPaymentPage() {
   const router = useRouter();
@@ -182,7 +175,7 @@ export default function BookPaymentPage() {
               type="button"
               onClick={() => {
                 store.setField('paymentMethod', 'ONLINE');
-                if (!store.paymentGateway) store.setField('paymentGateway', 'STRIPE');
+                store.setField('paymentGateway', 'GETPAYIN');
               }}
               className={cn(
                 'flex flex-col items-center gap-3 rounded-xl border-2 p-6 text-center transition-all',
@@ -202,9 +195,9 @@ export default function BookPaymentPage() {
                 <CreditCard className="h-7 w-7" />
               </div>
               <div>
-                <p className="text-base font-semibold text-gray-900">Pay Online</p>
+                <p className="text-base font-semibold text-gray-900">Online Payment</p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Secure payment via credit/debit card
+                  Secure card payment — you&apos;ll be redirected to our payment provider
                 </p>
               </div>
               {store.paymentMethod === 'ONLINE' && (
@@ -237,9 +230,9 @@ export default function BookPaymentPage() {
                 <Banknote className="h-7 w-7" />
               </div>
               <div>
-                <p className="text-base font-semibold text-gray-900">Pay on Arrival</p>
+                <p className="text-base font-semibold text-gray-900">Pay Cash Upon Arrival</p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Pay your driver in cash upon arrival
+                  Pay your driver in cash when you arrive
                 </p>
               </div>
               {store.paymentMethod === 'PAY_ON_ARRIVAL' && (
@@ -247,37 +240,6 @@ export default function BookPaymentPage() {
               )}
             </button>
           </div>
-
-          {/* Online Payment Gateway Sub-options */}
-          {store.paymentMethod === 'ONLINE' && (
-            <div className="rounded-lg border bg-gray-50 p-4">
-              <p className="mb-3 text-sm font-medium text-gray-700">Select Payment Gateway</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {PAYMENT_GATEWAYS.map((gw) => (
-                  <button
-                    key={gw.id}
-                    type="button"
-                    onClick={() => store.setField('paymentGateway', gw.id)}
-                    className={cn(
-                      'flex items-center gap-2.5 rounded-lg border px-4 py-3 text-left transition-all',
-                      store.paymentGateway === gw.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    )}
-                  >
-                    <Building2 className={cn(
-                      'h-4 w-4 shrink-0',
-                      store.paymentGateway === gw.id ? 'text-blue-600' : 'text-gray-400'
-                    )} />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{gw.label}</p>
-                      <p className="text-[11px] text-gray-500">{gw.description}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Error */}
           {error && (

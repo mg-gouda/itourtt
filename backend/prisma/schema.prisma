@@ -167,6 +167,7 @@ enum B2CPaymentGateway {
   STRIPE
   EGYPT_BANK
   DUBAI_BANK
+  GETPAYIN
 }
 
 enum TransferType {

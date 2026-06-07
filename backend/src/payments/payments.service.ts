@@ -11,6 +11,8 @@ import { EmailService } from '../email/email.service.js';
 import { StripeGateway } from './gateways/stripe.gateway.js';
 import { EgyptBankGateway } from './gateways/egypt-bank.gateway.js';
 import { DubaiBankGateway } from './gateways/dubai-bank.gateway.js';
+import { GetPayInGateway } from './gateways/getpayin.gateway.js';
+import type { GetPayInCallback } from './gateways/getpayin.gateway.js';
 import type { PaymentGateway } from './gateways/gateway.interface.js';
 import {
   B2CPaymentGateway,
@@ -28,6 +30,7 @@ export class PaymentsService {
     private readonly stripeGateway: StripeGateway,
     private readonly egyptBankGateway: EgyptBankGateway,
     private readonly dubaiBankGateway: DubaiBankGateway,
+    private readonly getPayInGateway: GetPayInGateway,
   ) {}
 
   private getGateway(gateway: string): PaymentGateway {
@@ -38,6 +41,8 @@ export class PaymentsService {
         return this.egyptBankGateway;
       case 'DUBAI_BANK':
         return this.dubaiBankGateway;
+      case 'GETPAYIN':
+        return this.getPayInGateway;
       default:
         throw new BadRequestException(`Unsupported payment gateway: ${gateway}`);
     }
@@ -66,6 +71,11 @@ export class PaymentsService {
 
     const paymentGateway = this.getGateway(gateway);
 
+    // Split the single guest name into first/last for gateways that need it.
+    const nameParts = (booking.guestName || '').trim().split(/\s+/);
+    const firstName = nameParts.shift() || 'Guest';
+    const lastName = nameParts.join(' ') || firstName;
+
     // Create the payment session with the gateway
     const session = await paymentGateway.createSession(
       bookingRef,
@@ -73,6 +83,13 @@ export class PaymentsService {
       booking.currency,
       returnUrl,
       cancelUrl,
+      {
+        firstName,
+        lastName,
+        email: booking.guestEmail,
+        orderTitle: `Transfer Booking ${bookingRef}`,
+        country: booking.guestCountry ?? undefined,
+      },
     );
 
     // Create a PaymentTransaction record with status PENDING (INITIATED)
@@ -181,6 +198,94 @@ export class PaymentsService {
     }
 
     return { received: true };
+  }
+
+  /**
+   * Process a GetPayIn callback (shared by the server-to-server webhook and the
+   * browser redirect). Verifies the HMAC signature, then marks the matching
+   * booking/transaction PAID or FAILED. Idempotent: re-delivery of an already
+   * PAID transaction is a no-op. Returns the resolved booking ref + paid flag
+   * so the redirect handler knows where to send the customer.
+   */
+  async processGetPayInCallback(
+    payload: GetPayInCallback,
+  ): Promise<{ bookingRef: string | null; paid: boolean }> {
+    const valid = this.getPayInGateway.verifyCallback(payload);
+    if (!valid) {
+      throw new BadRequestException('Invalid GetPayIn signature');
+    }
+
+    const invoiceId = String(payload.invoice_id ?? '');
+    const paid =
+      payload.success === true ||
+      payload.success === 'true' ||
+      String(payload.invoice_status).toUpperCase() === 'PAID';
+
+    const transaction = await this.prisma.paymentTransaction.findFirst({
+      where: { gatewayTransactionId: invoiceId, gateway: B2CPaymentGateway.GETPAYIN },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!transaction) {
+      this.logger.warn(`GetPayIn callback: no transaction for invoice ${invoiceId}`);
+      return { bookingRef: null, paid };
+    }
+
+    const booking = await this.prisma.guestBooking.findUnique({
+      where: { id: transaction.guestBookingId },
+    });
+    if (!booking) {
+      return { bookingRef: null, paid };
+    }
+
+    // Idempotency — ignore repeat deliveries once already settled.
+    if (booking.paymentStatus === (B2CPaymentStatus.PAID as B2CPaymentStatus)) {
+      return { bookingRef: booking.bookingRef, paid: true };
+    }
+
+    const newStatus = paid
+      ? (B2CPaymentStatus.PAID as B2CPaymentStatus)
+      : (B2CPaymentStatus.FAILED as B2CPaymentStatus);
+
+    await this.prisma.paymentTransaction.update({
+      where: { id: transaction.id },
+      data: {
+        status: newStatus,
+        rawResponse: JSON.parse(JSON.stringify(payload)),
+      },
+    });
+
+    await this.prisma.guestBooking.update({
+      where: { id: booking.id },
+      data: {
+        paymentStatus: newStatus,
+        paymentGateway: B2CPaymentGateway.GETPAYIN as B2CPaymentGateway,
+        paymentReference: invoiceId,
+      },
+    });
+
+    this.logger.log(
+      `GetPayIn callback: booking ${booking.bookingRef} → ${newStatus} (invoice ${invoiceId})`,
+    );
+
+    if (paid) {
+      this.emailService
+        .sendPaymentReceipt({
+          bookingRef: booking.bookingRef,
+          guestName: booking.guestName,
+          guestEmail: booking.guestEmail,
+          amount: Number(booking.total),
+          currency: booking.currency,
+          gateway: 'GetPayIn',
+          transactionId: invoiceId,
+          paidAt: new Date().toISOString(),
+        })
+        .catch((err) =>
+          this.logger.error(`Failed to send payment receipt email: ${err.message}`),
+        );
+    }
+
+    return { bookingRef: booking.bookingRef, paid };
   }
 
   async verifyPaymentStatus(bookingRef: string) {

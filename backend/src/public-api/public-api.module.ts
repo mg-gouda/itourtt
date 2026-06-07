@@ -7,6 +7,7 @@ import { CaptchaService } from '../common/services/captcha.service.js';
 import { EmailModule } from '../email/email.module.js';
 import { GuestBookingsModule } from '../guest-bookings/guest-bookings.module.js';
 import { B2CModule } from '../b2c/b2c.module.js';
+import { PaymentsModule } from '../payments/payments.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { B2CModule } from '../b2c/b2c.module.js';
     EmailModule,
     GuestBookingsModule,
     B2CModule,
+    PaymentsModule,
   ],
   controllers: [PublicApiController],
   providers: [

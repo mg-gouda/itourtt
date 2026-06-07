@@ -120,7 +120,7 @@ export class CreateGuestBookingDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['STRIPE', 'EGYPT_BANK', 'DUBAI_BANK'])
+  @IsIn(['STRIPE', 'EGYPT_BANK', 'DUBAI_BANK', 'GETPAYIN'])
   paymentGateway?: string;
 
   // Cloudflare Turnstile token. Only enforced when TURNSTILE_SECRET is set on
