@@ -11,6 +11,7 @@ const resolve4Async = promisify(resolve4);
 import {
   bookingConfirmationTemplate,
   paymentReceiptTemplate,
+  onlinePaymentFailedTemplate,
   bookingCancellationTemplate,
   staffAssignmentTemplate,
   jobUpdateNotificationTemplate,
@@ -44,6 +45,14 @@ export interface PaymentReceiptData {
   gateway: string;
   transactionId: string;
   paidAt: string;
+}
+
+export interface PaymentFailedData {
+  bookingRef: string;
+  guestName: string;
+  guestEmail: string;
+  amount: number;
+  currency: string;
 }
 
 export interface StaffAssignmentData {
@@ -224,6 +233,15 @@ export class EmailService {
   async sendPaymentReceipt(data: PaymentReceiptData): Promise<void> {
     const html = paymentReceiptTemplate(data, await this.getGuestBranding());
     await this.send(data.guestEmail, `Payment Receipt - ${data.bookingRef}`, html);
+  }
+
+  async sendOnlinePaymentFailed(data: PaymentFailedData): Promise<void> {
+    const html = onlinePaymentFailedTemplate(data, await this.getGuestBranding());
+    await this.send(
+      data.guestEmail,
+      `Payment Not Completed - Pay on Arrival - ${data.bookingRef}`,
+      html,
+    );
   }
 
   async sendBookingCancellation(data: BookingEmailData): Promise<void> {

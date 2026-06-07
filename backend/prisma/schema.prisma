@@ -1950,6 +1950,10 @@ model WebsiteSettings {
   bankPaymentEnabled Boolean @default(false) @map("bank_payment_enabled")
   bankPaymentMessage String  @default("Bank payment integration coming soon!") @map("bank_payment_message")
 
+  // ── Payment Method Master Switches ──
+  onlinePaymentEnabled  Boolean @default(true) @map("online_payment_enabled")
+  cashOnArrivalEnabled  Boolean @default(true) @map("cash_on_arrival_enabled")
+
   // ── SEO ──
   metaTitle       String? @map("meta_title")
   metaDescription String? @map("meta_description")

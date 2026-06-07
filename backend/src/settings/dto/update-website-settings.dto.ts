@@ -118,6 +118,15 @@ export class UpdateWebsiteSettingsDto {
   @IsString()
   bankPaymentMessage?: string;
 
+  // ── Payment Method Master Switches ──
+  @IsOptional()
+  @IsBoolean()
+  onlinePaymentEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  cashOnArrivalEnabled?: boolean;
+
   // ── SEO ──
   @IsOptional()
   @IsString()

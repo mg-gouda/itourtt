@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -31,6 +31,38 @@ export default function BookPaymentPage() {
   const store = useBookingStore();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  // Master switches — which payment methods the admin has enabled.
+  const [onlineEnabled, setOnlineEnabled] = useState(true);
+  const [cashEnabled, setCashEnabled] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${API}/public/website-settings`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (!active) return;
+        const s = json?.data ?? json ?? {};
+        const online = s.onlinePaymentEnabled ?? true;
+        const cash = s.cashOnArrivalEnabled ?? true;
+        setOnlineEnabled(online);
+        setCashEnabled(cash);
+        // If only one method is available, pre-select it so the guest can't pick a hidden one.
+        if (online && !cash) {
+          store.setField('paymentMethod', 'ONLINE');
+          store.setField('paymentGateway', 'GETPAYIN');
+        } else if (cash && !online) {
+          store.setField('paymentMethod', 'PAY_ON_ARRIVAL');
+          store.setField('paymentGateway', '');
+        }
+      })
+      .catch(() => {
+        /* keep defaults (both enabled) on fetch failure */
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleConfirm = async () => {
     if (!store.paymentMethod) return;
@@ -169,8 +201,17 @@ export default function BookPaymentPage() {
           <CardTitle className="text-xl">Payment Method</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {!onlineEnabled && !cashEnabled && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+              Online booking is temporarily unavailable. Please contact us to complete your booking.
+            </div>
+          )}
+          <div className={cn(
+            'grid grid-cols-1 gap-4',
+            onlineEnabled && cashEnabled ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
+          )}>
             {/* Pay Online */}
+            {onlineEnabled && (
             <button
               type="button"
               onClick={() => {
@@ -204,8 +245,10 @@ export default function BookPaymentPage() {
                 <CheckCircle2 className="h-5 w-5 text-blue-600" />
               )}
             </button>
+            )}
 
             {/* Pay on Arrival */}
+            {cashEnabled && (
             <button
               type="button"
               onClick={() => {
@@ -239,6 +282,7 @@ export default function BookPaymentPage() {
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
               )}
             </button>
+            )}
           </div>
 
           {/* Error */}

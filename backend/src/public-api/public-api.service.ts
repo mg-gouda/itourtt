@@ -131,6 +131,8 @@ export class PublicApiService {
         socialTwitter: null,
         bankPaymentEnabled: false,
         bankPaymentMessage: 'Bank payment integration coming soon!',
+        onlinePaymentEnabled: true,
+        cashOnArrivalEnabled: true,
         metaTitle: null,
         metaDescription: null,
         navLinksJson: null,
@@ -508,6 +510,18 @@ export class PublicApiService {
   // ─── Create Booking ─────────────────────────────────────
 
   async createBooking(dto: CreateGuestBookingDto) {
+    // Enforce the payment-method master switches server-side (never trust the
+    // client to hide a disabled option).
+    const settings = await this.prisma.websiteSettings.findFirst();
+    const onlineEnabled = settings?.onlinePaymentEnabled ?? true;
+    const cashEnabled = settings?.cashOnArrivalEnabled ?? true;
+    if (dto.paymentMethod === 'ONLINE' && !onlineEnabled) {
+      throw new BadRequestException('Online payment is currently unavailable.');
+    }
+    if (dto.paymentMethod === 'PAY_ON_ARRIVAL' && !cashEnabled) {
+      throw new BadRequestException('Pay on arrival is currently unavailable.');
+    }
+
     // Look up pricing (matches either zone orientation; see findRoutePriceItem)
     const priceItem = await this.findRoutePriceItem(
       dto.serviceType as ServiceType,

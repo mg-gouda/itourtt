@@ -1,4 +1,4 @@
-import type { BookingEmailData, PaymentReceiptData, StaffAssignmentData, JobUpdateEmailData } from '../email.service.js';
+import type { BookingEmailData, PaymentReceiptData, PaymentFailedData, StaffAssignmentData, JobUpdateEmailData } from '../email.service.js';
 
 /** Branding injected into the email header/footer. Guest-facing emails pass
  *  B2C (Transfera) branding; internal emails fall back to DEFAULT_BRANDING. */
@@ -129,6 +129,20 @@ export function paymentReceiptTemplate(data: PaymentReceiptData, branding?: Emai
       </table>
     </div>
     <p>Thank you for your payment!</p>
+  </div>`, branding);
+}
+
+export function onlinePaymentFailedTemplate(data: PaymentFailedData, branding?: EmailBranding): string {
+  return wrap(`
+  <div class="body">
+    <h2>Payment Not Completed</h2>
+    <p>Dear ${data.guestName},</p>
+    <p>We were unable to confirm your online payment for booking
+       <strong>${data.bookingRef}</strong>, so no charge was taken.</p>
+    <p><strong>Your booking is still confirmed.</strong> We've switched it to
+       <strong>Pay on Arrival</strong> &mdash; please pay your driver in cash when you arrive.</p>
+    <div class="total">${data.currency} ${data.amount.toFixed(2)} &middot; Pay on Arrival</div>
+    <p>If you'd prefer to pay online instead, just contact us and we'll send you a new payment link.</p>
   </div>`, branding);
 }
 

@@ -94,6 +94,8 @@ interface WebsiteSettings {
   socialTwitter: string | null;
   bankPaymentEnabled: boolean;
   bankPaymentMessage: string;
+  onlinePaymentEnabled: boolean;
+  cashOnArrivalEnabled: boolean;
   metaTitle: string | null;
   metaDescription: string | null;
 }
@@ -126,6 +128,8 @@ const DEFAULTS: WebsiteSettings = {
   socialTwitter: null,
   bankPaymentEnabled: false,
   bankPaymentMessage: "Bank payment integration coming soon!",
+  onlinePaymentEnabled: true,
+  cashOnArrivalEnabled: true,
   metaTitle: null,
   metaDescription: null,
 };
@@ -184,6 +188,8 @@ export default function WebsiteCmsPage() {
         socialTwitter: settings.socialTwitter,
         bankPaymentEnabled: settings.bankPaymentEnabled,
         bankPaymentMessage: settings.bankPaymentMessage,
+        onlinePaymentEnabled: settings.onlinePaymentEnabled,
+        cashOnArrivalEnabled: settings.cashOnArrivalEnabled,
         metaTitle: settings.metaTitle,
         metaDescription: settings.metaDescription,
       };
@@ -649,6 +655,49 @@ export default function WebsiteCmsPage() {
               onChange={(e) => update("socialTwitter", e.target.value || null)}
             />
           </div>
+        </div>
+      </Card>
+
+      {/* Payment Methods (master switches shown to guests at checkout) */}
+      <Card className="border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <CreditCard className="h-4 w-4 text-blue-500" />
+          <h3 className="text-sm font-medium">Payment Methods</h3>
+        </div>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Control which payment options guests can choose when booking. Turning one off
+          hides it on the website immediately. At least one should stay enabled.
+        </p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="text-sm font-medium">Online Payment</p>
+              <p className="text-xs text-muted-foreground">Secure card payment via GetPayIn</p>
+            </div>
+            <Switch
+              id="online-payment-toggle"
+              checked={settings.onlinePaymentEnabled}
+              onCheckedChange={(v) => update("onlinePaymentEnabled", v)}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="text-sm font-medium">Pay Cash Upon Arrival</p>
+              <p className="text-xs text-muted-foreground">Guest pays the driver in cash</p>
+            </div>
+            <Switch
+              id="cash-toggle"
+              checked={settings.cashOnArrivalEnabled}
+              onCheckedChange={(v) => update("cashOnArrivalEnabled", v)}
+            />
+          </div>
+          {!settings.onlinePaymentEnabled && !settings.cashOnArrivalEnabled && (
+            <div className="rounded-lg border border-dashed border-red-500/40 bg-red-500/5 p-3 text-center">
+              <p className="text-xs text-red-600 dark:text-red-400">
+                Both methods are off — guests won&apos;t be able to complete a booking.
+              </p>
+            </div>
+          )}
         </div>
       </Card>
 

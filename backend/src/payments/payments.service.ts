@@ -268,6 +268,33 @@ export class PaymentsService {
       `GetPayIn callback: booking ${booking.bookingRef} → ${newStatus} (invoice ${invoiceId})`,
     );
 
+    // Failed online payment → fall back to cash on arrival: flag the already-
+    // created traffic job for collection and tell the guest.
+    if (!paid && booking.trafficJobId) {
+      await this.prisma.trafficJob.update({
+        where: { id: booking.trafficJobId },
+        data: {
+          collectionRequired: true,
+          collectionAmount: booking.total,
+          collectionCurrency: booking.currency,
+        },
+      });
+      this.logger.log(
+        `GetPayIn payment failed for ${booking.bookingRef} → traffic job ${booking.trafficJobId} flagged collect-cash`,
+      );
+      this.emailService
+        .sendOnlinePaymentFailed({
+          bookingRef: booking.bookingRef,
+          guestName: booking.guestName,
+          guestEmail: booking.guestEmail,
+          amount: Number(booking.total),
+          currency: booking.currency,
+        })
+        .catch((err) =>
+          this.logger.error(`Failed to send payment-failed email: ${err.message}`),
+        );
+    }
+
     if (paid) {
       this.emailService
         .sendPaymentReceipt({

@@ -72,6 +72,10 @@ export interface SiteSettings {
   bankPaymentEnabled: boolean;
   bankPaymentMessage: string;
 
+  // Payment method master switches
+  onlinePaymentEnabled: boolean;
+  cashOnArrivalEnabled: boolean;
+
   // SEO
   metaTitle: string | null;
   metaDescription: string | null;
@@ -112,6 +116,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   socialTwitter: null,
   bankPaymentEnabled: false,
   bankPaymentMessage: 'Bank payment integration coming soon!',
+  onlinePaymentEnabled: true,
+  cashOnArrivalEnabled: true,
   metaTitle: null,
   metaDescription: null,
   navLinksJson: null,

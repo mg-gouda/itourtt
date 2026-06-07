@@ -75,6 +75,8 @@ const WEBSITE_DEFAULTS = {
   socialTwitter: null as string | null,
   bankPaymentEnabled: false,
   bankPaymentMessage: 'Bank payment integration coming soon!',
+  onlinePaymentEnabled: true,
+  cashOnArrivalEnabled: true,
   metaTitle: null as string | null,
   metaDescription: null as string | null,
   navLinksJson: null as any,
@@ -346,6 +348,8 @@ export class SettingsService {
     if (dto.socialTwitter !== undefined) data.socialTwitter = dto.socialTwitter || null;
     if (dto.bankPaymentEnabled !== undefined) data.bankPaymentEnabled = dto.bankPaymentEnabled;
     if (dto.bankPaymentMessage !== undefined) data.bankPaymentMessage = dto.bankPaymentMessage;
+    if (dto.onlinePaymentEnabled !== undefined) data.onlinePaymentEnabled = dto.onlinePaymentEnabled;
+    if (dto.cashOnArrivalEnabled !== undefined) data.cashOnArrivalEnabled = dto.cashOnArrivalEnabled;
     if (dto.metaTitle !== undefined) data.metaTitle = dto.metaTitle || null;
     if (dto.metaDescription !== undefined) data.metaDescription = dto.metaDescription || null;
     if (dto.navLinksJson !== undefined) data.navLinksJson = dto.navLinksJson;
@@ -385,6 +389,8 @@ export class SettingsService {
         socialTwitter: dto.socialTwitter ?? WEBSITE_DEFAULTS.socialTwitter,
         bankPaymentEnabled: dto.bankPaymentEnabled ?? WEBSITE_DEFAULTS.bankPaymentEnabled,
         bankPaymentMessage: dto.bankPaymentMessage ?? WEBSITE_DEFAULTS.bankPaymentMessage,
+        onlinePaymentEnabled: dto.onlinePaymentEnabled ?? WEBSITE_DEFAULTS.onlinePaymentEnabled,
+        cashOnArrivalEnabled: dto.cashOnArrivalEnabled ?? WEBSITE_DEFAULTS.cashOnArrivalEnabled,
         metaTitle: dto.metaTitle ?? WEBSITE_DEFAULTS.metaTitle,
         metaDescription: dto.metaDescription ?? WEBSITE_DEFAULTS.metaDescription,
         navLinksJson: dto.navLinksJson ?? WEBSITE_DEFAULTS.navLinksJson,
