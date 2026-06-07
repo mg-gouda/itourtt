@@ -73,27 +73,53 @@ export class PaymentsController {
     return result;
   }
 
-  // ─── GetPayIn Webhook (NO AUTH — verified by HMAC signature) ───
-  // Configure this exact URL as the "Webhook URL" in the GetPayIn dashboard:
-  //   https://<backend-host>/api/payments/webhook/getpayin
+  // ─── GetPayIn callbacks (NO AUTH — verified by HMAC signature) ───
+  // GetPayIn sends two callbacks: a server-to-server webhook (POST, JSON body)
+  // and a browser redirect (GET, query string). To be resilient to how the
+  // Webhook URL / Redirect URL are mapped in the dashboard, BOTH paths
+  // (/webhook/getpayin and /return/getpayin) accept BOTH methods:
+  //   • POST → record the result, reply 200 JSON (what the webhook expects)
+  //   • GET  → record the result, then 302-redirect the guest to the B2C site
+  // Recommended dashboard config:
+  //   Webhook URL  = https://<backend-host>/api/payments/webhook/getpayin
+  //   Redirect URL = https://<backend-host>/api/payments/return/getpayin
+
   @Public()
   @Post('webhook/getpayin')
   @HttpCode(200)
   async getPayInWebhook(@Body() body: GetPayInCallback) {
-    const result = await this.paymentsService.processGetPayInCallback(body);
-    return { success: true, message: 'Webhook processed', paid: result.paid };
+    return this.recordGetPayInCallback(body);
   }
 
-  // ─── GetPayIn Redirect Return (browser GET) ────────────
-  // Configure this exact URL as the "Redirect URL" in the GetPayIn dashboard:
-  //   https://<backend-host>/api/payments/return/getpayin
-  // It verifies the signature, settles the booking, then bounces the customer
-  // to the public site's success/cancel page.
+  @Public()
+  @Post('return/getpayin')
+  @HttpCode(200)
+  async getPayInReturnPost(@Body() body: GetPayInCallback) {
+    return this.recordGetPayInCallback(body);
+  }
+
   @Public()
   @Get('return/getpayin')
-  async getPayInReturn(
-    @Query() query: GetPayInCallback,
-    @Res() res: Response,
+  async getPayInReturn(@Query() query: GetPayInCallback, @Res() res: Response) {
+    return this.redirectGetPayInCallback(query, res);
+  }
+
+  @Public()
+  @Get('webhook/getpayin')
+  async getPayInWebhookGet(@Query() query: GetPayInCallback, @Res() res: Response) {
+    return this.redirectGetPayInCallback(query, res);
+  }
+
+  /** Server-to-server callback handler → JSON 200 (webhook semantics). */
+  private async recordGetPayInCallback(payload: GetPayInCallback) {
+    const result = await this.paymentsService.processGetPayInCallback(payload);
+    return { success: true, message: 'Callback processed', paid: result.paid };
+  }
+
+  /** Browser callback handler → settle, then 302 to the B2C success/cancel page. */
+  private async redirectGetPayInCallback(
+    payload: GetPayInCallback,
+    res: Response,
   ) {
     const siteUrl = (
       this.configService.get<string>('B2C_SITE_URL') || 'https://transfera.ae'
@@ -102,7 +128,7 @@ export class PaymentsController {
     let paid = false;
     let bookingRef: string | null = null;
     try {
-      const result = await this.paymentsService.processGetPayInCallback(query);
+      const result = await this.paymentsService.processGetPayInCallback(payload);
       paid = result.paid;
       bookingRef = result.bookingRef;
     } catch {
