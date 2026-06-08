@@ -48,7 +48,17 @@ const CURRENCIES  = ["EGP", "USD", "EUR", "GBP", "SAR"];
 const SERVICE_OPTS = [
   { value: "ARR", label: "Arrival" },
   { value: "DEP", label: "Departure" },
+  { value: "CITY_TO_CITY", label: "City-to-City" },
+  { value: "TWO_WAY_TRANSFER", label: "2-Way (override)" },
 ];
+// Label + colour per service type. 2-Way is an OPTIONAL explicit round-trip
+// price; leave it unset and the quote sums the Arrival + Departure legs.
+const SERVICE_META: Record<string, { label: string; badge: string; on: string }> = {
+  ARR:              { label: "Arrival",        badge: "bg-green-100 text-green-700",  on: "bg-green-100 border-green-400 text-green-700" },
+  DEP:              { label: "Departure",      badge: "bg-blue-100 text-blue-700",    on: "bg-blue-100 border-blue-400 text-blue-700" },
+  CITY_TO_CITY:     { label: "City-to-City",   badge: "bg-teal-100 text-teal-700",    on: "bg-teal-100 border-teal-400 text-teal-700" },
+  TWO_WAY_TRANSFER: { label: "2-Way",          badge: "bg-orange-100 text-orange-700", on: "bg-orange-100 border-orange-400 text-orange-700" },
+};
 const TRANSFER_OPTS = [
   { value: "PRIVATE", label: "Private" },
   { value: "SHARED",  label: "Shared"  },
@@ -67,12 +77,10 @@ const BLANK_EDIT: EditState = {
 // ─── Badge helpers ───────────────────────────────────────────────────────────
 
 function ServiceBadge({ type }: { type: string }) {
-  const cls = type === "ARR"
-    ? "bg-green-100 text-green-700"
-    : "bg-blue-100 text-blue-700";
+  const meta = SERVICE_META[type] ?? { label: type, badge: "bg-gray-100 text-gray-700", on: "" };
   return (
-    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${cls}`}>
-      {type === "ARR" ? "Arrival" : "Departure"}
+    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold ${meta.badge}`}>
+      {meta.label}
     </span>
   );
 }
@@ -103,8 +111,7 @@ function ServiceTypeMulti({ value, onChange }: { value: string[]; onChange: (v: 
           className={[
             "rounded px-2 py-0.5 text-[11px] font-semibold border transition",
             value.includes(v)
-              ? v === "ARR" ? "bg-green-100 border-green-400 text-green-700"
-                            : "bg-blue-100 border-blue-400 text-blue-700"
+              ? (SERVICE_META[v]?.on ?? "bg-gray-100 border-gray-400 text-gray-700")
               : "bg-gray-50 border-gray-200 text-gray-400 hover:border-gray-400",
           ].join(" ")}
         >
@@ -374,7 +381,7 @@ export default function PublicPricesPage() {
         const pr  = Number(r["price"]);
         const cur = String(r["currency"] ?? "EGP").trim().toUpperCase();
 
-        if (!["ARR","DEP"].includes(st))         { errors.push(`Row ${row}: invalid service_type "${st}"`); return; }
+        if (!["ARR","DEP","CITY_TO_CITY","TWO_WAY_TRANSFER"].includes(st)) { errors.push(`Row ${row}: invalid service_type "${st}"`); return; }
         if (!["PRIVATE","SHARED"].includes(tt))   { errors.push(`Row ${row}: invalid transfer_type "${tt}"`); return; }
         if (!fz)  { errors.push(`Row ${row}: unknown from_zone "${r["from_zone"]}"`); return; }
         if (!tz)  { errors.push(`Row ${row}: unknown to_zone "${r["to_zone"]}"`); return; }

@@ -204,6 +204,16 @@ export class GuestBookingsService {
           }),
           pickUpTime: booking.pickupTime,
           notes: booking.notes,
+          // Precise Google Places point + 2-way group link carried from the booking.
+          pickupPlaceId: booking.pickupPlaceId,
+          pickupLat: booking.pickupLat,
+          pickupLng: booking.pickupLng,
+          pickupAddress: booking.pickupAddress,
+          dropoffPlaceId: booking.dropoffPlaceId,
+          dropoffLat: booking.dropoffLat,
+          dropoffLng: booking.dropoffLng,
+          dropoffAddress: booking.dropoffAddress,
+          groupRef: booking.groupRef,
           status: 'PENDING',
           createdById: userId,
           ...(booking.paymentMethod === 'PAY_ON_ARRIVAL' && {

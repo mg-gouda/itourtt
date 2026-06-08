@@ -77,6 +77,10 @@ const WEBSITE_DEFAULTS = {
   bankPaymentMessage: 'Bank payment integration coming soon!',
   onlinePaymentEnabled: true,
   cashOnArrivalEnabled: true,
+  enableTwoWayTab: false,
+  enableCityToCityTab: false,
+  enableMapSelector: false,
+  bookingTabsOrder: 'ARR,DEP',
   metaTitle: null as string | null,
   metaDescription: null as string | null,
   navLinksJson: null as any,
@@ -350,6 +354,10 @@ export class SettingsService {
     if (dto.bankPaymentMessage !== undefined) data.bankPaymentMessage = dto.bankPaymentMessage;
     if (dto.onlinePaymentEnabled !== undefined) data.onlinePaymentEnabled = dto.onlinePaymentEnabled;
     if (dto.cashOnArrivalEnabled !== undefined) data.cashOnArrivalEnabled = dto.cashOnArrivalEnabled;
+    if (dto.enableTwoWayTab !== undefined) data.enableTwoWayTab = dto.enableTwoWayTab;
+    if (dto.enableCityToCityTab !== undefined) data.enableCityToCityTab = dto.enableCityToCityTab;
+    if (dto.enableMapSelector !== undefined) data.enableMapSelector = dto.enableMapSelector;
+    if (dto.bookingTabsOrder !== undefined) data.bookingTabsOrder = dto.bookingTabsOrder;
     if (dto.metaTitle !== undefined) data.metaTitle = dto.metaTitle || null;
     if (dto.metaDescription !== undefined) data.metaDescription = dto.metaDescription || null;
     if (dto.navLinksJson !== undefined) data.navLinksJson = dto.navLinksJson;
@@ -391,6 +399,10 @@ export class SettingsService {
         bankPaymentMessage: dto.bankPaymentMessage ?? WEBSITE_DEFAULTS.bankPaymentMessage,
         onlinePaymentEnabled: dto.onlinePaymentEnabled ?? WEBSITE_DEFAULTS.onlinePaymentEnabled,
         cashOnArrivalEnabled: dto.cashOnArrivalEnabled ?? WEBSITE_DEFAULTS.cashOnArrivalEnabled,
+        enableTwoWayTab: dto.enableTwoWayTab ?? WEBSITE_DEFAULTS.enableTwoWayTab,
+        enableCityToCityTab: dto.enableCityToCityTab ?? WEBSITE_DEFAULTS.enableCityToCityTab,
+        enableMapSelector: dto.enableMapSelector ?? WEBSITE_DEFAULTS.enableMapSelector,
+        bookingTabsOrder: dto.bookingTabsOrder ?? WEBSITE_DEFAULTS.bookingTabsOrder,
         metaTitle: dto.metaTitle ?? WEBSITE_DEFAULTS.metaTitle,
         metaDescription: dto.metaDescription ?? WEBSITE_DEFAULTS.metaDescription,
         navLinksJson: dto.navLinksJson ?? WEBSITE_DEFAULTS.navLinksJson,

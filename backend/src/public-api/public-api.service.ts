@@ -13,6 +13,7 @@ import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import { VehicleQuotesRequestDto } from './dto/vehicle-quotes-request.dto.js';
 import { ContactMessageDto } from './dto/contact-message.dto.js';
+import { ResolvePlaceDto } from './dto/resolve-place.dto.js';
 import {
   ServiceType,
   B2CPaymentMethod,
@@ -133,6 +134,10 @@ export class PublicApiService {
         bankPaymentMessage: 'Bank payment integration coming soon!',
         onlinePaymentEnabled: true,
         cashOnArrivalEnabled: true,
+        enableTwoWayTab: false,
+        enableCityToCityTab: false,
+        enableMapSelector: false,
+        bookingTabsOrder: 'ARR,DEP',
         metaTitle: null,
         metaDescription: null,
         navLinksJson: null,
@@ -201,6 +206,129 @@ export class PublicApiService {
         })),
       })),
     }));
+  }
+
+  // ─── Resolve a Google Places pick → pricing zone (+ hotel) ──────────
+
+  // Great-circle distance in km between two lat/lng points.
+  private haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(bLat - aLat);
+    const dLng = toRad(bLng - aLng);
+    const s =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+
+  // Map a picked place to a pricing zone. Strategy:
+  //  1. exact placeId match on an existing hotel/zone → reuse it;
+  //  2. an existing hotel within ~250 m → reuse (avoids duplicate auto-creates);
+  //  3. nearest geo-tagged zone within ~35 km → auto-create a hotel under it;
+  //  4. otherwise unmatched → B2C falls back to the manual zone dropdown.
+  async resolvePlace(dto: ResolvePlaceDto) {
+    const NEAREST_ZONE_KM = 35;
+    const DEDUPE_HOTEL_M = 250;
+
+    // 1a. Exact placeId on a hotel.
+    const hotelByPlace = await this.prisma.hotel.findFirst({
+      where: { placeId: dto.placeId, deletedAt: null },
+      include: { zone: true },
+    });
+    if (hotelByPlace) {
+      return {
+        matched: true,
+        created: false,
+        zoneId: hotelByPlace.zoneId,
+        zoneName: hotelByPlace.zone.name,
+        hotelId: hotelByPlace.id,
+        hotelName: hotelByPlace.name,
+      };
+    }
+
+    // 1b. Exact placeId on a zone.
+    const zoneByPlace = await this.prisma.zone.findFirst({
+      where: { placeId: dto.placeId, deletedAt: null },
+    });
+    if (zoneByPlace) {
+      return { matched: true, created: false, zoneId: zoneByPlace.id, zoneName: zoneByPlace.name };
+    }
+
+    // Candidate zones (geo-tagged), optionally scoped to the chosen airport.
+    const zones = await this.prisma.zone.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        latitude: { not: null },
+        longitude: { not: null },
+        ...(dto.airportId ? { city: { airportId: dto.airportId } } : {}),
+      },
+      select: { id: true, name: true, latitude: true, longitude: true },
+    });
+
+    let nearestZone: (typeof zones)[number] | null = null;
+    let nearestZoneKm = Infinity;
+    for (const z of zones) {
+      const km = this.haversineKm(dto.lat, dto.lng, Number(z.latitude), Number(z.longitude));
+      if (km < nearestZoneKm) {
+        nearestZoneKm = km;
+        nearestZone = z;
+      }
+    }
+
+    if (!nearestZone || nearestZoneKm > NEAREST_ZONE_KM) {
+      // Outside known coverage — let the guest pick a zone manually.
+      return { matched: false };
+    }
+
+    // 2. Reuse a very close existing hotel in that zone to avoid duplicates.
+    const zoneHotels = await this.prisma.hotel.findMany({
+      where: {
+        zoneId: nearestZone.id,
+        deletedAt: null,
+        latitude: { not: null },
+        longitude: { not: null },
+      },
+      select: { id: true, name: true, latitude: true, longitude: true },
+    });
+    for (const h of zoneHotels) {
+      const m = this.haversineKm(dto.lat, dto.lng, Number(h.latitude), Number(h.longitude)) * 1000;
+      if (m <= DEDUPE_HOTEL_M) {
+        return {
+          matched: true,
+          created: false,
+          zoneId: nearestZone.id,
+          zoneName: nearestZone.name,
+          hotelId: h.id,
+          hotelName: h.name,
+        };
+      }
+    }
+
+    // 3. Auto-create a hotel under the nearest zone, flagged for admin review.
+    const hotel = await this.prisma.hotel.create({
+      data: {
+        name: dto.name.slice(0, 120),
+        zoneId: nearestZone.id,
+        address: dto.address?.slice(0, 255),
+        latitude: dto.lat,
+        longitude: dto.lng,
+        placeId: dto.placeId,
+        isAutoCreated: true,
+      },
+    });
+    this.logger.log(
+      `Auto-created hotel "${hotel.name}" in zone ${nearestZone.name} from B2C place pick (${Math.round(nearestZoneKm)}km)`,
+    );
+    return {
+      matched: true,
+      created: true,
+      zoneId: nearestZone.id,
+      zoneName: nearestZone.name,
+      hotelId: hotel.id,
+      hotelName: hotel.name,
+    };
   }
 
   // ─── Vehicle Types ──────────────────────────────────────
@@ -509,6 +637,19 @@ export class PublicApiService {
 
   // ─── Create Booking ─────────────────────────────────────
 
+  // Generate a fresh GB-YYMMDD-XXXX ref for the return leg of a 2-way booking.
+  private async generateGroupedRef(yy: string, mm: string, dd: string): Promise<string> {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      let rnd = '';
+      for (let i = 0; i < 4; i++) rnd += chars.charAt(Math.floor(Math.random() * chars.length));
+      const ref = `GB-${yy}${mm}${dd}-${rnd}`;
+      const clash = await this.prisma.guestBooking.findUnique({ where: { bookingRef: ref } });
+      if (!clash) return ref;
+    }
+    return `GB-${yy}${mm}${dd}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+  }
+
   async createBooking(dto: CreateGuestBookingDto) {
     // Enforce the payment-method master switches server-side (never trust the
     // client to hide a disabled option).
@@ -589,6 +730,27 @@ export class PublicApiService {
     const taxAmount = 0;
     const total = subtotal + taxAmount;
 
+    // 2-Way (return) transfer: price the departure leg and sum it. An explicit
+    // TWO_WAY_TRANSFER price row (if the admin entered one) is honoured by
+    // findRoutePriceItem; otherwise the two legs are summed. Only valid on an
+    // arrival outbound (airport→hotel) with a return departure (hotel→airport).
+    const isRoundTrip = !!dto.roundTrip && dto.serviceType === 'ARR';
+    let returnPriceItem: Awaited<ReturnType<typeof this.findRoutePriceItem>> = null;
+    let returnLegTotal = 0;
+    if (isRoundTrip) {
+      returnPriceItem = await this.findRoutePriceItem(
+        ServiceType.DEP,
+        dto.toZoneId,
+        dto.fromZoneId,
+        dto.vehicleTypeId,
+      );
+      if (!returnPriceItem) {
+        throw new NotFoundException('No pricing found for the return (departure) leg.');
+      }
+      returnLegTotal = Number(returnPriceItem.price) + Number(returnPriceItem.driverTip);
+    }
+    const combinedTotal = total + returnLegTotal;
+
     // Generate booking reference: GB-YYMMDD-XXXX
     const now = new Date();
     const yy = String(now.getFullYear()).slice(2);
@@ -606,6 +768,11 @@ export class PublicApiService {
     // Online payments default to the GetPayIn hosted checkout unless a specific
     // gateway is requested.
     const gatewayName = isOnline ? dto.paymentGateway || 'GETPAYIN' : null;
+
+    // Round-trip grouping. For ONLINE the combined amount is charged once on the
+    // outbound leg; for PAY_ON_ARRIVAL each leg is collected by its own driver.
+    const groupRef = isRoundTrip ? bookingRef : null;
+    const outboundTotal = isRoundTrip && isOnline ? combinedTotal : total;
 
     const booking = await this.prisma.guestBooking.create({
       data: {
@@ -625,6 +792,14 @@ export class PublicApiService {
         flightNo: dto.flightNo,
         carrier: dto.carrier,
         terminal: dto.terminal,
+        pickupPlaceId: dto.pickupPlaceId,
+        pickupLat: dto.pickupLat,
+        pickupLng: dto.pickupLng,
+        pickupAddress: dto.pickupAddress,
+        dropoffPlaceId: dto.dropoffPlaceId,
+        dropoffLat: dto.dropoffLat,
+        dropoffLng: dto.dropoffLng,
+        dropoffAddress: dto.dropoffAddress,
         paxCount: dto.paxCount,
         vehicleTypeId: dto.vehicleTypeId,
         extras:
@@ -632,9 +807,11 @@ export class PublicApiService {
             ? ({ ...dto.extras, customExtras: dto.customExtras ?? [], items: snapshotItems } as object)
             : undefined,
         notes: dto.notes,
+        groupRef,
+        legType: isRoundTrip ? ('OUTBOUND' as const) : null,
         subtotal,
         taxAmount,
-        total,
+        total: outboundTotal,
         currency: priceItem.currency,
         paymentMethod,
         paymentStatus: isOnline
@@ -674,7 +851,7 @@ export class PublicApiService {
         flightNo: booking.flightNo ?? undefined,
         paxCount: booking.paxCount,
         vehicleType: booking.vehicleType?.name ?? '',
-        total,
+        total: isRoundTrip ? combinedTotal : total,
         currency: priceItem.currency,
         paymentMethod: dto.paymentMethod,
       })
@@ -712,6 +889,59 @@ export class PublicApiService {
       if (systemUser) {
         await this.guestBookingsService.convertToJob(booking.id, systemUser.id);
         this.logger.log(`Auto-converted guest booking ${booking.bookingRef} to traffic job`);
+
+        // 2-Way: create + convert the RETURN (departure) leg, sharing the group.
+        if (isRoundTrip && returnPriceItem) {
+          const retRef = await this.generateGroupedRef(yy, mm, dd);
+          const returnDate = dto.returnDate ?? dto.jobDate;
+          const returnBooking = await this.prisma.guestBooking.create({
+            data: {
+              bookingRef: retRef,
+              guestName: dto.guestName,
+              guestEmail: dto.guestEmail,
+              guestPhone: dto.guestPhone,
+              guestCountry: dto.guestCountry,
+              serviceType: ServiceType.DEP,
+              jobDate: new Date(returnDate),
+              pickupTime: dto.returnPickupTime
+                ? new Date(`${returnDate}T${dto.returnPickupTime}:00`)
+                : null,
+              // Return leg runs hotel→airport: zones swapped vs the outbound.
+              fromZoneId: dto.toZoneId,
+              toZoneId: dto.fromZoneId,
+              hotelId: dto.hotelId,
+              destinationAirportId: dto.originAirportId,
+              flightNo: dto.returnFlightNo,
+              carrier: dto.returnCarrier,
+              terminal: dto.returnTerminal,
+              // Pickup is now the hotel/place (outbound drop-off becomes pickup).
+              pickupPlaceId: dto.dropoffPlaceId ?? dto.pickupPlaceId,
+              pickupLat: dto.dropoffLat ?? dto.pickupLat,
+              pickupLng: dto.dropoffLng ?? dto.pickupLng,
+              pickupAddress: dto.dropoffAddress ?? dto.pickupAddress,
+              paxCount: dto.paxCount,
+              vehicleTypeId: dto.vehicleTypeId,
+              notes: dto.notes,
+              groupRef,
+              legType: 'RETURN' as const,
+              subtotal: returnLegTotal,
+              taxAmount: 0,
+              total: returnLegTotal,
+              currency: returnPriceItem.currency,
+              paymentMethod,
+              // Online: paid once on the outbound leg (mirrored on settle). Cash:
+              // the return driver collects this leg separately.
+              paymentStatus: B2CPaymentStatus.PENDING as B2CPaymentStatus,
+              paymentGateway: gatewayName ? (gatewayName as B2CPaymentGateway) : null,
+              bookingStatus: GuestBookingStatus.CONFIRMED as GuestBookingStatus,
+              b2cClientId,
+            },
+          });
+          await this.guestBookingsService.convertToJob(returnBooking.id, systemUser.id);
+          this.logger.log(
+            `Auto-converted RETURN leg ${returnBooking.bookingRef} (group ${groupRef})`,
+          );
+        }
       }
     } catch (err) {
       this.logger.error(`Failed to auto-convert booking ${booking.bookingRef}: ${err.message}`);
@@ -772,6 +1002,23 @@ export class PublicApiService {
       );
     }
 
+    // 2-Way: attach the sibling (other leg) so the lookup page shows the return.
+    if (booking.groupRef) {
+      const legs = await this.prisma.guestBooking.findMany({
+        where: { groupRef: booking.groupRef },
+        include: {
+          fromZone: true,
+          toZone: true,
+          vehicleType: true,
+          hotel: true,
+          originAirport: true,
+          destinationAirport: true,
+        },
+        orderBy: { legType: 'asc' }, // OUTBOUND before RETURN
+      });
+      return { ...booking, legs };
+    }
+
     return booking;
   }
 
@@ -821,6 +1068,18 @@ export class PublicApiService {
         destinationAirport: true,
       },
     });
+
+    // 2-Way is cancelled as a whole: cancel the sibling leg too (decision v1).
+    if (booking.groupRef) {
+      await this.prisma.guestBooking.updateMany({
+        where: {
+          groupRef: booking.groupRef,
+          bookingRef: { not: ref },
+          bookingStatus: { not: GuestBookingStatus.CANCELLED as GuestBookingStatus },
+        },
+        data: { bookingStatus: GuestBookingStatus.CANCELLED as GuestBookingStatus },
+      });
+    }
 
     // Send cancellation email (fire-and-forget)
     this.emailService
