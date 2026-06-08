@@ -161,7 +161,7 @@ export class PaymentsService {
         });
 
         // Update GuestBooking payment status
-        await this.prisma.guestBooking.update({
+        const updatedBooking = await this.prisma.guestBooking.update({
           where: { bookingRef },
           data: {
             paymentStatus: B2CPaymentStatus.PAID as B2CPaymentStatus,
@@ -169,6 +169,13 @@ export class PaymentsService {
             paymentReference: (session.payment_intent as string) || sessionId,
           },
         });
+        // Mirror to the return leg of a 2-way booking (paid once, combined).
+        if (updatedBooking.groupRef) {
+          await this.prisma.guestBooking.updateMany({
+            where: { groupRef: updatedBooking.groupRef, id: { not: updatedBooking.id } },
+            data: { paymentStatus: B2CPaymentStatus.PAID as B2CPaymentStatus },
+          });
+        }
 
         this.logger.log(`Payment completed for booking ${bookingRef}, session ${sessionId}`);
 
@@ -263,6 +270,15 @@ export class PaymentsService {
         paymentReference: invoiceId,
       },
     });
+
+    // 2-way bookings are paid once (combined amount on the outbound leg). Mirror
+    // the settled status to the return leg so it isn't left looking unpaid.
+    if (booking.groupRef) {
+      await this.prisma.guestBooking.updateMany({
+        where: { groupRef: booking.groupRef, id: { not: booking.id } },
+        data: { paymentStatus: newStatus, paymentReference: invoiceId },
+      });
+    }
 
     this.logger.log(
       `GetPayIn callback: booking ${booking.bookingRef} → ${newStatus} (invoice ${invoiceId})`,

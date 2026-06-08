@@ -32,6 +32,7 @@ enum ServiceType {
   DAY_TOUR
   ONE_WAY_TRANSFER
   TWO_WAY_TRANSFER
+  CITY_TO_CITY
 }
 
 enum JobStatus {
@@ -179,6 +180,12 @@ enum GuestBookingStatus {
   CONFIRMED
   CANCELLED
   CONVERTED
+}
+
+// Leg of a 2-way (return) B2C booking. Two GuestBookings sharing a groupRef.
+enum BookingLeg {
+  OUTBOUND
+  RETURN
 }
 
 enum Transmission {
@@ -355,6 +362,9 @@ model Zone {
   longitude Decimal?  @db.Decimal(10, 7)
   placeId   String?   @map("google_place_id")
   isActive  Boolean   @default(true) @map("is_active")
+  // Auto-created from a B2C Google Places pick; flagged for admin review.
+  isAutoCreated Boolean   @default(false) @map("is_auto_created")
+  reviewedAt    DateTime? @map("reviewed_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -398,6 +408,9 @@ model Hotel {
   longitude Decimal?  @db.Decimal(10, 7)
   placeId   String?   @map("google_place_id")
   isActive  Boolean   @default(true) @map("is_active")
+  // Auto-created from a B2C Google Places pick; flagged for admin review.
+  isAutoCreated Boolean   @default(false) @map("is_auto_created")
+  reviewedAt    DateTime? @map("reviewed_at")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -921,6 +934,19 @@ model GuestBooking {
   vehicleTypeId        String             @map("vehicle_type_id")
   extras               Json?
   notes                String?
+  // Precise pickup/dropoff point picked via Google Places (optional — pricing
+  // still resolves to a zone; this gives the driver the exact coordinate).
+  pickupPlaceId        String?            @map("pickup_place_id")
+  pickupLat            Decimal?           @map("pickup_lat") @db.Decimal(10, 7)
+  pickupLng            Decimal?           @map("pickup_lng") @db.Decimal(10, 7)
+  pickupAddress        String?            @map("pickup_address")
+  dropoffPlaceId       String?            @map("dropoff_place_id")
+  dropoffLat           Decimal?           @map("dropoff_lat") @db.Decimal(10, 7)
+  dropoffLng           Decimal?           @map("dropoff_lng") @db.Decimal(10, 7)
+  dropoffAddress       String?            @map("dropoff_address")
+  // 2-way return grouping: OUTBOUND + RETURN bookings share one groupRef.
+  groupRef             String?            @map("group_ref")
+  legType              BookingLeg?        @map("leg_type")
   subtotal             Decimal            @db.Decimal(15, 2)
   taxAmount            Decimal            @default(0) @map("tax_amount") @db.Decimal(15, 2)
   total                Decimal            @db.Decimal(15, 2)
@@ -951,6 +977,7 @@ model GuestBooking {
   @@index([bookingStatus])
   @@index([paymentStatus])
   @@index([jobDate])
+  @@index([groupRef])
   @@map("guest_bookings")
 }
 
@@ -1095,6 +1122,18 @@ model TrafficJob {
   printSign    Boolean   @default(false) @map("print_sign")
   pickUpTime   DateTime? @map("pick_up_time")
   notes        String?
+
+  // Precise pickup/dropoff coordinate from a B2C Google Places pick (optional).
+  pickupPlaceId  String?  @map("pickup_place_id")
+  pickupLat      Decimal? @map("pickup_lat") @db.Decimal(10, 7)
+  pickupLng      Decimal? @map("pickup_lng") @db.Decimal(10, 7)
+  pickupAddress  String?  @map("pickup_address")
+  dropoffPlaceId String?  @map("dropoff_place_id")
+  dropoffLat     Decimal? @map("dropoff_lat") @db.Decimal(10, 7)
+  dropoffLng     Decimal? @map("dropoff_lng") @db.Decimal(10, 7)
+  dropoffAddress String?  @map("dropoff_address")
+  // Links the two legs of a 2-way (return) booking for ops visibility.
+  groupRef       String?  @map("group_ref")
 
   // Collection (Online bookings – driver collects from passenger)
   collectionRequired     Boolean   @default(false) @map("collection_required")
@@ -1953,6 +1992,13 @@ model WebsiteSettings {
   // ── Payment Method Master Switches ──
   onlinePaymentEnabled  Boolean @default(true) @map("online_payment_enabled")
   cashOnArrivalEnabled  Boolean @default(true) @map("cash_on_arrival_enabled")
+
+  // ── Booking Widget Master Switches ──
+  enableTwoWayTab     Boolean @default(false) @map("enable_two_way_tab")
+  enableCityToCityTab Boolean @default(false) @map("enable_city_to_city_tab")
+  enableMapSelector   Boolean @default(false) @map("enable_map_selector")
+  // CSV of tab keys controlling order/visibility, e.g. "TWO_WAY,ARR,DEP,CITY".
+  bookingTabsOrder    String  @default("ARR,DEP") @map("booking_tabs_order")
 
   // ── SEO ──
   metaTitle       String? @map("meta_title")

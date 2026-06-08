@@ -12,6 +12,8 @@ import {
   CreditCard,
   Search,
   Upload,
+  LayoutGrid,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -96,6 +98,10 @@ interface WebsiteSettings {
   bankPaymentMessage: string;
   onlinePaymentEnabled: boolean;
   cashOnArrivalEnabled: boolean;
+  enableTwoWayTab: boolean;
+  enableCityToCityTab: boolean;
+  enableMapSelector: boolean;
+  bookingTabsOrder: string;
   metaTitle: string | null;
   metaDescription: string | null;
 }
@@ -130,6 +136,10 @@ const DEFAULTS: WebsiteSettings = {
   bankPaymentMessage: "Bank payment integration coming soon!",
   onlinePaymentEnabled: true,
   cashOnArrivalEnabled: true,
+  enableTwoWayTab: false,
+  enableCityToCityTab: false,
+  enableMapSelector: false,
+  bookingTabsOrder: "ARR,DEP",
   metaTitle: null,
   metaDescription: null,
 };
@@ -190,6 +200,10 @@ export default function WebsiteCmsPage() {
         bankPaymentMessage: settings.bankPaymentMessage,
         onlinePaymentEnabled: settings.onlinePaymentEnabled,
         cashOnArrivalEnabled: settings.cashOnArrivalEnabled,
+        enableTwoWayTab: settings.enableTwoWayTab,
+        enableCityToCityTab: settings.enableCityToCityTab,
+        enableMapSelector: settings.enableMapSelector,
+        bookingTabsOrder: settings.bookingTabsOrder,
         metaTitle: settings.metaTitle,
         metaDescription: settings.metaDescription,
       };
@@ -698,6 +712,61 @@ export default function WebsiteCmsPage() {
               </p>
             </div>
           )}
+        </div>
+      </Card>
+
+      {/* Booking Widget (master switches for the new search tabs & map picker) */}
+      <Card className="border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <LayoutGrid className="h-4 w-4 text-emerald-500" />
+          <h3 className="text-sm font-medium">Booking Widget</h3>
+        </div>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Turn the extra booking search tabs and the map place picker on or off. Changes
+          show on the website immediately. Arrival &amp; Departure are always available.
+        </p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="text-sm font-medium">2-Way Transfer tab</p>
+              <p className="text-xs text-muted-foreground">
+                Book a return (arrival + departure) in one go
+              </p>
+            </div>
+            <Switch
+              id="two-way-toggle"
+              checked={settings.enableTwoWayTab}
+              onCheckedChange={(v) => update("enableTwoWayTab", v)}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="text-sm font-medium">City-to-City tab</p>
+              <p className="text-xs text-muted-foreground">
+                Point-to-point transfers between cities (excursion)
+              </p>
+            </div>
+            <Switch
+              id="city-to-city-toggle"
+              checked={settings.enableCityToCityTab}
+              onCheckedChange={(v) => update("enableCityToCityTab", v)}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="flex items-center gap-1.5 text-sm font-medium">
+                <MapPin className="h-3.5 w-3.5" /> Google Maps place picker
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Let guests pick an exact pickup/drop-off point on the map
+              </p>
+            </div>
+            <Switch
+              id="map-selector-toggle"
+              checked={settings.enableMapSelector}
+              onCheckedChange={(v) => update("enableMapSelector", v)}
+            />
+          </div>
         </div>
       </Card>
 

@@ -3,11 +3,13 @@ import {
   IsString,
   IsEmail,
   IsInt,
+  IsNumber,
   Min,
   IsOptional,
   IsIn,
   ValidateNested,
   IsArray,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CustomExtraSelectionDto } from './custom-extra-selection.dto.js';
@@ -112,6 +114,25 @@ export class CreateGuestBookingDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  // ── Precise pickup/drop-off point from the Google Places picker (optional) ──
+  @IsString() @IsOptional() pickupPlaceId?: string;
+  @IsNumber() @IsOptional() pickupLat?: number;
+  @IsNumber() @IsOptional() pickupLng?: number;
+  @IsString() @IsOptional() pickupAddress?: string;
+  @IsString() @IsOptional() dropoffPlaceId?: string;
+  @IsNumber() @IsOptional() dropoffLat?: number;
+  @IsNumber() @IsOptional() dropoffLng?: number;
+  @IsString() @IsOptional() dropoffAddress?: string;
+
+  // ── 2-Way (return) transfer: when true, a second RETURN leg is created and
+  //    these return-* fields describe the departure leg. ──
+  @IsBoolean() @IsOptional() roundTrip?: boolean;
+  @IsString() @IsOptional() returnDate?: string;
+  @IsString() @IsOptional() returnPickupTime?: string;
+  @IsString() @IsOptional() returnFlightNo?: string;
+  @IsString() @IsOptional() returnCarrier?: string;
+  @IsString() @IsOptional() returnTerminal?: string;
 
   @IsString()
   @IsNotEmpty()

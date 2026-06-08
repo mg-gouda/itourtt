@@ -13,6 +13,7 @@ import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import { VehicleQuotesRequestDto } from './dto/vehicle-quotes-request.dto.js';
 import { ContactMessageDto } from './dto/contact-message.dto.js';
 import { BookingAccessDto } from './dto/booking-access.dto.js';
+import { ResolvePlaceDto } from './dto/resolve-place.dto.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { CaptchaService } from '../common/services/captcha.service.js';
@@ -41,6 +42,13 @@ export class PublicApiController {
   @Get('locations')
   async getLocations() {
     const result = await this.publicApiService.getLocationTree();
+    return new ApiResponse(result);
+  }
+
+  @Throttle({ default: { limit: 40, ttl: 60000 } })
+  @Post('resolve-place')
+  async resolvePlace(@Body() dto: ResolvePlaceDto) {
+    const result = await this.publicApiService.resolvePlace(dto);
     return new ApiResponse(result);
   }
 

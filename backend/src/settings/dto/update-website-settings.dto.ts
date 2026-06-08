@@ -127,6 +127,23 @@ export class UpdateWebsiteSettingsDto {
   @IsBoolean()
   cashOnArrivalEnabled?: boolean;
 
+  // ── Booking Widget Master Switches ──
+  @IsOptional()
+  @IsBoolean()
+  enableTwoWayTab?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enableCityToCityTab?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enableMapSelector?: boolean;
+
+  @IsOptional()
+  @IsString()
+  bookingTabsOrder?: string;
+
   // ── SEO ──
   @IsOptional()
   @IsString()
