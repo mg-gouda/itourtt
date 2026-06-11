@@ -722,15 +722,16 @@ export default function WebsiteCmsPage() {
           <h3 className="text-sm font-medium">Booking Widget</h3>
         </div>
         <p className="mb-4 text-xs text-muted-foreground">
-          Turn the extra booking search tabs and the map place picker on or off. Changes
-          show on the website immediately. Arrival &amp; Departure are always available.
+          Turn the extra booking search options and the map place picker on or off. Changes
+          show on the website immediately. The Airport Transfer tab is always available.
         </p>
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
-              <p className="text-sm font-medium">2-Way Transfer tab</p>
+              <p className="text-sm font-medium">Return Transfer option</p>
               <p className="text-xs text-muted-foreground">
-                Book a return (arrival + departure) in one go
+                Shows the &quot;Return Transfer&quot; choice in the Airport Transfer tab
+                (books arrival + departure in one go)
               </p>
             </div>
             <Switch
