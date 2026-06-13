@@ -49,6 +49,7 @@ interface RepJob {
   jobDate: string;
   status: string;
   repStatus: string;
+  repUnlockedAt: string | null;
   bookingChannel: string | null;
   clientName: string | null;
   clientMobile: string | null;
@@ -653,7 +654,7 @@ function JobCard({
 
   // IN PLACE is only active within 10 min before to 80 min after flight arrival
   const inPlaceWindowOpen = (() => {
-    if (job.serviceType !== "ARR" || !job.flight?.arrivalTime) return true;
+    if (job.serviceType !== "ARR" || !job.flight?.arrivalTime || job.repUnlockedAt) return true;
     const now = new Date();
     const arr = new Date(job.flight.arrivalTime);
     return now >= new Date(arr.getTime() - 10 * 60 * 1000) &&

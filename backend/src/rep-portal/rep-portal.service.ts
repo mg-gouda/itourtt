@@ -373,9 +373,16 @@ export class RepPortalService {
     this.checkRepTimelock(assignment.trafficJob);
     this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
 
-    // Enforce IN PLACE time window: arrivalTime - 10min to arrivalTime + 80min
-    const flight = (assignment.trafficJob as any).flight;
-    if (flight?.arrivalTime) {
+    // Enforce IN PLACE time window: arrivalTime - 10min to arrivalTime + 80min.
+    // Only for ARR jobs (matches the rep portal button gate), and skip when an
+    // admin has unlocked the job (e.g. delayed flight / legitimate late submission).
+    const jobForWindow = assignment.trafficJob as any;
+    const flight = jobForWindow.flight;
+    if (
+      flight?.arrivalTime &&
+      jobForWindow.serviceType === 'ARR' &&
+      !jobForWindow.repUnlockedAt
+    ) {
       const now = new Date();
       const arrivalTime = new Date(flight.arrivalTime);
       const windowStart = new Date(arrivalTime.getTime() - 10 * 60 * 1000);
