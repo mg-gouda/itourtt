@@ -73,6 +73,43 @@ export interface StaffAssignmentData {
   vehicleColor?: string;
 }
 
+/** Internal ops alert when a B2C booking is created, amended, or cancelled. */
+export interface OpsBookingNotificationData {
+  bookingRef: string;
+  guestName: string;
+  guestEmail: string;
+  guestPhone?: string;
+  serviceType: string;
+  jobDate: string;
+  pickupTime?: string;
+  fromZone?: string;
+  toZone?: string;
+  hotel?: string;
+  flightNo?: string;
+  paxCount: number;
+  vehicleType?: string;
+  total: number;
+  currency: string;
+  paymentMethod: string;
+  paymentStatus?: string;
+  notes?: string;
+  /** For amendments: human-readable summary of what changed. */
+  changeSummary?: string;
+}
+
+/** Internal finance alert when a B2C booking is paid. */
+export interface FinancePaymentNotificationData {
+  bookingRef: string;
+  guestName: string;
+  guestEmail: string;
+  amount: number;
+  currency: string;
+  gateway: string;
+  transactionId: string;
+  paidAt: string;
+  paymentMethod?: string;
+}
+
 export interface JobUpdateEmailData {
   internalRef: string;
   bookingChannel: string;
@@ -247,6 +284,136 @@ export class EmailService {
   async sendBookingCancellation(data: BookingEmailData): Promise<void> {
     const html = bookingCancellationTemplate(data, await this.getGuestBranding());
     await this.send(data.guestEmail, `Booking Cancelled - ${data.bookingRef}`, html);
+  }
+
+  /**
+   * Read an admin-configured, comma/semicolon/whitespace-separated recipient
+   * list from website settings. Returns [] when unset, so callers no-op cleanly.
+   */
+  private async getNotificationRecipients(
+    field: 'opsNotificationEmails' | 'financeNotificationEmails',
+  ): Promise<string[]> {
+    try {
+      const ws = await this.prisma.websiteSettings.findFirst();
+      const raw = (ws as Record<string, unknown> | null)?.[field] as
+        | string
+        | null
+        | undefined;
+      if (!raw) return [];
+      return raw
+        .split(/[,;\s]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } catch (err) {
+      this.logger.error(
+        `Failed to read notification recipients (${field}): ${(err as Error).message}`,
+      );
+      return [];
+    }
+  }
+
+  private esc(v?: string | number | null): string {
+    return String(v ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /**
+   * Notify the operations team that a B2C booking was created / amended /
+   * cancelled. Recipients come from website settings (opsNotificationEmails);
+   * no-op when unconfigured. This is additive — guest-facing emails still send.
+   */
+  async notifyOpsBookingEvent(
+    kind: 'new' | 'amended' | 'cancelled',
+    data: OpsBookingNotificationData,
+  ): Promise<void> {
+    const recipients = await this.getNotificationRecipients('opsNotificationEmails');
+    if (recipients.length === 0) return;
+
+    const label =
+      kind === 'new' ? 'NEW BOOKING' : kind === 'amended' ? 'AMENDED' : 'CANCELLED';
+    const accent =
+      kind === 'new' ? '#16a34a' : kind === 'amended' ? '#d97706' : '#dc2626';
+    const subject = `[${label}] B2C Booking ${data.bookingRef} — ${data.guestName}`;
+    const row = (k: string, v?: string | number | null) =>
+      v === undefined || v === null || v === ''
+        ? ''
+        : `<tr><td style="padding:4px 12px 4px 0;color:#666;">${this.esc(k)}</td><td style="padding:4px 0;font-weight:600;color:#111;">${this.esc(v)}</td></tr>`;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;padding:20px;color:#333;max-width:640px;">
+        <div style="background:${accent};color:#fff;padding:10px 16px;border-radius:6px 6px 0 0;font-weight:700;">
+          ${label} — ${this.esc(data.bookingRef)}
+        </div>
+        <div style="border:1px solid #eee;border-top:none;padding:16px;border-radius:0 0 6px 6px;">
+          ${data.changeSummary ? `<p style="margin:0 0 12px;padding:8px 12px;background:#fff7ed;border-left:3px solid ${accent};">${this.esc(data.changeSummary)}</p>` : ''}
+          <table style="border-collapse:collapse;font-size:14px;width:100%;">
+            ${row('Guest', data.guestName)}
+            ${row('Email', data.guestEmail)}
+            ${row('Phone', data.guestPhone)}
+            ${row('Service', data.serviceType)}
+            ${row('Date', data.jobDate)}
+            ${row('Pickup time', data.pickupTime)}
+            ${row('From', data.fromZone)}
+            ${row('To', data.toZone)}
+            ${row('Hotel', data.hotel)}
+            ${row('Flight', data.flightNo)}
+            ${row('Pax', data.paxCount)}
+            ${row('Vehicle', data.vehicleType)}
+            ${row('Total', `${data.currency} ${Number(data.total).toFixed(2)}`)}
+            ${row('Payment method', data.paymentMethod)}
+            ${row('Payment status', data.paymentStatus)}
+            ${row('Notes', data.notes)}
+          </table>
+        </div>
+        <p style="color:#999;font-size:12px;margin-top:12px;">Automated operations notification · iTour Transport &amp; Traffic</p>
+      </div>
+    `;
+
+    for (const to of recipients) {
+      await this.send(to, subject, html);
+    }
+  }
+
+  /**
+   * Notify the finance team that a B2C booking has been paid. Recipients come
+   * from website settings (financeNotificationEmails); no-op when unconfigured.
+   */
+  async notifyFinancePayment(data: FinancePaymentNotificationData): Promise<void> {
+    const recipients = await this.getNotificationRecipients('financeNotificationEmails');
+    if (recipients.length === 0) return;
+
+    const subject = `[PAID] ${data.currency} ${Number(data.amount).toFixed(2)} — Booking ${data.bookingRef}`;
+    const row = (k: string, v?: string | number | null) =>
+      v === undefined || v === null || v === ''
+        ? ''
+        : `<tr><td style="padding:4px 12px 4px 0;color:#666;">${this.esc(k)}</td><td style="padding:4px 0;font-weight:600;color:#111;">${this.esc(v)}</td></tr>`;
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;padding:20px;color:#333;max-width:640px;">
+        <div style="background:#16a34a;color:#fff;padding:10px 16px;border-radius:6px 6px 0 0;font-weight:700;">
+          PAYMENT RECEIVED — ${this.esc(data.bookingRef)}
+        </div>
+        <div style="border:1px solid #eee;border-top:none;padding:16px;border-radius:0 0 6px 6px;">
+          <table style="border-collapse:collapse;font-size:14px;width:100%;">
+            ${row('Amount', `${data.currency} ${Number(data.amount).toFixed(2)}`)}
+            ${row('Gateway', data.gateway)}
+            ${row('Payment method', data.paymentMethod)}
+            ${row('Transaction ID', data.transactionId)}
+            ${row('Paid at', data.paidAt)}
+            ${row('Guest', data.guestName)}
+            ${row('Email', data.guestEmail)}
+          </table>
+        </div>
+        <p style="color:#999;font-size:12px;margin-top:12px;">Automated finance notification · iTour Transport &amp; Traffic</p>
+      </div>
+    `;
+
+    for (const to of recipients) {
+      await this.send(to, subject, html);
+    }
   }
 
   async sendStaffAssignment(data: StaffAssignmentData): Promise<void> {

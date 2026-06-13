@@ -198,6 +198,23 @@ export class PaymentsService {
             .catch((err) =>
               this.logger.error(`Failed to send payment receipt email: ${err.message}`),
             );
+
+          // Internal finance notification (recipients configured in admin CMS).
+          this.emailService
+            .notifyFinancePayment({
+              bookingRef,
+              guestName: paidBooking.guestName,
+              guestEmail: paidBooking.guestEmail,
+              amount: Number(paidBooking.total),
+              currency: paidBooking.currency,
+              gateway: 'Stripe',
+              transactionId: (session.payment_intent as string) || sessionId,
+              paidAt: new Date().toISOString(),
+              paymentMethod: paidBooking.paymentMethod,
+            })
+            .catch((err) =>
+              this.logger.error(`Failed to send finance payment notification: ${err.message}`),
+            );
         }
       } else {
         this.logger.warn(`No payment transaction found for session ${sessionId}`);
@@ -325,6 +342,23 @@ export class PaymentsService {
         })
         .catch((err) =>
           this.logger.error(`Failed to send payment receipt email: ${err.message}`),
+        );
+
+      // Internal finance notification (recipients configured in admin CMS).
+      this.emailService
+        .notifyFinancePayment({
+          bookingRef: booking.bookingRef,
+          guestName: booking.guestName,
+          guestEmail: booking.guestEmail,
+          amount: Number(booking.total),
+          currency: booking.currency,
+          gateway: 'GetPayIn',
+          transactionId: invoiceId,
+          paidAt: new Date().toISOString(),
+          paymentMethod: booking.paymentMethod,
+        })
+        .catch((err) =>
+          this.logger.error(`Failed to send finance payment notification: ${err.message}`),
         );
     }
 

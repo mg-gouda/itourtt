@@ -14,6 +14,7 @@ import {
   Upload,
   LayoutGrid,
   MapPin,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -94,6 +95,8 @@ interface WebsiteSettings {
   socialFacebook: string | null;
   socialInstagram: string | null;
   socialTwitter: string | null;
+  opsNotificationEmails: string | null;
+  financeNotificationEmails: string | null;
   bankPaymentEnabled: boolean;
   bankPaymentMessage: string;
   onlinePaymentEnabled: boolean;
@@ -132,6 +135,8 @@ const DEFAULTS: WebsiteSettings = {
   socialFacebook: null,
   socialInstagram: null,
   socialTwitter: null,
+  opsNotificationEmails: null,
+  financeNotificationEmails: null,
   bankPaymentEnabled: false,
   bankPaymentMessage: "Bank payment integration coming soon!",
   onlinePaymentEnabled: true,
@@ -196,6 +201,8 @@ export default function WebsiteCmsPage() {
         socialFacebook: settings.socialFacebook,
         socialInstagram: settings.socialInstagram,
         socialTwitter: settings.socialTwitter,
+        opsNotificationEmails: settings.opsNotificationEmails,
+        financeNotificationEmails: settings.financeNotificationEmails,
         bankPaymentEnabled: settings.bankPaymentEnabled,
         bankPaymentMessage: settings.bankPaymentMessage,
         onlinePaymentEnabled: settings.onlinePaymentEnabled,
@@ -668,6 +675,43 @@ export default function WebsiteCmsPage() {
               value={settings.socialTwitter ?? ""}
               onChange={(e) => update("socialTwitter", e.target.value || null)}
             />
+          </div>
+        </div>
+      </Card>
+
+      {/* Internal Booking Notifications (in addition to guest emails) */}
+      <Card className="border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Bell className="h-4 w-4 text-amber-500" />
+          <h3 className="text-sm font-medium">Booking Notifications (internal)</h3>
+        </div>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Internal alerts sent <strong>in addition to</strong> the confirmation emails guests
+          already receive. Separate multiple addresses with commas. Leave blank to disable a
+          channel.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Operations email(s) — new, amended &amp; cancelled bookings</Label>
+            <Input
+              placeholder="fleetbooking@fulvago.com"
+              value={settings.opsNotificationEmails ?? ""}
+              onChange={(e) => update("opsNotificationEmails", e.target.value || null)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Notified whenever a B2C booking is created, amended, or cancelled.
+            </p>
+          </div>
+          <div>
+            <Label>Finance email(s) — booking payments</Label>
+            <Input
+              placeholder="cfo@fulvago.com"
+              value={settings.financeNotificationEmails ?? ""}
+              onChange={(e) => update("financeNotificationEmails", e.target.value || null)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Notified whenever a B2C booking is paid online.
+            </p>
           </div>
         </div>
       </Card>

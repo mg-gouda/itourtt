@@ -1985,6 +1985,13 @@ model WebsiteSettings {
   socialInstagram String? @map("social_instagram")
   socialTwitter   String? @map("social_twitter")
 
+  // ── Internal Booking Notifications ──
+  // Comma-separated recipients for operations alerts on new / amended / cancelled
+  // B2C bookings, and for finance alerts when a B2C booking is paid. Internal
+  // only — never returned by the public website-settings endpoint.
+  opsNotificationEmails     String? @map("ops_notification_emails")
+  financeNotificationEmails String? @map("finance_notification_emails")
+
   // ── Bank Payment ──
   bankPaymentEnabled Boolean @default(false) @map("bank_payment_enabled")
   bankPaymentMessage String  @default("Bank payment integration coming soon!") @map("bank_payment_message")

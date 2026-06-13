@@ -109,6 +109,15 @@ export class UpdateWebsiteSettingsDto {
   @IsString()
   socialTwitter?: string;
 
+  // ── Internal Booking Notifications (comma-separated recipient lists) ──
+  @IsOptional()
+  @IsString()
+  opsNotificationEmails?: string;
+
+  @IsOptional()
+  @IsString()
+  financeNotificationEmails?: string;
+
   // ── Bank Payment ──
   @IsOptional()
   @IsBoolean()

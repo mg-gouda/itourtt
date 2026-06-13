@@ -264,6 +264,7 @@ export class B2CService {
     const updated = await this.prisma.guestBooking.update({
       where: { id: booking.id },
       data: updateData,
+      include: { fromZone: true, toZone: true, vehicleType: true, hotel: true },
     });
 
     if (booking.trafficJobId) {
@@ -281,6 +282,38 @@ export class B2CService {
         });
       }
     }
+
+    // Internal ops notification (additive — recipients configured in admin CMS).
+    const changes: string[] = [];
+    if (dto.jobDate) changes.push(`Date → ${dto.jobDate}`);
+    if (dto.pickupTime) changes.push(`Pickup time → ${dto.pickupTime}`);
+    if (dto.paxCount !== undefined) changes.push(`Pax → ${dto.paxCount}`);
+    this.emailService
+      .notifyOpsBookingEvent('amended', {
+        bookingRef: updated.bookingRef,
+        guestName: updated.guestName,
+        guestEmail: updated.guestEmail,
+        guestPhone: updated.guestPhone ?? undefined,
+        serviceType: updated.serviceType,
+        jobDate: updated.jobDate.toISOString().split('T')[0],
+        pickupTime: updated.pickupTime
+          ? updated.pickupTime.toISOString().slice(11, 16)
+          : undefined,
+        fromZone: updated.fromZone?.name,
+        toZone: updated.toZone?.name,
+        hotel: updated.hotel?.name,
+        flightNo: updated.flightNo ?? undefined,
+        paxCount: updated.paxCount,
+        vehicleType: updated.vehicleType?.name,
+        total: Number(updated.total),
+        currency: updated.currency,
+        paymentMethod: updated.paymentMethod,
+        paymentStatus: updated.paymentStatus,
+        changeSummary: changes.length ? `Amended: ${changes.join(', ')}` : 'Booking amended',
+      })
+      .catch((err) =>
+        this.logger.error(`Failed to send ops amendment notification: ${err.message}`),
+      );
 
     return updated;
   }
@@ -305,9 +338,10 @@ export class B2CService {
       throw new BadRequestException('Cancellations must be made at least 48 hours before the job');
     }
 
-    await this.prisma.guestBooking.update({
+    const updated = await this.prisma.guestBooking.update({
       where: { id: booking.id },
       data: { bookingStatus: 'CANCELLED' as any },
+      include: { fromZone: true, toZone: true, vehicleType: true, hotel: true },
     });
 
     if (booking.trafficJobId) {
@@ -316,6 +350,33 @@ export class B2CService {
         data: { status: 'CANCELLED' as any },
       }).catch(() => { /* job may already be non-cancellable */ });
     }
+
+    // Internal ops notification (additive — recipients configured in admin CMS).
+    this.emailService
+      .notifyOpsBookingEvent('cancelled', {
+        bookingRef: updated.bookingRef,
+        guestName: updated.guestName,
+        guestEmail: updated.guestEmail,
+        guestPhone: updated.guestPhone ?? undefined,
+        serviceType: updated.serviceType,
+        jobDate: updated.jobDate.toISOString().split('T')[0],
+        pickupTime: updated.pickupTime
+          ? updated.pickupTime.toISOString().slice(11, 16)
+          : undefined,
+        fromZone: updated.fromZone?.name,
+        toZone: updated.toZone?.name,
+        hotel: updated.hotel?.name,
+        flightNo: updated.flightNo ?? undefined,
+        paxCount: updated.paxCount,
+        vehicleType: updated.vehicleType?.name,
+        total: Number(updated.total),
+        currency: updated.currency,
+        paymentMethod: updated.paymentMethod,
+        paymentStatus: updated.paymentStatus,
+      })
+      .catch((err) =>
+        this.logger.error(`Failed to send ops cancellation notification: ${err.message}`),
+      );
 
     return { success: true };
   }

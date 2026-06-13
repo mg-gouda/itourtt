@@ -73,6 +73,8 @@ const WEBSITE_DEFAULTS = {
   socialFacebook: null as string | null,
   socialInstagram: null as string | null,
   socialTwitter: null as string | null,
+  opsNotificationEmails: null as string | null,
+  financeNotificationEmails: null as string | null,
   bankPaymentEnabled: false,
   bankPaymentMessage: 'Bank payment integration coming soon!',
   onlinePaymentEnabled: true,
@@ -350,6 +352,8 @@ export class SettingsService {
     if (dto.socialFacebook !== undefined) data.socialFacebook = dto.socialFacebook || null;
     if (dto.socialInstagram !== undefined) data.socialInstagram = dto.socialInstagram || null;
     if (dto.socialTwitter !== undefined) data.socialTwitter = dto.socialTwitter || null;
+    if (dto.opsNotificationEmails !== undefined) data.opsNotificationEmails = dto.opsNotificationEmails || null;
+    if (dto.financeNotificationEmails !== undefined) data.financeNotificationEmails = dto.financeNotificationEmails || null;
     if (dto.bankPaymentEnabled !== undefined) data.bankPaymentEnabled = dto.bankPaymentEnabled;
     if (dto.bankPaymentMessage !== undefined) data.bankPaymentMessage = dto.bankPaymentMessage;
     if (dto.onlinePaymentEnabled !== undefined) data.onlinePaymentEnabled = dto.onlinePaymentEnabled;
@@ -395,6 +399,8 @@ export class SettingsService {
         socialFacebook: dto.socialFacebook ?? WEBSITE_DEFAULTS.socialFacebook,
         socialInstagram: dto.socialInstagram ?? WEBSITE_DEFAULTS.socialInstagram,
         socialTwitter: dto.socialTwitter ?? WEBSITE_DEFAULTS.socialTwitter,
+        opsNotificationEmails: dto.opsNotificationEmails ?? WEBSITE_DEFAULTS.opsNotificationEmails,
+        financeNotificationEmails: dto.financeNotificationEmails ?? WEBSITE_DEFAULTS.financeNotificationEmails,
         bankPaymentEnabled: dto.bankPaymentEnabled ?? WEBSITE_DEFAULTS.bankPaymentEnabled,
         bankPaymentMessage: dto.bankPaymentMessage ?? WEBSITE_DEFAULTS.bankPaymentMessage,
         onlinePaymentEnabled: dto.onlinePaymentEnabled ?? WEBSITE_DEFAULTS.onlinePaymentEnabled,

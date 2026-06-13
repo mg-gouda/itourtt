@@ -143,8 +143,16 @@ export class PublicApiService {
         navLinksJson: null,
       };
     }
-    // Return all fields except internal id and audit timestamps
-    const { id, createdAt, updatedAt, ...publicFields } = settings;
+    // Return all fields except internal id, audit timestamps, and the internal
+    // notification recipient lists (ops/finance emails must never be exposed).
+    const {
+      id,
+      createdAt,
+      updatedAt,
+      opsNotificationEmails,
+      financeNotificationEmails,
+      ...publicFields
+    } = settings;
     return publicFields;
   }
 
@@ -859,6 +867,34 @@ export class PublicApiService {
         this.logger.error(`Failed to send confirmation email: ${err.message}`),
       );
 
+    // Internal ops notification (additive — recipients configured in admin CMS).
+    this.emailService
+      .notifyOpsBookingEvent('new', {
+        bookingRef: booking.bookingRef,
+        guestName: booking.guestName,
+        guestEmail: booking.guestEmail,
+        guestPhone: booking.guestPhone ?? undefined,
+        serviceType: booking.serviceType,
+        jobDate: booking.jobDate.toISOString().split('T')[0],
+        pickupTime: booking.pickupTime
+          ? booking.pickupTime.toISOString().slice(11, 16)
+          : undefined,
+        fromZone: booking.fromZone?.name,
+        toZone: booking.toZone?.name,
+        hotel: booking.hotel?.name,
+        flightNo: booking.flightNo ?? undefined,
+        paxCount: booking.paxCount,
+        vehicleType: booking.vehicleType?.name,
+        total: isRoundTrip ? combinedTotal : total,
+        currency: priceItem.currency,
+        paymentMethod: dto.paymentMethod,
+        paymentStatus: booking.paymentStatus,
+        notes: booking.notes ?? undefined,
+      })
+      .catch((err) =>
+        this.logger.error(`Failed to send ops booking notification: ${err.message}`),
+      );
+
     // Create or find B2C client account
     let accountCreated = false;
     let b2cClientId: string | null = null;
@@ -1103,6 +1139,33 @@ export class PublicApiService {
       })
       .catch((err) =>
         this.logger.error(`Failed to send cancellation email: ${err.message}`),
+      );
+
+    // Internal ops notification (additive — recipients configured in admin CMS).
+    this.emailService
+      .notifyOpsBookingEvent('cancelled', {
+        bookingRef: updated.bookingRef,
+        guestName: updated.guestName,
+        guestEmail: updated.guestEmail,
+        guestPhone: updated.guestPhone ?? undefined,
+        serviceType: updated.serviceType,
+        jobDate: updated.jobDate.toISOString().split('T')[0],
+        pickupTime: updated.pickupTime
+          ? updated.pickupTime.toISOString().slice(11, 16)
+          : undefined,
+        fromZone: updated.fromZone?.name,
+        toZone: updated.toZone?.name,
+        hotel: updated.hotel?.name,
+        flightNo: updated.flightNo ?? undefined,
+        paxCount: updated.paxCount,
+        vehicleType: updated.vehicleType?.name,
+        total: Number(updated.total),
+        currency: updated.currency,
+        paymentMethod: updated.paymentMethod,
+        paymentStatus: updated.paymentStatus,
+      })
+      .catch((err) =>
+        this.logger.error(`Failed to send ops cancellation notification: ${err.message}`),
       );
 
     return updated;
