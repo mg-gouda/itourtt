@@ -695,6 +695,45 @@ async function main() {
     }
     console.log(`Static pages seeded: ${staticPages.map((p) => p.slug).join(', ')}`);
 
+    // Backfill B2C invoices for already-paid guest bookings (idempotent — only
+    // creates invoices for paid bookings that don't have one yet).
+    const paidWithoutInvoice = await prisma.guestBooking.findMany({
+      where: { paymentStatus: 'PAID', invoice: { is: null } },
+      select: {
+        id: true, b2cClientId: true, subtotal: true,
+        taxAmount: true, total: true, currency: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (paidWithoutInvoice.length > 0) {
+      const rows: { invoice_number: string }[] = await prisma.$queryRawUnsafe(
+        `SELECT invoice_number FROM b2c_invoices WHERE invoice_number ~ '^INV-B2C-[0-9]+$' ORDER BY invoice_number DESC LIMIT 1`,
+      );
+      let next = 1;
+      if (rows.length > 0) {
+        const seq = parseInt(rows[0].invoice_number.split('-')[2], 10);
+        if (!isNaN(seq)) next = seq + 1;
+      }
+      for (const b of paidWithoutInvoice) {
+        await prisma.b2CInvoice.create({
+          data: {
+            invoiceNumber: `INV-B2C-${String(next).padStart(5, '0')}`,
+            guestBookingId: b.id,
+            b2cClientId: b.b2cClientId,
+            subtotal: b.subtotal,
+            taxAmount: b.taxAmount,
+            total: b.total,
+            currency: b.currency,
+            status: 'PAID',
+          },
+        });
+        next++;
+      }
+      console.log(`B2C invoices backfilled: ${paidWithoutInvoice.length}`);
+    } else {
+      console.log('B2C invoices backfill: none needed');
+    }
+
     console.log('\nSeed completed successfully.');
   } finally {
     await prisma.$disconnect();

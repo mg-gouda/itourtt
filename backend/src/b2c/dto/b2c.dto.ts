@@ -19,6 +19,24 @@ export class B2CChangePasswordDto {
   newPassword!: string;
 }
 
+export class B2CForgotPasswordDto {
+  @IsEmail()
+  email!: string;
+}
+
+export class B2CResetPasswordDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  newPassword!: string;
+}
+
 export class B2CAmendBookingDto {
   @IsOptional()
   @IsDateString()

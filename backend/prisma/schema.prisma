@@ -266,6 +266,7 @@ model User {
   driverScoresGiven    DriverJobScore[]    @relation("DriverScoreScoredBy")
   preferences          UserPreference[]
   b2cBookings          GuestBooking[]      @relation("B2CClientBookings")
+  b2cInvoices          B2CInvoice[]        @relation("B2CClientInvoices")
 
   @@map("users")
 }
@@ -355,19 +356,19 @@ model City {
 }
 
 model Zone {
-  id        String    @id @default(uuid())
-  name      String
-  cityId    String    @map("city_id")
-  latitude  Decimal?  @db.Decimal(10, 7)
-  longitude Decimal?  @db.Decimal(10, 7)
-  placeId   String?   @map("google_place_id")
-  isActive  Boolean   @default(true) @map("is_active")
+  id            String    @id @default(uuid())
+  name          String
+  cityId        String    @map("city_id")
+  latitude      Decimal?  @db.Decimal(10, 7)
+  longitude     Decimal?  @db.Decimal(10, 7)
+  placeId       String?   @map("google_place_id")
+  isActive      Boolean   @default(true) @map("is_active")
   // Auto-created from a B2C Google Places pick; flagged for admin review.
   isAutoCreated Boolean   @default(false) @map("is_auto_created")
   reviewedAt    DateTime? @map("reviewed_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   city     City      @relation(fields: [cityId], references: [id])
   hotels   Hotel[]
@@ -399,21 +400,21 @@ model Zone {
 }
 
 model Hotel {
-  id        String    @id @default(uuid())
-  name      String
-  zoneId    String    @map("zone_id")
-  address   String?
-  stars     Int?
-  latitude  Decimal?  @db.Decimal(10, 7)
-  longitude Decimal?  @db.Decimal(10, 7)
-  placeId   String?   @map("google_place_id")
-  isActive  Boolean   @default(true) @map("is_active")
+  id            String    @id @default(uuid())
+  name          String
+  zoneId        String    @map("zone_id")
+  address       String?
+  stars         Int?
+  latitude      Decimal?  @db.Decimal(10, 7)
+  longitude     Decimal?  @db.Decimal(10, 7)
+  placeId       String?   @map("google_place_id")
+  isActive      Boolean   @default(true) @map("is_active")
   // Auto-created from a B2C Google Places pick; flagged for admin review.
   isAutoCreated Boolean   @default(false) @map("is_auto_created")
   reviewedAt    DateTime? @map("reviewed_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   zone Zone @relation(fields: [zoneId], references: [id])
 
@@ -972,6 +973,7 @@ model GuestBooking {
   b2cClient           User?                @relation("B2CClientBookings", fields: [b2cClientId], references: [id])
   trafficJob          TrafficJob?          @relation("GuestBookingJob", fields: [trafficJobId], references: [id])
   paymentTransactions PaymentTransaction[]
+  invoice             B2CInvoice?
 
   @@index([bookingRef])
   @@index([bookingStatus])
@@ -996,6 +998,39 @@ model PaymentTransaction {
 
   @@index([guestBookingId])
   @@map("payment_transactions")
+}
+
+// B2C guest invoices. One per guest booking, created when the booking is paid.
+// Fields are kept compatible with Odoo account.move / res.partner so a CSV/XLSX
+// export can be added later without a schema change.
+enum B2CInvoiceStatus {
+  ISSUED
+  PAID
+  REFUNDED
+  CANCELLED
+}
+
+model B2CInvoice {
+  id             String           @id @default(uuid())
+  invoiceNumber  String           @unique @map("invoice_number")
+  guestBookingId String           @unique @map("guest_booking_id")
+  b2cClientId    String?          @map("b2c_client_id")
+  issuedAt       DateTime         @default(now()) @map("issued_at")
+  currency       Currency         @default(EGP)
+  subtotal       Decimal          @db.Decimal(15, 2)
+  taxAmount      Decimal          @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  total          Decimal          @db.Decimal(15, 2)
+  status         B2CInvoiceStatus @default(ISSUED)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  deletedAt      DateTime?        @map("deleted_at")
+
+  guestBooking GuestBooking @relation(fields: [guestBookingId], references: [id])
+  b2cClient    User?        @relation("B2CClientInvoices", fields: [b2cClientId], references: [id])
+
+  @@index([b2cClientId])
+  @@index([invoiceNumber])
+  @@map("b2c_invoices")
 }
 
 // ─────────────────────────────────────────────
@@ -1997,8 +2032,8 @@ model WebsiteSettings {
   bankPaymentMessage String  @default("Bank payment integration coming soon!") @map("bank_payment_message")
 
   // ── Payment Method Master Switches ──
-  onlinePaymentEnabled  Boolean @default(true) @map("online_payment_enabled")
-  cashOnArrivalEnabled  Boolean @default(true) @map("cash_on_arrival_enabled")
+  onlinePaymentEnabled Boolean @default(true) @map("online_payment_enabled")
+  cashOnArrivalEnabled Boolean @default(true) @map("cash_on_arrival_enabled")
 
   // ── Booking Widget Master Switches ──
   enableTwoWayTab     Boolean @default(false) @map("enable_two_way_tab")
@@ -2134,11 +2169,11 @@ model PageSeo {
 /// menus, and set per-page SEO. The B2C site fetches a published page by slug
 /// via GET /public/pages/:slug and the menus via GET /public/pages.
 model StaticPage {
-  id          String   @id @default(uuid())
-  slug        String   @unique // terms-and-conditions | privacy-policy | about-us | …
+  id          String  @id @default(uuid())
+  slug        String  @unique // terms-and-conditions | privacy-policy | about-us | …
   title       String
-  content     String   @default("") @db.Text // rendered HTML for B2C display
-  isPublished Boolean  @default(false) @map("is_published")
+  content     String  @default("") @db.Text // rendered HTML for B2C display
+  isPublished Boolean @default(false) @map("is_published")
 
   // ── Menu placement ──
   showInNav    Boolean @default(false) @map("show_in_nav")

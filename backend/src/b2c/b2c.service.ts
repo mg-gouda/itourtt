@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
 import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
@@ -86,6 +87,72 @@ export class B2CService {
 
     const passwordHash = await bcrypt.hash(dto.newPassword, 10);
     await this.prisma.user.update({ where: { id: clientId }, data: { passwordHash } });
+    return { success: true };
+  }
+
+  /**
+   * Email a password-reset link to a guest. Mirrors the staff flow in
+   * auth.service.ts but scoped to B2C_CLIENT users and links to the B2C site.
+   * Always returns success to avoid leaking which emails exist.
+   */
+  async requestPasswordReset(email: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { email, role: 'B2C_CLIENT' as any, isActive: true, deletedAt: null },
+    });
+    if (!user) return { success: true };
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken: tokenHash, passwordResetExpiry: expiry },
+    });
+
+    const siteUrl = this.configService
+      .get<string>('B2C_SITE_URL', 'https://transfera.ae')
+      .replace(/\/+$/, '');
+    const resetLink = `${siteUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+
+    const html = `
+      <h2>Reset your password</h2>
+      <p>Hi ${user.name},</p>
+      <p>You requested a password reset. Click the button below to set a new password. This link expires in 30 minutes.</p>
+      <p><a href="${resetLink}" style="background:#191919;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;">Reset Password</a></p>
+      <p>If you didn't request this, you can safely ignore this email.</p>
+    `;
+    await (this.emailService as any)
+      .send(email, 'Reset your password', html)
+      .catch((err: Error) => this.logger.warn(`Failed to send B2C reset email: ${err.message}`));
+
+    return { success: true };
+  }
+
+  async resetPassword(email: string, rawToken: string, newPassword: string) {
+    if (!newPassword || newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { email, role: 'B2C_CLIENT' as any },
+    });
+    if (!user || !user.passwordResetToken || !user.passwordResetExpiry) {
+      throw new BadRequestException('Invalid or expired reset link');
+    }
+    if (new Date() > user.passwordResetExpiry) {
+      throw new BadRequestException('Reset link has expired');
+    }
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    if (tokenHash !== user.passwordResetToken) {
+      throw new BadRequestException('Invalid or expired reset link');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, passwordResetToken: null, passwordResetExpiry: null },
+    });
     return { success: true };
   }
 

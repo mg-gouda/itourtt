@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
+import { B2CInvoiceService } from '../b2c/b2c-invoice.service.js';
 import { StripeGateway } from './gateways/stripe.gateway.js';
 import { EgyptBankGateway } from './gateways/egypt-bank.gateway.js';
 import { DubaiBankGateway } from './gateways/dubai-bank.gateway.js';
@@ -27,6 +28,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly b2cInvoiceService: B2CInvoiceService,
     private readonly stripeGateway: StripeGateway,
     private readonly egyptBankGateway: EgyptBankGateway,
     private readonly dubaiBankGateway: DubaiBankGateway,
@@ -45,6 +47,26 @@ export class PaymentsService {
         return this.getPayInGateway;
       default:
         throw new BadRequestException(`Unsupported payment gateway: ${gateway}`);
+    }
+  }
+
+  /**
+   * Ensure a B2C invoice exists for a paid booking and return it as a mail
+   * attachment. Idempotent (safe on webhook re-delivery). Never throws — a
+   * failure here must not block the receipt email.
+   */
+  private async buildInvoiceAttachment(
+    bookingId: string,
+  ): Promise<Array<{ filename: string; content: Buffer }> | undefined> {
+    try {
+      const invoice = await this.b2cInvoiceService.ensureForBooking(bookingId);
+      const { buffer, filename } = await this.b2cInvoiceService.generatePdf(invoice.id);
+      return [{ filename, content: buffer }];
+    } catch (err) {
+      this.logger.error(
+        `Failed to build invoice for booking ${bookingId}: ${(err as Error).message}`,
+      );
+      return undefined;
     }
   }
 
@@ -184,6 +206,7 @@ export class PaymentsService {
           where: { bookingRef },
         });
         if (paidBooking) {
+          const invoiceAttachment = await this.buildInvoiceAttachment(paidBooking.id);
           this.emailService
             .sendPaymentReceipt({
               bookingRef,
@@ -194,7 +217,7 @@ export class PaymentsService {
               gateway: 'Stripe',
               transactionId: (session.payment_intent as string) || sessionId,
               paidAt: new Date().toISOString(),
-            })
+            }, invoiceAttachment)
             .catch((err) =>
               this.logger.error(`Failed to send payment receipt email: ${err.message}`),
             );
@@ -329,6 +352,7 @@ export class PaymentsService {
     }
 
     if (paid) {
+      const invoiceAttachment = await this.buildInvoiceAttachment(booking.id);
       this.emailService
         .sendPaymentReceipt({
           bookingRef: booking.bookingRef,
@@ -339,7 +363,7 @@ export class PaymentsService {
           gateway: 'GetPayIn',
           transactionId: invoiceId,
           paidAt: new Date().toISOString(),
-        })
+        }, invoiceAttachment)
         .catch((err) =>
           this.logger.error(`Failed to send payment receipt email: ${err.message}`),
         );

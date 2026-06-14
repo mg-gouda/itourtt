@@ -267,9 +267,12 @@ export class EmailService {
     await this.send(data.guestEmail, `Booking Confirmed - ${data.bookingRef}`, html);
   }
 
-  async sendPaymentReceipt(data: PaymentReceiptData): Promise<void> {
+  async sendPaymentReceipt(
+    data: PaymentReceiptData,
+    attachments?: Array<{ filename: string; content: Buffer }>,
+  ): Promise<void> {
     const html = paymentReceiptTemplate(data, await this.getGuestBranding());
-    await this.send(data.guestEmail, `Payment Receipt - ${data.bookingRef}`, html);
+    await this.send(data.guestEmail, `Payment Receipt - ${data.bookingRef}`, html, attachments);
   }
 
   async sendOnlinePaymentFailed(data: PaymentFailedData): Promise<void> {
@@ -537,7 +540,12 @@ export class EmailService {
     this.logger.log(`Test email sent to ${to}`);
   }
 
-  private async send(to: string, subject: string, html: string): Promise<void> {
+  private async send(
+    to: string,
+    subject: string,
+    html: string,
+    attachments?: Array<{ filename: string; content: Buffer }>,
+  ): Promise<void> {
     await this.ensureTransporter();
     if (!this.transporter) {
       this.logger.log(`[Email Mock] To: ${to} | Subject: ${subject}`);
@@ -550,6 +558,7 @@ export class EmailService {
         to,
         subject,
         html,
+        ...(attachments && attachments.length > 0 ? { attachments } : {}),
       });
       this.logger.log(`Email sent to ${to}: ${subject}`);
     } catch (error) {

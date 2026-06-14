@@ -6,9 +6,10 @@ import { EgyptBankGateway } from './gateways/egypt-bank.gateway.js';
 import { DubaiBankGateway } from './gateways/dubai-bank.gateway.js';
 import { GetPayInGateway } from './gateways/getpayin.gateway.js';
 import { EmailModule } from '../email/email.module.js';
+import { B2CModule } from '../b2c/b2c.module.js';
 
 @Module({
-  imports: [EmailModule],
+  imports: [EmailModule, B2CModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,
