@@ -200,6 +200,13 @@ export class B2CService {
         destinationAirport: { select: { id: true, name: true } },
         hotel: { select: { id: true, name: true } },
         vehicleType: { select: { id: true, name: true } },
+        // Invoice (if the booking has been paid) for the Payment tab download.
+        invoice: {
+          select: {
+            id: true, invoiceNumber: true, total: true,
+            currency: true, status: true, issuedAt: true,
+          },
+        },
         trafficJob: {
           select: {
             id: true,
