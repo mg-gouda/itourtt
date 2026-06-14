@@ -348,6 +348,38 @@ export class FinanceController {
     res.end(buffer);
   }
 
+  @Get('odoo/b2c-partners')
+  @Permissions('finance.odooExport')
+  async odooB2CPartners(
+    @Query('dateFrom') dateFrom: string | undefined,
+    @Query('dateTo') dateTo: string | undefined,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.odooExportService.exportB2CPartners(dateFrom, dateTo);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="odoo_b2c_res_partner.csv"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
+  @Get('odoo/b2c-invoices')
+  @Permissions('finance.odooExport')
+  async odooB2CInvoices(
+    @Query('dateFrom') dateFrom: string | undefined,
+    @Query('dateTo') dateTo: string | undefined,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.odooExportService.exportB2CCustomerInvoices(dateFrom, dateTo);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="odoo_b2c_customer_invoices.csv"',
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
+  }
+
   @Get('odoo/vendor-bills')
   @Permissions('finance.odooExport')
   async odooVendorBills(

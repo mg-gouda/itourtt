@@ -24,6 +24,13 @@ function toNum(v: unknown): number {
   return Number(v ?? 0);
 }
 
+// Wrap a single worksheet in a workbook (used for one-sheet CSV exports).
+function wb_single(ws: XLSX.WorkSheet, sheetName: string): XLSX.WorkBook {
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  return wb;
+}
+
 @Injectable()
 export class OdooExportService {
   constructor(private readonly prisma: PrismaService) {}
@@ -221,6 +228,155 @@ export class OdooExportService {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'account.move (invoices)');
     return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // 2b. B2C — guests as res.partner + invoices as account.move (out_invoice)
+  // ─────────────────────────────────────────────
+
+  // Stable Odoo external id for a guest: registered B2C clients dedupe by their
+  // user id; walk-in guests (no account) dedupe by email so repeat guests map to
+  // one partner. Both invoice and partner files MUST derive the id the same way.
+  private b2cPartnerId(inv: {
+    b2cClientId: string | null;
+    guestBooking: { guestEmail: string; id: string };
+  }): string {
+    if (inv.b2cClientId) return `itour_b2c_${inv.b2cClientId}`;
+    const email = (inv.guestBooking.guestEmail || '').trim().toLowerCase();
+    if (email) return `itour_b2cguest_${email.replace(/[^a-z0-9]+/g, '_')}`;
+    return `itour_b2cguest_${inv.guestBooking.id}`;
+  }
+
+  private b2cInvoiceWhere(dateFrom?: string, dateTo?: string) {
+    return {
+      deletedAt: null,
+      ...(dateFrom || dateTo
+        ? {
+            issuedAt: {
+              ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+              ...(dateTo ? { lte: new Date(dateTo) } : {}),
+            },
+          }
+        : {}),
+    };
+  }
+
+  private readonly b2cInvoiceInclude = {
+    b2cClient: { select: { id: true, name: true, email: true } },
+    guestBooking: {
+      select: {
+        id: true,
+        guestName: true,
+        guestEmail: true,
+        guestPhone: true,
+        guestCountry: true,
+        serviceType: true,
+        fromZone: { select: { name: true } },
+        toZone: { select: { name: true } },
+        originAirport: { select: { name: true } },
+        destinationAirport: { select: { name: true } },
+      },
+    },
+  } as const;
+
+  /** res.partner CSV for B2C guests that have an invoice (customers). */
+  async exportB2CPartners(dateFrom?: string, dateTo?: string): Promise<Buffer> {
+    const invoices = await this.prisma.b2CInvoice.findMany({
+      where: this.b2cInvoiceWhere(dateFrom, dateTo),
+      include: this.b2cInvoiceInclude,
+      orderBy: { issuedAt: 'asc' },
+    });
+
+    const headers = [
+      'id', 'name', 'company_type', 'vat', 'street', 'city',
+      'country_id/id', 'phone', 'email', 'customer_rank', 'supplier_rank',
+      'lang', 'comment',
+    ];
+    const rows: unknown[][] = [headers];
+
+    // One row per distinct partner.
+    const seen = new Set<string>();
+    for (const inv of invoices) {
+      const pid = this.b2cPartnerId(inv);
+      if (seen.has(pid)) continue;
+      seen.add(pid);
+      const b = inv.guestBooking;
+      rows.push([
+        pid,
+        inv.b2cClient?.name || b.guestName,
+        'person',
+        '',                                   // guests have no VAT
+        '',                                   // no street stored
+        '',
+        countryRef(b.guestCountry),
+        b.guestPhone ?? '',
+        inv.b2cClient?.email || b.guestEmail || '',
+        1,                                    // customer_rank
+        0,
+        'en_US',
+        'B2C website guest',
+      ]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    return Buffer.from(XLSX.write(wb_single(ws, 'res.partner'), { type: 'buffer', bookType: 'csv' }));
+  }
+
+  /** account.move (out_invoice) CSV for B2C guest invoices. */
+  async exportB2CCustomerInvoices(dateFrom?: string, dateTo?: string): Promise<Buffer> {
+    const invoices = await this.prisma.b2CInvoice.findMany({
+      where: this.b2cInvoiceWhere(dateFrom, dateTo),
+      include: this.b2cInvoiceInclude,
+      orderBy: { issuedAt: 'asc' },
+    });
+
+    const headers = [
+      'id', 'move_type', 'partner_id/id', 'partner_id/name',
+      'invoice_date', 'invoice_date_due', 'currency_id/name', 'ref',
+      'invoice_line_ids/sequence', 'invoice_line_ids/name',
+      'invoice_line_ids/quantity', 'invoice_line_ids/price_unit',
+      'invoice_line_ids/tax_ids/amount', 'invoice_line_ids/price_subtotal',
+      'invoice_line_ids/price_total',
+      'amount_untaxed', 'amount_tax', 'amount_total', 'state',
+    ];
+    const rows: unknown[][] = [headers];
+
+    for (const inv of invoices) {
+      const b = inv.guestBooking;
+      const origin = b.originAirport?.name || b.fromZone?.name || '-';
+      const dest = b.destinationAirport?.name || b.toZone?.name || '-';
+      const serviceLabel =
+        b.serviceType === 'ARR' ? 'Arrival transfer'
+        : b.serviceType === 'DEP' ? 'Departure transfer'
+        : 'City transfer';
+      const subtotal = toNum(inv.subtotal);
+      const tax = toNum(inv.taxAmount);
+      const taxRate = subtotal > 0 ? Math.round((tax / subtotal) * 100) : 0;
+      rows.push([
+        `itour_b2cinv_${inv.id}`,
+        'out_invoice',
+        this.b2cPartnerId(inv),
+        inv.b2cClient?.name || b.guestName,
+        toDate(inv.issuedAt),
+        toDate(inv.issuedAt),                 // B2C is paid up-front: due = issued
+        inv.currency,
+        inv.invoiceNumber,
+        1,
+        `${serviceLabel}: ${origin} > ${dest}`,
+        1,
+        subtotal,
+        taxRate,
+        subtotal,
+        toNum(inv.total),
+        subtotal,
+        tax,
+        toNum(inv.total),
+        'posted',
+      ]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    return Buffer.from(XLSX.write(wb_single(ws, 'account.move (b2c)'), { type: 'buffer', bookType: 'csv' }));
   }
 
   // ─────────────────────────────────────────────

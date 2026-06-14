@@ -662,7 +662,9 @@ export default function FinancePage() {
       const url = URL.createObjectURL(data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `odoo-${type}-${localDateStr(new Date())}.xlsx`;
+      // B2C exports are CSV; the agent/supplier exports are XLSX workbooks.
+      const ext = type.startsWith("b2c-") ? "csv" : "xlsx";
+      a.download = `odoo-${type}-${localDateStr(new Date())}.${ext}`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(t("finance.exportDownloaded") || "Export downloaded");
@@ -1183,6 +1185,8 @@ export default function FinancePage() {
               {[
                 (canExportCustomers || canExportSuppliers) && { key: "partners", label: t("finance.odooExportPartners") || "res.partner (Agents & Suppliers)", desc: t("finance.odooExportPartnersDesc") || "All partners for Odoo import" },
                 canExportInvoices && { key: "customer-invoices", label: t("finance.odooExportCustomerInvoices") || "account.move — Customer Invoices", desc: t("finance.odooExportInvoicesDesc") || "Posted & paid agent invoices" },
+                canExportInvoices && { key: "b2c-partners", label: t("finance.odooExportB2CPartners") || "res.partner — B2C Guests (CSV)", desc: t("finance.odooExportB2CPartnersDesc") || "Website guests with invoices" },
+                canExportInvoices && { key: "b2c-invoices", label: t("finance.odooExportB2CInvoices") || "account.move — B2C Invoices (CSV)", desc: t("finance.odooExportB2CInvoicesDesc") || "Paid website guest invoices" },
                 canExportVendorBills && { key: "vendor-bills", label: t("finance.odooExportVendorBills") || "account.move — Vendor Bills", desc: t("finance.odooExportBillsDesc") || "Posted supplier costs" },
                 canExportPayments && { key: "payments", label: t("finance.odooExportPayments") || "account.payment", desc: t("finance.odooExportPaymentsDesc") || "Recorded payments" },
                 (canExportInvoices || canExportVendorBills || canExportPayments) && { key: "all-in-one", label: t("finance.odooExportAllInOne") || "Full Odoo Export (All Sheets)", desc: t("finance.odooExportAllDesc") || "Single workbook with all 4 sheets" },
