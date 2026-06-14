@@ -110,6 +110,11 @@ export class B2CService {
                 vehicle: { select: { plateNumber: true, carBrand: true, carModel: true } },
                 driver: { select: { name: true, mobileNumber: true } },
                 rep: { select: { name: true, mobileNumber: true } },
+                // Supplier (non-"Own") source: the car is a supplier car type and
+                // the driver is an external driver, so the relations above are null.
+                externalDriverName: true,
+                externalDriverPhone: true,
+                supplierCarType: { select: { vehicleType: { select: { name: true } } } },
               },
             },
           },
@@ -138,6 +143,11 @@ export class B2CService {
                 vehicle: { select: { plateNumber: true, carBrand: true, carModel: true } },
                 driver: { select: { name: true, mobileNumber: true } },
                 rep: { select: { name: true, mobileNumber: true } },
+                // Supplier (non-"Own") source: the car is a supplier car type and
+                // the driver is an external driver, so the relations above are null.
+                externalDriverName: true,
+                externalDriverPhone: true,
+                supplierCarType: { select: { vehicleType: { select: { name: true } } } },
               },
             },
             flight: { select: { flightNo: true, carrier: true, terminal: true } },
@@ -393,6 +403,7 @@ export class B2CService {
                 vehicle: { select: { plateNumber: true, carBrand: true, carModel: true } },
                 driver: { select: { name: true, mobileNumber: true } },
                 rep: { select: { name: true, mobileNumber: true } },
+                supplierCarType: { select: { vehicleType: { select: { name: true } } } },
               },
             },
           },
@@ -405,7 +416,9 @@ export class B2CService {
     const a = booking.trafficJob.assignment;
     const lines: string[] = [];
     if (a.vehicle) lines.push(`<li><strong>Vehicle:</strong> ${[a.vehicle.carBrand, a.vehicle.carModel].filter(Boolean).join(' ')} — ${a.vehicle.plateNumber}</li>`);
+    else if (a.supplierCarType?.vehicleType?.name) lines.push(`<li><strong>Vehicle:</strong> ${a.supplierCarType.vehicleType.name}</li>`);
     if (a.driver) lines.push(`<li><strong>Driver:</strong> ${a.driver.name} — ${a.driver.mobileNumber}</li>`);
+    else if (a.externalDriverName) lines.push(`<li><strong>Driver:</strong> ${a.externalDriverName}${a.externalDriverPhone ? ` — ${a.externalDriverPhone}` : ''}</li>`);
     if (a.rep) lines.push(`<li><strong>Rep:</strong> ${a.rep.name} — ${a.rep.mobileNumber}</li>`);
 
     if (lines.length === 0) return;
