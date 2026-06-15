@@ -25,7 +25,9 @@ export class AiChatMessageDto {
 export class AiSearchRequestDto {
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(16) // cap conversation length to bound cost/abuse
+  // The client only sends a recent window of the transcript (full booking state
+  // is carried in `draft`), so this cap just bounds cost/abuse with headroom.
+  @ArrayMaxSize(24)
   @ValidateNested({ each: true })
   @Type(() => AiChatMessageDto)
   messages!: AiChatMessageDto[];
