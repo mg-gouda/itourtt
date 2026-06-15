@@ -135,6 +135,94 @@ export class B2CInvoiceService {
   }
 
   // ─────────────────────────────────────────────
+  // READ (admin — not ownership-scoped)
+  // ─────────────────────────────────────────────
+
+  /**
+   * Paginated admin list of all B2C invoices, newest first. Access is gated by
+   * the `finance.b2cInvoices` permission on the controller, so no client scope.
+   */
+  async listAll(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    status?: string;
+  }) {
+    const page = params.page && params.page > 0 ? params.page : 1;
+    const limit = params.limit && params.limit > 0 ? params.limit : 20;
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, unknown> = { deletedAt: null };
+
+    if (params.status) {
+      where.status = params.status as B2CInvoiceStatus;
+    }
+
+    if (params.dateFrom || params.dateTo) {
+      const issuedAt: Record<string, Date> = {};
+      if (params.dateFrom) issuedAt.gte = new Date(params.dateFrom);
+      if (params.dateTo) {
+        // Include the whole `dateTo` day.
+        const to = new Date(params.dateTo);
+        to.setHours(23, 59, 59, 999);
+        issuedAt.lte = to;
+      }
+      where.issuedAt = issuedAt;
+    }
+
+    if (params.search?.trim()) {
+      const q = params.search.trim();
+      where.OR = [
+        { invoiceNumber: { contains: q, mode: 'insensitive' } },
+        { guestBooking: { is: { bookingRef: { contains: q, mode: 'insensitive' } } } },
+        { guestBooking: { is: { guestName: { contains: q, mode: 'insensitive' } } } },
+        { guestBooking: { is: { guestEmail: { contains: q, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.b2CInvoice.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { issuedAt: 'desc' },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          issuedAt: true,
+          currency: true,
+          subtotal: true,
+          taxAmount: true,
+          total: true,
+          status: true,
+          guestBooking: {
+            select: {
+              bookingRef: true,
+              guestName: true,
+              guestEmail: true,
+              jobDate: true,
+              serviceType: true,
+            },
+          },
+        },
+      }),
+      this.prisma.b2CInvoice.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  /** Admin PDF download — access gated by the controller permission. */
+  async getPdfById(invoiceId: string) {
+    return this.generatePdf(invoiceId);
+  }
+
+  // ─────────────────────────────────────────────
   // PDF
   // ─────────────────────────────────────────────
 

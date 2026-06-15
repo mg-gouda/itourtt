@@ -86,6 +86,7 @@ export const navigation: NavItem[] = [
   { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase, permissionKey: "traffic-jobs" },
   { type: "section-label", labelKey: "sidebar.section.finance" },
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
+  { type: "link", nameKey: "sidebar.b2cInvoices", href: "/dashboard/finance/b2c-invoices", icon: FileText, permissionKey: "finance.b2cInvoices" },
   { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3, permissionKey: "reports" },
   {
     type: "group",

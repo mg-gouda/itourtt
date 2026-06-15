@@ -274,6 +274,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'finance.invoices.recordPayment', labelKey: 'permissions.finance.invoices.recordPayment', crudType: 'action' },
         ],
       },
+      { key: 'finance.b2cInvoices', labelKey: 'permissions.finance.b2cInvoices', crudType: 'R' },
       {
         key: 'finance.payments',
         labelKey: 'permissions.finance.payments',

@@ -15,6 +15,7 @@ import type { Response } from 'express';
 import { FinanceService } from './finance.service.js';
 import { InvoiceExportService } from './invoice-export.service.js';
 import { OdooExportService } from './odoo-export.service.js';
+import { B2CInvoiceService } from '../b2c/b2c-invoice.service.js';
 import { CreateDriverFeeDto } from './dto/create-driver-fee.dto.js';
 import { CreateRepFeeDto } from './dto/create-rep-fee.dto.js';
 import { CreateSupplierCostDto } from './dto/create-supplier-cost.dto.js';
@@ -62,6 +63,24 @@ class CustomerInvoiceListQueryDto extends PaginationDto {
   status?: string;
 }
 
+class B2CInvoiceListQueryDto extends PaginationDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dateFrom?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dateTo?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+}
+
 @Controller('finance')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'MANAGER', 'ACCOUNTANT')
@@ -70,6 +89,7 @@ export class FinanceController {
     private readonly financeService: FinanceService,
     private readonly invoiceExportService: InvoiceExportService,
     private readonly odooExportService: OdooExportService,
+    private readonly b2cInvoiceService: B2CInvoiceService,
   ) {}
 
   // ─── Driver Fees ─────────────────────────────
@@ -211,6 +231,29 @@ export class FinanceController {
   async getCustomerInvoice(@Param('id', ParseUUIDPipe) id: string) {
     const invoice = await this.financeService.getCustomerInvoice(id);
     return new ApiResponse(invoice);
+  }
+
+  // ─── B2C Guest Invoices ───────────────────────
+
+  @Get('b2c-invoices')
+  @Permissions('finance.b2cInvoices')
+  async listB2CInvoices(@Query() query: B2CInvoiceListQueryDto) {
+    return this.b2cInvoiceService.listAll(query);
+  }
+
+  @Get('b2c-invoices/:id/pdf')
+  @Permissions('finance.b2cInvoices')
+  async getB2CInvoicePdf(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.b2cInvoiceService.getPdfById(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    res.end(buffer);
   }
 
   // ─── Agent Options & Jobs for Invoice ───────

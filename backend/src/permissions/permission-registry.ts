@@ -239,6 +239,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'finance.invoices.recordPayment', labelKey: 'permissions.finance.invoices.recordPayment' },
         ],
       },
+      { key: 'finance.b2cInvoices', labelKey: 'permissions.finance.b2cInvoices' },
       {
         key: 'finance.payments',
         labelKey: 'permissions.finance.payments',
