@@ -2039,6 +2039,8 @@ model WebsiteSettings {
   enableTwoWayTab     Boolean @default(false) @map("enable_two_way_tab")
   enableCityToCityTab Boolean @default(false) @map("enable_city_to_city_tab")
   enableMapSelector   Boolean @default(false) @map("enable_map_selector")
+  // Conversational "AI Mode" booking tab (free-text → structured search).
+  enableAiMode        Boolean @default(false) @map("enable_ai_mode")
   // CSV of tab keys controlling order/visibility, e.g. "TWO_WAY,ARR,DEP,CITY".
   bookingTabsOrder    String  @default("ARR,DEP") @map("booking_tabs_order")
 

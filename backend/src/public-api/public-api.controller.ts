@@ -11,12 +11,14 @@ import { PublicApiService } from './public-api.service.js';
 import { QuoteRequestDto } from './dto/quote-request.dto.js';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto.js';
 import { VehicleQuotesRequestDto } from './dto/vehicle-quotes-request.dto.js';
+import { AiSearchRequestDto } from './dto/ai-search.dto.js';
 import { ContactMessageDto } from './dto/contact-message.dto.js';
 import { BookingAccessDto } from './dto/booking-access.dto.js';
 import { ResolvePlaceDto } from './dto/resolve-place.dto.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { CaptchaService } from '../common/services/captcha.service.js';
+import { AiSearchService } from './ai-search.service.js';
 
 @Public() // Unauthenticated B2C surface — exempt from the global JwtAuthGuard.
 @Controller('public')
@@ -25,6 +27,7 @@ export class PublicApiController {
   constructor(
     private readonly publicApiService: PublicApiService,
     private readonly captchaService: CaptchaService,
+    private readonly aiSearchService: AiSearchService,
   ) {}
 
   @Get('website-settings')
@@ -68,6 +71,15 @@ export class PublicApiController {
   @Post('vehicle-quotes')
   async getVehicleQuotes(@Body() dto: VehicleQuotesRequestDto) {
     const result = await this.publicApiService.getVehicleQuotes(dto);
+    return new ApiResponse(result);
+  }
+
+  // Conversational "AI Mode" search — free text → structured transfer query.
+  // Tightly capped: AI calls are costly and scrape-prone.
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Post('ai-search')
+  async aiSearch(@Body() dto: AiSearchRequestDto) {
+    const result = await this.aiSearchService.handle(dto);
     return new ApiResponse(result);
   }
 

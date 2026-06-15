@@ -137,6 +137,7 @@ export class PublicApiService {
         enableTwoWayTab: false,
         enableCityToCityTab: false,
         enableMapSelector: false,
+        enableAiMode: false,
         bookingTabsOrder: 'ARR,DEP',
         metaTitle: null,
         metaDescription: null,

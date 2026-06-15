@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   MapPin,
   Bell,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -104,6 +105,7 @@ interface WebsiteSettings {
   enableTwoWayTab: boolean;
   enableCityToCityTab: boolean;
   enableMapSelector: boolean;
+  enableAiMode: boolean;
   bookingTabsOrder: string;
   metaTitle: string | null;
   metaDescription: string | null;
@@ -144,6 +146,7 @@ const DEFAULTS: WebsiteSettings = {
   enableTwoWayTab: false,
   enableCityToCityTab: false,
   enableMapSelector: false,
+  enableAiMode: false,
   bookingTabsOrder: "ARR,DEP",
   metaTitle: null,
   metaDescription: null,
@@ -210,6 +213,7 @@ export default function WebsiteCmsPage() {
         enableTwoWayTab: settings.enableTwoWayTab,
         enableCityToCityTab: settings.enableCityToCityTab,
         enableMapSelector: settings.enableMapSelector,
+        enableAiMode: settings.enableAiMode,
         bookingTabsOrder: settings.bookingTabsOrder,
         metaTitle: settings.metaTitle,
         metaDescription: settings.metaDescription,
@@ -810,6 +814,21 @@ export default function WebsiteCmsPage() {
               id="map-selector-toggle"
               checked={settings.enableMapSelector}
               onCheckedChange={(v) => update("enableMapSelector", v)}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="flex items-center gap-1.5 text-sm font-medium">
+                <Sparkles className="h-3.5 w-3.5" /> AI Mode tab
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Chat-based booking: guests describe their trip in plain language
+              </p>
+            </div>
+            <Switch
+              id="ai-mode-toggle"
+              checked={settings.enableAiMode}
+              onCheckedChange={(v) => update("enableAiMode", v)}
             />
           </div>
         </div>

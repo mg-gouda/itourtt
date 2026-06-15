@@ -82,6 +82,7 @@ const WEBSITE_DEFAULTS = {
   enableTwoWayTab: false,
   enableCityToCityTab: false,
   enableMapSelector: false,
+  enableAiMode: false,
   bookingTabsOrder: 'ARR,DEP',
   metaTitle: null as string | null,
   metaDescription: null as string | null,
@@ -361,6 +362,7 @@ export class SettingsService {
     if (dto.enableTwoWayTab !== undefined) data.enableTwoWayTab = dto.enableTwoWayTab;
     if (dto.enableCityToCityTab !== undefined) data.enableCityToCityTab = dto.enableCityToCityTab;
     if (dto.enableMapSelector !== undefined) data.enableMapSelector = dto.enableMapSelector;
+    if (dto.enableAiMode !== undefined) data.enableAiMode = dto.enableAiMode;
     if (dto.bookingTabsOrder !== undefined) data.bookingTabsOrder = dto.bookingTabsOrder;
     if (dto.metaTitle !== undefined) data.metaTitle = dto.metaTitle || null;
     if (dto.metaDescription !== undefined) data.metaDescription = dto.metaDescription || null;
@@ -408,6 +410,7 @@ export class SettingsService {
         enableTwoWayTab: dto.enableTwoWayTab ?? WEBSITE_DEFAULTS.enableTwoWayTab,
         enableCityToCityTab: dto.enableCityToCityTab ?? WEBSITE_DEFAULTS.enableCityToCityTab,
         enableMapSelector: dto.enableMapSelector ?? WEBSITE_DEFAULTS.enableMapSelector,
+        enableAiMode: dto.enableAiMode ?? WEBSITE_DEFAULTS.enableAiMode,
         bookingTabsOrder: dto.bookingTabsOrder ?? WEBSITE_DEFAULTS.bookingTabsOrder,
         metaTitle: dto.metaTitle ?? WEBSITE_DEFAULTS.metaTitle,
         metaDescription: dto.metaDescription ?? WEBSITE_DEFAULTS.metaDescription,

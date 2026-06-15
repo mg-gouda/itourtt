@@ -150,6 +150,10 @@ export class UpdateWebsiteSettingsDto {
   enableMapSelector?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  enableAiMode?: boolean;
+
+  @IsOptional()
   @IsString()
   bookingTabsOrder?: string;
 
