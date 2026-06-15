@@ -39,7 +39,7 @@ interface PricedRoute {
 }
 
 // The evolving booking the model maintains across turns (echoed by the client).
-interface Draft {
+export interface Draft {
   serviceType?: 'ARR' | 'DEP' | 'CITY_TO_CITY' | null;
   originName?: string | null;
   destinationName?: string | null;
