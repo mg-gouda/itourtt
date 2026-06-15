@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -33,4 +34,10 @@ export class AiSearchRequestDto {
   @IsString()
   @MaxLength(8)
   locale?: string;
+
+  // The evolving booking state the assistant returned last turn, echoed back by
+  // the client so this stateless endpoint can continue where it left off.
+  @IsOptional()
+  @IsObject()
+  draft?: Record<string, unknown>;
 }
