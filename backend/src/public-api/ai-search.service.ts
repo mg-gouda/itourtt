@@ -15,6 +15,18 @@ interface Catalog {
   hotels: HotelEntry[];
 }
 
+// A concrete priced-route candidate (one of possibly several name matches).
+interface RouteCombo {
+  fromZoneId: string;
+  toZoneId: string;
+  originAirportId?: string;
+  destinationAirportId?: string;
+  hotelId?: string;
+  hotelName?: string;
+  fromPlaceName: string;
+  toPlaceName: string;
+}
+
 // The structured query the model returns when it has enough information.
 interface ModelQuery {
   serviceType: 'ARR' | 'DEP' | 'CITY_TO_CITY';
@@ -84,12 +96,7 @@ export class AiSearchService {
       return { intent: 'need_info', reply: parsed.reply || 'Could you tell me your pickup, destination, date, time and number of passengers?' };
     }
 
-    // We have a candidate query — resolve names to our IDs and price it.
     const q = parsed.query;
-    const resolved = this.resolveQuery(q, catalog);
-    if (resolved.error) {
-      return { intent: 'need_info', reply: resolved.error };
-    }
 
     // Guard against missing essentials even if the model returned a query.
     if (!q.jobDate || !q.pickupTime || !q.paxCount || q.paxCount < 1) {
@@ -99,46 +106,54 @@ export class AiSearchService {
       };
     }
 
-    const quotes = await this.publicApiService.getVehicleQuotes({
-      serviceType: resolved.serviceType!,
-      fromZoneId: resolved.fromZoneId!,
-      toZoneId: resolved.toZoneId!,
-      paxCount: q.paxCount,
-    });
-
-    if (!quotes.options.length) {
-      return {
-        intent: 'no_route',
-        reply:
-          parsed.reply ||
-          `Sorry, we don't currently have pricing for ${resolved.fromPlaceName} → ${resolved.toPlaceName}. Please try a nearby airport or area, or contact support@transfera.ae.`,
-      };
+    // Resolve names to candidate routes. Zone/hotel names are not unique in the
+    // catalog (e.g. several "El Gouna" zones), so resolution yields a list of
+    // candidate routes and we pick the first that is actually priced.
+    const resolved = this.resolveQuery(q, catalog);
+    if (resolved.error || !resolved.combos?.length) {
+      return { intent: 'need_info', reply: resolved.error || 'Could you give a bit more detail about your pickup and destination?' };
     }
 
+    for (const c of resolved.combos) {
+      const quotes = await this.publicApiService.getVehicleQuotes({
+        serviceType: resolved.serviceType!,
+        fromZoneId: c.fromZoneId,
+        toZoneId: c.toZoneId,
+        paxCount: q.paxCount,
+      });
+      if (quotes.options.length) {
+        return {
+          intent: 'results',
+          reply: parsed.reply || `Here are vehicles for ${c.fromPlaceName} → ${c.toPlaceName} on ${q.jobDate}.`,
+          query: {
+            serviceType: resolved.serviceType,
+            fromZoneId: c.fromZoneId,
+            toZoneId: c.toZoneId,
+            originAirportId: c.originAirportId,
+            destinationAirportId: c.destinationAirportId,
+            hotelId: c.hotelId,
+            hotelName: c.hotelName,
+            fromPlaceName: c.fromPlaceName,
+            toPlaceName: c.toPlaceName,
+            jobDate: q.jobDate,
+            pickupTime: q.pickupTime,
+            paxCount: q.paxCount,
+            // Round trip only applies to airport arrivals (mirrors the booking widget).
+            roundTrip: resolved.serviceType === 'ARR' ? !!q.roundTrip : false,
+            returnDate: q.returnDate ?? '',
+            returnTime: q.returnTime ?? '',
+          },
+          options: quotes.options,
+        };
+      }
+    }
+
+    const c0 = resolved.combos[0];
     return {
-      intent: 'results',
+      intent: 'no_route',
       reply:
         parsed.reply ||
-        `Here are vehicles for ${resolved.fromPlaceName} → ${resolved.toPlaceName} on ${q.jobDate}.`,
-      query: {
-        serviceType: resolved.serviceType,
-        fromZoneId: resolved.fromZoneId,
-        toZoneId: resolved.toZoneId,
-        originAirportId: resolved.originAirportId,
-        destinationAirportId: resolved.destinationAirportId,
-        hotelId: resolved.hotelId,
-        hotelName: resolved.hotelName,
-        fromPlaceName: resolved.fromPlaceName,
-        toPlaceName: resolved.toPlaceName,
-        jobDate: q.jobDate,
-        pickupTime: q.pickupTime,
-        paxCount: q.paxCount,
-        // Round trip only applies to airport arrivals (mirrors the booking widget).
-        roundTrip: resolved.serviceType === 'ARR' ? !!q.roundTrip : false,
-        returnDate: q.returnDate ?? '',
-        returnTime: q.returnTime ?? '',
-      },
-      options: quotes.options,
+        `Sorry, we don't currently have pricing for ${c0.fromPlaceName} → ${c0.toPlaceName}. Please try a nearby airport or area, or contact support@transfera.ae.`,
     };
   }
 
@@ -293,32 +308,28 @@ ${hotelLines || '(none)'}
   private resolveQuery(q: ModelQuery, catalog: Catalog): {
     error?: string;
     serviceType?: string;
-    fromZoneId?: string;
-    toZoneId?: string;
-    originAirportId?: string;
-    destinationAirportId?: string;
-    hotelId?: string;
-    hotelName?: string;
-    fromPlaceName?: string;
-    toPlaceName?: string;
+    combos?: RouteCombo[];
   } {
     const serviceType = q.serviceType;
+    const CAP = 8; // bound candidates per side to keep pricing lookups cheap
 
     if (serviceType === 'ARR') {
       const airport = this.matchAirport(q.originName, catalog);
       if (!airport) return { error: `I couldn't find the airport "${q.originName}". Which airport are you arriving at?` };
       if (!airport.sideZoneId) return { error: `We don't have pricing set up for ${airport.name} yet.` };
-      const dest = this.matchZoneOrHotel(q.destinationName, catalog);
-      if (!dest) return { error: `I couldn't find "${q.destinationName}". Could you give the area or hotel name?` };
+      const dests = this.matchPlaces(q.destinationName, catalog).slice(0, CAP);
+      if (!dests.length) return { error: `I couldn't find "${q.destinationName}". Could you give the area or hotel name?` };
       return {
         serviceType,
-        fromZoneId: airport.sideZoneId,
-        toZoneId: dest.zoneId,
-        originAirportId: airport.id,
-        hotelId: dest.hotelId,
-        hotelName: dest.hotelName,
-        fromPlaceName: airport.name,
-        toPlaceName: dest.displayName,
+        combos: dests.map((d) => ({
+          fromZoneId: airport.sideZoneId!,
+          toZoneId: d.zoneId,
+          originAirportId: airport.id,
+          hotelId: d.hotelId,
+          hotelName: d.hotelName,
+          fromPlaceName: airport.name,
+          toPlaceName: d.displayName,
+        })),
       };
     }
 
@@ -326,35 +337,43 @@ ${hotelLines || '(none)'}
       const airport = this.matchAirport(q.destinationName, catalog);
       if (!airport) return { error: `I couldn't find the airport "${q.destinationName}". Which airport are you flying from?` };
       if (!airport.sideZoneId) return { error: `We don't have pricing set up for ${airport.name} yet.` };
-      const origin = this.matchZoneOrHotel(q.originName, catalog);
-      if (!origin) return { error: `I couldn't find "${q.originName}". Could you give the area or hotel name?` };
+      const origins = this.matchPlaces(q.originName, catalog).slice(0, CAP);
+      if (!origins.length) return { error: `I couldn't find "${q.originName}". Could you give the area or hotel name?` };
       return {
         serviceType,
-        fromZoneId: origin.zoneId,
-        toZoneId: airport.sideZoneId,
-        destinationAirportId: airport.id,
-        hotelId: origin.hotelId,
-        hotelName: origin.hotelName,
-        fromPlaceName: origin.displayName,
-        toPlaceName: airport.name,
+        combos: origins.map((o) => ({
+          fromZoneId: o.zoneId,
+          toZoneId: airport.sideZoneId!,
+          destinationAirportId: airport.id,
+          hotelId: o.hotelId,
+          hotelName: o.hotelName,
+          fromPlaceName: o.displayName,
+          toPlaceName: airport.name,
+        })),
       };
     }
 
     // CITY_TO_CITY
-    const origin = this.matchZoneOrHotel(q.originName, catalog);
-    const dest = this.matchZoneOrHotel(q.destinationName, catalog);
-    if (!origin) return { error: `I couldn't find "${q.originName}". Could you give the area or hotel name?` };
-    if (!dest) return { error: `I couldn't find "${q.destinationName}". Could you give the area or hotel name?` };
-    if (origin.zoneId === dest.zoneId) return { error: 'Pickup and destination are the same area — where would you like to go?' };
-    return {
-      serviceType: 'CITY_TO_CITY',
-      fromZoneId: origin.zoneId,
-      toZoneId: dest.zoneId,
-      hotelId: dest.hotelId ?? origin.hotelId,
-      hotelName: dest.hotelName ?? origin.hotelName,
-      fromPlaceName: origin.displayName,
-      toPlaceName: dest.displayName,
-    };
+    const origins = this.matchPlaces(q.originName, catalog).slice(0, CAP);
+    const dests = this.matchPlaces(q.destinationName, catalog).slice(0, CAP);
+    if (!origins.length) return { error: `I couldn't find "${q.originName}". Could you give the area or hotel name?` };
+    if (!dests.length) return { error: `I couldn't find "${q.destinationName}". Could you give the area or hotel name?` };
+    const combos: RouteCombo[] = [];
+    for (const o of origins) {
+      for (const d of dests) {
+        if (o.zoneId === d.zoneId) continue;
+        combos.push({
+          fromZoneId: o.zoneId,
+          toZoneId: d.zoneId,
+          hotelId: d.hotelId ?? o.hotelId,
+          hotelName: d.hotelName ?? o.hotelName,
+          fromPlaceName: o.displayName,
+          toPlaceName: d.displayName,
+        });
+      }
+    }
+    if (!combos.length) return { error: 'Pickup and destination are the same area — where would you like to go?' };
+    return { serviceType: 'CITY_TO_CITY', combos: combos.slice(0, 12) };
   }
 
   private matchAirport(name: string, catalog: Catalog): AirportEntry | null {
@@ -368,25 +387,30 @@ ${hotelLines || '(none)'}
     );
   }
 
-  // Resolve a free-text place to a pricing zone. Hotels win over zones; a hotel
-  // contributes both its zone (for pricing) and its id/name (for the booking).
-  private matchZoneOrHotel(
+  // Resolve a free-text place to one or more pricing-zone candidates. Names are
+  // not unique (duplicate zones, hotel-named zones), so we return an ordered list
+  // — EXACT matches first (so a generic "El Gouna" zone isn't shadowed by a
+  // "…El Gouna" hotel), then "contains" matches — and the caller tries each
+  // against pricing. A hotel contributes its zone (for pricing) plus its id/name.
+  private matchPlaces(
     name: string,
     catalog: Catalog,
-  ): { zoneId: string; displayName: string; hotelId?: string; hotelName?: string } | null {
+  ): { zoneId: string; displayName: string; hotelId?: string; hotelName?: string }[] {
     const lower = (name || '').toLowerCase().trim();
-    if (!lower) return null;
+    if (!lower) return [];
 
-    const hotel =
-      catalog.hotels.find((h) => h.name.toLowerCase() === lower) ||
-      catalog.hotels.find((h) => lower.includes(h.name.toLowerCase()) || h.name.toLowerCase().includes(lower));
-    if (hotel) return { zoneId: hotel.zoneId, displayName: hotel.name, hotelId: hotel.id, hotelName: hotel.name };
+    const out: { zoneId: string; displayName: string; hotelId?: string; hotelName?: string }[] = [];
+    const seen = new Set<string>();
+    const push = (c: { zoneId: string; displayName: string; hotelId?: string; hotelName?: string }) => {
+      const key = `${c.hotelId ?? ''}:${c.zoneId}`;
+      if (!seen.has(key)) { seen.add(key); out.push(c); }
+    };
 
-    const zone =
-      catalog.zones.find((z) => z.name.toLowerCase() === lower) ||
-      catalog.zones.find((z) => lower.includes(z.name.toLowerCase()) || z.name.toLowerCase().includes(lower));
-    if (zone) return { zoneId: zone.id, displayName: zone.name };
+    for (const h of catalog.hotels) if (h.name.toLowerCase() === lower) push({ zoneId: h.zoneId, displayName: h.name, hotelId: h.id, hotelName: h.name });
+    for (const z of catalog.zones) if (z.name.toLowerCase() === lower) push({ zoneId: z.id, displayName: z.name });
+    for (const h of catalog.hotels) if (h.name.toLowerCase().includes(lower) || lower.includes(h.name.toLowerCase())) push({ zoneId: h.zoneId, displayName: h.name, hotelId: h.id, hotelName: h.name });
+    for (const z of catalog.zones) if (z.name.toLowerCase().includes(lower) || lower.includes(z.name.toLowerCase())) push({ zoneId: z.id, displayName: z.name });
 
-    return null;
+    return out;
   }
 }
