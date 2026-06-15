@@ -17,8 +17,11 @@ export class AiChatMessageDto {
   @IsIn(['user', 'assistant'])
   role!: 'user' | 'assistant';
 
+  // Generous: assistant turns are the model's own replies echoed back, and a
+  // vehicle/extras listing or summary (esp. in character-dense scripts like
+  // Arabic) easily exceeds 1000. Abuse is bounded by ArrayMaxSize + throttling.
   @IsString()
-  @MaxLength(1000)
+  @MaxLength(4000)
   content!: string;
 }
 
