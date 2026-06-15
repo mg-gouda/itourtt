@@ -173,11 +173,21 @@ export class AiSearchService {
       },
     });
 
+    // How often each zone is the FROM side of a public price row. Public prices
+    // are stored airport-side-as-fromZone, so the airport's "hub" pricing zone is
+    // the one with the most outgoing rows — a reliable, data-driven way to pick
+    // it (zone names like "HURGHADA" vs "Hurghada Center" tie on text matching).
+    const priceCounts = await this.prisma.publicPriceItem.groupBy({
+      by: ['fromZoneId'],
+      _count: { fromZoneId: true },
+    });
+    const fromCount = new Map<string, number>(priceCounts.map((p) => [p.fromZoneId, p._count.fromZoneId]));
+
     const airports: AirportEntry[] = airportsRaw.map((a) => ({
       id: a.id,
       name: a.name,
       code: a.code,
-      sideZoneId: this.pickAirportSideZone(a.name, a.cities.flatMap((c) => c.zones)),
+      sideZoneId: this.pickAirportSideZone(a.name, a.cities.flatMap((c) => c.zones), fromCount),
     }));
 
     const zonesRaw = await this.prisma.zone.findMany({
@@ -200,11 +210,22 @@ export class AiSearchService {
     return { airports, zones, hotels };
   }
 
-  // Mirror the booking widget's firstZoneForAirport(): prefer the zone whose name
-  // matches the airport name (admins create an "Airport Zone" for pricing), else
-  // the zone with the most shared words.
-  private pickAirportSideZone(airportName: string, zones: { id: string; name: string }[]): string | null {
+  // Pick the airport's pricing "hub" zone. Prefer the zone used most often as the
+  // FROM side of public prices (data-driven); fall back to name overlap with the
+  // airport name when the airport has no price rows yet.
+  private pickAirportSideZone(
+    airportName: string,
+    zones: { id: string; name: string }[],
+    fromCount: Map<string, number>,
+  ): string | null {
     if (!zones.length) return null;
+
+    const priced = zones
+      .map((z) => ({ id: z.id, count: fromCount.get(z.id) ?? 0 }))
+      .filter((z) => z.count > 0)
+      .sort((a, b) => b.count - a.count);
+    if (priced.length) return priced[0].id;
+
     const airWords = airportName.toLowerCase().split(/\s+/);
     const scored = zones.map((z) => {
       if (z.name.toLowerCase() === airportName.toLowerCase()) return { id: z.id, score: 9999 };
