@@ -172,8 +172,8 @@ export class DriverPortalService {
     userId: string,
     jobId: string,
     status: DriverJobStatus,
-    latitude: number,
-    longitude: number,
+    latitude: number | null,
+    longitude: number | null,
   ) {
     const driverId = await this.resolveDriverId(userId);
 
@@ -238,7 +238,10 @@ export class DriverPortalService {
       }
     }
 
-    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const gpsMapLink =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.trafficAssignment.update({
@@ -275,8 +278,8 @@ export class DriverPortalService {
     userId: string,
     jobId: string,
     imageUrls: string[],
-    latitude: number,
-    longitude: number,
+    latitude: number | null,
+    longitude: number | null,
   ) {
     const driver = await this.prisma.driver.findFirst({
       where: { userId, deletedAt: null },
@@ -330,7 +333,10 @@ export class DriverPortalService {
       );
     }
 
-    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const gpsMapLink =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : null;
     const alreadyStarted = currentStatus === 'IN_PROGRESS';
 
     return this.prisma.$transaction(async (tx) => {
@@ -378,8 +384,8 @@ export class DriverPortalService {
     userId: string,
     jobId: string,
     imageUrls: string[],
-    latitude: number,
-    longitude: number,
+    latitude: number | null,
+    longitude: number | null,
   ) {
     const driver = await this.prisma.driver.findFirst({
       where: { userId, deletedAt: null },
@@ -443,7 +449,10 @@ export class DriverPortalService {
       throw new BadRequestException('Collection must be marked as collected before completing the job');
     }
 
-    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const gpsMapLink =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.trafficAssignment.update({
@@ -570,8 +579,8 @@ export class DriverPortalService {
     userId: string,
     jobId: string,
     imageUrls: string[],
-    latitude: number,
-    longitude: number,
+    latitude: number | null,
+    longitude: number | null,
   ) {
     const driver = await this.prisma.driver.findFirst({
       where: { userId, deletedAt: null },
@@ -617,7 +626,10 @@ export class DriverPortalService {
       );
     }
 
-    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const gpsMapLink =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.trafficAssignment.update({
@@ -757,7 +769,11 @@ export class DriverPortalService {
     }
   }
 
-  private checkDriverGeofence(job: any, latitude: number, longitude: number) {
+  private checkDriverGeofence(job: any, latitude: number | null, longitude: number | null) {
+    if (latitude == null || longitude == null) {
+      // No GPS captured for this submission — nothing to validate.
+      return;
+    }
     const target = resolveDriverGeofenceTarget(job);
     if (!target) {
       // No coordinates configured for this job's location — skip check

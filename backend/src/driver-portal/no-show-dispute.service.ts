@@ -258,7 +258,11 @@ export class NoShowDisputeService {
 
         drawText(evidencePage, `Submitted by: ${entry.submittedBy ?? '-'}`, margin, ey, 10, true);
         ey -= 15;
-        drawText(evidencePage, `GPS: ${entry.gpsLatitude}, ${entry.gpsLongitude}`, margin, ey, 9);
+        const gpsText =
+          entry.gpsLatitude != null && entry.gpsLongitude != null
+            ? `${entry.gpsLatitude}, ${entry.gpsLongitude}`
+            : 'Not captured';
+        drawText(evidencePage, `GPS: ${gpsText}`, margin, ey, 9);
         ey -= 13;
         drawText(evidencePage, `Map: ${entry.gpsMapLink ?? '-'}`, margin, ey, 9, false, rgb(0, 0.3, 0.7));
         ey -= 13;

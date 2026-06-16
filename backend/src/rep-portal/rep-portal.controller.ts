@@ -43,11 +43,13 @@ class UpdateJobStatusDto {
   @IsIn(['COMPLETED', 'CANCELLED'])
   status!: string;
 
+  @IsOptional()
   @IsNumber()
-  latitude!: number;
+  latitude?: number;
 
+  @IsOptional()
   @IsNumber()
-  longitude!: number;
+  longitude?: number;
 }
 
 class DateQueryDto {
@@ -104,8 +106,8 @@ export class RepPortalController {
       userId,
       jobId,
       dto.status as any,
-      dto.latitude,
-      dto.longitude,
+      dto.latitude ?? null,
+      dto.longitude ?? null,
     );
     return new ApiResponse(result, 'Job status updated');
   }
@@ -122,11 +124,12 @@ export class RepPortalController {
       throw new BadRequestException('At least one image is required for no-show evidence');
     }
 
-    const latitude = parseFloat(body.latitude);
-    const longitude = parseFloat(body.longitude);
-    if (isNaN(latitude) || isNaN(longitude)) {
-      throw new BadRequestException('Valid GPS coordinates are required');
-    }
+    // GPS is best-effort: reps may submit without a fix when location is
+    // unavailable/denied/slow. Store null rather than blocking the status change.
+    const parsedLat = parseFloat(body.latitude);
+    const parsedLng = parseFloat(body.longitude);
+    const latitude = Number.isNaN(parsedLat) ? null : parsedLat;
+    const longitude = Number.isNaN(parsedLng) ? null : parsedLng;
 
     const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
@@ -147,11 +150,12 @@ export class RepPortalController {
       throw new BadRequestException('Exactly 2 images are required for in-place evidence');
     }
 
-    const latitude = parseFloat(body.latitude);
-    const longitude = parseFloat(body.longitude);
-    if (isNaN(latitude) || isNaN(longitude)) {
-      throw new BadRequestException('Valid GPS coordinates are required');
-    }
+    // GPS is best-effort: reps may submit without a fix when location is
+    // unavailable/denied/slow. Store null rather than blocking the status change.
+    const parsedLat = parseFloat(body.latitude);
+    const parsedLng = parseFloat(body.longitude);
+    const latitude = Number.isNaN(parsedLat) ? null : parsedLat;
+    const longitude = Number.isNaN(parsedLng) ? null : parsedLng;
 
     const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'in-place', latitude, longitude, stampMeta);
@@ -172,11 +176,12 @@ export class RepPortalController {
       throw new BadRequestException('At least one image is required for completed evidence');
     }
 
-    const latitude = parseFloat(body.latitude);
-    const longitude = parseFloat(body.longitude);
-    if (isNaN(latitude) || isNaN(longitude)) {
-      throw new BadRequestException('Valid GPS coordinates are required');
-    }
+    // GPS is best-effort: reps may submit without a fix when location is
+    // unavailable/denied/slow. Store null rather than blocking the status change.
+    const parsedLat = parseFloat(body.latitude);
+    const parsedLng = parseFloat(body.longitude);
+    const latitude = Number.isNaN(parsedLat) ? null : parsedLat;
+    const longitude = Number.isNaN(parsedLng) ? null : parsedLng;
 
     const stampMeta = await this.repPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'completed', latitude, longitude, stampMeta);
@@ -247,15 +252,15 @@ export class RepPortalController {
     jobId: string,
     driveType: 'rep' | 'driver' | 'no-show',
     localSubdir: string,
-    lat?: number,
-    lng?: number,
+    lat?: number | null,
+    lng?: number | null,
     meta?: StampMeta,
   ): Promise<string[]> {
     const urls: string[] = [];
 
     for (const file of files) {
       const buffer =
-        lat !== undefined && lng !== undefined
+        lat != null && lng != null
           ? await stampEvidenceImage(file.buffer, lat, lng, undefined, meta).catch(() => file.buffer)
           : file.buffer;
 

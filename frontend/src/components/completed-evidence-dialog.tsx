@@ -14,6 +14,7 @@ import {
 import { Loader2, Camera, MapPin, AlertCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
+import { useGeoCapture } from "@/lib/use-geo-capture";
 
 
 interface CompletedEvidenceDialogProps {
@@ -40,56 +41,14 @@ export function CompletedEvidenceDialog({
 }: CompletedEvidenceDialogProps) {
   const t = useT();
   const [images, setImages] = useState<ImageSlot[]>([]);
-  const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
-  const [gpsError, setGpsError] = useState<string | null>(null);
-  const [gpsLoading, setGpsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { gps, gpsError, gpsLoading, retry } = useGeoCapture(open);
+
+  // Reset selected images whenever the dialog closes.
   useEffect(() => {
-    if (!open) {
-      setImages([]);
-      setGps(null);
-      setGpsError(null);
-      setGpsLoading(false);
-      return;
-    }
-
-    setGpsLoading(true);
-    setGpsError(null);
-
-    if (!navigator.geolocation) {
-      setGpsError(t("noShow.geoNotSupported"));
-      setGpsLoading(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setGps({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setGpsLoading(false);
-      },
-      (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setGpsError(t("noShow.permissionDenied"));
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setGpsError(t("noShow.locationUnavailable"));
-            break;
-          case error.TIMEOUT:
-            setGpsError(t("noShow.locationTimeout"));
-            break;
-          default:
-            setGpsError(t("noShow.failedLocation"));
-        }
-        setGpsLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
+    if (!open) setImages([]);
   }, [open]);
 
   const handleFilesSelected = (files: FileList | null) => {
@@ -108,17 +67,19 @@ export function CompletedEvidenceDialog({
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = images.length >= 1 && gps && !submitting;
+  const canSubmit = images.length >= 1 && !submitting;
 
   const handleSubmit = async () => {
-    if (images.length < 1 || !gps) return;
+    if (images.length < 1) return;
 
     setSubmitting(true);
     try {
       const formData = new FormData();
       images.forEach((img) => formData.append("images", img.file));
-      formData.append("latitude", gps.lat.toString());
-      formData.append("longitude", gps.lng.toString());
+      if (gps) {
+        formData.append("latitude", gps.lat.toString());
+        formData.append("longitude", gps.lng.toString());
+      }
 
       await api.post(`${portalApiBase}/jobs/${jobId}/completed`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -212,10 +173,24 @@ export function CompletedEvidenceDialog({
                   </span>
                 </>
               ) : gpsError ? (
-                <>
-                  <AlertCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm text-destructive">{gpsError}</span>
-                </>
+                <div className="flex flex-1 flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                    <span className="text-sm text-destructive">{gpsError}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={retry}
+                      className="ml-auto h-7 px-2 text-xs"
+                    >
+                      {t("noShow.retryLocation")}
+                    </Button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {t("noShow.locationOptional")}
+                  </span>
+                </div>
               ) : gps ? (
                 <>
                   <MapPin className="h-4 w-4 text-green-500" />

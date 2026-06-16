@@ -37,15 +37,27 @@ export function captureGPS(timeout = 30000): Promise<{ lat: number; lng: number 
   });
 }
 
-function _mapError(error: GeolocationPositionError): Error {
+/** Error thrown by captureGPS, carrying the underlying GeolocationPositionError code. */
+export interface GeoError extends Error {
+  /** GeolocationPositionError code: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT */
+  code?: number;
+}
+
+function _mapError(error: GeolocationPositionError): GeoError {
+  let err: GeoError;
   switch (error.code) {
     case error.PERMISSION_DENIED:
-      return new Error("Location permission denied. Please enable GPS access.");
+      err = new Error("Location permission denied. Please enable GPS access.");
+      break;
     case error.POSITION_UNAVAILABLE:
-      return new Error("Location unavailable. Please check your GPS settings.");
+      err = new Error("Location unavailable. Please check your GPS settings.");
+      break;
     case error.TIMEOUT:
-      return new Error("Location request timed out. Please try again later.");
+      err = new Error("Location request timed out. Please try again later.");
+      break;
     default:
-      return new Error("Unable to get location");
+      err = new Error("Unable to get location");
   }
+  err.code = error.code;
+  return err;
 }

@@ -157,8 +157,8 @@ export class RepPortalService {
     userId: string,
     jobId: string,
     status: RepJobStatus,
-    latitude: number,
-    longitude: number,
+    latitude: number | null,
+    longitude: number | null,
   ) {
     const repId = await this.resolveRepId(userId);
 
@@ -199,7 +199,10 @@ export class RepPortalService {
       );
     }
 
-    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const gpsMapLink =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.trafficAssignment.update({
@@ -236,8 +239,8 @@ export class RepPortalService {
     userId: string,
     jobId: string,
     imageUrls: string[],
-    latitude: number,
-    longitude: number,
+    latitude: number | null,
+    longitude: number | null,
   ) {
     const rep = await this.prisma.rep.findFirst({
       where: { userId, deletedAt: null },
@@ -283,7 +286,10 @@ export class RepPortalService {
       );
     }
 
-    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const gpsMapLink =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.trafficAssignment.update({
@@ -338,8 +344,8 @@ export class RepPortalService {
     userId: string,
     jobId: string,
     imageUrls: string[],
-    latitude: number,
-    longitude: number,
+    latitude: number | null,
+    longitude: number | null,
   ) {
     const rep = await this.prisma.rep.findFirst({
       where: { userId, deletedAt: null },
@@ -413,7 +419,10 @@ export class RepPortalService {
       );
     }
 
-    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const gpsMapLink =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.trafficAssignment.update({
@@ -462,8 +471,8 @@ export class RepPortalService {
     userId: string,
     jobId: string,
     imageUrls: string[],
-    latitude: number,
-    longitude: number,
+    latitude: number | null,
+    longitude: number | null,
   ) {
     const rep = await this.prisma.rep.findFirst({
       where: { userId, deletedAt: null },
@@ -501,7 +510,10 @@ export class RepPortalService {
       );
     }
 
-    const gpsMapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const gpsMapLink =
+      latitude != null && longitude != null
+        ? `https://www.google.com/maps?q=${latitude},${longitude}`
+        : null;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.trafficAssignment.update({
@@ -837,7 +849,11 @@ export class RepPortalService {
     }
   }
 
-  private checkRepGeofence(job: any, latitude: number, longitude: number) {
+  private checkRepGeofence(job: any, latitude: number | null, longitude: number | null) {
+    if (latitude == null || longitude == null) {
+      // No GPS captured for this submission — nothing to validate.
+      return;
+    }
     const target = resolveRepGeofenceTarget(job);
     if (!target) {
       // No coordinates configured for this job's location — skip check

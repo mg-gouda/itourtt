@@ -219,11 +219,17 @@ export default function RepDashboardPage() {
     setUpdating(true);
     try {
       toast.info(t("portal.capturingLocation"));
-      const gps = await captureGPS();
+      // GPS is best-effort: proceed with the status change even if a fix can't
+      // be obtained (unavailable / denied / timed out).
+      let gps: { lat: number; lng: number } | null = null;
+      try {
+        gps = await captureGPS();
+      } catch {
+        // ignore — submit without coordinates
+      }
       await api.patch(`/rep-portal/jobs/${confirmDialog.jobId}/status`, {
         status: confirmDialog.status,
-        latitude: gps.lat,
-        longitude: gps.lng,
+        ...(gps ? { latitude: gps.lat, longitude: gps.lng } : {}),
       });
       toast.success(t("portal.jobMarkedAs").replace("{ref}", confirmDialog.jobRef).replace("{status}", confirmDialog.status.replace("_", " ")));
       setConfirmDialog({ open: false, jobId: "", jobRef: "", status: "" });
