@@ -46,13 +46,12 @@ class UpdateJobStatusDto {
   @IsIn(['IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
   status!: string;
 
-  @IsOptional()
+  // GPS is mandatory for every status change — never skipped.
   @IsNumber()
-  latitude?: number;
+  latitude!: number;
 
-  @IsOptional()
   @IsNumber()
-  longitude?: number;
+  longitude!: number;
 }
 
 class MarkCollectedDto {
@@ -118,8 +117,8 @@ export class DriverPortalController {
       userId,
       jobId,
       dto.status as any,
-      dto.latitude ?? null,
-      dto.longitude ?? null,
+      dto.latitude,
+      dto.longitude,
     );
     return new ApiResponse(result, 'Job status updated');
   }
@@ -146,12 +145,13 @@ export class DriverPortalController {
       throw new BadRequestException('At least one image is required for no-show evidence');
     }
 
-    // GPS is best-effort: drivers may submit without a fix when location is
-    // unavailable/denied/slow. Store null rather than blocking the status change.
-    const parsedLat = parseFloat(body.latitude);
-    const parsedLng = parseFloat(body.longitude);
-    const latitude = Number.isNaN(parsedLat) ? null : parsedLat;
-    const longitude = Number.isNaN(parsedLng) ? null : parsedLng;
+    // GPS is mandatory: reject the evidence upload when a fix is missing so
+    // location is never absent from the audit trail.
+    const latitude = parseFloat(body.latitude);
+    const longitude = parseFloat(body.longitude);
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      throw new BadRequestException('Valid GPS coordinates are required');
+    }
 
     const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
@@ -172,12 +172,13 @@ export class DriverPortalController {
       throw new BadRequestException('At least one image is required for in-progress evidence');
     }
 
-    // GPS is best-effort: drivers may submit without a fix when location is
-    // unavailable/denied/slow. Store null rather than blocking the status change.
-    const parsedLat = parseFloat(body.latitude);
-    const parsedLng = parseFloat(body.longitude);
-    const latitude = Number.isNaN(parsedLat) ? null : parsedLat;
-    const longitude = Number.isNaN(parsedLng) ? null : parsedLng;
+    // GPS is mandatory: reject the evidence upload when a fix is missing so
+    // location is never absent from the audit trail.
+    const latitude = parseFloat(body.latitude);
+    const longitude = parseFloat(body.longitude);
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      throw new BadRequestException('Valid GPS coordinates are required');
+    }
 
     const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'in-progress', latitude, longitude, stampMeta);
@@ -198,12 +199,13 @@ export class DriverPortalController {
       throw new BadRequestException('At least one image is required for completed evidence');
     }
 
-    // GPS is best-effort: drivers may submit without a fix when location is
-    // unavailable/denied/slow. Store null rather than blocking the status change.
-    const parsedLat = parseFloat(body.latitude);
-    const parsedLng = parseFloat(body.longitude);
-    const latitude = Number.isNaN(parsedLat) ? null : parsedLat;
-    const longitude = Number.isNaN(parsedLng) ? null : parsedLng;
+    // GPS is mandatory: reject the evidence upload when a fix is missing so
+    // location is never absent from the audit trail.
+    const latitude = parseFloat(body.latitude);
+    const longitude = parseFloat(body.longitude);
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      throw new BadRequestException('Valid GPS coordinates are required');
+    }
 
     const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed', latitude, longitude, stampMeta);
@@ -256,10 +258,12 @@ export class DriverPortalController {
     const uploadsBase = path.join(process.cwd(), 'uploads');
 
     for (const file of files) {
-      const buffer =
-        lat != null && lng != null
-          ? await stampEvidenceImage(file.buffer, lat, lng, undefined, meta).catch(() => file.buffer)
-          : file.buffer;
+      // Always stamp: date/time + rep/driver/status are burned in even when no
+      // GPS fix was captured (the GPS line reads "Not captured"). Skipping the
+      // stamp on null coords would drop all evidence metadata, not just GPS.
+      const buffer = await stampEvidenceImage(file.buffer, lat, lng, undefined, meta).catch(
+        () => file.buffer,
+      );
 
       const uniqueName = Date.now() + '-' + file.originalname.replace(/\.[^.]+$/, '') + '.jpg';
       const mimeType = 'image/jpeg';

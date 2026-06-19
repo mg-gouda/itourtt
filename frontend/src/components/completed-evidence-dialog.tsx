@@ -67,7 +67,7 @@ export function CompletedEvidenceDialog({
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = images.length >= 1 && !submitting;
+  const canSubmit = images.length >= 1 && !submitting && !!gps;
 
   const handleSubmit = async () => {
     if (images.length < 1) return;
@@ -188,7 +188,7 @@ export function CompletedEvidenceDialog({
                     </Button>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {t("noShow.locationOptional")}
+                    {t("noShow.locationRequired")}
                   </span>
                 </div>
               ) : gps ? (

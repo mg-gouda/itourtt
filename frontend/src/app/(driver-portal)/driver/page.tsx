@@ -227,17 +227,13 @@ export default function DriverDashboardPage() {
     setUpdating(true);
     try {
       toast.info(t("portal.capturingLocation"));
-      // GPS is best-effort: proceed with the status change even if a fix can't
-      // be obtained (unavailable / denied / timed out).
-      let gps: { lat: number; lng: number } | null = null;
-      try {
-        gps = await captureGPS();
-      } catch {
-        // ignore — submit without coordinates
-      }
+      // GPS is mandatory: abort the status change if a fix can't be obtained so
+      // location is never missing from the audit trail.
+      const gps = await captureGPS();
       await api.patch(`/driver-portal/jobs/${confirmDialog.jobId}/status`, {
         status: confirmDialog.status,
-        ...(gps ? { latitude: gps.lat, longitude: gps.lng } : {}),
+        latitude: gps.lat,
+        longitude: gps.lng,
       });
       toast.success(t("portal.jobMarkedAs").replace("{ref}", confirmDialog.jobRef).replace("{status}", confirmDialog.status.replace("_", " ")));
       setConfirmDialog({ open: false, jobId: "", jobRef: "", status: "" });

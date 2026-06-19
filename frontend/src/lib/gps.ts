@@ -1,4 +1,7 @@
-export function captureGPS(timeout = 30000): Promise<{ lat: number; lng: number }> {
+// Grace period for acquiring a fix. GPS is mandatory for evidence, so the
+// high-accuracy attempt gets a long window (cold GPS fixes outdoors can take a
+// while) before falling back to the faster network/WiFi lookup.
+export function captureGPS(timeout = 60000): Promise<{ lat: number; lng: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("Geolocation is not supported by this browser"));
@@ -29,7 +32,7 @@ export function captureGPS(timeout = 30000): Promise<{ lat: number; lng: number 
             });
           },
           (fallbackError) => reject(_mapError(fallbackError)),
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+          { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 },
         );
       },
       { enableHighAccuracy: true, timeout, maximumAge: 30000 },

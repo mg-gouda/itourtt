@@ -17,8 +17,8 @@ export interface StampMeta {
  */
 export async function stampEvidenceImage(
   buffer: Buffer,
-  lat: number,
-  lng: number,
+  lat: number | null | undefined,
+  lng: number | null | undefined,
   date?: Date,
   meta?: StampMeta,
 ): Promise<Buffer> {
@@ -38,7 +38,10 @@ export async function stampEvidenceImage(
     second: '2-digit',
     hour12: false,
   });
-  const gpsLine = `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  const gpsLine =
+    lat != null && lng != null
+      ? `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      : 'GPS: Not captured';
 
   const repLine    = meta?.rep    ? `Rep: ${meta.rep}` : null;
   const driverLine = meta?.driver ? `Driver: ${meta.driver}` : null;

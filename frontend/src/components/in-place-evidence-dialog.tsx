@@ -70,7 +70,7 @@ export function InPlaceEvidenceDialog({
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = images.length === REQUIRED_IMAGES && !submitting;
+  const canSubmit = images.length === REQUIRED_IMAGES && !submitting && !!gps;
 
   const handleSubmit = async () => {
     if (images.length < REQUIRED_IMAGES) return;
@@ -192,7 +192,7 @@ export function InPlaceEvidenceDialog({
                     </Button>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {t("noShow.locationOptional")}
+                    {t("noShow.locationRequired")}
                   </span>
                 </div>
               ) : gps ? (

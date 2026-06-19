@@ -13,12 +13,11 @@ export interface GeoCapture {
 }
 
 /**
- * Captures the device location best-effort for evidence dialogs.
+ * Captures the device location for evidence dialogs.
  *
- * Uses the staged high-accuracy → network fallback in `captureGPS`. Capture
- * failures are surfaced via `gpsError` but never block the caller: dialogs let
- * the driver/rep submit the status change without coordinates when GPS is
- * unavailable, denied, or times out.
+ * Uses the staged high-accuracy → network fallback in `captureGPS`. A fix is
+ * mandatory: capture failures are surfaced via `gpsError` with a Retry button,
+ * and dialogs keep the submit button disabled until coordinates are obtained.
  *
  * @param active capture only while truthy (typically the dialog `open` flag);
  *   resets state when it becomes false.
