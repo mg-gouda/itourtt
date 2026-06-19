@@ -101,6 +101,7 @@ interface ActivityLogDetail extends ActivityLog {
   details: Record<string, unknown> | null;
   previousData?: Record<string, unknown> | null;
   window?: string;
+  entityRef?: string | null;
   createdFields?: { label: string; value: string }[];
   deletedFields?: { label: string; value: string }[];
   changes?: { label: string; oldValue: string; newValue: string }[];
@@ -577,14 +578,25 @@ export default function ActivityLogPage() {
                     {selectedLog.window ?? windowLabel(selectedLog.entity)}
                   </p>
                 </div>
-                {selectedLog.entityId && (
+                {(selectedLog.entityRef || selectedLog.entityId) && (
                   <div className="col-span-2">
                     <span className="text-muted-foreground text-xs">
                       {t("activityLog.entityId")}
                     </span>
-                    <p className="text-foreground font-mono text-xs">
-                      {selectedLog.entityId}
-                    </p>
+                    {selectedLog.entityRef ? (
+                      <p className="text-foreground">
+                        {selectedLog.entityRef}
+                        {selectedLog.entityId && (
+                          <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                            {selectedLog.entityId}
+                          </span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-foreground font-mono text-xs">
+                        {selectedLog.entityId}
+                      </p>
+                    )}
                   </div>
                 )}
                 <div className="col-span-2">

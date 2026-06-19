@@ -41,6 +41,25 @@ export function windowLabel(entity: string): string {
     .join(' › ');
 }
 
+/** Audit `entity` name → Prisma model, so a log's entityId (a UUID) can be
+ *  resolved to a readable reference (e.g. a TrafficJob's internal ref). */
+const ENTITY_TO_MODEL: Record<string, string> = {
+  TrafficJob: 'trafficJob',
+  Agent: 'agent',
+  Customer: 'customer',
+  Supplier: 'supplier',
+  Driver: 'driver',
+  Rep: 'rep',
+  Vehicle: 'vehicle',
+  VehicleType: 'vehicleType',
+  User: 'user',
+};
+
+/** The Prisma model an audit entity's record id points to, if resolvable. */
+export function entityModel(entity: string): string | null {
+  return ENTITY_TO_MODEL[entity.split('.')[0]] ?? null;
+}
+
 /** Explicit field-label overrides where the auto-humanizer reads poorly. */
 const FIELD_LABELS: Record<string, string> = {
   paxCount: 'Passengers',

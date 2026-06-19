@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { QueryActivityLogDto } from './dto/query-activity-log.dto.js';
 import {
   windowLabel,
+  entityModel,
   humanizeField,
   formatValue,
   fieldModel,
@@ -103,10 +104,21 @@ export class ActivityLogsService {
     const after = (log.details ?? null) as Dict | null;
     const before = (log.previousData ?? null) as Dict | null;
 
-    // Resolve any UUID references in either snapshot to readable names.
-    const lookups = await this.resolveRefs([after, before]);
+    // Resolve UUID references in either snapshot — plus the log's own record id
+    // (e.g. a TrafficJob's internal ref) — to readable names.
+    const recordModel = entityModel(log.entity);
+    const extraRefs =
+      recordModel && isUuid(log.entityId)
+        ? [{ model: recordModel, id: log.entityId }]
+        : [];
+    const lookups = await this.resolveRefs([after, before], extraRefs);
     const fmt = (key: string, value: unknown) =>
       formatValue(key, value, lookups);
+
+    const entityRef =
+      recordModel && isUuid(log.entityId)
+        ? lookups[`${recordModel}:${log.entityId}`]
+        : undefined;
 
     let createdFields: { label: string; value: string }[] | undefined;
     let deletedFields: { label: string; value: string }[] | undefined;
@@ -138,6 +150,7 @@ export class ActivityLogsService {
     return {
       ...log,
       window: windowLabel(log.entity),
+      entityRef,
       createdFields,
       deletedFields,
       changes,
@@ -158,18 +171,21 @@ export class ActivityLogsService {
    *  `${model}:${uuid}` → display-name map. */
   private async resolveRefs(
     sources: (Dict | null)[],
+    extra: { model: string; id: string }[] = [],
   ): Promise<Record<string, string>> {
     const idsByModel = new Map<string, Set<string>>();
+    const add = (model: string, id: string) => {
+      if (!idsByModel.has(model)) idsByModel.set(model, new Set());
+      idsByModel.get(model)!.add(id);
+    };
     for (const src of sources) {
       if (!src) continue;
       for (const [key, value] of Object.entries(src)) {
         const model = fieldModel(key);
-        if (model && isUuid(value)) {
-          if (!idsByModel.has(model)) idsByModel.set(model, new Set());
-          idsByModel.get(model)!.add(value);
-        }
+        if (model && isUuid(value)) add(model, value);
       }
     }
+    for (const { model, id } of extra) add(model, id);
 
     const lookups: Record<string, string> = {};
     await Promise.all(
