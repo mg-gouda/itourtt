@@ -49,9 +49,40 @@ const ACTIVITY_COL_DEFS: ColumnDef[] = [
   { key: "dateTime", label: "Date/Time" },
   { key: "user", label: "User" },
   { key: "action", label: "Action" },
-  { key: "entity", label: "Entity" },
+  { key: "entity", label: "Window" },
   { key: "summary", label: "Summary" },
 ];
+
+// Friendly screen/window name for a raw audit `entity` value. Mirrors the
+// backend WINDOW_LABELS; sub-resources use dot notation (e.g. "Agent.PriceList").
+const WINDOW_LABELS: Record<string, string> = {
+  TrafficJob: "Traffic Jobs",
+  Agent: "Agents",
+  Customer: "Customers",
+  Supplier: "Suppliers",
+  Driver: "Drivers",
+  Rep: "Reps",
+  Vehicle: "Vehicles",
+  VehicleType: "Vehicle Types",
+  Location: "Locations",
+  Dispatch: "Dispatch Console",
+  Finance: "Finance",
+  Invoice: "Invoices",
+  JobLock: "Job Locks",
+  Permission: "Permissions",
+  Settings: "Settings",
+  Report: "Reports",
+  Whatsapp: "WhatsApp",
+  ActivityLog: "Activity Log",
+  User: "Users",
+};
+
+function windowLabel(entity: string): string {
+  return entity
+    .split(".")
+    .map((p) => WINDOW_LABELS[p] ?? p.replace(/([a-z0-9])([A-Z])/g, "$1 $2"))
+    .join(" › ");
+}
 
 // ─── Types ──────────────────────────────────────────────────────
 interface ActivityLog {
@@ -68,6 +99,11 @@ interface ActivityLog {
 
 interface ActivityLogDetail extends ActivityLog {
   details: Record<string, unknown> | null;
+  previousData?: Record<string, unknown> | null;
+  window?: string;
+  createdFields?: { label: string; value: string }[];
+  deletedFields?: { label: string; value: string }[];
+  changes?: { label: string; oldValue: string; newValue: string }[];
 }
 
 interface User {
@@ -359,7 +395,7 @@ export default function ActivityLogPage() {
             <SelectItem value="ALL">{t("activityLog.allEntities")}</SelectItem>
             {entities.map((e) => (
               <SelectItem key={e} value={e}>
-                {e}
+                {windowLabel(e)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -461,7 +497,7 @@ export default function ActivityLogPage() {
                     {isVis("dateTime") && <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatDateTime(log.createdAt)}</TableCell>}
                     {isVis("user") && <TableCell className="font-medium text-foreground whitespace-nowrap">{log.userName}</TableCell>}
                     {isVis("action") && <TableCell>{actionBadge(log.action)}</TableCell>}
-                    {isVis("entity") && <TableCell><Badge variant="secondary" className="bg-secondary text-muted-foreground">{log.entity}</Badge></TableCell>}
+                    {isVis("entity") && <TableCell><Badge variant="secondary" className="bg-secondary text-muted-foreground">{windowLabel(log.entity)}</Badge></TableCell>}
                     {isVis("summary") && <TableCell className="text-muted-foreground max-w-xs truncate">{log.summary}</TableCell>}
                   </TableRow>
                 ))}
@@ -537,7 +573,9 @@ export default function ActivityLogPage() {
                   <span className="text-muted-foreground text-xs">
                     {t("activityLog.entity")}
                   </span>
-                  <p className="text-foreground">{selectedLog.entity}</p>
+                  <p className="text-foreground">
+                    {selectedLog.window ?? windowLabel(selectedLog.entity)}
+                  </p>
                 </div>
                 {selectedLog.entityId && (
                   <div className="col-span-2">
@@ -567,17 +605,128 @@ export default function ActivityLogPage() {
                 )}
               </div>
 
-              {selectedLog.details &&
-                Object.keys(selectedLog.details).length > 0 && (
-                  <div>
-                    <span className="text-muted-foreground text-xs">
-                      {t("activityLog.requestDetails")}
-                    </span>
-                    <pre className="mt-1 max-h-60 overflow-auto rounded-md border border-border bg-muted/50 p-3 text-xs text-foreground">
-                      {JSON.stringify(selectedLog.details, null, 2)}
-                    </pre>
+              {/* CREATE → readable list of what was created */}
+              {selectedLog.createdFields && selectedLog.createdFields.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground text-xs">
+                    {t("activityLog.whatCreated")}
+                  </span>
+                  <div className="mt-1 overflow-hidden rounded-md border border-border">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {selectedLog.createdFields.map((f, i) => (
+                          <tr key={i} className="border-b border-border last:border-0">
+                            <td className="w-2/5 bg-muted/40 px-3 py-1.5 align-top font-medium text-foreground">
+                              {f.label}
+                            </td>
+                            <td className="px-3 py-1.5 align-top text-foreground break-words">
+                              {f.value}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* DELETE → readable list of what was removed */}
+              {selectedLog.deletedFields && selectedLog.deletedFields.length > 0 && (
+                <div>
+                  <span className="text-muted-foreground text-xs">
+                    {t("activityLog.whatDeleted")}
+                  </span>
+                  <div className="mt-1 overflow-hidden rounded-md border border-border">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {selectedLog.deletedFields.map((f, i) => (
+                          <tr key={i} className="border-b border-border last:border-0">
+                            <td className="w-2/5 bg-muted/40 px-3 py-1.5 align-top font-medium text-foreground">
+                              {f.label}
+                            </td>
+                            <td className="px-3 py-1.5 align-top text-foreground break-words line-through opacity-70">
+                              {f.value}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* UPDATE → old (left) vs new (right) comparison */}
+              {selectedLog.action === "UPDATE" && selectedLog.changes && (
+                <div>
+                  <span className="text-muted-foreground text-xs">
+                    {t("activityLog.whatChanged")}
+                  </span>
+                  {selectedLog.changes.length === 0 ? (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t("activityLog.noChanges")}
+                    </p>
+                  ) : (
+                    <div className="mt-1 overflow-hidden rounded-md border border-border">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted text-xs text-muted-foreground">
+                            <th className="px-3 py-1.5 text-left font-medium">
+                              {t("activityLog.fieldCol")}
+                            </th>
+                            <th className="px-3 py-1.5 text-left font-medium">
+                              {t("activityLog.previousCol")}
+                            </th>
+                            <th className="px-3 py-1.5 text-left font-medium">
+                              {t("activityLog.newCol")}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedLog.changes.map((c, i) => (
+                            <tr key={i} className="border-t border-border align-top">
+                              <td className="px-3 py-1.5 font-medium text-foreground">
+                                {c.label}
+                              </td>
+                              <td className="px-3 py-1.5 text-muted-foreground break-words line-through opacity-70">
+                                {c.oldValue}
+                              </td>
+                              <td className="px-3 py-1.5 break-words font-medium text-emerald-600 dark:text-emerald-400">
+                                {c.newValue}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Raw payload kept behind a collapsible for technical review */}
+              {((selectedLog.details &&
+                Object.keys(selectedLog.details).length > 0) ||
+                (selectedLog.previousData &&
+                  Object.keys(selectedLog.previousData).length > 0)) && (
+                <details className="group">
+                  <summary className="cursor-pointer text-muted-foreground text-xs hover:text-foreground">
+                    {t("activityLog.technicalDetails")}
+                  </summary>
+                  <pre className="mt-1 max-h-60 overflow-auto rounded-md border border-border bg-muted/50 p-3 text-xs text-foreground">
+                    {JSON.stringify(
+                      {
+                        ...(selectedLog.previousData
+                          ? { previous: selectedLog.previousData }
+                          : {}),
+                        ...(selectedLog.details
+                          ? { submitted: selectedLog.details }
+                          : {}),
+                      },
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </details>
+              )}
             </div>
           ) : null}
         </DialogContent>

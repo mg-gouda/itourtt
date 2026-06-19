@@ -5,8 +5,8 @@ import {
   CallHandler,
   Logger,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, from } from 'rxjs';
+import { tap, switchMap } from 'rxjs/operators';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 /** Sensitive fields stripped from logged request bodies */
@@ -42,6 +42,21 @@ const ENTITY_MAP: Record<string, string> = {
   'activity-logs': 'ActivityLog',
 };
 
+/** Map URL segment → Prisma model delegate, used to snapshot a record's state
+ *  BEFORE an update/delete so the Activity Log can show an old → new diff. */
+const MODEL_MAP: Record<string, string> = {
+  users: 'user',
+  agents: 'agent',
+  customers: 'customer',
+  suppliers: 'supplier',
+  drivers: 'driver',
+  reps: 'rep',
+  vehicles: 'vehicle',
+  'vehicle-types': 'vehicleType',
+  'traffic-jobs': 'trafficJob',
+  invoices: 'invoice',
+};
+
 /** UUID v4 regex */
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -54,6 +69,7 @@ type AuditEntry = {
   entityId: string | null;
   summary: string;
   details?: Record<string, unknown>;
+  previousData?: Record<string, unknown>;
   ipAddress: string | null;
 };
 
@@ -86,11 +102,67 @@ export class AuditInterceptor implements NestInterceptor {
     const userId = user?.id || user?.sub;
     const userName = user?.email || 'anonymous';
 
-    return next.handle().pipe(
-      tap(() => {
-        this.enqueue(method, path, userId, userName, body, ip);
-      }),
+    // Unauthenticated requests are never logged — skip the before-snapshot too.
+    if (!userId) return next.handle();
+
+    // For updates/deletes, snapshot the record's current state BEFORE the
+    // handler mutates it, so the log can render an old → new comparison.
+    return from(this.captureBefore(method, path)).pipe(
+      switchMap((before) =>
+        next.handle().pipe(
+          tap(() => {
+            this.enqueue(method, path, userId, userName, body, ip, before);
+          }),
+        ),
+      ),
     );
+  }
+
+  /** Fetch the existing record for an UPDATE/DELETE so we can diff old → new.
+   *  Only runs for top-level mapped entities addressed by a UUID (not
+   *  sub-resources, where the addressed id is the parent, not the target). */
+  private async captureBefore(
+    method: string,
+    path: string,
+  ): Promise<Record<string, unknown> | null> {
+    if (method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE')
+      return null;
+
+    const segments = path
+      .replace(/^\/api\//, '')
+      .split('/')
+      .filter(Boolean);
+
+    const model = MODEL_MAP[segments[0]];
+    const id = segments[1];
+    // Require a direct /<entity>/<uuid> target with no sub-resource.
+    if (
+      !model ||
+      !id ||
+      !UUID_RE.test(id) ||
+      (segments[2] && !UUID_RE.test(segments[2]))
+    ) {
+      return null;
+    }
+
+    try {
+      const delegate = (
+        this.prisma as unknown as Record<
+          string,
+          { findUnique?: (args: unknown) => Promise<unknown> } | undefined
+        >
+      )[model];
+      if (!delegate?.findUnique) return null;
+      const record = await delegate.findUnique({ where: { id } });
+      // Round-trip through JSON so Date/Decimal become plain serializable values.
+      return record
+        ? this.sanitizeBody(
+            JSON.parse(JSON.stringify(record)) as Record<string, unknown>,
+          )
+        : null;
+    } catch {
+      return null;
+    }
   }
 
   private enqueue(
@@ -100,6 +172,7 @@ export class AuditInterceptor implements NestInterceptor {
     userName: string,
     body: any,
     ip: string,
+    before?: Record<string, unknown> | null,
   ) {
     if (!userId) return;
 
@@ -115,7 +188,10 @@ export class AuditInterceptor implements NestInterceptor {
       entity,
       entityId,
       summary,
-      details: sanitized && Object.keys(sanitized).length > 0 ? sanitized : undefined,
+      details:
+        sanitized && Object.keys(sanitized).length > 0 ? sanitized : undefined,
+      previousData:
+        before && Object.keys(before).length > 0 ? before : undefined,
       ipAddress: ip || null,
     });
 
@@ -141,7 +217,9 @@ export class AuditInterceptor implements NestInterceptor {
     const batch = this.queue.splice(0, FLUSH_BATCH_SIZE);
     this.prisma.activityLog
       .createMany({ data: batch as any })
-      .catch((err) => this.logger.warn(`Failed to flush audit logs: ${err.message}`));
+      .catch((err) =>
+        this.logger.warn(`Failed to flush audit logs: ${err.message}`),
+      );
   }
 
   private methodToAction(method: string): string {

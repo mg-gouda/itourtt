@@ -3,6 +3,17 @@ import { Cron } from '@nestjs/schedule';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { QueryActivityLogDto } from './dto/query-activity-log.dto.js';
+import {
+  windowLabel,
+  humanizeField,
+  formatValue,
+  fieldModel,
+  isUuid,
+  isHiddenField,
+  MODEL_DISPLAY,
+} from './activity-log-format.js';
+
+type Dict = Record<string, unknown>;
 
 const RETENTION_DAYS = 90;
 
@@ -21,7 +32,9 @@ export class ActivityLogsService {
       where: { createdAt: { lt: cutoff } },
     });
     if (count > 0) {
-      this.logger.log(`Purged ${count} activity log entries older than ${RETENTION_DAYS} days`);
+      this.logger.log(
+        `Purged ${count} activity log entries older than ${RETENTION_DAYS} days`,
+      );
     }
   }
 
@@ -86,7 +99,103 @@ export class ActivityLogsService {
   async findOne(id: string) {
     const log = await this.prisma.activityLog.findUnique({ where: { id } });
     if (!log) throw new NotFoundException('Activity log not found');
-    return log;
+
+    const after = (log.details ?? null) as Dict | null;
+    const before = (log.previousData ?? null) as Dict | null;
+
+    // Resolve any UUID references in either snapshot to readable names.
+    const lookups = await this.resolveRefs([after, before]);
+    const fmt = (key: string, value: unknown) =>
+      formatValue(key, value, lookups);
+
+    let createdFields: { label: string; value: string }[] | undefined;
+    let deletedFields: { label: string; value: string }[] | undefined;
+    let changes:
+      | { label: string; oldValue: string; newValue: string }[]
+      | undefined;
+
+    if (log.action === 'CREATE' && after) {
+      createdFields = this.toFieldList(after, fmt);
+    } else if (log.action === 'DELETE' && before) {
+      deletedFields = this.toFieldList(before, fmt);
+    } else if (log.action === 'UPDATE' && after) {
+      // Diff submitted (new) values against the captured before-snapshot.
+      changes = Object.entries(after)
+        .filter(([key]) => !isHiddenField(key))
+        .filter(([key, newVal]) => {
+          const oldVal = before ? before[key] : undefined;
+          return (
+            JSON.stringify(oldVal ?? null) !== JSON.stringify(newVal ?? null)
+          );
+        })
+        .map(([key, newVal]) => ({
+          label: humanizeField(key),
+          oldValue: before ? fmt(key, before[key]) : '—',
+          newValue: fmt(key, newVal),
+        }));
+    }
+
+    return {
+      ...log,
+      window: windowLabel(log.entity),
+      createdFields,
+      deletedFields,
+      changes,
+    };
+  }
+
+  /** Turn a flat record into a list of {label, value}, skipping noise fields. */
+  private toFieldList(obj: Dict, fmt: (k: string, v: unknown) => string) {
+    return Object.entries(obj)
+      .filter(([key]) => !isHiddenField(key))
+      .map(([key, value]) => ({
+        label: humanizeField(key),
+        value: fmt(key, value),
+      }));
+  }
+
+  /** Batch-resolve UUID-valued fields across the given snapshots into a
+   *  `${model}:${uuid}` → display-name map. */
+  private async resolveRefs(
+    sources: (Dict | null)[],
+  ): Promise<Record<string, string>> {
+    const idsByModel = new Map<string, Set<string>>();
+    for (const src of sources) {
+      if (!src) continue;
+      for (const [key, value] of Object.entries(src)) {
+        const model = fieldModel(key);
+        if (model && isUuid(value)) {
+          if (!idsByModel.has(model)) idsByModel.set(model, new Set());
+          idsByModel.get(model)!.add(value);
+        }
+      }
+    }
+
+    const lookups: Record<string, string> = {};
+    await Promise.all(
+      [...idsByModel.entries()].map(async ([model, ids]) => {
+        const cfg = MODEL_DISPLAY[model];
+        const delegate = (
+          this.prisma as unknown as Record<
+            string,
+            { findMany?: (args: unknown) => Promise<unknown> } | undefined
+          >
+        )[model];
+        if (!cfg || !delegate?.findMany) return;
+        try {
+          const rows = (await delegate.findMany({
+            where: { id: { in: [...ids] } },
+            select: { id: true, ...cfg.select },
+          })) as Record<string, string | null | undefined>[];
+          for (const row of rows) {
+            if (row.id) lookups[`${model}:${row.id}`] = cfg.format(row);
+          }
+        } catch {
+          // leave unresolved — formatValue falls back to the raw UUID
+        }
+      }),
+    );
+    return lookups;
   }
 
   async exportToExcel(query: QueryActivityLogDto): Promise<Buffer> {
@@ -118,8 +227,8 @@ export class ActivityLogsService {
       'Date & Time': l.createdAt.toISOString().replace('T', ' ').slice(0, 19),
       User: l.userName,
       Action: l.action,
-      Entity: l.entity,
-      'Entity ID': l.entityId || '',
+      Window: windowLabel(l.entity),
+      'Record ID': l.entityId || '',
       Summary: l.summary,
       'IP Address': l.ipAddress || '',
     }));

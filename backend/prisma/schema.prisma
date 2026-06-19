@@ -1359,7 +1359,8 @@ model ActivityLog {
   entity    String // e.g. "TrafficJob", "Agent", "Invoice"
   entityId  String?  @map("entity_id")
   summary   String // Human-readable: "Created traffic job TJ-00123"
-  details   Json?
+  details      Json? // Submitted/new values (request body)
+  previousData Json?  @map("previous_data") // Snapshot of the record BEFORE an update/delete
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 
