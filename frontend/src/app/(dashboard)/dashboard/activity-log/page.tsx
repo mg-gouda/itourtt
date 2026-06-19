@@ -538,8 +538,8 @@ export default function ActivityLogPage() {
 
       {/* ─── Detail Modal ────────────────────────────────────── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-lg flex max-h-[90vh] flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{t("activityLog.details")}</DialogTitle>
           </DialogHeader>
 
@@ -548,7 +548,7 @@ export default function ActivityLogPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : selectedLog ? (
-            <div className="space-y-3">
+            <div className="-mr-2 min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
               <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <span className="text-muted-foreground text-xs">

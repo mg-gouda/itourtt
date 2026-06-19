@@ -86,19 +86,27 @@ export class ActivityLogsService {
           summary: true,
           ipAddress: true,
           createdAt: true,
+          // Prefer the user's actual name over the stored email for display.
+          user: { select: { name: true } },
         },
       }),
       this.prisma.activityLog.count({ where }),
     ]);
 
     return {
-      data: logs,
+      data: logs.map(({ user, ...l }) => ({
+        ...l,
+        userName: user?.name || l.userName,
+      })),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
   async findOne(id: string) {
-    const log = await this.prisma.activityLog.findUnique({ where: { id } });
+    const log = await this.prisma.activityLog.findUnique({
+      where: { id },
+      include: { user: { select: { name: true } } },
+    });
     if (!log) throw new NotFoundException('Activity log not found');
 
     const after = (log.details ?? null) as Dict | null;
@@ -147,8 +155,10 @@ export class ActivityLogsService {
         }));
     }
 
+    const { user, ...rest } = log;
     return {
-      ...log,
+      ...rest,
+      userName: user?.name || log.userName,
       window: windowLabel(log.entity),
       entityRef,
       createdFields,
@@ -237,14 +247,15 @@ export class ActivityLogsService {
       where,
       orderBy: { createdAt: 'desc' },
       take: 10000,
+      include: { user: { select: { name: true } } },
     });
 
     const rows = logs.map((l) => ({
       'Date & Time': l.createdAt.toISOString().replace('T', ' ').slice(0, 19),
-      User: l.userName,
+      User: l.user?.name || l.userName,
       Action: l.action,
       Window: windowLabel(l.entity),
-      'Record ID': l.entityId || '',
+      Record: l.entityId || '',
       Summary: l.summary,
       'IP Address': l.ipAddress || '',
     }));
