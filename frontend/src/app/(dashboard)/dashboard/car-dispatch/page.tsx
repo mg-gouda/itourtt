@@ -393,7 +393,7 @@ function CarDispatchContent() {
       const [vehRes, custRes, drvRes, supRes, typRes, zoneRes] = await Promise.all([
         api.get("/vehicles", { params: { limit: 100 } }),
         api.get("/customers", { params: { limit: 100 } }),
-        api.get("/drivers", { params: { limit: 100 } }),
+        api.get("/drivers", { params: { limit: 100, isActive: true } }),
         api.get("/dispatch/available-suppliers"),
         api.get("/vehicles/types"),
         api.get("/locations/zones"),

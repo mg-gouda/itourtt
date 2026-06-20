@@ -175,7 +175,9 @@ export default function DriversPage() {
   const fetchDrivers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<DriversResponse>("/drivers");
+      const res = await api.get<DriversResponse>("/drivers", {
+        params: { limit: 1000 },
+      });
       setDrivers(res.data.data);
     } catch {
       toast.error(t("drivers.failedLoad"));
