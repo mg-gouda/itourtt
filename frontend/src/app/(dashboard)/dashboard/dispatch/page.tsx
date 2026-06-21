@@ -1202,8 +1202,8 @@ function JobGrid({
             <TableHead className="text-muted-foreground text-xs w-24">Req. Type</TableHead>
             <TableHead className="text-muted-foreground text-xs w-24">{t("jobs.flightNumber")}</TableHead>
             <TableHead className="text-muted-foreground text-xs w-20">Flight Time</TableHead>
-            <TableHead className="text-muted-foreground text-xs w-20">Terminal</TableHead>
             {showPickUpTime && <TableHead className="text-muted-foreground text-xs w-20">{t("jobs.pickUpTime")}</TableHead>}
+            <TableHead className="text-muted-foreground text-xs w-20">Terminal</TableHead>
             <TableHead className="text-muted-foreground text-xs w-36">{t("dispatch.carSource")}</TableHead>
             <TableHead className="text-muted-foreground text-xs w-36">{t("dispatch.vehicle")}</TableHead>
             <TableHead className="text-muted-foreground text-xs w-32">{t("dispatch.driver")}</TableHead>
@@ -1312,14 +1312,14 @@ function JobGrid({
                     ? fmtTime(job.flight.arrivalTime || job.flight.departureTime, locale) || "—"
                     : "—"}
                 </TableCell>
-                <TableCell className="text-muted-foreground text-xs font-mono">
-                  {job.flight?.terminal || "—"}
-                </TableCell>
                 {showPickUpTime && (
                   <TableCell className="text-muted-foreground text-xs font-mono">
                     {fmtTime(job.pickUpTime ?? undefined, locale) || "—"}
                   </TableCell>
                 )}
+                <TableCell className="text-muted-foreground text-xs font-mono">
+                  {job.flight?.terminal || "—"}
+                </TableCell>
 
                 {isEditable ? (
                   <>
@@ -2802,6 +2802,7 @@ export default function DispatchPage() {
                     jobs={filteredCityTransfers}
                     title="Other"
                     icon={Bus}
+                    showPickUpTime
                     {...gridProps}
                   />
                 </div>
@@ -2832,6 +2833,7 @@ export default function DispatchPage() {
                 jobs={filteredCityTransfers}
                 title="Other"
                 icon={Bus}
+                showPickUpTime
                 {...gridProps}
               />
             </TabsContent>
