@@ -44,6 +44,7 @@ const COMPANY_DEFAULTS = {
   faviconUrl: null,
   reportHeaderHtml: null,
   reportFooterHtml: null,
+  systemNotificationEmail: null as string | null,
 };
 
 const WEBSITE_DEFAULTS = {
@@ -156,6 +157,8 @@ export class SettingsService {
     if (dto.reportHeaderHtml !== undefined) data.reportHeaderHtml = dto.reportHeaderHtml;
     if (dto.reportFooterHtml !== undefined) data.reportFooterHtml = dto.reportFooterHtml;
     if (dto.licenseKey !== undefined) data.licenseKey = dto.licenseKey || null;
+    if (dto.systemNotificationEmail !== undefined)
+      data.systemNotificationEmail = dto.systemNotificationEmail?.trim() || null;
 
     if (existing) {
       return this.prisma.companySettings.update({
@@ -170,6 +173,7 @@ export class SettingsService {
         reportHeaderHtml: dto.reportHeaderHtml ?? COMPANY_DEFAULTS.reportHeaderHtml,
         reportFooterHtml: dto.reportFooterHtml ?? COMPANY_DEFAULTS.reportFooterHtml,
         licenseKey: dto.licenseKey ?? null,
+        systemNotificationEmail: dto.systemNotificationEmail?.trim() || null,
       },
     });
   }

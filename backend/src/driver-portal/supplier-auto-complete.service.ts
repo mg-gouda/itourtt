@@ -19,6 +19,20 @@ export class SupplierAutoCompleteService {
     const [y, m, d] = cairoDateStr.split('-').map(Number);
     const todayCairo = new Date(Date.UTC(y, m - 1, d));
 
+    // Single-replica guard: claim tonight's run. With multiple backend pods,
+    // @nestjs/schedule fires the cron on every replica; the unique
+    // (job_name, run_date) row ensures only the first pod actually runs.
+    try {
+      await this.prisma.cronRunLock.create({
+        data: { jobName: 'supplier-auto-complete', runDate: todayCairo },
+      });
+    } catch {
+      this.logger.log(
+        'Midnight auto-complete already claimed by another replica for today — skipping.',
+      );
+      return;
+    }
+
     this.logger.log(
       `Midnight auto-complete: processing all past non-terminal jobs before ${todayCairo.toISOString()}`,
     );
@@ -28,11 +42,13 @@ export class SupplierAutoCompleteService {
     await this.autoCompleteSuppliers(todayCairo);
   }
 
-  // Auto-complete all drivers (own + supplier) that didn't update via portal
+  // Auto-complete the DRIVER status only for supplier-sourced cars (supplierId set).
+  // Own-fleet drivers are intentionally NOT auto-completed — they must complete
+  // their jobs via the driver portal (with GPS evidence).
   private async autoCompleteDrivers(before: Date) {
     const assignments = await this.prisma.trafficAssignment.findMany({
       where: {
-        driverId: { not: null },
+        supplierId: { not: null },
         driverStatus: { notIn: TERMINAL_STATUSES as any },
         trafficJob: {
           deletedAt: null,

@@ -16,4 +16,8 @@ export class UpdateCompanySettingsDto {
   @IsOptional()
   @IsString()
   licenseKey?: string;
+
+  @IsOptional()
+  @IsString()
+  systemNotificationEmail?: string;
 }

@@ -1347,6 +1347,17 @@ model StatusChangeLog {
   @@map("status_change_logs")
 }
 
+// Claimed once per (job, day) so only ONE backend replica executes a nightly cron.
+model CronRunLock {
+  id        String   @id @default(uuid())
+  jobName   String   @map("job_name")
+  runDate   DateTime @map("run_date") @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([jobName, runDate])
+  @@map("cron_run_locks")
+}
+
 // ─────────────────────────────────────────────
 // ACTIVITY LOG
 // ─────────────────────────────────────────────
@@ -1650,6 +1661,8 @@ model CompanySettings {
   reportHeaderHtml String?  @map("report_header_html")
   reportFooterHtml String?  @map("report_footer_html")
   licenseKey       String?  @map("license_key")
+  // Single mailbox that receives all automated system notifications (e.g. job updates).
+  systemNotificationEmail String? @map("system_notification_email")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 

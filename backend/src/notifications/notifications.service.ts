@@ -123,23 +123,23 @@ export class NotificationsService {
       changedFields,
     };
 
-    // 5. Collect all email addresses: individual users + department emails from DB
-    const emailAddresses = recipients.map((r) => r.email);
+    // 5. Email goes to the single system-notification mailbox configured in
+    //    System Parameters > Company. Admins/traffic users are NOT emailed
+    //    individually anymore — they still get the in-app notification above.
+    const companySettings = await this.prisma.companySettings.findFirst();
+    const systemEmail = companySettings?.systemNotificationEmail?.trim();
 
-    // Read department emails from DB settings (fallback to env)
-    const emailSettings = await this.prisma.emailSettings.findFirst();
-    const dispatchEmail = emailSettings?.notifyDispatchEmail || this.config.get<string>('NOTIFY_DISPATCH_EMAIL');
-    const trafficEmail = emailSettings?.notifyTrafficEmail || this.config.get<string>('NOTIFY_TRAFFIC_EMAIL');
-    if (dispatchEmail) emailAddresses.push(dispatchEmail);
-    if (trafficEmail) emailAddresses.push(trafficEmail);
+    if (!systemEmail) {
+      this.logger.log(
+        `No system notification email configured — skipping email for job ${job.internalRef}`,
+      );
+      return;
+    }
 
-    // Deduplicate
-    const uniqueEmails = [...new Set(emailAddresses)];
+    // 6. Send email (fire-and-forget, errors logged internally)
+    await this.emailService.sendJobUpdateNotification([systemEmail], emailData);
 
-    // 6. Send emails (fire-and-forget per email, errors logged internally)
-    await this.emailService.sendJobUpdateNotification(uniqueEmails, emailData);
-
-    this.logger.log(`Sent ${uniqueEmails.length} email notifications for job ${job.internalRef}`);
+    this.logger.log(`Sent system notification email for job ${job.internalRef} to ${systemEmail}`);
   }
 
   /**

@@ -23,6 +23,7 @@ interface CompanySettingsData {
   reportHeaderHtml: string | null;
   reportFooterHtml: string | null;
   licenseKey: string | null;
+  systemNotificationEmail: string | null;
 }
 
 interface LicenseStatus {
@@ -47,6 +48,7 @@ export default function CompanyPage() {
   const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
   const [reportHeaderHtml, setReportHeaderHtml] = useState("");
   const [reportFooterHtml, setReportFooterHtml] = useState("");
+  const [systemNotificationEmail, setSystemNotificationEmail] = useState("");
   const [licenseKey, setLicenseKey] = useState("");
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
   const [activatingLicense, setActivatingLicense] = useState(false);
@@ -66,6 +68,7 @@ export default function CompanyPage() {
         setFaviconUrl(data.faviconUrl ?? null);
         setReportHeaderHtml(data.reportHeaderHtml ?? "");
         setReportFooterHtml(data.reportFooterHtml ?? "");
+        setSystemNotificationEmail(data.systemNotificationEmail ?? "");
         setLicenseKey(data.licenseKey ?? "");
         setLicenseStatus(licenseRes.data);
       })
@@ -114,6 +117,7 @@ export default function CompanyPage() {
         companyName,
         reportHeaderHtml: reportHeaderHtml || null,
         reportFooterHtml: reportFooterHtml || null,
+        systemNotificationEmail: systemNotificationEmail.trim() || null,
       });
       toast.success(t("company.settingsSaved"));
     } catch {
@@ -252,6 +256,30 @@ export default function CompanyPage() {
               </div>
             </div>
           </div>
+        </div>
+      </Card>
+
+      {/* System Email Notifications */}
+      <Card className="border-border bg-card p-6">
+        <h3 className="mb-1 text-base font-medium text-foreground">
+          {t("company.systemNotifications") || "System Email Notifications"}
+        </h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          {t("company.systemNotificationsDesc") ||
+            "A single mailbox that receives all automated system notifications (e.g. job updates). Leave blank to disable these emails. Individual admin users are no longer emailed."}
+        </p>
+        <div className="max-w-md space-y-2">
+          <Label className="text-foreground/70">
+            {t("company.systemNotificationEmail") || "Notification Email"}
+          </Label>
+          <Input
+            type="email"
+            value={systemNotificationEmail}
+            onChange={(e) => setSystemNotificationEmail(e.target.value)}
+            className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
+            placeholder="info@fulvago.com"
+            disabled={!canEditSettings}
+          />
         </div>
       </Card>
 
