@@ -79,6 +79,7 @@ export class PaymentsService {
     // Find the guest booking
     const booking = await this.prisma.guestBooking.findUnique({
       where: { bookingRef },
+      include: { fromZone: true, toZone: true, vehicleType: true },
     });
 
     if (!booking) {
@@ -98,6 +99,44 @@ export class PaymentsService {
     const firstName = nameParts.shift() || 'Guest';
     const lastName = nameParts.join(' ') || firstName;
 
+    // Booking summary rows shown on the hosted checkout page (Cairo time).
+    const fmtDate = (d: Date) =>
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Africa/Cairo',
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      }).format(d);
+    const fmtTime = (d: Date) =>
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Africa/Cairo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(d);
+
+    const orderDetails: Array<{ label: string; value: string }> = [
+      { label: 'Booking', value: bookingRef },
+      { label: 'Guest', value: booking.guestName ?? '' },
+      {
+        label: 'Service',
+        value:
+          { ARR: 'Arrival', DEP: 'Departure', CITY: 'City Tour' }[
+            booking.serviceType as string
+          ] ?? booking.serviceType,
+      },
+      {
+        label: 'Route',
+        value: `${booking.fromZone?.name ?? ''} → ${booking.toZone?.name ?? ''}`,
+      },
+      { label: 'Date', value: fmtDate(booking.jobDate) },
+      { label: 'Pickup', value: booking.pickupTime ? fmtTime(booking.pickupTime) : '' },
+      { label: 'Vehicle', value: booking.vehicleType?.name ?? '' },
+      { label: 'Passengers', value: String(booking.paxCount) },
+      { label: 'Flight', value: booking.flightNo ?? '' },
+    ];
+
     // Create the payment session with the gateway
     const session = await paymentGateway.createSession(
       bookingRef,
@@ -111,6 +150,7 @@ export class PaymentsService {
         email: booking.guestEmail,
         orderTitle: `Transfer Booking ${bookingRef}`,
         country: booking.guestCountry ?? undefined,
+        orderDetails,
       },
     );
 

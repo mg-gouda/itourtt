@@ -111,6 +111,25 @@ export class GetPayInGateway implements PaymentGateway {
     form.append('currency', cur);
     form.append('signature', signature);
 
+    // Optional checkout line items. Excluded from the signature by the API, so
+    // it can be appended freely. Drop empty-value rows and cap at the documented
+    // 2000-char limit (omit entirely if that would truncate mid-JSON).
+    const rows = (customer?.orderDetails ?? []).filter(
+      (r) => r.label?.trim() && r.value?.trim(),
+    );
+    if (rows.length > 0) {
+      const encoded = JSON.stringify(
+        rows.map((r) => ({ label: r.label.trim(), value: r.value.trim() })),
+      );
+      if (encoded.length <= 2000) {
+        form.append('order_details', encoded);
+      } else {
+        this.logger.warn(
+          `GetPayIn order_details for booking ${bookingRef} exceeds 2000 chars; omitting.`,
+        );
+      }
+    }
+
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}/api/integration/init`, {

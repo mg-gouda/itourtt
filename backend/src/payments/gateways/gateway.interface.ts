@@ -17,6 +17,12 @@ export interface PaymentCustomer {
   address?: string;
   city?: string;
   country?: string;
+  /**
+   * Optional line items shown on the hosted checkout page (e.g. Guest, Route,
+   * Pickup). Gateways that support it render one row per entry; others ignore
+   * it. Not part of any signature.
+   */
+  orderDetails?: Array<{ label: string; value: string }>;
 }
 
 export interface PaymentVerificationResult {
