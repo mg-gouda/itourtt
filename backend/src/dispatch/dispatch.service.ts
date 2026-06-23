@@ -240,16 +240,29 @@ export class DispatchService {
       resolvedSupplierId = carType.supplierId;
     }
 
+    // Mutual exclusion: a new assignment's car is either OWN (vehicle) or SUPPLIER
+    // (supplier car type), never both. A supplier car type wins and clears any
+    // vehicle; choosing an own vehicle clears the supplier fields.
+    const hasCarType = !!dto.supplierCarTypeId;
+    const hasVehicle = !!dto.vehicleId;
+    const createVehicleId = hasCarType ? null : (dto.vehicleId ?? null);
+    const createSupplierCarTypeId = hasCarType ? dto.supplierCarTypeId! : null;
+    const createSupplierId = hasCarType
+      ? resolvedSupplierId
+      : hasVehicle
+        ? null
+        : resolvedSupplierId;
+
     // 7. Create assignment and update job status in a transaction
     const assignment = await this.prisma.$transaction(async (tx) => {
       const created = await tx.trafficAssignment.create({
         data: {
           trafficJobId: dto.trafficJobId,
-          vehicleId: dto.vehicleId ?? null,
+          vehicleId: createVehicleId,
           driverId: dto.driverId ?? null,
           repId: dto.repId ?? null,
-          supplierId: resolvedSupplierId,
-          supplierCarTypeId: dto.supplierCarTypeId ?? null,
+          supplierId: createSupplierId,
+          supplierCarTypeId: createSupplierCarTypeId,
           externalDriverName: dto.externalDriverName ?? null,
           externalDriverPhone: dto.externalDriverPhone ?? null,
           remarks: dto.remarks ?? null,
@@ -528,11 +541,33 @@ export class DispatchService {
     }
 
     const updateData: Record<string, unknown> = {};
-    if (dto.vehicleId !== undefined) updateData.vehicleId = dto.vehicleId;
-    if (dto.supplierCarTypeId !== undefined) {
+    // Mutual exclusion: an assignment's car is either OWN (vehicle) or SUPPLIER
+    // (supplier car type), never both. Whichever side is chosen clears the other,
+    // so Car Source stays unambiguous (Supplier = supplierId set AND no own vehicle).
+    if (dto.supplierCarTypeId) {
+      // Switching to a supplier car type → clear own vehicle & own driver.
       updateData.supplierCarTypeId = dto.supplierCarTypeId;
       updateData.supplierId = reassignSupplierId ?? null;
-      updateData.vehicleId = null; // clear actual vehicle when switching to car type
+      updateData.vehicleId = null;
+      if (existing.driverId) {
+        updateData.driverId = null;
+        updateData.driverStatus = 'PENDING';
+      }
+    } else if (dto.vehicleId) {
+      // Switching to an own vehicle → clear supplier car type, supplier & external driver.
+      updateData.vehicleId = dto.vehicleId;
+      updateData.supplierCarTypeId = null;
+      updateData.supplierId = null;
+      updateData.externalDriverName = null;
+      updateData.externalDriverPhone = null;
+    } else {
+      // No car-source switch in this update — apply any explicit clears as sent.
+      if (dto.vehicleId !== undefined) updateData.vehicleId = dto.vehicleId;
+      if (dto.supplierCarTypeId !== undefined) {
+        updateData.supplierCarTypeId = dto.supplierCarTypeId;
+        updateData.supplierId = reassignSupplierId ?? null;
+      }
+      if (dto.supplierId !== undefined) updateData.supplierId = dto.supplierId;
     }
     if (dto.driverId !== undefined) {
       updateData.driverId = dto.driverId;
