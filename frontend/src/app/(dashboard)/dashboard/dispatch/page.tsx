@@ -1004,12 +1004,19 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
                 <DetailRow label="Flight Number" value={job.flight.flightNo} />
                 <DetailRow label="Carrier" value={job.flight.carrier} />
                 <DetailRow label="Terminal" value={job.flight.terminal} />
-                {job.flight.arrivalTime && (
-                  <DetailRow label="Arrival Time" value={fmtTime(job.flight.arrivalTime, locale)} />
-                )}
-                {job.flight.departureTime && (
-                  <DetailRow label="Departure Time" value={fmtTime(job.flight.departureTime, locale)} />
-                )}
+                {job.serviceType === "DEP"
+                  ? job.flight.departureTime && (
+                      <DetailRow
+                        label="Departure Flight Time"
+                        value={fmtTime(job.flight.departureTime, locale)}
+                      />
+                    )
+                  : job.flight.arrivalTime && (
+                      <DetailRow
+                        label="Arrival Flight Time"
+                        value={fmtTime(job.flight.arrivalTime, locale)}
+                      />
+                    )}
               </DetailSection>
             )}
 
