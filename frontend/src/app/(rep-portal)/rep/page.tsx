@@ -31,6 +31,7 @@ import {
   ChevronRight,
   MapPinCheck,
   AlertTriangle,
+  ClipboardList,
 } from "lucide-react";
 import JobDetailModal from "@/components/job-detail-modal";
 import { toast } from "sonner";
@@ -310,10 +311,22 @@ export default function RepDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">{t("portal.myJobs")}</h1>
-        <Button variant="outline" size="sm" onClick={fetchAll}>
-          <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-          {t("portal.refresh")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a
+              href="https://forms.office.com/r/02VRqthutn"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
+              {t("portal.survey")}
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchAll}>
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+            {t("portal.refresh")}
+          </Button>
+        </div>
       </div>
 
       {/* Date Selector */}
