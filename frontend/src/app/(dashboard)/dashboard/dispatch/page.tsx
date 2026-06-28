@@ -1309,7 +1309,12 @@ function JobGrid({
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs font-mono">
                   {job.flight
-                    ? fmtTime(job.flight.arrivalTime || job.flight.departureTime, locale) || "—"
+                    ? fmtTime(
+                        job.serviceType === "DEP"
+                          ? job.flight.departureTime
+                          : job.flight.arrivalTime,
+                        locale,
+                      ) || "—"
                     : "—"}
                 </TableCell>
                 {showPickUpTime && (

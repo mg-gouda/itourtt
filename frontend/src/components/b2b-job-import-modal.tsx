@@ -227,8 +227,12 @@ export function B2BJobImportModal({
         flight: j.flightNo
           ? {
               flightNo: j.flightNo,
-              arrivalTime: j.arrivalTime ? `${j.jobDate}T${j.arrivalTime}:00` : undefined,
-              departureTime: j.departureTime ? `${j.jobDate}T${j.departureTime}:00` : undefined,
+              // Only the flight time matching the service type is persisted so a
+              // stale arrival/departure value can't leak onto the wrong job type.
+              arrivalTime:
+                j.serviceType === "ARR" && j.arrivalTime ? `${j.jobDate}T${j.arrivalTime}:00` : undefined,
+              departureTime:
+                j.serviceType === "DEP" && j.departureTime ? `${j.jobDate}T${j.departureTime}:00` : undefined,
             }
           : undefined,
       }));
@@ -511,20 +515,25 @@ export function B2BJobImportModal({
                           />
                         </TableCell>
                         <TableCell>
-                          <Input
-                            value={job.arrivalTime || job.departureTime || job.pickUpTime || ""}
-                            onChange={(e) => {
-                              const field =
-                                job.serviceType === "ARR"
-                                  ? "arrivalTime"
-                                  : job.serviceType === "DEP"
-                                    ? "departureTime"
-                                    : "pickUpTime";
-                              updateJob(idx, field, e.target.value);
-                            }}
-                            className="h-7 w-20 text-xs border-border bg-transparent"
-                            placeholder="HH:MM"
-                          />
+                          {(() => {
+                            // Bind the cell to the single time field that matches the
+                            // service type so it neither displays nor writes a stale
+                            // value into the wrong field (e.g. arrival time on a DEP job).
+                            const field =
+                              job.serviceType === "ARR"
+                                ? "arrivalTime"
+                                : job.serviceType === "DEP"
+                                  ? "departureTime"
+                                  : "pickUpTime";
+                            return (
+                              <Input
+                                value={job[field] || ""}
+                                onChange={(e) => updateJob(idx, field, e.target.value)}
+                                className="h-7 w-20 text-xs border-border bg-transparent"
+                                placeholder="HH:MM"
+                              />
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Badge

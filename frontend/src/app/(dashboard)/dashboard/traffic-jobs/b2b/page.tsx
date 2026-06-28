@@ -451,12 +451,15 @@ export default function B2BJobPage() {
       if (form.custRepMeetingTime) payload.custRepMeetingTime = `${form.jobDate}T${form.custRepMeetingTime}`;
 
       const showFlight = form.serviceType === "ARR" || form.serviceType === "DEP";
-      if (showFlight && (form.flightNo || form.terminal || form.arrivalTime || form.departureTime)) {
+      const relevantFlightTime = form.serviceType === "ARR" ? form.arrivalTime : form.departureTime;
+      if (showFlight && (form.flightNo || form.terminal || relevantFlightTime)) {
         payload.flight = {
           flightNo: form.flightNo || "TBD",
           ...(form.terminal && { terminal: form.terminal }),
-          ...(form.arrivalTime && { arrivalTime: `${form.jobDate}T${form.arrivalTime}` }),
-          ...(form.departureTime && { departureTime: `${form.jobDate}T${form.departureTime}` }),
+          // Only persist the flight time that matches the service type so a stale
+          // arrival/departure value can never leak onto the wrong job type.
+          ...(form.serviceType === "ARR" && form.arrivalTime && { arrivalTime: `${form.jobDate}T${form.arrivalTime}` }),
+          ...(form.serviceType === "DEP" && form.departureTime && { departureTime: `${form.jobDate}T${form.departureTime}` }),
         };
       }
 
@@ -827,7 +830,20 @@ export default function B2BJobPage() {
             {canB2BServiceType && (
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.serviceType")}</Label>
-              <Select value={form.serviceType} onValueChange={(v) => updateForm({ serviceType: v })}>
+              <Select
+                value={form.serviceType}
+                onValueChange={(v) =>
+                  // Clear the flight time that no longer applies so a stale arrival/
+                  // departure value can't carry over when switching service type.
+                  updateForm(
+                    v === "ARR"
+                      ? { serviceType: v, departureTime: "" }
+                      : v === "DEP"
+                        ? { serviceType: v, arrivalTime: "" }
+                        : { serviceType: v, arrivalTime: "", departureTime: "" },
+                  )
+                }
+              >
                 <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
                   <SelectValue className="truncate" />
                 </SelectTrigger>
