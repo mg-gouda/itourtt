@@ -272,7 +272,9 @@ export default function DriverDashboardPage() {
 
   const formatTime = (isoString: string | null) => {
     if (!isoString) return null;
+    // Always render operational times in Africa/Cairo, never the device timezone.
     return new Date(isoString).toLocaleTimeString(locale, {
+      timeZone: "Africa/Cairo",
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -563,10 +565,10 @@ function DriverJobCard({
   const canStartProgress = !jobTime || now >= jobTime;
   const canComplete = !jobTime || now >= new Date(jobTime.getTime() + 15 * 60 * 1000);
   const progressBlockMsg = jobTime && !canStartProgress
-    ? `${t("portal.availableFrom")} ${jobTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    ? `${t("portal.availableFrom")} ${jobTime.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "";
   const completeBlockMsg = jobTime && !canComplete
-    ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + 15 * 60 * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+    ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + 15 * 60 * 1000).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "";
 
   return (
@@ -684,7 +686,7 @@ function DriverJobCard({
               </a>
             )}
             {job.custRepMeetingPoint && <span>{t("jobs.custRepMeetingPoint")}: <b className="text-foreground">{job.custRepMeetingPoint}</b></span>}
-            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>}
+            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>}
           </div>
         )}
 

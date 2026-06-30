@@ -288,7 +288,9 @@ export default function RepDashboardPage() {
 
   const formatTime = (isoString: string | null) => {
     if (!isoString) return null;
+    // Always render operational times in Africa/Cairo, never the device timezone.
     return new Date(isoString).toLocaleTimeString(locale, {
+      timeZone: "Africa/Cairo",
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -681,7 +683,7 @@ function JobCard({
     const arr = new Date(job.flight.arrivalTime);
     const start = new Date(arr.getTime() - 10 * 60 * 1000);
     const end = new Date(arr.getTime() + 80 * 60 * 1000);
-    const fmt = (d: Date) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const fmt = (d: Date) => d.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false });
     return t("portal.availableWindow").replace("{start}", fmt(start)).replace("{end}", fmt(end));
   })();
 
@@ -802,7 +804,7 @@ function JobCard({
               </a>
             )}
             {job.custRepMeetingPoint && <span>{t("jobs.custRepMeetingPoint")}: <b className="text-foreground">{job.custRepMeetingPoint}</b></span>}
-            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>}
+            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>}
           </div>
         )}
 

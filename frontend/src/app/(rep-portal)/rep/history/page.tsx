@@ -106,6 +106,7 @@ export default function RepHistoryPage() {
   const formatTime = (isoString: string | null) => {
     if (!isoString) return "\u2014";
     return new Date(isoString).toLocaleTimeString(locale, {
+      timeZone: "Africa/Cairo",
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,

@@ -193,7 +193,8 @@ function fmtDate(d: Date) {
 function fmtTime(iso: string | undefined, locale = "en-US") {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
+  // Operational times are Africa/Cairo regardless of the viewer's device timezone.
+  return d.toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 // ────────────────────────────────────────────
@@ -2902,7 +2903,7 @@ export default function DispatchPage() {
                   <span>{t("jobs.custRepMeetingPoint")}: <b className="text-foreground">{dialogJob.custRepMeetingPoint}</b></span>
                 )}
                 {dialogJob.custRepMeetingTime && (
-                  <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(dialogJob.custRepMeetingTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>
+                  <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(dialogJob.custRepMeetingTime).toLocaleTimeString([], { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>
                 )}
               </div>
             )}

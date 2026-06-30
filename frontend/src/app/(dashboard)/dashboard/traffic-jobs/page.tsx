@@ -356,7 +356,7 @@ export default function TrafficJobsPage() {
       case "pickUpTime":
         return (
           <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
-            {job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+            {job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
           </TableCell>
         );
       case "agentCustomer":
@@ -392,13 +392,13 @@ export default function TrafficJobsPage() {
       case "arrivalTime":
         return (
           <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
-            {job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+            {job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
           </TableCell>
         );
       case "departureTime":
         return (
           <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
-            {job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+            {job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
           </TableCell>
         );
       case "carrier":

@@ -350,10 +350,10 @@ export default function B2BJobPage() {
     const originSelectedId = job.originAirportId || job.originZoneId || job.originHotelId || "";
     const destinationSelectedId = job.destinationAirportId || job.destinationZoneId || job.destinationHotelId || "";
 
-    const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-    const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-    const departureTime = job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-    const custRepMeetingTime = job.custRepMeetingTime ? new Date(job.custRepMeetingTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const departureTime = job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const custRepMeetingTime = job.custRepMeetingTime ? new Date(job.custRepMeetingTime).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
 
     setForm({
       bookingStatus: "UPDATED",

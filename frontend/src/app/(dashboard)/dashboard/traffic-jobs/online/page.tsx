@@ -351,9 +351,9 @@ export default function OnlineJobPage() {
     const originSelectedId = originAirportId || originHotelId || originZoneId || "";
     const destinationSelectedId = destinationAirportId || destinationHotelId || destinationZoneId || "";
 
-    const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-    const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-    const departureTime = job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const pickUpTime = job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const arrivalTime = job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+    const departureTime = job.flight?.departureTime ? new Date(job.flight.departureTime).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
 
     setForm({
       bookingStatus: "UPDATED",
@@ -611,13 +611,13 @@ export default function OnlineJobPage() {
       case "pickUpTime":
         return (
           <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
-            {job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+            {job.pickUpTime ? new Date(job.pickUpTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
           </TableCell>
         );
       case "arrivalTime":
         return (
           <TableCell key={key} className="text-muted-foreground text-xs whitespace-nowrap">
-            {job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+            {job.flight?.arrivalTime ? new Date(job.flight.arrivalTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
           </TableCell>
         );
       case "agent":

@@ -3716,7 +3716,7 @@ export default function ReportsPage() {
                           {jobStatusColOrder.visibility["serviceType"] !== false && <TableCell className="text-sm text-foreground">{job.serviceType}</TableCell>}
                           {jobStatusColOrder.visibility["time"] !== false && (
                             <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                              {job.time ? new Date(job.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
+                              {job.time ? new Date(job.time).toLocaleTimeString([], { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
                             </TableCell>
                           )}
                           {jobStatusColOrder.visibility["driverName"] !== false && <TableCell className="text-sm text-foreground">{job.driverName || "\u2014"}</TableCell>}
@@ -3934,12 +3934,12 @@ export default function ReportsPage() {
                             )}
                             {evidenceColOrder.visibility["arrivalFlightTime"] !== false && (
                               <TableCell className="text-xs font-mono text-muted-foreground">
-                                {row.flight?.arrivalTime ? new Date(row.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}
+                                {row.flight?.arrivalTime ? new Date(row.flight.arrivalTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit" }) : "—"}
                               </TableCell>
                             )}
                             {evidenceColOrder.visibility["departurePickupTime"] !== false && (
                               <TableCell className="text-xs font-mono text-muted-foreground">
-                                {row.pickUpTime ? new Date(row.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}
+                                {row.pickUpTime ? new Date(row.pickUpTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit" }) : "—"}
                               </TableCell>
                             )}
                             {evidenceColOrder.visibility["status"] !== false && (
@@ -4372,7 +4372,7 @@ export default function ReportsPage() {
                               switch (col) {
                                 case "clientName": return <TableCell key={col} className="text-sm">{row.clientName}</TableCell>;
                                 case "flightNo": return <TableCell key={col} className="text-xs font-mono">{row.flightNo}</TableCell>;
-                                case "arrivalTime": return <TableCell key={col} className="text-xs font-mono">{row.arrivalTime ? new Date(row.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
+                                case "arrivalTime": return <TableCell key={col} className="text-xs font-mono">{row.arrivalTime ? new Date(row.arrivalTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
                                 case "terminal": return <TableCell key={col} className="text-xs">{row.terminal}</TableCell>;
                                 default: return null;
                               }
@@ -4451,7 +4451,7 @@ export default function ReportsPage() {
                                 case "agentRef": return <TableCell key={col} className="text-xs">{row.agentRef}</TableCell>;
                                 case "flightNo": return <TableCell key={col} className="text-xs font-mono">{row.flightNo}</TableCell>;
                                 case "terminal": return <TableCell key={col} className="text-xs">{row.terminal}</TableCell>;
-                                case "arrivalTime": return <TableCell key={col} className="text-xs font-mono">{row.arrivalTime ? new Date(row.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
+                                case "arrivalTime": return <TableCell key={col} className="text-xs font-mono">{row.arrivalTime ? new Date(row.arrivalTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
                                 case "pax": return <TableCell key={col} className="text-xs text-right">{row.pax}</TableCell>;
                                 case "hotelName": return <TableCell key={col} className="text-sm">{row.hotelName}</TableCell>;
                                 case "clientName": return <TableCell key={col} className="text-sm">{row.clientName}</TableCell>;
@@ -4549,7 +4549,7 @@ export default function ReportsPage() {
                                 case "customerName": return <TableCell key={col} className="text-sm">{row.customerName}</TableCell>;
                                 case "customerNumber": return <TableCell key={col} className="text-xs font-mono">{row.customerNumber}</TableCell>;
                                 case "pax": return <TableCell key={col} className="text-xs text-right">{row.pax}</TableCell>;
-                                case "pickupTime": return <TableCell key={col} className="text-xs font-mono">{row.pickupTime ? new Date(row.pickupTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
+                                case "pickupTime": return <TableCell key={col} className="text-xs font-mono">{row.pickupTime ? new Date(row.pickupTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
                                 case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
                                 default: return null;
                               }
@@ -4918,10 +4918,10 @@ export default function ReportsPage() {
                               {(fee.trafficJob.originAirport?.code || fee.trafficJob.fromZone?.name || fee.trafficJob.originZone?.name || fee.trafficJob.originHotel?.name || "\u2014")}{" \u2192 "}{(fee.trafficJob.destinationAirport?.code || fee.trafficJob.toZone?.name || fee.trafficJob.destinationZone?.name || fee.trafficJob.destinationHotel?.name || "\u2014")}
                             </TableCell>
                             <TableCell className="text-xs font-mono text-muted-foreground">
-                              {fee.trafficJob.flight?.arrivalTime ? new Date(fee.trafficJob.flight.arrivalTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "\u2014"}
+                              {fee.trafficJob.flight?.arrivalTime ? new Date(fee.trafficJob.flight.arrivalTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit" }) : "\u2014"}
                             </TableCell>
                             <TableCell className="text-xs font-mono text-muted-foreground">
-                              {fee.trafficJob.pickUpTime ? new Date(fee.trafficJob.pickUpTime).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : "\u2014"}
+                              {fee.trafficJob.pickUpTime ? new Date(fee.trafficJob.pickUpTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit" }) : "\u2014"}
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm">
                               {fee.trafficJob.hotel?.name || "\u2014"}

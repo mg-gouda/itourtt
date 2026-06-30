@@ -101,7 +101,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function fmt(dt: string | null | undefined) {
   if (!dt) return null;
-  return new Date(dt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  return new Date(dt).toLocaleTimeString([], { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function fmtDate(dt: string | null | undefined) {
