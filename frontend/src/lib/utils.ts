@@ -29,6 +29,39 @@ export function formatTimeCairo(value: string | Date | null | undefined): string
   });
 }
 
+/** Return YYYY-MM-DD for an instant as it falls on the calendar in Cairo. */
+export function dateStrCairo(value: string | Date): string {
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-CA", { timeZone: APP_TZ }); // en-CA => YYYY-MM-DD
+}
+
+/**
+ * Interpret a wall-clock date (YYYY-MM-DD) + time (HH:mm) as Africa/Cairo and
+ * return the corresponding UTC instant as an ISO string. Use when sending a
+ * user-entered Cairo time to the API, so it never depends on the device timezone.
+ */
+export function cairoWallclockToISO(dateStr: string, timeStr: string): string {
+  const naiveUTC = Date.parse(`${dateStr}T${timeStr}:00Z`);
+  if (isNaN(naiveUTC)) return new Date(`${dateStr}T${timeStr}:00`).toISOString();
+  // Find Cairo's UTC offset at that instant, then back it out.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TZ,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(new Date(naiveUTC));
+  const m: Record<string, string> = {};
+  for (const p of parts) m[p.type] = p.value;
+  const asCairo = Date.UTC(+m.year, +m.month - 1, +m.day, +m.hour, +m.minute, +m.second);
+  const offset = asCairo - naiveUTC;
+  return new Date(naiveUTC - offset).toISOString();
+}
+
 /** Return YYYY-MM-DD in local timezone (safe for API date params) */
 export function localDateStr(d: Date): string {
   const y = d.getFullYear();

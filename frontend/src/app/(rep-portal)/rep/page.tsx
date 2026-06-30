@@ -39,7 +39,7 @@ import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { InPlaceEvidenceDialog } from "@/components/in-place-evidence-dialog";
 import { CompletedEvidenceDialog } from "@/components/completed-evidence-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { formatDate , localDateStr } from "@/lib/utils";
+import { formatDate , localDateStr, formatTimeCairo, dateStrCairo, cairoWallclockToISO } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
 
 interface RepJob {
@@ -245,7 +245,9 @@ export default function RepDashboardPage() {
     if (!flightDelayDate || !flightDelayTime) return;
     setSendingDelay(true);
     try {
-      const newArrivalTime = new Date(`${flightDelayDate}T${flightDelayTime}:00`).toISOString();
+      // Entered date/time is a Cairo wall-clock; convert to a UTC instant
+      // independent of the rep's device timezone.
+      const newArrivalTime = cairoWallclockToISO(flightDelayDate, flightDelayTime);
       await api.patch(`/rep-portal/jobs/${flightDelayDialog.jobId}/flight-delay`, {
         arrivalTime: newArrivalTime,
       });
@@ -382,8 +384,8 @@ export default function RepDashboardPage() {
                     job={job}
                     onStatusChange={handleStatusChange}
                     onFlightDelay={(jobId, jobRef, jobDate, arrivalTime) => {
-                      setFlightDelayDate(arrivalTime ? arrivalTime.split("T")[0] : localDateStr(new Date()));
-                      setFlightDelayTime(arrivalTime ? new Date(arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "");
+                      setFlightDelayDate(dateStrCairo(arrivalTime ?? new Date()));
+                      setFlightDelayTime(arrivalTime ? (formatTimeCairo(arrivalTime) ?? "") : "");
                       setFlightDelayDialog({ open: true, jobId, jobRef, oldServiceDate: jobDate, currentArrivalTime: arrivalTime });
                     }}
                     onViewDetail={setJobDetailId}
@@ -406,8 +408,8 @@ export default function RepDashboardPage() {
                     job={job}
                     onStatusChange={handleStatusChange}
                     onFlightDelay={(jobId, jobRef, jobDate, arrivalTime) => {
-                      setFlightDelayDate(arrivalTime ? arrivalTime.split("T")[0] : localDateStr(new Date()));
-                      setFlightDelayTime(arrivalTime ? new Date(arrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : "");
+                      setFlightDelayDate(dateStrCairo(arrivalTime ?? new Date()));
+                      setFlightDelayTime(arrivalTime ? (formatTimeCairo(arrivalTime) ?? "") : "");
                       setFlightDelayDialog({ open: true, jobId, jobRef, oldServiceDate: jobDate, currentArrivalTime: arrivalTime });
                     }}
                     onViewDetail={setJobDetailId}
@@ -588,7 +590,7 @@ export default function RepDashboardPage() {
                 <p className="text-xs text-muted-foreground">{t("portal.currentArrivalTime")}</p>
                 <p className="text-sm font-medium text-foreground">
                   {flightDelayDialog.currentArrivalTime
-                    ? new Date(flightDelayDialog.currentArrivalTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })
+                    ? (formatTimeCairo(flightDelayDialog.currentArrivalTime) ?? "—")
                     : "—"}
                 </p>
               </div>
