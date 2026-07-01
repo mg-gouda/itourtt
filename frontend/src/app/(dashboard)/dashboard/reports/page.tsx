@@ -186,6 +186,7 @@ interface RepJobScore {
   attendance: boolean;
   appearance: boolean;
   work: boolean;
+  survey: boolean;
   review: boolean;
   total: number | null;
   fee: number | null;
@@ -209,6 +210,7 @@ interface RepFeeReport {
       isPosted: boolean;
       repStatus: string | null;
       inPlaceEvidence: Array<{ imageUrls: string[]; gpsMapLink: string | null; createdAt: string }>;
+      hasSurvey: boolean;
       repJobScore: RepJobScore | null;
       trafficJob: {
         id: string;
@@ -281,6 +283,38 @@ interface RepScoreReport {
   avgScore: number;
   count: number;
   totalFee: number;
+}
+
+interface GuestSurveyRow {
+  id: string;
+  jobId: string;
+  internalRef: string;
+  jobDate: string;
+  submittedAt: string;
+  repId: string;
+  repName: string;
+  ageRange: string;
+  noOfAdults: number;
+  noOfChildren: number;
+  noOfInfants: number;
+  flightNo: string;
+  stayLength: string | null;
+  jobReference: string;
+  repeaterGuest: string;
+  guestNationality: string;
+  localTravelAgent: string | null;
+  hotelName: string;
+  email: string | null;
+  generalComment: string;
+  contactNumber: string;
+}
+
+interface GuestSurveyReport {
+  from: string;
+  to: string;
+  count: number;
+  reps: Array<{ repId: string; repName: string; count: number }>;
+  rows: GuestSurveyRow[];
 }
 
 interface DriverScoreRow {
@@ -827,6 +861,7 @@ export default function ReportsPage() {
   const canAgentStatement = usePermission("reports.agentStatement");
   const canRepFees = usePermission("reports.repFees");
   const canRepScore = usePermission("reports.repScore");
+  const canGuestSurveys = usePermission("reports.guestSurveys");
   const canRevenue = usePermission("reports.revenue");
   const canVehicleCompliance = usePermission("reports.vehicleCompliance");
   const canJobStatus = usePermission("reports.jobStatus");
@@ -926,6 +961,14 @@ export default function ReportsPage() {
   const [repScoreData, setRepScoreData] = useState<RepScoreReport | null>(null);
   const [repScoreLoading, setRepScoreLoading] = useState(false);
   const repScorePrintRef = useRef<HTMLDivElement>(null);
+
+  // Guest Surveys
+  const [guestSurveyFrom, setGuestSurveyFrom] = useState(thirtyDaysAgo);
+  const [guestSurveyTo, setGuestSurveyTo] = useState(today);
+  const [guestSurveyRepId, setGuestSurveyRepId] = useState("ALL");
+  const [guestSurveyData, setGuestSurveyData] = useState<GuestSurveyReport | null>(null);
+  const [guestSurveyLoading, setGuestSurveyLoading] = useState(false);
+  const guestSurveyPrintRef = useRef<HTMLDivElement>(null);
 
   // Driver Score
   const [driverScoreFrom, setDriverScoreFrom] = useState(thirtyDaysAgo);
@@ -1207,16 +1250,17 @@ export default function ReportsPage() {
 
   const saveRepScore = async (
     jobId: string,
-    score: { attendance: boolean; appearance: boolean; work: boolean; review: boolean },
+    score: { attendance: boolean; appearance: boolean; work: boolean; survey: boolean; review: boolean },
   ) => {
     setScoreSaving((s) => ({ ...s, [jobId]: true }));
     try {
       await api.put(`/reports/rep-score/${jobId}`, score);
-      // Recompute the score locally
+      // Recompute the score locally (weights must match rep-score.util.ts)
       const total =
         (score.attendance ? 20 : 0) +
         (score.appearance ? 15 : 0) +
-        (score.work ? 30 : 0) +
+        (score.work ? 15 : 0) +
+        (score.survey ? 15 : 0) +
         (score.review ? 35 : 0);
       let fee = 20, evaluation = "Poor";
       if (total >= 90) { fee = 50; evaluation = "Excellent"; }
@@ -1497,6 +1541,23 @@ export default function ReportsPage() {
       setRepScoreLoading(false);
     }
   };
+
+  const fetchGuestSurveys = async () => {
+    setGuestSurveyLoading(true);
+    try {
+      const repParam = guestSurveyRepId !== "ALL" ? `&repId=${guestSurveyRepId}` : "";
+      const { data } = await api.get(
+        `/reports/guest-surveys?from=${guestSurveyFrom}&to=${guestSurveyTo}${repParam}`
+      );
+      setGuestSurveyData(data.data || data);
+    } catch {
+      toast.error("Failed to load guest survey report");
+    } finally {
+      setGuestSurveyLoading(false);
+    }
+  };
+
+  const exportGuestSurveysPdf = () => printFromRef(guestSurveyPrintRef, `Guest Surveys - ${guestSurveyFrom} to ${guestSurveyTo}`);
 
   const exportRepScorePdf = () => printFromRef(repScorePrintRef, `Rep Score Report - ${repScoreFrom} to ${repScoreTo}`);
 
@@ -1949,6 +2010,15 @@ export default function ReportsPage() {
             >
               <UserCheck className="h-3.5 w-3.5" />
               Rep Score
+            </TabsTrigger>
+          )}
+          {canGuestSurveys && (
+            <TabsTrigger
+              value="guest-surveys"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              Guest Surveys
             </TabsTrigger>
           )}
           {canRevenue && (
@@ -4792,6 +4862,144 @@ export default function ReportsPage() {
           </TabsContent>
         )}
 
+        {canGuestSurveys && (
+          <TabsContent value="guest-surveys" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
+                  <Input
+                    type="date"
+                    value={guestSurveyFrom}
+                    onChange={(e) => setGuestSurveyFrom(e.target.value)}
+                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
+                  <Input
+                    type="date"
+                    value={guestSurveyTo}
+                    onChange={(e) => setGuestSurveyTo(e.target.value)}
+                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
+                  />
+                </div>
+                <div className="min-w-[180px]">
+                  <Label className="text-muted-foreground text-xs">Rep Name</Label>
+                  <Select value={guestSurveyRepId} onValueChange={setGuestSurveyRepId}>
+                    <SelectTrigger className="border-border bg-muted/50 mt-0.5 h-8 text-sm">
+                      <SelectValue placeholder="All Reps" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Reps</SelectItem>
+                      {repList.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" onClick={fetchGuestSurveys} disabled={guestSurveyLoading} className="gap-1.5">
+                  {guestSurveyLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                  {t("common.search")}
+                </Button>
+                {guestSurveyData && guestSurveyData.rows.length > 0 && (
+                  <Button size="sm" variant="outline" onClick={exportGuestSurveysPdf} className="gap-1.5 ml-auto">
+                    <Printer className="h-3.5 w-3.5" />
+                    {t("reports.exportPdf")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            {guestSurveyLoading ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : guestSurveyData ? (
+              <Card className="border-border bg-card p-4">
+                <div ref={guestSurveyPrintRef}>
+                  <div className="mb-4 flex flex-wrap gap-4">
+                    <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
+                      <p className="text-xs text-muted-foreground">Total Surveys</p>
+                      <p className="text-lg font-bold text-foreground">{guestSurveyData.count}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
+                      <p className="text-xs text-muted-foreground">Reps</p>
+                      <p className="text-lg font-bold text-foreground">{guestSurveyData.reps.length}</p>
+                    </div>
+                  </div>
+
+                  {guestSurveyData.reps.length > 0 && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {guestSurveyData.reps.map((r) => (
+                        <span key={r.repId} className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-foreground">
+                          {r.repName}: <b>{r.count}</b>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {guestSurveyData.rows.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">No surveys found for this period.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-border">
+                            <TableHead className="text-muted-foreground text-xs">Date</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Rep</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Job Ref</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Flight</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Hotel</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Nationality</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Age</TableHead>
+                            <TableHead className="text-muted-foreground text-xs text-center">Adt</TableHead>
+                            <TableHead className="text-muted-foreground text-xs text-center">Chd</TableHead>
+                            <TableHead className="text-muted-foreground text-xs text-center">Inf</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Stay</TableHead>
+                            <TableHead className="text-muted-foreground text-xs text-center">Repeat</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Local Agent</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Contact</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Email</TableHead>
+                            <TableHead className="text-muted-foreground text-xs">Comment</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {guestSurveyData.rows.map((row, idx) => (
+                            <TableRow
+                              key={row.id}
+                              className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
+                            >
+                              <TableCell className="text-xs whitespace-nowrap">{formatDate(row.jobDate)}</TableCell>
+                              <TableCell className="text-xs font-medium whitespace-nowrap">{row.repName}</TableCell>
+                              <TableCell className="text-xs font-mono whitespace-nowrap">{row.internalRef}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{row.flightNo}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{row.hotelName}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{row.guestNationality}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{row.ageRange}</TableCell>
+                              <TableCell className="text-xs text-center">{row.noOfAdults}</TableCell>
+                              <TableCell className="text-xs text-center">{row.noOfChildren}</TableCell>
+                              <TableCell className="text-xs text-center">{row.noOfInfants}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{row.stayLength || "—"}</TableCell>
+                              <TableCell className="text-xs text-center">{row.repeaterGuest}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{row.localTravelAgent || "—"}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{row.contactNumber}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{row.email || "—"}</TableCell>
+                              <TableCell className="text-xs max-w-[240px] truncate" title={row.generalComment}>{row.generalComment}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">Select a date range and search to view guest surveys.</p>
+            )}
+          </TabsContent>
+        )}
+
       </Tabs>
 
       {/* ─── REP FEE DETAIL MODAL ─── */}
@@ -4849,7 +5057,8 @@ export default function ReportsPage() {
                         <TableHead className="text-muted-foreground text-xs text-center">Missed</TableHead>
                         <TableHead className="text-muted-foreground text-xs text-center">Att<br/><span className="text-[10px] font-normal opacity-75">20pt</span></TableHead>
                         <TableHead className="text-muted-foreground text-xs text-center">App<br/><span className="text-[10px] font-normal opacity-75">15pt</span></TableHead>
-                        <TableHead className="text-muted-foreground text-xs text-center">Work<br/><span className="text-[10px] font-normal opacity-75">30pt</span></TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-center">Work<br/><span className="text-[10px] font-normal opacity-75">15pt</span></TableHead>
+                        <TableHead className="text-muted-foreground text-xs text-center">Survey<br/><span className="text-[10px] font-normal opacity-75">15pt</span></TableHead>
                         <TableHead className="text-muted-foreground text-xs text-center">Rev<br/><span className="text-[10px] font-normal opacity-75">35pt</span></TableHead>
                         <TableHead className="text-muted-foreground text-xs text-right">Score</TableHead>
                         <TableHead className="text-muted-foreground text-xs text-right">Fee</TableHead>
@@ -4865,13 +5074,16 @@ export default function ReportsPage() {
                         const hasInPlace = fee.inPlaceEvidence.length > 0;
                         const isCompleted = fee.repStatus === "COMPLETED" || fee.trafficJob.status === "COMPLETED";
                         const currentScore = scoreEdits[jobId] ?? fee.repJobScore;
+                        // Survey point can be toggled once a survey exists for the job
+                        // (submitting one auto-sets it; this lets the accountant adjust).
+                        const hasSurvey = fee.hasSurvey || (currentScore?.survey ?? false);
                         const isSaving = scoreSaving[jobId] ?? false;
                         const isMissed = missedJobs[jobId] ?? false;
 
-                        const toggleScore = (field: "attendance" | "appearance" | "work" | "review", enabled: boolean) => {
+                        const toggleScore = (field: "attendance" | "appearance" | "work" | "survey" | "review", enabled: boolean) => {
                           if (!enabled || isMissed) return;
-                          const base = currentScore ?? { attendance: false, appearance: false, work: false, review: false, total: null, fee: null, evaluation: null };
-                          const next = { attendance: base.attendance, appearance: base.appearance, work: base.work, review: base.review, [field]: !base[field] };
+                          const base = currentScore ?? { attendance: false, appearance: false, work: false, survey: false, review: false, total: null, fee: null, evaluation: null };
+                          const next = { attendance: base.attendance, appearance: base.appearance, work: base.work, survey: base.survey, review: base.review, [field]: !base[field] };
                           saveRepScore(jobId, next);
                         };
 
@@ -4975,7 +5187,18 @@ export default function ReportsPage() {
                                 disabled={isSaving || isMissed}
                                 checked={!isMissed && (currentScore?.work ?? false)}
                                 onChange={() => toggleScore("work", true)}
-                                title="Work (30pt)"
+                                title="Work (15pt)"
+                                className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
+                              />
+                            </TableCell>
+                            {/* Survey — enabled once a guest survey exists for the job */}
+                            <TableCell className="text-center">
+                              <input
+                                type="checkbox"
+                                disabled={!hasSurvey || isSaving || isMissed}
+                                checked={!isMissed && (currentScore?.survey ?? false)}
+                                onChange={() => toggleScore("survey", hasSurvey)}
+                                title={hasSurvey ? "Survey (15pt)" : "Requires a submitted guest survey"}
                                 className="h-4 w-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed accent-emerald-600"
                               />
                             </TableCell>
@@ -5058,7 +5281,8 @@ export default function ReportsPage() {
                     : fee.amount;
                   return sum + (Number(feeAmt) || 0);
                 }, 0);
-                // Sum only deductions for jobs in the current rep's fee list
+                // Sum deductions for every job in the rep's fee list — deductions are
+                // untied from the Missed flag, so they apply whether or not a job is missed.
                 const relevantJobIds = new Set(selectedRep.fees.map((f) => f.trafficJob.id));
                 const totalDeductions = Object.entries(deductions)
                   .filter(([k]) => relevantJobIds.has(k))
@@ -5327,9 +5551,8 @@ export default function ReportsPage() {
                               type="number"
                               value={driverDeductions[jobId] ?? ""}
                               onChange={(e) => setDriverDeductions((prev) => ({ ...prev, [jobId]: Number(e.target.value) }))}
-                              disabled={isMissed}
                               placeholder="0"
-                              className="w-20 text-right text-sm bg-transparent border border-border rounded px-1 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40"
+                              className="w-20 text-right text-sm bg-transparent border border-border rounded px-1 py-0.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             />
                           </TableCell>
                           <TableCell>
@@ -5362,8 +5585,9 @@ export default function ReportsPage() {
                   )}
                   {(() => {
                     const netFees = selectedDriver.trips.reduce((sum, trip) => {
-                      if (driverMissedJobs[trip.jobId]) return sum;
-                      const fee = trip.tripFee ?? 0;
+                      // Missed removes the trip fee, but a deduction still applies
+                      // independently (deductions are untied from the Missed flag).
+                      const fee = driverMissedJobs[trip.jobId] ? 0 : (trip.tripFee ?? 0);
                       const ded = driverDeductions[trip.jobId] ?? 0;
                       return sum + fee - ded;
                     }, 0);

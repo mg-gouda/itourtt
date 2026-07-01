@@ -314,6 +314,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'reports.agentStatement',   labelKey: 'permissions.reports.agentStatement',   crudType: 'R' },
       { key: 'reports.repFees',          labelKey: 'permissions.reports.repFees',          crudType: 'R' },
       { key: 'reports.repScore',         labelKey: 'permissions.reports.repScore',         crudType: 'R' },
+      { key: 'reports.guestSurveys',     labelKey: 'permissions.reports.guestSurveys',     crudType: 'R' },
       { key: 'reports.revenue',          labelKey: 'permissions.reports.revenue',          crudType: 'R' },
       { key: 'reports.vehicleCompliance',labelKey: 'permissions.reports.vehicleCompliance',crudType: 'R' },
       { key: 'reports.jobStatus',        labelKey: 'permissions.reports.jobStatus',        crudType: 'R' },

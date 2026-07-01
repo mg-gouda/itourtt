@@ -597,6 +597,7 @@ model Rep {
   assignments   TrafficAssignment[]
   repFees       RepFee[]
   repJobScores  RepJobScore[]
+  guestSurveys  GuestSurvey[]
   notifications RepNotification[]
 
   @@map("reps")
@@ -1252,6 +1253,7 @@ model TrafficJob {
   completedEvidence   CompletedEvidence[]
   inProgressEvidence  InProgressEvidence[]
   repJobScore         RepJobScore?
+  guestSurvey         GuestSurvey?
   driverJobScore      DriverJobScore?
   whatsappLogs        WhatsappNotificationLog[]
   userNotifications   UserNotification[]
@@ -1935,7 +1937,8 @@ model RepJobScore {
   repId        String   @map("rep_id")
   attendance   Boolean  @default(false) // 20 pts — In Place evidence
   appearance   Boolean  @default(false) // 15 pts — In Place evidence
-  work         Boolean  @default(false) // 30 pts — Completed status
+  work         Boolean  @default(false) // 15 pts — Completed status
+  survey       Boolean  @default(false) // 15 pts — Guest survey submitted
   review       Boolean  @default(false) // 35 pts — manual
   scoredById   String   @map("scored_by_id")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -1946,6 +1949,42 @@ model RepJobScore {
   scoredBy   User       @relation("RepScoreScoredBy", fields: [scoredById], references: [id])
 
   @@map("rep_job_scores")
+}
+
+// ─────────────────────────────────────────────
+// ARRIVAL GUEST SURVEY (native, filled by rep per ARR job)
+// ─────────────────────────────────────────────
+
+model GuestSurvey {
+  id            String @id @default(uuid())
+  trafficJobId  String @unique @map("traffic_job_id")
+  repId         String @map("rep_id")
+  submittedById String @map("submitted_by_id")
+
+  ageRange         String  @map("age_range") // "20-30" | "30-45" | "45-60"
+  noOfAdults       Int     @map("no_of_adults")
+  flightNo         String  @map("flight_no")
+  noOfInfants      Int     @default(0) @map("no_of_infants")
+  stayLength       String? @map("stay_length")
+  jobReference     String  @map("job_reference")
+  repeaterGuest    String  @map("repeater_guest") // "YES" | "NO"
+  guestNationality String  @map("guest_nationality")
+  noOfChildren     Int     @default(0) @map("no_of_children")
+  localTravelAgent String? @map("local_travel_agent")
+  hotelName        String  @map("hotel_name")
+  email            String?
+  generalComment   String  @map("general_comment")
+  contactNumber    String  @map("contact_number") // WhatsApp / Viber / Telegram
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
+  rep        Rep        @relation(fields: [repId], references: [id])
+
+  @@index([repId])
+  @@index([createdAt])
+  @@map("guest_surveys")
 }
 
 model DriverJobScore {

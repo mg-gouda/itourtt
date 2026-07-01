@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { JobStatus, ServiceType } from '../../generated/prisma/client.js';
+import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
 
 /** Returns the effective driver name: direct driver → external driver name → supplier name. */
 function resolveDriverName(assignment: {
@@ -13,27 +14,6 @@ function resolveDriverName(assignment: {
   if (assignment.externalDriverName) return assignment.externalDriverName;
   if (assignment.supplier) return assignment.supplier.tradeName ?? assignment.supplier.legalName;
   return null;
-}
-
-function calcRepScore(s: {
-  attendance: boolean;
-  appearance: boolean;
-  work: boolean;
-  review: boolean;
-}): number {
-  return (
-    (s.attendance ? 20 : 0) +
-    (s.appearance ? 15 : 0) +
-    (s.work ? 30 : 0) +
-    (s.review ? 35 : 0)
-  );
-}
-
-function scoreToFeeAndEval(total: number): { fee: number; evaluation: string } {
-  if (total >= 90) return { fee: 50, evaluation: 'Excellent' };
-  if (total >= 75) return { fee: 40, evaluation: 'Good' };
-  if (total >= 61) return { fee: 30, evaluation: 'Average' };
-  return { fee: 20, evaluation: 'Poor' };
 }
 
 function calcDriverScore(s: {
@@ -465,6 +445,7 @@ export class ReportsService {
             agent: true,
             repFees: true,
             repJobScore: true,
+            guestSurvey: { select: { id: true } },
             inPlaceEvidence: {
               select: { imageUrls: true, gpsMapLink: true, createdAt: true },
             },
@@ -517,11 +498,13 @@ export class ReportsService {
         isPosted: !!existingFee,
         repStatus: a.repStatus,
         inPlaceEvidence: a.trafficJob.inPlaceEvidence,
+        hasSurvey: !!a.trafficJob.guestSurvey,
         repJobScore: rjs
           ? {
               attendance: rjs.attendance,
               appearance: rjs.appearance,
               work: rjs.work,
+              survey: rjs.survey,
               review: rjs.review,
               total: scoreTotal,
               fee: feeAndEval?.fee ?? null,
@@ -577,6 +560,7 @@ export class ReportsService {
       attendance: boolean;
       appearance: boolean;
       work: boolean;
+      survey: boolean;
       review: boolean;
     },
   ) {
@@ -799,6 +783,7 @@ export class ReportsService {
         attendance: s.attendance,
         appearance: s.appearance,
         work: s.work,
+        survey: s.survey,
         review: s.review,
         total,
         fee,
@@ -811,6 +796,74 @@ export class ReportsService {
     const totalFee = rows.reduce((sum, r) => sum + r.fee, 0);
 
     return { from, to, rows, totalScore, avgScore, count: rows.length, totalFee };
+  }
+
+  // ─────────────────────────────────────────────
+  // GUEST SURVEY REPORT
+  // ─────────────────────────────────────────────
+
+  async guestSurveyReport(from: string, to: string, repId?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const surveys = await this.prisma.guestSurvey.findMany({
+      where: {
+        ...(repId ? { repId } : {}),
+        trafficJob: {
+          jobDate: { gte: fromDate, lte: toDate },
+          deletedAt: null,
+        },
+      },
+      include: {
+        rep: { select: { id: true, name: true } },
+        trafficJob: {
+          select: {
+            id: true,
+            internalRef: true,
+            jobDate: true,
+            serviceType: true,
+          },
+        },
+      },
+      orderBy: [{ rep: { name: 'asc' } }, { createdAt: 'asc' }],
+    });
+
+    const rows = surveys.map((s) => ({
+      id: s.id,
+      jobId: s.trafficJobId,
+      internalRef: s.trafficJob.internalRef,
+      jobDate: s.trafficJob.jobDate,
+      submittedAt: s.createdAt,
+      repId: s.repId,
+      repName: s.rep.name,
+      ageRange: s.ageRange,
+      noOfAdults: s.noOfAdults,
+      noOfChildren: s.noOfChildren,
+      noOfInfants: s.noOfInfants,
+      flightNo: s.flightNo,
+      stayLength: s.stayLength,
+      jobReference: s.jobReference,
+      repeaterGuest: s.repeaterGuest,
+      guestNationality: s.guestNationality,
+      localTravelAgent: s.localTravelAgent,
+      hotelName: s.hotelName,
+      email: s.email,
+      generalComment: s.generalComment,
+      contactNumber: s.contactNumber,
+    }));
+
+    // Per-rep summary (count of surveys submitted in range)
+    const repMap = new Map<string, { repId: string; repName: string; count: number }>();
+    for (const r of rows) {
+      const existing = repMap.get(r.repId);
+      if (existing) existing.count++;
+      else repMap.set(r.repId, { repId: r.repId, repName: r.repName, count: 1 });
+    }
+    const reps = Array.from(repMap.values()).sort((a, b) =>
+      a.repName.localeCompare(b.repName),
+    );
+
+    return { from, to, count: rows.length, reps, rows };
   }
 
   // ─────────────────────────────────────────────

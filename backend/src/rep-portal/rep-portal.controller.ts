@@ -21,7 +21,7 @@ import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
-import { IsString, IsIn, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsIn, IsOptional, IsNumber, IsInt, Min } from 'class-validator';
 import * as path from 'path';
 import * as fs from 'fs';
 import { stampEvidenceImage, StampMeta } from '../common/utils/stamp-image.js';
@@ -55,6 +55,53 @@ class DateQueryDto {
   @IsOptional()
   @IsString()
   date?: string;
+}
+
+class GuestSurveyDto {
+  @IsIn(['20-30', '30-45', '45-60'])
+  ageRange!: string;
+
+  @IsInt()
+  @Min(0)
+  noOfAdults!: number;
+
+  @IsString()
+  flightNo!: string;
+
+  @IsInt()
+  @Min(0)
+  noOfInfants!: number;
+
+  @IsOptional()
+  @IsString()
+  stayLength?: string;
+
+  @IsIn(['YES', 'NO'])
+  repeaterGuest!: string;
+
+  @IsString()
+  guestNationality!: string;
+
+  @IsInt()
+  @Min(0)
+  noOfChildren!: number;
+
+  @IsOptional()
+  @IsString()
+  localTravelAgent?: string;
+
+  @IsString()
+  hotelName!: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsString()
+  generalComment!: string;
+
+  @IsString()
+  contactNumber!: string;
 }
 
 @Controller('rep-portal')
@@ -163,6 +210,25 @@ export class RepPortalController {
 
     const result = await this.repPortalService.submitInPlace(userId, jobId, imageUrls, latitude, longitude);
     return new ApiResponse(result, 'In-place evidence submitted');
+  }
+
+  @Get('jobs/:jobId/survey')
+  async getGuestSurvey(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    const result = await this.repPortalService.getGuestSurvey(userId, jobId);
+    return new ApiResponse(result);
+  }
+
+  @Post('jobs/:jobId/survey')
+  async submitGuestSurvey(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Body() dto: GuestSurveyDto,
+  ) {
+    const result = await this.repPortalService.submitGuestSurvey(userId, jobId, dto);
+    return new ApiResponse(result, 'Guest survey submitted');
   }
 
   @Post('jobs/:jobId/completed')

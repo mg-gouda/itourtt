@@ -143,6 +143,9 @@ class UpsertRepScoreDto {
   work!: boolean;
 
   @IsBoolean()
+  survey!: boolean;
+
+  @IsBoolean()
   review!: boolean;
 }
 
@@ -271,6 +274,20 @@ export class ReportsController {
       throw new BadRequestException('from and to query parameters are required');
     }
     const result = await this.reportsService.repScoreReport(
+      query.from,
+      query.to,
+      query.repId,
+    );
+    return new ApiResponse(result);
+  }
+
+  @Get('guest-surveys')
+  @Permissions('reports.guestSurveys')
+  async guestSurveyReport(@Query() query: RepScoreQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.guestSurveyReport(
       query.from,
       query.to,
       query.repId,

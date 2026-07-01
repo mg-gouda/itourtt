@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveRepGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
+import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
 
 type RepJobStatus = 'COMPLETED' | 'CANCELLED';
 
@@ -39,6 +40,7 @@ export class RepPortalService {
     fromZone: true,
     toZone: true,
     flight: true,
+    guestSurvey: { select: { id: true } },
     agent: { select: { legalName: true } },
     customer: { select: { legalName: true } },
     assignment: {
@@ -464,6 +466,149 @@ export class RepPortalService {
         ...updated.trafficJob,
         repStatus: updated.repStatus,
       };
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // ARRIVAL GUEST SURVEY
+  // ─────────────────────────────────────────────
+
+  async getGuestSurvey(userId: string, jobId: string) {
+    const repId = await this.resolveRepId(userId);
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { repId, trafficJobId: jobId },
+      include: {
+        trafficJob: {
+          include: {
+            flight: { select: { flightNo: true } },
+            originHotel: { select: { name: true } },
+            destinationHotel: { select: { name: true } },
+          },
+        },
+      },
+    });
+    if (!assignment) {
+      throw new NotFoundException('Job not found or not assigned to you');
+    }
+
+    const survey = await this.prisma.guestSurvey.findUnique({
+      where: { trafficJobId: jobId },
+    });
+
+    const job = assignment.trafficJob as any;
+    return {
+      survey,
+      // Prefill hints for a fresh survey
+      prefill: {
+        internalRef: job.internalRef,
+        flightNo: job.flight?.flightNo ?? '',
+        hotelName:
+          job.originHotel?.name ?? job.destinationHotel?.name ?? '',
+        paxCount: job.paxCount ?? null,
+      },
+    };
+  }
+
+  async submitGuestSurvey(
+    userId: string,
+    jobId: string,
+    data: {
+      ageRange: string;
+      noOfAdults: number;
+      flightNo: string;
+      noOfInfants: number;
+      stayLength?: string | null;
+      repeaterGuest: string;
+      guestNationality: string;
+      noOfChildren: number;
+      localTravelAgent?: string | null;
+      hotelName: string;
+      email?: string | null;
+      generalComment: string;
+      contactNumber: string;
+    },
+  ) {
+    const rep = await this.prisma.rep.findFirst({
+      where: { userId, deletedAt: null },
+    });
+    if (!rep) throw new ForbiddenException('No rep profile linked to this account');
+    const repId = rep.id;
+
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { repId, trafficJobId: jobId },
+      include: { trafficJob: { select: { serviceType: true, internalRef: true } } },
+    });
+    if (!assignment) {
+      throw new NotFoundException('Job not found or not assigned to you');
+    }
+    if (assignment.trafficJob.serviceType !== 'ARR') {
+      throw new BadRequestException(
+        'The arrival guest survey applies to arrival (ARR) jobs only',
+      );
+    }
+
+    const jobReference = assignment.trafficJob.internalRef;
+
+    return this.prisma.$transaction(async (tx) => {
+      const payload = {
+        repId,
+        submittedById: userId,
+        ageRange: data.ageRange,
+        noOfAdults: data.noOfAdults,
+        flightNo: data.flightNo,
+        noOfInfants: data.noOfInfants ?? 0,
+        stayLength: data.stayLength ?? null,
+        jobReference,
+        repeaterGuest: data.repeaterGuest,
+        guestNationality: data.guestNationality,
+        noOfChildren: data.noOfChildren ?? 0,
+        localTravelAgent: data.localTravelAgent ?? null,
+        hotelName: data.hotelName,
+        email: data.email ?? null,
+        generalComment: data.generalComment,
+        contactNumber: data.contactNumber,
+      };
+
+      const survey = await tx.guestSurvey.upsert({
+        where: { trafficJobId: jobId },
+        update: payload,
+        create: { trafficJobId: jobId, ...payload },
+      });
+
+      // Auto-award the survey scoring point (15 pts) and recalculate the rep fee,
+      // preserving any existing score flags. Mirrors how In-Place evidence unlocks
+      // attendance/appearance — submitting the survey flips `survey` to true.
+      const existingScore = await tx.repJobScore.findUnique({
+        where: { trafficJobId: jobId },
+      });
+
+      const flags = {
+        attendance: existingScore?.attendance ?? false,
+        appearance: existingScore?.appearance ?? false,
+        work: existingScore?.work ?? false,
+        survey: true,
+        review: existingScore?.review ?? false,
+      };
+
+      await tx.repJobScore.upsert({
+        where: { trafficJobId: jobId },
+        update: { survey: true, scoredById: userId },
+        create: { trafficJobId: jobId, repId, scoredById: userId, ...flags },
+      });
+
+      const { fee } = scoreToFeeAndEval(calcRepScore(flags));
+      const existingFee = await tx.repFee.findFirst({
+        where: { trafficJobId: jobId, repId },
+      });
+      if (existingFee) {
+        await tx.repFee.update({ where: { id: existingFee.id }, data: { amount: fee } });
+      } else {
+        await tx.repFee.create({
+          data: { trafficJobId: jobId, repId, amount: fee, currency: 'EGP' },
+        });
+      }
+
+      return survey;
     });
   }
 

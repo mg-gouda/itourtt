@@ -38,6 +38,7 @@ import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { InPlaceEvidenceDialog } from "@/components/in-place-evidence-dialog";
 import { CompletedEvidenceDialog } from "@/components/completed-evidence-dialog";
+import { GuestSurveyDialog } from "@/components/guest-survey-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr, formatTimeCairo, dateStrCairo, cairoWallclockToISO } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
@@ -78,6 +79,7 @@ interface RepJob {
   };
   agent?: { legalName: string };
   customer?: { legalName: string };
+  guestSurvey?: { id: string } | null;
   assignment?: {
     vehicle?: { plateNumber: string; vehicleType?: { name: string } };
     driver?: { name: string; mobileNumber: string };
@@ -147,6 +149,11 @@ export default function RepDashboardPage() {
     jobRef: string;
   }>({ open: false, jobId: "", jobRef: "" });
   const [completedDialog, setCompletedDialog] = useState<{
+    open: boolean;
+    jobId: string;
+    jobRef: string;
+  }>({ open: false, jobId: "", jobRef: "" });
+  const [surveyDialog, setSurveyDialog] = useState<{
     open: boolean;
     jobId: string;
     jobRef: string;
@@ -316,16 +323,6 @@ export default function RepDashboardPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">{t("portal.myJobs")}</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <a
-              href="https://forms.office.com/r/02VRqthutn"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
-              {t("portal.survey")}
-            </a>
-          </Button>
           <Button variant="outline" size="sm" onClick={fetchAll}>
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
             {t("portal.refresh")}
@@ -388,6 +385,7 @@ export default function RepDashboardPage() {
                       setFlightDelayTime(arrivalTime ? (formatTimeCairo(arrivalTime) ?? "") : "");
                       setFlightDelayDialog({ open: true, jobId, jobRef, oldServiceDate: jobDate, currentArrivalTime: arrivalTime });
                     }}
+                    onSurvey={(jobId, jobRef) => setSurveyDialog({ open: true, jobId, jobRef })}
                     onViewDetail={setJobDetailId}
                     formatTime={formatTime}
                   />
@@ -412,6 +410,7 @@ export default function RepDashboardPage() {
                       setFlightDelayTime(arrivalTime ? (formatTimeCairo(arrivalTime) ?? "") : "");
                       setFlightDelayDialog({ open: true, jobId, jobRef, oldServiceDate: jobDate, currentArrivalTime: arrivalTime });
                     }}
+                    onSurvey={(jobId, jobRef) => setSurveyDialog({ open: true, jobId, jobRef })}
                     onViewDetail={setJobDetailId}
                     formatTime={formatTime}
                   />
@@ -557,6 +556,18 @@ export default function RepDashboardPage() {
         onSuccess={fetchJobs}
       />
 
+      {/* Guest Survey Dialog */}
+      <GuestSurveyDialog
+        open={surveyDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setSurveyDialog({ open: false, jobId: "", jobRef: "" });
+        }}
+        jobId={surveyDialog.jobId}
+        jobRef={surveyDialog.jobRef}
+        portalApiBase="/rep-portal"
+        onSuccess={fetchJobs}
+      />
+
       {/* Flight Delay Dialog */}
       <Dialog
         open={flightDelayDialog.open}
@@ -654,12 +665,14 @@ function JobCard({
   job,
   onStatusChange,
   onFlightDelay,
+  onSurvey,
   onViewDetail,
   formatTime,
 }: {
   job: RepJob;
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
   onFlightDelay: (jobId: string, jobRef: string, jobDate: string, arrivalTime: string | null) => void;
+  onSurvey: (jobId: string, jobRef: string) => void;
   onViewDetail: (jobId: string) => void;
   formatTime: (iso: string | null) => string | null;
 }) {
@@ -877,6 +890,23 @@ function JobCard({
             >
               <AlertTriangle className="h-3.5 w-3.5" />
               {t("portal.flightDelay")}
+            </Button>
+          )}
+          {job.serviceType === "ARR" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className={
+                job.guestSurvey
+                  ? "gap-1.5 text-emerald-400 hover:text-emerald-300"
+                  : "gap-1.5 text-sky-400 hover:text-sky-300"
+              }
+              onClick={() => onSurvey(job.id, job.internalRef)}
+              title={job.guestSurvey ? t("survey.alreadySubmitted") : undefined}
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              {t("portal.survey")}
+              {job.guestSurvey && <CheckCircle2 className="h-3.5 w-3.5" />}
             </Button>
           )}
         </div>

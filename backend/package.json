@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "3.5.1",
+  "version": "3.6.0",
   "description": "iTour Transport & Traffic — Enterprise transport management system for Egypt-based transfer operations with dispatch, finance, Odoo ERP integration, AI-powered job import, and multi-portal access.",
   "author": "Mohamed Gouda <mggouda@gmail.com>",
   "private": true,

@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
+import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
 import * as XLSX from 'xlsx';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
@@ -2136,16 +2137,6 @@ export class ExportService {
     const fromDate = new Date(from);
     const toDate = new Date(to);
 
-    function calcRepScore(s: { attendance: boolean; appearance: boolean; work: boolean; review: boolean }) {
-      return (s.attendance ? 20 : 0) + (s.appearance ? 15 : 0) + (s.work ? 30 : 0) + (s.review ? 35 : 0);
-    }
-    function scoreToFeeAndEval(total: number) {
-      if (total >= 90) return { fee: 50, evaluation: 'Excellent' };
-      if (total >= 75) return { fee: 40, evaluation: 'Good' };
-      if (total >= 61) return { fee: 30, evaluation: 'Average' };
-      return { fee: 20, evaluation: 'Poor' };
-    }
-
     const scores = await this.prisma.repJobScore.findMany({
       where: {
         ...(repId ? { repId } : {}),
@@ -2186,6 +2177,7 @@ export class ExportService {
         'Attendance': s.attendance ? 'Yes' : 'No',
         'Appearance': s.appearance ? 'Yes' : 'No',
         'Work': s.work ? 'Yes' : 'No',
+        'Survey': s.survey ? 'Yes' : 'No',
         'Review': s.review ? 'Yes' : 'No',
         'Total Score': total,
         'Fee (EGP)': fee,
