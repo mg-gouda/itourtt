@@ -1445,6 +1445,8 @@ model CompanySettings {
   reportHeaderHtml String?  @map("report_header_html")
   reportFooterHtml String?  @map("report_footer_html")
   licenseKey       String?  @map("license_key")
+  installId        String?  @map("install_id")         // stable per-deployment id (heartbeat)
+  licenseLastCheck DateTime? @map("license_last_check") // last successful online license check
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 

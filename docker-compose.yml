@@ -36,6 +36,10 @@ services:
       TZ: Africa/Cairo
       GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyDn0bDhTm0zReCHa0VikJvVKjaNXDW8nwE}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://fulvago.itourtt.cloud,https://itourtt.cloud}
+      # MG License Server (ilicense.tech) — Ed25519 verify + daily heartbeat.
+      LICENSE_SERVER_URL: ${LICENSE_SERVER_URL:-https://ilicense.tech}
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY}
+      APP_HOST: ${APP_HOST:-fulvago.itourtt.cloud}
     ports:
       - '${BACKEND_PORT:-3001}:3001'
     depends_on:
