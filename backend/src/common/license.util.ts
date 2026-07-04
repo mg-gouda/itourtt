@@ -1,65 +1,43 @@
-import * as crypto from 'crypto';
-
-const LICENSE_SECRET = 'iTourTT_LK_9f3a7c2e1b8d4056_MG2026';
-
-interface LicensePayload {
-  iss: string;
-  sub: string;
-  iat: string; // YYYY-MM-DD
-  exp: string; // YYYY-MM-DD
-}
+// MG License Server client — HMAC secret DELETED (was forgeable).
+// This app now holds only the PUBLIC key and verifies Ed25519 tokens; it cannot forge.
+// Crypto + network live in ./license-verify.ts. This file only keeps the response SHAPE
+// the frontend depends on and maps the verifier's CheckResult onto it.
+import type { CheckResult, LicenseStatus as VerifyStatus } from './license-verify.js';
 
 export interface LicenseStatus {
   valid: boolean;
-  expiresAt: string | null;
+  expiresAt: string | null; // YYYY-MM-DD (unchanged shape)
   daysRemaining: number | null;
   message: string;
 }
 
-export function validateLicenseKey(key: string | null | undefined): LicenseStatus {
-  if (!key || !key.trim()) {
-    return { valid: false, expiresAt: null, daysRemaining: null, message: 'No license key configured' };
-  }
+const MESSAGES: Record<VerifyStatus, string> = {
+  active: 'License active',
+  grace: 'License valid — renew soon',
+  expired: 'License has expired',
+  revoked: 'License has been revoked',
+  invalid: 'Invalid license key',
+  domain_mismatch: 'License not valid for this host',
+  install_blocked: 'Install limit reached for this license',
+  ip_mismatch: 'License not valid for this server',
+  grace_expired: 'Unable to verify license — contact support',
+};
 
-  const parts = key.trim().split('.');
-  if (parts.length !== 2) {
-    return { valid: false, expiresAt: null, daysRemaining: null, message: 'Invalid license key format' };
-  }
+/** Map the verifier's CheckResult onto the legacy LicenseStatus shape. */
+export function toLicenseStatus(r: CheckResult): LicenseStatus {
+  const expiresAt = r.expiresAt ? r.expiresAt.slice(0, 10) : null; // ISO → YYYY-MM-DD
+  const daysRemaining =
+    r.daysRemaining ??
+    (r.expiresAt ? Math.ceil((Date.parse(r.expiresAt) - Date.now()) / 86_400_000) : null);
+  return { valid: r.ok, expiresAt, daysRemaining, message: MESSAGES[r.status] };
+}
 
-  const [payloadB64, signatureB64] = parts;
-
-  // Verify signature
-  const expectedSig = crypto.createHmac('sha256', LICENSE_SECRET).update(payloadB64).digest('base64url');
-  if (expectedSig !== signatureB64) {
-    return { valid: false, expiresAt: null, daysRemaining: null, message: 'Invalid license key' };
-  }
-
-  // Decode payload
-  let payload: LicensePayload;
-  try {
-    payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf-8'));
-  } catch {
-    return { valid: false, expiresAt: null, daysRemaining: null, message: 'Corrupted license key' };
-  }
-
-  if (payload.iss !== 'iTourTT' || payload.sub !== 'license') {
-    return { valid: false, expiresAt: null, daysRemaining: null, message: 'Invalid license key' };
-  }
-
-  // Check expiry
-  const now = new Date();
-  const expDate = new Date(payload.exp + 'T23:59:59Z');
-  const startDate = new Date(payload.iat + 'T00:00:00Z');
-
-  if (now < startDate) {
-    return { valid: false, expiresAt: payload.exp, daysRemaining: null, message: 'License not yet active' };
-  }
-
-  if (now > expDate) {
-    return { valid: false, expiresAt: payload.exp, daysRemaining: 0, message: 'License has expired' };
-  }
-
-  const daysRemaining = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-  return { valid: true, expiresAt: payload.exp, daysRemaining, message: 'License active' };
+/**
+ * Accept the public key in either raw PEM (with real or `\n`-escaped newlines) or a
+ * base64-wrapped PEM blob (how the license server stores it). Returns clean PEM.
+ */
+export function normalizePublicKey(raw: string | undefined): string {
+  const v = (raw ?? '').trim();
+  if (v.startsWith('-----')) return v.replace(/\\n/g, '\n');
+  return Buffer.from(v, 'base64').toString('utf8');
 }

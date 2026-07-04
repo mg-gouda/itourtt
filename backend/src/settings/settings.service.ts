@@ -5,7 +5,9 @@ import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
 import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto.js';
 import { UpdateGoogleDriveSettingsDto } from './dto/update-google-drive-settings.dto.js';
-import { validateLicenseKey, type LicenseStatus } from '../common/license.util.js';
+import { ConfigService } from '@nestjs/config';
+import { checkLicense, makeInstallId, verifyOffline } from '../common/license-verify.js';
+import { toLicenseStatus, normalizePublicKey, type LicenseStatus } from '../common/license.util.js';
 
 /** Default values returned when no row exists yet. */
 const SYSTEM_DEFAULTS = {
@@ -92,7 +94,10 @@ const WEBSITE_DEFAULTS = {
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   // ──────────────────────────────────────────────
   // SYSTEM SETTINGS
@@ -182,28 +187,69 @@ export class SettingsService {
   // LICENSE STATUS
   // ──────────────────────────────────────────────
 
+  // Offline-verify (sig/domain/expiry) + throttled online heartbeat (renew/revoke/install cap).
+  // The verifier hands back a token refresh + last-check timestamp we must persist.
+  private async evaluate(settings: {
+    id: string;
+    licenseKey: string | null;
+    installId: string | null;
+    licenseLastCheck: Date | null;
+  }): Promise<LicenseStatus> {
+    if (!settings.licenseKey) {
+      return { valid: false, expiresAt: null, daysRemaining: null, message: 'No license key configured' };
+    }
+
+    const installId = settings.installId ?? makeInstallId();
+    const result = await checkLicense({
+      token: settings.licenseKey,
+      publicKeyPem: normalizePublicKey(this.config.get<string>('LICENSE_PUBLIC_KEY')),
+      hostname: this.config.get<string>('APP_HOST') ?? '',
+      serverUrl: this.config.get<string>('LICENSE_SERVER_URL') ?? '',
+      installId,
+      lastGoodCheck: settings.licenseLastCheck?.getTime(),
+    });
+
+    // Persist installId (first run), a picked-up renewal, and the last online-check time.
+    const data: Record<string, unknown> = {};
+    if (!settings.installId) data.installId = installId;
+    if (result.refreshedToken) data.licenseKey = result.refreshedToken;
+    if (result.nextLastGoodCheck) data.licenseLastCheck = new Date(result.nextLastGoodCheck);
+    if (Object.keys(data).length) {
+      await this.prisma.companySettings.update({ where: { id: settings.id }, data });
+    }
+
+    return toLicenseStatus(result);
+  }
+
   async getLicenseStatus(): Promise<LicenseStatus> {
     const settings = await this.prisma.companySettings.findFirst();
-    return validateLicenseKey(settings?.licenseKey);
+    if (!settings) {
+      return { valid: false, expiresAt: null, daysRemaining: null, message: 'No license key configured' };
+    }
+    return this.evaluate(settings);
   }
 
   async activateLicense(key: string): Promise<LicenseStatus> {
     const trimmed = (key ?? '').trim();
-    const status = validateLicenseKey(trimmed);
-    if (!status.valid) return status;
+    // Reject a clearly-invalid paste before it overwrites a possibly-working key.
+    const off = verifyOffline(
+      trimmed,
+      normalizePublicKey(this.config.get<string>('LICENSE_PUBLIC_KEY')),
+      this.config.get<string>('APP_HOST') ?? '',
+    );
+    if (off.status === 'invalid' || off.status === 'domain_mismatch') {
+      return toLicenseStatus({ ok: false, status: off.status, checkedOnline: false });
+    }
 
     const existing = await this.prisma.companySettings.findFirst();
-    if (existing) {
-      await this.prisma.companySettings.update({
-        where: { id: existing.id },
-        data: { licenseKey: trimmed },
-      });
-    } else {
-      await this.prisma.companySettings.create({
-        data: { licenseKey: trimmed },
-      });
-    }
-    return status;
+    // Store the new key + reset the online-check clock, then confirm online (persists installId/refresh).
+    const saved = existing
+      ? await this.prisma.companySettings.update({
+          where: { id: existing.id },
+          data: { licenseKey: trimmed, licenseLastCheck: null },
+        })
+      : await this.prisma.companySettings.create({ data: { licenseKey: trimmed } });
+    return this.evaluate(saved);
   }
 
   // ──────────────────────────────────────────────

@@ -1663,6 +1663,8 @@ model CompanySettings {
   reportHeaderHtml String?  @map("report_header_html")
   reportFooterHtml String?  @map("report_footer_html")
   licenseKey       String?  @map("license_key")
+  installId        String?  @map("install_id")         // stable per-deployment id (heartbeat)
+  licenseLastCheck DateTime? @map("license_last_check") // last successful online license check
   // Single mailbox that receives all automated system notifications (e.g. job updates).
   systemNotificationEmail String? @map("system_notification_email")
   createdAt        DateTime @default(now()) @map("created_at")

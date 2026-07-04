@@ -40,6 +40,10 @@ services:
       GETPAYIN_AUTH_TOKEN: ${GETPAYIN_AUTH_TOKEN}
       GETPAYIN_HASH_TOKEN: ${GETPAYIN_HASH_TOKEN}
       B2C_SITE_URL: ${B2C_SITE_URL:-https://transfera.ae}
+      # MG License Server (ilicense.tech) — Ed25519 verify + daily heartbeat.
+      LICENSE_SERVER_URL: ${LICENSE_SERVER_URL:-https://ilicense.tech}
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY}
+      APP_HOST: ${APP_HOST:-fulvago.itourtt.cloud}
     ports:
       - '${BACKEND_PORT:-3001}:3001'
     depends_on:
