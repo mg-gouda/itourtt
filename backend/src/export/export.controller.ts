@@ -409,6 +409,19 @@ export class ExportController {
     this.sendXlsx(res, buffer, `rep_score_${from}_${to}`);
   }
 
+  @Get('guest-surveys')
+  @Permissions('reports.guestSurveys')
+  async exportGuestSurveys(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('repId') repId: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportGuestSurveyReport(from, to, repId || undefined);
+    this.sendXlsx(res, buffer, `guest_surveys_${from}_${to}`);
+  }
+
   @Get('job-status')
   @Permissions('reports.jobStatus')
   async exportJobStatus(

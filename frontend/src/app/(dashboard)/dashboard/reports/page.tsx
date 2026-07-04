@@ -1559,6 +1559,16 @@ export default function ReportsPage() {
 
   const exportGuestSurveysPdf = () => printFromRef(guestSurveyPrintRef, `Guest Surveys - ${guestSurveyFrom} to ${guestSurveyTo}`);
 
+  const exportGuestSurveysExcel = async () => {
+    try {
+      const repParam = guestSurveyRepId !== "ALL" ? `&repId=${guestSurveyRepId}` : "";
+      const res = await api.get(`/export/odoo/guest-surveys?from=${guestSurveyFrom}&to=${guestSurveyTo}${repParam}`, { responseType: "blob" });
+      downloadBlob(res.data, `guest_surveys_${guestSurveyFrom}_to_${guestSurveyTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export guest surveys to Excel");
+    }
+  };
+
   const exportRepScorePdf = () => printFromRef(repScorePrintRef, `Rep Score Report - ${repScoreFrom} to ${repScoreTo}`);
 
   const exportRepScoreExcel = async () => {
@@ -4903,10 +4913,16 @@ export default function ReportsPage() {
                   {t("common.search")}
                 </Button>
                 {guestSurveyData && guestSurveyData.rows.length > 0 && (
-                  <Button size="sm" variant="outline" onClick={exportGuestSurveysPdf} className="gap-1.5 ml-auto">
-                    <Printer className="h-3.5 w-3.5" />
-                    {t("reports.exportPdf")}
-                  </Button>
+                  <>
+                    <Button size="sm" variant="outline" onClick={exportGuestSurveysPdf} className="gap-1.5 ml-auto">
+                      <Printer className="h-3.5 w-3.5" />
+                      {t("reports.exportPdf")}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={exportGuestSurveysExcel} className="gap-1.5">
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      {t("reports.excel")}
+                    </Button>
+                  </>
                 )}
               </div>
             </Card>

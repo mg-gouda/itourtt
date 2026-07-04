@@ -2193,6 +2193,54 @@ export class ExportService {
   }
 
   // ─────────────────────────────────────────────
+  // GUEST SURVEY EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportGuestSurveyReport(from: string, to: string, repId?: string): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const surveys = await this.prisma.guestSurvey.findMany({
+      where: {
+        ...(repId ? { repId } : {}),
+        trafficJob: { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null },
+      },
+      include: {
+        rep: { select: { name: true } },
+        trafficJob: { select: { internalRef: true, jobDate: true, serviceType: true } },
+      },
+      orderBy: [{ rep: { name: 'asc' } }, { createdAt: 'asc' }],
+    });
+
+    const rows = surveys.map((s) => ({
+      'Date': this.formatDate(s.trafficJob.jobDate),
+      'Submitted': this.formatDate(s.createdAt),
+      'Rep': s.rep.name,
+      'Job Ref': s.trafficJob.internalRef,
+      'Service Type': s.trafficJob.serviceType,
+      'Flight No': s.flightNo ?? '',
+      'Hotel': s.hotelName ?? '',
+      'Nationality': s.guestNationality ?? '',
+      'Age Range': s.ageRange ?? '',
+      'Adults': s.noOfAdults,
+      'Children': s.noOfChildren,
+      'Infants': s.noOfInfants,
+      'Stay Length': s.stayLength ?? '',
+      'Repeat Guest': s.repeaterGuest ?? '',
+      'Local Travel Agent': s.localTravelAgent ?? '',
+      'Contact Number': s.contactNumber ?? '',
+      'Email': s.email ?? '',
+      'General Comment': s.generalComment ?? '',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Guest Surveys');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
   // JOB STATUS EXCEL EXPORT
   // ─────────────────────────────────────────────
 
