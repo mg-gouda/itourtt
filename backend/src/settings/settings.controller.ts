@@ -127,6 +127,12 @@ export class SettingsController {
     return this.settingsService.getLicenseStatus();
   }
 
+  // POST /settings/license-recheck — force an immediate online verification (authenticated)
+  @Post('license-recheck')
+  async recheckLicense() {
+    return this.settingsService.recheckLicense();
+  }
+
   // ──────────────────────────────────────────────
   // POST /settings/activate-license — activate license (any authenticated user)
   // No role/permission guard — the key itself is the credential

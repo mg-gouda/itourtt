@@ -9,6 +9,9 @@ export interface LicenseStatus {
   expiresAt: string | null; // YYYY-MM-DD (unchanged shape)
   daysRemaining: number | null;
   message: string;
+  status: VerifyStatus;      // raw verdict: active | grace | expired | revoked | invalid | domain_mismatch | install_blocked | ip_mismatch | grace_expired
+  checkedOnline: boolean;    // was this verdict confirmed against the license server this call?
+  lastCheckedAt: string | null; // ISO of the last successful ONLINE check (from DB); filled by the service
 }
 
 const MESSAGES: Record<VerifyStatus, string> = {
@@ -23,13 +26,21 @@ const MESSAGES: Record<VerifyStatus, string> = {
   grace_expired: 'Unable to verify license — contact support',
 };
 
-/** Map the verifier's CheckResult onto the legacy LicenseStatus shape. */
-export function toLicenseStatus(r: CheckResult): LicenseStatus {
+/** Map the verifier's CheckResult onto the LicenseStatus shape (now carries the raw verdict too). */
+export function toLicenseStatus(r: CheckResult, lastCheckedAt: string | null = null): LicenseStatus {
   const expiresAt = r.expiresAt ? r.expiresAt.slice(0, 10) : null; // ISO → YYYY-MM-DD
   const daysRemaining =
     r.daysRemaining ??
     (r.expiresAt ? Math.ceil((Date.parse(r.expiresAt) - Date.now()) / 86_400_000) : null);
-  return { valid: r.ok, expiresAt, daysRemaining, message: MESSAGES[r.status] };
+  return {
+    valid: r.ok,
+    expiresAt,
+    daysRemaining,
+    message: MESSAGES[r.status],
+    status: r.status,
+    checkedOnline: r.checkedOnline,
+    lastCheckedAt,
+  };
 }
 
 /**

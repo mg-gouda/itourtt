@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Building2, ImageIcon, FileImage, Loader2, ShieldCheck, ShieldX, Key } from "lucide-react";
+import { Building2, ImageIcon, FileImage, Loader2, ShieldCheck, ShieldX, ShieldAlert, Key, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -26,12 +26,38 @@ interface CompanySettingsData {
   systemNotificationEmail: string | null;
 }
 
+type LicenseVerdict =
+  | "active" | "grace" | "expired" | "revoked" | "invalid"
+  | "domain_mismatch" | "install_blocked" | "ip_mismatch" | "grace_expired";
+
 interface LicenseStatus {
   valid: boolean;
   expiresAt: string | null;
   daysRemaining: number | null;
   message: string;
+  status?: LicenseVerdict;      // raw verdict from the Ed25519 verifier
+  checkedOnline?: boolean;      // confirmed against the license server this call?
+  lastCheckedAt?: string | null; // ISO of last successful online check
 }
+
+// tone + short label per verdict — drives the status card colour and badge (#1 grace=amber, #2 distinct modes)
+type Tone = "ok" | "warn" | "bad";
+const VERDICT_META: Record<LicenseVerdict, { tone: Tone; label: string }> = {
+  active:          { tone: "ok",   label: "Active" },
+  grace:           { tone: "warn", label: "Renew soon" },
+  expired:         { tone: "bad",  label: "Expired" },
+  revoked:         { tone: "bad",  label: "Revoked" },
+  invalid:         { tone: "bad",  label: "Invalid" },
+  domain_mismatch: { tone: "bad",  label: "Wrong host" },
+  install_blocked: { tone: "bad",  label: "Install limit" },
+  ip_mismatch:     { tone: "bad",  label: "Wrong server" },
+  grace_expired:   { tone: "bad",  label: "Unverified" },
+};
+const TONE_STYLE: Record<Tone, { wrap: string; text: string; badge: string }> = {
+  ok:   { wrap: "border-emerald-500/30 bg-emerald-500/10", text: "text-emerald-600", badge: "border-emerald-500/50 text-emerald-600" },
+  warn: { wrap: "border-amber-500/30 bg-amber-500/10",     text: "text-amber-600",   badge: "border-amber-500/50 text-amber-600" },
+  bad:  { wrap: "border-destructive/30 bg-destructive/10", text: "text-destructive", badge: "border-destructive/50 text-destructive" },
+};
 
 export default function CompanyPage() {
   const t = useT();
@@ -52,6 +78,7 @@ export default function CompanyPage() {
   const [licenseKey, setLicenseKey] = useState("");
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
   const [activatingLicense, setActivatingLicense] = useState(false);
+  const [recheckingLicense, setRecheckingLicense] = useState(false);
 
   const logoInput = useRef<HTMLInputElement>(null);
   const faviconInput = useRef<HTMLInputElement>(null);
@@ -324,29 +351,59 @@ export default function CompanyPage() {
         </p>
 
         {/* License Status */}
-        {licenseStatus && (
-          <div className={`mb-4 flex items-center gap-2 rounded-lg border px-4 py-3 ${licenseStatus.valid ? "border-emerald-500/30 bg-emerald-500/10" : "border-destructive/30 bg-destructive/10"}`}>
-            {licenseStatus.valid ? (
-              <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
-            ) : (
-              <ShieldX className="h-5 w-5 text-destructive shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${licenseStatus.valid ? "text-emerald-600" : "text-destructive"}`}>
-                {licenseStatus.message}
-              </p>
-              {licenseStatus.expiresAt && (
-                <p className="text-xs text-muted-foreground">
-                  Expires: {licenseStatus.expiresAt}
-                  {licenseStatus.daysRemaining !== null && ` (${licenseStatus.daysRemaining} days remaining)`}
+        {licenseStatus && (() => {
+          const verdict = (licenseStatus.status ?? (licenseStatus.valid ? "active" : "invalid")) as LicenseVerdict;
+          const meta = VERDICT_META[verdict] ?? { tone: (licenseStatus.valid ? "ok" : "bad") as Tone, label: licenseStatus.valid ? "Active" : "Inactive" };
+          const ts = TONE_STYLE[meta.tone];
+          const Icon = meta.tone === "ok" ? ShieldCheck : meta.tone === "warn" ? ShieldAlert : ShieldX;
+          const recheck = async () => {
+            setRecheckingLicense(true);
+            try {
+              const { data } = await api.post("/settings/license-recheck");
+              setLicenseStatus(data);
+              toast[data.valid ? "success" : "error"](data.message || "License re-checked");
+            } catch {
+              toast.error(t("company.licenseRecheckFailed") || "Failed to re-check license");
+            } finally {
+              setRecheckingLicense(false);
+            }
+          };
+          return (
+            <div className={`mb-4 rounded-lg border px-4 py-3 ${ts.wrap}`}>
+              <div className="flex items-center gap-2">
+                <Icon className={`h-5 w-5 shrink-0 ${ts.text}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium ${ts.text}`}>{licenseStatus.message}</p>
+                  {licenseStatus.expiresAt && (
+                    <p className="text-xs text-muted-foreground">
+                      Expires: {licenseStatus.expiresAt}
+                      {licenseStatus.daysRemaining !== null && ` (${licenseStatus.daysRemaining} days remaining)`}
+                    </p>
+                  )}
+                </div>
+                <Badge variant="outline" className={ts.badge}>{meta.label}</Badge>
+              </div>
+              {/* Online-check signal + manual re-check (#3) */}
+              <div className="mt-2 flex items-center justify-between gap-2 border-t border-border/40 pt-2">
+                <p className="text-[11px] text-muted-foreground">
+                  {licenseStatus.checkedOnline
+                    ? "Verified online with license server"
+                    : licenseStatus.lastCheckedAt
+                      ? `Offline (cached) · last online check: ${new Date(licenseStatus.lastCheckedAt).toLocaleString()}`
+                      : "Not yet verified online"}
                 </p>
-              )}
+                <button
+                  onClick={recheck}
+                  disabled={recheckingLicense}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-3 w-3 ${recheckingLicense ? "animate-spin" : ""}`} />
+                  {t("company.recheckNow") || "Re-check now"}
+                </button>
+              </div>
             </div>
-            <Badge variant="outline" className={licenseStatus.valid ? "border-emerald-500/50 text-emerald-600" : "border-destructive/50 text-destructive"}>
-              {licenseStatus.valid ? "Active" : "Inactive"}
-            </Badge>
-          </div>
-        )}
+          );
+        })()}
 
         {/* License Key Input — second half masked */}
         <div className="space-y-2">

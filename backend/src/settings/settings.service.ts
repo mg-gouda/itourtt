@@ -189,14 +189,29 @@ export class SettingsService {
 
   // Offline-verify (sig/domain/expiry) + throttled online heartbeat (renew/revoke/install cap).
   // The verifier hands back a token refresh + last-check timestamp we must persist.
-  private async evaluate(settings: {
-    id: string;
-    licenseKey: string | null;
-    installId: string | null;
-    licenseLastCheck: Date | null;
-  }): Promise<LicenseStatus> {
+  private noKeyStatus(): LicenseStatus {
+    return {
+      valid: false,
+      expiresAt: null,
+      daysRemaining: null,
+      message: 'No license key configured',
+      status: 'invalid',
+      checkedOnline: false,
+      lastCheckedAt: null,
+    };
+  }
+
+  private async evaluate(
+    settings: {
+      id: string;
+      licenseKey: string | null;
+      installId: string | null;
+      licenseLastCheck: Date | null;
+    },
+    opts?: { forceOnline?: boolean },
+  ): Promise<LicenseStatus> {
     if (!settings.licenseKey) {
-      return { valid: false, expiresAt: null, daysRemaining: null, message: 'No license key configured' };
+      return this.noKeyStatus();
     }
 
     const installId = settings.installId ?? makeInstallId();
@@ -207,6 +222,8 @@ export class SettingsService {
       serverUrl: this.config.get<string>('LICENSE_SERVER_URL') ?? '',
       installId,
       lastGoodCheck: settings.licenseLastCheck?.getTime(),
+      // Force an online round-trip when the operator hits "Re-check now" (bypass the ~daily throttle).
+      onlineEveryMs: opts?.forceOnline ? 0 : undefined,
     });
 
     // Persist installId (first run), a picked-up renewal, and the last online-check time.
@@ -218,15 +235,27 @@ export class SettingsService {
       await this.prisma.companySettings.update({ where: { id: settings.id }, data });
     }
 
-    return toLicenseStatus(result);
+    const lastCheck = result.nextLastGoodCheck
+      ? new Date(result.nextLastGoodCheck)
+      : settings.licenseLastCheck;
+    return toLicenseStatus(result, lastCheck ? lastCheck.toISOString() : null);
   }
 
   async getLicenseStatus(): Promise<LicenseStatus> {
     const settings = await this.prisma.companySettings.findFirst();
     if (!settings) {
-      return { valid: false, expiresAt: null, daysRemaining: null, message: 'No license key configured' };
+      return this.noKeyStatus();
     }
     return this.evaluate(settings);
+  }
+
+  /** Force an immediate online verification against the license server ("Re-check now" button). */
+  async recheckLicense(): Promise<LicenseStatus> {
+    const settings = await this.prisma.companySettings.findFirst();
+    if (!settings) {
+      return this.noKeyStatus();
+    }
+    return this.evaluate(settings, { forceOnline: true });
   }
 
   async activateLicense(key: string): Promise<LicenseStatus> {
