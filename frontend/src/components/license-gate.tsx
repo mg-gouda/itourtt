@@ -77,6 +77,19 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
     setWarningDismissed(true);
   }
 
+  // Fail-soft: an invalid / unconfigured license WARNS but never hard-blocks the app,
+  // so a config gap or transient check failure can't take production down. Dismissible per session.
+  const invalid = !!(status && !status.valid);
+  const [invalidDismissed, setInvalidDismissed] = useState(false);
+  useEffect(() => {
+    if (!invalid) { setInvalidDismissed(false); return; }
+    setInvalidDismissed(sessionStorage.getItem('license_invalid_dismissed') === '1');
+  }, [invalid]);
+  function dismissInvalid() {
+    sessionStorage.setItem('license_invalid_dismissed', '1');
+    setInvalidDismissed(true);
+  }
+
   // Always allow the Company settings page so admin can enter the license key
   if (ALLOWED_PATHS.includes(pathname)) {
     return <>{children}</>;
@@ -90,46 +103,53 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (status && !status.valid) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <div className="max-w-md w-full rounded-xl border border-destructive/30 bg-card p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-            <ShieldX className="h-8 w-8 text-destructive" />
-          </div>
-          <h1 className="mb-2 text-xl font-bold text-foreground">License Inactive</h1>
-          <p className="mb-4 text-sm text-muted-foreground">
-            {status.message || 'Your software license has expired or is not configured.'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Please contact the developer to reactivate your license.
-          </p>
-          <div className="mt-4 flex flex-col gap-2 items-center">
-            <a
-              href="/dashboard/company"
-              className="inline-block rounded-lg bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Activate License
-            </a>
-            <a
-              href="https://wa.me/+201002805139"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
-            >
-              Contact Mohamed Gouda
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const showWarning = warningLevel !== null && !warningDismissed && !ALLOWED_PATHS.includes(pathname);
+  const showInvalid = invalid && !invalidDismissed && !ALLOWED_PATHS.includes(pathname);
 
   return (
     <>
       {children}
+      {showInvalid && (
+        <div className="fixed bottom-4 right-4 z-[9998] w-full max-w-sm rounded-xl border border-destructive/40 bg-card p-4 shadow-2xl">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+              <ShieldX className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-bold text-foreground">License not active</h2>
+                <button
+                  onClick={dismissInvalid}
+                  className="rounded-lg p-1 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {status?.message || 'Your software license is not configured or could not be verified.'} The
+                app stays usable — please reactivate to clear this notice.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <a
+                  href="/dashboard/company"
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  Activate License
+                </a>
+                <a
+                  href="https://wa.me/+201002805139"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
+                >
+                  Contact Mohamed Gouda
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showWarning && (() => {
         const level = warningLevel!;
         const days = status!.daysRemaining!;
