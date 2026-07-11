@@ -187,4 +187,26 @@ If conflicts appear, **ask before changing anything**.
 
 ---
 
+## 10. VERSION CONTROL & DEPLOYMENT WORKFLOW (MANDATORY)
+
+Applies to **this system (`/opt/itour`) AND the B2C site repo/VPS** (iTourTT-B2CSite,
+transfera.ae / 31.97.45.33).
+
+After **every** edit, modification, addition, or deletion to the software, Claude MUST run this
+sequence — never leave work uncommitted or unpushed (this is what caused the July 2026 commit-drift /
+"GitHub missing commits" incident):
+
+1. **Commit** — stage the change and commit with a clear, conventional message.
+2. **Push** — push to the correct GitHub remote/branch immediately (keep local == origin, no drift).
+3. **Verify** — confirm the change actually works:
+   - For code with a runtime surface: build/typecheck, and drive the affected flow.
+   - **Rebuild the image and run `deploy.sh` to production when the change needs to go live**
+     (backend needs `NODE_OPTIONS=--max-old-space-size=5120`; after any deploy/restart, re-import the
+     image into k3s containerd if pods hit `ErrImageNeverPull`, then verify pods Running + migrations
+     applied). Skip the deploy for docs/notes with no runtime effect, but still commit + push.
+
+Never end a task with uncommitted or unpushed changes to tracked files.
+
+---
+
 END OF FILE
