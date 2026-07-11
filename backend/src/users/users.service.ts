@@ -164,7 +164,12 @@ export class UsersService {
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await this.prisma.user.update({
       where: { id },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        refreshToken: null,
+        sessionId: null,
+        sessionExpiresAt: null,
+      },
     });
     return { message: 'Password changed successfully' };
   }

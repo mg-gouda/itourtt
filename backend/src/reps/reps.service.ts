@@ -294,7 +294,12 @@ export class RepsService {
 
     await this.prisma.user.update({
       where: { id: rep.userId },
-      data: { passwordHash, refreshToken: null },
+      data: {
+        passwordHash,
+        refreshToken: null,
+        sessionId: null,
+        sessionExpiresAt: null,
+      },
     });
 
     return { success: true };

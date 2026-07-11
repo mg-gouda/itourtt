@@ -33,9 +33,15 @@ export class AuthService {
 
   /**
    * Authenticate a user by email/phone and password, returning tokens and user info.
-   * For REP and DRIVER roles: if an active session already exists, the account password
-   * is immediately scrambled and a 423 Locked response is returned. The user must contact
-   * an administrator to have their password reset.
+   *
+   * For REP and DRIVER roles a concurrent-session guard applies when an active session
+   * already exists on the account:
+   *   - Default (CONCURRENT_LOGIN_LOCK unset/false): "last-device-wins" — the old session
+   *     is displaced and the new login proceeds. A legitimate re-login (e.g. the app lost
+   *     its session and the user simply signs in again) is NOT punished.
+   *   - Opt-in lock (CONCURRENT_LOGIN_LOCK=true): the account password is scrambled and a
+   *     423 Locked response is returned. The user must contact an administrator to have
+   *     their password reset. Use this only when account-sharing must be hard-blocked.
    */
   async login(identifier: string, password: string): Promise<AuthResponseDto> {
     const user = await this.validateUser(identifier, password);
@@ -50,27 +56,39 @@ export class AuthService {
         user.sessionExpiresAt > now;
 
       if (hasActiveSession) {
-        // Scramble the password so nobody can use these credentials again
-        const scrambledHash = await this.hashPassword(
-          crypto.randomBytes(32).toString('hex'),
-        );
-        await this.prisma.user.update({
-          where: { id: user.id },
-          data: {
-            passwordHash: scrambledHash,
-            sessionId: null,
-            sessionExpiresAt: null,
-            refreshToken: null,
-          },
-        });
+        const lockOnConcurrent =
+          this.configService.get<string>('CONCURRENT_LOGIN_LOCK') === 'true';
 
-        this.logger.warn(
-          `Concurrent login detected for user ${user.id} (${user.role}). Account locked.`,
-        );
+        if (lockOnConcurrent) {
+          // Opt-in hard lock: scramble the password so the shared credentials can't be reused
+          const scrambledHash = await this.hashPassword(
+            crypto.randomBytes(32).toString('hex'),
+          );
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              passwordHash: scrambledHash,
+              sessionId: null,
+              sessionExpiresAt: null,
+              refreshToken: null,
+            },
+          });
 
-        throw new HttpException(
-          'Concurrent login detected. Your account has been locked. Please contact your administrator to restore access.',
-          HttpStatus.LOCKED, // 423
+          this.logger.warn(
+            `Concurrent login detected for user ${user.id} (${user.role}). Account locked.`,
+          );
+
+          throw new HttpException(
+            'Concurrent login detected. Your account has been locked. Please contact your administrator to restore access.',
+            HttpStatus.LOCKED, // 423
+          );
+        }
+
+        // Default: last-device-wins. The old session is displaced below when a new
+        // sessionId is minted and stored; the previous device's token then fails the
+        // per-request sid check (SESSION_DISPLACED) and is logged out cleanly.
+        this.logger.log(
+          `Concurrent login for user ${user.id} (${user.role}). Displacing previous session.`,
         );
       }
     }

@@ -665,7 +665,12 @@ export class SuppliersService {
 
     await this.prisma.user.update({
       where: { id: supplier.userId },
-      data: { passwordHash, refreshToken: null },
+      data: {
+        passwordHash,
+        refreshToken: null,
+        sessionId: null,
+        sessionExpiresAt: null,
+      },
     });
 
     return { success: true };

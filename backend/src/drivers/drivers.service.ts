@@ -291,7 +291,12 @@ export class DriversService {
 
     await this.prisma.user.update({
       where: { id: driver.userId },
-      data: { passwordHash, refreshToken: null },
+      data: {
+        passwordHash,
+        refreshToken: null,
+        sessionId: null,
+        sessionExpiresAt: null,
+      },
     });
 
     return { success: true };
