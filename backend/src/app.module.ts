@@ -45,6 +45,7 @@ import { JobServiceTypesModule } from './job-service-types/job-service-types.mod
 import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
 import { WebsiteContentModule } from './website-content/website-content.module.js';
 import { ContactMessagesModule } from './contact-messages/contact-messages.module.js';
+import { PartnerModule } from './partner/partner.module.js';
 
 @Module({
   imports: [
@@ -91,6 +92,7 @@ import { ContactMessagesModule } from './contact-messages/contact-messages.modul
     UserPreferencesModule,
     WebsiteContentModule,
     ContactMessagesModule,
+    PartnerModule,
   ],
   controllers: [AppController],
   providers: [
