@@ -106,7 +106,7 @@ export class TrafficJobsController {
   }
 
   @Patch(':id/control')
-  @Roles('ADMIN')
+  @Permissions('job-control')
   async forceControl(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ForceControlDto,

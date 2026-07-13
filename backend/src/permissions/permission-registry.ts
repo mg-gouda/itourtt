@@ -569,6 +569,12 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     ],
   },
 
+  // ─── JOB CONTROL (admin bulk job tools; granted per-user via the matrix) ───
+  {
+    key: 'job-control',
+    labelKey: 'permissions.jobControl',
+  },
+
   // ─── JOB LOCKS ───
   {
     key: 'job-locks',

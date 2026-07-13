@@ -79,9 +79,10 @@ export interface NavGroup {
 export type NavItem = NavLink | NavSeparator | NavSectionLabel | NavGroup;
 
 // The B2C website + content CMS is a standalone system now (transferra.ae),
-// connected only via the partner pricing/jobs API — so its management UI has
-// been removed here. Pricing (mirrored from the partner push) and the job
-// extras catalog remain ops features.
+// connected only via the partner pricing/jobs API. Its management UI —
+// including public prices and the extras catalog — is owned by the B2C admin,
+// so it's removed here; iTourTT keeps only ops. (The pricing/extras DATA and
+// the /extras/selectable lookup remain for job costing + manual entry.)
 export const navigation: NavItem[] = [
   { type: "section-label", labelKey: "sidebar.section.operations" },
   { type: "link", nameKey: "sidebar.dashboard", href: "/dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
@@ -92,8 +93,6 @@ export const navigation: NavItem[] = [
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
   { type: "link", nameKey: "sidebar.b2cInvoices", href: "/dashboard/finance/b2c-invoices", icon: FileText, permissionKey: "finance.b2cInvoices" },
   { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3, permissionKey: "reports" },
-  { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
-  { type: "link", nameKey: "sidebar.extras", href: "/dashboard/extras", icon: PackagePlus, permissionKey: "extras" },
   { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },
   { type: "link", nameKey: "sidebar.activityLog", href: "/dashboard/activity-log", icon: ClipboardList, permissionKey: "activity-logs" },
   { type: "section-label", labelKey: "sidebar.section.system" },
@@ -116,7 +115,7 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.emailSettings", href: "/dashboard/email-settings", icon: Mail, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.googleDrive", href: "/dashboard/google-drive", icon: HardDrive, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck, permissionKey: "users" },
-      { type: "link", nameKey: "sidebar.jobControl", href: "/dashboard/job-control", icon: SlidersHorizontal, allowedEmails: ["mggouda@gmail.com", "admin@itour.local"] },
+      { type: "link", nameKey: "sidebar.jobControl", href: "/dashboard/job-control", icon: SlidersHorizontal, permissionKey: "job-control" },
     ],
   },
 ];

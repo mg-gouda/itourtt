@@ -636,6 +636,11 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
 
   // ─── JOB LOCKS ───
   {
+    key: 'job-control',
+    labelKey: 'permissions.jobControl',
+    crudType: 'page',
+  },
+  {
     key: 'job-locks',
     labelKey: 'permissions.jobLocks',
     crudType: 'page',

@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/select";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
-
-const ALLOWED_EMAILS = ["mggouda@gmail.com", "admin@itour.local"];
+import { usePermission } from "@/hooks/use-permission";
+import { usePermissionsStore } from "@/stores/permissions-store";
 
 const JOB_STATUSES = ["PENDING", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"] as const;
 const PORTAL_STATUSES = ["PENDING", "IN_PROGRESS", "IN_PLACE", "COMPLETED", "CANCELLED", "NO_SHOW"] as const;
@@ -47,13 +47,15 @@ interface Job {
 export default function JobControlPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
+  const canJobControl = usePermission("job-control");
+  const permsLoaded = usePermissionsStore((s) => s.isLoaded);
 
-  // ── Access guard ──
+  // ── Access guard: governed by the 'job-control' permission (grant via the matrix) ──
   useEffect(() => {
-    if (user && !ALLOWED_EMAILS.includes(user.email)) {
+    if (isAuthenticated && permsLoaded && !canJobControl) {
       router.replace("/dashboard");
     }
-  }, [user, router]);
+  }, [isAuthenticated, permsLoaded, canJobControl, router]);
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -147,7 +149,7 @@ export default function JobControlPage() {
 
   // Don't render anything until auth is confirmed
   if (!isAuthenticated || !user) return null;
-  if (!ALLOWED_EMAILS.includes(user.email)) return null;
+  if (permsLoaded && !canJobControl) return null;
 
   return (
     <div className="space-y-6">

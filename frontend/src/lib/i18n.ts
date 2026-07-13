@@ -1675,6 +1675,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "jobImport.importSuccess": "Successfully imported {count} jobs",
 
     // ── Permissions Labels ──
+    "permissions.jobControl": "Job Control",
     "permissions.activityLogs": "Activity Logs",
     "permissions.activityLogs.export": "Export Activity Logs",
     "permissions.websiteContent": "B2C Website Content",
