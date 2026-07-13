@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 import type { AuthResponse } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -38,7 +39,15 @@ function processQueue(error: unknown, token: string | null) {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Non-blocking server warnings (e.g. vehicle/driver double-booking on
+    // assign/reassign) — surface them without failing the request.
+    const warnings = response.data?.data?.warnings ?? response.data?.warnings;
+    if (Array.isArray(warnings) && warnings.length > 0) {
+      toast.warning(warnings.join(' '));
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 

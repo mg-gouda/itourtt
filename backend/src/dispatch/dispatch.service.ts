@@ -374,7 +374,12 @@ export class DispatchService {
       },
     ).catch((err) => this.logger.error(`Failed to send dispatch notification: ${err.message}`));
 
-    return assignment;
+    // Non-blocking heads-up: vehicle/driver already booked elsewhere at this time.
+    const warnings = await this.detectAssignmentConflicts(job, {
+      vehicleId: createVehicleId,
+      driverId: dto.driverId ?? null,
+    });
+    return warnings.length ? { ...assignment, warnings } : assignment;
   }
 
   private async sendStaffAssignmentEmail(
@@ -703,7 +708,13 @@ export class DispatchService {
       },
     ).catch((err) => this.logger.error(`Failed to send dispatch notification: ${err.message}`));
 
-    return updated;
+    // Non-blocking heads-up on the newly-assigned vehicle/driver (exclude self).
+    const warnings = await this.detectAssignmentConflicts(job, {
+      vehicleId: dto.vehicleId ?? null,
+      driverId: dto.driverId ?? null,
+      excludeAssignmentId: assignmentId,
+    });
+    return warnings.length ? { ...updated, warnings } : updated;
   }
 
   // ─────────────────────────────────────────────
@@ -1066,6 +1077,54 @@ export class DispatchService {
     _excludeAssignmentId?: string,
   ) {
     return;
+  }
+
+  /**
+   * Non-blocking conflict detection for vehicle/driver double-booking: returns a
+   * warning per resource already assigned to another active job at the same
+   * reference time (same-flight excepted). Vehicle/driver overlap is allowed
+   * (a car can do ARR then DEP the same day) — dispatch just gets a heads-up.
+   */
+  private async detectAssignmentConflicts(
+    job: {
+      id: string;
+      jobDate: Date;
+      serviceType: string;
+      pickUpTime?: Date | null;
+      flight?: { flightNo?: string; arrivalTime?: Date | null; departureTime?: Date | null } | null;
+    },
+    opts: { vehicleId?: string | null; driverId?: string | null; excludeAssignmentId?: string },
+  ): Promise<string[]> {
+    const targetTime = this.getJobReferenceTime(job);
+    if (!targetTime) return [];
+    const targetFlightNo = job.flight?.flightNo;
+    const warnings: string[] = [];
+
+    const check = async (field: 'vehicleId' | 'driverId', id: string, label: string) => {
+      const existing = await this.prisma.trafficAssignment.findMany({
+        where: {
+          [field]: id,
+          ...(opts.excludeAssignmentId ? { id: { not: opts.excludeAssignmentId } } : {}),
+          trafficJob: {
+            jobDate: job.jobDate,
+            deletedAt: null,
+            status: { notIn: ['CANCELLED', 'COMPLETED'] as JobStatus[] },
+          },
+        },
+        include: { trafficJob: { include: { flight: true } } },
+      });
+      for (const a of existing) {
+        const t = this.getJobReferenceTime(a.trafficJob);
+        if (!t || t.getTime() !== targetTime.getTime()) continue;
+        const existingFlightNo = a.trafficJob.flight?.flightNo;
+        if (targetFlightNo && existingFlightNo && targetFlightNo === existingFlightNo) continue;
+        warnings.push(`${label} is already assigned to job ${a.trafficJob.internalRef} at the same time.`);
+      }
+    };
+
+    if (opts.vehicleId) await check('vehicleId', opts.vehicleId, 'Vehicle');
+    if (opts.driverId) await check('driverId', opts.driverId, 'Driver');
+    return warnings;
   }
 
   // Driver availability — no time restrictions, free assignment allowed.
