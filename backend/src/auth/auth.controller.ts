@@ -45,8 +45,47 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(
+    @Body() loginDto: LoginDto,
+  ): Promise<AuthResponseDto | { twoFactorRequired: true; challengeToken: string }> {
     return this.authService.login(loginDto.identifier, loginDto.password);
+  }
+
+  // Login step 2: exchange the challenge + a TOTP/recovery code for a session.
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('2fa/verify')
+  @HttpCode(HttpStatus.OK)
+  async verifyTwoFactor(@Body() body: { challengeToken: string; code: string }) {
+    return this.authService.verifyTwoFactor(body.challengeToken, body.code);
+  }
+
+  @Post('2fa/setup')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async setupTwoFactor(@CurrentUser('sub') userId: string) {
+    return this.authService.setupTwoFactor(userId);
+  }
+
+  @Post('2fa/enable')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async enableTwoFactor(
+    @CurrentUser('sub') userId: string,
+    @Body() body: { code: string },
+  ) {
+    return this.authService.enableTwoFactor(userId, body.code);
+  }
+
+  @Post('2fa/disable')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async disableTwoFactor(
+    @CurrentUser('sub') userId: string,
+    @Body() body: { code: string },
+  ) {
+    await this.authService.disableTwoFactor(userId, body.code);
+    return { message: 'Two-factor authentication disabled' };
   }
 
   @Public()

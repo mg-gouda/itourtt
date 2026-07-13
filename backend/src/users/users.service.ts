@@ -10,12 +10,16 @@ import type { UserRole } from '../../generated/prisma/enums.js';
 const SENSITIVE_FIELDS = {
   passwordHash: true,
   refreshToken: true,
+  twoFactorSecret: true,
+  twoFactorRecoveryCodes: true,
 } as const;
 
 /** Prisma `omit` object for safe user projection. */
 const SAFE_USER_OMIT = {
   passwordHash: true as const,
   refreshToken: true as const,
+  twoFactorSecret: true as const,
+  twoFactorRecoveryCodes: true as const,
 };
 
 @Injectable()
