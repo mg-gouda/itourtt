@@ -78,11 +78,10 @@ export interface NavGroup {
 
 export type NavItem = NavLink | NavSeparator | NavSectionLabel | NavGroup;
 
-// When the B2C site runs as its own standalone system, its content + pricing
-// management lives in the B2C admin (transferra.ae). Hide the duplicate group
-// here so ops staff manage jobs only. Rollback: unset NEXT_PUBLIC_B2C_SEPARATED.
-const B2C_SEPARATED = process.env.NEXT_PUBLIC_B2C_SEPARATED === "true";
-
+// The B2C website + content CMS is a standalone system now (transferra.ae),
+// connected only via the partner pricing/jobs API — so its management UI has
+// been removed here. Pricing (mirrored from the partner push) and the job
+// extras catalog remain ops features.
 export const navigation: NavItem[] = [
   { type: "section-label", labelKey: "sidebar.section.operations" },
   { type: "link", nameKey: "sidebar.dashboard", href: "/dashboard", icon: LayoutDashboard, permissionKey: "dashboard" },
@@ -93,24 +92,8 @@ export const navigation: NavItem[] = [
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
   { type: "link", nameKey: "sidebar.b2cInvoices", href: "/dashboard/finance/b2c-invoices", icon: FileText, permissionKey: "finance.b2cInvoices" },
   { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3, permissionKey: "reports" },
-  ...(B2C_SEPARATED
-    ? []
-    : ([
-        {
-          type: "group",
-          nameKey: "sidebar.b2cWebsite",
-          icon: Globe,
-          children: [
-            { type: "link", nameKey: "sidebar.websiteCms", href: "/dashboard/website", icon: Palette, permissionKey: "company" },
-            { type: "link", nameKey: "sidebar.destinations", href: "/dashboard/website/destinations", icon: MapPin, permissionKey: "website-content.cityPages" },
-            { type: "link", nameKey: "sidebar.blog", href: "/dashboard/website/blog", icon: Newspaper, permissionKey: "website-content.blog" },
-            { type: "link", nameKey: "sidebar.pageSeo", href: "/dashboard/website/seo", icon: Search, permissionKey: "website-content.pageSeo" },
-            { type: "link", nameKey: "sidebar.pages", href: "/dashboard/website/pages", icon: FileText, permissionKey: "website-content.pages" },
-            { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
-            { type: "link", nameKey: "sidebar.extras", href: "/dashboard/extras", icon: PackagePlus, permissionKey: "extras" },
-          ],
-        },
-      ] as NavItem[])),
+  { type: "link", nameKey: "sidebar.publicPrices", href: "/dashboard/public-prices", icon: Tag, permissionKey: "public-prices" },
+  { type: "link", nameKey: "sidebar.extras", href: "/dashboard/extras", icon: PackagePlus, permissionKey: "extras" },
   { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },
   { type: "link", nameKey: "sidebar.activityLog", href: "/dashboard/activity-log", icon: ClipboardList, permissionKey: "activity-logs" },
   { type: "section-label", labelKey: "sidebar.section.system" },

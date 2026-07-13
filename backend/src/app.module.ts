@@ -31,7 +31,6 @@ import { ActivityLogsModule } from './activity-logs/activity-logs.module.js';
 import { PublicPricesModule } from './public-prices/public-prices.module.js';
 import { ExtrasModule } from './extras/extras.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
-import { PublicApiModule } from './public-api/public-api.module.js';
 import { GuestBookingsModule } from './guest-bookings/guest-bookings.module.js';
 import { B2CModule } from './b2c/b2c.module.js';
 import { EmailModule } from './email/email.module.js';
@@ -44,7 +43,6 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { DriverTariffsModule } from './driver-tariffs/driver-tariffs.module.js';
 import { JobServiceTypesModule } from './job-service-types/job-service-types.module.js';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
-import { WebsiteContentModule } from './website-content/website-content.module.js';
 import { ContactMessagesModule } from './contact-messages/contact-messages.module.js';
 import { PartnerModule } from './partner/partner.module.js';
 
@@ -84,7 +82,6 @@ import { PartnerModule } from './partner/partner.module.js';
     DriverTariffsModule,
     JobServiceTypesModule,
     PaymentsModule,
-    PublicApiModule,
     GuestBookingsModule,
     B2CModule,
     NotificationsModule,
@@ -92,7 +89,6 @@ import { PartnerModule } from './partner/partner.module.js';
     AiParserModule,
     PushNotificationsModule,
     UserPreferencesModule,
-    WebsiteContentModule,
     ContactMessagesModule,
     PartnerModule,
   ],

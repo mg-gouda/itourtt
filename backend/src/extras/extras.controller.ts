@@ -29,6 +29,14 @@ export class ExtrasController {
     return new ApiResponse(data);
   }
 
+  // Active extras for operator selection on a job — authenticated, but NOT gated
+  // by the 'extras' management permission (any dispatch/online operator can pick).
+  @Get('selectable')
+  async selectable() {
+    const data = await this.extrasService.getSelectable();
+    return new ApiResponse(data);
+  }
+
   @Post()
   @Roles('ADMIN')
   @Permissions('extras.addButton')

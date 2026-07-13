@@ -25,6 +25,34 @@ export class ExtrasService {
     }));
   }
 
+  /**
+   * Curated list of ACTIVE extras for operator selection on a job (dispatch/
+   * online). Authenticated but ungated by the 'extras' management permission —
+   * replaces the old public /public/extras endpoint after the B2C split.
+   */
+  async getSelectable() {
+    const extras = await this.prisma.b2cExtra.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      include: {
+        allowedVehicleTypes: {
+          include: { vehicleType: { select: { id: true, name: true } } },
+        },
+      },
+    });
+    return extras.map((e) => ({
+      id: e.id,
+      name: e.name,
+      description: e.description,
+      price: Number(e.price),
+      currency: e.currency,
+      imageUrl: e.imageUrl,
+      occupiesSeat: e.occupiesSeat,
+      allowedVehicleTypeIds: e.allowedVehicleTypes.map((a) => a.vehicleTypeId),
+      allowedVehicleTypeNames: e.allowedVehicleTypes.map((a) => a.vehicleType.name),
+    }));
+  }
+
   // Public: only active extras for the B2C booking flow.
   async findActive() {
     const extras = await this.prisma.b2cExtra.findMany({

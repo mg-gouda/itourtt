@@ -47,7 +47,7 @@ export function JobExtrasEditor({ value, onChange, disabled }: JobExtrasEditorPr
   useEffect(() => {
     let active = true;
     api
-      .get("/public/extras")
+      .get("/extras/selectable")
       .then(({ data }) => {
         const list = Array.isArray(data) ? data : data.data || [];
         if (active) setCatalog(list);
