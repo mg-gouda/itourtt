@@ -230,9 +230,16 @@ export class DispatchService {
     if (dto.supplierCarTypeId) {
       const carType = await this.prisma.supplierCarType.findFirst({
         where: { id: dto.supplierCarTypeId },
+        include: { vehicleType: true },
       });
       if (!carType) {
         throw new NotFoundException(`Supplier car type with ID "${dto.supplierCarTypeId}" not found`);
+      }
+      // Pax count must not exceed the supplier car's capacity (same rule as own vehicles).
+      if (job.paxCount > carType.vehicleType.seatCapacity) {
+        throw new BadRequestException(
+          `Pax count (${job.paxCount}) exceeds vehicle capacity (${carType.vehicleType.seatCapacity})`,
+        );
       }
       if (dto.supplierId && carType.supplierId !== dto.supplierId) {
         throw new BadRequestException('Supplier car type does not belong to the specified supplier');
@@ -533,9 +540,16 @@ export class DispatchService {
     if (dto.supplierCarTypeId) {
       const carType = await this.prisma.supplierCarType.findFirst({
         where: { id: dto.supplierCarTypeId },
+        include: { vehicleType: true },
       });
       if (!carType) {
         throw new NotFoundException(`Supplier car type with ID "${dto.supplierCarTypeId}" not found`);
+      }
+      // Pax count must not exceed the supplier car's capacity (same rule as own vehicles).
+      if (job.paxCount > carType.vehicleType.seatCapacity) {
+        throw new BadRequestException(
+          `Pax count (${job.paxCount}) exceeds vehicle capacity (${carType.vehicleType.seatCapacity})`,
+        );
       }
       reassignSupplierId = carType.supplierId;
     }

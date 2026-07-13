@@ -11,6 +11,7 @@ export interface JwtPayload {
   roleId?: string;
   roleSlug?: string;
   sid?: string; // session ID — validated against DB on every request
+  twoFactorPending?: boolean; // set ONLY on the pre-2FA challenge token
 }
 
 @Injectable()
@@ -32,6 +33,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
+    // The pre-2FA challenge token is signed with the same secret but must NEVER
+    // authenticate a request — it only authorizes /auth/2fa/verify.
+    if (payload.twoFactorPending) {
+      throw new UnauthorizedException('Two-factor verification required');
+    }
+
     // Fetch the minimal user fields needed for session validation
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },

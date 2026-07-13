@@ -127,17 +127,24 @@ export class SettingsController {
     return this.settingsService.getLicenseStatus();
   }
 
-  // POST /settings/license-recheck — force an immediate online verification (authenticated)
+  // POST /settings/license-recheck — force an immediate online verification (ADMIN)
   @Post('license-recheck')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
   async recheckLicense() {
     return this.settingsService.recheckLicense();
   }
 
   // ──────────────────────────────────────────────
-  // POST /settings/activate-license — activate license (any authenticated user)
-  // No role/permission guard — the key itself is the credential
+  // POST /settings/activate-license — activate/replace the company license key.
+  // ADMIN only: it overwrites companySettings.licenseKey, so it must not be
+  // reachable by every authenticated principal (drivers, reps, B2C clients).
   // ──────────────────────────────────────────────
   @Post('activate-license')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('company.editSettings')
   async activateLicense(@Body('key') key: string) {
     return this.settingsService.activateLicense(key);
   }

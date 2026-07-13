@@ -444,6 +444,28 @@ export class TrafficJobsService {
     const childCount = dto.childCount ?? job.childCount;
     const paxCount = adultCount + childCount;
 
+    // If pax increased and the job is already assigned, the assigned vehicle/car
+    // must still have capacity — mirrors the assign-time "pax ≤ capacity" rule so
+    // it cannot be bypassed by editing pax upward after assignment.
+    if (paxCount > job.paxCount) {
+      const assignment = await this.prisma.trafficAssignment.findUnique({
+        where: { trafficJobId: id },
+        include: {
+          vehicle: { include: { vehicleType: true } },
+          supplierCarType: { include: { vehicleType: true } },
+        },
+      });
+      const capacity =
+        assignment?.vehicle?.vehicleType.seatCapacity ??
+        assignment?.supplierCarType?.vehicleType.seatCapacity ??
+        null;
+      if (capacity !== null && paxCount > capacity) {
+        throw new BadRequestException(
+          `Pax count (${paxCount}) exceeds the assigned vehicle capacity (${capacity}). Reassign a larger vehicle first.`,
+        );
+      }
+    }
+
     // Auto-set bookingStatus to UPDATED if not explicitly provided
     const bookingStatus = dto.bookingStatus ?? 'UPDATED';
 
@@ -798,21 +820,20 @@ export class TrafficJobsService {
     const company = await this.settingsService.getCompanySettings();
     const prefix = this.deriveAbbreviation(company.companyName);
 
-    // Find the highest existing sequence for this prefix (PREFIX-NNNN)
-    const jobs = await this.prisma.$queryRawUnsafe<{ internal_ref: string }[]>(
-      `SELECT internal_ref FROM traffic_jobs WHERE internal_ref ~ $1 ORDER BY internal_ref DESC LIMIT 1`,
+    // Highest existing sequence for this prefix, compared NUMERICALLY. A text
+    // sort ranks "PREFIX-9999" above "PREFIX-10000" ('9' > '1'), which would
+    // wedge generation forever once the count crosses 10k — so cast to int.
+    const rows = await this.prisma.$queryRawUnsafe<{ max_seq: number | null }[]>(
+      `SELECT MAX(CAST(split_part(internal_ref, '-', 2) AS integer)) AS max_seq
+         FROM traffic_jobs WHERE internal_ref ~ $1`,
       `^${prefix}-[0-9]+$`,
     );
 
-    let nextSeq = 1;
-    if (jobs.length > 0) {
-      const parts = jobs[0].internal_ref.split('-');
-      const lastSeq = parseInt(parts[1], 10);
-      if (!isNaN(lastSeq)) nextSeq = lastSeq + 1;
-    }
+    const lastSeq = rows[0]?.max_seq;
+    const nextSeq = (typeof lastSeq === 'number' && !isNaN(lastSeq) ? lastSeq : 0) + 1;
 
-    const seq = String(nextSeq).padStart(4, '0');
-    return `${prefix}-${seq}`;
+    // padStart keeps the 4-digit look for the first 9,999; larger values print full.
+    return `${prefix}-${String(nextSeq).padStart(4, '0')}`;
   }
 
   private async resolveZoneFromFKs(
