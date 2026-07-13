@@ -6,6 +6,7 @@ import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { EmailModule } from '../email/email.module.js';
+import { SessionsModule } from '../sessions/sessions.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EmailModule } from '../email/email.module.js';
       inject: [ConfigService],
     }),
     EmailModule,
+    SessionsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

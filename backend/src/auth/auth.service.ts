@@ -13,6 +13,7 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
+import { SessionsService, type SessionContext } from '../sessions/sessions.service.js';
 import type { AuthResponseDto } from './dto/auth-response.dto.js';
 import type { User } from '../../generated/prisma/client.js';
 import {
@@ -40,69 +41,43 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly sessions: SessionsService,
   ) {}
 
   /**
    * Authenticate a user by email/phone and password, returning tokens and user info.
    *
-   * For REP and DRIVER roles a concurrent-session guard applies when an active session
-   * already exists on the account:
-   *   - Default (CONCURRENT_LOGIN_LOCK unset/false): "last-device-wins" — the old session
-   *     is displaced and the new login proceeds. A legitimate re-login (e.g. the app lost
-   *     its session and the user simply signs in again) is NOT punished.
-   *   - Opt-in lock (CONCURRENT_LOGIN_LOCK=true): the account password is scrambled and a
-   *     423 Locked response is returned. The user must contact an administrator to have
-   *     their password reset. Use this only when account-sharing must be hard-blocked.
+   * REP and DRIVER are single-device: a new device is blocked (409) while another
+   * device has an active session (seen within SESSION_IDLE_MINUTES). Idle/ended
+   * sessions free up automatically and an admin can force-logout a stuck device;
+   * Admin/Dispatch-Manager/Online-Manager are alerted, the user is not. Office
+   * roles are multi-device (no such restriction).
    */
   async login(
     identifier: string,
     password: string,
+    ctx: SessionContext = {},
   ): Promise<AuthResponseDto | TwoFactorChallenge> {
     const user = await this.validateUser(identifier, password);
 
-    // ── Concurrent-session guard (REP & DRIVER only) ─────────────────────────
+    // ── Single-device lock (REP & DRIVER only) ───────────────────────────────
+    // A new device cannot sign in while another device has an active (recently
+    // seen) session. Idle/ended sessions free up on their own, and an admin can
+    // force-logout a stuck device. Managers are alerted; the user is not.
     const guardedRoles = ['REP', 'DRIVER'];
     if (guardedRoles.includes(user.role)) {
-      const now = new Date();
-      const hasActiveSession =
-        user.sessionId !== null &&
-        user.sessionExpiresAt !== null &&
-        user.sessionExpiresAt > now;
-
-      if (hasActiveSession) {
-        const lockOnConcurrent =
-          this.configService.get<string>('CONCURRENT_LOGIN_LOCK') === 'true';
-
-        if (lockOnConcurrent) {
-          // Opt-in hard lock: scramble the password so the shared credentials can't be reused
-          const scrambledHash = await this.hashPassword(
-            crypto.randomBytes(32).toString('hex'),
-          );
-          await this.prisma.user.update({
-            where: { id: user.id },
-            data: {
-              passwordHash: scrambledHash,
-              sessionId: null,
-              sessionExpiresAt: null,
-              refreshToken: null,
-            },
-          });
-
-          this.logger.warn(
-            `Concurrent login detected for user ${user.id} (${user.role}). Account locked.`,
-          );
-
-          throw new HttpException(
-            'Concurrent login detected. Your account has been locked. Please contact your administrator to restore access.',
-            HttpStatus.LOCKED, // 423
-          );
-        }
-
-        // Default: last-device-wins. The old session is displaced below when a new
-        // sessionId is minted and stored; the previous device's token then fails the
-        // per-request sid check (SESSION_DISPLACED) and is logged out cleanly.
-        this.logger.log(
-          `Concurrent login for user ${user.id} (${user.role}). Displacing previous session.`,
+      const active = await this.sessions.findActive(user.id);
+      if (active) {
+        await this.sessions.notifyManagersOfConflict(
+          { id: user.id, name: user.name, role: user.role },
+          ctx,
+        );
+        this.logger.warn(
+          `Blocked concurrent login for ${user.role} ${user.id} — active session on another device.`,
+        );
+        throw new HttpException(
+          'You are already signed in on another device. Please log out there first, or contact an administrator.',
+          HttpStatus.CONFLICT, // 409
         );
       }
     }
@@ -119,11 +94,11 @@ export class AuthService {
       return { twoFactorRequired: true, challengeToken };
     }
 
-    return this.issueSession(user);
+    return this.issueSession(user, ctx);
   }
 
   /** Mint session + tokens for an authenticated user (shared by login & 2FA verify). */
-  private async issueSession(user: User): Promise<AuthResponseDto> {
+  private async issueSession(user: User, ctx: SessionContext = {}): Promise<AuthResponseDto> {
     // Load role reference for JWT
     const userWithRole = await this.prisma.user.findUnique({
       where: { id: user.id },
@@ -151,6 +126,9 @@ export class AuthService {
         sessionExpiresAt,
       },
     });
+
+    // Log this device session (powers the admin Active-Sessions view + the lock).
+    await this.sessions.start(user.id, sessionId, ctx);
 
     // If user is a REP, resolve their repId
     let repId: string | undefined;
@@ -256,7 +234,11 @@ export class AuthService {
   }
 
   /** Login step 2: exchange the challenge token + a TOTP/recovery code for a session. */
-  async verifyTwoFactor(challengeToken: string, code: string): Promise<AuthResponseDto> {
+  async verifyTwoFactor(
+    challengeToken: string,
+    code: string,
+    ctx: SessionContext = {},
+  ): Promise<AuthResponseDto> {
     let payload: { sub: string; twoFactorPending?: boolean };
     try {
       payload = await this.jwtService.verifyAsync(challengeToken, {
@@ -274,7 +256,7 @@ export class AuthService {
     }
 
     if (verifyTotp(user.twoFactorSecret, code)) {
-      return this.issueSession(user);
+      return this.issueSession(user, ctx);
     }
     // Fall back to a one-time recovery code (consumed on use).
     for (const hash of user.twoFactorRecoveryCodes) {
@@ -285,7 +267,7 @@ export class AuthService {
             twoFactorRecoveryCodes: user.twoFactorRecoveryCodes.filter((h) => h !== hash),
           },
         });
-        return this.issueSession(user);
+        return this.issueSession(user, ctx);
       }
     }
     throw new UnauthorizedException('Invalid authenticator or recovery code');
@@ -375,7 +357,16 @@ export class AuthService {
    * Clear the session for the given user (called on explicit logout).
    * This allows them to log in again without triggering the concurrent-session lock.
    */
-  async logout(userId: string): Promise<void> {
+  async logout(userId: string, sessionId?: string): Promise<void> {
+    // End this device's session log entry (frees the REP/DRIVER lock).
+    if (sessionId) {
+      await this.sessions.end(sessionId);
+    } else {
+      await this.prisma.userSession.updateMany({
+        where: { userId, endedAt: null },
+        data: { endedAt: new Date() },
+      });
+    }
     await this.prisma.user.update({
       where: { id: userId },
       data: {

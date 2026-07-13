@@ -270,8 +270,30 @@ model User {
   preferences          UserPreference[]
   b2cBookings          GuestBooking[]      @relation("B2CClientBookings")
   b2cInvoices          B2CInvoice[]        @relation("B2CClientInvoices")
+  sessions             UserSession[]
 
   @@map("users")
+}
+
+/// Per-device login session log. Powers the admin "Active sessions" view and the
+/// REP/DRIVER single-device lock (a new device is blocked while an active session
+/// exists). "Active" = endedAt is null AND lastSeenAt within the idle window.
+model UserSession {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  sessionId  String    @unique @map("session_id") // mirrors the JWT `sid`
+  deviceName String?   @map("device_name")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  startedAt  DateTime  @default(now()) @map("started_at")
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+  endedAt    DateTime? @map("ended_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, endedAt])
+  @@map("user_sessions")
 }
 
 model UserPreference {

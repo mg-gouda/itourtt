@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { SessionsService } from '../../sessions/sessions.service.js';
 
 export interface JwtPayload {
   sub: string;
@@ -19,6 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly sessions: SessionsService,
   ) {
     const secret = configService.get<string>('JWT_SECRET');
     if (!secret) {
@@ -56,6 +58,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('SESSION_DISPLACED');
     }
 
+    // Heartbeat: keep this device's session fresh (throttled). Fire-and-forget so
+    // it never adds latency or fails the request.
+    if (payload.sid) {
+      void this.sessions.touch(payload.sid).catch(() => undefined);
+    }
+
     return {
       id: payload.sub,
       sub: payload.sub,
@@ -63,6 +71,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: payload.role,
       roleId: payload.roleId,
       roleSlug: payload.roleSlug,
+      sid: payload.sid,
     };
   }
 }

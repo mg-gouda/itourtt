@@ -4,10 +4,13 @@ import {
   Post,
   Delete,
   Body,
+  Ip,
+  Headers,
   HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import type { SessionContext } from '../sessions/sessions.service.js';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RefreshDto } from './dto/refresh.dto.js';
@@ -47,8 +50,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+    @Headers('x-forwarded-for') forwardedFor?: string,
   ): Promise<AuthResponseDto | { twoFactorRequired: true; challengeToken: string }> {
-    return this.authService.login(loginDto.identifier, loginDto.password);
+    return this.authService.login(
+      loginDto.identifier,
+      loginDto.password,
+      this.sessionCtx(ip, userAgent, forwardedFor),
+    );
+  }
+
+  // Real client IP behind Traefik/nginx is the first X-Forwarded-For hop.
+  private sessionCtx(ip: string, userAgent?: string, forwardedFor?: string): SessionContext {
+    const realIp = forwardedFor?.split(',')[0]?.trim() || ip || null;
+    return { ip: realIp, userAgent: userAgent ?? null };
   }
 
   // Login step 2: exchange the challenge + a TOTP/recovery code for a session.
@@ -56,8 +72,17 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('2fa/verify')
   @HttpCode(HttpStatus.OK)
-  async verifyTwoFactor(@Body() body: { challengeToken: string; code: string }) {
-    return this.authService.verifyTwoFactor(body.challengeToken, body.code);
+  async verifyTwoFactor(
+    @Body() body: { challengeToken: string; code: string },
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+    @Headers('x-forwarded-for') forwardedFor?: string,
+  ) {
+    return this.authService.verifyTwoFactor(
+      body.challengeToken,
+      body.code,
+      this.sessionCtx(ip, userAgent, forwardedFor),
+    );
   }
 
   @Post('2fa/setup')
@@ -116,8 +141,11 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@CurrentUser('sub') userId: string) {
-    await this.authService.logout(userId);
+  async logout(
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('sid') sessionId?: string,
+  ) {
+    await this.authService.logout(userId, sessionId);
     return { message: 'Logged out successfully' };
   }
 

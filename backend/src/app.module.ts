@@ -6,6 +6,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { SessionsModule } from './sessions/sessions.module.js';
 import { UsersModule } from './users/users.module.js';
 import { LocationsModule } from './locations/locations.module.js';
 import { VehiclesModule } from './vehicles/vehicles.module.js';
@@ -57,6 +58,7 @@ import { PartnerModule } from './partner/partner.module.js';
     PrismaModule,
     PermissionsModule,
     AuthModule,
+    SessionsModule,
     UsersModule,
     LocationsModule,
     VehiclesModule,
