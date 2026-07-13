@@ -11,12 +11,30 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 
 /** Sensitive fields stripped from logged request bodies */
 const SENSITIVE_KEYS = new Set([
+  // Credentials / tokens
   'password',
   'passwordHash',
   'refreshToken',
   'accessToken',
   'token',
   'secret',
+  'passwordResetToken',
+  'twoFactorSecret',
+  'twoFactorRecoveryCodes',
+  // PII — kept out of the (exportable, 90-day) activity_logs table
+  'taxId',
+  'nationalId',
+  'address',
+  'phone',
+  'mobile',
+  'clientMobile',
+  'phoneNumber',
+  'whatsapp',
+  'email',
+  'iban',
+  'bankName',
+  'bankAccount',
+  'accountNumber',
 ]);
 
 /** Map URL segment → human-readable entity name */

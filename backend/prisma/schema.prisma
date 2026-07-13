@@ -1557,6 +1557,7 @@ model AgentInvoice {
   @@index([agentId])
   @@index([customerId])
   @@index([status])
+  @@index([status, dueDate])
   @@map("agent_invoices")
 }
 
@@ -1597,6 +1598,7 @@ model Payment {
   agentInvoice AgentInvoice @relation(fields: [agentInvoiceId], references: [id])
 
   @@index([agentInvoiceId])
+  @@index([paymentDate])
   @@map("payments")
 }
 
@@ -1651,6 +1653,8 @@ model JournalLine {
   journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id])
   account      Account      @relation(fields: [accountId], references: [id])
 
+  @@index([journalEntryId])
+  @@index([accountId])
   @@map("journal_lines")
 }
 
