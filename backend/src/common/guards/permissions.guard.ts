@@ -7,8 +7,9 @@ import { getAllPermissionKeys } from '../../permissions/permission-registry.js';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  // In-memory cache: userId → { permissions, expiresAt }
-  private cache = new Map<
+  // In-memory cache: userId → { permissions, expiresAt }. Static so every guard
+  // instance shares it AND services can invalidate it on role/permission changes.
+  private static cache = new Map<
     string,
     { permissions: Set<string>; expiresAt: number }
   >();
@@ -63,7 +64,7 @@ export class PermissionsGuard implements CanActivate {
   async getUserPermissions(userId: string): Promise<Set<string>> {
     // Check per-request cache first
     const now = Date.now();
-    const cached = this.cache.get(userId);
+    const cached = PermissionsGuard.cache.get(userId);
     if (cached && cached.expiresAt > now) {
       return cached.permissions;
     }
@@ -91,7 +92,7 @@ export class PermissionsGuard implements CanActivate {
       (!user.roleId && user.role === 'ADMIN')
     ) {
       const allKeys = new Set(getAllPermissionKeys());
-      this.cache.set(userId, {
+      PermissionsGuard.cache.set(userId, {
         permissions: allKeys,
         expiresAt: now + PermissionsGuard.CACHE_TTL_MS,
       });
@@ -105,7 +106,7 @@ export class PermissionsGuard implements CanActivate {
         select: { permissionKey: true },
       });
       const permissions = new Set(records.map((r) => r.permissionKey));
-      this.cache.set(userId, {
+      PermissionsGuard.cache.set(userId, {
         permissions,
         expiresAt: now + PermissionsGuard.CACHE_TTL_MS,
       });
@@ -116,13 +117,14 @@ export class PermissionsGuard implements CanActivate {
   }
 
   /**
-   * Invalidate cache for a specific user or all users.
+   * Invalidate cache for a specific user, or all users. Static so services can
+   * call it after a role change / permission-grant edit.
    */
-  invalidateCache(userId?: string): void {
+  static invalidateCache(userId?: string): void {
     if (userId) {
-      this.cache.delete(userId);
+      PermissionsGuard.cache.delete(userId);
     } else {
-      this.cache.clear();
+      PermissionsGuard.cache.clear();
     }
   }
 }

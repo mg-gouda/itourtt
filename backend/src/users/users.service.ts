@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
@@ -155,6 +156,9 @@ export class UsersService {
       data: { role },
       omit: SAFE_USER_OMIT,
     });
+
+    // Role changed → drop this user's cached permissions immediately.
+    PermissionsGuard.invalidateCache(id);
 
     return user;
   }

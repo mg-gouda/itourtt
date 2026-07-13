@@ -451,6 +451,17 @@ export class DispatchService {
       if (dto.repId && !canRep) {
         throw new ForbiddenException('You do not have permission to assign reps');
       }
+      // A supplier car is a vehicle choice; an external driver is a driver choice.
+      // Gate them the same way assignJob does (was missing on reassign).
+      if (dto.supplierCarTypeId && !canVehicle) {
+        throw new ForbiddenException('You do not have permission to assign vehicles');
+      }
+      if (
+        (dto.externalDriverName !== undefined || dto.externalDriverPhone !== undefined) &&
+        !canDriver
+      ) {
+        throw new ForbiddenException('You do not have permission to assign drivers');
+      }
     }
 
     const existing = await this.prisma.trafficAssignment.findUnique({

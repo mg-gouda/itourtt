@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import {
   getAllPermissionKeys,
   getAncestorKeys,
@@ -162,6 +163,10 @@ export class PermissionsService {
         }),
       ),
     ]);
+
+    // A role's grants changed → drop cached permissions so it takes effect now,
+    // not after the 5-minute TTL. Clears all (any user on this role is affected).
+    PermissionsGuard.invalidateCache();
 
     return { roleId, permissionCount: keysToInsert.length };
   }
