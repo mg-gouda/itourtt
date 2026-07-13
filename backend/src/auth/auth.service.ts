@@ -177,6 +177,18 @@ export class AuthService {
     };
   }
 
+  /**
+   * A short-lived token for authenticating /uploads requests. Delivered as an
+   * httpOnly cookie so <img> tags (which can't send an Authorization header)
+   * can load private files. Signed with the same secret; carries typ:'uploads'.
+   */
+  async signUploadsToken(userId: string): Promise<string> {
+    return this.jwtService.signAsync(
+      { sub: userId, typ: 'uploads' },
+      { secret: this.configService.get<string>('JWT_SECRET'), expiresIn: '7d' },
+    );
+  }
+
   // ── Two-factor authentication (optional TOTP) ──────────────────────────────
 
   /** Begin 2FA enrolment: generate + store a secret (not yet enabled), return QR URI. */

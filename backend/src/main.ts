@@ -4,7 +4,10 @@ import * as express from 'express';
 import * as path from 'path';
 import * as dns from 'dns';
 import compression from 'compression';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module.js';
+import { PrismaService } from './prisma/prisma.service.js';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
 
 // Force IPv4 for all outbound connections — the pod has no IPv6 route
@@ -20,8 +23,81 @@ async function bootstrap() {
   // Compress all responses (gzip) — reduces payload 70-90% for large JSON
   app.use(compression());
 
-  // Serve uploaded files statically (logos, favicons, etc.)
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Serve /uploads with auth. Rep/driver/supplier legal docs, job attachments
+  // and stamps are private — gate them behind an httpOnly `uploads_token`
+  // cookie (so <img> requests carry auth) OR a Bearer token. Login-branding
+  // assets stay public so the pre-auth login screen can load them.
+  const jwtService = app.get(JwtService, { strict: false });
+  const prisma = app.get(PrismaService);
+  const jwtSecret = app.get(ConfigService).get<string>('JWT_SECRET');
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+
+  // Public branding paths (login logo/bg, company logo/favicon), cached 60s.
+  let publicUploads = new Set<string>();
+  let publicFetchedAt = 0;
+  const refreshPublicUploads = async () => {
+    if (Date.now() - publicFetchedAt < 60_000) return;
+    publicFetchedAt = Date.now();
+    try {
+      const s = await prisma.systemSettings.findFirst({
+        select: {
+          loginLogoUrl: true,
+          loginBgImageUrl: true,
+          innerBgImageUrl: true,
+        },
+      });
+      const set = new Set<string>();
+      for (const u of [s?.loginLogoUrl, s?.loginBgImageUrl, s?.innerBgImageUrl]) {
+        if (u && u.startsWith('/uploads/')) set.add(u.slice('/uploads'.length));
+      }
+      publicUploads = set;
+    } catch {
+      /* keep last known set */
+    }
+  };
+
+  const readCookie = (header: string | undefined, name: string): string | null => {
+    if (!header) return null;
+    for (const part of header.split(';')) {
+      const eq = part.indexOf('=');
+      if (eq === -1) continue;
+      if (part.slice(0, eq).trim() === name) {
+        return decodeURIComponent(part.slice(eq + 1).trim());
+      }
+    }
+    return null;
+  };
+
+  app.use(
+    '/uploads',
+    async (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      await refreshPublicUploads();
+      if (publicUploads.has(req.path)) return next(); // public branding
+      const token =
+        readCookie(req.headers.cookie, 'uploads_token') ||
+        (req.headers.authorization?.startsWith('Bearer ')
+          ? req.headers.authorization.slice(7)
+          : null);
+      if (token && jwtSecret) {
+        try {
+          const payload = jwtService.verify(token, { secret: jwtSecret }) as {
+            twoFactorPending?: boolean;
+          };
+          if (!payload.twoFactorPending) return next();
+        } catch {
+          /* invalid/expired → 401 below */
+        }
+      }
+      res
+        .status(401)
+        .json({ statusCode: 401, message: 'Authentication required for this file' });
+    },
+    express.static(uploadsDir),
+  );
 
   // Enable CORS for frontend
   const allowedOrigins = process.env.CORS_ORIGINS

@@ -6,11 +6,15 @@ import {
   Body,
   Ip,
   Headers,
+  Res,
   HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import type { SessionContext } from '../sessions/sessions.service.js';
+
+const UPLOADS_COOKIE = 'uploads_token';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RefreshDto } from './dto/refresh.dto.js';
@@ -51,20 +55,35 @@ export class AuthController {
   async login(
     @Body() loginDto: LoginDto,
     @Ip() ip: string,
+    @Res({ passthrough: true }) res: Response,
     @Headers('user-agent') userAgent?: string,
     @Headers('x-forwarded-for') forwardedFor?: string,
   ): Promise<AuthResponseDto | { twoFactorRequired: true; challengeToken: string }> {
-    return this.authService.login(
+    const result = await this.authService.login(
       loginDto.identifier,
       loginDto.password,
       this.sessionCtx(ip, userAgent, forwardedFor),
     );
+    if ('accessToken' in result) await this.setUploadsCookie(res, result.user.id);
+    return result;
   }
 
   // Real client IP behind Traefik/nginx is the first X-Forwarded-For hop.
   private sessionCtx(ip: string, userAgent?: string, forwardedFor?: string): SessionContext {
     const realIp = forwardedFor?.split(',')[0]?.trim() || ip || null;
     return { ip: realIp, userAgent: userAgent ?? null };
+  }
+
+  // httpOnly cookie so <img src="/uploads/…"> requests carry auth (a Bearer
+  // token can't ride on an image request). Scoped to the /uploads path.
+  private async setUploadsCookie(res: Response, userId: string) {
+    res.cookie(UPLOADS_COOKIE, await this.authService.signUploadsToken(userId), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/uploads',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
   }
 
   // Login step 2: exchange the challenge + a TOTP/recovery code for a session.
@@ -75,14 +94,17 @@ export class AuthController {
   async verifyTwoFactor(
     @Body() body: { challengeToken: string; code: string },
     @Ip() ip: string,
+    @Res({ passthrough: true }) res: Response,
     @Headers('user-agent') userAgent?: string,
     @Headers('x-forwarded-for') forwardedFor?: string,
   ) {
-    return this.authService.verifyTwoFactor(
+    const result = await this.authService.verifyTwoFactor(
       body.challengeToken,
       body.code,
       this.sessionCtx(ip, userAgent, forwardedFor),
     );
+    await this.setUploadsCookie(res, result.user.id);
+    return result;
   }
 
   @Post('2fa/setup')
@@ -116,8 +138,13 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() refreshDto: RefreshDto): Promise<AuthResponseDto> {
-    return this.authService.refresh(refreshDto.refreshToken);
+  async refresh(
+    @Body() refreshDto: RefreshDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const result = await this.authService.refresh(refreshDto.refreshToken);
+    await this.setUploadsCookie(res, result.user.id);
+    return result;
   }
 
   @Public()
@@ -143,9 +170,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(
     @CurrentUser('sub') userId: string,
+    @Res({ passthrough: true }) res: Response,
     @CurrentUser('sid') sessionId?: string,
   ) {
     await this.authService.logout(userId, sessionId);
+    res.clearCookie(UPLOADS_COOKIE, { path: '/uploads' });
     return { message: 'Logged out successfully' };
   }
 
