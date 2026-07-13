@@ -17,6 +17,7 @@ import {
 import { useAuthStore } from "@/stores/auth-store";
 import { useTheme } from "@/components/theme-provider";
 import { useT } from "@/lib/i18n";
+import { TwoFactorSettings } from "@/components/two-factor-settings";
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -124,6 +125,9 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Security — Two-factor authentication */}
+      <TwoFactorSettings />
 
       {/* Appearance */}
       <Card className="border-border bg-card">

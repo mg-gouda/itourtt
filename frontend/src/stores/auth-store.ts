@@ -11,10 +11,17 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   isAccountLocked: boolean;
+  twoFactorChallenge: string | null;
   login: (payload: LoginPayload) => Promise<void>;
+  verifyTwoFactor: (code: string) => Promise<void>;
+  cancelTwoFactor: () => void;
   logout: () => Promise<void>;
   hydrate: () => void;
 }
+
+type LoginResult =
+  | AuthResponse
+  | { twoFactorRequired: true; challengeToken: string };
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -22,15 +29,22 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   error: null,
   isAccountLocked: false,
+  twoFactorChallenge: null,
 
   login: async (payload: LoginPayload) => {
-    set({ isLoading: true, error: null, isAccountLocked: false });
+    set({ isLoading: true, error: null, isAccountLocked: false, twoFactorChallenge: null });
     try {
-      const { data } = await api.post<AuthResponse>('/auth/login', payload);
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      set({ user: data.user, isAuthenticated: true, isLoading: false });
+      const { data } = await api.post<LoginResult>('/auth/login', payload);
+      // 2FA step-up: the server withheld a session and returned a challenge.
+      if ('twoFactorRequired' in data && data.twoFactorRequired) {
+        set({ twoFactorChallenge: data.challengeToken, isLoading: false });
+        return;
+      }
+      const session = data as AuthResponse;
+      localStorage.setItem('accessToken', session.accessToken);
+      localStorage.setItem('refreshToken', session.refreshToken);
+      localStorage.setItem('user', JSON.stringify(session.user));
+      set({ user: session.user, isAuthenticated: true, isLoading: false });
       // Load granular permissions after successful login
       usePermissionsStore.getState().loadPermissions();
     } catch (err: unknown) {
@@ -48,6 +62,29 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw err;
     }
   },
+
+  // Login step 2: exchange the stored challenge + a TOTP/recovery code for a session.
+  verifyTwoFactor: async (code: string) => {
+    const challengeToken = useAuthStore.getState().twoFactorChallenge;
+    if (!challengeToken) throw new Error('No 2FA challenge in progress');
+    set({ isLoading: true, error: null });
+    try {
+      const { data } = await api.post<AuthResponse>('/auth/2fa/verify', { challengeToken, code });
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      set({ user: data.user, isAuthenticated: true, isLoading: false, twoFactorChallenge: null });
+      usePermissionsStore.getState().loadPermissions();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Verification failed';
+      set({ error: message, isLoading: false });
+      throw err;
+    }
+  },
+
+  cancelTwoFactor: () => set({ twoFactorChallenge: null, error: null }),
 
   logout: async () => {
     // Notify the server to clear the session (allows clean re-login)

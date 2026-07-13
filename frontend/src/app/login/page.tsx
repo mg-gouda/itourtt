@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import Image from "next/image";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +24,9 @@ type LoginForm = z.infer<typeof loginSchema>;
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isLoading, error, isAccountLocked, isAuthenticated, hydrate } = useAuthStore();
+  const { login, verifyTwoFactor, cancelTwoFactor, twoFactorChallenge, isLoading, error, isAccountLocked, isAuthenticated, hydrate } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [code, setCode] = useState("");
   const [loginBgUrl, setLoginBgUrl] = useState<string | null>(null);
   const [loginLogoUrl, setLoginLogoUrl] = useState<string | null>(null);
   const t = useT();
@@ -60,11 +61,28 @@ function LoginForm() {
     }
   }, [mounted, isAuthenticated, router]);
 
+  const routeForRole = (role?: string) =>
+    role === 'REP' ? '/rep' : role === 'DRIVER' ? '/driver' : role === 'SUPPLIER' ? '/supplier' : '/dashboard';
+
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data);
-      const user = useAuthStore.getState().user;
-      router.replace(user?.role === 'REP' ? '/rep' : user?.role === 'DRIVER' ? '/driver' : user?.role === 'SUPPLIER' ? '/supplier' : '/dashboard');
+      // If the account has 2FA, login withheld the session — show the code step.
+      if (useAuthStore.getState().twoFactorChallenge) {
+        setCode("");
+        return;
+      }
+      router.replace(routeForRole(useAuthStore.getState().user?.role));
+    } catch {
+      // error is already set in the store
+    }
+  };
+
+  const onVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await verifyTwoFactor(code.trim());
+      router.replace(routeForRole(useAuthStore.getState().user?.role));
     } catch {
       // error is already set in the store
     }
@@ -121,6 +139,7 @@ function LoginForm() {
           )}
 
           {/* Form */}
+          {!twoFactorChallenge ? (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="identifier" className="text-sm text-white/70">
@@ -183,6 +202,50 @@ function LoginForm() {
               </Link>
             </div>
           </form>
+          ) : (
+          <form onSubmit={onVerify} className="space-y-4">
+            <div className="flex items-center gap-2 text-white/80">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-white/70" />
+              <span className="text-sm font-medium">Two-factor verification</span>
+            </div>
+            <p className="text-xs text-white/50">
+              Enter the 6-digit code from your authenticator app, or a recovery code.
+            </p>
+            <Input
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/[^0-9a-f-]/gi, ""))}
+              className="border-white/10 bg-white/[0.06] text-center text-lg tracking-[0.3em] text-white placeholder:text-white/30 focus-visible:ring-white/20"
+            />
+            {error && (
+              <p className="text-center text-sm text-red-400">{error}</p>
+            )}
+            <Button
+              type="submit"
+              disabled={isLoading || code.trim().length < 6}
+              className="w-full bg-white text-black hover:bg-white/90"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verifying…
+                </>
+              ) : (
+                "Verify"
+              )}
+            </Button>
+            <button
+              type="button"
+              onClick={() => { cancelTwoFactor(); setCode(""); }}
+              className="w-full text-center text-xs text-white/40 transition-colors hover:text-white/70"
+            >
+              Back to login
+            </button>
+          </form>
+          )}
         </div>
 
         <p className="mt-4 text-center text-xs text-white/30">
