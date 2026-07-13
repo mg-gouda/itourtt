@@ -200,7 +200,7 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-white/10 bg-[#41004c] px-3 md:px-6">
+    <header className="flex h-14 items-center justify-between border-b border-white/10 bg-sidebar px-3 md:px-6">
       <div className="flex items-center gap-3">
         <button
           className="flex h-9 w-9 items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white lg:hidden"

@@ -236,7 +236,7 @@ function LivePreview({
   loginLogoUrl: string | null;
 }) {
   const isDark = theme === "dark";
-  const bodyBg = isDark ? "#341539" : "#f5f5f5";
+  const bodyBg = isDark ? "#0b1120" : "#f5f5f5";
   const bodyFg = isDark ? "#f5f5f5" : "#1a1a1a";
   const cardBg = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.03)";
   const cardBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
@@ -373,7 +373,7 @@ export default function StylingPage() {
   const [language, setLanguage] = useState("en");
   const [primaryColor, setPrimaryColor] = useState("#3b82f6");
   const [accentColor, setAccentColor] = useState("#8b5cf6");
-  const [sidebarColor, setSidebarColor] = useState("#41004c");
+  const [sidebarColor, setSidebarColor] = useState("#0f172a");
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState("");
   const [innerBgImageUrl, setInnerBgImageUrl] = useState<string | null>(null);
   const [loginBgImageUrl, setLoginBgImageUrl] = useState<string | null>(null);
@@ -390,7 +390,7 @@ export default function StylingPage() {
         setLanguage(data.language ?? "en");
         setPrimaryColor(data.primaryColor ?? "#3b82f6");
         setAccentColor(data.accentColor ?? "#8b5cf6");
-        setSidebarColor(data.sidebarColor ?? "#41004c");
+        setSidebarColor(data.sidebarColor ?? "#0f172a");
         setGoogleMapsApiKey(data.googleMapsApiKey ?? "");
         setInnerBgImageUrl(resolveUrl(data.innerBgImageUrl));
         setLoginBgImageUrl(resolveUrl(data.loginBgImageUrl));
