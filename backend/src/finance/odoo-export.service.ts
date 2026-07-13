@@ -211,7 +211,7 @@ export class OdooExportService {
           isFirst ? toNum(inv.subtotal) : '',
           isFirst ? toNum(inv.taxAmount) : '',
           isFirst ? toNum(inv.total) : '',
-          inv.status === 'PAID' ? 'posted' : 'posted',
+          'posted',
         ]);
       }
     }

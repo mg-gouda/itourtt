@@ -206,6 +206,8 @@ export class FinanceService {
         trafficJobId: dto.trafficJobId,
         amount: dto.amount,
         currency,
+        // Final on creation so the Odoo vendor-bill export (filters isPosted) picks it up.
+        isPosted: true,
       },
       include: {
         supplier: true,
@@ -658,6 +660,10 @@ export class FinanceService {
         data: {
           agentInvoiceId: dto.agentInvoiceId,
           amount: dto.amount,
+          // Payment settles this invoice, so it carries the invoice currency —
+          // not the schema EGP default — and is final on creation so it exports.
+          currency: invoice.currency,
+          isPosted: true,
           paymentMethod,
           paymentDate: new Date(dto.paymentDate),
           reference: dto.reference,
