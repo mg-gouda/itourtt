@@ -45,6 +45,7 @@ import { useSortable } from "@/hooks/use-sortable";
 import { SortableHeader } from "@/components/sortable-header";
 import { TableFilterBar } from "@/components/table-filter-bar";
 import { PermissionMatrix } from "@/components/permission-matrix";
+import { UserSessionsDialog } from "@/components/user-sessions-dialog";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { formatDate } from "@/lib/utils";
@@ -133,6 +134,7 @@ export default function UsersPage() {
 
   const [addDialogOpen, setAddDialogOpen]   = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [sessionsUser, setSessionsUser] = useState<User | null>(null);
   const [editingUser, setEditingUser]       = useState<User | null>(null);
   const [formName, setFormName]             = useState("");
   const [formEmail, setFormEmail]           = useState("");
@@ -493,6 +495,7 @@ export default function UsersPage() {
                         {isVis("actions") && (
                           <TableCell className="text-right">
                             {canEditUser && <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => openEdit(user)}>{t("common.edit")}</Button>}
+                            {canEditUser && <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => setSessionsUser(user)}>Sessions</Button>}
                             {canDeactivateUser && user.isActive && <Button variant="ghost" size="sm" className="text-red-500/70 hover:text-red-500" onClick={() => handleDeactivate(user.id)}>{t("users.deactivate")}</Button>}
                             {canDeactivateUser && !user.isActive && <Button variant="ghost" size="sm" className="text-emerald-600/70 hover:text-emerald-600" onClick={() => handleReactivate(user.id)}>{t("users.reactivate")}</Button>}
                           </TableCell>
@@ -779,6 +782,13 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UserSessionsDialog
+        userId={sessionsUser?.id ?? null}
+        userName={sessionsUser?.name}
+        open={!!sessionsUser}
+        onOpenChange={(v) => { if (!v) setSessionsUser(null); }}
+      />
     </div>
   );
 }
