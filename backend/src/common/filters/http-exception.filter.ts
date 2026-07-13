@@ -44,7 +44,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
         default: {
           status = HttpStatus.BAD_REQUEST;
-          message = exception.message;
+          // Don't surface raw Prisma internals (schema/constraint/query
+          // details) to clients in production; the full error is still logged.
+          message =
+            process.env.NODE_ENV === 'production'
+              ? 'Invalid request'
+              : exception.message;
         }
       }
     } else if (exception instanceof HttpException) {

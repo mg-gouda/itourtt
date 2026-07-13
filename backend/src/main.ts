@@ -31,8 +31,13 @@ async function bootstrap() {
     origin: (origin, callback) => {
       // Allow requests with no origin (server-to-server, mobile apps)
       if (!origin) return callback(null, true);
-      // Allow localhost in development
-      if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+      // Allow localhost only outside production (dev tooling / local apps)
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        /^http:\/\/localhost(:\d+)?$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
       // Allow configured production origins
       if (allowedOrigins.includes(origin)) return callback(null, true);
       callback(new Error('Not allowed by CORS'));

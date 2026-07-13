@@ -42,6 +42,21 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Session displaced — check FIRST so it short-circuits before the refresh
+    // flow (which would otherwise consume the 401 and lose the "displaced" reason).
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.message === 'SESSION_DISPLACED'
+    ) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?reason=displaced';
+      }
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -88,20 +103,6 @@ api.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
-    }
-
-    // Session displaced — someone logged in with the same credentials on another device
-    if (
-      error.response?.status === 401 &&
-      error.response?.data?.message === 'SESSION_DISPLACED'
-    ) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login?reason=displaced';
-      }
-      return Promise.reject(error);
     }
 
     return Promise.reject(error);
