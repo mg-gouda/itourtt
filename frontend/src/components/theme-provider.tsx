@@ -198,12 +198,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Apply custom colors as CSS variables
   useEffect(() => {
-    document.documentElement.style.setProperty("--primary-hex", settings.primaryColor);
-    document.documentElement.style.setProperty("--accent-hex", settings.accentColor);
-    document.documentElement.style.setProperty("--sidebar", settings.sidebarColor);
-    // Derive a darker shade for the sidebar gradient end
-    document.documentElement.style.setProperty("--sidebar-gradient-end", settings.sidebarColor + "99");
-  }, [settings.primaryColor, settings.accentColor, settings.sidebarColor]);
+    const root = document.documentElement;
+    root.style.setProperty("--primary-hex", settings.primaryColor);
+    root.style.setProperty("--accent-hex", settings.accentColor);
+    // The configurable sidebar colour is the DARK rail only. In light mode the
+    // sidebar follows the CSS light tokens (ResLite slate-200) — so clear the
+    // inline override there instead of forcing the dark brand colour.
+    if (settings.theme === "dark") {
+      root.style.setProperty("--sidebar", settings.sidebarColor);
+      root.style.setProperty("--sidebar-gradient-end", settings.sidebarColor + "99");
+    } else {
+      root.style.removeProperty("--sidebar");
+      root.style.removeProperty("--sidebar-gradient-end");
+    }
+  }, [settings.primaryColor, settings.accentColor, settings.sidebarColor, settings.theme]);
 
   // Apply inner background image — /uploads/... is served by nginx at the same origin
   useEffect(() => {
