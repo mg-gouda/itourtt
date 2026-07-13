@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
 import { NoShowDisputeService } from './no-show-dispute.service.js';
+import { DriverTariffsService } from '../driver-tariffs/driver-tariffs.service.js';
 
 type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
@@ -31,6 +32,7 @@ export class DriverPortalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly noShowDisputeService: NoShowDisputeService,
+    private readonly driverTariffsService: DriverTariffsService,
   ) {}
 
   // Minimal fields for list cards — no agent/customer details
@@ -507,21 +509,17 @@ export class DriverPortalService {
           data: { status: 'COMPLETED' as any },
         });
 
-        if (updated.driverId && job.fromZoneId && job.toZoneId) {
+        if (updated.driverId) {
           const existingDriverFee = await tx.driverTripFee.findFirst({
             where: { driverId: updated.driverId, trafficJobId: jobId },
           });
           if (!existingDriverFee) {
-            await tx.driverTripFee.create({
-              data: {
-                driverId: updated.driverId,
-                trafficJobId: jobId,
-                fromZoneId: job.fromZoneId,
-                toZoneId: job.toZoneId,
-                amount: 0,
-                currency: 'EGP',
-              },
-            });
+            const feeData = await this.driverTariffsService.resolveJobTripFee(job, updated.vehicleId);
+            if (feeData) {
+              await tx.driverTripFee.create({
+                data: { driverId: updated.driverId, trafficJobId: jobId, ...feeData },
+              });
+            }
           }
         }
 

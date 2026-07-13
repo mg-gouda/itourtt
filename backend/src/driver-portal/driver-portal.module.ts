@@ -5,9 +5,10 @@ import { NoShowDisputeService } from './no-show-dispute.service.js';
 import { SupplierAutoCompleteService } from './supplier-auto-complete.service.js';
 import { EmailModule } from '../email/email.module.js';
 import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
+import { DriverTariffsModule } from '../driver-tariffs/driver-tariffs.module.js';
 
 @Module({
-  imports: [EmailModule, GoogleDriveModule],
+  imports: [EmailModule, GoogleDriveModule, DriverTariffsModule],
   controllers: [DriverPortalController],
   providers: [DriverPortalService, NoShowDisputeService, SupplierAutoCompleteService],
 })

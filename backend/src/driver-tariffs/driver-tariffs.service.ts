@@ -123,6 +123,60 @@ export class DriverTariffsService {
     });
   }
 
+  /**
+   * Build the DriverTripFee create-data for a completed job: airport-aware
+   * tariff lookup keyed on the assigned vehicle's type. Returns null when the
+   * job lacks a from+to pair. Amount falls back to 0 if no tariff matches.
+   * Centralises what the dispatcher completion path does so the driver/rep
+   * portals stop creating fees at amount 0.
+   */
+  async resolveJobTripFee(
+    job: {
+      fromZoneId?: string | null;
+      toZoneId?: string | null;
+      originAirportId?: string | null;
+      destinationAirportId?: string | null;
+    },
+    vehicleId: string | null | undefined,
+  ) {
+    const fromZoneId = job.fromZoneId ?? null;
+    const toZoneId = job.toZoneId ?? null;
+    const fromAirportId = job.originAirportId ?? null;
+    const toAirportId = job.destinationAirportId ?? null;
+    if (!(fromZoneId || fromAirportId) || !(toZoneId || toAirportId)) return null;
+
+    let vehicleTypeId: string | null = null;
+    if (vehicleId) {
+      const vehicle = await this.prisma.vehicle.findUnique({
+        where: { id: vehicleId },
+        select: { vehicleTypeId: true },
+      });
+      vehicleTypeId = vehicle?.vehicleTypeId ?? null;
+    }
+
+    let amount = 0;
+    let tariffId: string | null = null;
+    if (vehicleTypeId) {
+      const tariff = await this.lookup(fromZoneId, toZoneId, vehicleTypeId, fromAirportId, toAirportId);
+      if (tariff) {
+        amount = Number(tariff.amount);
+        tariffId = tariff.id;
+      }
+    }
+
+    return {
+      fromZoneId: fromZoneId ?? undefined,
+      toZoneId: toZoneId ?? undefined,
+      fromAirportId: fromAirportId ?? undefined,
+      toAirportId: toAirportId ?? undefined,
+      vehicleTypeId: vehicleTypeId ?? undefined,
+      tariffId: tariffId ?? undefined,
+      amount,
+      tariffAmount: amount,
+      currency: 'EGP' as const,
+    };
+  }
+
   // ─────────────────────────────────────────────────────
   // EXCEL TEMPLATE – generate downloadable template
   // ─────────────────────────────────────────────────────

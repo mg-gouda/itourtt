@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveRepGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
 import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
+import { DriverTariffsService } from '../driver-tariffs/driver-tariffs.service.js';
 
 type RepJobStatus = 'COMPLETED' | 'CANCELLED';
 
@@ -28,7 +29,10 @@ const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 export class RepPortalService {
   private readonly logger = new Logger(RepPortalService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly driverTariffsService: DriverTariffsService,
+  ) {}
 
   private readonly jobInclude = {
     originAirport: true,
@@ -678,22 +682,18 @@ export class RepPortalService {
           data: { status: 'COMPLETED' as any },
         });
 
-        // Auto-generate DriverTripFee
-        if (updated.driverId && job.fromZoneId && job.toZoneId) {
+        // Auto-generate DriverTripFee (airport-aware tariff lookup, not amount 0)
+        if (updated.driverId) {
           const existingDriverFee = await tx.driverTripFee.findFirst({
             where: { driverId: updated.driverId, trafficJobId: jobId },
           });
           if (!existingDriverFee) {
-            await tx.driverTripFee.create({
-              data: {
-                driverId: updated.driverId,
-                trafficJobId: jobId,
-                fromZoneId: job.fromZoneId,
-                toZoneId: job.toZoneId,
-                amount: 0,
-                currency: 'EGP',
-              },
-            });
+            const feeData = await this.driverTariffsService.resolveJobTripFee(job, updated.vehicleId);
+            if (feeData) {
+              await tx.driverTripFee.create({
+                data: { driverId: updated.driverId, trafficJobId: jobId, ...feeData },
+              });
+            }
           }
         }
 
