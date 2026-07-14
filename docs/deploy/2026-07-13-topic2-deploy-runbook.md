@@ -41,6 +41,34 @@ Status as of prep pass 2026-07-14:
 
 ---
 
+## 1A. Pre-deploy verification — DONE 2026-07-15 (live prod, read-only)
+
+Ran against both production VPS. All green.
+
+**Backups taken (full, verified) + downloaded to local:**
+- iTourTT (72.62.45.40, k3s): `/root/itour-backup-20260715-000405` (3.9G) — DB (PGDMP custom + SQL + globals), uploads 3.6G, git bundle (all history) + working tree, k8s manifests + **secrets**, running 3.6.0 images. → local `/home/gouda/iTourTT-backup/`.
+- B2C (31.97.45.33): `/root/b2c-backup-20260714-211305` (150M) — B2C git bundle + working tree + old `itourtt-b2c` image + nginx + **co-located mg-licenses DB dump & image**. → local `/home/gouda/B2C-backup/`.
+- Both verified (git bundle OK, gzip OK, PGDMP OK, secrets captured).
+
+**Rule: no data loss (iTourTT).** Diffed live prod schema vs the schema `db push --accept-data-loss` will enforce (pushed the new schema to a scratch DB, compared column-by-column):
+- **DROPS: NONE.** Deploy is **purely additive**: `+user_sessions` table (9 cols), `+users.two_factor_*` (3 cols), + finance indexes.
+- Live data preserved: `guest_bookings=38`, `b2c_invoices=19`, `users=69`, all ops tables intact.
+
+**Rule: don't change iTourTT usernames/passwords.** Audited `src/prisma/seed.js` (runs on deploy):
+- Admin upserts (`admin@itour.local`, `mggouda@gmail.com`) use **`update: {}` (empty)** → existing rows untouched; `passwordHash` only in the `create` branch (new users only).
+- `user.updateMany` (line 567) sets **`roleId` only** — no password/email/name.
+- Seed **never references** `system_settings`/`email_settings`. Migrations are DDL-only (ADD COLUMN / CREATE TABLE / CREATE INDEX). → **No credential changes.**
+
+**Rule: integrations preserved.** All are DB- or secret-resident; `kubectl set image` touches neither:
+- Google Maps → `system_settings.google_maps_api_key` (populated, len 39). Brevo email → `email_settings` (`smtp-relay.brevo.com`, user+pass set). AI → `backend-secret.GEMINI_API_KEY`. Payments → `backend-secret.GETPAYIN_*`.
+- Nothing to move. Only deploy-time DB write (brand-color `UPDATE`) hits color columns only.
+
+**New deploy-time concern found (B2C):** the B2C VPS `git fetch origin` did **not** advance to `8507955` (stuck at old `d5fc502`) — the box may lack GitHub pull access. **Verify B2C→GitHub before the window**; if it can't pull, push code via `rsync`/bundle from local or the iTourTT box. (My local↔origin are in sync; this is VPS-side only.)
+
+**Access:** local↔iTourTT via password SSH (root@72.62.45.40); iTourTT→B2C via `/root/.ssh/b2c_vps`. ⚠️ **Rotate the iTourTT root password + that key after deploy** — both were shared in-session.
+
+---
+
 ## 2. Time estimates
 
 Downtime is small on both — the wall-clock is **build-dominated**. Pre-build where noted to shrink it.
