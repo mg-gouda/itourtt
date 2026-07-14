@@ -28,10 +28,10 @@ Status as of prep pass 2026-07-14:
 | B2 | `PARTNER_API_KEY` not in iTourTT prod k8s secret (guard fails closed → all partner calls 401) | ⏳ **VPS action** | Patch prod backend secret = B2C key, restart backend. See §5. |
 | B3 | B2C compose ran only the OLD single `web` → `fulvago` | ✅ **DONE** | 3-service compose + `backend/Dockerfile` committed to B2C `main` (`b6fe2cf`). See §6. |
 | B4 | B2C backend has **0 migrations** (schema is `db push`-only) | ✅ **handled** | Deploy uses `prisma db push`; Dockerfile keeps `node_modules` so it runs in-container. |
-| B5 | Super-admin + custom roles/grants are local-DB-only | ⏳ **seed pending scope** | Ships via clean `b2c_seed.sql` users slice — **NOT** raw fork. Awaiting user-scope decision (§6). |
+| B5 | Super-admin + custom roles/grants are local-DB-only | ✅ **DONE** | Clean `deploy/b2c_seed.sql` built + test-restored (0 errors); scope = admins-only, no bookings (§6). + `deploy/uploads-media.tgz`. scp both to VPS. |
 | B6 | Host nginx routed `:80/:443 → :3000` only | ✅ **DONE** | `deploy/nginx-transferra.conf` committed (`/api`+`/uploads`→:3002). Install + reload on VPS. |
 
-**Remaining before window:** B2 (partner key on prod), B5 (generate `b2c_seed.sql` once scope confirmed) + copy `uploads-media/`.
+**Remaining before window:** only **B2** (partner key on iTourTT prod) + **scp the two `deploy/` artifacts** to the B2C VPS. Everything else is cleared.
 
 **Also prep tonight (safe, no downtime):**
 - Full DB backup, both systems (§7).
@@ -128,11 +128,14 @@ docker compose ps                     # b2c-postgres, b2c-backend(:3002), itourt
 # create schema on the fresh b2c_db (no migrations exist → db push)
 docker compose exec backend npx prisma db push
 
-# load the CLEAN B2C seed — config + content + admin users only, NOT the local fork (§6)
-docker compose exec -T postgres psql -U b2c -d b2c_db < b2c_seed.sql
+# load the CLEAN B2C seed (built + test-restored locally; see §6). scp it up first:
+#   scp deploy/b2c_seed.sql root@31.97.45.33:/opt/iTourTT-B2CSite/deploy/
+docker compose exec -T postgres psql -U b2c -d b2c_db < deploy/b2c_seed.sql
 
-# copy uploaded website media into the backend uploads volume (else images 404)
-docker cp ./uploads-media/. b2c-backend:/app/uploads/
+# copy uploaded website media into the backend uploads volume (else images 404):
+#   scp deploy/uploads-media.tgz root@31.97.45.33:/opt/iTourTT-B2CSite/deploy/
+tar -xzf deploy/uploads-media.tgz -C /tmp/uploads-media
+docker cp /tmp/uploads-media/. b2c-backend:/app/uploads/
 
 # nginx: install site config + reload
 sudo cp deploy/nginx-transferra.conf /etc/nginx/sites-available/transferra
@@ -175,21 +178,31 @@ Local `b2c_db` is a **fork of iTourTT's data**: it carries iTourTT ops tables
 (21 DRIVER, 18 REP, 15 B2C_CLIENT, 14 VIEWER, 5 ADMIN, 1 SUPPLIER). Restoring it
 wholesale would push iTourTT operational PII onto the **public** B2C server.
 
-**Approach:** `prisma db push` (empty 86-table schema) → load a **clean selective seed**
-(`b2c_seed.sql`) containing only genuine B2C state:
-- config: `roles`(3), `role_permissions_v2`(101), `system_settings`, `website_settings`
-- content: `blog_*`, `city_page*`, `static_page*`, `page_seo*`, `guest_surveys`, `contact_messages`, `b2c_extras*`, translations, `ai_visibility*`
-- users: **admins/content only** — final scope per the go/no-go decision (see plan notes)
+**Approach:** `prisma db push` (empty 86-table schema) → load the **clean selective seed**.
+Both artifacts are **BUILT + VALIDATED** (in `deploy/`, gitignored):
 
-The super-admin (`mggouda@gmail.com`) rides in on the `users` slice — **no separate
-create-superadmin script needed**.
+- **`deploy/b2c_seed.sql`** (798K) — FK-closed, self-contained. Test-restored into a
+  scratch schema clone with **zero errors**. Contents (verified counts):
+  - config: `roles`(3), `role_permissions_v2`(101), `system_settings`(1), `website_settings`(1)
+  - reference (FK closure, safe lookup): `countries`(1), `airports`(8), `cities`(18), `vehicle_types`(9)
+  - content: `blog_posts`(24)+`blog_post_translations`(78), `city_pages`(12)+trans(30),
+    `static_pages`(5)+trans(24), `page_seo`(8)+trans(48), `blog_categories`(3), `b2c_extras`(7)+`b2c_extra_vehicle_types`(51)
+  - users: **4 ADMIN only** — `mggouda@gmail.com` (super-admin), `admin@itour.local`,
+    `agency@transferra.ae`, `marwa.eladawy@fulvago.com`. Super-admin rides in here → **no
+    separate create-superadmin script needed.**
+  - Scope per go/no-go: **excluded** — non-admin users (21 driver/18 rep/15 client/14 viewer/1 supplier),
+    the `test-2fa@transferra.ae` dev account, `guest_bookings`/`b2c_invoices`, and all iTourTT
+    ops data (`agent_price_items` 347k, `traffic_jobs`, notifications, `activity_logs`).
+    Verified post-restore: `guest_bookings=0`, `agent_price_items=0`, `non_admin_users=0`.
 
-**Uploaded media:** the destination/hero images in local `backend/uploads/` are
-binaries, not in the DB. Copy them to the VPS and `docker cp` into `b2c-backend:/app/uploads/`
-(the `b2c-uploads` volume) — else `/uploads/*` 404s.
+- **`deploy/uploads-media.tgz`** (9.2M, 30 files) — all **27** DB-referenced images.
+  ⚠️ **Finding:** 19 of them were NOT in the B2C repo — they lived in **iTourTT's** uploads
+  (`/home/gouda/iTourTT/backend/uploads`), because the OLD B2C served `/uploads` from
+  `fulvago`. They're now merged into the tarball (incl. `iTour Logo.svg`, `Transfera-Logo`,
+  `Favicon-Yellow`, all blog/city images). Space-safe verified: every seed ref resolves.
 
-> `b2c_seed.sql` + `uploads-media/` are generated from local state at build time and
-> scp'd to the VPS. They are **not** committed (contain emails + password hashes).
+> Both files contain emails + bcrypt hashes → **gitignored, never committed**. scp them to
+> the VPS `deploy/` dir before running §4. To regenerate: `scratchpad/gen_b2c_seed.sh`.
 
 ---
 
