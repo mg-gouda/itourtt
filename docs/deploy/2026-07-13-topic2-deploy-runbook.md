@@ -20,15 +20,18 @@ Net: iTourTT deploy → verify seam up → B2C cut to standalone → verify end-
 ## 1. BLOCKERS — must clear BEFORE 00:00 (do this evening, zero downtime)
 
 These are not optional. Each one silently breaks the deploy if skipped.
+Status as of prep pass 2026-07-14:
 
-| # | Blocker | Why | Action |
-|---|---------|-----|--------|
-| B1 | `deploy.sh` runs `git pull origin main`, but all Topic-2 work is on `feat/b2c-partner-seam` | Deploy would ship the OLD code | Merge `feat/b2c-partner-seam` → `main`, push. (Or edit deploy.sh line 17 to pull the branch — merge is cleaner.) |
-| B2 | `PARTNER_API_KEY` not in iTourTT prod k8s secret. Guard **fails closed** → every partner call 401 | Whole seam dead | Add `PARTNER_API_KEY` to prod backend secret; must **exactly equal** B2C backend `PARTNER_API_KEY`. See §5. |
-| B3 | B2C `docker-compose.yml` still runs only the OLD single `web` container → `fulvago` | Standalone backend + b2c_db never start | Rewrite compose to 3 services (postgres + backend + web). See §6. Author + test on VPS tonight before window. |
-| B4 | B2C backend has **0 prisma migrations** (schema is `db push`-only) | `migrate deploy` would apply nothing | Use `prisma db push` on the B2C VPS to create `b2c_db`. See §6. |
-| B5 | B2C backend has **no seed file** → super-admin (`mggouda@gmail.com`) is local-DB-only state | No login on fresh b2c_db | Recreate super-admin on the new VPS DB via one-off script/insert. See §6. |
-| B6 | Host nginx on B2C VPS proxies `:80/:443 → :3000` only | Frontend `/api/*` must reach backend :3002 | Add nginx `location /api/ → 127.0.0.1:3002`. See §6. |
+| # | Blocker | Status | Detail |
+|---|---------|--------|--------|
+| B1 | `deploy.sh` pulls `origin main`, work was on `feat/b2c-partner-seam` | ✅ **DONE** | Merged → `main` (ff), pushed. No CI auto-deploy fires. |
+| B2 | `PARTNER_API_KEY` not in iTourTT prod k8s secret (guard fails closed → all partner calls 401) | ⏳ **VPS action** | Patch prod backend secret = B2C key, restart backend. See §5. |
+| B3 | B2C compose ran only the OLD single `web` → `fulvago` | ✅ **DONE** | 3-service compose + `backend/Dockerfile` committed to B2C `main` (`b6fe2cf`). See §6. |
+| B4 | B2C backend has **0 migrations** (schema is `db push`-only) | ✅ **handled** | Deploy uses `prisma db push`; Dockerfile keeps `node_modules` so it runs in-container. |
+| B5 | Super-admin + custom roles/grants are local-DB-only | ⏳ **seed pending scope** | Ships via clean `b2c_seed.sql` users slice — **NOT** raw fork. Awaiting user-scope decision (§6). |
+| B6 | Host nginx routed `:80/:443 → :3000` only | ✅ **DONE** | `deploy/nginx-transferra.conf` committed (`/api`+`/uploads`→:3002). Install + reload on VPS. |
+
+**Remaining before window:** B2 (partner key on prod), B5 (generate `b2c_seed.sql` once scope confirmed) + copy `uploads-media/`.
 
 **Also prep tonight (safe, no downtime):**
 - Full DB backup, both systems (§7).
@@ -106,25 +109,36 @@ Then run one-off SQL (§7), then the smoke checks (§8.1).
 
 ## 4. B2C deploy — runbook (Phase 2, after iTourTT verified)
 
-On the B2C VPS (`31.97.45.33`, `/opt/iTourTT-B2CSite`):
+On the B2C VPS (`31.97.45.33`, `/opt/iTourTT-B2CSite`). The 3-service stack, backend
+Dockerfile, nginx conf, and env template are now **committed to `main`** (see §6).
 
 ```bash
 cd /opt/iTourTT-B2CSite
-git fetch origin && git checkout feat/standalone-backend && git pull
+git fetch origin && git checkout main && git pull   # main carries the standalone stack
 
-# compose now = 3 services (see §6). Build + up:
+# prod env (partner key MUST equal iTourTT prod §5):
+cp backend/.env.production.example backend/.env.production && "$EDITOR" backend/.env.production
+# root .env for compose interpolation:
+printf 'B2C_DB_PASSWORD=<strong>\nNEXT_PUBLIC_API_URL=https://transferra.ae\n' > .env
+
+# build + start all 3 services
 docker compose up -d --build
-docker compose ps            # web:3000, backend:3002, postgres all Up
+docker compose ps                     # b2c-postgres, b2c-backend(:3002), itourtt-b2c(:3000) Up
 
-# create b2c_db schema (no migrations exist → db push)
+# create schema on the fresh b2c_db (no migrations exist → db push)
 docker compose exec backend npx prisma db push
 
-# recreate super-admin on fresh DB (see §6 script)
-docker compose exec backend node scripts/create-superadmin.js   # mggouda@gmail.com
+# load the CLEAN B2C seed — config + content + admin users only, NOT the local fork (§6)
+docker compose exec -T postgres psql -U b2c -d b2c_db < b2c_seed.sql
 
-# nginx: add /api → :3002, reload
+# copy uploaded website media into the backend uploads volume (else images 404)
+docker cp ./uploads-media/. b2c-backend:/app/uploads/
+
+# nginx: install site config + reload
+sudo cp deploy/nginx-transferra.conf /etc/nginx/sites-available/transferra
+sudo ln -sf /etc/nginx/sites-available/transferra /etc/nginx/sites-enabled/transferra
 sudo nginx -t && sudo systemctl reload nginx
-docker compose logs -f backend   # confirm boot + "listening on 3002"
+docker compose logs -f backend        # confirm boot + "B2C Backend running on ... 3002"
 ```
 
 ---
@@ -146,74 +160,36 @@ kubectl rollout restart deployment/backend -n $NS
 
 ---
 
-## 6. B2C standalone compose + nginx + super-admin (B3–B6)
+## 6. B2C standalone stack — DONE (committed to `main`) + DB replication
 
-The deployed compose is stale (single `web` → fulvago). Target: **postgres + backend(:3002) + web(:3000)**, web talks same-origin `/api` (nginx routes `/api`→backend).
+**Infra artifacts now committed** (B2C repo `main`, commit `b6fe2cf`):
+- `backend/Dockerfile` — was **missing**; Nest build → `node dist/src/main.js` on :3002, keeps `node_modules` so `prisma db push` runs in-container.
+- `docker-compose.yml` — rewritten to **3 services**: `postgres`(b2c_db) + `backend`(:3002) + `web`(:3000), `b2c-uploads` + `b2c-pgdata` volumes.
+- `deploy/nginx-transferra.conf` — `/`→:3000, `/api` + `/uploads`→:3002, `client_max_body_size 25m`.
+- `backend/.env.production.example` — full env template (JWT, CORS_ORIGINS, PARTNER_API_KEY, ITOURTT_API_URL, AI/SMTP optional).
 
-**Target `docker-compose.yml` (author + commit to B2C repo tonight):**
-```yaml
-services:
-  postgres:
-    image: postgres:16
-    container_name: b2c-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: b2c_db
-      POSTGRES_USER: b2c
-      POSTGRES_PASSWORD: ${B2C_DB_PASSWORD}
-    volumes: [b2c-pgdata:/var/lib/postgresql/data]
+### DB replication — ⚠️ do NOT restore the raw local b2c_db
+Local `b2c_db` is a **fork of iTourTT's data**: it carries iTourTT ops tables
+(`agent_price_items` ~347k rows, `traffic_jobs`, `rep_fees`, notifications,
+`activity_logs`) and 74 users that are mostly **iTourTT reps/drivers/fleet ops**
+(21 DRIVER, 18 REP, 15 B2C_CLIENT, 14 VIEWER, 5 ADMIN, 1 SUPPLIER). Restoring it
+wholesale would push iTourTT operational PII onto the **public** B2C server.
 
-  backend:
-    build: ./backend
-    container_name: b2c-backend
-    restart: unless-stopped
-    depends_on: [postgres]
-    environment:
-      NODE_ENV: production
-      PORT: 3002
-      DATABASE_URL: postgres://b2c:${B2C_DB_PASSWORD}@postgres:5432/b2c_db
-      JWT_SECRET: ${B2C_JWT_SECRET}
-      ITOURTT_API_URL: https://fulvago.itourtt.cloud
-      PARTNER_API_KEY: ${PARTNER_API_KEY}       # == iTourTT prod (§5)
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-    ports: ["127.0.0.1:3002:3002"]
+**Approach:** `prisma db push` (empty 86-table schema) → load a **clean selective seed**
+(`b2c_seed.sql`) containing only genuine B2C state:
+- config: `roles`(3), `role_permissions_v2`(101), `system_settings`, `website_settings`
+- content: `blog_*`, `city_page*`, `static_page*`, `page_seo*`, `guest_surveys`, `contact_messages`, `b2c_extras*`, translations, `ai_visibility*`
+- users: **admins/content only** — final scope per the go/no-go decision (see plan notes)
 
-  web:
-    build:
-      context: .
-      args:
-        NEXT_PUBLIC_API_URL: https://transferra.ae   # same-origin; nginx routes /api→backend
-    image: itourtt-b2c:latest
-    container_name: itourtt-b2c
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      HOSTNAME: 0.0.0.0
-      NEXT_PUBLIC_API_URL: https://transferra.ae
-    ports: ["127.0.0.1:3000:3000"]
+The super-admin (`mggouda@gmail.com`) rides in on the `users` slice — **no separate
+create-superadmin script needed**.
 
-volumes:
-  b2c-pgdata:
-```
+**Uploaded media:** the destination/hero images in local `backend/uploads/` are
+binaries, not in the DB. Copy them to the VPS and `docker cp` into `b2c-backend:/app/uploads/`
+(the `b2c-uploads` volume) — else `/uploads/*` 404s.
 
-**nginx (`/etc/nginx/sites-available/transferra`) — add before the `/` block:**
-```nginx
-location /api/ {
-    proxy_pass http://127.0.0.1:3002;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-}
-location / {
-    proxy_pass http://127.0.0.1:3000;
-    # ...existing headers...
-}
-```
-
-**Super-admin recreate (B5)** — no seed file exists. Write a tiny one-off (`backend/scripts/create-superadmin.js`) that upserts `mggouda@gmail.com` with the Super Admin role + bcrypt password, or insert via psql. Confirm the exact role name from local b2c_db before the window.
-
-> Also replicate any **local-only** B2C DB state from the separation build: pruned roles (Super Admin / Transportation Accountant / SEO Admin), permission-matrix grants, password changes. These live only in your local b2c_db — script or dump/restore them.
+> `b2c_seed.sql` + `uploads-media/` are generated from local state at build time and
+> scp'd to the VPS. They are **not** committed (contain emails + password hashes).
 
 ---
 
