@@ -76,7 +76,16 @@ async function bootstrap() {
       next: express.NextFunction,
     ) => {
       await refreshPublicUploads();
-      if (publicUploads.has(req.path)) return next(); // public branding
+      // req.path may be URL-encoded (e.g. %20 for spaces in a filename), while the
+      // allowlist stores the decoded DB value — compare both forms.
+      let decodedPath = req.path;
+      try {
+        decodedPath = decodeURIComponent(req.path);
+      } catch {
+        /* malformed encoding → fall back to raw */
+      }
+      if (publicUploads.has(req.path) || publicUploads.has(decodedPath))
+        return next(); // public branding
       const token =
         readCookie(req.headers.cookie, 'uploads_token') ||
         (req.headers.authorization?.startsWith('Bearer ')
