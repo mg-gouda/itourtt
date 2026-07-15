@@ -1972,7 +1972,10 @@ export class ExportService {
     const toDate = new Date(to);
 
     const where: Record<string, unknown> = { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null };
-    if (status && status !== 'ALL') where.status = status;
+    if (status && status !== 'ALL') {
+      const statusList = status.split(',').map((s) => s.trim()).filter(Boolean);
+      where.status = statusList.length === 1 ? statusList[0] : { in: statusList };
+    }
     if (agentId) where.agentId = agentId;
     if (repId || driverId) {
       where.assignment = {
@@ -2249,7 +2252,10 @@ export class ExportService {
     const toDate = new Date(to);
 
     const where: Record<string, unknown> = { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null };
-    if (status && status !== 'ALL') where.status = status;
+    if (status && status !== 'ALL') {
+      const statusList = status.split(',').map((s) => s.trim()).filter(Boolean);
+      where.status = statusList.length === 1 ? statusList[0] : { in: statusList };
+    }
     if (serviceType && serviceType !== 'ALL') where.serviceType = serviceType;
 
     const assignmentFilter: Record<string, unknown> = {};
@@ -2473,7 +2479,10 @@ export class ExportService {
     toDate.setHours(23, 59, 59, 999);
 
     const where: Record<string, unknown> = { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null };
-    if (status && status !== 'ALL') where.status = status;
+    if (status && status !== 'ALL') {
+      const statusList = status.split(',').map((s) => s.trim()).filter(Boolean);
+      where.status = statusList.length === 1 ? statusList[0] : { in: statusList };
+    }
 
     const jobs = await this.prisma.trafficJob.findMany({
       where,
