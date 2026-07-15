@@ -1500,6 +1500,23 @@ export class ExportService {
     return date.toISOString().split('T')[0];
   }
 
+  // ── Africa/Cairo formatters — match the on-screen reports, which render
+  //    stored UTC timestamps in Cairo time (Egypt is UTC+2, UTC+3 in DST). ──
+  private cairoDate(date: Date | null | undefined): string {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }); // YYYY-MM-DD
+  }
+
+  private cairoTime(date: Date | null | undefined): string {
+    if (!date) return '—';
+    return new Date(date).toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false }); // HH:MM
+  }
+
+  private cairoDateTime(date: Date | null | undefined): string {
+    if (!date) return '—';
+    return `${this.cairoDate(date)} ${this.cairoTime(date)}`; // YYYY-MM-DD HH:MM
+  }
+
   private mapPaymentJournal(method: string): string {
     switch (method) {
       case 'CASH':
@@ -1930,11 +1947,7 @@ export class ExportService {
     const rows = jobs.map((j) => ({
       'Client Name': j.clientName ?? '—',
       'Flight Number': j.flight?.flightNo ?? '—',
-      'Arrival Time': j.flight?.arrivalTime
-        ? j.flight.arrivalTime.toISOString().slice(0, 16).replace('T', ' ')
-        : (j.flight?.departureTime
-          ? j.flight.departureTime.toISOString().slice(0, 16).replace('T', ' ')
-          : '—'),
+      'Arrival Time': this.cairoDateTime(j.flight?.arrivalTime ?? j.flight?.departureTime ?? null),
       'Terminal': j.flight?.terminal ?? '—',
     }));
 
@@ -2245,7 +2258,7 @@ export class ExportService {
 
     const rows = surveys.map((s) => ({
       'Date': this.formatDate(s.trafficJob.jobDate),
-      'Submitted': this.formatDate(s.createdAt),
+      'Submitted': this.cairoDate(s.createdAt),
       'Rep': s.rep.name,
       'Job Ref': s.trafficJob.internalRef,
       'Service Type': s.trafficJob.serviceType,
@@ -2325,7 +2338,7 @@ export class ExportService {
       'Agent': j.agent?.tradeName ?? j.agent?.legalName ?? '—',
       'Service Date': j.jobDate.toISOString().split('T')[0],
       'Service Type': j.serviceType,
-      'Time': j.serviceType === 'ARR' ? (j.flight?.arrivalTime?.toISOString().slice(11, 16) ?? '—') : (j.pickUpTime ?? '—'),
+      'Time': j.serviceType === 'ARR' ? this.cairoTime(j.flight?.arrivalTime ?? null) : this.cairoTime(j.pickUpTime ?? null),
       'Flight No': j.flight?.flightNo ?? '—',
       'Price': j.priceAmount ? Number(j.priceAmount) : '—',
       'Price Currency': j.priceCurrency ?? '—',
@@ -2367,7 +2380,7 @@ export class ExportService {
       'Customer Name': j.clientName ?? '—',
       'Customer Number': j.clientMobile ?? '—',
       'Pax': j.paxCount,
-      'Pickup Time': j.pickUpTime ?? '—',
+      'Pickup Time': this.cairoTime(j.pickUpTime ?? null),
     }));
 
     const wb = XLSX.utils.book_new();
@@ -2429,13 +2442,13 @@ export class ExportService {
         'Internal Ref': (n.trafficJob as any)?.internalRef ?? '—',
         'Agent Ref': (n.trafficJob as any)?.agentRef ?? '—',
         'Job Date': (n.trafficJob as any)?.jobDate?.toISOString().split('T')[0] ?? '—',
-        'Old Arrival Date': oldArr ? oldArr.toISOString().split('T')[0] : '—',
+        'Old Arrival Date': this.cairoDate(oldArr),
         'Old Arrival Time': oldArr ? fmtTime(oldArr) : '—',
-        'New Arrival Date': newArr.toISOString().split('T')[0],
+        'New Arrival Date': this.cairoDate(newArr),
         'New Arrival Time': fmtTime(newArr),
         'Reported By': reportedBy,
         'Current Rep': currentRepName && currentRepName !== reportedBy ? currentRepName : '—',
-        'Reported At': n.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+        'Reported At': this.cairoDateTime(n.createdAt),
       });
     }
 
