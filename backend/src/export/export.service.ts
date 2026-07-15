@@ -537,6 +537,8 @@ export class ExportService {
           vehicle: { include: { vehicleType: true } },
           driver: true,
           rep: true,
+          supplier: true,
+          supplierCarType: { include: { vehicleType: true } },
         },
       },
     };
@@ -578,6 +580,26 @@ export class ExportService {
         return `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
       };
 
+      const a = job.assignment;
+      const isOwned = !a?.supplierId;
+      const supplierName = a?.supplier?.tradeName || a?.supplier?.legalName || '';
+      // Own car has a plate; supplier car is identified by its supplier name.
+      const vehicle = isOwned
+        ? (a?.vehicle?.plateNumber || '')
+        : supplierName;
+      const vehicleType =
+        a?.vehicle?.vehicleType?.name || a?.supplierCarType?.vehicleType?.name || '';
+      const seatCapacity =
+        a?.vehicle?.vehicleType?.seatCapacity ??
+        a?.supplierCarType?.vehicleType?.seatCapacity ??
+        '';
+      const driverName = isOwned
+        ? (a?.driver?.name || '')
+        : (a?.externalDriverName || supplierName || '');
+      const driverMobile = isOwned
+        ? (a?.driver?.mobileNumber || '')
+        : (a?.externalDriverPhone || '');
+
       return {
         'Ref': job.internalRef,
         'Agent Ref': job.agentRef || '',
@@ -604,11 +626,11 @@ export class ExportService {
         'Terminal': job.flight?.terminal || '',
         'Arrival Time': fmtTime(job.flight?.arrivalTime),
         'Departure Time': fmtTime(job.flight?.departureTime),
-        'Vehicle': job.assignment?.vehicle?.plateNumber || '',
-        'Vehicle Type': job.assignment?.vehicle?.vehicleType?.name || '',
-        'Seat Capacity': job.assignment?.vehicle?.vehicleType?.seatCapacity ?? '',
-        'Driver': job.assignment?.driver?.name || '',
-        'Driver Mobile': job.assignment?.driver?.mobileNumber || '',
+        'Vehicle': vehicle,
+        'Vehicle Type': vehicleType,
+        'Seat Capacity': seatCapacity,
+        'Driver': driverName,
+        'Driver Mobile': driverMobile,
         'Rep': job.assignment?.rep?.name || '',
         'Rep Mobile': job.assignment?.rep?.mobileNumber || '',
         'Extras': (job.jobExtras ?? [])
