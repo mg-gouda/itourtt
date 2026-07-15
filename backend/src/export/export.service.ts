@@ -1962,21 +1962,27 @@ export class ExportService {
       orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
     });
 
-    const rows = jobs.map((j) => ({
-      'Internal Ref': j.internalRef,
-      'Agent Ref': j.agentRef ?? '—',
-      'Flight No.': j.flight?.flightNo ?? '—',
-      'Terminal': j.flight?.terminal ?? '—',
-      'Arrival Time': j.flight?.arrivalTime
-        ? j.flight.arrivalTime.toISOString().slice(0, 16).replace('T', ' ')
-        : (j.flight?.departureTime
-          ? j.flight.departureTime.toISOString().slice(0, 16).replace('T', ' ')
-          : '—'),
-      'Pax': j.paxCount,
-      'Hotel Name': j.destinationHotel?.name ?? j.originHotel?.name ?? '—',
-      'Client Name': j.clientName ?? '—',
-      'Client Number': j.clientMobile ?? '—',
-    }));
+    // Match the on-screen report, which renders flight times in Africa/Cairo.
+    const cairoDate = (d: Date) =>
+      d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }); // YYYY-MM-DD
+    const cairoTime = (d: Date) =>
+      d.toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false }); // HH:MM
+
+    const rows = jobs.map((j) => {
+      const flightTime = j.flight?.arrivalTime ?? j.flight?.departureTime ?? null;
+      return {
+        'Internal Ref': j.internalRef,
+        'Agent Ref': j.agentRef ?? '—',
+        'Flight No.': j.flight?.flightNo ?? '—',
+        'Terminal': j.flight?.terminal ?? '—',
+        'Arrival Date': flightTime ? cairoDate(flightTime) : '—',
+        'Arrival Time': flightTime ? cairoTime(flightTime) : '—',
+        'Pax': j.paxCount,
+        'Hotel Name': j.destinationHotel?.name ?? j.originHotel?.name ?? '—',
+        'Client Name': j.clientName ?? '—',
+        'Client Number': j.clientMobile ?? '—',
+      };
+    });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
