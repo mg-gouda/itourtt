@@ -107,8 +107,21 @@ interface TripFee {
     serviceType: string;
     jobDate: string;
   };
-  fromZone: { id: string; name: string };
-  toZone: { id: string; name: string };
+  // A fee leg is either a zone or an airport — never both, and either side may be
+  // absent (ARR starts at an airport, DEP ends at one).
+  fromZone?: { id: string; name: string } | null;
+  toZone?: { id: string; name: string } | null;
+  fromAirport?: { id: string; name: string; code: string } | null;
+  toAirport?: { id: string; name: string; code: string } | null;
+}
+
+function feeLocationLabel(fee: TripFee, side: "from" | "to") {
+  if (side === "from") {
+    if (fee.fromAirport) return `${fee.fromAirport.code} – ${fee.fromAirport.name}`;
+    return fee.fromZone?.name ?? "—";
+  }
+  if (fee.toAirport) return `${fee.toAirport.code} – ${fee.toAirport.name}`;
+  return fee.toZone?.name ?? "—";
 }
 
 interface TripFeesResult {
@@ -637,7 +650,7 @@ export default function DriverDetailPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {fee.fromZone.name} → {fee.toZone.name}
+                          {feeLocationLabel(fee, "from")} → {feeLocationLabel(fee, "to")}
                         </TableCell>
                         <TableCell className="font-mono text-sm">
                           {Number(fee.amount).toLocaleString(undefined, {
