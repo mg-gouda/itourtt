@@ -108,6 +108,17 @@ export class SessionsService {
     return { success: true };
   }
 
+  /**
+   * Admin "Clear": force-logout the device AND remove the session row entirely, so
+   * a stuck/idle record can never block the user's next login. Works on ended rows
+   * too — clearing is the one-click fix for a locked-out rep/driver.
+   */
+  async clear(userId: string, sessionId: string) {
+    await this.forceLogout(userId, sessionId);
+    await this.prisma.userSession.deleteMany({ where: { userId, sessionId } });
+    return { success: true };
+  }
+
   /** Notify Admin + Dispatch Manager + Online Manager of a blocked rep/driver login. */
   async notifyManagersOfConflict(subject: {
     id: string;

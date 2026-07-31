@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Smartphone, MapPin, LogOut, Loader2 } from "lucide-react";
+import { Smartphone, MapPin, LogOut, Loader2, Eraser } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -62,13 +62,28 @@ export function UserSessionsDialog({
 
   const forceLogout = async (s: UserSession) => {
     if (!userId) return;
-    setBusy(s.sessionId);
+    setBusy(`logout:${s.sessionId}`);
     try {
       await api.post(`/users/${userId}/sessions/${s.sessionId}/logout`);
       toast.success("Device signed out");
       load();
     } catch (e: unknown) {
       toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Force-logout failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** Sign the device out and delete the record, so it can't lock the user out. */
+  const clearSession = async (s: UserSession) => {
+    if (!userId) return;
+    setBusy(`clear:${s.sessionId}`);
+    try {
+      await api.delete(`/users/${userId}/sessions/${s.sessionId}`);
+      toast.success("Session cleared — the user can sign in again");
+      load();
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Could not clear session");
     } finally {
       setBusy(null);
     }
@@ -110,22 +125,39 @@ export function UserSessionsDialog({
                     Started {when(s.startedAt)} · last seen {when(s.lastSeenAt)}
                   </div>
                 </div>
-                {s.active && (
+                <div className="flex shrink-0 flex-col items-stretch gap-1.5">
+                  {s.active && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={busy?.endsWith(s.sessionId)}
+                      onClick={() => forceLogout(s)}
+                    >
+                      {busy === `logout:${s.sessionId}` ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <LogOut className="h-3.5 w-3.5" />
+                      )}
+                      Force logout
+                    </Button>
+                  )}
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
-                    className="shrink-0 gap-1.5"
-                    disabled={busy === s.sessionId}
-                    onClick={() => forceLogout(s)}
+                    className="gap-1.5"
+                    title="Sign this device out and delete the session record so the user can log in again"
+                    disabled={busy?.endsWith(s.sessionId)}
+                    onClick={() => clearSession(s)}
                   >
-                    {busy === s.sessionId ? (
+                    {busy === `clear:${s.sessionId}` ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <LogOut className="h-3.5 w-3.5" />
+                      <Eraser className="h-3.5 w-3.5" />
                     )}
-                    Force logout
+                    Clear
                   </Button>
-                )}
+                </div>
               </div>
             ))}
           </div>

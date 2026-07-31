@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Post,
   Param,
@@ -34,5 +35,16 @@ export class SessionsController {
     @Param('sessionId') sessionId: string,
   ) {
     return this.sessions.forceLogout(userId, sessionId);
+  }
+
+  // Clear a single login session: signs the device out and deletes the record so
+  // it can never block the user's next login.
+  @Delete(':sessionId')
+  @HttpCode(HttpStatus.OK)
+  clear(
+    @Param('userId') userId: string,
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.sessions.clear(userId, sessionId);
   }
 }
