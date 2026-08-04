@@ -13,11 +13,14 @@ import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 export class RepsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(pagination: PaginationDto) {
+  async findAll(pagination: PaginationDto, isActive?: boolean) {
     const { page = 1, limit = 20 } = pagination;
     const skip = (page - 1) * limit;
 
-    const where = { deletedAt: null, isActive: true };
+    const where: { deletedAt: null; isActive?: boolean } = { deletedAt: null };
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.rep.findMany({

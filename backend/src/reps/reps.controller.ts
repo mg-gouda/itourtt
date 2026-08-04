@@ -29,6 +29,8 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
+import { IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -45,6 +47,12 @@ const uploadStorage = diskStorage({
   },
 });
 
+class RepListQueryDto extends PaginationDto {
+  @IsOptional()
+  @Transform(({ value }) => (value === undefined ? undefined : value === 'true' || value === true))
+  isActive?: boolean;
+}
+
 @Controller('reps')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class RepsController {
@@ -52,8 +60,9 @@ export class RepsController {
 
   @Get()
   @Permissions('reps')
-  async findAll(@Query() query: PaginationDto) {
-    return this.repsService.findAll(query);
+  async findAll(@Query() query: RepListQueryDto) {
+    const { isActive, ...pagination } = query;
+    return this.repsService.findAll(pagination, isActive);
   }
 
   @Get('export/excel')

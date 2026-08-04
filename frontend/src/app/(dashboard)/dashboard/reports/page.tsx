@@ -1103,7 +1103,7 @@ export default function ReportsPage() {
   // Load reps list for rep score filter
   useEffect(() => {
     api
-      .get("/reps")
+      .get("/reps", { params: { isActive: true, limit: 1000 } })
       .then(({ data }) => {
         const list: Array<{ id: string; name: string }> = Array.isArray(data) ? data : data.data || [];
         setRepList(list.map((r) => ({ id: r.id, name: r.name })));

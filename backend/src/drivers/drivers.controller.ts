@@ -30,7 +30,7 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { IsOptional } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -49,7 +49,7 @@ const uploadStorage = diskStorage({
 
 class DriverListQueryDto extends PaginationDto {
   @IsOptional()
-  @Type(() => Boolean)
+  @Transform(({ value }) => (value === undefined ? undefined : value === 'true' || value === true))
   isActive?: boolean;
 }
 

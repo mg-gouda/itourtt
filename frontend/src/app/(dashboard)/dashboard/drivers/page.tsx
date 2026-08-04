@@ -36,6 +36,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -151,16 +152,24 @@ export default function DriversPage() {
 
   // Search + filtering + sorting
   const [search, setSearch] = useState("");
+  const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
+
+  const activeCount = useMemo(() => drivers.filter((d) => d.isActive).length, [drivers]);
+  const inactiveCount = drivers.length - activeCount;
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return drivers;
-    const q = search.toLowerCase();
-    return drivers.filter(
-      (d) =>
-        d.name.toLowerCase().includes(q) ||
-        (d.mobileNumber && d.mobileNumber.toLowerCase().includes(q))
-    );
-  }, [drivers, search]);
+    const wantActive = statusTab === "active";
+    let result = drivers.filter((d) => d.isActive === wantActive);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (d) =>
+          d.name.toLowerCase().includes(q) ||
+          (d.mobileNumber && d.mobileNumber.toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [drivers, search, statusTab]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
   const { visibility: driverColVis, saveVisibility: saveDriverColVis } = useColumnPreferences("drivers_list", DRIVERS_COL_DEFS.map((c) => c.key));
@@ -683,6 +692,18 @@ export default function DriversPage() {
         </div>
       ) : (
         <>
+          <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as "active" | "inactive")}>
+            <TabsList className="border-border bg-muted">
+              <TabsTrigger value="active">
+                {t("drivers.activeTab")}
+                <Badge variant="secondary" className="ml-1.5">{activeCount}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="inactive">
+                {t("drivers.inactiveTab")}
+                <Badge variant="secondary" className="ml-1.5">{inactiveCount}</Badge>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <TableFilterBar
             search={search}
             onSearchChange={setSearch}
@@ -804,6 +825,13 @@ export default function DriversPage() {
                   </TableRow>
                 );
               })}
+              {sortedData.length === 0 && (
+                <TableRow className="border-border">
+                  <TableCell colSpan={DRIVERS_COL_DEFS.length} className="py-10 text-center text-muted-foreground">
+                    {t("common.noData")}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
           </div>

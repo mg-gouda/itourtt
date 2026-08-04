@@ -204,6 +204,8 @@ const translations: Record<Locale, Record<string, string>> = {
     // ── Drivers ──
     "drivers.title": "Drivers",
     "drivers.description": "Manage drivers and their assignments",
+    "drivers.activeTab": "Active Drivers",
+    "drivers.inactiveTab": "Inactive Drivers",
     "drivers.addDriver": "Add Driver",
     "drivers.editDriver": "Edit Driver",
     "drivers.addNew": "Add New Driver",
@@ -273,6 +275,8 @@ const translations: Record<Locale, Record<string, string>> = {
     // ── Reps ──
     "reps.title": "Reps",
     "reps.description": "Manage representatives",
+    "reps.activeTab": "Active Reps",
+    "reps.inactiveTab": "Inactive Reps",
     "reps.addRep": "Add Rep",
     "reps.editRep": "Edit Rep",
     "reps.addNew": "Add New Rep",
@@ -980,6 +984,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "users.editUser": "Edit User",
     "users.noUsers": "No users found",
     "users.usersTab": "Users",
+    "users.activeTab": "Active Users",
+    "users.inactiveTab": "Inactive Users",
     "users.permissionMatrix": "Permission Matrix",
     "users.userRoles": "User Roles",
     "users.usersDescription": "System users and their assigned roles.",
@@ -1895,6 +1901,8 @@ const translations: Record<Locale, Record<string, string>> = {
     // ── Drivers ──
     "drivers.title": "\u0627\u0644\u0633\u0627\u0626\u0642\u0648\u0646",
     "drivers.description": "\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0633\u0627\u0626\u0642\u064A\u0646 \u0648\u062A\u0639\u064A\u064A\u0646\u0627\u062A\u0647\u0645",
+    "drivers.activeTab": "\u0627\u0644\u0633\u0627\u0626\u0642\u0648\u0646 \u0627\u0644\u0646\u0634\u0637\u0648\u0646",
+    "drivers.inactiveTab": "\u0627\u0644\u0633\u0627\u0626\u0642\u0648\u0646 \u063A\u064A\u0631 \u0627\u0644\u0646\u0634\u0637\u064A\u0646",
     "drivers.addDriver": "\u0625\u0636\u0627\u0641\u0629 \u0633\u0627\u0626\u0642",
     "drivers.editDriver": "\u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0633\u0627\u0626\u0642",
     "drivers.addNew": "\u0625\u0636\u0627\u0641\u0629 \u0633\u0627\u0626\u0642 \u062C\u062F\u064A\u062F",
@@ -1964,6 +1972,8 @@ const translations: Record<Locale, Record<string, string>> = {
     // ── Reps ──
     "reps.title": "\u0627\u0644\u0645\u0646\u062F\u0648\u0628\u0648\u0646",
     "reps.description": "\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0646\u062F\u0648\u0628\u064A\u0646",
+    "reps.activeTab": "\u0627\u0644\u0645\u0646\u062F\u0648\u0628\u0648\u0646 \u0627\u0644\u0646\u0634\u0637\u0648\u0646",
+    "reps.inactiveTab": "\u0627\u0644\u0645\u0646\u062F\u0648\u0628\u0648\u0646 \u063A\u064A\u0631 \u0627\u0644\u0646\u0634\u0637\u064A\u0646",
     "reps.addRep": "\u0625\u0636\u0627\u0641\u0629 \u0645\u0646\u062F\u0648\u0628",
     "reps.editRep": "\u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0646\u062F\u0648\u0628",
     "reps.addNew": "\u0625\u0636\u0627\u0641\u0629 \u0645\u0646\u062F\u0648\u0628 \u062C\u062F\u064A\u062F",
@@ -2669,6 +2679,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "users.editUser": "\u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
     "users.noUsers": "\u0644\u0627 \u064A\u0648\u062C\u062F \u0645\u0633\u062A\u062E\u062F\u0645\u0648\u0646",
     "users.usersTab": "\u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u0648\u0646",
+    "users.activeTab": "\u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u0648\u0646 \u0627\u0644\u0646\u0634\u0637\u0648\u0646",
+    "users.inactiveTab": "\u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u0648\u0646 \u063A\u064A\u0631 \u0627\u0644\u0646\u0634\u0637\u064A\u0646",
     "users.permissionMatrix": "\u0645\u0635\u0641\u0648\u0641\u0629 \u0627\u0644\u0635\u0644\u0627\u062D\u064A\u0627\u062A",
     "users.userRoles": "\u0623\u062F\u0648\u0627\u0631 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u064A\u0646",
     "users.usersDescription": "\u0645\u0633\u062A\u062E\u062F\u0645\u0648 \u0627\u0644\u0646\u0638\u0627\u0645 \u0648\u0623\u062F\u0648\u0627\u0631\u0647\u0645 \u0627\u0644\u0645\u0639\u064A\u0646\u0629.",

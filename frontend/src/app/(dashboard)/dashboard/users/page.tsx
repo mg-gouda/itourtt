@@ -113,9 +113,13 @@ export default function UsersPage() {
   const [usersLoading, setUsersLoading] = useState(true);
   const [search, setSearch]         = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusTab, setStatusTab]   = useState<"active" | "inactive">("active");
+
+  const activeCount = useMemo(() => users.filter((u) => u.isActive).length, [users]);
+  const inactiveCount = users.length - activeCount;
 
   const filtered = useMemo(() => {
-    let result = users;
+    let result = users.filter((u) => u.isActive === (statusTab === "active"));
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -126,7 +130,7 @@ export default function UsersPage() {
       result = result.filter((u) => u.role === roleFilter);
     }
     return result;
-  }, [users, search, roleFilter]);
+  }, [users, search, roleFilter, statusTab]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
   const { visibility: userColVis, saveVisibility: saveUserColVis } = useColumnPreferences("users_list", USERS_COL_DEFS.map((c) => c.key));
@@ -163,7 +167,7 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const { data } = await api.get("/users?limit=100");
+      const { data } = await api.get("/users?limit=1000");
       setUsers(Array.isArray(data.data) ? data.data : []);
     } catch (err: unknown) {
       const message =
@@ -450,6 +454,18 @@ export default function UsersPage() {
             </div>
           ) : (
             <>
+              <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as "active" | "inactive")}>
+                <TabsList className="border-border bg-muted">
+                  <TabsTrigger value="active">
+                    {t("users.activeTab")}
+                    <Badge variant="secondary" className="ml-1.5">{activeCount}</Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="inactive">
+                    {t("users.inactiveTab")}
+                    <Badge variant="secondary" className="ml-1.5">{inactiveCount}</Badge>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
               <TableFilterBar
                 search={search}
                 onSearchChange={setSearch}
@@ -502,6 +518,13 @@ export default function UsersPage() {
                         )}
                       </TableRow>
                     ))}
+                    {sortedData.length === 0 && (
+                      <TableRow className="border-border">
+                        <TableCell colSpan={USERS_COL_DEFS.length} className="py-10 text-center text-muted-foreground">
+                          {t("common.noData")}
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>

@@ -32,6 +32,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -113,16 +114,24 @@ export default function RepsPage() {
   }>({ open: false, imported: 0, errors: [] });
 
   const [search, setSearch] = useState("");
+  const [statusTab, setStatusTab] = useState<"active" | "inactive">("active");
+
+  const activeCount = useMemo(() => reps.filter((r) => r.isActive).length, [reps]);
+  const inactiveCount = reps.length - activeCount;
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return reps;
-    const q = search.toLowerCase();
-    return reps.filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        (r.mobileNumber && r.mobileNumber.toLowerCase().includes(q))
-    );
-  }, [reps, search]);
+    const wantActive = statusTab === "active";
+    let result = reps.filter((r) => r.isActive === wantActive);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          (r.mobileNumber && r.mobileNumber.toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [reps, search, statusTab]);
 
   const { sortedData, sortKey, sortDir, onSort } = useSortable(filtered);
   const { visibility: repColVis, saveVisibility: saveRepColVis } = useColumnPreferences("reps_list", REPS_COL_DEFS.map((c) => c.key));
@@ -150,7 +159,7 @@ export default function RepsPage() {
   const fetchReps = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await api.get<RepsResponse>("/reps");
+      const { data } = await api.get<RepsResponse>("/reps", { params: { limit: 1000 } });
       setReps(data.data);
     } catch {
       toast.error(t("drivers.failedLoad"));
@@ -589,6 +598,18 @@ export default function RepsPage() {
         </div>
       ) : (
         <>
+          <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as "active" | "inactive")}>
+            <TabsList className="border-border bg-muted">
+              <TabsTrigger value="active">
+                {t("reps.activeTab")}
+                <Badge variant="secondary" className="ml-1.5">{activeCount}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="inactive">
+                {t("reps.inactiveTab")}
+                <Badge variant="secondary" className="ml-1.5">{inactiveCount}</Badge>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
           <TableFilterBar
             search={search}
             onSearchChange={setSearch}
@@ -665,6 +686,13 @@ export default function RepsPage() {
                   )}
                 </TableRow>
               ))}
+              {sortedData.length === 0 && (
+                <TableRow className="border-border">
+                  <TableCell colSpan={REPS_COL_DEFS.length} className="py-10 text-center text-muted-foreground">
+                    {t("common.noData")}
+                  </TableCell>
+                </TableRow>
+              )}
               </TableBody>
             </Table>
           </div>
