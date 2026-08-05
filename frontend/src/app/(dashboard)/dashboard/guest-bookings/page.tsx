@@ -47,6 +47,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 import { type ColumnDef } from "@/components/ui/draggable-table-header";
+import { useServiceTypeLabel } from "@/lib/service-types";
 
 const GUEST_BOOKINGS_COL_DEFS: ColumnDef[] = [
   { key: "ref", label: "Ref" },
@@ -95,6 +96,7 @@ interface GuestBooking {
 
 
 export default function GuestBookingsPage() {
+  const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
   const canConvert = usePermission("guest-bookings.convert");
   const canCancel = usePermission("guest-bookings.cancel");
@@ -262,7 +264,7 @@ export default function GuestBookingsPage() {
                 <TableRow key={b.id}>
                   {isVis("ref") && <TableCell className="font-mono text-xs">{b.bookingRef}</TableCell>}
                   {isVis("guest") && <TableCell><div className="text-sm font-medium">{b.guestName}</div><div className="text-xs text-muted-foreground">{b.guestEmail}</div></TableCell>}
-                  {isVis("service") && <TableCell><Badge variant="outline" className="text-xs">{b.serviceType}</Badge></TableCell>}
+                  {isVis("service") && <TableCell><Badge variant="outline" className="text-xs">{serviceTypeLabel(b.serviceType)}</Badge></TableCell>}
                   {isVis("date") && <TableCell className="text-sm">{new Date(b.jobDate).toLocaleDateString()}</TableCell>}
                   {isVis("route") && <TableCell className="text-sm">{b.fromZone?.name} → {b.toZone?.name}</TableCell>}
                   {isVis("total") && <TableCell className="text-right font-mono text-sm">{b.currency} {Number(b.total).toFixed(2)}</TableCell>}
@@ -365,7 +367,7 @@ export default function GuestBookingsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-muted-foreground">Service:</span>{" "}
-                    {selectedBooking.serviceType}
+                    {serviceTypeLabel(selectedBooking.serviceType)}
                   </div>
                   <div>
                     <span className="text-muted-foreground">Date:</span>{" "}

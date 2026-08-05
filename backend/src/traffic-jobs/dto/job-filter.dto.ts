@@ -1,5 +1,6 @@
 import { IsOptional, IsDateString, IsIn, IsString } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto.js';
+import { ALL_SERVICE_TYPES } from '../../common/utils/service-type.util.js';
 
 export class JobFilterDto extends PaginationDto {
   @IsOptional()
@@ -15,7 +16,7 @@ export class JobFilterDto extends PaginationDto {
   agentId?: string;
 
   @IsOptional()
-  @IsIn(['ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER'])
+  @IsIn(ALL_SERVICE_TYPES as unknown as string[])
   serviceType?: string;
 
   @IsOptional()

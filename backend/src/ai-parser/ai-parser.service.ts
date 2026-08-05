@@ -6,6 +6,7 @@ import { ImportTemplatesService } from '../import-templates/import-templates.ser
 import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
+import { SELECTABLE_SERVICE_TYPES } from '../common/utils/service-type.util.js';
 
 export interface ParsedJob {
   serviceType: string;
@@ -212,9 +213,7 @@ export class AiParserService {
     fileContent: string | null,
     serviceType?: string,
   ): string {
-    const serviceTypes = [
-      'ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER',
-    ];
+    const serviceTypes = [...SELECTABLE_SERVICE_TYPES];
 
     let prompt = `You are a document parser for a transport company in Egypt. Extract all transfer/transport jobs from the following document.
 

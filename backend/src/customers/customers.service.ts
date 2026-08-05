@@ -8,18 +8,11 @@ import { BulkPriceListDto, PriceItemDto } from './dto/price-list.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 import type { Currency, ServiceType } from '../../generated/prisma/enums.js';
+import { SELECTABLE_SERVICE_TYPES, SERVICE_TYPE_LABEL_PAIRS } from '../common/utils/service-type.util.js';
 
-const VALID_SERVICE_TYPES = new Set([
-  'ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER',
-]);
+const VALID_SERVICE_TYPES = new Set<string>(SELECTABLE_SERVICE_TYPES);
 
-const SERVICE_TYPE_LABELS: [string, string][] = [
-  ['ARR', 'Airport Arrival'],
-  ['DEP', 'Airport Departure'],
-  ['DAY_TOUR', 'Day Tour'],
-  ['ONE_WAY_TRANSFER', 'One Way Transfer'],
-  ['TWO_WAY_TRANSFER', 'Two Way Transfer'],
-];
+const SERVICE_TYPE_LABELS: [string, string][] = SERVICE_TYPE_LABEL_PAIRS;
 
 @Injectable()
 export class CustomersService {

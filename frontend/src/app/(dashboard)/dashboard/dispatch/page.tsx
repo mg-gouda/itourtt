@@ -70,6 +70,7 @@ import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate, cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePermission } from "@/hooks/use-permission";
+import { SERVICE_TYPE_COLORS_SOLID, useServiceTypeLabel } from "@/lib/service-types";
 
 // ────────────────────────────────────────────
 // Types
@@ -923,6 +924,7 @@ function DetailSection({ title, children }: { title: string; children: React.Rea
 }
 
 function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open: boolean; onClose: () => void; locale: string }) {
+  const serviceTypeLabel = useServiceTypeLabel();
   if (!job) return null;
 
   const origin =
@@ -982,7 +984,7 @@ function JobDetailModal({ job, open, onClose, locale }: { job: Job | null; open:
             </DetailSection>
 
             <DetailSection title="Service & Status">
-              <DetailRow label="Service Type" value={job.serviceType} />
+              <DetailRow label="Service Type" value={serviceTypeLabel(job.serviceType)} />
               <DetailRow label="Job Date" value={job.jobDate ? new Date(job.jobDate).toLocaleDateString() : null} />
               <DetailRow label="Status" value={job.status} />
             </DetailSection>
@@ -1534,6 +1536,7 @@ function getJobTime(job: Job): Date | null {
 }
 
 function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
+  const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -1570,13 +1573,7 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
 
   if (entries.length === 0) return null;
 
-  const serviceColors: Record<string, string> = {
-    ARR: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    DEP: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    DAY_TOUR: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    ONE_WAY_TRANSFER: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    TWO_WAY_TRANSFER: "bg-teal-500/20 text-teal-400 border-teal-500/30",
-  };
+  const serviceColors = SERVICE_TYPE_COLORS_SOLID;
 
   return (
     <div className="space-y-2">
@@ -1637,7 +1634,7 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                             serviceColors[job.serviceType] ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30"
                           }`}
                         >
-                          {job.serviceType}
+                          {serviceTypeLabel(job.serviceType)}
                         </span>
                         <span className="font-mono text-[10px] text-muted-foreground">
                           {jobTime ? fmtTime(jobTime.toISOString(), locale) : "—"}
@@ -1670,6 +1667,7 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
 // ────────────────────────────────────────────
 
 function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
+  const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -1698,13 +1696,7 @@ function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
 
   if (entries.length === 0) return null;
 
-  const serviceColors: Record<string, string> = {
-    ARR: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    DEP: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    DAY_TOUR: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    ONE_WAY_TRANSFER: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    TWO_WAY_TRANSFER: "bg-teal-500/20 text-teal-400 border-teal-500/30",
-  };
+  const serviceColors = SERVICE_TYPE_COLORS_SOLID;
 
   return (
     <div className="space-y-2">
@@ -1763,7 +1755,7 @@ function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
                             serviceColors[job.serviceType] ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30"
                           }`}
                         >
-                          {job.serviceType}
+                          {serviceTypeLabel(job.serviceType)}
                         </span>
                         <span className="font-mono text-[10px] text-muted-foreground">
                           {jobTime ? fmtTime(jobTime.toISOString(), locale) : "—"}
@@ -1792,6 +1784,7 @@ function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
 const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
 export default function DispatchPage() {
+  const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
   const locale = useLocaleId();
   const { user } = useAuthStore();
@@ -2877,7 +2870,7 @@ export default function DispatchPage() {
           <div className="space-y-4 py-2">
             <div className="flex gap-4 text-sm text-muted-foreground">
               <span>
-                {t("dispatch.type")} <b className="text-foreground">{dialogJob?.serviceType}</b>
+                {t("dispatch.type")} <b className="text-foreground">{serviceTypeLabel(dialogJob?.serviceType)}</b>
               </span>
               <span>
                 {t("dispatch.paxLabel")} <b className="text-foreground">{dialogJob?.paxCount}</b>

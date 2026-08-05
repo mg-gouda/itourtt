@@ -54,8 +54,11 @@ export const en = {
     ARR: 'Arrival',
     DEP: 'Departure',
     DAY_TOUR: 'Day Tour',
-    ONE_WAY_TRANSFER: 'One Way Transfer',
+    ONE_WAY_TRANSFER: 'Going',
+    RETURN: 'Return',
+    // Legacy — not selectable, kept so historical jobs still render.
     TWO_WAY_TRANSFER: '2 Way Transfer',
+    CITY_TO_CITY: 'City to City',
   },
   driver: {
     startTrip: 'Start Trip',

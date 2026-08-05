@@ -45,6 +45,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { useServiceTypeLabel, useServiceTypeLabels } from "@/lib/service-types";
 
 interface VehicleTypeResource {
   id: string;
@@ -266,13 +267,8 @@ export default function B2BJobPage() {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  const serviceTypeLabels: Record<string, string> = {
-    ARR: t("serviceType.ARR"),
-    DEP: t("serviceType.DEP"),
-    DAY_TOUR: t("serviceType.DAY_TOUR"),
-    ONE_WAY_TRANSFER: t("serviceType.ONE_WAY_TRANSFER"),
-    TWO_WAY_TRANSFER: t("serviceType.TWO_WAY_TRANSFER"),
-  };
+  const serviceTypeLabels = useServiceTypeLabels();
+  const serviceTypeLabel = useServiceTypeLabel();
 
   const updateForm = useCallback((updates: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...updates }));
@@ -687,7 +683,7 @@ export default function B2BJobPage() {
         return (
           <TableCell key={key}>
             <Badge variant="outline" className="border-border text-muted-foreground text-xs">
-              {serviceTypeLabels[job.serviceType] || job.serviceType}
+              {serviceTypeLabel(job.serviceType)}
             </Badge>
           </TableCell>
         );

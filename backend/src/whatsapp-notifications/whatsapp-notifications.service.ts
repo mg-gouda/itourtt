@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateWhatsappSettingsDto } from './dto/update-whatsapp-settings.dto.js';
 import { UpdateWhatsappTemplateDto } from './dto/update-whatsapp-template.dto.js';
 import type { WhatsappTemplate } from '../../generated/prisma/client.js';
+import { serviceTypeLabel } from '../common/utils/service-type.util.js';
 
 const SETTINGS_DEFAULTS = {
   isEnabled: false,
@@ -285,7 +286,7 @@ export class WhatsappNotificationsService {
       .replace(/\{\{pickupTime\}\}/g, pickupTime)
       .replace(/\{\{origin\}\}/g, origin)
       .replace(/\{\{destination\}\}/g, destination)
-      .replace(/\{\{serviceType\}\}/g, (job as any).serviceType ?? '')
+      .replace(/\{\{serviceType\}\}/g, serviceTypeLabel((job as any).serviceType))
       .replace(/\{\{internalRef\}\}/g, (job as any).internalRef ?? '')
       .replace(/\{\{agentRef\}\}/g, (job as any).agentRef ?? 'N/A')
       .replace(/\{\{repName\}\}/g, (job as any).assignment?.rep?.name ?? 'N/A')

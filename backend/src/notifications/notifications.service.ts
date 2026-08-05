@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService, type JobUpdateEmailData } from '../email/email.service.js';
+import { serviceTypeLabel } from '../common/utils/service-type.util.js';
 
 @Injectable()
 export class NotificationsService {
@@ -195,7 +196,7 @@ export class NotificationsService {
     if (details.driverName)   parts.push(`Driver: ${details.driverName}`);
     if (details.repName)       parts.push(`Rep: ${details.repName}`);
     const detailStr = parts.length ? ` — ${parts.join(' / ')}` : '';
-    const message = `${job.serviceType} on ${job.jobDate.toISOString().split('T')[0]}${detailStr} (by ${actor?.name || 'Dispatcher'})`;
+    const message = `${serviceTypeLabel(job.serviceType)} on ${job.jobDate.toISOString().split('T')[0]}${detailStr} (by ${actor?.name || 'Dispatcher'})`;
 
     await this.prisma.userNotification.createMany({
       data: recipients.map((r) => ({

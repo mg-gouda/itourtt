@@ -129,6 +129,7 @@ describe('theme colors', () => {
       'DEP',
       'DAY_TOUR',
       'ONE_WAY_TRANSFER',
+      'RETURN',
       'TWO_WAY_TRANSFER',
     ];
 

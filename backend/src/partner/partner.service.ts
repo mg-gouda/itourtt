@@ -8,15 +8,9 @@ import { PublicPricesService } from '../public-prices/public-prices.service.js';
 import { GuestBookingsService } from '../guest-bookings/guest-bookings.service.js';
 import { UpsertPublicPricesDto } from '../public-prices/dto/upsert-public-prices.dto.js';
 import { PartnerJobDto } from './dto/partner-job.dto.js';
+import { ALL_SERVICE_TYPES } from '../common/utils/service-type.util.js';
 
-const SERVICE_TYPES = [
-  'ARR',
-  'DEP',
-  'DAY_TOUR',
-  'ONE_WAY_TRANSFER',
-  'TWO_WAY_TRANSFER',
-  'CITY_TO_CITY',
-];
+const SERVICE_TYPES = [...ALL_SERVICE_TYPES];
 
 @Injectable()
 export class PartnerService {

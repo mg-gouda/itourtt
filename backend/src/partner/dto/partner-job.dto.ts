@@ -10,6 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ALL_SERVICE_TYPES } from '../../common/utils/service-type.util.js';
 
 export class PartnerJobExtraDto {
   @IsOptional()
@@ -40,7 +41,7 @@ export class PartnerJobDto {
   @IsString()
   b2cBookingRef!: string; // idempotency key → guest_booking.bookingRef
 
-  @IsIn(['ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER', 'CITY_TO_CITY'])
+  @IsIn(ALL_SERVICE_TYPES as unknown as string[])
   serviceType!: string;
 
   @IsString()

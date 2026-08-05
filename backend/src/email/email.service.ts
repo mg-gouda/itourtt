@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 const resolve4Async = promisify(resolve4);
 
+import { serviceTypeLabel } from '../common/utils/service-type.util.js';
 import {
   bookingConfirmationTemplate,
   paymentReceiptTemplate,
@@ -356,7 +357,7 @@ export class EmailService {
             ${row('Guest', data.guestName)}
             ${row('Email', data.guestEmail)}
             ${row('Phone', data.guestPhone)}
-            ${row('Service', data.serviceType)}
+            ${row('Service', serviceTypeLabel(data.serviceType))}
             ${row('Date', data.jobDate)}
             ${row('Pickup time', data.pickupTime)}
             ${row('From', data.fromZone)}

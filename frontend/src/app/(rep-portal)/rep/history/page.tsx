@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
+import { SERVICE_TYPE_COLORS, useServiceTypeLabel } from "@/lib/service-types";
 
 interface HistoryJob {
   id: string;
@@ -60,13 +61,6 @@ interface HistoryJob {
   };
 }
 
-const SERVICE_TYPE_COLORS: Record<string, string> = {
-  ARR: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  DEP: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  DAY_TOUR: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  ONE_WAY_TRANSFER: "bg-teal-500/10 text-teal-400 border-teal-500/20",
-  TWO_WAY_TRANSFER: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-};
 
 const STATUS_COLORS: Record<string, string> = {
   COMPLETED: "bg-green-500/10 text-green-400 border-green-500/20",
@@ -76,6 +70,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function RepHistoryPage() {
   const t = useT();
+  const serviceTypeLabel = useServiceTypeLabel();
   const locale = useLocaleId();
   const today = localDateStr(new Date());
   const [dateFrom, setDateFrom] = useState(today);
@@ -219,7 +214,7 @@ export default function RepHistoryPage() {
                             variant="outline"
                             className={SERVICE_TYPE_COLORS[job.serviceType] || ""}
                           >
-                            {job.serviceType}
+                            {serviceTypeLabel(job.serviceType)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm">
@@ -293,7 +288,7 @@ export default function RepHistoryPage() {
                         variant="outline"
                         className={SERVICE_TYPE_COLORS[job.serviceType] || ""}
                       >
-                        {job.serviceType}
+                        {serviceTypeLabel(job.serviceType)}
                       </Badge>
                       <Badge
                         variant="outline"

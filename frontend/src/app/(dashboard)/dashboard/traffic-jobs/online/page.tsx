@@ -48,6 +48,7 @@ import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { useServiceTypeLabel, useServiceTypeLabels } from "@/lib/service-types";
 
 /* ─────────── types ─────────── */
 
@@ -237,13 +238,8 @@ export default function OnlineJobPage() {
   const [total, setTotal] = useState(0);
   const limit = 20;
 
-  const serviceTypeLabels: Record<string, string> = {
-    ARR: t("serviceType.ARR"),
-    DEP: t("serviceType.DEP"),
-    DAY_TOUR: t("serviceType.DAY_TOUR"),
-    ONE_WAY_TRANSFER: t("serviceType.ONE_WAY_TRANSFER"),
-    TWO_WAY_TRANSFER: t("serviceType.TWO_WAY_TRANSFER"),
-  };
+  const serviceTypeLabels = useServiceTypeLabels();
+  const serviceTypeLabel = useServiceTypeLabel();
 
   const updateForm = useCallback((updates: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...updates }));
@@ -602,7 +598,7 @@ export default function OnlineJobPage() {
         return (
           <TableCell key={key}>
             <Badge variant="outline" className="border-border text-muted-foreground text-xs">
-              {serviceTypeLabels[job.serviceType] || job.serviceType}
+              {serviceTypeLabel(job.serviceType)}
             </Badge>
           </TableCell>
         );

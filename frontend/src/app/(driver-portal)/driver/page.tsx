@@ -42,6 +42,7 @@ import JobDetailModal from "@/components/job-detail-modal";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
+import { SERVICE_TYPE_COLORS, useServiceTypeLabel } from "@/lib/service-types";
 
 interface DriverJob {
   id: string;
@@ -105,13 +106,6 @@ interface Notification {
   };
 }
 
-const SERVICE_TYPE_COLORS: Record<string, string> = {
-  ARR: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  DEP: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  DAY_TOUR: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  ONE_WAY_TRANSFER: "bg-teal-500/10 text-teal-400 border-teal-500/20",
-  TWO_WAY_TRANSFER: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-};
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
@@ -547,6 +541,7 @@ function DriverJobCard({
   formatTime: (iso: string | null) => string | null;
 }) {
   const t = useT();
+  const serviceTypeLabel = useServiceTypeLabel();
   const driverStatus = job.driverStatus;
   const isTerminal = TERMINAL_STATUSES.includes(driverStatus);
   const flightTime =
@@ -587,7 +582,7 @@ function DriverJobCard({
             variant="outline"
             className={SERVICE_TYPE_COLORS[job.serviceType] || ""}
           >
-            {job.serviceType}
+            {serviceTypeLabel(job.serviceType)}
           </Badge>
           <Badge
             variant="outline"

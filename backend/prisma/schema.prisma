@@ -31,6 +31,9 @@ enum ServiceType {
   DEP
   DAY_TOUR
   ONE_WAY_TRANSFER
+  RETURN
+  // Legacy — no longer selectable anywhere. Kept so historical jobs still read.
+  // See SELECTABLE_SERVICE_TYPES in common/utils/service-type.util.ts.
   TWO_WAY_TRANSFER
   CITY_TO_CITY
 }

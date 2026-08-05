@@ -1382,8 +1382,11 @@ const translations: Record<Locale, Record<string, string>> = {
     "serviceType.ARR": "Arrival",
     "serviceType.DEP": "Departure",
     "serviceType.DAY_TOUR": "Day Tour",
-    "serviceType.ONE_WAY_TRANSFER": "One Way Transfer",
+    "serviceType.ONE_WAY_TRANSFER": "Going",
+    "serviceType.RETURN": "Return",
+    // Legacy — not selectable, kept so historical jobs still render.
     "serviceType.TWO_WAY_TRANSFER": "2 Way Transfer",
+    "serviceType.CITY_TO_CITY": "City to City",
 
     // ── Portal (shared driver & rep) ──
     "portal.jobs": "Jobs",
@@ -3075,10 +3078,13 @@ const translations: Record<Locale, Record<string, string>> = {
 
     // ── Service Types ──
     "serviceType.ARR": "وصول",
-    "serviceType.DEP": "مغادرة",
-    "serviceType.DAY_TOUR": "جولة يومية",
-    "serviceType.ONE_WAY_TRANSFER": "توصيل اتجاه واحد",
-    "serviceType.TWO_WAY_TRANSFER": "توصيل ذهاب وعودة",
+    "serviceType.DEP": "سفر",
+    "serviceType.DAY_TOUR": "يومية/جولة",
+    "serviceType.ONE_WAY_TRANSFER": "ذهاب",
+    "serviceType.RETURN": "عودة",
+    // Legacy — not selectable, kept so historical jobs still render.
+    "serviceType.TWO_WAY_TRANSFER": "ذهاب وعودة",
+    "serviceType.CITY_TO_CITY": "من مدينة إلى مدينة",
 
     // ── Portal (shared driver & rep) ──
     "portal.jobs": "المهام",

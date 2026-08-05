@@ -46,7 +46,8 @@ describe('i18n', () => {
       expect(t('serviceType.ARR')).toBe('Arrival');
       expect(t('serviceType.DEP')).toBe('Departure');
       expect(t('serviceType.DAY_TOUR')).toBe('Day Tour');
-      expect(t('serviceType.ONE_WAY_TRANSFER')).toBe('One Way Transfer');
+      expect(t('serviceType.ONE_WAY_TRANSFER')).toBe('Going');
+      expect(t('serviceType.RETURN')).toBe('Return');
     });
   });
 

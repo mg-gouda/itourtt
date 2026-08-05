@@ -41,6 +41,7 @@ import { LocationCombobox } from "@/components/location-combobox";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
+import { SELECTABLE_SERVICE_TYPES, useServiceTypeLabel } from "@/lib/service-types";
 
 interface Customer {
   id: string;
@@ -85,9 +86,7 @@ interface B2BJobImportModalProps {
   onImportComplete: () => void;
 }
 
-const SERVICE_TYPES = [
-  "ARR", "DEP", "DAY_TOUR", "ONE_WAY_TRANSFER", "TWO_WAY_TRANSFER",
-];
+const SERVICE_TYPES = SELECTABLE_SERVICE_TYPES;
 
 type Step = "upload" | "review" | "result";
 
@@ -98,6 +97,7 @@ export function B2BJobImportModal({
   onImportComplete,
 }: B2BJobImportModalProps) {
   const t = useT();
+  const serviceTypeLabel = useServiceTypeLabel();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step state
@@ -435,7 +435,7 @@ export function B2BJobImportModal({
                             <SelectContent className="border-border bg-popover text-foreground">
                               {SERVICE_TYPES.map((st) => (
                                 <SelectItem key={st} value={st} className="text-xs">
-                                  {st}
+                                  {serviceTypeLabel(st)}
                                 </SelectItem>
                               ))}
                             </SelectContent>

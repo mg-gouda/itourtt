@@ -1,4 +1,5 @@
 import type { BookingEmailData, PaymentReceiptData, PaymentFailedData, StaffAssignmentData, JobUpdateEmailData } from '../email.service.js';
+import { serviceTypeLabel } from '../../common/utils/service-type.util.js';
 
 /** Branding injected into the email header/footer. Guest-facing emails pass
  *  B2C (Transfera) branding; internal emails fall back to DEFAULT_BRANDING. */
@@ -26,19 +27,8 @@ const DEFAULT_BRANDING: EmailBranding = {
   loginUrl: null,
 };
 
-/** Human-readable service type for guests (the DB stores 3-letter codes). */
-function serviceLabel(serviceType: string): string {
-  switch (serviceType) {
-    case 'ARR':
-      return 'Arrival';
-    case 'DEP':
-      return 'Departure';
-    case 'CITY':
-      return 'City Tour';
-    default:
-      return serviceType;
-  }
-}
+/** Human-readable service type for guests (the DB stores short codes). */
+const serviceLabel = (serviceType: string): string => serviceTypeLabel(serviceType);
 
 const baseStyle = `
   body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f4f4f7; }
@@ -231,7 +221,7 @@ export function jobUpdateNotificationTemplate(data: JobUpdateEmailData): string 
         ${data.agentName ? `<tr style="${hl('agentId')}"><td>Agent</td><td>${data.agentName}</td></tr>` : ''}
         ${data.agentRef ? `<tr style="${hl('agentRef')}"><td>Agent Ref</td><td>${data.agentRef}</td></tr>` : ''}
         ${data.customerName ? `<tr style="${hl('customerId')}"><td>Customer</td><td>${data.customerName}</td></tr>` : ''}
-        <tr style="${hl('serviceType')}"><td>Service Type</td><td>${data.serviceType}</td></tr>
+        <tr style="${hl('serviceType')}"><td>Service Type</td><td>${serviceLabel(data.serviceType)}</td></tr>
         <tr style="${hl('jobDate')}"><td>Service Date</td><td>${data.jobDate}</td></tr>
         ${data.pickUpTime ? `<tr style="${hl('pickUpTime')}"><td>Pick-up Time</td><td>${data.pickUpTime}</td></tr>` : ''}
         <tr style="${hl('adultCount')}${hl('childCount')}"><td>Passengers</td><td>${data.paxCount} (${data.adultCount}A${data.childCount > 0 ? `+${data.childCount}C` : ''})</td></tr>

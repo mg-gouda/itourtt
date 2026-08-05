@@ -1145,7 +1145,7 @@ export class DispatchService {
    *   - Different flight at same time → conflict.
    *   - Different flight at different time → allowed.
    *
-   * Excursion / transfer jobs (DAY_TOUR, ONE_WAY_TRANSFER, TWO_WAY_TRANSFER):
+   * Excursion / transfer jobs (DAY_TOUR, ONE_WAY_TRANSFER, RETURN, …):
    *   - Same pickUpTime as any existing job → conflict.
    *   - Different pickUpTime → allowed.
    */

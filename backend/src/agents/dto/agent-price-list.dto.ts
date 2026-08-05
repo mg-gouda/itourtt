@@ -15,7 +15,7 @@ export enum ServiceTypeEnum {
   DEP = 'DEP',
   DAY_TOUR = 'DAY_TOUR',
   ONE_WAY_TRANSFER = 'ONE_WAY_TRANSFER',
-  TWO_WAY_TRANSFER = 'TWO_WAY_TRANSFER',
+  RETURN = 'RETURN',
 }
 
 export class AgentPriceItemDto {

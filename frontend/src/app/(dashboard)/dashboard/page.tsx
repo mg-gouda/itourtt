@@ -39,6 +39,7 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { localDateStr, formatDate } from "@/lib/utils";
+import { useServiceTypeLabel } from "@/lib/service-types";
 
 interface JobSummary {
   id: string;
@@ -174,12 +175,15 @@ export default function DashboardPage() {
     fetchStats(selectedDate);
   }, [selectedDate, fetchStats]);
 
+  const serviceTypeLabel = useServiceTypeLabel();
+
+  // Labels come from the shared service-type source, not a second copy.
   const serviceTypeRows = [
-    { key: "ARR", label: t("dashHome.arrivals"), icon: PlaneLanding, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { key: "DEP", label: t("dashHome.departures"), icon: PlaneTakeoff, color: "text-violet-500", bg: "bg-violet-500/10" },
-    { key: "DAY_TOUR", label: t("dashHome.dayTour"), icon: Map, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { key: "ONE_WAY_TRANSFER", label: t("dashHome.oneWayTransfer"), icon: ArrowRightLeft, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { key: "TWO_WAY_TRANSFER", label: t("dashHome.twoWayTransfer"), icon: Repeat, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+    { key: "ARR", label: serviceTypeLabel("ARR"), icon: PlaneLanding, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { key: "DEP", label: serviceTypeLabel("DEP"), icon: PlaneTakeoff, color: "text-violet-500", bg: "bg-violet-500/10" },
+    { key: "DAY_TOUR", label: serviceTypeLabel("DAY_TOUR"), icon: Map, color: "text-amber-500", bg: "bg-amber-500/10" },
+    { key: "ONE_WAY_TRANSFER", label: serviceTypeLabel("ONE_WAY_TRANSFER"), icon: ArrowRightLeft, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { key: "RETURN", label: serviceTypeLabel("RETURN"), icon: Repeat, color: "text-cyan-500", bg: "bg-cyan-500/10" },
   ];
 
   const statusRows = [

@@ -1,6 +1,7 @@
 // ─── Enums ──────────────────────────────────────────────────────
 export type UserRole = 'ADMIN' | 'DISPATCHER' | 'ACCOUNTANT' | 'AGENT_MANAGER' | 'VIEWER' | 'REP' | 'DRIVER' | 'SUPPLIER';
-export type ServiceType = 'ARR' | 'DEP' | 'DAY_TOUR' | 'ONE_WAY_TRANSFER' | 'TWO_WAY_TRANSFER';
+// TWO_WAY_TRANSFER / CITY_TO_CITY are legacy: not selectable, still present on old rows.
+export type ServiceType = 'ARR' | 'DEP' | 'DAY_TOUR' | 'ONE_WAY_TRANSFER' | 'RETURN' | 'TWO_WAY_TRANSFER' | 'CITY_TO_CITY';
 export type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type PortalJobStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type VehicleOwnership = 'OWNED' | 'RENTED' | 'CONTRACTED';

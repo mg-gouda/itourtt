@@ -64,7 +64,7 @@ const SAMPLE_DATA: Record<string, string> = {
   pickupTime: "08:30 AM",
   origin: "Cairo Airport T2",
   destination: "Four Seasons Hotel",
-  serviceType: "ARR",
+  serviceType: "Arrival",
   internalRef: "TJ-2025-0042",
   agentRef: "AGT-7890",
   repName: "Ahmed Hassan",

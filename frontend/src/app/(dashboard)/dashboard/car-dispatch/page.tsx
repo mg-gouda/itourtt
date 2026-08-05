@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
+import { useServiceTypeOptions } from "@/lib/service-types";
 
 /* ────────────────────────────── Types ────────────────────────────── */
 
@@ -127,13 +128,7 @@ interface CarCard {
 }
 
 const CURRENCIES = ["EGP", "USD", "EUR", "GBP", "SAR"];
-const SERVICE_TYPES = [
-  { value: "ARR", label: "Arrival" },
-  { value: "DEP", label: "Departure" },
-  { value: "DAY_TOUR", label: "Day Tour" },
-  { value: "ONE_WAY_TRANSFER", label: "One Way" },
-  { value: "TWO_WAY_TRANSFER", label: "Two Way" },
-];
+
 
 function newJobRow(): JobRow {
   return {
@@ -1115,6 +1110,7 @@ function JobRowComponent({
   onRemove: () => void;
   onSave: () => void;
 }) {
+  const serviceTypes = useServiceTypeOptions();
   const cell = "border border-border p-0 align-top";
   const inp = "h-7 rounded-none border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary";
 
@@ -1255,7 +1251,7 @@ function JobRowComponent({
           disabled={job.saved}
           className="h-7 w-full border-0 bg-transparent px-1 text-xs focus:outline-none"
         >
-          {SERVICE_TYPES.map((st) => (
+          {serviceTypes.map((st) => (
             <option key={st.value} value={st.value}>{st.label}</option>
           ))}
         </select>

@@ -68,5 +68,7 @@ export const serviceTypeColors: Record<string, { bg: string; text: string }> = {
   DEP: { bg: '#FEE2E2', text: '#DC2626' },
   DAY_TOUR: { bg: '#D1FAE5', text: '#059669' },
   ONE_WAY_TRANSFER: { bg: '#E0E7FF', text: '#4338CA' },
+  RETURN: { bg: '#D1FAE5', text: '#047857' },
   TWO_WAY_TRANSFER: { bg: '#EDE9FE', text: '#7C3AED' },
+  CITY_TO_CITY: { bg: '#F1F5F9', text: '#475569' },
 };

@@ -10,18 +10,11 @@ import { CreateSupplierVehicleDto, UpdateSupplierVehicleDto } from './dto/create
 import { CreateSupplierDriverDto, UpdateSupplierDriverDto } from './dto/create-driver.dto.js';
 import { BulkPriceListDto, PriceItemDto } from './dto/supplier-price-list.dto.js';
 import type { Currency, ServiceType, VehicleOwnership } from '../../generated/prisma/enums.js';
+import { SELECTABLE_SERVICE_TYPES, SERVICE_TYPE_LABEL_PAIRS } from '../common/utils/service-type.util.js';
 
-const VALID_SERVICE_TYPES = new Set([
-  'ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER',
-]);
+const VALID_SERVICE_TYPES = new Set<string>(SELECTABLE_SERVICE_TYPES);
 
-const SERVICE_TYPE_LABELS: [string, string][] = [
-  ['ARR', 'Airport Arrival'],
-  ['DEP', 'Airport Departure'],
-  ['DAY_TOUR', 'Day Tour'],
-  ['ONE_WAY_TRANSFER', 'One Way Transfer'],
-  ['TWO_WAY_TRANSFER', 'Two Way Transfer'],
-];
+const SERVICE_TYPE_LABELS: [string, string][] = SERVICE_TYPE_LABEL_PAIRS;
 
 @Injectable()
 export class SuppliersService {

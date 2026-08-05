@@ -54,10 +54,13 @@ export const ar: TranslationKeys = {
   },
   serviceType: {
     ARR: '\u0648\u0635\u0648\u0644',
-    DEP: '\u0645\u063A\u0627\u062F\u0631\u0629',
-    DAY_TOUR: '\u062C\u0648\u0644\u0629 \u064A\u0648\u0645\u064A\u0629',
-    ONE_WAY_TRANSFER: '\u062A\u0648\u0635\u064A\u0644 \u0627\u062A\u062C\u0627\u0647 \u0648\u0627\u062D\u062F',
-    TWO_WAY_TRANSFER: '\u062A\u0648\u0635\u064A\u0644 \u0630\u0647\u0627\u0628 \u0648\u0639\u0648\u062F\u0629',
+    DEP: '\u0633\u0641\u0631',
+    DAY_TOUR: '\u064A\u0648\u0645\u064A\u0629/\u062C\u0648\u0644\u0629',
+    ONE_WAY_TRANSFER: '\u0630\u0647\u0627\u0628',
+    RETURN: '\u0639\u0648\u062F\u0629',
+    // Legacy \u2014 not selectable, kept so historical jobs still render.
+    TWO_WAY_TRANSFER: '\u0630\u0647\u0627\u0628 \u0648\u0639\u0648\u062F\u0629',
+    CITY_TO_CITY: '\u0645\u0646 \u0645\u062F\u064A\u0646\u0629 \u0625\u0644\u0649 \u0645\u062F\u064A\u0646\u0629',
   },
   driver: {
     startTrip: '\u0628\u062F\u0621 \u0627\u0644\u0631\u062D\u0644\u0629',

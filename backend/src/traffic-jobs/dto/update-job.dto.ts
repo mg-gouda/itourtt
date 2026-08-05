@@ -5,6 +5,7 @@ import {
 import { Type } from 'class-transformer';
 import { FlightInfoDto } from './create-job.dto.js';
 import { JobExtraInputDto } from './job-extra-input.dto.js';
+import { SELECTABLE_SERVICE_TYPES } from '../../common/utils/service-type.util.js';
 
 export class UpdateJobDto {
   @IsOptional()
@@ -28,7 +29,7 @@ export class UpdateJobDto {
   customerId?: string;
 
   @IsOptional()
-  @IsIn(['ARR', 'DEP', 'DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER'])
+  @IsIn(SELECTABLE_SERVICE_TYPES as unknown as string[])
   serviceType?: string;
 
   @IsOptional()

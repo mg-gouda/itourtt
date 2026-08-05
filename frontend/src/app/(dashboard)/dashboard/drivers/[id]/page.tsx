@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/tabs";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { useServiceTypeLabel } from "@/lib/service-types";
 import {
   ArrowLeft,
   Loader2,
@@ -144,6 +145,7 @@ function getExpiryStatus(dateStr: string | null): "expired" | "expiring" | "ok" 
 }
 
 export default function DriverDetailPage() {
+  const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -646,7 +648,7 @@ export default function DriverDetailPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
-                            {fee.trafficJob.serviceType}
+                            {serviceTypeLabel(fee.trafficJob.serviceType)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">

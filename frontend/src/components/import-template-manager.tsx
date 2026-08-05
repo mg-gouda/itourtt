@@ -33,6 +33,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
+import { SELECTABLE_SERVICE_TYPES, useServiceTypeLabel } from "@/lib/service-types";
 
 interface ImportTemplate {
   id: string;
@@ -43,9 +44,7 @@ interface ImportTemplate {
   createdAt: string;
 }
 
-const SERVICE_TYPES = [
-  "ARR", "DEP", "DAY_TOUR", "ONE_WAY_TRANSFER", "TWO_WAY_TRANSFER",
-];
+const SERVICE_TYPES = SELECTABLE_SERVICE_TYPES;
 
 const FILE_TYPE_ICON: Record<string, React.ReactNode> = {
   PDF: <FileText className="h-4 w-4 text-red-500" />,
@@ -58,6 +57,7 @@ interface ImportTemplateManagerProps {
 }
 
 export function ImportTemplateManager({ customerId }: ImportTemplateManagerProps) {
+  const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
   const canUpload = usePermission("customers.detail.importTemplates.upload");
   const canDeleteTemplate = usePermission("customers.detail.importTemplates.delete");
@@ -175,7 +175,7 @@ export function ImportTemplateManager({ customerId }: ImportTemplateManagerProps
                   <TableRow key={tmpl.id} className="border-border">
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
-                        {tmpl.serviceType}
+                        {serviceTypeLabel(tmpl.serviceType)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -226,7 +226,7 @@ export function ImportTemplateManager({ customerId }: ImportTemplateManagerProps
                 <SelectContent className="border-border bg-popover text-foreground">
                   {SERVICE_TYPES.map((st) => (
                     <SelectItem key={st} value={st}>
-                      {st}
+                      {serviceTypeLabel(st)}
                       {usedServiceTypes.includes(st) && " (will replace existing)"}
                     </SelectItem>
                   ))}

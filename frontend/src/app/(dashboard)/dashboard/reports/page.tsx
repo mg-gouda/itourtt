@@ -66,6 +66,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
+import { useServiceTypeLabel, useServiceTypeOptions } from "@/lib/service-types";
 
 // ────────────────────────────────────────────
 // Types
@@ -851,6 +852,8 @@ function StatCard({
 
 export default function ReportsPage() {
   const t = useT();
+  const serviceTypeLabel = useServiceTypeLabel();
+  const serviceTypeOptions = useServiceTypeOptions();
   const locale = useLocaleId();
   const { user } = useAuthStore();
   const { logoUrl, companyName } = useCompanyStore();
@@ -2221,7 +2224,7 @@ export default function ReportsPage() {
                         {dispatchColOrder.columns.filter((col) => dispatchColOrder.visibility[col] !== false).map((col) => {
                           switch (col) {
                             case "internalRef": return <TableCell key={col} className="text-foreground font-mono text-xs">{job.internalRef}</TableCell>;
-                            case "serviceType": return <TableCell key={col} className="text-muted-foreground text-sm">{job.serviceType}</TableCell>;
+                            case "serviceType": return <TableCell key={col} className="text-muted-foreground text-sm">{serviceTypeLabel(job.serviceType)}</TableCell>;
                             case "agent": return <TableCell key={col} className="text-muted-foreground text-sm">{job.agent?.legalName || job.customer?.legalName || "\u2014"}</TableCell>;
                             case "paxCount": return <TableCell key={col} className="text-muted-foreground">{job.paxCount}</TableCell>;
                             case "vehicle": return <TableCell key={col} className="text-muted-foreground text-sm">{job.assignment?.vehicle?.plateNumber || "\u2014"}</TableCell>;
@@ -2510,7 +2513,7 @@ export default function ReportsPage() {
                                 switch (col) {
                                   case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
                                   case "jobDate": return <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">{new Date(row.jobDate).toLocaleDateString()}</TableCell>;
-                                  case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
+                                  case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{serviceTypeLabel(row.serviceType)}</Badge></TableCell>;
                                   case "paxCount": return <TableCell key={col} className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>;
                                   case "driverName": return <TableCell key={col} className="text-xs text-muted-foreground">{row.driverName}</TableCell>;
                                   case "route": return <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">{row.route}</TableCell>;
@@ -2582,7 +2585,7 @@ export default function ReportsPage() {
                       <tr key={row.jobId}>
                         <td>{row.internalRef}</td>
                         <td>{new Date(row.jobDate).toLocaleDateString()}</td>
-                        <td>{row.serviceType}</td>
+                        <td>{serviceTypeLabel(row.serviceType)}</td>
                         <td className="text-right">{row.paxCount}</td>
                         <td>{row.driverName}</td>
                         <td>{row.route}</td>
@@ -3097,7 +3100,7 @@ export default function ReportsPage() {
                                                   switch (col) {
                                                     case "internalRef": return <TableCell key={col} className="font-mono text-xs">{row.internalRef}</TableCell>;
                                                     case "flightNo": return <TableCell key={col} className="font-mono text-xs text-muted-foreground">{row.flightNo || "—"}</TableCell>;
-                                                    case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
+                                                    case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{serviceTypeLabel(row.serviceType)}</Badge></TableCell>;
                                                     case "paxCount": return <TableCell key={col} className="text-right text-xs text-muted-foreground">{row.paxCount}</TableCell>;
                                                     case "repName": return <TableCell key={col} className="text-xs text-muted-foreground">{row.repName}</TableCell>;
                                                     case "route": return (
@@ -3204,7 +3207,7 @@ export default function ReportsPage() {
                               <tr key={row.jobId}>
                                 <td>{row.internalRef}</td>
                                 <td>{row.flightNo || "—"}</td>
-                                <td>{row.serviceType}</td>
+                                <td>{serviceTypeLabel(row.serviceType)}</td>
                                 <td className="text-right">{row.paxCount}</td>
                                 <td>{row.repName}</td>
                                 <td>{(row.originAirport?.code || row.fromZone?.name || row.originZone?.name || row.originHotel?.name || "—")} → {(row.destinationAirport?.code || row.toZone?.name || row.destinationZone?.name || row.destinationHotel?.name || "—")}</td>
@@ -3634,9 +3637,9 @@ export default function ReportsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Types</SelectItem>
-                    <SelectItem value="ARR">ARR</SelectItem>
-                    <SelectItem value="DEP">DEP</SelectItem>
-                    <SelectItem value="CITY">CITY</SelectItem>
+                    {serviceTypeOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -3793,7 +3796,7 @@ export default function ReportsPage() {
                           {jobStatusColOrder.visibility["agentRef"] !== false && <TableCell className="text-muted-foreground text-sm">{job.agentRef || "\u2014"}</TableCell>}
                           {jobStatusColOrder.visibility["agentName"] !== false && <TableCell className="text-sm text-foreground">{job.agentName || "\u2014"}</TableCell>}
                           {jobStatusColOrder.visibility["serviceDate"] !== false && <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{new Date(job.serviceDate).toLocaleDateString()}</TableCell>}
-                          {jobStatusColOrder.visibility["serviceType"] !== false && <TableCell className="text-sm text-foreground">{job.serviceType}</TableCell>}
+                          {jobStatusColOrder.visibility["serviceType"] !== false && <TableCell className="text-sm text-foreground">{serviceTypeLabel(job.serviceType)}</TableCell>}
                           {jobStatusColOrder.visibility["time"] !== false && (
                             <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                               {job.time ? new Date(job.time).toLocaleTimeString([], { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false }) : "\u2014"}
@@ -4009,7 +4012,7 @@ export default function ReportsPage() {
                             {evidenceColOrder.visibility["jobDate"] !== false && <TableCell className="text-sm text-muted-foreground">{formatDate(row.jobDate)}</TableCell>}
                             {evidenceColOrder.visibility["serviceType"] !== false && (
                               <TableCell>
-                                <Badge variant="outline" className="text-xs">{row.serviceType}</Badge>
+                                <Badge variant="outline" className="text-xs">{serviceTypeLabel(row.serviceType)}</Badge>
                               </TableCell>
                             )}
                             {evidenceColOrder.visibility["arrivalFlightTime"] !== false && (
@@ -4573,11 +4576,9 @@ export default function ReportsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">All Types</SelectItem>
-                      <SelectItem value="ARR">ARR</SelectItem>
-                      <SelectItem value="DEP">DEP</SelectItem>
-                      <SelectItem value="DAY_TOUR">Day Tour</SelectItem>
-                      <SelectItem value="ONE_WAY_TRANSFER">One Way Transfer</SelectItem>
-                      <SelectItem value="TWO_WAY_TRANSFER">2 Way Transfer</SelectItem>
+                      {serviceTypeOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -4630,7 +4631,7 @@ export default function ReportsPage() {
                                 case "customerNumber": return <TableCell key={col} className="text-xs font-mono">{row.customerNumber}</TableCell>;
                                 case "pax": return <TableCell key={col} className="text-xs text-right">{row.pax}</TableCell>;
                                 case "pickupTime": return <TableCell key={col} className="text-xs font-mono">{row.pickupTime ? new Date(row.pickupTime).toLocaleTimeString(locale, { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit" }) : "—"}</TableCell>;
-                                case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{row.serviceType}</Badge></TableCell>;
+                                case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{serviceTypeLabel(row.serviceType)}</Badge></TableCell>;
                                 default: return null;
                               }
                             })}
@@ -4845,7 +4846,7 @@ export default function ReportsPage() {
                                 case "agentName": return <TableCell key={col} className="text-xs">{row.agentName}</TableCell>;
                                 case "agentRef": return <TableCell key={col} className="text-xs font-mono">{row.agentRef}</TableCell>;
                                 case "serviceDate": return <TableCell key={col} className="text-xs">{row.serviceDate ? new Date(row.serviceDate).toLocaleDateString(locale) : "—"}</TableCell>;
-                                case "serviceType": return <TableCell key={col} className="text-xs"><Badge variant="secondary">{row.serviceType}</Badge></TableCell>;
+                                case "serviceType": return <TableCell key={col} className="text-xs"><Badge variant="secondary">{serviceTypeLabel(row.serviceType)}</Badge></TableCell>;
                                 case "status": return <TableCell key={col} className="text-xs"><Badge variant="outline">{row.status}</Badge></TableCell>;
                                 case "pax": return <TableCell key={col} className="text-xs text-right">{row.pax}</TableCell>;
                                 case "clientName": return <TableCell key={col} className="text-xs">{row.clientName}</TableCell>;
@@ -5136,7 +5137,7 @@ export default function ReportsPage() {
                                     : "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
                                 }
                               >
-                                {fee.trafficJob.serviceType}
+                                {serviceTypeLabel(fee.trafficJob.serviceType)}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right text-muted-foreground">

@@ -30,6 +30,7 @@ import {
 import { LocationCombobox } from "@/components/location-combobox";
 import { usePermission } from "@/hooks/use-permission";
 import { toast } from "sonner";
+import { useServiceTypeLabel, useServiceTypeOptions } from "@/lib/service-types";
 
 // ─── Types ─────────────────────────────────────
 
@@ -89,17 +90,7 @@ export interface PriceListGridProps {
 
 // ─── Constants ─────────────────────────────────
 
-const SERVICE_TYPE_OPTIONS = [
-  { value: "ARR", label: "Arrival" },
-  { value: "DEP", label: "Departure" },
-  { value: "DAY_TOUR", label: "Day Tour" },
-  { value: "ONE_WAY_TRANSFER", label: "One Way Transfer" },
-  { value: "TWO_WAY_TRANSFER", label: "2 Way Transfer" },
-];
 
-function getServiceTypeLabel(value: string): string {
-  return SERVICE_TYPE_OPTIONS.find((o) => o.value === value)?.label || value;
-}
 
 // ─── Component ─────────────────────────────────
 
@@ -113,6 +104,9 @@ export function PriceListGrid({
   onImport,
   onRefresh,
 }: PriceListGridProps) {
+  const serviceTypeOptions = useServiceTypeOptions();
+  const getServiceTypeLabel = useServiceTypeLabel();
+
   // Permission checks
   const canAddRoute = usePermission("customers.detail.priceList.addRoute");
   const canEditPrice = usePermission("customers.detail.priceList.editPrice");
@@ -413,7 +407,7 @@ export function PriceListGrid({
               <SelectValue placeholder="Select type..." />
             </SelectTrigger>
             <SelectContent>
-              {SERVICE_TYPE_OPTIONS.map((opt) => (
+              {serviceTypeOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>

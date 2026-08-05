@@ -11,6 +11,7 @@ import { createRequire } from 'module';
 import sharp from 'sharp';
 import archiver from 'archiver';
 import type { Response } from 'express';
+import { serviceTypeLabel, NON_FLIGHT_SERVICE_TYPES } from '../common/utils/service-type.util.js';
 
 const _require = createRequire(import.meta.url);
 const { convertArabic } = _require('arabic-reshaper') as { convertArabic: (t: string) => string };
@@ -250,7 +251,7 @@ export class ExportService {
         currency_id: c.currency,
         journal_id: 'Vendor Bills',
         ref: job.internalRef,
-        name: `Transport: ${routeDesc} (${job.serviceType})`,
+        name: `Transport: ${routeDesc} (${serviceTypeLabel(job.serviceType)})`,
         account_id: '510000',
         quantity: 1,
         price_unit: Number(c.amount),
@@ -465,7 +466,7 @@ export class ExportService {
 
       detailRows.push({
         'Rep Name': a.rep.name,
-        'Service Type': a.trafficJob.serviceType,
+        'Service Type': serviceTypeLabel(a.trafficJob.serviceType),
         'Flight No': a.trafficJob.flight?.flightNo || '—',
         Carrier: a.trafficJob.flight?.carrier || '—',
         'Job Ref': a.trafficJob.internalRef,
@@ -557,7 +558,7 @@ export class ExportService {
         orderBy: [{ flight: { departureTime: 'asc' } }, { createdAt: 'asc' }],
       }),
       this.prisma.trafficJob.findMany({
-        where: { ...baseWhere, serviceType: { in: ['DAY_TOUR', 'ONE_WAY_TRANSFER', 'TWO_WAY_TRANSFER'] as any } },
+        where: { ...baseWhere, serviceType: { in: NON_FLIGHT_SERVICE_TYPES as any } },
         include: baseInclude,
         orderBy: { createdAt: 'asc' },
       }),
@@ -913,7 +914,7 @@ export class ExportService {
       ['Agent',        s(job.agent?.legalName)],
       ['Agent Ref',    s(job.agentRef)],
       ['Date',         dateStr],
-      ['Service Type', s(job.serviceType)],
+      ['Service Type', s(serviceTypeLabel(job.serviceType))],
       ['Status',       s(job.status)],
       ['Pax Count',    String(job.paxCount)],
       ['Client',       s(job.clientName)],
@@ -1126,7 +1127,7 @@ export class ExportService {
     const rows = jobs.map((job) => ({
       'Ref': job.internalRef,
       'Agent / Customer': job.agent?.legalName || job.customer?.legalName || '',
-      'Service Type': job.serviceType,
+      'Service Type': serviceTypeLabel(job.serviceType),
       'Status': job.status,
       'Client Name': job.clientName || '',
       'Pax': job.paxCount,
@@ -1197,7 +1198,7 @@ export class ExportService {
       detailRows.push({
         'Driver': a.driver.name,
         'Job Date': this.formatDate(a.trafficJob.jobDate),
-        'Service Type': a.trafficJob.serviceType,
+        'Service Type': serviceTypeLabel(a.trafficJob.serviceType),
         'Route': a.trafficJob.fromZone && a.trafficJob.toZone
           ? `${a.trafficJob.fromZone.name} → ${a.trafficJob.toZone.name}`
           : '—',
@@ -1416,7 +1417,7 @@ export class ExportService {
 
     // By Service Type sheet
     const stRows = Object.entries(byServiceType).map(([type, revenue]) => ({
-      'Service Type': type,
+      'Service Type': serviceTypeLabel(type),
       'Revenue': revenue,
     }));
     if (stRows.length > 0) {
@@ -2073,7 +2074,7 @@ export class ExportService {
         'Agent Name': j.agent?.legalName ?? '—',
         'Agent Ref': j.agentRef ?? '—',
         'Service Date': j.jobDate.toISOString().split('T')[0],
-        'Service Type': j.serviceType,
+        'Service Type': serviceTypeLabel(j.serviceType),
         'Status': j.status,
         'Pax': j.paxCount,
         'Client': j.clientName ?? '—',
@@ -2150,7 +2151,7 @@ export class ExportService {
       return {
         'Internal Ref': s.trafficJob.internalRef,
         'Job Date': s.trafficJob.jobDate.toISOString().split('T')[0],
-        'Service Type': s.trafficJob.serviceType,
+        'Service Type': serviceTypeLabel(s.trafficJob.serviceType),
         'Pax': s.trafficJob.paxCount,
         'Status': s.trafficJob.status,
         'Driver': s.driver.name,
@@ -2210,7 +2211,7 @@ export class ExportService {
       const dest = s.trafficJob.destinationAirport?.code ?? s.trafficJob.destinationHotel?.name ?? s.trafficJob.destinationZone?.name ?? '—';
       return {
         'Internal Ref': s.trafficJob.internalRef,
-        'Service Type': s.trafficJob.serviceType,
+        'Service Type': serviceTypeLabel(s.trafficJob.serviceType),
         'Pax': s.trafficJob.paxCount,
         'Status': s.trafficJob.status,
         'Rep': s.rep.name,
@@ -2261,7 +2262,7 @@ export class ExportService {
       'Submitted': this.cairoDate(s.createdAt),
       'Rep': s.rep.name,
       'Job Ref': s.trafficJob.internalRef,
-      'Service Type': s.trafficJob.serviceType,
+      'Service Type': serviceTypeLabel(s.trafficJob.serviceType),
       'Flight No': s.flightNo ?? '',
       'Hotel': s.hotelName ?? '',
       'Nationality': s.guestNationality ?? '',
@@ -2337,7 +2338,7 @@ export class ExportService {
       'Agent Ref': j.agentRef ?? '—',
       'Agent': j.agent?.tradeName ?? j.agent?.legalName ?? '—',
       'Service Date': j.jobDate.toISOString().split('T')[0],
-      'Service Type': j.serviceType,
+      'Service Type': serviceTypeLabel(j.serviceType),
       'Time': j.serviceType === 'ARR' ? this.cairoTime(j.flight?.arrivalTime ?? null) : this.cairoTime(j.pickUpTime ?? null),
       'Flight No': j.flight?.flightNo ?? '—',
       'Price': j.priceAmount ? Number(j.priceAmount) : '—',
@@ -2376,7 +2377,7 @@ export class ExportService {
 
     const rows = jobs.map((j) => ({
       'Service Date': j.jobDate.toISOString().split('T')[0],
-      'Service Type': j.serviceType,
+      'Service Type': serviceTypeLabel(j.serviceType),
       'Customer Name': j.clientName ?? '—',
       'Customer Number': j.clientMobile ?? '—',
       'Pax': j.paxCount,
@@ -2560,7 +2561,7 @@ export class ExportService {
       'Agent Name': j.agent?.tradeName ?? j.agent?.legalName ?? '—',
       'Agent Ref': j.agentRef ?? '—',
       'Service Date': j.jobDate.toISOString().split('T')[0],
-      'Service Type': j.serviceType,
+      'Service Type': serviceTypeLabel(j.serviceType),
       'Status': j.status,
       'Pax': j.paxCount,
       'Client': j.clientName ?? '—',
