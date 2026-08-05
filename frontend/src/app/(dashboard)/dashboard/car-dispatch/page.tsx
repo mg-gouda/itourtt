@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
-import { useServiceTypeOptions } from "@/lib/service-types";
+import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
 
 /* ────────────────────────────── Types ────────────────────────────── */
 
@@ -1110,7 +1110,6 @@ function JobRowComponent({
   onRemove: () => void;
   onSave: () => void;
 }) {
-  const serviceTypes = useServiceTypeOptions();
   const cell = "border border-border p-0 align-top";
   const inp = "h-7 rounded-none border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary";
 
@@ -1251,7 +1250,7 @@ function JobRowComponent({
           disabled={job.saved}
           className="h-7 w-full border-0 bg-transparent px-1 text-xs focus:outline-none"
         >
-          {serviceTypes.map((st) => (
+          {SERVICE_TYPE_DROPDOWN_OPTIONS.map((st) => (
             <option key={st.value} value={st.value}>{st.label}</option>
           ))}
         </select>

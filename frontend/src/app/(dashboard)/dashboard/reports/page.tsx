@@ -66,7 +66,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
-import { useServiceTypeLabel, useServiceTypeOptions } from "@/lib/service-types";
+import { SERVICE_TYPE_DROPDOWN_OPTIONS, useServiceTypeLabel } from "@/lib/service-types";
 
 // ────────────────────────────────────────────
 // Types
@@ -853,7 +853,6 @@ function StatCard({
 export default function ReportsPage() {
   const t = useT();
   const serviceTypeLabel = useServiceTypeLabel();
-  const serviceTypeOptions = useServiceTypeOptions();
   const locale = useLocaleId();
   const { user } = useAuthStore();
   const { logoUrl, companyName } = useCompanyStore();
@@ -3637,7 +3636,7 @@ export default function ReportsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Types</SelectItem>
-                    {serviceTypeOptions.map((o) => (
+                    {SERVICE_TYPE_DROPDOWN_OPTIONS.map((o) => (
                       <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -4576,7 +4575,7 @@ export default function ReportsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">All Types</SelectItem>
-                      {serviceTypeOptions.map((o) => (
+                      {SERVICE_TYPE_DROPDOWN_OPTIONS.map((o) => (
                         <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                       ))}
                     </SelectContent>

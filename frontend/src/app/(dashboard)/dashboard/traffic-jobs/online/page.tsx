@@ -48,7 +48,7 @@ import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 import { ChevronUp, ChevronDown } from "lucide-react";
-import { useServiceTypeLabel, useServiceTypeLabels } from "@/lib/service-types";
+import { SERVICE_TYPE_DROPDOWN_OPTIONS, useServiceTypeLabel } from "@/lib/service-types";
 
 /* ─────────── types ─────────── */
 
@@ -238,7 +238,6 @@ export default function OnlineJobPage() {
   const [total, setTotal] = useState(0);
   const limit = 20;
 
-  const serviceTypeLabels = useServiceTypeLabels();
   const serviceTypeLabel = useServiceTypeLabel();
 
   const updateForm = useCallback((updates: Partial<FormState>) => {
@@ -804,7 +803,7 @@ export default function OnlineJobPage() {
                   <SelectValue className="truncate" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
-                  {Object.entries(serviceTypeLabels).map(([key, label]) => (
+                  {SERVICE_TYPE_DROPDOWN_OPTIONS.map(({ value: key, label }) => (
                     <SelectItem key={key} value={key}>{label}</SelectItem>
                   ))}
                 </SelectContent>

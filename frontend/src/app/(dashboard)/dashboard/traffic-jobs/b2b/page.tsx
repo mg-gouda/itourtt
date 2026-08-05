@@ -45,7 +45,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
-import { useServiceTypeLabel, useServiceTypeLabels } from "@/lib/service-types";
+import { SERVICE_TYPE_DROPDOWN_OPTIONS, useServiceTypeLabel } from "@/lib/service-types";
 
 interface VehicleTypeResource {
   id: string;
@@ -267,7 +267,6 @@ export default function B2BJobPage() {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  const serviceTypeLabels = useServiceTypeLabels();
   const serviceTypeLabel = useServiceTypeLabel();
 
   const updateForm = useCallback((updates: Partial<FormState>) => {
@@ -844,7 +843,7 @@ export default function B2BJobPage() {
                   <SelectValue className="truncate" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-popover text-foreground">
-                  {Object.entries(serviceTypeLabels).map(([key, label]) => (
+                  {SERVICE_TYPE_DROPDOWN_OPTIONS.map(({ value: key, label }) => (
                     <SelectItem key={key} value={key}>{label}</SelectItem>
                   ))}
                 </SelectContent>

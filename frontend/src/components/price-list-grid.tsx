@@ -30,7 +30,7 @@ import {
 import { LocationCombobox } from "@/components/location-combobox";
 import { usePermission } from "@/hooks/use-permission";
 import { toast } from "sonner";
-import { useServiceTypeLabel, useServiceTypeOptions } from "@/lib/service-types";
+import { SERVICE_TYPE_DROPDOWN_OPTIONS, useServiceTypeLabel } from "@/lib/service-types";
 
 // ─── Types ─────────────────────────────────────
 
@@ -104,7 +104,6 @@ export function PriceListGrid({
   onImport,
   onRefresh,
 }: PriceListGridProps) {
-  const serviceTypeOptions = useServiceTypeOptions();
   const getServiceTypeLabel = useServiceTypeLabel();
 
   // Permission checks
@@ -407,7 +406,7 @@ export function PriceListGrid({
               <SelectValue placeholder="Select type..." />
             </SelectTrigger>
             <SelectContent>
-              {serviceTypeOptions.map((opt) => (
+              {SERVICE_TYPE_DROPDOWN_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>

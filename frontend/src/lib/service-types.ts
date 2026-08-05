@@ -57,6 +57,41 @@ export const SERVICE_TYPE_COLORS_SOLID: Record<string, string> = {
   CITY_TO_CITY: "bg-slate-500/20 text-slate-400 border-slate-500/30",
 };
 
+// Dropdowns show BOTH languages at once — "Arrival - وصول" — regardless of the
+// interface language, so the picker reads the same to an English and an Arabic
+// operator. Tables, badges and exports stay single-language (useServiceTypeLabel).
+//
+// The pair is wrapped in a LEFT-TO-RIGHT ISOLATE so it renders in the given
+// order under an RTL interface too. Without it the bidi algorithm reorders the
+// line to "وصول - Arrival" whenever the surrounding paragraph is RTL.
+const LRI = "⁦"; // LEFT-TO-RIGHT ISOLATE
+const PDI = "⁩"; // POP DIRECTIONAL ISOLATE
+
+const bilingual = (en: string, ar: string) => `${LRI}${en} - ${ar}${PDI}`;
+
+export const SERVICE_TYPE_DROPDOWN_LABELS: Record<string, string> = {
+  ARR: bilingual("Arrival", "وصول"),
+  DEP: bilingual("Departure", "سفر"),
+  DAY_TOUR: bilingual("Day Tour", "يومية/جولة"),
+  ONE_WAY_TRANSFER: bilingual("Going", "ذهاب"),
+  RETURN: bilingual("Return", "عودة"),
+  TWO_WAY_TRANSFER: bilingual("2 Way Transfer", "ذهاب وعودة"),
+  CITY_TO_CITY: bilingual("City to City", "من مدينة إلى مدينة"),
+};
+
+/** Bilingual label for one service type — dropdown menus only. */
+export function serviceTypeDropdownLabel(value: string | null | undefined): string {
+  if (!value) return "";
+  return SERVICE_TYPE_DROPDOWN_LABELS[value] ?? value;
+}
+
+/** `{ value, label }[]` for every dropdown. Locale-independent by design. */
+export const SERVICE_TYPE_DROPDOWN_OPTIONS: { value: string; label: string }[] =
+  SELECTABLE_SERVICE_TYPES.map((v) => ({
+    value: v,
+    label: SERVICE_TYPE_DROPDOWN_LABELS[v],
+  }));
+
 /**
  * Translated label for one service type. Falls back to the raw value so an
  * unknown/legacy code never renders as blank.
@@ -70,14 +105,3 @@ export function useServiceTypeLabel() {
   };
 }
 
-/** `{ ARR: "Arrival", … }` for the selectable set — dropdowns and legends. */
-export function useServiceTypeLabels(): Record<string, string> {
-  const label = useServiceTypeLabel();
-  return Object.fromEntries(SELECTABLE_SERVICE_TYPES.map((v) => [v, label(v)]));
-}
-
-/** `{ value, label }[]` for the selectable set. */
-export function useServiceTypeOptions(): { value: string; label: string }[] {
-  const label = useServiceTypeLabel();
-  return SELECTABLE_SERVICE_TYPES.map((v) => ({ value: v, label: label(v) }));
-}

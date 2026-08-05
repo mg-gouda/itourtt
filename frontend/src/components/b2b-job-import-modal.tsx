@@ -41,7 +41,7 @@ import { LocationCombobox } from "@/components/location-combobox";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
-import { SELECTABLE_SERVICE_TYPES, useServiceTypeLabel } from "@/lib/service-types";
+import { SELECTABLE_SERVICE_TYPES, serviceTypeDropdownLabel } from "@/lib/service-types";
 
 interface Customer {
   id: string;
@@ -97,7 +97,6 @@ export function B2BJobImportModal({
   onImportComplete,
 }: B2BJobImportModalProps) {
   const t = useT();
-  const serviceTypeLabel = useServiceTypeLabel();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step state
@@ -435,7 +434,7 @@ export function B2BJobImportModal({
                             <SelectContent className="border-border bg-popover text-foreground">
                               {SERVICE_TYPES.map((st) => (
                                 <SelectItem key={st} value={st} className="text-xs">
-                                  {serviceTypeLabel(st)}
+                                  {serviceTypeDropdownLabel(st)}
                                 </SelectItem>
                               ))}
                             </SelectContent>

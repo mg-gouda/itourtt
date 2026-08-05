@@ -33,7 +33,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
-import { SELECTABLE_SERVICE_TYPES, useServiceTypeLabel } from "@/lib/service-types";
+import { SELECTABLE_SERVICE_TYPES, serviceTypeDropdownLabel, useServiceTypeLabel } from "@/lib/service-types";
 
 interface ImportTemplate {
   id: string;
@@ -226,7 +226,7 @@ export function ImportTemplateManager({ customerId }: ImportTemplateManagerProps
                 <SelectContent className="border-border bg-popover text-foreground">
                   {SERVICE_TYPES.map((st) => (
                     <SelectItem key={st} value={st}>
-                      {serviceTypeLabel(st)}
+                      {serviceTypeDropdownLabel(st)}
                       {usedServiceTypes.includes(st) && " (will replace existing)"}
                     </SelectItem>
                   ))}
