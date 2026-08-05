@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
 import { NoShowDisputeService } from './no-show-dispute.service.js';
-import { DriverTariffsService } from '../driver-tariffs/driver-tariffs.service.js';
+import { JobCompletionService } from '../common/services/job-completion.service.js';
 
 type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
@@ -32,7 +32,7 @@ export class DriverPortalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly noShowDisputeService: NoShowDisputeService,
-    private readonly driverTariffsService: DriverTariffsService,
+    private readonly jobCompletion: JobCompletionService,
   ) {}
 
   // Minimal fields for list cards — no agent/customer details
@@ -269,8 +269,18 @@ export class DriverPortalService {
         },
       });
 
+      // This endpoint can reach COMPLETED (IN_PROGRESS → COMPLETED), so the
+      // overall job status has to be rolled up here too — not only in
+      // submitCompleted.
+      await this.jobCompletion.reconcileJobStatus(tx, jobId);
+
+      const job = await tx.trafficJob.findUniqueOrThrow({
+        where: { id: jobId },
+        include: this.jobInclude,
+      });
+
       return {
-        ...updated.trafficJob,
+        ...job,
         driverStatus: updated.driverStatus,
       };
     });
@@ -488,60 +498,17 @@ export class DriverPortalService {
         },
       });
 
-      const job = updated.trafficJob;
-      const isDepJob = job.serviceType === 'DEP';
+      // Roll the overall job status up from the two portal legs and materialise
+      // the driver / rep fees that completion unlocks. Also closes the rep leg
+      // on DEP jobs, where the rep has no work left once the car has run.
+      await this.jobCompletion.reconcileJobStatus(tx, jobId);
 
-      // For DEP jobs: auto-complete any assigned rep
-      if (isDepJob && updated.repId && !DRIVER_TERMINAL_STATUSES.includes(updated.repStatus as string)) {
-        await tx.trafficAssignment.update({
-          where: { id: assignment.id },
-          data: { repStatus: 'COMPLETED' as any },
-        });
-      }
+      const job = await tx.trafficJob.findUniqueOrThrow({
+        where: { id: jobId },
+        include: this.jobInclude,
+      });
 
-      const repAssigned = !!updated.repId;
-      const repCompleted = updated.repStatus === 'COMPLETED';
-      const shouldCompleteJob = !repAssigned || repCompleted || isDepJob;
-
-      if (shouldCompleteJob) {
-        await tx.trafficJob.update({
-          where: { id: jobId },
-          data: { status: 'COMPLETED' as any },
-        });
-
-        if (updated.driverId) {
-          const existingDriverFee = await tx.driverTripFee.findFirst({
-            where: { driverId: updated.driverId, trafficJobId: jobId },
-          });
-          if (!existingDriverFee) {
-            const feeData = await this.driverTariffsService.resolveJobTripFee(job, updated.vehicleId);
-            if (feeData) {
-              await tx.driverTripFee.create({
-                data: { driverId: updated.driverId, trafficJobId: jobId, ...feeData },
-              });
-            }
-          }
-        }
-
-        if (job.serviceType === 'ARR' && updated.repId) {
-          const existingRepFee = await tx.repFee.findFirst({
-            where: { repId: updated.repId, trafficJobId: jobId },
-          });
-          if (!existingRepFee) {
-            const rep = await tx.rep.findUniqueOrThrow({ where: { id: updated.repId } });
-            await tx.repFee.create({
-              data: {
-                repId: updated.repId,
-                trafficJobId: jobId,
-                amount: rep.feePerFlight,
-                currency: 'EGP',
-              },
-            });
-          }
-        }
-      }
-
-      return { ...updated.trafficJob, driverStatus: updated.driverStatus };
+      return { ...job, driverStatus: updated.driverStatus };
     });
   }
 

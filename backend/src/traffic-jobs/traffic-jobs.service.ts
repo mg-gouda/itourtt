@@ -15,6 +15,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { WhatsappNotificationsService } from '../whatsapp-notifications/whatsapp-notifications.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { DriverTariffsService } from '../driver-tariffs/driver-tariffs.service.js';
+import { JobCompletionService } from '../common/services/job-completion.service.js';
 
 type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
@@ -37,6 +38,7 @@ export class TrafficJobsService {
     private readonly whatsappService: WhatsappNotificationsService,
     private readonly settingsService: SettingsService,
     private readonly driverTariffsService: DriverTariffsService,
+    private readonly jobCompletion: JobCompletionService,
   ) {}
 
   // Full include — used for findOne() detail view only
@@ -763,6 +765,13 @@ export class TrafficJobsService {
             ...(dto.driverStatus ? { driverStatus: dto.driverStatus as any } : {}),
           },
         });
+
+        // Force-setting both legs to COMPLETED must close the job (and create
+        // the driver / rep fees) too. Skipped when the admin explicitly chose a
+        // job status in the same call — that choice wins.
+        if (!dto.jobStatus) {
+          await this.jobCompletion.reconcileJobStatus(tx, id);
+        }
       }
 
       return this.findOne(id);

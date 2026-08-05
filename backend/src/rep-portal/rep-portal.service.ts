@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveRepGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
 import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
-import { DriverTariffsService } from '../driver-tariffs/driver-tariffs.service.js';
+import { JobCompletionService } from '../common/services/job-completion.service.js';
 
 type RepJobStatus = 'COMPLETED' | 'CANCELLED';
 
@@ -31,7 +31,7 @@ export class RepPortalService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly driverTariffsService: DriverTariffsService,
+    private readonly jobCompletion: JobCompletionService,
   ) {}
 
   private readonly jobInclude = {
@@ -234,8 +234,17 @@ export class RepPortalService {
         },
       });
 
+      // This endpoint can reach COMPLETED (IN_PLACE → COMPLETED), so the overall
+      // job status has to be rolled up here too — not only in submitCompleted.
+      await this.jobCompletion.reconcileJobStatus(tx, jobId);
+
+      const job = await tx.trafficJob.findUniqueOrThrow({
+        where: { id: jobId },
+        include: this.jobInclude,
+      });
+
       return {
-        ...updated.trafficJob,
+        ...job,
         repStatus: updated.repStatus,
       };
     });
@@ -671,50 +680,9 @@ export class RepPortalService {
         include: { trafficJob: { include: this.jobInclude } },
       });
 
-      const job = updated.trafficJob;
-      const driverAssigned = !!updated.driverId;
-      const driverCompleted = updated.driverStatus === 'COMPLETED';
-      const shouldCompleteJob = !driverAssigned || driverCompleted;
-
-      if (shouldCompleteJob) {
-        await tx.trafficJob.update({
-          where: { id: jobId },
-          data: { status: 'COMPLETED' as any },
-        });
-
-        // Auto-generate DriverTripFee (airport-aware tariff lookup, not amount 0)
-        if (updated.driverId) {
-          const existingDriverFee = await tx.driverTripFee.findFirst({
-            where: { driverId: updated.driverId, trafficJobId: jobId },
-          });
-          if (!existingDriverFee) {
-            const feeData = await this.driverTariffsService.resolveJobTripFee(job, updated.vehicleId);
-            if (feeData) {
-              await tx.driverTripFee.create({
-                data: { driverId: updated.driverId, trafficJobId: jobId, ...feeData },
-              });
-            }
-          }
-        }
-
-        // Auto-generate RepFee for ARR jobs
-        if (job.serviceType === 'ARR' && updated.repId) {
-          const existingRepFee = await tx.repFee.findFirst({
-            where: { repId: updated.repId, trafficJobId: jobId },
-          });
-          if (!existingRepFee) {
-            const rep = await tx.rep.findUniqueOrThrow({ where: { id: updated.repId } });
-            await tx.repFee.create({
-              data: {
-                repId: updated.repId,
-                trafficJobId: jobId,
-                amount: rep.feePerFlight,
-                currency: 'EGP',
-              },
-            });
-          }
-        }
-      }
+      // Roll the overall job status up from the two portal legs and materialise
+      // the driver / rep fees that completion unlocks.
+      await this.jobCompletion.reconcileJobStatus(tx, jobId);
 
       await tx.completedEvidence.create({
         data: {
@@ -741,7 +709,12 @@ export class RepPortalService {
         },
       });
 
-      return { ...updated.trafficJob, repStatus: updated.repStatus };
+      const job = await tx.trafficJob.findUniqueOrThrow({
+        where: { id: jobId },
+        include: this.jobInclude,
+      });
+
+      return { ...job, repStatus: updated.repStatus };
     });
   }
 
