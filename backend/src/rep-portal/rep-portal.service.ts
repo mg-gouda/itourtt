@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveRepGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
 import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
+import { checkNoShowWindow } from '../common/utils/no-show-window.util.js';
 import { JobCompletionService } from '../common/services/job-completion.service.js';
 
 type RepJobStatus = 'COMPLETED' | 'CANCELLED';
@@ -273,6 +274,7 @@ export class RepPortalService {
       include: {
         trafficJob: {
           include: {
+            flight: true,
             originAirport: true,
             originZone: true,
             originHotel: { include: { zone: true } },
@@ -300,6 +302,8 @@ export class RepPortalService {
         `Cannot submit no-show from "${currentStatus}"`,
       );
     }
+
+    checkNoShowWindow(assignment.trafficJob);
 
     const gpsMapLink =
       latitude != null && longitude != null

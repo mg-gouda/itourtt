@@ -117,6 +117,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "NO_SHOW"];
 
+/** NO SHOW can only be reported 80 minutes after the job time (ARR + DEP) */
+const NO_SHOW_DELAY_MS = 80 * 60 * 1000;
+
 export default function RepDashboardPage() {
   const t = useT();
   const locale = useLocaleId();
@@ -697,6 +700,16 @@ function JobCard({
     return t("portal.availableWindow").replace("{start}", fmt(start)).replace("{end}", fmt(end));
   })();
 
+  // NO SHOW only becomes available 80 minutes after the job time (ARR + DEP)
+  const jobTime = (() => {
+    const rawTime = job.serviceType === "ARR" ? job.flight?.arrivalTime : job.pickUpTime;
+    return rawTime ? new Date(rawTime) : null;
+  })();
+  const canNoShow = !jobTime || new Date() >= new Date(jobTime.getTime() + NO_SHOW_DELAY_MS);
+  const noShowBlockMsg = jobTime && !canNoShow
+    ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + NO_SHOW_DELAY_MS).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
+    : "";
+
   return (
     <Card className={isTerminal ? "opacity-60" : ""}>
       <CardContent className="p-4">
@@ -861,9 +874,14 @@ function JobCard({
                 variant="outline"
                 className="gap-1.5 text-orange-400 hover:text-orange-300"
                 onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
+                disabled={!canNoShow}
+                title={noShowBlockMsg || undefined}
               >
                 <UserX className="h-3.5 w-3.5" />
                 {t("portal.noShow")}
+                {!canNoShow && noShowBlockMsg && (
+                  <span className="ml-1 text-[10px] opacity-70">({noShowBlockMsg})</span>
+                )}
               </Button>
               <Button
                 size="sm"

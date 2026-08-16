@@ -118,6 +118,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "NO_SHOW"];
 
+/** NO SHOW can only be reported 80 minutes after the job time (ARR + DEP) */
+const NO_SHOW_DELAY_MS = 80 * 60 * 1000;
+
 export default function DriverDashboardPage() {
   const t = useT();
   const locale = useLocaleId();
@@ -565,6 +568,11 @@ function DriverJobCard({
   const completeBlockMsg = jobTime && !canComplete
     ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + 15 * 60 * 1000).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "";
+  // NO SHOW only becomes available 80 minutes after the job time (ARR + DEP)
+  const canNoShow = !jobTime || now >= new Date(jobTime.getTime() + NO_SHOW_DELAY_MS);
+  const noShowBlockMsg = jobTime && !canNoShow
+    ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + NO_SHOW_DELAY_MS).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
+    : "";
 
   return (
     <Card className={isTerminal ? "opacity-60" : ""}>
@@ -762,9 +770,14 @@ function DriverJobCard({
               variant="outline"
               className="gap-1.5 text-orange-400 hover:text-orange-300"
               onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
+              disabled={!canNoShow}
+              title={noShowBlockMsg || undefined}
             >
               <UserX className="h-3.5 w-3.5" />
               {t("portal.noShow")}
+              {!canNoShow && noShowBlockMsg && (
+                <span className="ml-1 text-[10px] opacity-70">({noShowBlockMsg})</span>
+              )}
             </Button>
             <Button
               size="sm"

@@ -358,6 +358,15 @@ function EditableSourceCell({
   const t = useT();
   const ownedCount = vehicles.filter((v) => !v.supplierId).length;
 
+  const sourceOptions: SelectOption[] = [
+    { id: "owned", label: t("dispatch.ownedVehicles"), sublabel: String(ownedCount) },
+    ...suppliers.map((s) => ({
+      id: s.id,
+      label: s.tradeName || s.legalName,
+      sublabel: String(s.vehicleCount),
+    })),
+  ];
+
   // Derive display label for the current source
   const sourceLabel = selectedSource === "owned"
     ? t("dispatch.ownedVehicles")
@@ -377,30 +386,13 @@ function EditableSourceCell({
   if (isEditing) {
     return (
       <TableCell ref={cellRef} className="p-1">
-        <Select
-          defaultOpen
-          value={selectedSource}
-          onValueChange={(val) => {
-            onSelect(val);
-          }}
-          onOpenChange={(open) => {
-            if (!open) onCancel();
-          }}
-        >
-          <SelectTrigger className="h-7 w-full border-border bg-secondary text-foreground text-xs">
-            <SelectValue placeholder={t("dispatch.selectSource")} />
-          </SelectTrigger>
-          <SelectContent className="border-border bg-popover text-foreground max-h-60">
-            <SelectItem value="owned" className="text-xs font-medium">
-              {t("dispatch.ownedVehicles")} ({ownedCount})
-            </SelectItem>
-            {suppliers.map((s) => (
-              <SelectItem key={s.id} value={s.id} className="text-xs">
-                {s.tradeName || s.legalName} ({s.vehicleCount})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <InlineSearchSelect
+          currentId={selectedSource}
+          options={sourceOptions}
+          onSelect={onSelect}
+          onClose={onCancel}
+          placeholder={t("dispatch.selectSource")}
+        />
       </TableCell>
     );
   }
@@ -2907,28 +2899,27 @@ export default function DispatchPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Truck className="h-4 w-4" /> {t("dispatch.vehicleSource")}
                   </div>
-                  <Select
+                  <DialogSearchSelect
                     value={dialogSupplier}
-                    onValueChange={(val) => {
+                    options={[
+                      {
+                        id: "owned",
+                        label: t("dispatch.ownedVehicles"),
+                        sublabel: String(vehicles.filter((v) => !v.supplierId).length),
+                      },
+                      ...suppliers.map((s) => ({
+                        id: s.id,
+                        label: s.tradeName || s.legalName,
+                        sublabel: String(s.vehicleCount),
+                      })),
+                    ]}
+                    onSelect={(val) => {
                       setDialogSupplier(val);
                       setDialogVehicle("");
                       setDialogDriver("");
                     }}
-                  >
-                    <SelectTrigger className="border-border bg-card text-foreground">
-                      <SelectValue placeholder={t("dispatch.selectSource")} />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-foreground">
-                      <SelectItem value="owned" className="font-medium">
-                        {t("dispatch.ownedVehicles")} ({vehicles.filter((v) => !v.supplierId).length})
-                      </SelectItem>
-                      {suppliers.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.tradeName || s.legalName} ({s.vehicleCount})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder={t("dispatch.selectSource")}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
