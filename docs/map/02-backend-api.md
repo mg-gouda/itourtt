@@ -63,24 +63,24 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/agents` | `findAll`:49 | `perm:agents` | `agentsService.findAll` | _—_ |
-| POST | `/api/agents` | `create`:99 | `ADMIN` `AGENT_MANAGER` `perm:agents.addButton` | `agentsService.create` | _—_ |
-| GET | `/api/agents/:id` | `findOne`:106 | `perm:agents` | `agentsService.findOne` | _—_ |
-| PUT | `/api/agents/:id` | `update`:114 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.update` | _—_ |
-| DELETE | `/api/agents/:id` | `delete`:141 | `ADMIN` `perm:agents.table.deleteButton` | `agentsService.delete` | _—_ |
-| PUT | `/api/agents/:id/credit` | `updateCredit`:156 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.updateCredit` | _—_ |
-| GET | `/api/agents/:id/credit-status` | `getCreditStatus`:148 | `perm:agents` | `agentsService.getCreditStatus` | _—_ |
-| POST | `/api/agents/:id/documents` | `createDocument`:178 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.createDocument` | _—_ |
-| GET | `/api/agents/:id/documents` | `findDocuments`:188 | `perm:agents` | `agentsService.findDocuments` | _—_ |
-| PUT | `/api/agents/:id/invoice-cycle` | `updateInvoiceCycle`:167 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.updateInvoiceCycle` | _—_ |
-| GET | `/api/agents/:id/price-list` | `getPriceList`:197 | `perm:agents` | `agentsService.getPriceList` | _—_ |
-| POST | `/api/agents/:id/price-list` | `upsertPriceList`:205 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.upsertPriceItems` | _—_ |
-| DELETE | `/api/agents/:id/price-list/:priceItemId` | `deletePriceItem`:216 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.deletePriceItem` | _—_ |
-| PATCH | `/api/agents/:id/status` | `toggleStatus`:125 | `ADMIN` `perm:agents.table.toggleStatus` | `agentsService.toggleStatus` | _—_ |
-| DELETE | `/api/agents/bulk` | `bulkDelete`:133 | `ADMIN` `perm:agents.table.deleteButton` | `agentsService.bulkDelete` | _—_ |
-| GET | `/api/agents/export/excel` | `exportExcel`:57 | `ADMIN` `AGENT_MANAGER` `perm:agents.export` | `agentsService.exportToExcel` | _—_ |
-| POST | `/api/agents/import/excel` | `importExcel`:85 | `ADMIN` `AGENT_MANAGER` `perm:agents.import` | `agentsService.importFromExcel` | _—_ |
-| GET | `/api/agents/import/template` | `downloadTemplate`:71 | `ADMIN` `AGENT_MANAGER` `perm:agents.downloadTemplate` | `agentsService.generateImportTemplate` | _—_ |
+| GET | `/api/agents` | `findAll`:49 | `perm:agents` | `agentsService.findAll` | Agent list (Active/Inactive tabs). |
+| POST | `/api/agents` | `create`:99 | `ADMIN` `AGENT_MANAGER` `perm:agents.addButton` | `agentsService.create` | Creates an agent. |
+| GET | `/api/agents/:id` | `findOne`:106 | `perm:agents` | `agentsService.findOne` | One agent's full profile. |
+| PUT | `/api/agents/:id` | `update`:114 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.update` | Edits an agent, including the `refPattern` used to validate job references. |
+| DELETE | `/api/agents/:id` | `delete`:141 | `ADMIN` `perm:agents.table.deleteButton` | `agentsService.delete` | Soft-deletes an agent. |
+| PUT | `/api/agents/:id/credit` | `updateCredit`:156 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.updateCredit` | Sets credit limit, days and currency. |
+| GET | `/api/agents/:id/credit-status` | `getCreditStatus`:148 | `perm:agents` | `agentsService.getCreditStatus` | Credit limit versus outstanding invoices. |
+| POST | `/api/agents/:id/documents` | `createDocument`:178 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.createDocument` | Uploads a legal document for the agent. |
+| GET | `/api/agents/:id/documents` | `findDocuments`:188 | `perm:agents` | `agentsService.findDocuments` | Lists the agent's legal documents. |
+| PUT | `/api/agents/:id/invoice-cycle` | `updateInvoiceCycle`:167 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.updateInvoiceCycle` | Sets the invoicing cadence. |
+| GET | `/api/agents/:id/price-list` | `getPriceList`:197 | `perm:agents` | `agentsService.getPriceList` | The agent's price grid. |
+| POST | `/api/agents/:id/price-list` | `upsertPriceList`:205 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.upsertPriceItems` | Bulk-saves the agent price grid. |
+| DELETE | `/api/agents/:id/price-list/:priceItemId` | `deletePriceItem`:216 | `ADMIN` `AGENT_MANAGER` `perm:agents.table.editButton` | `agentsService.deletePriceItem` | Removes one price row. |
+| PATCH | `/api/agents/:id/status` | `toggleStatus`:125 | `ADMIN` `perm:agents.table.toggleStatus` | `agentsService.toggleStatus` | Activates/deactivates an agent. |
+| DELETE | `/api/agents/bulk` | `bulkDelete`:133 | `ADMIN` `perm:agents.table.deleteButton` | `agentsService.bulkDelete` | Soft-deletes several agents. |
+| GET | `/api/agents/export/excel` | `exportExcel`:57 | `ADMIN` `AGENT_MANAGER` `perm:agents.export` | `agentsService.exportToExcel` | Downloads agents as xlsx. |
+| POST | `/api/agents/import/excel` | `importExcel`:85 | `ADMIN` `AGENT_MANAGER` `perm:agents.import` | `agentsService.importFromExcel` | Multipart bulk agent import. |
+| GET | `/api/agents/import/template` | `downloadTemplate`:71 | `ADMIN` `AGENT_MANAGER` `perm:agents.downloadTemplate` | `agentsService.generateImportTemplate` | Downloads the blank agent import workbook. |
 
 ### AiParserController
 
@@ -152,21 +152,21 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/customers` | `findAll`:44 | `perm:customers` | `customersService.findAll` | _—_ |
-| POST | `/api/customers` | `create`:101 | `ADMIN` `AGENT_MANAGER` `perm:customers.addButton` | `customersService.create` | _—_ |
-| GET | `/api/customers/:id` | `findOne`:93 | `perm:customers` | `customersService.findOne` | _—_ |
-| PATCH | `/api/customers/:id` | `update`:109 | `ADMIN` `AGENT_MANAGER` `perm:customers.table.editButton` | `customersService.update` | _—_ |
-| DELETE | `/api/customers/:id` | `remove`:136 | `ADMIN` `perm:customers.table.deleteButton` | `customersService.remove` | _—_ |
-| GET | `/api/customers/:id/price-list` | `getPriceList`:145 | `perm:customers.detail.priceList` | `customersService.getPriceList` | _—_ |
-| POST | `/api/customers/:id/price-list` | `upsertPriceItems`:153 | `ADMIN` `AGENT_MANAGER` `perm:customers.detail.priceList.editPrice` | `customersService.upsertPriceItems` | _—_ |
-| DELETE | `/api/customers/:id/price-list/:priceItemId` | `deletePriceItem`:164 | `ADMIN` `AGENT_MANAGER` `perm:customers.detail.priceList.deleteRoute` | `customersService.deletePriceItem` | _—_ |
-| POST | `/api/customers/:id/price-list/import` | `importPriceList`:188 | `ADMIN` `AGENT_MANAGER` `perm:customers.detail.priceList.import` | `customersService.importPriceListFromExcel` | _—_ |
-| PATCH | `/api/customers/:id/status` | `toggleStatus`:120 | `ADMIN` `perm:customers.table.toggleStatus` | `customersService.toggleStatus` | _—_ |
-| DELETE | `/api/customers/bulk` | `bulkDelete`:128 | `ADMIN` `perm:customers.table.deleteButton` | `customersService.bulkDelete` | _—_ |
-| GET | `/api/customers/export/excel` | `exportExcel`:52 | `ADMIN` `AGENT_MANAGER` `perm:customers.export` | `customersService.exportToExcel` | _—_ |
-| POST | `/api/customers/import/excel` | `importExcel`:80 | `ADMIN` `AGENT_MANAGER` `perm:customers.import` | `customersService.importFromExcel` | _—_ |
-| GET | `/api/customers/import/template` | `downloadTemplate`:66 | `ADMIN` `AGENT_MANAGER` `perm:customers.downloadTemplate` | `customersService.generateImportTemplate` | _—_ |
-| GET | `/api/customers/price-list/template` | `downloadPriceListTemplate`:174 | `perm:customers.detail.priceList.downloadTemplate` | `customersService.generatePriceListTemplate` | _—_ |
+| GET | `/api/customers` | `findAll`:44 | `perm:customers` | `customersService.findAll` | Customer list (Active/Inactive tabs). |
+| POST | `/api/customers` | `create`:101 | `ADMIN` `AGENT_MANAGER` `perm:customers.addButton` | `customersService.create` | Creates a customer. |
+| GET | `/api/customers/:id` | `findOne`:93 | `perm:customers` | `customersService.findOne` | One customer's detail. |
+| PATCH | `/api/customers/:id` | `update`:109 | `ADMIN` `AGENT_MANAGER` `perm:customers.table.editButton` | `customersService.update` | Edits a customer. |
+| DELETE | `/api/customers/:id` | `remove`:136 | `ADMIN` `perm:customers.table.deleteButton` | `customersService.remove` | Soft-deletes a customer. |
+| GET | `/api/customers/:id/price-list` | `getPriceList`:145 | `perm:customers.detail.priceList` | `customersService.getPriceList` | The customer's price grid. |
+| POST | `/api/customers/:id/price-list` | `upsertPriceItems`:153 | `ADMIN` `AGENT_MANAGER` `perm:customers.detail.priceList.editPrice` | `customersService.upsertPriceItems` | Bulk-saves the customer price grid. |
+| DELETE | `/api/customers/:id/price-list/:priceItemId` | `deletePriceItem`:164 | `ADMIN` `AGENT_MANAGER` `perm:customers.detail.priceList.deleteRoute` | `customersService.deletePriceItem` | Removes one price row. |
+| POST | `/api/customers/:id/price-list/import` | `importPriceList`:188 | `ADMIN` `AGENT_MANAGER` `perm:customers.detail.priceList.import` | `customersService.importPriceListFromExcel` | Multipart price-grid import. |
+| PATCH | `/api/customers/:id/status` | `toggleStatus`:120 | `ADMIN` `perm:customers.table.toggleStatus` | `customersService.toggleStatus` | Activates/deactivates a customer. |
+| DELETE | `/api/customers/bulk` | `bulkDelete`:128 | `ADMIN` `perm:customers.table.deleteButton` | `customersService.bulkDelete` | Soft-deletes several customers. |
+| GET | `/api/customers/export/excel` | `exportExcel`:52 | `ADMIN` `AGENT_MANAGER` `perm:customers.export` | `customersService.exportToExcel` | Downloads customers as xlsx. |
+| POST | `/api/customers/import/excel` | `importExcel`:80 | `ADMIN` `AGENT_MANAGER` `perm:customers.import` | `customersService.importFromExcel` | Multipart bulk customer import. |
+| GET | `/api/customers/import/template` | `downloadTemplate`:66 | `ADMIN` `AGENT_MANAGER` `perm:customers.downloadTemplate` | `customersService.generateImportTemplate` | Blank customer import workbook. |
+| GET | `/api/customers/price-list/template` | `downloadPriceListTemplate`:174 | `perm:customers.detail.priceList.downloadTemplate` | `customersService.generatePriceListTemplate` | Blank price workbook pre-filled with real zones and vehicle types. |
 
 ### DispatchController
 
@@ -174,16 +174,16 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| POST | `/api/dispatch/assign` | `assignJob`:39 | `perm:dispatch` | `permissionsGuard.getUserPermissions` `dispatchService.assignJob` | _—_ |
-| PATCH | `/api/dispatch/assignments/:id` | `reassignJob`:51 | `perm:dispatch` | `permissionsGuard.getUserPermissions` `dispatchService.reassignJob` | _—_ |
-| DELETE | `/api/dispatch/assignments/:id` | `unassignJob`:64 | `perm:dispatch` | `dispatchService.unassignJob` | _—_ |
-| GET | `/api/dispatch/available-drivers` | `getAvailableDrivers`:91 | `perm:dispatch` | `dispatchService.getAvailableDrivers` | _—_ |
-| GET | `/api/dispatch/available-reps` | `getAvailableReps`:102 | `perm:dispatch` | `dispatchService.getAvailableReps` | _—_ |
-| GET | `/api/dispatch/available-suppliers` | `getAvailableSuppliers`:75 | `perm:dispatch` | `dispatchService.getAvailableSuppliers` | _—_ |
-| GET | `/api/dispatch/available-vehicles` | `getAvailableVehicles`:81 | `perm:dispatch` | `dispatchService.getAvailableVehicles` | _—_ |
-| GET | `/api/dispatch/day` | `getDayView`:33 | `perm:dispatch` | `dispatchService.getDayView` | _—_ |
-| POST | `/api/dispatch/jobs/:id/lock` | `lockJob`:123 | `perm:dispatch` | `dispatchService.lockJob` | _—_ |
-| POST | `/api/dispatch/jobs/:id/unlock` | `unlockJob`:113 | `perm:dispatch` | `dispatchService.unlockJob` | _—_ |
+| POST | `/api/dispatch/assign` | `assignJob`:39 | `perm:dispatch` | `permissionsGuard.getUserPermissions` `dispatchService.assignJob` | Creates the first assignment for a job. |
+| PATCH | `/api/dispatch/assignments/:id` | `reassignJob`:51 | `perm:dispatch` | `permissionsGuard.getUserPermissions` `dispatchService.reassignJob` | Changes an existing assignment. |
+| DELETE | `/api/dispatch/assignments/:id` | `unassignJob`:64 | `perm:dispatch` | `dispatchService.unassignJob` | Clears a job's assignment. |
+| GET | `/api/dispatch/available-drivers` | `getAvailableDrivers`:91 | `perm:dispatch` | `dispatchService.getAvailableDrivers` | Drivers eligible for assignment. |
+| GET | `/api/dispatch/available-reps` | `getAvailableReps`:102 | `perm:dispatch` | `dispatchService.getAvailableReps` | Reps eligible for assignment (zone-covered only). |
+| GET | `/api/dispatch/available-suppliers` | `getAvailableSuppliers`:75 | `perm:dispatch` | `dispatchService.getAvailableSuppliers` | Suppliers that can source a car for a job. |
+| GET | `/api/dispatch/available-vehicles` | `getAvailableVehicles`:81 | `perm:dispatch` | `dispatchService.getAvailableVehicles` | Own vehicles plus supplier car types eligible for a job. |
+| GET | `/api/dispatch/day` | `getDayView`:33 | `perm:dispatch` | `dispatchService.getDayView` | One day's dispatch grid. |
+| POST | `/api/dispatch/jobs/:id/lock` | `lockJob`:123 | `perm:dispatch` | `dispatchService.lockJob` | Restores the dispatcher timelock on one job. |
+| POST | `/api/dispatch/jobs/:id/unlock` | `unlockJob`:113 | `perm:dispatch` | `dispatchService.unlockJob` | Frees a dispatcher from the 48h timelock on one job. |
 
 ### DriverPortalController
 
@@ -222,21 +222,21 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/drivers` | `findAll`:63 | `perm:drivers` | `driversService.findAll` | _—_ |
-| POST | `/api/drivers` | `create`:113 | `ADMIN` `DISPATCHER` `perm:drivers.addButton` | `driversService.create` | _—_ |
-| DELETE | `/api/drivers/:driverId/vehicles/:vehicleId` | `unassignVehicle`:150 | `ADMIN` `DISPATCHER` `perm:drivers.table.editButton` | `driversService.unassignVehicle` | _—_ |
-| GET | `/api/drivers/:id` | `findOne`:120 | `perm:drivers` | `driversService.findOne` | _—_ |
-| PATCH | `/api/drivers/:id` | `update`:128 | `ADMIN` `DISPATCHER` `perm:drivers.table.editButton` | `driversService.update` | _—_ |
-| DELETE | `/api/drivers/:id` | `softDelete`:169 | `ADMIN` `perm:drivers.table.deleteButton` | `driversService.softDelete` | _—_ |
-| POST | `/api/drivers/:id/account` | `createUserAccount`:190 | `ADMIN` `DISPATCHER` `perm:drivers.table.createAccount` | `driversService.createUserAccount` | _—_ |
-| PATCH | `/api/drivers/:id/account/password` | `resetPassword`:201 | `ADMIN` `DISPATCHER` `perm:drivers.table.resetPassword` | `driversService.resetPassword` | _—_ |
-| POST | `/api/drivers/:id/attachment` | `uploadAttachment`:178 | `ADMIN` `DISPATCHER` `perm:drivers.table.uploadAttachment` | `driversService.updateAttachment` | _—_ |
-| PATCH | `/api/drivers/:id/status` | `toggleStatus`:161 | `ADMIN` `perm:drivers.table.toggleStatus` | `driversService.toggleStatus` | _—_ |
-| GET | `/api/drivers/:id/trip-fees` | `getTripFees`:211 | `perm:drivers` | `driversService.getTripFees` | _—_ |
-| POST | `/api/drivers/:id/vehicles` | `assignVehicle`:139 | `ADMIN` `DISPATCHER` `perm:drivers.table.editButton` | `driversService.assignVehicle` | _—_ |
-| GET | `/api/drivers/export/excel` | `exportExcel`:71 | `ADMIN` `DISPATCHER` `perm:drivers.export` | `driversService.exportToExcel` | _—_ |
-| POST | `/api/drivers/import/excel` | `importExcel`:99 | `ADMIN` `DISPATCHER` `perm:drivers.import` | `driversService.importFromExcel` | _—_ |
-| GET | `/api/drivers/import/template` | `downloadTemplate`:85 | `ADMIN` `DISPATCHER` `perm:drivers.downloadTemplate` | `driversService.generateImportTemplate` | _—_ |
+| GET | `/api/drivers` | `findAll`:63 | `perm:drivers` | `driversService.findAll` | Driver list (Active/Inactive tabs). |
+| POST | `/api/drivers` | `create`:113 | `ADMIN` `DISPATCHER` `perm:drivers.addButton` | `driversService.create` | Creates a driver record. |
+| DELETE | `/api/drivers/:driverId/vehicles/:vehicleId` | `unassignVehicle`:150 | `ADMIN` `DISPATCHER` `perm:drivers.table.editButton` | `driversService.unassignVehicle` | Removes a driver-vehicle link. |
+| GET | `/api/drivers/:id` | `findOne`:120 | `perm:drivers` | `driversService.findOne` | One driver's detail. |
+| PATCH | `/api/drivers/:id` | `update`:128 | `ADMIN` `DISPATCHER` `perm:drivers.table.editButton` | `driversService.update` | Edits a driver. |
+| DELETE | `/api/drivers/:id` | `softDelete`:169 | `ADMIN` `perm:drivers.table.deleteButton` | `driversService.softDelete` | Soft-deletes a driver. |
+| POST | `/api/drivers/:id/account` | `createUserAccount`:190 | `ADMIN` `DISPATCHER` `perm:drivers.table.createAccount` | `driversService.createUserAccount` | Creates the driver's portal login. |
+| PATCH | `/api/drivers/:id/account/password` | `resetPassword`:201 | `ADMIN` `DISPATCHER` `perm:drivers.table.resetPassword` | `driversService.resetPassword` | Admin password reset; also clears the session so a locked-out driver can log in. |
+| POST | `/api/drivers/:id/attachment` | `uploadAttachment`:178 | `ADMIN` `DISPATCHER` `perm:drivers.table.uploadAttachment` | `driversService.updateAttachment` | Multipart upload of a driver document. |
+| PATCH | `/api/drivers/:id/status` | `toggleStatus`:161 | `ADMIN` `perm:drivers.table.toggleStatus` | `driversService.toggleStatus` | Activates/deactivates driver and account together. |
+| GET | `/api/drivers/:id/trip-fees` | `getTripFees`:211 | `perm:drivers` | `driversService.getTripFees` | A driver's trip fees for a period. |
+| POST | `/api/drivers/:id/vehicles` | `assignVehicle`:139 | `ADMIN` `DISPATCHER` `perm:drivers.table.editButton` | `driversService.assignVehicle` | Links a vehicle to the driver. |
+| GET | `/api/drivers/export/excel` | `exportExcel`:71 | `ADMIN` `DISPATCHER` `perm:drivers.export` | `driversService.exportToExcel` | Downloads drivers as xlsx. |
+| POST | `/api/drivers/import/excel` | `importExcel`:99 | `ADMIN` `DISPATCHER` `perm:drivers.import` | `driversService.importFromExcel` | Multipart bulk driver import. |
+| GET | `/api/drivers/import/template` | `downloadTemplate`:85 | `ADMIN` `DISPATCHER` `perm:drivers.downloadTemplate` | `driversService.generateImportTemplate` | Blank driver import workbook. |
 
 ### ExportController
 
@@ -285,12 +285,12 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/extras` | `findAll`:27 | `perm:extras` | `extrasService.findAll` | _—_ |
-| POST | `/api/extras` | `create`:43 | `ADMIN` `perm:extras.addButton` | `extrasService.create` | _—_ |
-| PATCH | `/api/extras/:id` | `update`:51 | `ADMIN` `perm:extras.editButton` | `extrasService.update` | _—_ |
-| DELETE | `/api/extras/:id` | `remove`:67 | `ADMIN` `perm:extras.deleteButton` | `extrasService.remove` | _—_ |
-| PATCH | `/api/extras/:id/status` | `toggleStatus`:59 | `ADMIN` `perm:extras.editButton` | `extrasService.toggleStatus` | _—_ |
-| GET | `/api/extras/selectable` | `selectable`:35 | `authed` | `extrasService.getSelectable` | _—_ |
+| GET | `/api/extras` | `findAll`:27 | `perm:extras` | `extrasService.findAll` | All extras, for the admin screen. |
+| POST | `/api/extras` | `create`:43 | `ADMIN` `perm:extras.addButton` | `extrasService.create` | Adds an extra. |
+| PATCH | `/api/extras/:id` | `update`:51 | `ADMIN` `perm:extras.editButton` | `extrasService.update` | Edits an extra. |
+| DELETE | `/api/extras/:id` | `remove`:67 | `ADMIN` `perm:extras.deleteButton` | `extrasService.remove` | Deletes an extra. |
+| PATCH | `/api/extras/:id/status` | `toggleStatus`:59 | `ADMIN` `perm:extras.editButton` | `extrasService.toggleStatus` | Shows/hides an extra publicly. |
+| GET | `/api/extras/selectable` | `selectable`:35 | `authed` | `extrasService.getSelectable` | Extras offered for a vehicle type in the booking funnel. |
 
 ### FinanceController
 
@@ -347,9 +347,9 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/customers/:customerId/import-templates` | `findAll`:51 | `perm:customers.detail.importTemplates` | `importTemplatesService.findAllByCustomer` | _—_ |
-| POST | `/api/customers/:customerId/import-templates` | `create`:72 | `perm:customers.detail.importTemplates.upload` | `importTemplatesService.create` | _—_ |
-| DELETE | `/api/customers/:customerId/import-templates/:id` | `remove`:93 | `perm:customers.detail.importTemplates.delete` | `importTemplatesService.remove` | _—_ |
+| GET | `/api/customers/:customerId/import-templates` | `findAll`:51 | `perm:customers.detail.importTemplates` | `importTemplatesService.findAllByCustomer` | Lists a customer's templates. |
+| POST | `/api/customers/:customerId/import-templates` | `create`:72 | `perm:customers.detail.importTemplates.upload` | `importTemplatesService.create` | Multipart upload of a template workbook. |
+| DELETE | `/api/customers/:customerId/import-templates/:id` | `remove`:93 | `perm:customers.detail.importTemplates.delete` | `importTemplatesService.remove` | Deletes a template. |
 
 ### JobLocksController
 
@@ -357,27 +357,27 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/job-locks/b2c` | `getB2CJobs`:185 | `perm:job-locks.b2c` | `jobLocksService.findJobs` | _—_ |
-| POST | `/api/job-locks/b2c/:id/lock` | `lockB2C`:208 | `perm:job-locks.b2c` | `jobLocksService.lockJob` | _—_ |
-| POST | `/api/job-locks/b2c/:id/unlock` | `unlockB2C`:198 | `perm:job-locks.b2c` | `jobLocksService.unlockJob` | _—_ |
-| GET | `/api/job-locks/dispatcher` | `getDispatcherJobs`:25 | `perm:job-locks.dispatcher` | `jobLocksService.findJobs` | _—_ |
-| POST | `/api/job-locks/dispatcher/:id/lock` | `lockDispatcher`:48 | `perm:job-locks.dispatcher` | `jobLocksService.lockJob` | _—_ |
-| POST | `/api/job-locks/dispatcher/:id/unlock` | `unlockDispatcher`:38 | `perm:job-locks.dispatcher` | `jobLocksService.unlockJob` | _—_ |
-| GET | `/api/job-locks/driver` | `getDriverJobs`:57 | `perm:job-locks.driver` | `jobLocksService.findJobs` | _—_ |
-| POST | `/api/job-locks/driver/:id/lock` | `lockDriver`:80 | `perm:job-locks.driver` | `jobLocksService.lockJob` | _—_ |
-| POST | `/api/job-locks/driver/:id/unlock` | `unlockDriver`:70 | `perm:job-locks.driver` | `jobLocksService.unlockJob` | _—_ |
-| GET | `/api/job-locks/edit` | `getEditJobs`:153 | `perm:job-locks.edit` | `jobLocksService.findJobs` | _—_ |
-| POST | `/api/job-locks/edit/:id/lock` | `lockEdit`:176 | `perm:job-locks.edit` | `jobLocksService.lockJob` | _—_ |
-| POST | `/api/job-locks/edit/:id/unlock` | `unlockEdit`:166 | `perm:job-locks.edit` | `jobLocksService.unlockJob` | _—_ |
-| GET | `/api/job-locks/online` | `getOnlineJobs`:217 | `perm:job-locks.online` | `jobLocksService.findJobs` | _—_ |
-| POST | `/api/job-locks/online/:id/lock` | `lockOnline`:240 | `perm:job-locks.online` | `jobLocksService.lockJob` | _—_ |
-| POST | `/api/job-locks/online/:id/unlock` | `unlockOnline`:230 | `perm:job-locks.online` | `jobLocksService.unlockJob` | _—_ |
-| GET | `/api/job-locks/rep` | `getRepJobs`:89 | `perm:job-locks.rep` | `jobLocksService.findJobs` | _—_ |
-| POST | `/api/job-locks/rep/:id/lock` | `lockRep`:112 | `perm:job-locks.rep` | `jobLocksService.lockJob` | _—_ |
-| POST | `/api/job-locks/rep/:id/unlock` | `unlockRep`:102 | `perm:job-locks.rep` | `jobLocksService.unlockJob` | _—_ |
-| GET | `/api/job-locks/supplier` | `getSupplierJobs`:121 | `perm:job-locks.supplier` | `jobLocksService.findJobs` | _—_ |
-| POST | `/api/job-locks/supplier/:id/lock` | `lockSupplier`:144 | `perm:job-locks.supplier` | `jobLocksService.lockJob` | _—_ |
-| POST | `/api/job-locks/supplier/:id/unlock` | `unlockSupplier`:134 | `perm:job-locks.supplier` | `jobLocksService.unlockJob` | _—_ |
+| GET | `/api/job-locks/b2c` | `getB2CJobs`:185 | `perm:job-locks.b2c` | `jobLocksService.findJobs` | Lists jobs with their b2c lock state. |
+| POST | `/api/job-locks/b2c/:id/lock` | `lockB2C`:208 | `perm:job-locks.b2c` | `jobLocksService.lockJob` | Clears `editUnlockedAt`, restoring editing of B2C-channel (guest booking) jobs. |
+| POST | `/api/job-locks/b2c/:id/unlock` | `unlockB2C`:198 | `perm:job-locks.b2c` | `jobLocksService.unlockJob` | Sets `editUnlockedAt`, lifting editing of B2C-channel (guest booking) jobs for one job. |
+| GET | `/api/job-locks/dispatcher` | `getDispatcherJobs`:25 | `perm:job-locks.dispatcher` | `jobLocksService.findJobs` | Lists jobs with their dispatcher lock state. |
+| POST | `/api/job-locks/dispatcher/:id/lock` | `lockDispatcher`:48 | `perm:job-locks.dispatcher` | `jobLocksService.lockJob` | Clears `dispatchUnlockedAt`, restoring the dispatcher 48h assignment timelock. |
+| POST | `/api/job-locks/dispatcher/:id/unlock` | `unlockDispatcher`:38 | `perm:job-locks.dispatcher` | `jobLocksService.unlockJob` | Sets `dispatchUnlockedAt`, lifting the dispatcher 48h assignment timelock for one job. |
+| GET | `/api/job-locks/driver` | `getDriverJobs`:57 | `perm:job-locks.driver` | `jobLocksService.findJobs` | Lists jobs with their driver lock state. |
+| POST | `/api/job-locks/driver/:id/lock` | `lockDriver`:80 | `perm:job-locks.driver` | `jobLocksService.lockJob` | Clears `driverUnlockedAt`, restoring the driver portal 48h timelock. |
+| POST | `/api/job-locks/driver/:id/unlock` | `unlockDriver`:70 | `perm:job-locks.driver` | `jobLocksService.unlockJob` | Sets `driverUnlockedAt`, lifting the driver portal 48h timelock for one job. |
+| GET | `/api/job-locks/edit` | `getEditJobs`:153 | `perm:job-locks.edit` | `jobLocksService.findJobs` | Lists jobs with their edit lock state. |
+| POST | `/api/job-locks/edit/:id/lock` | `lockEdit`:176 | `perm:job-locks.edit` | `jobLocksService.lockJob` | Clears `editUnlockedAt`, restoring the lock on editing a closed job. |
+| POST | `/api/job-locks/edit/:id/unlock` | `unlockEdit`:166 | `perm:job-locks.edit` | `jobLocksService.unlockJob` | Sets `editUnlockedAt`, lifting the lock on editing a closed job for one job. |
+| GET | `/api/job-locks/online` | `getOnlineJobs`:217 | `perm:job-locks.online` | `jobLocksService.findJobs` | Lists jobs with their online lock state. |
+| POST | `/api/job-locks/online/:id/lock` | `lockOnline`:240 | `perm:job-locks.online` | `jobLocksService.lockJob` | Clears `editUnlockedAt`, restoring editing of ONLINE-channel (agent) jobs. |
+| POST | `/api/job-locks/online/:id/unlock` | `unlockOnline`:230 | `perm:job-locks.online` | `jobLocksService.unlockJob` | Sets `editUnlockedAt`, lifting editing of ONLINE-channel (agent) jobs for one job. |
+| GET | `/api/job-locks/rep` | `getRepJobs`:89 | `perm:job-locks.rep` | `jobLocksService.findJobs` | Lists jobs with their rep lock state. |
+| POST | `/api/job-locks/rep/:id/lock` | `lockRep`:112 | `perm:job-locks.rep` | `jobLocksService.lockJob` | Clears `repUnlockedAt`, restoring the rep 48h timelock AND the ARR IN-PLACE window. |
+| POST | `/api/job-locks/rep/:id/unlock` | `unlockRep`:102 | `perm:job-locks.rep` | `jobLocksService.unlockJob` | Sets `repUnlockedAt`, lifting the rep 48h timelock AND the ARR IN-PLACE window for one job. |
+| GET | `/api/job-locks/supplier` | `getSupplierJobs`:121 | `perm:job-locks.supplier` | `jobLocksService.findJobs` | Lists jobs with their supplier lock state. |
+| POST | `/api/job-locks/supplier/:id/lock` | `lockSupplier`:144 | `perm:job-locks.supplier` | `jobLocksService.lockJob` | Clears `supplierUnlockedAt`, restoring the supplier portal 48h timelock. |
+| POST | `/api/job-locks/supplier/:id/unlock` | `unlockSupplier`:134 | `perm:job-locks.supplier` | `jobLocksService.unlockJob` | Sets `supplierUnlockedAt`, lifting the supplier portal 48h timelock for one job. |
 
 ### JobServiceTypesController
 
@@ -385,12 +385,12 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/job-service-types` | `findAll`:21 | `perm:driver-tariffs` | `service.findAll` | _—_ |
-| POST | `/api/job-service-types` | `create`:51 | `perm:driver-tariffs.upsert` | `service.create` | _—_ |
-| PATCH | `/api/job-service-types/:id` | `update`:57 | `perm:driver-tariffs.upsert` | `service.update` | _—_ |
-| DELETE | `/api/job-service-types/:id` | `remove`:63 | `perm:driver-tariffs.delete` | `service.remove` | _—_ |
-| POST | `/api/job-service-types/import/excel` | `importExcel`:40 | `perm:driver-tariffs.upsert` | `service.importFromExcel` | _—_ |
-| GET | `/api/job-service-types/import/template` | `downloadTemplate`:27 | `perm:driver-tariffs` | `service.generateTemplate` | _—_ |
+| GET | `/api/job-service-types` | `findAll`:21 | `perm:driver-tariffs` | `service.findAll` | Lists job service types. |
+| POST | `/api/job-service-types` | `create`:51 | `perm:driver-tariffs.upsert` | `service.create` | Creates one. |
+| PATCH | `/api/job-service-types/:id` | `update`:57 | `perm:driver-tariffs.upsert` | `service.update` | Edits one. |
+| DELETE | `/api/job-service-types/:id` | `remove`:63 | `perm:driver-tariffs.delete` | `service.remove` | Deletes one. |
+| POST | `/api/job-service-types/import/excel` | `importExcel`:40 | `perm:driver-tariffs.upsert` | `service.importFromExcel` | Multipart bulk import. |
+| GET | `/api/job-service-types/import/template` | `downloadTemplate`:27 | `perm:driver-tariffs` | `service.generateTemplate` | Blank import workbook pre-filled with zones. |
 
 ### LocationsController
 
@@ -398,34 +398,34 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| PATCH | `/api/locations/:level/:id/coordinates` | `updateCoordinates`:121 | `ADMIN` `perm:locations` | `locationsService.updateLocationCoordinates` | _—_ |
-| GET | `/api/locations/airports` | `findAirportsByCountry`:180 | `perm:locations.airports` | `locationsService.findAirportsByCountry` | _—_ |
-| POST | `/api/locations/airports` | `createAirport`:187 | `ADMIN` `DISPATCHER` `perm:locations.airports.addButton` | `locationsService.createAirport` | _—_ |
-| PATCH | `/api/locations/airports/:id` | `updateAirport`:248 | `ADMIN` `DISPATCHER` `perm:locations.airports.addButton` | `locationsService.updateAirport` | _—_ |
-| DELETE | `/api/locations/airports/:id` | `deleteAirport`:285 | `ADMIN` `perm:locations.airports.deleteButton` | `locationsService.deleteAirport` | _—_ |
-| POST | `/api/locations/batch-geocode` | `batchGeocode`:111 | `ADMIN` `perm:locations` | `locationsService.batchGeocode` | _—_ |
-| GET | `/api/locations/cities` | `findCitiesByAirport`:195 | `perm:locations.cities` | `locationsService.findCitiesByAirport` | _—_ |
-| POST | `/api/locations/cities` | `createCity`:202 | `ADMIN` `DISPATCHER` `perm:locations.cities.addButton` | `locationsService.createCity` | _—_ |
-| PATCH | `/api/locations/cities/:id` | `updateCity`:255 | `ADMIN` `DISPATCHER` `perm:locations.cities.addButton` | `locationsService.updateCity` | _—_ |
-| DELETE | `/api/locations/cities/:id` | `deleteCity`:292 | `ADMIN` `perm:locations.cities.deleteButton` | `locationsService.deleteCity` | _—_ |
-| GET | `/api/locations/countries` | `findAllCountries`:163 | `perm:locations.countries` | `locationsService.findAllCountries` | _—_ |
-| POST | `/api/locations/countries` | `createCountry`:172 | `ADMIN` `DISPATCHER` `perm:locations.countries.addButton` | `locationsService.createCountry` | _—_ |
-| PATCH | `/api/locations/countries/:id` | `updateCountry`:241 | `ADMIN` `DISPATCHER` `perm:locations.countries.addButton` | `locationsService.updateCountry` | _—_ |
-| DELETE | `/api/locations/countries/:id` | `deleteCountry`:278 | `ADMIN` `perm:locations.countries.addButton` | `locationsService.deleteCountry` | _—_ |
-| GET | `/api/locations/export/excel` | `exportExcel`:52 | `ADMIN` `DISPATCHER` `perm:locations.export` | `locationsService.exportToExcel` | _—_ |
-| POST | `/api/locations/hotels` | `createHotel`:232 | `ADMIN` `DISPATCHER` `perm:locations.hotels.addButton` | `locationsService.createHotel` | _—_ |
-| PATCH | `/api/locations/hotels/:id` | `updateHotel`:269 | `ADMIN` `DISPATCHER` `perm:locations.hotels.addButton` | `locationsService.updateHotel` | _—_ |
-| DELETE | `/api/locations/hotels/:id` | `deleteHotel`:306 | `ADMIN` `perm:locations.hotels.deleteButton` | `locationsService.deleteHotel` | _—_ |
-| POST | `/api/locations/import/excel` | `importExcel`:80 | `ADMIN` `DISPATCHER` `perm:locations.import` | `locationsService.importFromExcel` | _—_ |
-| GET | `/api/locations/import/template` | `downloadTemplate`:66 | `ADMIN` `DISPATCHER` `perm:locations.downloadTemplate` | `locationsService.generateImportTemplate` | _—_ |
-| GET | `/api/locations/places-search` | `placesSearch`:95 | `perm:locations` | `geocodingService.searchPlaces` | _—_ |
-| GET | `/api/locations/search` | `searchLocations`:143 | `perm:locations` | `locationsService.searchLocations` | _—_ |
-| GET | `/api/locations/tree` | `getTree`:155 | `perm:locations` | `locationsService.getTree` | _—_ |
-| GET | `/api/locations/zones` | `findZones`:210 | `perm:locations.zones` | `locationsService.findZones` | _—_ |
-| POST | `/api/locations/zones` | `createZone`:217 | `ADMIN` `DISPATCHER` `perm:locations.zones.addButton` | `locationsService.createZone` | _—_ |
-| PATCH | `/api/locations/zones/:id` | `updateZone`:262 | `ADMIN` `DISPATCHER` `perm:locations.zones.addButton` | `locationsService.updateZone` | _—_ |
-| DELETE | `/api/locations/zones/:id` | `deleteZone`:299 | `ADMIN` `perm:locations.zones.deleteButton` | `locationsService.deleteZone` | _—_ |
-| GET | `/api/locations/zones/:id/hotels` | `findHotelsByZone`:225 | `perm:locations.hotels` | `locationsService.findHotelsByZone` | _—_ |
+| PATCH | `/api/locations/:level/:id/coordinates` | `updateCoordinates`:121 | `ADMIN` `perm:locations` | `locationsService.updateLocationCoordinates` | Sets lat/lng on a node — this is what the geofence targets read. |
+| GET | `/api/locations/airports` | `findAirportsByCountry`:180 | `perm:locations.airports` | `locationsService.findAirportsByCountry` | Airports under a country. |
+| POST | `/api/locations/airports` | `createAirport`:187 | `ADMIN` `DISPATCHER` `perm:locations.airports.addButton` | `locationsService.createAirport` | Creates an airport. |
+| PATCH | `/api/locations/airports/:id` | `updateAirport`:248 | `ADMIN` `DISPATCHER` `perm:locations.airports.addButton` | `locationsService.updateAirport` | Edits an airport. |
+| DELETE | `/api/locations/airports/:id` | `deleteAirport`:285 | `ADMIN` `perm:locations.airports.deleteButton` | `locationsService.deleteAirport` | Soft-deletes an airport. |
+| POST | `/api/locations/batch-geocode` | `batchGeocode`:111 | `ADMIN` `perm:locations` | `locationsService.batchGeocode` | Bulk-geocodes nodes missing coordinates. |
+| GET | `/api/locations/cities` | `findCitiesByAirport`:195 | `perm:locations.cities` | `locationsService.findCitiesByAirport` | Cities under an airport. |
+| POST | `/api/locations/cities` | `createCity`:202 | `ADMIN` `DISPATCHER` `perm:locations.cities.addButton` | `locationsService.createCity` | Creates a city. |
+| PATCH | `/api/locations/cities/:id` | `updateCity`:255 | `ADMIN` `DISPATCHER` `perm:locations.cities.addButton` | `locationsService.updateCity` | Edits a city. |
+| DELETE | `/api/locations/cities/:id` | `deleteCity`:292 | `ADMIN` `perm:locations.cities.deleteButton` | `locationsService.deleteCity` | Soft-deletes a city. |
+| GET | `/api/locations/countries` | `findAllCountries`:163 | `perm:locations.countries` | `locationsService.findAllCountries` | Lists countries. |
+| POST | `/api/locations/countries` | `createCountry`:172 | `ADMIN` `DISPATCHER` `perm:locations.countries.addButton` | `locationsService.createCountry` | Creates a country. |
+| PATCH | `/api/locations/countries/:id` | `updateCountry`:241 | `ADMIN` `DISPATCHER` `perm:locations.countries.addButton` | `locationsService.updateCountry` | Edits a country. |
+| DELETE | `/api/locations/countries/:id` | `deleteCountry`:278 | `ADMIN` `perm:locations.countries.addButton` | `locationsService.deleteCountry` | Soft-deletes a country. |
+| GET | `/api/locations/export/excel` | `exportExcel`:52 | `ADMIN` `DISPATCHER` `perm:locations.export` | `locationsService.exportToExcel` | Downloads the tree as xlsx. |
+| POST | `/api/locations/hotels` | `createHotel`:232 | `ADMIN` `DISPATCHER` `perm:locations.hotels.addButton` | `locationsService.createHotel` | Creates a hotel under a zone. |
+| PATCH | `/api/locations/hotels/:id` | `updateHotel`:269 | `ADMIN` `DISPATCHER` `perm:locations.hotels.addButton` | `locationsService.updateHotel` | Edits a hotel (moving zones changes its price). |
+| DELETE | `/api/locations/hotels/:id` | `deleteHotel`:306 | `ADMIN` `perm:locations.hotels.deleteButton` | `locationsService.deleteHotel` | Soft-deletes a hotel. |
+| POST | `/api/locations/import/excel` | `importExcel`:80 | `ADMIN` `DISPATCHER` `perm:locations.import` | `locationsService.importFromExcel` | Multipart bulk location import. |
+| GET | `/api/locations/import/template` | `downloadTemplate`:66 | `ADMIN` `DISPATCHER` `perm:locations.downloadTemplate` | `locationsService.generateImportTemplate` | Blank location import workbook. |
+| GET | `/api/locations/places-search` | `placesSearch`:95 | `perm:locations` | `geocodingService.searchPlaces` | Google Places proxy for the location editor. |
+| GET | `/api/locations/search` | `searchLocations`:143 | `perm:locations` | `locationsService.searchLocations` | Cross-level location search. |
+| GET | `/api/locations/tree` | `getTree`:155 | `perm:locations` | `locationsService.getTree` | The whole hierarchy for cascading dropdowns. |
+| GET | `/api/locations/zones` | `findZones`:210 | `perm:locations.zones` | `locationsService.findZones` | Zones under a city (the pricing unit). |
+| POST | `/api/locations/zones` | `createZone`:217 | `ADMIN` `DISPATCHER` `perm:locations.zones.addButton` | `locationsService.createZone` | Creates a zone. |
+| PATCH | `/api/locations/zones/:id` | `updateZone`:262 | `ADMIN` `DISPATCHER` `perm:locations.zones.addButton` | `locationsService.updateZone` | Edits a zone. |
+| DELETE | `/api/locations/zones/:id` | `deleteZone`:299 | `ADMIN` `perm:locations.zones.deleteButton` | `locationsService.deleteZone` | Soft-deletes a zone. |
+| GET | `/api/locations/zones/:id/hotels` | `findHotelsByZone`:225 | `perm:locations.hotels` | `locationsService.findHotelsByZone` | Hotels cascaded under a zone. |
 
 ### NotificationsController
 
@@ -543,21 +543,21 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/reps` | `findAll`:63 | `perm:reps` | `repsService.findAll` | _—_ |
-| POST | `/api/reps` | `create`:113 | `ADMIN` `DISPATCHER` `perm:reps.addButton` | `repsService.create` | _—_ |
-| GET | `/api/reps/:id` | `findOne`:120 | `perm:reps` | `repsService.findOne` | _—_ |
-| PATCH | `/api/reps/:id` | `update`:128 | `ADMIN` `DISPATCHER` `perm:reps.table.editButton` | `repsService.update` | _—_ |
-| DELETE | `/api/reps/:id` | `softDelete`:147 | `ADMIN` `perm:reps.table.deleteButton` | `repsService.softDelete` | _—_ |
-| POST | `/api/reps/:id/account` | `createAccount`:190 | `ADMIN` `perm:reps.table.createAccount` | `repsService.createUserAccount` | _—_ |
-| PATCH | `/api/reps/:id/account/password` | `resetPassword`:201 | `ADMIN` `perm:reps.table.resetPassword` | `repsService.resetPassword` | _—_ |
-| POST | `/api/reps/:id/attachment` | `uploadAttachment`:178 | `ADMIN` `DISPATCHER` `perm:reps.table.uploadAttachment` | `repsService.updateAttachment` | _—_ |
-| GET | `/api/reps/:id/fees` | `getFees`:211 | `perm:reps` | `repsService.getFees` | _—_ |
-| PATCH | `/api/reps/:id/status` | `toggleStatus`:139 | `ADMIN` `perm:reps.table.toggleStatus` | `repsService.toggleStatus` | _—_ |
-| POST | `/api/reps/:id/zones` | `assignZone`:155 | `ADMIN` `DISPATCHER` `perm:reps.table.editButton` | `repsService.assignZone` | _—_ |
-| DELETE | `/api/reps/:repId/zones/:zoneId` | `unassignZone`:166 | `ADMIN` `DISPATCHER` `perm:reps.table.editButton` | `repsService.unassignZone` | _—_ |
-| GET | `/api/reps/export/excel` | `exportExcel`:71 | `ADMIN` `DISPATCHER` `perm:reps.export` | `repsService.exportToExcel` | _—_ |
-| POST | `/api/reps/import/excel` | `importExcel`:99 | `ADMIN` `DISPATCHER` `perm:reps.import` | `repsService.importFromExcel` | _—_ |
-| GET | `/api/reps/import/template` | `downloadTemplate`:85 | `ADMIN` `DISPATCHER` `perm:reps.downloadTemplate` | `repsService.generateImportTemplate` | _—_ |
+| GET | `/api/reps` | `findAll`:63 | `perm:reps` | `repsService.findAll` | Rep list (Active/Inactive tabs). |
+| POST | `/api/reps` | `create`:113 | `ADMIN` `DISPATCHER` `perm:reps.addButton` | `repsService.create` | Creates a rep record. |
+| GET | `/api/reps/:id` | `findOne`:120 | `perm:reps` | `repsService.findOne` | One rep's detail. |
+| PATCH | `/api/reps/:id` | `update`:128 | `ADMIN` `DISPATCHER` `perm:reps.table.editButton` | `repsService.update` | Edits a rep. |
+| DELETE | `/api/reps/:id` | `softDelete`:147 | `ADMIN` `perm:reps.table.deleteButton` | `repsService.softDelete` | Soft-deletes a rep. |
+| POST | `/api/reps/:id/account` | `createAccount`:190 | `ADMIN` `perm:reps.table.createAccount` | `repsService.createUserAccount` | Creates the rep's portal login. |
+| PATCH | `/api/reps/:id/account/password` | `resetPassword`:201 | `ADMIN` `perm:reps.table.resetPassword` | `repsService.resetPassword` | Admin password reset; also clears the session. |
+| POST | `/api/reps/:id/attachment` | `uploadAttachment`:178 | `ADMIN` `DISPATCHER` `perm:reps.table.uploadAttachment` | `repsService.updateAttachment` | Multipart upload of a rep document. |
+| GET | `/api/reps/:id/fees` | `getFees`:211 | `perm:reps` | `repsService.getFees` | A rep's fees for a period. |
+| PATCH | `/api/reps/:id/status` | `toggleStatus`:139 | `ADMIN` `perm:reps.table.toggleStatus` | `repsService.toggleStatus` | Activates/deactivates rep and account together. |
+| POST | `/api/reps/:id/zones` | `assignZone`:155 | `ADMIN` `DISPATCHER` `perm:reps.table.editButton` | `repsService.assignZone` | Adds a zone to the rep's coverage — required before they appear in dispatch. |
+| DELETE | `/api/reps/:repId/zones/:zoneId` | `unassignZone`:166 | `ADMIN` `DISPATCHER` `perm:reps.table.editButton` | `repsService.unassignZone` | Removes a zone from the rep's coverage. |
+| GET | `/api/reps/export/excel` | `exportExcel`:71 | `ADMIN` `DISPATCHER` `perm:reps.export` | `repsService.exportToExcel` | Downloads reps as xlsx. |
+| POST | `/api/reps/import/excel` | `importExcel`:99 | `ADMIN` `DISPATCHER` `perm:reps.import` | `repsService.importFromExcel` | Multipart bulk rep import. |
+| GET | `/api/reps/import/template` | `downloadTemplate`:85 | `ADMIN` `DISPATCHER` `perm:reps.downloadTemplate` | `repsService.generateImportTemplate` | Blank rep import workbook. |
 
 ### SessionsController
 
@@ -620,46 +620,46 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/suppliers` | `findAll`:41 | `perm:suppliers` | `suppliersService.findAll` | _—_ |
-| POST | `/api/suppliers` | `create`:98 | `ADMIN` `perm:suppliers.addButton` | `suppliersService.create` | _—_ |
-| GET | `/api/suppliers/:id` | `findOne`:104 | `perm:suppliers` | `suppliersService.findOne` | _—_ |
-| PUT | `/api/suppliers/:id` | `update`:110 | `perm:suppliers.table.editButton` | `suppliersService.update` | _—_ |
-| DELETE | `/api/suppliers/:id` | `delete`:136 | `ADMIN` `perm:suppliers.table.deleteButton` | `suppliersService.delete` | _—_ |
-| POST | `/api/suppliers/:id/account` | `createAccount`:435 | `ADMIN` `perm:suppliers.table.createAccount` | `suppliersService.createUserAccount` | _—_ |
-| PATCH | `/api/suppliers/:id/account/password` | `resetPassword`:446 | `ADMIN` `perm:suppliers.table.resetPassword` | `suppliersService.resetPassword` | _—_ |
-| GET | `/api/suppliers/:id/car-types` | `getCarTypes`:482 | `perm:suppliers` | `suppliersService.getCarTypes` | _—_ |
-| PUT | `/api/suppliers/:id/car-types` | `setCarTypes`:488 | `perm:suppliers.table.editButton` | `suppliersService.setCarTypes` | _—_ |
-| GET | `/api/suppliers/:id/drivers` | `findDrivers`:227 | `perm:suppliers` | `suppliersService.findDrivers` | _—_ |
-| POST | `/api/suppliers/:id/drivers` | `createDriver`:239 | `perm:suppliers` | `suppliersService.createDriver` | _—_ |
-| PUT | `/api/suppliers/:id/drivers/:driverId` | `updateDriver`:249 | `perm:suppliers` | `suppliersService.updateDriver` | _—_ |
-| DELETE | `/api/suppliers/:id/drivers/:driverId` | `deleteDriver`:260 | `perm:suppliers` | `suppliersService.deleteDriver` | _—_ |
-| PATCH | `/api/suppliers/:id/drivers/:driverId/status` | `toggleDriverStatus`:270 | `perm:suppliers` | `suppliersService.toggleDriverStatus` | _—_ |
-| GET | `/api/suppliers/:id/drivers/export` | `exportDrivers`:352 | `perm:suppliers` | `suppliersService.exportDriversToExcel` | _—_ |
-| POST | `/api/suppliers/:id/drivers/import` | `importDrivers`:381 | `perm:suppliers` | `suppliersService.importDriversFromExcel` | _—_ |
-| GET | `/api/suppliers/:id/drivers/template` | `getDriverTemplate`:366 | `perm:suppliers` | `suppliersService.generateDriverImportTemplate` | _—_ |
-| POST | `/api/suppliers/:id/national-id` | `uploadNationalId`:459 | `perm:suppliers.table.editButton` | `suppliersService.update` | _—_ |
-| GET | `/api/suppliers/:id/price-list` | `getPriceList`:282 | `perm:suppliers` | `suppliersService.getPriceList` | _—_ |
-| POST | `/api/suppliers/:id/price-list` | `upsertPriceList`:289 | `perm:suppliers` | `suppliersService.upsertPriceItems` | _—_ |
-| DELETE | `/api/suppliers/:id/price-list/:priceItemId` | `deletePriceItem`:299 | `perm:suppliers` | `suppliersService.deletePriceItem` | _—_ |
-| GET | `/api/suppliers/:id/price-list/export` | `exportPriceList`:393 | `perm:suppliers` | `suppliersService.exportPriceListToExcel` | _—_ |
-| POST | `/api/suppliers/:id/price-list/import` | `importPriceList`:422 | `perm:suppliers` | `suppliersService.importPriceListFromExcel` | _—_ |
-| GET | `/api/suppliers/:id/price-list/template` | `getPriceListTemplate`:407 | `perm:suppliers` | `suppliersService.generatePriceListTemplate` | _—_ |
-| PATCH | `/api/suppliers/:id/status` | `toggleStatus`:120 | `ADMIN` `perm:suppliers.table.toggleStatus` | `suppliersService.toggleStatus` | _—_ |
-| POST | `/api/suppliers/:id/trip-prices` | `createTripPrice`:145 | `perm:suppliers` | `suppliersService.createTripPrice` | _—_ |
-| GET | `/api/suppliers/:id/trip-prices` | `findTripPrices`:154 | `perm:suppliers` | `suppliersService.findTripPrices` | _—_ |
-| GET | `/api/suppliers/:id/vehicles` | `findVehicles`:171 | `perm:suppliers` | `suppliersService.findVehicles` | _—_ |
-| POST | `/api/suppliers/:id/vehicles` | `createVehicle`:184 | `perm:suppliers` | `suppliersService.createVehicle` | _—_ |
-| PUT | `/api/suppliers/:id/vehicles/:vehicleId` | `updateVehicle`:194 | `perm:suppliers` | `suppliersService.updateVehicle` | _—_ |
-| DELETE | `/api/suppliers/:id/vehicles/:vehicleId` | `deleteVehicle`:205 | `perm:suppliers` | `suppliersService.deleteVehicle` | _—_ |
-| PATCH | `/api/suppliers/:id/vehicles/:vehicleId/status` | `toggleVehicleStatus`:215 | `perm:suppliers` | `suppliersService.toggleVehicleStatus` | _—_ |
-| GET | `/api/suppliers/:id/vehicles/export` | `exportVehicles`:311 | `perm:suppliers` | `suppliersService.exportVehiclesToExcel` | _—_ |
-| POST | `/api/suppliers/:id/vehicles/import` | `importVehicles`:340 | `perm:suppliers` | `suppliersService.importVehiclesFromExcel` | _—_ |
-| GET | `/api/suppliers/:id/vehicles/template` | `getVehicleTemplate`:325 | `perm:suppliers` | `suppliersService.generateVehicleImportTemplate` | _—_ |
-| DELETE | `/api/suppliers/bulk` | `bulkDelete`:128 | `ADMIN` `perm:suppliers.table.deleteButton` | `suppliersService.bulkDelete` | _—_ |
-| GET | `/api/suppliers/export/excel` | `exportExcel`:56 | `ADMIN` `perm:suppliers.export` | `suppliersService.exportToExcel` | _—_ |
-| POST | `/api/suppliers/import/excel` | `importExcel`:84 | `ADMIN` `perm:suppliers.import` | `suppliersService.importFromExcel` | _—_ |
-| GET | `/api/suppliers/import/template` | `downloadTemplate`:70 | `ADMIN` `perm:suppliers.downloadTemplate` | `suppliersService.generateImportTemplate` | _—_ |
-| PUT | `/api/suppliers/trip-prices/:priceId` | `updateTripPrice`:160 | `perm:suppliers` | `suppliersService.updateTripPrice` | _—_ |
+| GET | `/api/suppliers` | `findAll`:41 | `perm:suppliers` | `suppliersService.findAll` | Supplier list (Active/Inactive tabs). |
+| POST | `/api/suppliers` | `create`:98 | `ADMIN` `perm:suppliers.addButton` | `suppliersService.create` | Creates a supplier. |
+| GET | `/api/suppliers/:id` | `findOne`:104 | `perm:suppliers` | `suppliersService.findOne` | One supplier's detail. |
+| PUT | `/api/suppliers/:id` | `update`:110 | `perm:suppliers.table.editButton` | `suppliersService.update` | Edits a supplier. |
+| DELETE | `/api/suppliers/:id` | `delete`:136 | `ADMIN` `perm:suppliers.table.deleteButton` | `suppliersService.delete` | Soft-deletes a supplier. |
+| POST | `/api/suppliers/:id/account` | `createAccount`:435 | `ADMIN` `perm:suppliers.table.createAccount` | `suppliersService.createUserAccount` | Creates the supplier's portal login. |
+| PATCH | `/api/suppliers/:id/account/password` | `resetPassword`:446 | `ADMIN` `perm:suppliers.table.resetPassword` | `suppliersService.resetPassword` | Admin password reset; also clears the session. |
+| GET | `/api/suppliers/:id/car-types` | `getCarTypes`:482 | `perm:suppliers` | `suppliersService.getCarTypes` | Car types this supplier can source. |
+| PUT | `/api/suppliers/:id/car-types` | `setCarTypes`:488 | `perm:suppliers.table.editButton` | `suppliersService.setCarTypes` | Replaces the supplier's offered car types. |
+| GET | `/api/suppliers/:id/drivers` | `findDrivers`:227 | `perm:suppliers` | `suppliersService.findDrivers` | The supplier's drivers. |
+| POST | `/api/suppliers/:id/drivers` | `createDriver`:239 | `perm:suppliers` | `suppliersService.createDriver` | Adds a supplier driver. |
+| PUT | `/api/suppliers/:id/drivers/:driverId` | `updateDriver`:249 | `perm:suppliers` | `suppliersService.updateDriver` | Edits a supplier driver. |
+| DELETE | `/api/suppliers/:id/drivers/:driverId` | `deleteDriver`:260 | `perm:suppliers` | `suppliersService.deleteDriver` | Soft-deletes a supplier driver. |
+| PATCH | `/api/suppliers/:id/drivers/:driverId/status` | `toggleDriverStatus`:270 | `perm:suppliers` | `suppliersService.toggleDriverStatus` | Activates/deactivates a supplier driver. |
+| GET | `/api/suppliers/:id/drivers/export` | `exportDrivers`:352 | `perm:suppliers` | `suppliersService.exportDriversToExcel` | Downloads the supplier's drivers as xlsx. |
+| POST | `/api/suppliers/:id/drivers/import` | `importDrivers`:381 | `perm:suppliers` | `suppliersService.importDriversFromExcel` | Multipart supplier-driver import. |
+| GET | `/api/suppliers/:id/drivers/template` | `getDriverTemplate`:366 | `perm:suppliers` | `suppliersService.generateDriverImportTemplate` | Blank supplier-driver workbook. |
+| POST | `/api/suppliers/:id/national-id` | `uploadNationalId`:459 | `perm:suppliers.table.editButton` | `suppliersService.update` | Multipart upload of the supplier contact's national ID. |
+| GET | `/api/suppliers/:id/price-list` | `getPriceList`:282 | `perm:suppliers` | `suppliersService.getPriceList` | The supplier's price grid. |
+| POST | `/api/suppliers/:id/price-list` | `upsertPriceList`:289 | `perm:suppliers` | `suppliersService.upsertPriceItems` | Bulk-saves the supplier price grid. |
+| DELETE | `/api/suppliers/:id/price-list/:priceItemId` | `deletePriceItem`:299 | `perm:suppliers` | `suppliersService.deletePriceItem` | Removes one price row. |
+| GET | `/api/suppliers/:id/price-list/export` | `exportPriceList`:393 | `perm:suppliers` | `suppliersService.exportPriceListToExcel` | Downloads the price grid as xlsx. |
+| POST | `/api/suppliers/:id/price-list/import` | `importPriceList`:422 | `perm:suppliers` | `suppliersService.importPriceListFromExcel` | Multipart price-grid import. |
+| GET | `/api/suppliers/:id/price-list/template` | `getPriceListTemplate`:407 | `perm:suppliers` | `suppliersService.generatePriceListTemplate` | Blank price workbook pre-filled with real zones and vehicle types. |
+| PATCH | `/api/suppliers/:id/status` | `toggleStatus`:120 | `ADMIN` `perm:suppliers.table.toggleStatus` | `suppliersService.toggleStatus` | Activates/deactivates a supplier. |
+| POST | `/api/suppliers/:id/trip-prices` | `createTripPrice`:145 | `perm:suppliers` | `suppliersService.createTripPrice` | Adds a supplier trip price. |
+| GET | `/api/suppliers/:id/trip-prices` | `findTripPrices`:154 | `perm:suppliers` | `suppliersService.findTripPrices` | Trip prices we pay this supplier. |
+| GET | `/api/suppliers/:id/vehicles` | `findVehicles`:171 | `perm:suppliers` | `suppliersService.findVehicles` | The supplier's vehicles. |
+| POST | `/api/suppliers/:id/vehicles` | `createVehicle`:184 | `perm:suppliers` | `suppliersService.createVehicle` | Adds a supplier vehicle. |
+| PUT | `/api/suppliers/:id/vehicles/:vehicleId` | `updateVehicle`:194 | `perm:suppliers` | `suppliersService.updateVehicle` | Edits a supplier vehicle. |
+| DELETE | `/api/suppliers/:id/vehicles/:vehicleId` | `deleteVehicle`:205 | `perm:suppliers` | `suppliersService.deleteVehicle` | Soft-deletes a supplier vehicle. |
+| PATCH | `/api/suppliers/:id/vehicles/:vehicleId/status` | `toggleVehicleStatus`:215 | `perm:suppliers` | `suppliersService.toggleVehicleStatus` | Activates/deactivates a supplier vehicle. |
+| GET | `/api/suppliers/:id/vehicles/export` | `exportVehicles`:311 | `perm:suppliers` | `suppliersService.exportVehiclesToExcel` | Downloads the supplier's vehicles as xlsx. |
+| POST | `/api/suppliers/:id/vehicles/import` | `importVehicles`:340 | `perm:suppliers` | `suppliersService.importVehiclesFromExcel` | Multipart supplier-vehicle import. |
+| GET | `/api/suppliers/:id/vehicles/template` | `getVehicleTemplate`:325 | `perm:suppliers` | `suppliersService.generateVehicleImportTemplate` | Blank supplier-vehicle workbook. |
+| DELETE | `/api/suppliers/bulk` | `bulkDelete`:128 | `ADMIN` `perm:suppliers.table.deleteButton` | `suppliersService.bulkDelete` | Soft-deletes several suppliers. |
+| GET | `/api/suppliers/export/excel` | `exportExcel`:56 | `ADMIN` `perm:suppliers.export` | `suppliersService.exportToExcel` | Downloads suppliers as xlsx. |
+| POST | `/api/suppliers/import/excel` | `importExcel`:84 | `ADMIN` `perm:suppliers.import` | `suppliersService.importFromExcel` | Multipart bulk supplier import. |
+| GET | `/api/suppliers/import/template` | `downloadTemplate`:70 | `ADMIN` `perm:suppliers.downloadTemplate` | `suppliersService.generateImportTemplate` | Blank supplier import workbook. |
+| PUT | `/api/suppliers/trip-prices/:priceId` | `updateTripPrice`:160 | `perm:suppliers` | `suppliersService.updateTripPrice` | Edits a supplier trip price. |
 
 ### TrafficJobsController
 
@@ -667,16 +667,16 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/traffic-jobs` | `findAll`:49 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs` | `trafficJobsService.findAll` | _—_ |
-| POST | `/api/traffic-jobs` | `create`:75 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.online.createJob` | `trafficJobsService.create` | _—_ |
-| GET | `/api/traffic-jobs/:id` | `findOne`:56 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs` | `trafficJobsService.findOne` | _—_ |
-| PATCH | `/api/traffic-jobs/:id` | `update`:86 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.online.createJob` | `trafficJobsService.update` | _—_ |
-| DELETE | `/api/traffic-jobs/:id` | `remove`:121 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.online.createJob` | `trafficJobsService.remove` | _—_ |
-| PATCH | `/api/traffic-jobs/:id/control` | `forceControl`:110 | `perm:job-control` | `trafficJobsService.forceControl` | _—_ |
-| PATCH | `/api/traffic-jobs/:id/status` | `updateStatus`:99 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.online.table.statusFilter` | `trafficJobsService.updateStatus` | _—_ |
-| POST | `/api/traffic-jobs/:id/upload-evidence` | `uploadEvidence`:129 | `ADMIN` | `googleDriveService.uploadFile` `trafficJobsService.uploadEvidence` | _—_ |
-| POST | `/api/traffic-jobs/bulk` | `bulkCreate`:64 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.b2b.importJobs` | `trafficJobsService.bulkCreate` | _—_ |
-| POST | `/api/traffic-jobs/recalculate-driver-fees` | `recalculateDriverFees`:167 | `ADMIN` `perm:traffic-jobs` | `trafficJobsService.recalculateDriverFees` | _—_ |
+| GET | `/api/traffic-jobs` | `findAll`:49 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs` | `trafficJobsService.findAll` | Filterable job list. |
+| POST | `/api/traffic-jobs` | `create`:75 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.online.createJob` | `trafficJobsService.create` | Creates a job. |
+| GET | `/api/traffic-jobs/:id` | `findOne`:56 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs` | `trafficJobsService.findOne` | One job's full detail. |
+| PATCH | `/api/traffic-jobs/:id` | `update`:86 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.online.createJob` | `trafficJobsService.update` | Edits a job. |
+| DELETE | `/api/traffic-jobs/:id` | `remove`:121 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.online.createJob` | `trafficJobsService.remove` | Soft-deletes a job. |
+| PATCH | `/api/traffic-jobs/:id/control` | `forceControl`:110 | `perm:job-control` | `trafficJobsService.forceControl` | Admin override of job/rep/driver statuses, bypassing the transition tables. |
+| PATCH | `/api/traffic-jobs/:id/status` | `updateStatus`:99 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.online.table.statusFilter` | `trafficJobsService.updateStatus` | Dispatch status transition. |
+| POST | `/api/traffic-jobs/:id/upload-evidence` | `uploadEvidence`:129 | `ADMIN` | `googleDriveService.uploadFile` `trafficJobsService.uploadEvidence` | Admin-side evidence upload on a driver's or rep's behalf. |
+| POST | `/api/traffic-jobs/bulk` | `bulkCreate`:64 | `ADMIN` `MANAGER` `DISPATCHER` `perm:traffic-jobs.b2b.importJobs` | `trafficJobsService.bulkCreate` | Bulk job import; returns per-row errors instead of failing the batch. |
+| POST | `/api/traffic-jobs/recalculate-driver-fees` | `recalculateDriverFees`:167 | `ADMIN` `perm:traffic-jobs` | `trafficJobsService.recalculateDriverFees` | Re-derives missing or stale driver trip fees from the tariff table. |
 
 ### UserPreferencesController
 
@@ -713,27 +713,27 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/vehicles` | `findAllVehicles`:96 | `perm:vehicles` | `vehiclesService.findAllVehicles` | _—_ |
-| POST | `/api/vehicles` | `createVehicle`:156 | `ADMIN` `perm:vehicles.addButton` | `vehiclesService.createVehicle` | _—_ |
-| GET | `/api/vehicles/:id` | `findVehicleById`:249 | `perm:vehicles` | `vehiclesService.findVehicleById` | _—_ |
-| PATCH | `/api/vehicles/:id` | `updateVehicle`:256 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.updateVehicle` | _—_ |
-| DELETE | `/api/vehicles/:id` | `softDelete`:274 | `ADMIN` `perm:vehicles.table.deleteButton` | `vehiclesService.softDelete` | _—_ |
-| GET | `/api/vehicles/:id/compliance` | `getCompliance`:172 | `perm:vehicles` | `vehiclesService.getCompliance` | _—_ |
-| PATCH | `/api/vehicles/:id/compliance` | `upsertCompliance`:180 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.upsertCompliance` | _—_ |
-| POST | `/api/vehicles/:id/compliance/insurance` | `uploadInsuranceDoc`:205 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.updateComplianceFile` | _—_ |
-| POST | `/api/vehicles/:id/compliance/license` | `uploadLicenseCopy`:192 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.updateComplianceFile` | _—_ |
-| GET | `/api/vehicles/:id/deposits` | `listDeposits`:219 | `ADMIN` `DISPATCHER` `ACCOUNTANT` `perm:vehicles` | `vehiclesService.listDepositPayments` | _—_ |
-| POST | `/api/vehicles/:id/deposits` | `addDeposit`:227 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.addDepositPayment` | _—_ |
-| DELETE | `/api/vehicles/:id/deposits/:depositId` | `removeDeposit`:239 | `ADMIN` `perm:vehicles.table.deleteButton` | `vehiclesService.removeDepositPayment` | _—_ |
-| PATCH | `/api/vehicles/:id/status` | `toggleStatus`:266 | `ADMIN` `perm:vehicles.table.toggleStatus` | `vehiclesService.toggleStatus` | _—_ |
-| GET | `/api/vehicles/compliance/report` | `complianceReport`:165 | `ADMIN` `DISPATCHER` `ACCOUNTANT` `perm:vehicles` | `vehiclesService.getComplianceReport` | _—_ |
-| GET | `/api/vehicles/export/excel` | `exportExcel`:109 | `ADMIN` `DISPATCHER` `perm:vehicles.export` | `vehiclesService.exportToExcel` | _—_ |
-| POST | `/api/vehicles/import/excel` | `importExcel`:137 | `ADMIN` `DISPATCHER` `perm:vehicles.import` | `vehiclesService.importFromExcel` | _—_ |
-| GET | `/api/vehicles/import/template` | `downloadTemplate`:123 | `ADMIN` `DISPATCHER` `perm:vehicles.downloadTemplate` | `vehiclesService.generateImportTemplate` | _—_ |
-| GET | `/api/vehicles/types` | `findAllVehicleTypes`:59 | `perm:vehicles` | `vehiclesService.findAllVehicleTypes` | _—_ |
-| POST | `/api/vehicles/types` | `createVehicleType`:66 | `ADMIN` `perm:vehicles.types.addButton` | `vehiclesService.createVehicleType` | _—_ |
-| PATCH | `/api/vehicles/types/:id` | `updateVehicleType`:73 | `ADMIN` `perm:vehicles.types.addButton` | `vehiclesService.updateVehicleType` | _—_ |
-| POST | `/api/vehicles/types/image` | `uploadVehicleTypeImage`:84 | `ADMIN` `perm:vehicles.types.addButton` | — | _—_ |
+| GET | `/api/vehicles` | `findAllVehicles`:96 | `perm:vehicles` | `vehiclesService.findAllVehicles` | Fleet list (Active/Inactive tabs). |
+| POST | `/api/vehicles` | `createVehicle`:156 | `ADMIN` `perm:vehicles.addButton` | `vehiclesService.createVehicle` | Adds a vehicle. |
+| GET | `/api/vehicles/:id` | `findVehicleById`:249 | `perm:vehicles` | `vehiclesService.findVehicleById` | One vehicle's detail. |
+| PATCH | `/api/vehicles/:id` | `updateVehicle`:256 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.updateVehicle` | Edits a vehicle. |
+| DELETE | `/api/vehicles/:id` | `softDelete`:274 | `ADMIN` `perm:vehicles.table.deleteButton` | `vehiclesService.softDelete` | Soft-deletes a vehicle. |
+| GET | `/api/vehicles/:id/compliance` | `getCompliance`:172 | `perm:vehicles` | `vehiclesService.getCompliance` | One vehicle's compliance record. |
+| PATCH | `/api/vehicles/:id/compliance` | `upsertCompliance`:180 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.upsertCompliance` | Creates or updates compliance data. |
+| POST | `/api/vehicles/:id/compliance/insurance` | `uploadInsuranceDoc`:205 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.updateComplianceFile` | Uploads the insurance document. |
+| POST | `/api/vehicles/:id/compliance/license` | `uploadLicenseCopy`:192 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.updateComplianceFile` | Uploads the vehicle licence document. |
+| GET | `/api/vehicles/:id/deposits` | `listDeposits`:219 | `ADMIN` `DISPATCHER` `ACCOUNTANT` `perm:vehicles` | `vehiclesService.listDepositPayments` | Deposit payment history. |
+| POST | `/api/vehicles/:id/deposits` | `addDeposit`:227 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.addDepositPayment` | Records a deposit payment. |
+| DELETE | `/api/vehicles/:id/deposits/:depositId` | `removeDeposit`:239 | `ADMIN` `perm:vehicles.table.deleteButton` | `vehiclesService.removeDepositPayment` | Deletes a deposit payment. |
+| PATCH | `/api/vehicles/:id/status` | `toggleStatus`:266 | `ADMIN` `perm:vehicles.table.toggleStatus` | `vehiclesService.toggleStatus` | Activates/deactivates a vehicle. |
+| GET | `/api/vehicles/compliance/report` | `complianceReport`:165 | `ADMIN` `DISPATCHER` `ACCOUNTANT` `perm:vehicles` | `vehiclesService.getComplianceReport` | Fleet-wide compliance report highlighting expiries. |
+| GET | `/api/vehicles/export/excel` | `exportExcel`:109 | `ADMIN` `DISPATCHER` `perm:vehicles.export` | `vehiclesService.exportToExcel` | Downloads the fleet as xlsx. |
+| POST | `/api/vehicles/import/excel` | `importExcel`:137 | `ADMIN` `DISPATCHER` `perm:vehicles.import` | `vehiclesService.importFromExcel` | Multipart bulk fleet import. |
+| GET | `/api/vehicles/import/template` | `downloadTemplate`:123 | `ADMIN` `DISPATCHER` `perm:vehicles.downloadTemplate` | `vehiclesService.generateImportTemplate` | Blank fleet import workbook. |
+| GET | `/api/vehicles/types` | `findAllVehicleTypes`:59 | `perm:vehicles` | `vehiclesService.findAllVehicleTypes` | Lists vehicle types with seat capacities. |
+| POST | `/api/vehicles/types` | `createVehicleType`:66 | `ADMIN` `perm:vehicles.types.addButton` | `vehiclesService.createVehicleType` | Creates a vehicle type. |
+| PATCH | `/api/vehicles/types/:id` | `updateVehicleType`:73 | `ADMIN` `perm:vehicles.types.addButton` | `vehiclesService.updateVehicleType` | Edits a vehicle type. |
+| POST | `/api/vehicles/types/image` | `uploadVehicleTypeImage`:84 | `ADMIN` `perm:vehicles.types.addButton` | — | Uploads the vehicle type's illustration (shown on the B2C site). |
 
 ### WhatsappNotificationsController
 

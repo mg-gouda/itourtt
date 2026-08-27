@@ -14,51 +14,55 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/agents/agents.controller.ts:44` · controller · 18 methods
 
+REST surface for agents: profile CRUD, credit terms, invoice cycles, legal documents, price list and Excel import/export.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 49 | `agentsService.findAll` | _—_ |
-| `exportExcel` | pub | 57 | `agentsService.exportToExcel` | _—_ |
-| `downloadTemplate` | pub | 71 | `agentsService.generateImportTemplate` | _—_ |
-| `importExcel` | pub | 85 | `agentsService.importFromExcel` | _—_ |
-| `create` | pub | 99 | `agentsService.create` | _—_ |
-| `findOne` | pub | 106 | `agentsService.findOne` | _—_ |
-| `update` | pub | 114 | `agentsService.update` | _—_ |
-| `toggleStatus` | pub | 125 | `agentsService.toggleStatus` | _—_ |
-| `bulkDelete` | pub | 133 | `agentsService.bulkDelete` | _—_ |
-| `delete` | pub | 141 | `agentsService.delete` | _—_ |
-| `getCreditStatus` | pub | 148 | `agentsService.getCreditStatus` | _—_ |
-| `updateCredit` | pub | 156 | `agentsService.updateCredit` | _—_ |
-| `updateInvoiceCycle` | pub | 167 | `agentsService.updateInvoiceCycle` | _—_ |
-| `createDocument` | pub | 178 | `agentsService.createDocument` | _—_ |
-| `findDocuments` | pub | 188 | `agentsService.findDocuments` | _—_ |
-| `getPriceList` | pub | 197 | `agentsService.getPriceList` | _—_ |
-| `upsertPriceList` | pub | 205 | `agentsService.upsertPriceItems` | _—_ |
-| `deletePriceItem` | pub | 216 | `agentsService.deletePriceItem` | _—_ |
+| `findAll` | pub | 49 | `agentsService.findAll` | Agent list (Active/Inactive tabs). |
+| `exportExcel` | pub | 57 | `agentsService.exportToExcel` | Downloads agents as xlsx. |
+| `downloadTemplate` | pub | 71 | `agentsService.generateImportTemplate` | Downloads the blank agent import workbook. |
+| `importExcel` | pub | 85 | `agentsService.importFromExcel` | Multipart bulk agent import. |
+| `create` | pub | 99 | `agentsService.create` | Creates an agent. |
+| `findOne` | pub | 106 | `agentsService.findOne` | One agent's full profile. |
+| `update` | pub | 114 | `agentsService.update` | Edits an agent, including the `refPattern` used to validate job references. |
+| `toggleStatus` | pub | 125 | `agentsService.toggleStatus` | Activates/deactivates an agent. |
+| `bulkDelete` | pub | 133 | `agentsService.bulkDelete` | Soft-deletes several agents. |
+| `delete` | pub | 141 | `agentsService.delete` | Soft-deletes an agent. |
+| `getCreditStatus` | pub | 148 | `agentsService.getCreditStatus` | Credit limit versus outstanding invoices. |
+| `updateCredit` | pub | 156 | `agentsService.updateCredit` | Sets credit limit, days and currency. |
+| `updateInvoiceCycle` | pub | 167 | `agentsService.updateInvoiceCycle` | Sets the invoicing cadence. |
+| `createDocument` | pub | 178 | `agentsService.createDocument` | Uploads a legal document for the agent. |
+| `findDocuments` | pub | 188 | `agentsService.findDocuments` | Lists the agent's legal documents. |
+| `getPriceList` | pub | 197 | `agentsService.getPriceList` | The agent's price grid. |
+| `upsertPriceList` | pub | 205 | `agentsService.upsertPriceItems` | Bulk-saves the agent price grid. |
+| `deletePriceItem` | pub | 216 | `agentsService.deletePriceItem` | Removes one price row. |
 
 ### AgentsService
 
 `backend/src/agents/agents.service.ts:16` · service · 18 methods
 
+Agents (the ONLINE booking channel counterparties): legal profile, credit terms, invoice cycles, legal documents and their price list. `refPattern` here is the regex that validates every job's agent reference.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 19 | `agent` | _—_ |
-| `findOne` | pub | 45 | `agent` | _—_ |
-| `create` | pub | 64 | `agent` | _—_ |
-| `update` | pub | 86 | `agent` | _—_ |
-| `toggleStatus` | pub | 112 | `agent` | _—_ |
-| `delete` | pub | 121 | `agent` | _—_ |
-| `bulkDelete` | pub | 130 | `agent` | _—_ |
-| `getCreditStatus` | pub | 143 | `agentCreditTerms` `agentInvoice` | _—_ |
-| `updateCredit` | pub | 177 | `agentCreditTerms` | _—_ |
-| `updateInvoiceCycle` | pub | 194 | `agentInvoiceCycle` | _—_ |
-| `createDocument` | pub | 213 | `agentDocument` | _—_ |
-| `findDocuments` | pub | 227 | `agentDocument` | _—_ |
-| `getPriceList` | pub | 238 | `agent` `agentPriceItem` | _—_ |
-| `upsertPriceItems` | pub | 263 | `agent` `agentPriceItem` | _—_ |
-| `deletePriceItem` | pub | 314 | `agent` `agentPriceItem` | _—_ |
-| `exportToExcel` | pub | 340 | `agent` | _—_ |
-| `generateImportTemplate` | pub | 385 | — | _—_ |
-| `importFromExcel` | pub | 484 | `agent` `agentCreditTerms` | _—_ |
+| `findAll` | pub | 19 | `agent` | Agent list, split Active/Inactive. |
+| `findOne` | pub | 45 | `agent` | One agent with credit, cycles and documents. |
+| `create` | pub | 64 | `agent` | Creates an agent with its full legal profile. |
+| `update` | pub | 86 | `agent` | Edits agent details, including `refPattern`/`refExample` used to validate job references. |
+| `toggleStatus` | pub | 112 | `agent` | Activates/deactivates an agent. |
+| `delete` | pub | 121 | `agent` | Soft-deletes an agent. |
+| `bulkDelete` | pub | 130 | `agent` | Soft-deletes many agents. |
+| `getCreditStatus` | pub | 143 | `agentCreditTerms` `agentInvoice` | Credit limit and days versus outstanding invoices — how close the agent is to being over limit. |
+| `updateCredit` | pub | 177 | `agentCreditTerms` | Sets credit limit, credit days and currency. |
+| `updateInvoiceCycle` | pub | 194 | `agentInvoiceCycle` | Sets the agent's invoicing cadence, which drives invoice generation. |
+| `createDocument` | pub | 213 | `agentDocument` | Stores a legal document against the agent. |
+| `findDocuments` | pub | 227 | `agentDocument` | Lists an agent's legal documents. |
+| `getPriceList` | pub | 238 | `agent` `agentPriceItem` | The agent's price grid — what we CHARGE them per zone pair and vehicle type. |
+| `upsertPriceItems` | pub | 263 | `agent` `agentPriceItem` | Bulk-upserts agent price rows. |
+| `deletePriceItem` | pub | 314 | `agent` `agentPriceItem` | Removes one agent price row. |
+| `exportToExcel` | pub | 340 | `agent` | Exports agents to xlsx. |
+| `generateImportTemplate` | pub | 385 | — | Blank agent import workbook. |
+| `importFromExcel` | pub | 484 | `agent` `agentCreditTerms` | Bulk-imports agents together with their credit terms. |
 
 ## `customers`
 
@@ -66,46 +70,50 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/customers/customers.controller.ts:39` · controller · 15 methods
 
+REST surface for B2B customers: profile CRUD, price lists, import templates and Excel pipelines.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 44 | `customersService.findAll` | _—_ |
-| `exportExcel` | pub | 52 | `customersService.exportToExcel` | _—_ |
-| `downloadTemplate` | pub | 66 | `customersService.generateImportTemplate` | _—_ |
-| `importExcel` | pub | 80 | `customersService.importFromExcel` | _—_ |
-| `findOne` | pub | 93 | `customersService.findOne` | _—_ |
-| `create` | pub | 101 | `customersService.create` | _—_ |
-| `update` | pub | 109 | `customersService.update` | _—_ |
-| `toggleStatus` | pub | 120 | `customersService.toggleStatus` | _—_ |
-| `bulkDelete` | pub | 128 | `customersService.bulkDelete` | _—_ |
-| `remove` | pub | 136 | `customersService.remove` | _—_ |
-| `getPriceList` | pub | 145 | `customersService.getPriceList` | _—_ |
-| `upsertPriceItems` | pub | 153 | `customersService.upsertPriceItems` | _—_ |
-| `deletePriceItem` | pub | 164 | `customersService.deletePriceItem` | _—_ |
-| `downloadPriceListTemplate` | pub | 174 | `customersService.generatePriceListTemplate` | _—_ |
-| `importPriceList` | pub | 188 | `customersService.importPriceListFromExcel` | _—_ |
+| `findAll` | pub | 44 | `customersService.findAll` | Customer list (Active/Inactive tabs). |
+| `exportExcel` | pub | 52 | `customersService.exportToExcel` | Downloads customers as xlsx. |
+| `downloadTemplate` | pub | 66 | `customersService.generateImportTemplate` | Blank customer import workbook. |
+| `importExcel` | pub | 80 | `customersService.importFromExcel` | Multipart bulk customer import. |
+| `findOne` | pub | 93 | `customersService.findOne` | One customer's detail. |
+| `create` | pub | 101 | `customersService.create` | Creates a customer. |
+| `update` | pub | 109 | `customersService.update` | Edits a customer. |
+| `toggleStatus` | pub | 120 | `customersService.toggleStatus` | Activates/deactivates a customer. |
+| `bulkDelete` | pub | 128 | `customersService.bulkDelete` | Soft-deletes several customers. |
+| `remove` | pub | 136 | `customersService.remove` | Soft-deletes a customer. |
+| `getPriceList` | pub | 145 | `customersService.getPriceList` | The customer's price grid. |
+| `upsertPriceItems` | pub | 153 | `customersService.upsertPriceItems` | Bulk-saves the customer price grid. |
+| `deletePriceItem` | pub | 164 | `customersService.deletePriceItem` | Removes one price row. |
+| `downloadPriceListTemplate` | pub | 174 | `customersService.generatePriceListTemplate` | Blank price workbook pre-filled with real zones and vehicle types. |
+| `importPriceList` | pub | 188 | `customersService.importPriceListFromExcel` | Multipart price-grid import. |
 
 ### CustomersService
 
 `backend/src/customers/customers.service.ts:18` · service · 16 methods
 
+Customers (the B2B booking channel counterparties) and their price lists. Also owns `getPriceForJob`, which resolves what a specific job should cost that customer.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 21 | `customer` | _—_ |
-| `findOne` | pub | 47 | `customer` | _—_ |
-| `create` | pub | 59 | `customer` | _—_ |
-| `update` | pub | 78 | `customer` | _—_ |
-| `toggleStatus` | pub | 100 | `customer` | _—_ |
-| `remove` | pub | 109 | `customer` | _—_ |
-| `bulkDelete` | pub | 118 | `customer` | _—_ |
-| `getPriceList` | pub | 133 | `customerPriceItem` | _—_ |
-| `upsertPriceItems` | pub | 154 | `customerPriceItem` | _—_ |
-| `deletePriceItem` | pub | 193 | `customerPriceItem` | _—_ |
-| `getPriceForJob` | pub | 209 | `customerPriceItem` | _—_ |
-| `generatePriceListTemplate` | pub | 243 | `zone` `vehicleType` | _—_ |
-| `exportToExcel` | pub | 352 | `customer` | _—_ |
-| `generateImportTemplate` | pub | 387 | — | _—_ |
-| `importFromExcel` | pub | 451 | `customer` | _—_ |
-| `importPriceListFromExcel` | pub | 564 | `zone` `vehicleType` | _—_ |
+| `findAll` | pub | 21 | `customer` | Customer list, split Active/Inactive. |
+| `findOne` | pub | 47 | `customer` | One customer with prices and import templates. |
+| `create` | pub | 59 | `customer` | Creates a customer. |
+| `update` | pub | 78 | `customer` | Edits customer details. |
+| `toggleStatus` | pub | 100 | `customer` | Activates/deactivates a customer. |
+| `remove` | pub | 109 | `customer` | Soft-deletes a customer. |
+| `bulkDelete` | pub | 118 | `customer` | Soft-deletes many customers. |
+| `getPriceList` | pub | 133 | `customerPriceItem` | The customer's price grid. |
+| `upsertPriceItems` | pub | 154 | `customerPriceItem` | Bulk-upserts customer price rows. |
+| `deletePriceItem` | pub | 193 | `customerPriceItem` | Removes one customer price row. |
+| `getPriceForJob` | pub | 209 | `customerPriceItem` | Resolves the price for a specific job by matching its zone pair and vehicle type against the customer's grid — the pricing lookup used when a B2B job is created. |
+| `generatePriceListTemplate` | pub | 243 | `zone` `vehicleType` | Blank price workbook pre-filled with real zones and vehicle types. |
+| `exportToExcel` | pub | 352 | `customer` | Exports customers to xlsx. |
+| `generateImportTemplate` | pub | 387 | — | Blank customer import workbook. |
+| `importFromExcel` | pub | 451 | `customer` | Bulk-imports customers. |
+| `importPriceListFromExcel` | pub | 564 | `zone` `vehicleType` | Bulk-imports a customer's price grid, resolving zone and vehicle-type names to ids. |
 
 ## `dispatch`
 
@@ -113,42 +121,46 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/dispatch/dispatch.controller.ts:26` · controller · 10 methods
 
+REST surface for the dispatch console — day view, assign/reassign/unassign, availability lookups and per-job lock control.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getDayView` | pub | 33 | `dispatchService.getDayView` | _—_ |
-| `assignJob` | pub | 39 | `dispatchService.assignJob` | _—_ |
-| `reassignJob` | pub | 51 | `dispatchService.reassignJob` | _—_ |
-| `unassignJob` | pub | 64 | `dispatchService.unassignJob` | _—_ |
-| `getAvailableSuppliers` | pub | 75 | `dispatchService.getAvailableSuppliers` | _—_ |
-| `getAvailableVehicles` | pub | 81 | `dispatchService.getAvailableVehicles` | _—_ |
-| `getAvailableDrivers` | pub | 91 | `dispatchService.getAvailableDrivers` | _—_ |
-| `getAvailableReps` | pub | 102 | `dispatchService.getAvailableReps` | _—_ |
-| `unlockJob` | pub | 113 | `dispatchService.unlockJob` | _—_ |
-| `lockJob` | pub | 123 | `dispatchService.lockJob` | _—_ |
+| `getDayView` | pub | 33 | `dispatchService.getDayView` | One day's dispatch grid. |
+| `assignJob` | pub | 39 | `dispatchService.assignJob` | Creates the first assignment for a job. |
+| `reassignJob` | pub | 51 | `dispatchService.reassignJob` | Changes an existing assignment. |
+| `unassignJob` | pub | 64 | `dispatchService.unassignJob` | Clears a job's assignment. |
+| `getAvailableSuppliers` | pub | 75 | `dispatchService.getAvailableSuppliers` | Suppliers that can source a car for a job. |
+| `getAvailableVehicles` | pub | 81 | `dispatchService.getAvailableVehicles` | Own vehicles plus supplier car types eligible for a job. |
+| `getAvailableDrivers` | pub | 91 | `dispatchService.getAvailableDrivers` | Drivers eligible for assignment. |
+| `getAvailableReps` | pub | 102 | `dispatchService.getAvailableReps` | Reps eligible for assignment (zone-covered only). |
+| `unlockJob` | pub | 113 | `dispatchService.unlockJob` | Frees a dispatcher from the 48h timelock on one job. |
+| `lockJob` | pub | 123 | `dispatchService.lockJob` | Restores the dispatcher timelock on one job. |
 
 ### DispatchService
 
 `backend/src/dispatch/dispatch.service.ts:22` · service · 17 methods
 
+The dispatch console backend: the day view and all assignment logic. Assignment order is Vehicle → Driver → Rep, each gated by its own permission key. Vehicle and driver double-booking is a NON-blocking warning; rep double-booking is a hard conflict.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getDayView` | pub | 38 | `trafficJob` | _—_ |
-| `assignJob` | pub | 115 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +8 | _—_ |
-| `sendStaffAssignmentEmail` | priv | 385 | `guestBooking` `emailService.sendStaffAssignment` | _—_ |
-| `reassignJob` | pub | 435 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +7 | _—_ |
-| `unassignJob` | pub | 724 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | _—_ |
-| `getAvailableVehicles` | pub | 765 | `trafficAssignment` `vehicle` `supplierCarType` | _—_ |
-| `getAvailableSuppliers` | pub | 838 | `supplier` | _—_ |
-| `getAvailableDrivers` | pub | 877 | `driver` | _—_ |
-| `getAvailableReps` | pub | 902 | `rep` `trafficJob` `trafficAssignment` | _—_ |
-| `unlockJob` | pub | 995 | `trafficJob` | _—_ |
-| `lockJob` | pub | 1011 | `trafficJob` | _—_ |
-| `checkDispatcherTimelock` | priv | 1032 | — | _—_ |
-| `getJobReferenceTime` | priv | 1057 | — | _—_ |
-| `validateVehicleAvailability` | priv | 1074 | — | _—_ |
-| `detectAssignmentConflicts` | priv | 1088 | `trafficAssignment` | _—_ |
-| `validateDriverAvailability` | priv | 1132 | — | _—_ |
-| `validateRepAvailability` | priv | 1152 | `trafficAssignment` | _—_ |
+| `getDayView` | pub | 38 | `trafficJob` | One day's jobs with everything the Excel-like grid renders, ARR and DEP served together for the split console. |
+| `assignJob` | pub | 115 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +8 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
+| `sendStaffAssignmentEmail` | priv | 385 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
+| `reassignJob` | pub | 435 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +7 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
+| `unassignJob` | pub | 724 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
+| `getAvailableVehicles` | pub | 765 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
+| `getAvailableSuppliers` | pub | 838 | `supplier` | Suppliers that can source a car for this job. |
+| `getAvailableDrivers` | pub | 877 | `driver` | Active drivers offered for assignment. |
+| `getAvailableReps` | pub | 902 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
+| `unlockJob` | pub | 995 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
+| `lockJob` | pub | 1011 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
+| `checkDispatcherTimelock` | priv | 1032 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
+| `getJobReferenceTime` | priv | 1057 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
+| `validateVehicleAvailability` | priv | 1074 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
+| `detectAssignmentConflicts` | priv | 1088 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
+| `validateDriverAvailability` | priv | 1132 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
+| `validateRepAvailability` | priv | 1152 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
 
 ## `drivers`
 
@@ -156,45 +168,49 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/drivers/drivers.controller.ts:58` · controller · 15 methods
 
+REST surface for drivers: records, vehicle links, portal accounts, trip fees and Excel pipelines.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 63 | `driversService.findAll` | _—_ |
-| `exportExcel` | pub | 71 | `driversService.exportToExcel` | _—_ |
-| `downloadTemplate` | pub | 85 | `driversService.generateImportTemplate` | _—_ |
-| `importExcel` | pub | 99 | `driversService.importFromExcel` | _—_ |
-| `create` | pub | 113 | `driversService.create` | _—_ |
-| `findOne` | pub | 120 | `driversService.findOne` | _—_ |
-| `update` | pub | 128 | `driversService.update` | _—_ |
-| `assignVehicle` | pub | 139 | `driversService.assignVehicle` | _—_ |
-| `unassignVehicle` | pub | 150 | `driversService.unassignVehicle` | _—_ |
-| `toggleStatus` | pub | 161 | `driversService.toggleStatus` | _—_ |
-| `softDelete` | pub | 169 | `driversService.softDelete` | _—_ |
-| `uploadAttachment` | pub | 178 | `driversService.updateAttachment` | _—_ |
-| `createUserAccount` | pub | 190 | `driversService.createUserAccount` | _—_ |
-| `resetPassword` | pub | 201 | `driversService.resetPassword` | _—_ |
-| `getTripFees` | pub | 211 | `driversService.getTripFees` | _—_ |
+| `findAll` | pub | 63 | `driversService.findAll` | Driver list (Active/Inactive tabs). |
+| `exportExcel` | pub | 71 | `driversService.exportToExcel` | Downloads drivers as xlsx. |
+| `downloadTemplate` | pub | 85 | `driversService.generateImportTemplate` | Blank driver import workbook. |
+| `importExcel` | pub | 99 | `driversService.importFromExcel` | Multipart bulk driver import. |
+| `create` | pub | 113 | `driversService.create` | Creates a driver record. |
+| `findOne` | pub | 120 | `driversService.findOne` | One driver's detail. |
+| `update` | pub | 128 | `driversService.update` | Edits a driver. |
+| `assignVehicle` | pub | 139 | `driversService.assignVehicle` | Links a vehicle to the driver. |
+| `unassignVehicle` | pub | 150 | `driversService.unassignVehicle` | Removes a driver-vehicle link. |
+| `toggleStatus` | pub | 161 | `driversService.toggleStatus` | Activates/deactivates driver and account together. |
+| `softDelete` | pub | 169 | `driversService.softDelete` | Soft-deletes a driver. |
+| `uploadAttachment` | pub | 178 | `driversService.updateAttachment` | Multipart upload of a driver document. |
+| `createUserAccount` | pub | 190 | `driversService.createUserAccount` | Creates the driver's portal login. |
+| `resetPassword` | pub | 201 | `driversService.resetPassword` | Admin password reset; also clears the session so a locked-out driver can log in. |
+| `getTripFees` | pub | 211 | `driversService.getTripFees` | A driver's trip fees for a period. |
 
 ### DriversService
 
 `backend/src/drivers/drivers.service.ts:13` · service · 15 methods
 
+Driver records, their vehicle links, portal user accounts and trip-fee history. Drivers are paid PER TRIP from the zone/route tariff table, never a salary.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 16 | `driver` | _—_ |
-| `findOne` | pub | 45 | `driver` | _—_ |
-| `getTripFees` | pub | 64 | `driverTripFee` | _—_ |
-| `create` | pub | 101 | `driver` | _—_ |
-| `update` | pub | 112 | `driver` | _—_ |
-| `updateAttachment` | pub | 128 | `driver` | _—_ |
-| `assignVehicle` | pub | 136 | `vehicle` `driverVehicle` | _—_ |
-| `unassignVehicle` | pub | 179 | `driverVehicle` | _—_ |
-| `createUserAccount` | pub | 200 | `user` `driver` | _—_ |
-| `toggleStatus` | pub | 247 | `driver` `user` | _—_ |
-| `softDelete` | pub | 268 | `user` `driver` | _—_ |
-| `resetPassword` | pub | 285 | `user` | _—_ |
-| `exportToExcel` | pub | 311 | `driver` | _—_ |
-| `generateImportTemplate` | pub | 351 | `supplier` | _—_ |
-| `importFromExcel` | pub | 448 | `supplier` `driver` | _—_ |
+| `findAll` | pub | 16 | `driver` | Driver list, split Active/Inactive. |
+| `findOne` | pub | 45 | `driver` | One driver with vehicles, account and documents. |
+| `getTripFees` | pub | 64 | `driverTripFee` | A driver's trip fees over a period — the basis for what they are paid. |
+| `create` | pub | 101 | `driver` | Creates a driver record (no portal login yet). |
+| `update` | pub | 112 | `driver` | Edits driver details. |
+| `updateAttachment` | pub | 128 | `driver` | Attaches or replaces a driver document (licence, ID). |
+| `assignVehicle` | pub | 136 | `vehicle` `driverVehicle` | Links a vehicle to a driver via `DriverVehicle`. |
+| `unassignVehicle` | pub | 179 | `driverVehicle` | Removes a driver-vehicle link. |
+| `createUserAccount` | pub | 200 | `user` `driver` | Creates the driver's portal login and links it to the Driver row — `resolveDriverId` depends on this link existing. |
+| `toggleStatus` | pub | 247 | `driver` `user` | Activates/deactivates the driver and their user account together. |
+| `softDelete` | pub | 268 | `user` `driver` | Soft-deletes the driver and disables their account. |
+| `resetPassword` | pub | 285 | `user` | Admin password reset. Also clears the stored session, so a locked-out driver can sign in again immediately. |
+| `exportToExcel` | pub | 311 | `driver` | Exports drivers to xlsx. |
+| `generateImportTemplate` | pub | 351 | `supplier` | Blank driver import workbook, pre-filled with valid suppliers. |
+| `importFromExcel` | pub | 448 | `supplier` `driver` | Bulk-imports drivers, resolving supplier names to ids. |
 
 ## `extras`
 
@@ -202,28 +218,32 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/extras/extras.controller.ts:22` · controller · 6 methods
 
+REST surface for the B2C extras catalogue.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 27 | `extrasService.findAll` | _—_ |
-| `selectable` | pub | 35 | `extrasService.getSelectable` | _—_ |
-| `create` | pub | 43 | `extrasService.create` | _—_ |
-| `update` | pub | 51 | `extrasService.update` | _—_ |
-| `toggleStatus` | pub | 59 | `extrasService.toggleStatus` | _—_ |
-| `remove` | pub | 67 | `extrasService.remove` | _—_ |
+| `findAll` | pub | 27 | `extrasService.findAll` | All extras, for the admin screen. |
+| `selectable` | pub | 35 | `extrasService.getSelectable` | Extras offered for a vehicle type in the booking funnel. |
+| `create` | pub | 43 | `extrasService.create` | Adds an extra. |
+| `update` | pub | 51 | `extrasService.update` | Edits an extra. |
+| `toggleStatus` | pub | 59 | `extrasService.toggleStatus` | Shows/hides an extra publicly. |
+| `remove` | pub | 67 | `extrasService.remove` | Deletes an extra. |
 
 ### ExtrasService
 
 `backend/src/extras/extras.service.ts:7` · service · 7 methods
 
+The managed catalogue of B2C booking extras (child seats, meet-and-greet, etc.), replacing the previously hard-coded seat extras. Mobile and public price columns are kept deliberately separate.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 17 | `b2cExtra` | _—_ |
-| `getSelectable` | pub | 33 | `b2cExtra` | _—_ |
-| `findActive` | pub | 57 | `b2cExtra` | _—_ |
-| `create` | pub | 76 | `b2cExtra` | _—_ |
-| `update` | pub | 96 | `b2cExtra` | _—_ |
-| `toggleStatus` | pub | 121 | `b2cExtra` | _—_ |
-| `remove` | pub | 130 | `b2cExtra` | _—_ |
+| `findAll` | pub | 17 | `b2cExtra` | All extras for the admin screen, active and inactive. |
+| `getSelectable` | pub | 33 | `b2cExtra` | Extras offered for a given vehicle type, used by the booking funnel. |
+| `findActive` | pub | 57 | `b2cExtra` | Active extras only — what the public B2C site sees. |
+| `create` | pub | 76 | `b2cExtra` | Adds an extra to the catalogue. |
+| `update` | pub | 96 | `b2cExtra` | Edits an extra's labels or prices. |
+| `toggleStatus` | pub | 121 | `b2cExtra` | Shows/hides an extra on the public site. |
+| `remove` | pub | 130 | `b2cExtra` | Deletes an extra. |
 
 ## `import-templates`
 
@@ -231,24 +251,28 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/import-templates/import-templates.controller.ts:46` · controller · 3 methods
 
+Per-customer import template management, nested under `/customers/:customerId/import-templates`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 51 | `importTemplatesService.findAllByCustomer` | _—_ |
-| `create` | pub | 72 | `importTemplatesService.create` | _—_ |
-| `remove` | pub | 93 | `importTemplatesService.remove` | _—_ |
+| `findAll` | pub | 51 | `importTemplatesService.findAllByCustomer` | Lists a customer's templates. |
+| `create` | pub | 72 | `importTemplatesService.create` | Multipart upload of a template workbook. |
+| `remove` | pub | 93 | `importTemplatesService.remove` | Deletes a template. |
 
 ### ImportTemplatesService
 
 `backend/src/import-templates/import-templates.service.ts:8` · service · 6 methods
 
+Per-customer job-import templates. A stored sample workbook teaches the AI parser that customer's column layout, so their manifests parse without per-file configuration.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAllByCustomer` | pub | 11 | `customerImportTemplate` | _—_ |
-| `create` | pub | 18 | `customerImportTemplate` | _—_ |
-| `remove` | pub | 79 | `customerImportTemplate` | _—_ |
-| `getTemplateContext` | pub | 106 | `customerImportTemplate` | _—_ |
-| `getTemplateFile` | pub | 125 | `customerImportTemplate` | _—_ |
-| `extractExcelSample` | priv | 146 | — | _—_ |
+| `findAllByCustomer` | pub | 11 | `customerImportTemplate` | Templates stored for one customer. |
+| `create` | pub | 18 | `customerImportTemplate` | Stores an uploaded template workbook and extracts its sample rows. |
+| `remove` | pub | 79 | `customerImportTemplate` | Deletes a template. |
+| `getTemplateContext` | pub | 106 | `customerImportTemplate` | Feeds the template's column layout into the AI parser prompt. |
+| `getTemplateFile` | pub | 125 | `customerImportTemplate` | Downloads the stored template file. |
+| `extractExcelSample` | priv | 146 | — | Pulls representative rows out of an uploaded workbook. |
 
 ## `job-locks`
 
@@ -256,42 +280,46 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/job-locks/job-locks.controller.ts:18` · controller · 21 methods
 
+Per-role job lock/unlock endpoints, one pair per role plus the job listing.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getDispatcherJobs` | pub | 25 | `jobLocksService.findJobs` | _—_ |
-| `unlockDispatcher` | pub | 38 | `jobLocksService.unlockJob` | _—_ |
-| `lockDispatcher` | pub | 48 | `jobLocksService.lockJob` | _—_ |
-| `getDriverJobs` | pub | 57 | `jobLocksService.findJobs` | _—_ |
-| `unlockDriver` | pub | 70 | `jobLocksService.unlockJob` | _—_ |
-| `lockDriver` | pub | 80 | `jobLocksService.lockJob` | _—_ |
-| `getRepJobs` | pub | 89 | `jobLocksService.findJobs` | _—_ |
-| `unlockRep` | pub | 102 | `jobLocksService.unlockJob` | _—_ |
-| `lockRep` | pub | 112 | `jobLocksService.lockJob` | _—_ |
-| `getSupplierJobs` | pub | 121 | `jobLocksService.findJobs` | _—_ |
-| `unlockSupplier` | pub | 134 | `jobLocksService.unlockJob` | _—_ |
-| `lockSupplier` | pub | 144 | `jobLocksService.lockJob` | _—_ |
-| `getEditJobs` | pub | 153 | `jobLocksService.findJobs` | _—_ |
-| `unlockEdit` | pub | 166 | `jobLocksService.unlockJob` | _—_ |
-| `lockEdit` | pub | 176 | `jobLocksService.lockJob` | _—_ |
-| `getB2CJobs` | pub | 185 | `jobLocksService.findJobs` | _—_ |
-| `unlockB2C` | pub | 198 | `jobLocksService.unlockJob` | _—_ |
-| `lockB2C` | pub | 208 | `jobLocksService.lockJob` | _—_ |
-| `getOnlineJobs` | pub | 217 | `jobLocksService.findJobs` | _—_ |
-| `unlockOnline` | pub | 230 | `jobLocksService.unlockJob` | _—_ |
-| `lockOnline` | pub | 240 | `jobLocksService.lockJob` | _—_ |
+| `getDispatcherJobs` | pub | 25 | `jobLocksService.findJobs` | Lists jobs with their dispatcher lock state. |
+| `unlockDispatcher` | pub | 38 | `jobLocksService.unlockJob` | Sets `dispatchUnlockedAt`, lifting the dispatcher 48h assignment timelock for one job. |
+| `lockDispatcher` | pub | 48 | `jobLocksService.lockJob` | Clears `dispatchUnlockedAt`, restoring the dispatcher 48h assignment timelock. |
+| `getDriverJobs` | pub | 57 | `jobLocksService.findJobs` | Lists jobs with their driver lock state. |
+| `unlockDriver` | pub | 70 | `jobLocksService.unlockJob` | Sets `driverUnlockedAt`, lifting the driver portal 48h timelock for one job. |
+| `lockDriver` | pub | 80 | `jobLocksService.lockJob` | Clears `driverUnlockedAt`, restoring the driver portal 48h timelock. |
+| `getRepJobs` | pub | 89 | `jobLocksService.findJobs` | Lists jobs with their rep lock state. |
+| `unlockRep` | pub | 102 | `jobLocksService.unlockJob` | Sets `repUnlockedAt`, lifting the rep 48h timelock AND the ARR IN-PLACE window for one job. |
+| `lockRep` | pub | 112 | `jobLocksService.lockJob` | Clears `repUnlockedAt`, restoring the rep 48h timelock AND the ARR IN-PLACE window. |
+| `getSupplierJobs` | pub | 121 | `jobLocksService.findJobs` | Lists jobs with their supplier lock state. |
+| `unlockSupplier` | pub | 134 | `jobLocksService.unlockJob` | Sets `supplierUnlockedAt`, lifting the supplier portal 48h timelock for one job. |
+| `lockSupplier` | pub | 144 | `jobLocksService.lockJob` | Clears `supplierUnlockedAt`, restoring the supplier portal 48h timelock. |
+| `getEditJobs` | pub | 153 | `jobLocksService.findJobs` | Lists jobs with their edit lock state. |
+| `unlockEdit` | pub | 166 | `jobLocksService.unlockJob` | Sets `editUnlockedAt`, lifting the lock on editing a closed job for one job. |
+| `lockEdit` | pub | 176 | `jobLocksService.lockJob` | Clears `editUnlockedAt`, restoring the lock on editing a closed job. |
+| `getB2CJobs` | pub | 185 | `jobLocksService.findJobs` | Lists jobs with their b2c lock state. |
+| `unlockB2C` | pub | 198 | `jobLocksService.unlockJob` | Sets `editUnlockedAt`, lifting editing of B2C-channel (guest booking) jobs for one job. |
+| `lockB2C` | pub | 208 | `jobLocksService.lockJob` | Clears `editUnlockedAt`, restoring editing of B2C-channel (guest booking) jobs. |
+| `getOnlineJobs` | pub | 217 | `jobLocksService.findJobs` | Lists jobs with their online lock state. |
+| `unlockOnline` | pub | 230 | `jobLocksService.unlockJob` | Sets `editUnlockedAt`, lifting editing of ONLINE-channel (agent) jobs for one job. |
+| `lockOnline` | pub | 240 | `jobLocksService.lockJob` | Clears `editUnlockedAt`, restoring editing of ONLINE-channel (agent) jobs. |
 
 ### JobLocksService
 
 `backend/src/job-locks/job-locks.service.ts:9` · service · 6 methods
 
+Admin screen for the per-role unlock flags on a job (`dispatchUnlockedAt`, `driverUnlockedAt`, `repUnlockedAt`, `supplierUnlockedAt`, `editUnlockedAt`). Unlocking is how a legitimately late submission gets past a 48h timelock or the rep IN-PLACE window.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findJobs` | pub | 12 | `trafficJob` | _—_ |
-| `unlockJob` | pub | 99 | `trafficJob` | _—_ |
-| `lockJob` | pub | 113 | `trafficJob` | _—_ |
-| `getUnlockField` | priv | 127 | — | _—_ |
-| `getUnlockData` | priv | 140 | — | _—_ |
-| `getLockData` | priv | 154 | — | _—_ |
+| `findJobs` | pub | 12 | `trafficJob` | Lists jobs with their current lock state per role. |
+| `unlockJob` | pub | 99 | `trafficJob` | Sets the unlock timestamp for one role on one job. |
+| `lockJob` | pub | 113 | `trafficJob` | Clears the unlock timestamp, restoring the lock. |
+| `getUnlockField` | priv | 127 | — | Maps a role name to its `*UnlockedAt` column. |
+| `getUnlockData` | priv | 140 | — | Builds the update payload that unlocks a role (timestamp plus actor). |
+| `getLockData` | priv | 154 | — | Builds the update payload that re-locks a role (nulls both fields). |
 
 ## `job-service-types`
 
@@ -299,27 +327,31 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/job-service-types/job-service-types.controller.ts:16` · controller · 6 methods
 
+REST surface for operator-defined job service types.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 21 | — | _—_ |
-| `downloadTemplate` | pub | 27 | — | _—_ |
-| `importExcel` | pub | 40 | — | _—_ |
-| `create` | pub | 51 | — | _—_ |
-| `update` | pub | 57 | — | _—_ |
-| `remove` | pub | 63 | — | _—_ |
+| `findAll` | pub | 21 | — | Lists job service types. |
+| `downloadTemplate` | pub | 27 | — | Blank import workbook pre-filled with zones. |
+| `importExcel` | pub | 40 | — | Multipart bulk import. |
+| `create` | pub | 51 | — | Creates one. |
+| `update` | pub | 57 | — | Edits one. |
+| `remove` | pub | 63 | — | Deletes one. |
 
 ### JobServiceTypesService
 
 `backend/src/job-service-types/job-service-types.service.ts:7` · service · 6 methods
 
+Named service-type variants attached to jobs (distinct from the fixed ARR/DEP/… enum in `service-type.util.ts`). These are operator-defined and zone-aware.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 10 | `jobServiceType` | _—_ |
-| `create` | pub | 21 | `jobServiceType` | _—_ |
-| `update` | pub | 42 | `jobServiceType` | _—_ |
-| `remove` | pub | 60 | `jobServiceType` | _—_ |
-| `importFromExcel` | pub | 70 | `zone` `jobServiceType` | _—_ |
-| `generateTemplate` | pub | 132 | `zone` | _—_ |
+| `findAll` | pub | 10 | `jobServiceType` | Lists job service types. |
+| `create` | pub | 21 | `jobServiceType` | Creates one. |
+| `update` | pub | 42 | `jobServiceType` | Edits one. |
+| `remove` | pub | 60 | `jobServiceType` | Deletes one. |
+| `importFromExcel` | pub | 70 | `zone` `jobServiceType` | Bulk-imports service types, resolving zone names. |
+| `generateTemplate` | pub | 132 | `zone` | Blank import workbook pre-filled with real zones. |
 
 ## `locations`
 
@@ -327,70 +359,74 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/locations/locations.controller.ts:41` · controller · 28 methods
 
+REST surface for the location tree — one create/update/delete trio per level, plus search, Excel import/export and geocoding.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `exportExcel` | pub | 52 | `locationsService.exportToExcel` | _—_ |
-| `downloadTemplate` | pub | 66 | `locationsService.generateImportTemplate` | _—_ |
-| `importExcel` | pub | 80 | `locationsService.importFromExcel` | _—_ |
-| `placesSearch` | pub | 95 | `geocodingService.searchPlaces` | _—_ |
-| `batchGeocode` | pub | 111 | `locationsService.batchGeocode` | _—_ |
-| `updateCoordinates` | pub | 121 | `locationsService.updateLocationCoordinates` | _—_ |
-| `searchLocations` | pub | 143 | `locationsService.searchLocations` | _—_ |
-| `getTree` | pub | 155 | `locationsService.getTree` | _—_ |
-| `findAllCountries` | pub | 163 | `locationsService.findAllCountries` | _—_ |
-| `createCountry` | pub | 172 | `locationsService.createCountry` | _—_ |
-| `findAirportsByCountry` | pub | 180 | `locationsService.findAirportsByCountry` | _—_ |
-| `createAirport` | pub | 187 | `locationsService.createAirport` | _—_ |
-| `findCitiesByAirport` | pub | 195 | `locationsService.findCitiesByAirport` | _—_ |
-| `createCity` | pub | 202 | `locationsService.createCity` | _—_ |
-| `findZones` | pub | 210 | `locationsService.findZones` | _—_ |
-| `createZone` | pub | 217 | `locationsService.createZone` | _—_ |
-| `findHotelsByZone` | pub | 225 | `locationsService.findHotelsByZone` | _—_ |
-| `createHotel` | pub | 232 | `locationsService.createHotel` | _—_ |
-| `updateCountry` | pub | 241 | `locationsService.updateCountry` | _—_ |
-| `updateAirport` | pub | 248 | `locationsService.updateAirport` | _—_ |
-| `updateCity` | pub | 255 | `locationsService.updateCity` | _—_ |
-| `updateZone` | pub | 262 | `locationsService.updateZone` | _—_ |
-| `updateHotel` | pub | 269 | `locationsService.updateHotel` | _—_ |
-| `deleteCountry` | pub | 278 | `locationsService.deleteCountry` | _—_ |
-| `deleteAirport` | pub | 285 | `locationsService.deleteAirport` | _—_ |
-| `deleteCity` | pub | 292 | `locationsService.deleteCity` | _—_ |
-| `deleteZone` | pub | 299 | `locationsService.deleteZone` | _—_ |
-| `deleteHotel` | pub | 306 | `locationsService.deleteHotel` | _—_ |
+| `exportExcel` | pub | 52 | `locationsService.exportToExcel` | Downloads the tree as xlsx. |
+| `downloadTemplate` | pub | 66 | `locationsService.generateImportTemplate` | Blank location import workbook. |
+| `importExcel` | pub | 80 | `locationsService.importFromExcel` | Multipart bulk location import. |
+| `placesSearch` | pub | 95 | `geocodingService.searchPlaces` | Google Places proxy for the location editor. |
+| `batchGeocode` | pub | 111 | `locationsService.batchGeocode` | Bulk-geocodes nodes missing coordinates. |
+| `updateCoordinates` | pub | 121 | `locationsService.updateLocationCoordinates` | Sets lat/lng on a node — this is what the geofence targets read. |
+| `searchLocations` | pub | 143 | `locationsService.searchLocations` | Cross-level location search. |
+| `getTree` | pub | 155 | `locationsService.getTree` | The whole hierarchy for cascading dropdowns. |
+| `findAllCountries` | pub | 163 | `locationsService.findAllCountries` | Lists countries. |
+| `createCountry` | pub | 172 | `locationsService.createCountry` | Creates a country. |
+| `findAirportsByCountry` | pub | 180 | `locationsService.findAirportsByCountry` | Airports under a country. |
+| `createAirport` | pub | 187 | `locationsService.createAirport` | Creates an airport. |
+| `findCitiesByAirport` | pub | 195 | `locationsService.findCitiesByAirport` | Cities under an airport. |
+| `createCity` | pub | 202 | `locationsService.createCity` | Creates a city. |
+| `findZones` | pub | 210 | `locationsService.findZones` | Zones under a city (the pricing unit). |
+| `createZone` | pub | 217 | `locationsService.createZone` | Creates a zone. |
+| `findHotelsByZone` | pub | 225 | `locationsService.findHotelsByZone` | Hotels cascaded under a zone. |
+| `createHotel` | pub | 232 | `locationsService.createHotel` | Creates a hotel under a zone. |
+| `updateCountry` | pub | 241 | `locationsService.updateCountry` | Edits a country. |
+| `updateAirport` | pub | 248 | `locationsService.updateAirport` | Edits an airport. |
+| `updateCity` | pub | 255 | `locationsService.updateCity` | Edits a city. |
+| `updateZone` | pub | 262 | `locationsService.updateZone` | Edits a zone. |
+| `updateHotel` | pub | 269 | `locationsService.updateHotel` | Edits a hotel (moving zones changes its price). |
+| `deleteCountry` | pub | 278 | `locationsService.deleteCountry` | Soft-deletes a country. |
+| `deleteAirport` | pub | 285 | `locationsService.deleteAirport` | Soft-deletes an airport. |
+| `deleteCity` | pub | 292 | `locationsService.deleteCity` | Soft-deletes a city. |
+| `deleteZone` | pub | 299 | `locationsService.deleteZone` | Soft-deletes a zone. |
+| `deleteHotel` | pub | 306 | `locationsService.deleteHotel` | Soft-deletes a hotel. |
 
 ### LocationsService
 
 `backend/src/locations/locations.service.ts:18` · service · 27 methods
 
+★ The location tree: Country → Airport → City → Zone → Hotel. Zones are the PRICING unit and hotels must cascade from a zone — there are no flat or free-text locations anywhere in the system. Also owns Excel import/export and coordinate geocoding for the geofence targets.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `searchLocations` | pub | 28 | `airport` `zone` `hotel` | _—_ |
-| `getTree` | pub | 103 | `country` | _—_ |
-| `findAllCountries` | pub | 138 | `country` | _—_ |
-| `createCountry` | pub | 164 | `country` | _—_ |
-| `findAirportsByCountry` | pub | 178 | `country` `airport` | _—_ |
-| `createAirport` | pub | 195 | `country` `airport` | _—_ |
-| `findCitiesByAirport` | pub | 218 | `airport` `city` | _—_ |
-| `createCity` | pub | 233 | `airport` `city` | _—_ |
-| `findZones` | pub | 255 | `city` `zone` | _—_ |
-| `createZone` | pub | 272 | `city` `zone` | _—_ |
-| `findHotelsByZone` | pub | 294 | `zone` `hotel` | _—_ |
-| `createHotel` | pub | 309 | `zone` `hotel` | _—_ |
-| `updateCountry` | pub | 333 | `country` | _—_ |
-| `updateAirport` | pub | 349 | `airport` `country` | _—_ |
-| `updateCity` | pub | 372 | `city` `airport` | _—_ |
-| `updateZone` | pub | 394 | `zone` `city` | _—_ |
-| `updateHotel` | pub | 416 | `hotel` `zone` | _—_ |
-| `deleteCountry` | pub | 442 | `country` | _—_ |
-| `deleteAirport` | pub | 454 | `airport` | _—_ |
-| `deleteCity` | pub | 466 | `city` | _—_ |
-| `deleteZone` | pub | 478 | `zone` | _—_ |
-| `deleteHotel` | pub | 490 | `hotel` | _—_ |
-| `exportToExcel` | pub | 502 | — | _—_ |
-| `generateImportTemplate` | pub | 577 | — | _—_ |
-| `importFromExcel` | pub | 678 | `country` `airport` `city` `zone` `hotel` | _—_ |
-| `updateLocationCoordinates` | pub | 889 | `country` `airport` `city` `zone` `hotel` | _—_ |
-| `batchGeocode` | pub | 919 | `airport` `city` `zone` `hotel` | _—_ |
+| `searchLocations` | pub | 28 | `airport` `zone` `hotel` | Cross-level search over airports, zones and hotels, for the dispatch and job-form pickers. |
+| `getTree` | pub | 103 | `country` | The whole hierarchy in one nested payload, used to hydrate cascading dropdowns. |
+| `findAllCountries` | pub | 138 | `country` | Lists countries. |
+| `createCountry` | pub | 164 | `country` | Creates a country (tree root). |
+| `findAirportsByCountry` | pub | 178 | `country` `airport` | Airports under a country. |
+| `createAirport` | pub | 195 | `country` `airport` | Creates an airport under a country. |
+| `findCitiesByAirport` | pub | 218 | `airport` `city` | Cities under an airport. |
+| `createCity` | pub | 233 | `airport` `city` | Creates a city under an airport. |
+| `findZones` | pub | 255 | `city` `zone` | Zones under a city — the pricing level. |
+| `createZone` | pub | 272 | `city` `zone` | Creates a zone under a city. |
+| `findHotelsByZone` | pub | 294 | `zone` `hotel` | Hotels cascaded under a zone. |
+| `createHotel` | pub | 309 | `zone` `hotel` | Creates a hotel under a zone; a hotel can never exist without one. |
+| `updateCountry` | pub | 333 | `country` | Renames or edits a country. |
+| `updateAirport` | pub | 349 | `airport` `country` | Edits an airport, including moving it between countries. |
+| `updateCity` | pub | 372 | `city` `airport` | Edits a city, including re-parenting to another airport. |
+| `updateZone` | pub | 394 | `zone` `city` | Edits a zone, including re-parenting to another city. Changing a zone moves the pricing unit — check price lists. |
+| `updateHotel` | pub | 416 | `hotel` `zone` | Edits a hotel, including moving it to another zone (which changes its price). |
+| `deleteCountry` | pub | 442 | `country` | Soft-deletes a country. |
+| `deleteAirport` | pub | 454 | `airport` | Soft-deletes an airport. |
+| `deleteCity` | pub | 466 | `city` | Soft-deletes a city. |
+| `deleteZone` | pub | 478 | `zone` | Soft-deletes a zone. |
+| `deleteHotel` | pub | 490 | `hotel` | Soft-deletes a hotel. |
+| `exportToExcel` | pub | 502 | — | Exports the whole tree to xlsx. |
+| `generateImportTemplate` | pub | 577 | — | Produces the blank import workbook with the expected columns per level. |
+| `importFromExcel` | pub | 678 | `country` `airport` `city` `zone` `hotel` | Bulk-imports the tree, creating each level in hierarchy order and matching existing nodes rather than duplicating. |
+| `updateLocationCoordinates` | pub | 889 | `country` `airport` `city` `zone` `hotel` | Sets lat/lng on one node. These coordinates are what the driver and rep geofence targets resolve to — a node with no coordinates disables the check for that job. |
+| `batchGeocode` | pub | 919 | `airport` `city` `zone` `hotel` | Bulk-geocodes airports, cities, zones and hotels that are missing coordinates. |
 
 ## `reps`
 
@@ -398,45 +434,49 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/reps/reps.controller.ts:58` · controller · 15 methods
 
+REST surface for reps: records, zone coverage, portal accounts, fees and Excel pipelines.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 63 | `repsService.findAll` | _—_ |
-| `exportExcel` | pub | 71 | `repsService.exportToExcel` | _—_ |
-| `downloadTemplate` | pub | 85 | `repsService.generateImportTemplate` | _—_ |
-| `importExcel` | pub | 99 | `repsService.importFromExcel` | _—_ |
-| `create` | pub | 113 | `repsService.create` | _—_ |
-| `findOne` | pub | 120 | `repsService.findOne` | _—_ |
-| `update` | pub | 128 | `repsService.update` | _—_ |
-| `toggleStatus` | pub | 139 | `repsService.toggleStatus` | _—_ |
-| `softDelete` | pub | 147 | `repsService.softDelete` | _—_ |
-| `assignZone` | pub | 155 | `repsService.assignZone` | _—_ |
-| `unassignZone` | pub | 166 | `repsService.unassignZone` | _—_ |
-| `uploadAttachment` | pub | 178 | `repsService.updateAttachment` | _—_ |
-| `createAccount` | pub | 190 | `repsService.createUserAccount` | _—_ |
-| `resetPassword` | pub | 201 | `repsService.resetPassword` | _—_ |
-| `getFees` | pub | 211 | `repsService.getFees` | _—_ |
+| `findAll` | pub | 63 | `repsService.findAll` | Rep list (Active/Inactive tabs). |
+| `exportExcel` | pub | 71 | `repsService.exportToExcel` | Downloads reps as xlsx. |
+| `downloadTemplate` | pub | 85 | `repsService.generateImportTemplate` | Blank rep import workbook. |
+| `importExcel` | pub | 99 | `repsService.importFromExcel` | Multipart bulk rep import. |
+| `create` | pub | 113 | `repsService.create` | Creates a rep record. |
+| `findOne` | pub | 120 | `repsService.findOne` | One rep's detail. |
+| `update` | pub | 128 | `repsService.update` | Edits a rep. |
+| `toggleStatus` | pub | 139 | `repsService.toggleStatus` | Activates/deactivates rep and account together. |
+| `softDelete` | pub | 147 | `repsService.softDelete` | Soft-deletes a rep. |
+| `assignZone` | pub | 155 | `repsService.assignZone` | Adds a zone to the rep's coverage — required before they appear in dispatch. |
+| `unassignZone` | pub | 166 | `repsService.unassignZone` | Removes a zone from the rep's coverage. |
+| `uploadAttachment` | pub | 178 | `repsService.updateAttachment` | Multipart upload of a rep document. |
+| `createAccount` | pub | 190 | `repsService.createUserAccount` | Creates the rep's portal login. |
+| `resetPassword` | pub | 201 | `repsService.resetPassword` | Admin password reset; also clears the session. |
+| `getFees` | pub | 211 | `repsService.getFees` | A rep's fees for a period. |
 
 ### RepsService
 
 `backend/src/reps/reps.service.ts:13` · service · 15 methods
 
+Rep records, zone coverage, portal accounts and fee history. A rep must have at least one zone assigned or they never appear in the dispatch assignment dropdown. Reps are paid only for completed jobs.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 16 | `rep` | _—_ |
-| `findOne` | pub | 52 | `rep` | _—_ |
-| `getFees` | pub | 77 | `repFee` | _—_ |
-| `create` | pub | 109 | `rep` | _—_ |
-| `update` | pub | 119 | `rep` | _—_ |
-| `toggleStatus` | pub | 132 | `rep` `user` | _—_ |
-| `softDelete` | pub | 153 | `rep` `user` | _—_ |
-| `updateAttachment` | pub | 173 | `rep` | _—_ |
-| `assignZone` | pub | 181 | `zone` `repZone` | _—_ |
-| `unassignZone` | pub | 222 | `repZone` | _—_ |
-| `createUserAccount` | pub | 243 | `user` `rep` | _—_ |
-| `resetPassword` | pub | 289 | `user` | _—_ |
-| `exportToExcel` | pub | 315 | `rep` | _—_ |
-| `generateImportTemplate` | pub | 349 | — | _—_ |
-| `importFromExcel` | pub | 418 | `rep` | _—_ |
+| `findAll` | pub | 16 | `rep` | Rep list, split Active/Inactive. |
+| `findOne` | pub | 52 | `rep` | One rep with zones, account and documents. |
+| `getFees` | pub | 77 | `repFee` | A rep's fees over a period, derived from their per-job scores. |
+| `create` | pub | 109 | `rep` | Creates a rep record. |
+| `update` | pub | 119 | `rep` | Edits rep details. |
+| `toggleStatus` | pub | 132 | `rep` `user` | Activates/deactivates the rep and their user account together. |
+| `softDelete` | pub | 153 | `rep` `user` | Soft-deletes the rep and disables their account. |
+| `updateAttachment` | pub | 173 | `rep` | Attaches or replaces a rep document. |
+| `assignZone` | pub | 181 | `zone` `repZone` | Adds a zone to a rep's coverage. Without at least one, the rep is invisible to dispatch. |
+| `unassignZone` | pub | 222 | `repZone` | Removes a zone from a rep's coverage. |
+| `createUserAccount` | pub | 243 | `user` `rep` | Creates the rep's portal login and links it to the Rep row. |
+| `resetPassword` | pub | 289 | `user` | Admin password reset that also clears the session, freeing a locked-out rep. |
+| `exportToExcel` | pub | 315 | `rep` | Exports reps to xlsx. |
+| `generateImportTemplate` | pub | 349 | — | Blank rep import workbook. |
+| `importFromExcel` | pub | 418 | `rep` | Bulk-imports reps. |
 
 ## `suppliers`
 
@@ -444,94 +484,98 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/suppliers/suppliers.controller.ts:36` · controller · 40 methods
 
+REST surface for suppliers and everything nested under them: their vehicles, drivers, trip prices, car types, portal account, and four separate Excel import/export pipelines.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 41 | `suppliersService.findAll` | _—_ |
-| `exportExcel` | pub | 56 | `suppliersService.exportToExcel` | _—_ |
-| `downloadTemplate` | pub | 70 | `suppliersService.generateImportTemplate` | _—_ |
-| `importExcel` | pub | 84 | `suppliersService.importFromExcel` | _—_ |
-| `create` | pub | 98 | `suppliersService.create` | _—_ |
-| `findOne` | pub | 104 | `suppliersService.findOne` | _—_ |
-| `update` | pub | 110 | `suppliersService.update` | _—_ |
-| `toggleStatus` | pub | 120 | `suppliersService.toggleStatus` | _—_ |
-| `bulkDelete` | pub | 128 | `suppliersService.bulkDelete` | _—_ |
-| `delete` | pub | 136 | `suppliersService.delete` | _—_ |
-| `createTripPrice` | pub | 145 | `suppliersService.createTripPrice` | _—_ |
-| `findTripPrices` | pub | 154 | `suppliersService.findTripPrices` | _—_ |
-| `updateTripPrice` | pub | 160 | `suppliersService.updateTripPrice` | _—_ |
-| `findVehicles` | pub | 171 | `suppliersService.findVehicles` | _—_ |
-| `createVehicle` | pub | 184 | `suppliersService.createVehicle` | _—_ |
-| `updateVehicle` | pub | 194 | `suppliersService.updateVehicle` | _—_ |
-| `deleteVehicle` | pub | 205 | `suppliersService.deleteVehicle` | _—_ |
-| `toggleVehicleStatus` | pub | 215 | `suppliersService.toggleVehicleStatus` | _—_ |
-| `findDrivers` | pub | 227 | `suppliersService.findDrivers` | _—_ |
-| `createDriver` | pub | 239 | `suppliersService.createDriver` | _—_ |
-| `updateDriver` | pub | 249 | `suppliersService.updateDriver` | _—_ |
-| `deleteDriver` | pub | 260 | `suppliersService.deleteDriver` | _—_ |
-| `toggleDriverStatus` | pub | 270 | `suppliersService.toggleDriverStatus` | _—_ |
-| `getPriceList` | pub | 282 | `suppliersService.getPriceList` | _—_ |
-| `upsertPriceList` | pub | 289 | `suppliersService.upsertPriceItems` | _—_ |
-| `deletePriceItem` | pub | 299 | `suppliersService.deletePriceItem` | _—_ |
-| `exportVehicles` | pub | 311 | `suppliersService.exportVehiclesToExcel` | _—_ |
-| `getVehicleTemplate` | pub | 325 | `suppliersService.generateVehicleImportTemplate` | _—_ |
-| `importVehicles` | pub | 340 | `suppliersService.importVehiclesFromExcel` | _—_ |
-| `exportDrivers` | pub | 352 | `suppliersService.exportDriversToExcel` | _—_ |
-| `getDriverTemplate` | pub | 366 | `suppliersService.generateDriverImportTemplate` | _—_ |
-| `importDrivers` | pub | 381 | `suppliersService.importDriversFromExcel` | _—_ |
-| `exportPriceList` | pub | 393 | `suppliersService.exportPriceListToExcel` | _—_ |
-| `getPriceListTemplate` | pub | 407 | `suppliersService.generatePriceListTemplate` | _—_ |
-| `importPriceList` | pub | 422 | `suppliersService.importPriceListFromExcel` | _—_ |
-| `createAccount` | pub | 435 | `suppliersService.createUserAccount` | _—_ |
-| `resetPassword` | pub | 446 | `suppliersService.resetPassword` | _—_ |
-| `uploadNationalId` | pub | 459 | `suppliersService.update` | _—_ |
-| `getCarTypes` | pub | 482 | `suppliersService.getCarTypes` | _—_ |
-| `setCarTypes` | pub | 488 | `suppliersService.setCarTypes` | _—_ |
+| `findAll` | pub | 41 | `suppliersService.findAll` | Supplier list (Active/Inactive tabs). |
+| `exportExcel` | pub | 56 | `suppliersService.exportToExcel` | Downloads suppliers as xlsx. |
+| `downloadTemplate` | pub | 70 | `suppliersService.generateImportTemplate` | Blank supplier import workbook. |
+| `importExcel` | pub | 84 | `suppliersService.importFromExcel` | Multipart bulk supplier import. |
+| `create` | pub | 98 | `suppliersService.create` | Creates a supplier. |
+| `findOne` | pub | 104 | `suppliersService.findOne` | One supplier's detail. |
+| `update` | pub | 110 | `suppliersService.update` | Edits a supplier. |
+| `toggleStatus` | pub | 120 | `suppliersService.toggleStatus` | Activates/deactivates a supplier. |
+| `bulkDelete` | pub | 128 | `suppliersService.bulkDelete` | Soft-deletes several suppliers. |
+| `delete` | pub | 136 | `suppliersService.delete` | Soft-deletes a supplier. |
+| `createTripPrice` | pub | 145 | `suppliersService.createTripPrice` | Adds a supplier trip price. |
+| `findTripPrices` | pub | 154 | `suppliersService.findTripPrices` | Trip prices we pay this supplier. |
+| `updateTripPrice` | pub | 160 | `suppliersService.updateTripPrice` | Edits a supplier trip price. |
+| `findVehicles` | pub | 171 | `suppliersService.findVehicles` | The supplier's vehicles. |
+| `createVehicle` | pub | 184 | `suppliersService.createVehicle` | Adds a supplier vehicle. |
+| `updateVehicle` | pub | 194 | `suppliersService.updateVehicle` | Edits a supplier vehicle. |
+| `deleteVehicle` | pub | 205 | `suppliersService.deleteVehicle` | Soft-deletes a supplier vehicle. |
+| `toggleVehicleStatus` | pub | 215 | `suppliersService.toggleVehicleStatus` | Activates/deactivates a supplier vehicle. |
+| `findDrivers` | pub | 227 | `suppliersService.findDrivers` | The supplier's drivers. |
+| `createDriver` | pub | 239 | `suppliersService.createDriver` | Adds a supplier driver. |
+| `updateDriver` | pub | 249 | `suppliersService.updateDriver` | Edits a supplier driver. |
+| `deleteDriver` | pub | 260 | `suppliersService.deleteDriver` | Soft-deletes a supplier driver. |
+| `toggleDriverStatus` | pub | 270 | `suppliersService.toggleDriverStatus` | Activates/deactivates a supplier driver. |
+| `getPriceList` | pub | 282 | `suppliersService.getPriceList` | The supplier's price grid. |
+| `upsertPriceList` | pub | 289 | `suppliersService.upsertPriceItems` | Bulk-saves the supplier price grid. |
+| `deletePriceItem` | pub | 299 | `suppliersService.deletePriceItem` | Removes one price row. |
+| `exportVehicles` | pub | 311 | `suppliersService.exportVehiclesToExcel` | Downloads the supplier's vehicles as xlsx. |
+| `getVehicleTemplate` | pub | 325 | `suppliersService.generateVehicleImportTemplate` | Blank supplier-vehicle workbook. |
+| `importVehicles` | pub | 340 | `suppliersService.importVehiclesFromExcel` | Multipart supplier-vehicle import. |
+| `exportDrivers` | pub | 352 | `suppliersService.exportDriversToExcel` | Downloads the supplier's drivers as xlsx. |
+| `getDriverTemplate` | pub | 366 | `suppliersService.generateDriverImportTemplate` | Blank supplier-driver workbook. |
+| `importDrivers` | pub | 381 | `suppliersService.importDriversFromExcel` | Multipart supplier-driver import. |
+| `exportPriceList` | pub | 393 | `suppliersService.exportPriceListToExcel` | Downloads the price grid as xlsx. |
+| `getPriceListTemplate` | pub | 407 | `suppliersService.generatePriceListTemplate` | Blank price workbook pre-filled with real zones and vehicle types. |
+| `importPriceList` | pub | 422 | `suppliersService.importPriceListFromExcel` | Multipart price-grid import. |
+| `createAccount` | pub | 435 | `suppliersService.createUserAccount` | Creates the supplier's portal login. |
+| `resetPassword` | pub | 446 | `suppliersService.resetPassword` | Admin password reset; also clears the session. |
+| `uploadNationalId` | pub | 459 | `suppliersService.update` | Multipart upload of the supplier contact's national ID. |
+| `getCarTypes` | pub | 482 | `suppliersService.getCarTypes` | Car types this supplier can source. |
+| `setCarTypes` | pub | 488 | `suppliersService.setCarTypes` | Replaces the supplier's offered car types. |
 
 ### SuppliersService
 
 `backend/src/suppliers/suppliers.service.ts:20` · service · 39 methods
 
+External car suppliers and everything they bring: their own vehicles, their own drivers, their trip price list, the car types they offer, and their portal account. The largest service in the codebase — most of its bulk is the four separate Excel import/export pipelines (suppliers, vehicles, drivers, price list).
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 25 | `supplier` | _—_ |
-| `findOne` | pub | 57 | `supplier` | _—_ |
-| `create` | pub | 88 | `supplier` | _—_ |
-| `update` | pub | 106 | `supplier` | _—_ |
-| `toggleStatus` | pub | 133 | `supplier` | _—_ |
-| `delete` | pub | 142 | `supplier` | _—_ |
-| `bulkDelete` | pub | 157 | `supplier` | _—_ |
-| `findTripPrices` | pub | 172 | `supplier` `supplierTripPrice` | _—_ |
-| `createTripPrice` | pub | 195 | `supplier` `supplierTripPrice` | _—_ |
-| `updateTripPrice` | pub | 225 | `supplierTripPrice` | _—_ |
-| `findVehicles` | pub | 257 | `supplier` `vehicle` | _—_ |
-| `createVehicle` | pub | 300 | `supplier` `vehicle` | _—_ |
-| `updateVehicle` | pub | 333 | `vehicle` | _—_ |
-| `deleteVehicle` | pub | 367 | `vehicle` | _—_ |
-| `toggleVehicleStatus` | pub | 382 | `vehicle` | _—_ |
-| `findDrivers` | pub | 400 | `supplier` `driver` | _—_ |
-| `createDriver` | pub | 438 | `supplier` `driver` | _—_ |
-| `updateDriver` | pub | 458 | `driver` | _—_ |
-| `deleteDriver` | pub | 478 | `driver` | _—_ |
-| `toggleDriverStatus` | pub | 493 | `driver` | _—_ |
-| `getPriceList` | pub | 510 | `supplier` `supplierTripPrice` | _—_ |
-| `upsertPriceItems` | pub | 535 | `supplier` `supplierTripPrice` | _—_ |
-| `deletePriceItem` | pub | 580 | `supplier` `supplierTripPrice` | _—_ |
-| `createUserAccount` | pub | 604 | `user` `supplier` | _—_ |
-| `resetPassword` | pub | 650 | `user` | _—_ |
-| `exportToExcel` | pub | 676 | `supplier` | _—_ |
-| `generateImportTemplate` | pub | 707 | — | _—_ |
-| `importFromExcel` | pub | 764 | `supplier` | _—_ |
-| `exportVehiclesToExcel` | pub | 831 | `vehicle` | _—_ |
-| `generateVehicleImportTemplate` | pub | 867 | `vehicleType` | _—_ |
-| `importVehiclesFromExcel` | pub | 907 | `vehicleType` `vehicle` | _—_ |
-| `exportDriversToExcel` | pub | 998 | `driver` | _—_ |
-| `generateDriverImportTemplate` | pub | 1031 | — | _—_ |
-| `importDriversFromExcel` | pub | 1053 | `driver` | _—_ |
-| `exportPriceListToExcel` | pub | 1104 | — | _—_ |
-| `generatePriceListTemplate` | pub | 1131 | `zone` `vehicleType` | _—_ |
-| `importPriceListFromExcel` | pub | 1175 | `zone` `vehicleType` | _—_ |
-| `getCarTypes` | pub | 1236 | `supplierCarType` | _—_ |
-| `setCarTypes` | pub | 1245 | `supplier` `supplierCarType` | _—_ |
+| `findAll` | pub | 25 | `supplier` | Supplier list, split Active/Inactive. |
+| `findOne` | pub | 57 | `supplier` | One supplier with vehicles, drivers and prices. |
+| `create` | pub | 88 | `supplier` | Creates a supplier. |
+| `update` | pub | 106 | `supplier` | Edits supplier details. |
+| `toggleStatus` | pub | 133 | `supplier` | Activates/deactivates a supplier. |
+| `delete` | pub | 142 | `supplier` | Soft-deletes a supplier. |
+| `bulkDelete` | pub | 157 | `supplier` | Soft-deletes many suppliers at once. |
+| `findTripPrices` | pub | 172 | `supplier` `supplierTripPrice` | A supplier's trip prices — what we PAY them, distinct from agent/customer prices we charge. |
+| `createTripPrice` | pub | 195 | `supplier` `supplierTripPrice` | Adds a supplier trip price for a zone pair and vehicle type. |
+| `updateTripPrice` | pub | 225 | `supplierTripPrice` | Edits a supplier trip price. |
+| `findVehicles` | pub | 257 | `supplier` `vehicle` | Vehicles belonging to this supplier. |
+| `createVehicle` | pub | 300 | `supplier` `vehicle` | Adds a vehicle owned by the supplier. |
+| `updateVehicle` | pub | 333 | `vehicle` | Edits a supplier vehicle. |
+| `deleteVehicle` | pub | 367 | `vehicle` | Soft-deletes a supplier vehicle. |
+| `toggleVehicleStatus` | pub | 382 | `vehicle` | Activates/deactivates a supplier vehicle. |
+| `findDrivers` | pub | 400 | `supplier` `driver` | Drivers belonging to this supplier. |
+| `createDriver` | pub | 438 | `supplier` `driver` | Adds a driver under the supplier. Supplier drivers are what the midnight cron auto-completes. |
+| `updateDriver` | pub | 458 | `driver` | Edits a supplier driver. |
+| `deleteDriver` | pub | 478 | `driver` | Soft-deletes a supplier driver. |
+| `toggleDriverStatus` | pub | 493 | `driver` | Activates/deactivates a supplier driver. |
+| `getPriceList` | pub | 510 | `supplier` `supplierTripPrice` | The supplier's full price grid (zone pair × vehicle type). |
+| `upsertPriceItems` | pub | 535 | `supplier` `supplierTripPrice` | Bulk-upserts supplier price rows from the grid editor. |
+| `deletePriceItem` | pub | 580 | `supplier` `supplierTripPrice` | Removes one supplier price row. |
+| `createUserAccount` | pub | 604 | `user` `supplier` | Creates the supplier's portal login and links it to the Supplier row. |
+| `resetPassword` | pub | 650 | `user` | Admin password reset that also clears the session. |
+| `exportToExcel` | pub | 676 | `supplier` | Exports suppliers to xlsx. |
+| `generateImportTemplate` | pub | 707 | — | Blank supplier import workbook. |
+| `importFromExcel` | pub | 764 | `supplier` | Bulk-imports suppliers. |
+| `exportVehiclesToExcel` | pub | 831 | `vehicle` | Exports a supplier's vehicles. |
+| `generateVehicleImportTemplate` | pub | 867 | `vehicleType` | Blank supplier-vehicle workbook, pre-filled with vehicle types. |
+| `importVehiclesFromExcel` | pub | 907 | `vehicleType` `vehicle` | Bulk-imports a supplier's vehicles. |
+| `exportDriversToExcel` | pub | 998 | `driver` | Exports a supplier's drivers. |
+| `generateDriverImportTemplate` | pub | 1031 | — | Blank supplier-driver workbook. |
+| `importDriversFromExcel` | pub | 1053 | `driver` | Bulk-imports a supplier's drivers. |
+| `exportPriceListToExcel` | pub | 1104 | — | Exports a supplier's price grid. |
+| `generatePriceListTemplate` | pub | 1131 | `zone` `vehicleType` | Blank price workbook pre-filled with real zones and vehicle types, so imported rows resolve to ids. |
+| `importPriceListFromExcel` | pub | 1175 | `zone` `vehicleType` | Bulk-imports supplier prices, resolving zone and vehicle-type names. |
+| `getCarTypes` | pub | 1236 | `supplierCarType` | Car types this supplier can source — what dispatch offers when no own vehicle is used. |
+| `setCarTypes` | pub | 1245 | `supplier` `supplierCarType` | Replaces the supplier's offered car types. |
 
 ## `traffic-jobs`
 
@@ -539,38 +583,42 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/traffic-jobs/traffic-jobs.controller.ts:40` · controller · 10 methods
 
+REST surface for job CRUD, status changes, bulk import, evidence upload and Force Control.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 49 | `trafficJobsService.findAll` | _—_ |
-| `findOne` | pub | 56 | `trafficJobsService.findOne` | _—_ |
-| `bulkCreate` | pub | 64 | `trafficJobsService.bulkCreate` | _—_ |
-| `create` | pub | 75 | `trafficJobsService.create` | _—_ |
-| `update` | pub | 86 | `trafficJobsService.update` | _—_ |
-| `updateStatus` | pub | 99 | `trafficJobsService.updateStatus` | _—_ |
-| `forceControl` | pub | 110 | `trafficJobsService.forceControl` | _—_ |
-| `remove` | pub | 121 | `trafficJobsService.remove` | _—_ |
-| `uploadEvidence` | pub | 129 | `googleDriveService.uploadFile` `trafficJobsService.uploadEvidence` | _—_ |
-| `recalculateDriverFees` | pub | 167 | `trafficJobsService.recalculateDriverFees` | _—_ |
+| `findAll` | pub | 49 | `trafficJobsService.findAll` | Filterable job list. |
+| `findOne` | pub | 56 | `trafficJobsService.findOne` | One job's full detail. |
+| `bulkCreate` | pub | 64 | `trafficJobsService.bulkCreate` | Bulk job import; returns per-row errors instead of failing the batch. |
+| `create` | pub | 75 | `trafficJobsService.create` | Creates a job. |
+| `update` | pub | 86 | `trafficJobsService.update` | Edits a job. |
+| `updateStatus` | pub | 99 | `trafficJobsService.updateStatus` | Dispatch status transition. |
+| `forceControl` | pub | 110 | `trafficJobsService.forceControl` | Admin override of job/rep/driver statuses, bypassing the transition tables. |
+| `remove` | pub | 121 | `trafficJobsService.remove` | Soft-deletes a job. |
+| `uploadEvidence` | pub | 129 | `googleDriveService.uploadFile` `trafficJobsService.uploadEvidence` | Admin-side evidence upload on a driver's or rep's behalf. |
+| `recalculateDriverFees` | pub | 167 | `trafficJobsService.recalculateDriverFees` | Re-derives missing or stale driver trip fees from the tariff table. |
 
 ### TrafficJobsService
 
 `backend/src/traffic-jobs/traffic-jobs.service.ts:32` · service · 13 methods
 
+The core job entity: creation, editing, status transitions and admin Force Control. Channel rules differ — ONLINE jobs require an agent plus a unique agent reference matching that agent's `refPattern`; B2B jobs require a customer.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 166 | `trafficJob` | _—_ |
-| `findOne` | pub | 214 | `trafficJob` | _—_ |
-| `create` | pub | 227 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | _—_ |
-| `update` | pub | 377 | `trafficJob` `trafficAssignment` `trafficFlight` | _—_ |
-| `updateStatus` | pub | 608 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | _—_ |
-| `forceControl` | pub | 749 | `trafficJob` `trafficAssignment` | _—_ |
-| `remove` | pub | 781 | `trafficJob` | _—_ |
-| `uploadEvidence` | pub | 794 | `completedEvidence` | _—_ |
-| `deriveAbbreviation` | priv | 823 | — | _—_ |
-| `generateInternalRef` | priv | 828 | `settingsService.getCompanySettings` | _—_ |
-| `resolveZoneFromFKs` | priv | 848 | `hotel` | _—_ |
-| `bulkCreate` | pub | 865 | — | _—_ |
-| `recalculateDriverFees` | pub | 887 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | _—_ |
+| `findAll` | pub | 166 | `trafficJob` | Filterable, paginated job list backing the traffic-jobs screens. |
+| `findOne` | pub | 214 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
+| `create` | pub | 227 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
+| `update` | pub | 377 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
+| `updateStatus` | pub | 608 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
+| `forceControl` | pub | 749 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
+| `remove` | pub | 781 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
+| `uploadEvidence` | pub | 794 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
+| `deriveAbbreviation` | priv | 823 | — | Builds the reference prefix from the company name's initials. |
+| `generateInternalRef` | priv | 828 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
+| `resolveZoneFromFKs` | priv | 848 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
+| `bulkCreate` | pub | 865 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
+| `recalculateDriverFees` | pub | 887 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
 
 ## `vehicles`
 
@@ -578,55 +626,59 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 `backend/src/vehicles/vehicles.controller.ts:52` · controller · 21 methods
 
+REST surface for vehicle types, the fleet, compliance documents and deposit payments.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAllVehicleTypes` | pub | 59 | `vehiclesService.findAllVehicleTypes` | _—_ |
-| `createVehicleType` | pub | 66 | `vehiclesService.createVehicleType` | _—_ |
-| `updateVehicleType` | pub | 73 | `vehiclesService.updateVehicleType` | _—_ |
-| `uploadVehicleTypeImage` | pub | 84 | — | _—_ |
-| `findAllVehicles` | pub | 96 | `vehiclesService.findAllVehicles` | _—_ |
-| `exportExcel` | pub | 109 | `vehiclesService.exportToExcel` | _—_ |
-| `downloadTemplate` | pub | 123 | `vehiclesService.generateImportTemplate` | _—_ |
-| `importExcel` | pub | 137 | `vehiclesService.importFromExcel` | _—_ |
-| `createVehicle` | pub | 156 | `vehiclesService.createVehicle` | _—_ |
-| `complianceReport` | pub | 165 | `vehiclesService.getComplianceReport` | _—_ |
-| `getCompliance` | pub | 172 | `vehiclesService.getCompliance` | _—_ |
-| `upsertCompliance` | pub | 180 | `vehiclesService.upsertCompliance` | _—_ |
-| `uploadLicenseCopy` | pub | 192 | `vehiclesService.updateComplianceFile` | _—_ |
-| `uploadInsuranceDoc` | pub | 205 | `vehiclesService.updateComplianceFile` | _—_ |
-| `listDeposits` | pub | 219 | `vehiclesService.listDepositPayments` | _—_ |
-| `addDeposit` | pub | 227 | `vehiclesService.addDepositPayment` | _—_ |
-| `removeDeposit` | pub | 239 | `vehiclesService.removeDepositPayment` | _—_ |
-| `findVehicleById` | pub | 249 | `vehiclesService.findVehicleById` | _—_ |
-| `updateVehicle` | pub | 256 | `vehiclesService.updateVehicle` | _—_ |
-| `toggleStatus` | pub | 266 | `vehiclesService.toggleStatus` | _—_ |
-| `softDelete` | pub | 274 | `vehiclesService.softDelete` | _—_ |
+| `findAllVehicleTypes` | pub | 59 | `vehiclesService.findAllVehicleTypes` | Lists vehicle types with seat capacities. |
+| `createVehicleType` | pub | 66 | `vehiclesService.createVehicleType` | Creates a vehicle type. |
+| `updateVehicleType` | pub | 73 | `vehiclesService.updateVehicleType` | Edits a vehicle type. |
+| `uploadVehicleTypeImage` | pub | 84 | — | Uploads the vehicle type's illustration (shown on the B2C site). |
+| `findAllVehicles` | pub | 96 | `vehiclesService.findAllVehicles` | Fleet list (Active/Inactive tabs). |
+| `exportExcel` | pub | 109 | `vehiclesService.exportToExcel` | Downloads the fleet as xlsx. |
+| `downloadTemplate` | pub | 123 | `vehiclesService.generateImportTemplate` | Blank fleet import workbook. |
+| `importExcel` | pub | 137 | `vehiclesService.importFromExcel` | Multipart bulk fleet import. |
+| `createVehicle` | pub | 156 | `vehiclesService.createVehicle` | Adds a vehicle. |
+| `complianceReport` | pub | 165 | `vehiclesService.getComplianceReport` | Fleet-wide compliance report highlighting expiries. |
+| `getCompliance` | pub | 172 | `vehiclesService.getCompliance` | One vehicle's compliance record. |
+| `upsertCompliance` | pub | 180 | `vehiclesService.upsertCompliance` | Creates or updates compliance data. |
+| `uploadLicenseCopy` | pub | 192 | `vehiclesService.updateComplianceFile` | Uploads the vehicle licence document. |
+| `uploadInsuranceDoc` | pub | 205 | `vehiclesService.updateComplianceFile` | Uploads the insurance document. |
+| `listDeposits` | pub | 219 | `vehiclesService.listDepositPayments` | Deposit payment history. |
+| `addDeposit` | pub | 227 | `vehiclesService.addDepositPayment` | Records a deposit payment. |
+| `removeDeposit` | pub | 239 | `vehiclesService.removeDepositPayment` | Deletes a deposit payment. |
+| `findVehicleById` | pub | 249 | `vehiclesService.findVehicleById` | One vehicle's detail. |
+| `updateVehicle` | pub | 256 | `vehiclesService.updateVehicle` | Edits a vehicle. |
+| `toggleStatus` | pub | 266 | `vehiclesService.toggleStatus` | Activates/deactivates a vehicle. |
+| `softDelete` | pub | 274 | `vehiclesService.softDelete` | Soft-deletes a vehicle. |
 
 ### VehiclesService
 
 `backend/src/vehicles/vehicles.service.ts:12` · service · 19 methods
 
+Vehicle types, the owned fleet, and per-vehicle compliance records (licences, insurance, deposits). `seatCapacity` on the type is what enforces the pax-never-exceeds-capacity rule at assignment time.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAllVehicleTypes` | pub | 17 | `vehicleType` | _—_ |
-| `createVehicleType` | pub | 23 | `vehicleType` | _—_ |
-| `updateVehicleType` | pub | 39 | `vehicleType` | _—_ |
-| `findAllVehicles` | pub | 60 | `vehicle` | _—_ |
-| `findVehicleById` | pub | 93 | `vehicle` | _—_ |
-| `createVehicle` | pub | 106 | `vehicleType` `vehicle` | _—_ |
-| `toggleStatus` | pub | 130 | `vehicle` | _—_ |
-| `softDelete` | pub | 144 | `vehicle` | _—_ |
-| `updateVehicle` | pub | 158 | `vehicle` `vehicleType` | _—_ |
-| `exportToExcel` | pub | 194 | `vehicle` | _—_ |
-| `generateImportTemplate` | pub | 249 | `vehicleType` | _—_ |
-| `importFromExcel` | pub | 436 | `vehicleType` `vehicle` `vehicleCompliance` | _—_ |
-| `getCompliance` | pub | 765 | `vehicleCompliance` | _—_ |
-| `upsertCompliance` | pub | 773 | `vehicleCompliance` | _—_ |
-| `updateComplianceFile` | pub | 797 | `vehicleCompliance` | _—_ |
-| `getComplianceReport` | pub | 810 | `vehicle` | _—_ |
-| `addDepositPayment` | pub | 862 | `vehicleCompliance` `user` `vehicleDepositPayment` | _—_ |
-| `removeDepositPayment` | pub | 889 | `vehicleDepositPayment` | _—_ |
-| `listDepositPayments` | pub | 906 | `vehicleCompliance` `vehicleDepositPayment` | _—_ |
+| `findAllVehicleTypes` | pub | 17 | `vehicleType` | Lists vehicle types with their seat capacities. |
+| `createVehicleType` | pub | 23 | `vehicleType` | Creates a vehicle type. |
+| `updateVehicleType` | pub | 39 | `vehicleType` | Edits a vehicle type. Changing seat capacity affects which jobs the type can serve. |
+| `findAllVehicles` | pub | 60 | `vehicle` | Filterable fleet list, split Active/Inactive. |
+| `findVehicleById` | pub | 93 | `vehicle` | One vehicle with type, supplier and compliance detail. |
+| `createVehicle` | pub | 106 | `vehicleType` `vehicle` | Adds a vehicle, validating its type exists. |
+| `toggleStatus` | pub | 130 | `vehicle` | Activates/deactivates a vehicle; inactive vehicles disappear from dispatch availability. |
+| `softDelete` | pub | 144 | `vehicle` | Soft-deletes a vehicle. |
+| `updateVehicle` | pub | 158 | `vehicle` `vehicleType` | Edits a vehicle's details or type. |
+| `exportToExcel` | pub | 194 | `vehicle` | Exports the fleet to xlsx. |
+| `generateImportTemplate` | pub | 249 | `vehicleType` | Blank fleet import workbook, pre-filled with the valid vehicle types. |
+| `importFromExcel` | pub | 436 | `vehicleType` `vehicle` `vehicleCompliance` | Bulk-imports vehicles and their compliance rows. |
+| `getCompliance` | pub | 765 | `vehicleCompliance` | Compliance record for one vehicle (documents and expiry dates). |
+| `upsertCompliance` | pub | 773 | `vehicleCompliance` | Creates or updates a vehicle's compliance record. |
+| `updateComplianceFile` | pub | 797 | `vehicleCompliance` | Attaches or replaces a compliance document file. |
+| `getComplianceReport` | pub | 810 | `vehicle` | Fleet-wide compliance view highlighting expired or expiring documents. |
+| `addDepositPayment` | pub | 862 | `vehicleCompliance` `user` `vehicleDepositPayment` | Records a deposit payment against a vehicle's compliance record. |
+| `removeDepositPayment` | pub | 889 | `vehicleDepositPayment` | Deletes a deposit payment row. |
+| `listDepositPayments` | pub | 906 | `vehicleCompliance` `vehicleDepositPayment` | Deposit payment history for a vehicle. |
 
 ## Standalone exports
 
@@ -634,24 +686,32 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 
 ### `backend/src/agents/dto/agent-price-list.dto.ts`
 
+DTOs for the agent price-grid bulk save.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ServiceTypeEnum` | type | 13 | _—_ |
+| `ServiceTypeEnum` | type | 13 | Service types accepted on an agent price row. |
 
 ### `backend/src/customers/dto/price-list.dto.ts`
 
+DTOs for the customer price-grid bulk save.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ServiceTypeEnum` | type | 13 | _—_ |
+| `ServiceTypeEnum` | type | 13 | Service types accepted on a customer price row. |
 
 ### `backend/src/suppliers/dto/create-vehicle.dto.ts`
 
+DTO for creating a vehicle owned by a supplier.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `VehicleOwnershipEnum` | type | 11 | _—_ |
+| `VehicleOwnershipEnum` | type | 11 | Whether a vehicle is owned by the company or by a supplier. |
 
 ### `backend/src/suppliers/dto/supplier-price-list.dto.ts`
 
+DTOs for the supplier price-grid bulk save.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ServiceTypeEnum` | type | 13 | _—_ |
+| `ServiceTypeEnum` | type | 13 | Service types accepted on a supplier price row. |
