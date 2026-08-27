@@ -1,1 +1,8 @@
-{}
+{
+  "backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.submitCompleted": "Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up.",
+  "backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.markCollected": "Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button.",
+  "backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.updateJobStatus": "GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time.",
+  "backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.getJobHistory": "Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job.",
+  "backend/prisma/schema.prisma#TrafficAssignment": "The single vehicle/driver/rep/supplier assignment for a job (1:1 with TrafficJob). Holds the three independent portal legs — `driverStatus`, `repStatus`, `supplierStatus` — which `JobCompletionService.reconcileJobStatus` rolls up into `TrafficJob.status`.",
+  "frontend/src/app/(driver-portal)/driver/page.tsx#default": "Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed."
+}

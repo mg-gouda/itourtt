@@ -45,7 +45,7 @@
 | `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 693 | 8 | 8 | _—_ |
 | `/dashboard/vehicles/new` | `frontend/src/app/(dashboard)/dashboard/vehicles/new/page.tsx` | 300 | 2 | 8 | _—_ |
 | `/dashboard/whatsapp` | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx` | 713 | 7 | 3 | _—_ |
-| `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 797 | 6 | — | _—_ |
+| `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 797 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
 | `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 344 | 1 | — | _—_ |
 | `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | _—_ |
 | `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | _—_ |

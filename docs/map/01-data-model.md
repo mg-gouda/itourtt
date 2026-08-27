@@ -1327,6 +1327,8 @@ Jump: [Models](#models) · [Enums](#enums)
 
 `traffic_assignments` · schema.prisma:1323 · 17 fields, 8 relations
 
+The single vehicle/driver/rep/supplier assignment for a job (1:1 with TrafficJob). Holds the three independent portal legs — `driverStatus`, `repStatus`, `supplierStatus` — which `JobCompletionService.reconcileJobStatus` rolls up into `TrafficJob.status`.
+
 | Field | Type | Column | Flags |
 |---|---|---|---|
 | `id` | String | — | PK |

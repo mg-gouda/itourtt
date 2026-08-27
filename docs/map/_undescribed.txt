@@ -1,5 +1,5 @@
 # Symbols with no description yet — regenerate to refresh.
-# 0/576 described.
+# 6/576 described.
 backend/prisma/schema.prisma#Account
 backend/prisma/schema.prisma#ActivityLog
 backend/prisma/schema.prisma#Agent
@@ -67,7 +67,6 @@ backend/prisma/schema.prisma#SupplierCarType
 backend/prisma/schema.prisma#SupplierCost
 backend/prisma/schema.prisma#SupplierTripPrice
 backend/prisma/schema.prisma#SystemSettings
-backend/prisma/schema.prisma#TrafficAssignment
 backend/prisma/schema.prisma#TrafficFlight
 backend/prisma/schema.prisma#TrafficJob
 backend/prisma/schema.prisma#TrafficJobExtra
@@ -161,17 +160,13 @@ backend/src/dispatch/dispatch.controller.ts#DispatchController.reassignJob
 backend/src/dispatch/dispatch.controller.ts#DispatchController.unassignJob
 backend/src/dispatch/dispatch.controller.ts#DispatchController.unlockJob
 backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.getJobDetail
-backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.getJobHistory
 backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.getMyJobs
 backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.getNotifications
 backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.getProfile
 backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.markAllRead
-backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.markCollected
 backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.markNotificationRead
-backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.submitCompleted
 backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.submitInProgress
 backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.submitNoShow
-backend/src/driver-portal/driver-portal.controller.ts#DriverPortalController.updateJobStatus
 backend/src/driver-tariffs/driver-tariffs.controller.ts#DriverTariffsController.downloadTemplate
 backend/src/driver-tariffs/driver-tariffs.controller.ts#DriverTariffsController.findAll
 backend/src/driver-tariffs/driver-tariffs.controller.ts#DriverTariffsController.importExcel
@@ -565,7 +560,6 @@ frontend/src/app/(dashboard)/dashboard/vehicles/new/page.tsx#default
 frontend/src/app/(dashboard)/dashboard/vehicles/page.tsx#default
 frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx#default
 frontend/src/app/(driver-portal)/driver/history/page.tsx#default
-frontend/src/app/(driver-portal)/driver/page.tsx#default
 frontend/src/app/(driver-portal)/driver/profile/page.tsx#default
 frontend/src/app/(rep-portal)/rep/history/page.tsx#default
 frontend/src/app/(rep-portal)/rep/page.tsx#default

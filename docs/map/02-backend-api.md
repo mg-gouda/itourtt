@@ -193,12 +193,12 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 |---|---|---|---|---|---|
 | GET | `/api/driver-portal/jobs` | `getMyJobs`:78 | `DRIVER` | `driverPortalService.getMyJobs` | _—_ |
 | GET | `/api/driver-portal/jobs/:jobId` | `getJobDetail`:102 | `DRIVER` | `driverPortalService.findJobDetail` | _—_ |
-| PATCH | `/api/driver-portal/jobs/:jobId/collection` | `markCollected`:127 | `DRIVER` | `driverPortalService.markCollected` | _—_ |
-| POST | `/api/driver-portal/jobs/:jobId/completed` | `submitCompleted`:192 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitCompleted` | _—_ |
+| PATCH | `/api/driver-portal/jobs/:jobId/collection` | `markCollected`:127 | `DRIVER` | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
+| POST | `/api/driver-portal/jobs/:jobId/completed` | `submitCompleted`:192 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
 | POST | `/api/driver-portal/jobs/:jobId/in-progress` | `submitInProgress`:165 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitInProgress` | _—_ |
 | POST | `/api/driver-portal/jobs/:jobId/no-show` | `submitNoShow`:138 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitNoShow` | _—_ |
-| PATCH | `/api/driver-portal/jobs/:jobId/status` | `updateJobStatus`:111 | `DRIVER` | `driverPortalService.updateJobStatus` | _—_ |
-| GET | `/api/driver-portal/jobs/history` | `getJobHistory`:87 | `DRIVER` | `driverPortalService.getJobHistory` | _—_ |
+| PATCH | `/api/driver-portal/jobs/:jobId/status` | `updateJobStatus`:111 | `DRIVER` | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
+| GET | `/api/driver-portal/jobs/history` | `getJobHistory`:87 | `DRIVER` | `driverPortalService.getJobHistory` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job. |
 | GET | `/api/driver-portal/notifications` | `getNotifications`:218 | `DRIVER` | `driverPortalService.getNotifications` | _—_ |
 | PATCH | `/api/driver-portal/notifications/:id/read` | `markNotificationRead`:224 | `DRIVER` | `driverPortalService.markNotificationRead` | _—_ |
 | PATCH | `/api/driver-portal/notifications/read-all` | `markAllRead`:233 | `DRIVER` | `driverPortalService.markAllRead` | _—_ |
