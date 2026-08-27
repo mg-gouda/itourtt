@@ -49,7 +49,11 @@ function walk(dir, out = []) {
   return out;
 }
 
-const readLines = (f) => fs.readFileSync(f, 'utf8').split('\n');
+const _lineCache = new Map();
+const readLines = (f) => {
+  if (!_lineCache.has(f)) _lineCache.set(f, fs.readFileSync(f, 'utf8').split('\n'));
+  return _lineCache.get(f);
+};
 
 // ───────────────────────────── descriptions ──────────────────────────────
 
@@ -219,9 +223,9 @@ function parseClasses(files) {
     let cur = null;
     for (let i = 0; i < lines.length; i++) {
       const cm = lines[i].match(/^export (?:abstract )?class (\w+)/);
-      if (cm) { cur = { name: cm[1], file, line: i + 1, methods: [] }; classes.push(cur); continue; }
+      if (cm) { cur = { name: cm[1], file, line: i + 1, end: lines.length, methods: [] }; classes.push(cur); continue; }
       if (!cur) continue;
-      if (/^\}/.test(lines[i])) { cur = null; continue; }
+      if (/^\}/.test(lines[i])) { cur.end = i + 1; cur = null; continue; }
       const mm = lines[i].match(/^  (?:(private|public|protected) )?(?:(static) )?(?:(async) )?([a-zA-Z_$][\w$]*)\s*[(<]/);
       if (!mm) continue;
       const name = mm[4];
@@ -229,7 +233,26 @@ function parseClasses(files) {
       cur.methods.push({ name, visibility: mm[1] || 'public', static: !!mm[2], async: !!mm[3], line: i + 1 });
     }
   }
+  // Second pass: a method body runs to the next method (or the class close brace).
+  // From it we extract the Prisma models and sibling services the method touches —
+  // the single most useful column for tracing behaviour without opening the file.
+  for (const c of classes) {
+    const lines = readLines(c.file);
+    c.methods.forEach((m, idx) => {
+      const to = idx + 1 < c.methods.length ? c.methods[idx + 1].line - 1 : c.end;
+      m.touches = extractTouches(lines.slice(m.line - 1, to).join('\n'));
+    });
+  }
   return classes;
+}
+
+const PRISMA_OPS = 'findMany|findFirst|findFirstOrThrow|findUnique|findUniqueOrThrow|create|createMany|update|updateMany|upsert|delete|deleteMany|count|aggregate|groupBy';
+
+function extractTouches(body) {
+  const models = new Set(), services = new Set();
+  for (const m of body.matchAll(new RegExp(`(?:this\\.prisma|tx|prisma)\\.(\\w+)\\.(?:${PRISMA_OPS})\\(`, 'g'))) models.add(m[1]);
+  for (const m of body.matchAll(/this\.(\w*(?:Service|Gateway|Client))\.(\w+)\(/g)) services.add(`${m[1]}.${m[2]}`);
+  return { models: [...models], services: [...services] };
 }
 
 function parseExports(files) {
@@ -393,6 +416,112 @@ function renderSymbolIndex(rows) {
   return L.join('\n');
 }
 
+
+// ───────────────────────── backend service maps (03–06) ──────────────────
+
+const moduleOf = (file) => {
+  const r = rel(file);
+  const m = r.match(/^backend\/src\/([^/]+)\//);
+  return m ? m[1] : '_root';
+};
+
+const BACKEND_GROUPS = [
+  { out: '03-backend-services-ops.md', title: '03 — Backend Services · Operations',
+    blurb: 'Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.',
+    mods: ['traffic-jobs', 'dispatch', 'locations', 'vehicles', 'drivers', 'reps', 'suppliers',
+           'job-locks', 'job-service-types', 'import-templates', 'extras', 'customers', 'agents'] },
+  { out: '04-backend-services-finance.md', title: '04 — Backend Services · Finance & Reporting',
+    blurb: 'Fees, invoices, payments, tariffs, Odoo-ready exports and every report.',
+    mods: ['finance', 'payments', 'export', 'reports', 'driver-tariffs', 'public-prices'] },
+  { out: '05-backend-services-portals.md', title: '05 — Backend Services · Portals & B2C',
+    blurb: 'The driver / rep / supplier / partner portals and the public B2C booking surface. All portal status transitions and evidence capture live here.',
+    mods: ['driver-portal', 'rep-portal', 'supplier-portal', 'partner', 'guest-bookings', 'b2c', 'contact-messages'] },
+  { out: '06-backend-platform.md', title: '06 — Backend Platform',
+    blurb: 'Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities.',
+    mods: ['auth', 'users', 'permissions', 'sessions', 'settings', 'email', 'notifications',
+           'push-notifications', 'whatsapp-notifications', 'google-drive', 'ai-parser', 'common',
+           'prisma', 'activity-logs', 'user-preferences', '_root'] },
+];
+
+const KIND_OF = (name) =>
+  /Service$/.test(name) ? 'service' : /Controller$/.test(name) ? 'controller'
+  : /Guard$/.test(name) ? 'guard' : /Strategy$/.test(name) ? 'strategy'
+  : /Module$/.test(name) ? 'module' : /Dto$/.test(name) ? 'dto'
+  : /Filter$|Interceptor$|Pipe$/.test(name) ? 'middleware' : 'class';
+
+function renderServiceGroup(group, classes) {
+  const mine = classes
+    .filter((c) => group.mods.includes(moduleOf(c.file)))
+    .filter((c) => !['module', 'dto'].includes(KIND_OF(c.name)))
+    .sort((a, b) => moduleOf(a.file).localeCompare(moduleOf(b.file)) || a.name.localeCompare(b.name));
+
+  const L = [`# ${group.title}`, '', STAMP, '', group.blurb, '',
+    `**${mine.length} classes**, **${mine.reduce((n, c) => n + c.methods.length, 0)} methods**.`, '',
+    '`Touches` lists the Prisma models a method reads or writes and the sibling services it calls — ' +
+    'enough to trace a data path without opening the file.', ''];
+
+  let lastMod = null;
+  for (const c of mine) {
+    const mod = moduleOf(c.file);
+    if (mod !== lastMod) { L.push(`## \`${mod}\``, ''); lastMod = mod; }
+    L.push(`### ${c.name}`, '');
+    L.push(`\`${rel(c.file)}:${c.line}\` · ${KIND_OF(c.name)} · ${c.methods.length} methods`, '');
+    const d = desc(`${rel(c.file)}#${c.name}`);
+    if (d) L.push(d, '');
+    if (!c.methods.length) { L.push('_No methods._', ''); continue; }
+    L.push('| Method | Vis | Line | Touches | Purpose |', '|---|---|---|---|---|');
+    for (const m of c.methods) {
+      const t = [...m.touches.models.map((x) => `\`${x}\``), ...m.touches.services.map((x) => `\`${x}\``)];
+      const touches = t.length ? t.slice(0, 5).join(' ') + (t.length > 5 ? ` +${t.length - 5}` : '') : '—';
+      const key = `${rel(c.file)}#${c.name}.${m.name}`;
+      L.push(`| \`${m.name}\` | ${m.visibility === 'public' ? 'pub' : m.visibility.slice(0, 4)} | ${m.line} | ${touches} | ${esc(desc(key)) || '_—_'} |`);
+    }
+    L.push('');
+  }
+  return L.join('\n');
+}
+
+// ──────────────────── shared frontend / mobile maps (08–09) ──────────────
+
+function renderShared(title, spec, exports_, classes) {
+  const inScope = (f) => spec.include.some((d) => rel(f).startsWith(d)) &&
+                         !spec.exclude?.some((d) => rel(f).startsWith(d));
+  const byFile = new Map();
+  for (const e of exports_.filter((x) => inScope(x.file))) {
+    if (!byFile.has(e.file)) byFile.set(e.file, []);
+    byFile.get(e.file).push(e);
+  }
+  for (const c of classes.filter((x) => inScope(x.file))) {
+    if (!byFile.has(c.file)) byFile.set(c.file, []);
+  }
+
+  const total = [...byFile.values()].reduce((n, v) => n + v.length, 0);
+  const L = [`# ${title}`, '', STAMP, '', spec.blurb, '',
+    `**${byFile.size} files**, **${total} exported symbols**.`, ''];
+
+  const dirOf = (f) => rel(f).split('/').slice(0, -1).join('/');
+  const dirs = [...new Set([...byFile.keys()].map(dirOf))].sort();
+  for (const dir of dirs) {
+    L.push(`## \`${dir}/\``, '');
+    const files = [...byFile.keys()].filter((f) => dirOf(f) === dir).sort();
+    for (const f of files) {
+      const loc = readLines(f).length;
+      L.push(`### \`${rel(f).split('/').pop()}\``, '', `\`${rel(f)}\` · ${loc} lines`, '');
+      const d = desc(`${rel(f)}#__file__`);
+      if (d) L.push(d, '');
+      const syms = byFile.get(f);
+      if (!syms.length) { L.push('_No exports._', ''); continue; }
+      L.push('| Export | Kind | Line | Purpose |', '|---|---|---|---|');
+      for (const sname of syms.sort((a, b) => a.line - b.line)) {
+        const key = `${rel(f)}#${sname.name}`;
+        L.push(`| \`${sname.name}\` | ${sname.kind} | ${sname.line} | ${esc(desc(key)) || '_—_'} |`);
+      }
+      L.push('');
+    }
+  }
+  return L.join('\n');
+}
+
 // ──────────────────────────────── main ───────────────────────────────────
 
 console.log(`codemap: root=${ROOT}`);
@@ -430,7 +559,18 @@ const symbolRows = [
 
 if (prisma.models.length) write('01-data-model.md', renderDataModel(prisma));
 if (endpoints.length) write('02-backend-api.md', renderApi(endpoints));
+if (backendFiles.length) for (const g of BACKEND_GROUPS) write(g.out, renderServiceGroup(g, classes));
 if (routesByArea.size) write('07-frontend-routes.md', renderRoutes(routesByArea));
+if (filesByArea.has('frontend')) write('08-frontend-shared.md', renderShared(
+  '08 — Frontend Shared', {
+    include: ['frontend/src/components', 'frontend/src/lib', 'frontend/src/hooks', 'frontend/src/stores', 'frontend/src/types'],
+    blurb: 'Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.',
+  }, exports_, classes));
+if (filesByArea.has('mobile')) write('09-mobile.md', renderShared(
+  '09 — Mobile Apps', {
+    include: ['mobile/apps', 'mobile/packages'], exclude: ['mobile/preview'],
+    blurb: 'Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.',
+  }, exports_, classes));
 write('12-symbol-index.md', renderSymbolIndex(symbolRows));
 
 // Description coverage — this is the phase-2/3/4 worklist.
