@@ -12,246 +12,304 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 
 `frontend/src/components/b2b-job-import-modal.tsx` · 636 lines
 
+Bulk job import for B2B customers, including the AI manifest parser flow.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `B2BJobImportModal` | function | 93 | _—_ |
+| `B2BJobImportModal` | function | 93 | Bulk B2B job import: upload a manifest, run the AI parser, review the resolved rows, then commit. |
 
 ### `completed-evidence-dialog.tsx`
 
 `frontend/src/components/completed-evidence-dialog.tsx` · 237 lines
 
+Capture-and-upload dialog for completion evidence: photos plus a mandatory GPS fix.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CompletedEvidenceDialog` | function | 34 | _—_ |
+| `CompletedEvidenceDialog` | function | 34 | Completion evidence capture — photos plus a mandatory GPS fix, with retry when the fix fails. |
 
 ### `google-places-autocomplete.tsx`
 
 `frontend/src/components/google-places-autocomplete.tsx` · 162 lines
 
+Google Places address autocomplete for pickup/dropoff. Uses the NEW Places API — the legacy Autocomplete widget is blocked for this Cloud project.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PlaceResult` | type | 9 | _—_ |
-| `GooglePlacesAutocomplete` | function | 26 | _—_ |
+| `PlaceResult` | type | 9 | Resolved place: id, formatted address and coordinates. |
+| `GooglePlacesAutocomplete` | function | 26 | Address autocomplete via the NEW Places API (AutocompleteSuggestion + fetchFields); the legacy widget is blocked for this Cloud project. |
 
 ### `guest-survey-dialog.tsx`
 
 `frontend/src/components/guest-survey-dialog.tsx` · 357 lines
 
+The native arrival guest survey form. Submitting it awards the rep's 15-point survey score.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `GuestSurveyDialog` | function | 61 | _—_ |
+| `GuestSurveyDialog` | function | 61 | Arrival guest survey form (ARR only); submitting awards the rep survey score. |
 
 ### `header.tsx`
 
 `frontend/src/components/header.tsx` · 425 lines
 
+Top bar — user menu, notifications, locale switch.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Header` | function | 117 | _—_ |
+| `Header` | function | 117 | Top bar — user menu, notifications and locale switch. |
 
 ### `import-template-manager.tsx`
 
 `frontend/src/components/import-template-manager.tsx` · 283 lines
 
+Manages a customer's stored manifest templates that teach the AI parser their layout.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ImportTemplateManager` | function | 59 | _—_ |
+| `ImportTemplateManager` | function | 59 | Upload, list and delete a customer's manifest templates. |
 
 ### `in-place-evidence-dialog.tsx`
 
 `frontend/src/components/in-place-evidence-dialog.tsx` · 241 lines
 
+Evidence dialog for a rep confirming arrival (the window-gated IN PLACE step).
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `InPlaceEvidenceDialog` | function | 36 | _—_ |
+| `InPlaceEvidenceDialog` | function | 36 | Rep IN PLACE evidence capture; the action is gated to the ARR arrival window unless the job is unlocked. |
 
 ### `in-progress-evidence-dialog.tsx`
 
 `frontend/src/components/in-progress-evidence-dialog.tsx` · 230 lines
 
+Evidence dialog for a driver starting a job.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `InProgressEvidenceDialog` | function | 33 | _—_ |
+| `InProgressEvidenceDialog` | function | 33 | Job-start evidence capture for drivers. |
 
 ### `job-detail-modal.tsx`
 
 `frontend/src/components/job-detail-modal.tsx` · 294 lines
 
+Full job detail modal used across dispatch and the job lists.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailModal` | function | 120 | _—_ |
+| `JobDetailModal` | function | 120 | Full job detail modal — route, flight, assignment, evidence and financials. |
 
 ### `job-extras-editor.tsx`
 
 `frontend/src/components/job-extras-editor.tsx` · 193 lines
 
+Editor for a job's booked extras, sourced from the managed extras catalogue.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobExtra` | type | 19 | _—_ |
-| `JobExtrasEditor` | function | 44 | _—_ |
+| `JobExtra` | type | 19 | One booked extra line. |
+| `JobExtrasEditor` | function | 44 | Adds and prices a job's extras from the managed catalogue. |
 
 ### `license-gate.tsx`
 
 `frontend/src/components/license-gate.tsx` · 211 lines
 
+Blocks the entire app when the licence is invalid or unreachable.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LicenseGate` | function | 44 | _—_ |
+| `LicenseGate` | function | 44 | Blocks the whole app when the licence is invalid — this is what a licence misconfiguration looks like to users. |
 
 ### `location-combobox.tsx`
 
 `frontend/src/components/location-combobox.tsx` · 574 lines
 
+Cascading location picker over the Country→Airport→City→Zone→Hotel tree.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LocationCombobox` | function | 99 | _—_ |
+| `LocationCombobox` | function | 99 | Cascading picker over the location tree; enforces the hierarchy rather than allowing free text. |
 
 ### `mobile-profile-page.tsx`
 
 `frontend/src/components/mobile-profile-page.tsx` · 191 lines
 
+Mobile-optimised profile screen shared by the portals.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MobileProfilePage` | function | 43 | _—_ |
+| `MobileProfilePage` | function | 43 | Mobile-optimised profile screen shared by the portals. |
 
 ### `mobile-sidebar.tsx`
 
 `frontend/src/components/mobile-sidebar.tsx` · 215 lines
 
+Mobile-width navigation drawer.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MobileSidebar` | function | 30 | _—_ |
+| `MobileSidebar` | function | 30 | Mobile navigation drawer. |
 
 ### `no-show-evidence-dialog.tsx`
 
 `frontend/src/components/no-show-evidence-dialog.tsx` · 251 lines
 
+Evidence dialog backing a no-show claim; its photos feed the dispute PDF.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NoShowEvidenceDialog` | function | 36 | _—_ |
+| `NoShowEvidenceDialog` | function | 36 | No-show evidence capture. Gated to 80 minutes after job time. |
 
 ### `page-header.tsx`
 
 `frontend/src/components/page-header.tsx` · 37 lines
 
+Standard page title and action bar.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PageHeader` | function | 15 | _—_ |
+| `PageHeader` | function | 15 | Standard page title and action bar. |
 
 ### `permission-gate.tsx`
 
 `frontend/src/components/permission-gate.tsx` · 44 lines
 
+Wrapper that renders children only when the user holds a permission key. UI convenience — the backend still enforces.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PermissionGate` | function | 17 | _—_ |
+| `PermissionGate` | function | 17 | Renders children only if the user holds the given permission key. |
 
 ### `permission-matrix.tsx`
 
 `frontend/src/components/permission-matrix.tsx` · 367 lines
 
+The admin permission matrix — master toggle plus per-section CRUD checkboxes, rendered from the permission registry.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PermissionMatrix` | function | 66 | _—_ |
+| `PermissionMatrix` | function | 66 | Admin permission matrix — master toggle plus per-section CRUD checkboxes. |
 
 ### `permission-tree.tsx`
 
 `frontend/src/components/permission-tree.tsx` · 180 lines
 
+Tree renderer behind the permission matrix, handling ancestor/descendant auto-checking.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PermissionTree` | function | 18 | _—_ |
+| `PermissionTree` | function | 18 | Tree renderer handling ancestor/descendant auto-checking in the matrix. |
 
 ### `price-list-grid.tsx`
 
 `frontend/src/components/price-list-grid.tsx` · 625 lines
 
+The shared zone-pair × vehicle-type price grid, reused by agents, customers, suppliers and public prices.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PriceGridVehicleType` | type | 37 | _—_ |
-| `PriceGridItem` | type | 43 | _—_ |
-| `PriceListGridProps` | type | 71 | _—_ |
-| `PriceListGrid` | function | 97 | _—_ |
+| `PriceGridVehicleType` | type | 37 | A vehicle-type column in the grid. |
+| `PriceGridItem` | type | 43 | One price cell — zone pair, vehicle type, service type and amount. |
+| `PriceListGridProps` | type | 71 | Props: rows, vehicle types, and the save handler each owner supplies. |
+| `PriceListGrid` | function | 97 | The shared price grid (zone pair × vehicle type) reused by agents, customers, suppliers and public prices. |
 
 ### `rich-text-editor.tsx`
 
 `frontend/src/components/rich-text-editor.tsx` · 374 lines
 
+Rich text editor for CMS and notes fields.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RichTextEditor` | function | 73 | _—_ |
+| `RichTextEditor` | function | 73 | Rich text editor for CMS and note fields. |
 
 ### `searchable-combobox.tsx`
 
 `frontend/src/components/searchable-combobox.tsx` · 102 lines
 
+Generic searchable select, used for large lists such as the car source.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComboboxItem` | type | 21 | _—_ |
-| `SearchableCombobox` | function | 38 | _—_ |
+| `ComboboxItem` | type | 21 | One option in a searchable combobox. |
+| `SearchableCombobox` | function | 38 | Generic searchable select for long lists. |
 
 ### `session-conflict-modal.tsx`
 
 `frontend/src/components/session-conflict-modal.tsx` · 116 lines
 
+Shown when a rep/driver login is refused because another device holds an active session.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SessionConflictModal` | function | 38 | _—_ |
+| `SessionConflictModal` | function | 38 | Explains a 409 login refusal when another device holds the session. |
 
 ### `sidebar.tsx`
 
 `frontend/src/components/sidebar.tsx` · 404 lines
 
+Main dashboard navigation, filtered by permission.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 53 | _—_ |
-| `NavSeparator` | type | 63 | _—_ |
-| `NavSectionLabel` | type | 67 | _—_ |
-| `NavGroup` | type | 72 | _—_ |
-| `NavItem` | type | 79 | _—_ |
-| `navigation` | const | 86 | _—_ |
-| `Sidebar` | function | 125 | _—_ |
+| `NavLink` | type | 53 | A navigation link with active-state styling. |
+| `NavSeparator` | type | 63 | Divider between sidebar sections. |
+| `NavSectionLabel` | type | 67 | Section heading in the sidebar. |
+| `NavGroup` | type | 72 | A collapsible navigation group. |
+| `NavItem` | type | 79 | One navigation entry. |
+| `navigation` | const | 86 | The navigation definition — sections, items and the permission key gating each. |
+| `Sidebar` | function | 125 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
 `frontend/src/components/sortable-header.tsx` · 44 lines
 
+Clickable sortable table header cell.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SortableHeader` | function | 16 | _—_ |
+| `SortableHeader` | function | 16 | Sortable table header cell. |
 
 ### `table-filter-bar.tsx`
 
 `frontend/src/components/table-filter-bar.tsx` · 65 lines
 
+Shared filter bar for the list screens.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TableFilterBar` | function | 28 | _—_ |
+| `TableFilterBar` | function | 28 | Shared filter bar for list screens. |
 
 ### `theme-provider.tsx`
 
 `frontend/src/components/theme-provider.tsx` · 250 lines
 
+Light/dark theme context.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useTheme` | function | 52 | _—_ |
-| `ThemeProvider` | function | 56 | _—_ |
+| `useTheme` | function | 52 | Reads and sets the active theme. |
+| `ThemeProvider` | function | 56 | Light/dark theme context provider. |
 
 ### `two-factor-settings.tsx`
 
 `frontend/src/components/two-factor-settings.tsx` · 208 lines
 
+2FA enrolment: QR code, verification and recovery codes.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TwoFactorSettings` | function | 20 | _—_ |
+| `TwoFactorSettings` | function | 20 | 2FA enrolment and disable flow with recovery codes. |
 
 ### `user-sessions-dialog.tsx`
 
 `frontend/src/components/user-sessions-dialog.tsx` · 169 lines
 
+Admin view of a user's device sessions, with force-logout and Clear — Clear is the fix for a stuck lockout.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `UserSessionsDialog` | function | 33 | _—_ |
+| `UserSessionsDialog` | function | 33 | Admin device-session view with force-logout and Clear. |
 
 ## `frontend/src/components/public/`
 
@@ -259,25 +317,31 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 
 `frontend/src/components/public/footer.tsx` · 70 lines
 
+Public site footer.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PublicFooter` | function | 6 | _—_ |
+| `PublicFooter` | function | 6 | Public site footer. |
 
 ### `navbar.tsx`
 
 `frontend/src/components/public/navbar.tsx` · 109 lines
 
+Public site navigation.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PublicNavbar` | function | 16 | _—_ |
+| `PublicNavbar` | function | 16 | Public site navigation. |
 
 ### `step-indicator.tsx`
 
 `frontend/src/components/public/step-indicator.tsx` · 83 lines
 
+Step progress indicator for the public booking funnel.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `StepIndicator` | function | 11 | _—_ |
+| `StepIndicator` | function | 11 | Booking funnel step progress indicator. |
 
 ## `frontend/src/components/ui/`
 
@@ -285,320 +349,374 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 
 `frontend/src/components/ui/accordion.tsx` · 74 lines
 
+shadcn/ui Accordion primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Accordion` | function | 9 | _—_ |
-| `AccordionItem` | function | 22 | _—_ |
-| `AccordionTrigger` | function | 35 | _—_ |
-| `AccordionContent` | function | 57 | _—_ |
+| `Accordion` | function | 9 | shadcn/ui `Accordion` part (from `accordion`). |
+| `AccordionItem` | function | 22 | shadcn/ui `AccordionItem` part (from `accordion`). |
+| `AccordionTrigger` | function | 35 | shadcn/ui `AccordionTrigger` part (from `accordion`). |
+| `AccordionContent` | function | 57 | shadcn/ui `AccordionContent` part (from `accordion`). |
 
 ### `alert-dialog.tsx`
 
 `frontend/src/components/ui/alert-dialog.tsx` · 197 lines
 
+shadcn/ui Alert dialog primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AlertDialog` | function | 9 | _—_ |
-| `AlertDialogTrigger` | function | 15 | _—_ |
-| `AlertDialogPortal` | function | 23 | _—_ |
-| `AlertDialogOverlay` | function | 31 | _—_ |
-| `AlertDialogContent` | function | 47 | _—_ |
-| `AlertDialogHeader` | function | 70 | _—_ |
-| `AlertDialogFooter` | function | 86 | _—_ |
-| `AlertDialogTitle` | function | 102 | _—_ |
-| `AlertDialogDescription` | function | 118 | _—_ |
-| `AlertDialogMedia` | function | 131 | _—_ |
-| `AlertDialogAction` | function | 147 | _—_ |
-| `AlertDialogCancel` | function | 165 | _—_ |
+| `AlertDialog` | function | 9 | shadcn/ui `AlertDialog` part (from `alert-dialog`). |
+| `AlertDialogTrigger` | function | 15 | shadcn/ui `AlertDialogTrigger` part (from `alert-dialog`). |
+| `AlertDialogPortal` | function | 23 | shadcn/ui `AlertDialogPortal` part (from `alert-dialog`). |
+| `AlertDialogOverlay` | function | 31 | shadcn/ui `AlertDialogOverlay` part (from `alert-dialog`). |
+| `AlertDialogContent` | function | 47 | shadcn/ui `AlertDialogContent` part (from `alert-dialog`). |
+| `AlertDialogHeader` | function | 70 | shadcn/ui `AlertDialogHeader` part (from `alert-dialog`). |
+| `AlertDialogFooter` | function | 86 | shadcn/ui `AlertDialogFooter` part (from `alert-dialog`). |
+| `AlertDialogTitle` | function | 102 | shadcn/ui `AlertDialogTitle` part (from `alert-dialog`). |
+| `AlertDialogDescription` | function | 118 | shadcn/ui `AlertDialogDescription` part (from `alert-dialog`). |
+| `AlertDialogMedia` | function | 131 | shadcn/ui `AlertDialogMedia` part (from `alert-dialog`). |
+| `AlertDialogAction` | function | 147 | shadcn/ui `AlertDialogAction` part (from `alert-dialog`). |
+| `AlertDialogCancel` | function | 165 | shadcn/ui `AlertDialogCancel` part (from `alert-dialog`). |
 
 ### `badge.tsx`
 
 `frontend/src/components/ui/badge.tsx` · 49 lines
 
+shadcn/ui Badge primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `badgeVariants` | const | 7 | _—_ |
-| `Badge` | function | 29 | _—_ |
+| `badgeVariants` | const | 7 | shadcn/ui `badgeVariants` part (from `badge`). |
+| `Badge` | function | 29 | shadcn/ui `Badge` part (from `badge`). |
 
 ### `button.tsx`
 
 `frontend/src/components/ui/button.tsx` · 65 lines
 
+shadcn/ui Button primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `buttonVariants` | const | 7 | _—_ |
-| `Button` | function | 41 | _—_ |
+| `buttonVariants` | const | 7 | shadcn/ui `buttonVariants` part (from `button`). |
+| `Button` | function | 41 | shadcn/ui `Button` part (from `button`). |
 
 ### `card.tsx`
 
 `frontend/src/components/ui/card.tsx` · 93 lines
 
+shadcn/ui Card primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Card` | function | 5 | _—_ |
-| `CardHeader` | function | 18 | _—_ |
-| `CardTitle` | function | 31 | _—_ |
-| `CardDescription` | function | 41 | _—_ |
-| `CardAction` | function | 51 | _—_ |
-| `CardContent` | function | 64 | _—_ |
-| `CardFooter` | function | 74 | _—_ |
+| `Card` | function | 5 | shadcn/ui `Card` part (from `card`). |
+| `CardHeader` | function | 18 | shadcn/ui `CardHeader` part (from `card`). |
+| `CardTitle` | function | 31 | shadcn/ui `CardTitle` part (from `card`). |
+| `CardDescription` | function | 41 | shadcn/ui `CardDescription` part (from `card`). |
+| `CardAction` | function | 51 | shadcn/ui `CardAction` part (from `card`). |
+| `CardContent` | function | 64 | shadcn/ui `CardContent` part (from `card`). |
+| `CardFooter` | function | 74 | shadcn/ui `CardFooter` part (from `card`). |
 
 ### `checkbox.tsx`
 
 `frontend/src/components/ui/checkbox.tsx` · 33 lines
 
+shadcn/ui Checkbox primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Checkbox` | function | 9 | _—_ |
+| `Checkbox` | function | 9 | shadcn/ui `Checkbox` part (from `checkbox`). |
 
 ### `column-visibility-control.tsx`
 
 `frontend/src/components/ui/column-visibility-control.tsx` · 91 lines
 
+Per-user column show/hide control, persisted server-side.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ColumnVisibilityControl` | function | 15 | _—_ |
+| `ColumnVisibilityControl` | function | 15 | Per-user column show/hide menu, persisted server-side. |
 
 ### `command.tsx`
 
 `frontend/src/components/ui/command.tsx` · 185 lines
 
+shadcn/ui Command palette / searchable list primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Command` | function | 16 | _—_ |
-| `CommandDialog` | function | 32 | _—_ |
-| `CommandInput` | function | 63 | _—_ |
-| `CommandList` | function | 85 | _—_ |
-| `CommandEmpty` | function | 101 | _—_ |
-| `CommandGroup` | function | 113 | _—_ |
-| `CommandSeparator` | function | 129 | _—_ |
-| `CommandItem` | function | 142 | _—_ |
-| `CommandShortcut` | function | 158 | _—_ |
+| `Command` | function | 16 | shadcn/ui `Command` part (from `command`). |
+| `CommandDialog` | function | 32 | shadcn/ui `CommandDialog` part (from `command`). |
+| `CommandInput` | function | 63 | shadcn/ui `CommandInput` part (from `command`). |
+| `CommandList` | function | 85 | shadcn/ui `CommandList` part (from `command`). |
+| `CommandEmpty` | function | 101 | shadcn/ui `CommandEmpty` part (from `command`). |
+| `CommandGroup` | function | 113 | shadcn/ui `CommandGroup` part (from `command`). |
+| `CommandSeparator` | function | 129 | shadcn/ui `CommandSeparator` part (from `command`). |
+| `CommandItem` | function | 142 | shadcn/ui `CommandItem` part (from `command`). |
+| `CommandShortcut` | function | 158 | shadcn/ui `CommandShortcut` part (from `command`). |
 
 ### `dialog.tsx`
 
 `frontend/src/components/ui/dialog.tsx` · 159 lines
 
+shadcn/ui Dialog primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Dialog` | function | 10 | _—_ |
-| `DialogTrigger` | function | 16 | _—_ |
-| `DialogPortal` | function | 22 | _—_ |
-| `DialogClose` | function | 28 | _—_ |
-| `DialogOverlay` | function | 34 | _—_ |
-| `DialogContent` | function | 50 | _—_ |
-| `DialogHeader` | function | 84 | _—_ |
-| `DialogFooter` | function | 94 | _—_ |
-| `DialogTitle` | function | 121 | _—_ |
-| `DialogDescription` | function | 134 | _—_ |
+| `Dialog` | function | 10 | shadcn/ui `Dialog` part (from `dialog`). |
+| `DialogTrigger` | function | 16 | shadcn/ui `DialogTrigger` part (from `dialog`). |
+| `DialogPortal` | function | 22 | shadcn/ui `DialogPortal` part (from `dialog`). |
+| `DialogClose` | function | 28 | shadcn/ui `DialogClose` part (from `dialog`). |
+| `DialogOverlay` | function | 34 | shadcn/ui `DialogOverlay` part (from `dialog`). |
+| `DialogContent` | function | 50 | shadcn/ui `DialogContent` part (from `dialog`). |
+| `DialogHeader` | function | 84 | shadcn/ui `DialogHeader` part (from `dialog`). |
+| `DialogFooter` | function | 94 | shadcn/ui `DialogFooter` part (from `dialog`). |
+| `DialogTitle` | function | 121 | shadcn/ui `DialogTitle` part (from `dialog`). |
+| `DialogDescription` | function | 134 | shadcn/ui `DialogDescription` part (from `dialog`). |
 
 ### `draggable-table-header.tsx`
 
 `frontend/src/components/ui/draggable-table-header.tsx` · 132 lines
 
+Drag-to-reorder table header, persisted per user.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ColumnDef` | type | 23 | _—_ |
-| `DraggableTableHeader` | function | 74 | _—_ |
+| `ColumnDef` | type | 23 | Part of the draggable-table-header component. |
+| `DraggableTableHeader` | function | 74 | Drag-to-reorder header cell; the order is saved per user. |
 
 ### `dropdown-menu.tsx`
 
 `frontend/src/components/ui/dropdown-menu.tsx` · 258 lines
 
+shadcn/ui Dropdown menu primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `DropdownMenu` | function | 9 | _—_ |
-| `DropdownMenuPortal` | function | 15 | _—_ |
-| `DropdownMenuTrigger` | function | 23 | _—_ |
-| `DropdownMenuContent` | function | 34 | _—_ |
-| `DropdownMenuGroup` | function | 54 | _—_ |
-| `DropdownMenuItem` | function | 62 | _—_ |
-| `DropdownMenuCheckboxItem` | function | 85 | _—_ |
-| `DropdownMenuRadioGroup` | function | 111 | _—_ |
-| `DropdownMenuRadioItem` | function | 122 | _—_ |
-| `DropdownMenuLabel` | function | 146 | _—_ |
-| `DropdownMenuSeparator` | function | 166 | _—_ |
-| `DropdownMenuShortcut` | function | 179 | _—_ |
-| `DropdownMenuSub` | function | 195 | _—_ |
-| `DropdownMenuSubTrigger` | function | 201 | _—_ |
-| `DropdownMenuSubContent` | function | 225 | _—_ |
+| `DropdownMenu` | function | 9 | shadcn/ui `DropdownMenu` part (from `dropdown-menu`). |
+| `DropdownMenuPortal` | function | 15 | shadcn/ui `DropdownMenuPortal` part (from `dropdown-menu`). |
+| `DropdownMenuTrigger` | function | 23 | shadcn/ui `DropdownMenuTrigger` part (from `dropdown-menu`). |
+| `DropdownMenuContent` | function | 34 | shadcn/ui `DropdownMenuContent` part (from `dropdown-menu`). |
+| `DropdownMenuGroup` | function | 54 | shadcn/ui `DropdownMenuGroup` part (from `dropdown-menu`). |
+| `DropdownMenuItem` | function | 62 | shadcn/ui `DropdownMenuItem` part (from `dropdown-menu`). |
+| `DropdownMenuCheckboxItem` | function | 85 | shadcn/ui `DropdownMenuCheckboxItem` part (from `dropdown-menu`). |
+| `DropdownMenuRadioGroup` | function | 111 | shadcn/ui `DropdownMenuRadioGroup` part (from `dropdown-menu`). |
+| `DropdownMenuRadioItem` | function | 122 | shadcn/ui `DropdownMenuRadioItem` part (from `dropdown-menu`). |
+| `DropdownMenuLabel` | function | 146 | shadcn/ui `DropdownMenuLabel` part (from `dropdown-menu`). |
+| `DropdownMenuSeparator` | function | 166 | shadcn/ui `DropdownMenuSeparator` part (from `dropdown-menu`). |
+| `DropdownMenuShortcut` | function | 179 | shadcn/ui `DropdownMenuShortcut` part (from `dropdown-menu`). |
+| `DropdownMenuSub` | function | 195 | shadcn/ui `DropdownMenuSub` part (from `dropdown-menu`). |
+| `DropdownMenuSubTrigger` | function | 201 | shadcn/ui `DropdownMenuSubTrigger` part (from `dropdown-menu`). |
+| `DropdownMenuSubContent` | function | 225 | shadcn/ui `DropdownMenuSubContent` part (from `dropdown-menu`). |
 
 ### `empty-state.tsx`
 
 `frontend/src/components/ui/empty-state.tsx` · 18 lines
 
+Standard empty-list placeholder.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `EmptyState` | function | 9 | _—_ |
+| `EmptyState` | function | 9 | Standard empty-list placeholder with an optional action. |
 
 ### `input.tsx`
 
 `frontend/src/components/ui/input.tsx` · 22 lines
 
+shadcn/ui Text input primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Input` | function | 5 | _—_ |
+| `Input` | function | 5 | shadcn/ui `Input` part (from `input`). |
 
 ### `label.tsx`
 
 `frontend/src/components/ui/label.tsx` · 25 lines
 
+shadcn/ui Form label primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Label` | function | 8 | _—_ |
+| `Label` | function | 8 | shadcn/ui `Label` part (from `label`). |
 
 ### `popover.tsx`
 
 `frontend/src/components/ui/popover.tsx` · 90 lines
 
+shadcn/ui Popover primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Popover` | function | 8 | _—_ |
-| `PopoverTrigger` | function | 14 | _—_ |
-| `PopoverContent` | function | 20 | _—_ |
-| `PopoverAnchor` | function | 42 | _—_ |
-| `PopoverHeader` | function | 48 | _—_ |
-| `PopoverTitle` | function | 58 | _—_ |
-| `PopoverDescription` | function | 68 | _—_ |
+| `Popover` | function | 8 | shadcn/ui `Popover` part (from `popover`). |
+| `PopoverTrigger` | function | 14 | shadcn/ui `PopoverTrigger` part (from `popover`). |
+| `PopoverContent` | function | 20 | shadcn/ui `PopoverContent` part (from `popover`). |
+| `PopoverAnchor` | function | 42 | shadcn/ui `PopoverAnchor` part (from `popover`). |
+| `PopoverHeader` | function | 48 | shadcn/ui `PopoverHeader` part (from `popover`). |
+| `PopoverTitle` | function | 58 | shadcn/ui `PopoverTitle` part (from `popover`). |
+| `PopoverDescription` | function | 68 | shadcn/ui `PopoverDescription` part (from `popover`). |
 
 ### `select.tsx`
 
 `frontend/src/components/ui/select.tsx` · 191 lines
 
+shadcn/ui Select primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Select` | function | 9 | _—_ |
-| `SelectGroup` | function | 15 | _—_ |
-| `SelectValue` | function | 21 | _—_ |
-| `SelectTrigger` | function | 27 | _—_ |
-| `SelectContent` | function | 53 | _—_ |
-| `SelectLabel` | function | 90 | _—_ |
-| `SelectItem` | function | 103 | _—_ |
-| `SelectSeparator` | function | 130 | _—_ |
-| `SelectScrollUpButton` | function | 143 | _—_ |
-| `SelectScrollDownButton` | function | 161 | _—_ |
+| `Select` | function | 9 | shadcn/ui `Select` part (from `select`). |
+| `SelectGroup` | function | 15 | shadcn/ui `SelectGroup` part (from `select`). |
+| `SelectValue` | function | 21 | shadcn/ui `SelectValue` part (from `select`). |
+| `SelectTrigger` | function | 27 | shadcn/ui `SelectTrigger` part (from `select`). |
+| `SelectContent` | function | 53 | shadcn/ui `SelectContent` part (from `select`). |
+| `SelectLabel` | function | 90 | shadcn/ui `SelectLabel` part (from `select`). |
+| `SelectItem` | function | 103 | shadcn/ui `SelectItem` part (from `select`). |
+| `SelectSeparator` | function | 130 | shadcn/ui `SelectSeparator` part (from `select`). |
+| `SelectScrollUpButton` | function | 143 | shadcn/ui `SelectScrollUpButton` part (from `select`). |
+| `SelectScrollDownButton` | function | 161 | shadcn/ui `SelectScrollDownButton` part (from `select`). |
 
 ### `separator.tsx`
 
 `frontend/src/components/ui/separator.tsx` · 29 lines
 
+shadcn/ui Separator primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Separator` | function | 8 | _—_ |
+| `Separator` | function | 8 | shadcn/ui `Separator` part (from `separator`). |
 
 ### `sheet.tsx`
 
 `frontend/src/components/ui/sheet.tsx` · 144 lines
 
+shadcn/ui Slide-over sheet primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Sheet` | function | 9 | _—_ |
-| `SheetTrigger` | function | 13 | _—_ |
-| `SheetClose` | function | 19 | _—_ |
-| `SheetContent` | function | 47 | _—_ |
-| `SheetHeader` | function | 88 | _—_ |
-| `SheetFooter` | function | 98 | _—_ |
-| `SheetTitle` | function | 108 | _—_ |
-| `SheetDescription` | function | 121 | _—_ |
+| `Sheet` | function | 9 | shadcn/ui `Sheet` part (from `sheet`). |
+| `SheetTrigger` | function | 13 | shadcn/ui `SheetTrigger` part (from `sheet`). |
+| `SheetClose` | function | 19 | shadcn/ui `SheetClose` part (from `sheet`). |
+| `SheetContent` | function | 47 | shadcn/ui `SheetContent` part (from `sheet`). |
+| `SheetHeader` | function | 88 | shadcn/ui `SheetHeader` part (from `sheet`). |
+| `SheetFooter` | function | 98 | shadcn/ui `SheetFooter` part (from `sheet`). |
+| `SheetTitle` | function | 108 | shadcn/ui `SheetTitle` part (from `sheet`). |
+| `SheetDescription` | function | 121 | shadcn/ui `SheetDescription` part (from `sheet`). |
 
 ### `skeleton.tsx`
 
 `frontend/src/components/ui/skeleton.tsx` · 16 lines
 
+shadcn/ui Skeleton placeholder primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Skeleton` | function | 3 | _—_ |
+| `Skeleton` | function | 3 | shadcn/ui `Skeleton` part (from `skeleton`). |
 
 ### `skeletons.tsx`
 
 `frontend/src/components/ui/skeletons.tsx` · 311 lines
 
+Per-screen loading skeletons matching each page's layout.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PageHeaderSkeleton` | function | 5 | _—_ |
-| `StatCardSkeleton` | function | 18 | _—_ |
-| `StatCardRowSkeleton` | function | 32 | _—_ |
-| `FilterBarSkeleton` | function | 50 | _—_ |
-| `TableSkeleton` | function | 62 | _—_ |
-| `CardGridSkeleton` | function | 95 | _—_ |
-| `CardSkeleton` | function | 113 | _—_ |
-| `FormSkeleton` | function | 136 | _—_ |
-| `DetailSkeleton` | function | 154 | _—_ |
-| `DashboardSkeleton` | function | 196 | _—_ |
-| `ListPageSkeleton` | function | 226 | _—_ |
-| `ReportsSkeleton` | function | 245 | _—_ |
-| `FinanceSkeleton` | function | 262 | _—_ |
-| `DispatchSkeleton` | function | 281 | _—_ |
+| `PageHeaderSkeleton` | function | 5 | Loading skeleton shaped to the PageHeader screen so the page does not reflow when data arrives. |
+| `StatCardSkeleton` | function | 18 | Loading skeleton shaped to the StatCard screen so the page does not reflow when data arrives. |
+| `StatCardRowSkeleton` | function | 32 | Loading skeleton shaped to the StatCardRow screen so the page does not reflow when data arrives. |
+| `FilterBarSkeleton` | function | 50 | Loading skeleton shaped to the FilterBar screen so the page does not reflow when data arrives. |
+| `TableSkeleton` | function | 62 | Loading skeleton shaped to the Table screen so the page does not reflow when data arrives. |
+| `CardGridSkeleton` | function | 95 | Loading skeleton shaped to the CardGrid screen so the page does not reflow when data arrives. |
+| `CardSkeleton` | function | 113 | Loading skeleton shaped to the Card screen so the page does not reflow when data arrives. |
+| `FormSkeleton` | function | 136 | Loading skeleton shaped to the Form screen so the page does not reflow when data arrives. |
+| `DetailSkeleton` | function | 154 | Loading skeleton shaped to the Detail screen so the page does not reflow when data arrives. |
+| `DashboardSkeleton` | function | 196 | Loading skeleton shaped to the Dashboard screen so the page does not reflow when data arrives. |
+| `ListPageSkeleton` | function | 226 | Loading skeleton shaped to the ListPage screen so the page does not reflow when data arrives. |
+| `ReportsSkeleton` | function | 245 | Loading skeleton shaped to the Reports screen so the page does not reflow when data arrives. |
+| `FinanceSkeleton` | function | 262 | Loading skeleton shaped to the Finance screen so the page does not reflow when data arrives. |
+| `DispatchSkeleton` | function | 281 | Loading skeleton shaped to the Dispatch screen so the page does not reflow when data arrives. |
 
 ### `sonner.tsx`
 
 `frontend/src/components/ui/sonner.tsx` · 41 lines
 
+shadcn/ui Toast host (sonner) primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Toaster` | const | 13 | _—_ |
+| `Toaster` | const | 13 | shadcn/ui `Toaster` part (from `sonner`). |
 
 ### `status-badge.tsx`
 
 `frontend/src/components/ui/status-badge.tsx` · 56 lines
 
+Coloured status badge shared by job, portal and invoice statuses.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `StatusBadge` | function | 43 | _—_ |
+| `StatusBadge` | function | 43 | Coloured badge for job, portal and invoice statuses. |
 
 ### `switch.tsx`
 
 `frontend/src/components/ui/switch.tsx` · 36 lines
 
+shadcn/ui Switch primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Switch` | function | 8 | _—_ |
+| `Switch` | function | 8 | shadcn/ui `Switch` part (from `switch`). |
 
 ### `table.tsx`
 
 `frontend/src/components/ui/table.tsx` · 117 lines
 
+shadcn/ui Table primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Table` | function | 7 | _—_ |
-| `TableHeader` | function | 22 | _—_ |
-| `TableBody` | function | 32 | _—_ |
-| `TableFooter` | function | 42 | _—_ |
-| `TableRow` | function | 55 | _—_ |
-| `TableHead` | function | 68 | _—_ |
-| `TableCell` | function | 81 | _—_ |
-| `TableCaption` | function | 94 | _—_ |
+| `Table` | function | 7 | shadcn/ui `Table` part (from `table`). |
+| `TableHeader` | function | 22 | shadcn/ui `TableHeader` part (from `table`). |
+| `TableBody` | function | 32 | shadcn/ui `TableBody` part (from `table`). |
+| `TableFooter` | function | 42 | shadcn/ui `TableFooter` part (from `table`). |
+| `TableRow` | function | 55 | shadcn/ui `TableRow` part (from `table`). |
+| `TableHead` | function | 68 | shadcn/ui `TableHead` part (from `table`). |
+| `TableCell` | function | 81 | shadcn/ui `TableCell` part (from `table`). |
+| `TableCaption` | function | 94 | shadcn/ui `TableCaption` part (from `table`). |
 
 ### `tabs.tsx`
 
 `frontend/src/components/ui/tabs.tsx` · 92 lines
 
+shadcn/ui Tabs primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Tabs` | function | 9 | _—_ |
-| `tabsListVariants` | const | 28 | _—_ |
-| `TabsList` | function | 43 | _—_ |
-| `TabsTrigger` | function | 59 | _—_ |
-| `TabsContent` | function | 78 | _—_ |
+| `Tabs` | function | 9 | shadcn/ui `Tabs` part (from `tabs`). |
+| `tabsListVariants` | const | 28 | shadcn/ui `tabsListVariants` part (from `tabs`). |
+| `TabsList` | function | 43 | shadcn/ui `TabsList` part (from `tabs`). |
+| `TabsTrigger` | function | 59 | shadcn/ui `TabsTrigger` part (from `tabs`). |
+| `TabsContent` | function | 78 | shadcn/ui `TabsContent` part (from `tabs`). |
 
 ### `textarea.tsx`
 
 `frontend/src/components/ui/textarea.tsx` · 19 lines
 
+shadcn/ui Textarea primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Textarea` | function | 5 | _—_ |
+| `Textarea` | function | 5 | shadcn/ui `Textarea` part (from `textarea`). |
 
 ### `tooltip.tsx`
 
 `frontend/src/components/ui/tooltip.tsx` · 62 lines
 
+shadcn/ui Tooltip primitive — unmodified except for project theming.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TooltipProvider` | function | 8 | _—_ |
-| `Tooltip` | function | 21 | _—_ |
-| `TooltipTrigger` | function | 31 | _—_ |
-| `TooltipContent` | function | 37 | _—_ |
+| `TooltipProvider` | function | 8 | shadcn/ui `TooltipProvider` part (from `tooltip`). |
+| `Tooltip` | function | 21 | shadcn/ui `Tooltip` part (from `tooltip`). |
+| `TooltipTrigger` | function | 31 | shadcn/ui `TooltipTrigger` part (from `tooltip`). |
+| `TooltipContent` | function | 37 | shadcn/ui `TooltipContent` part (from `tooltip`). |
 
 ## `frontend/src/hooks/`
 
@@ -664,7 +782,7 @@ Per-user column visibility, persisted alongside column order.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `api` | const | 7 | _—_ |
+| `api` | const | 7 | The configured axios instance. Import this rather than calling fetch — it attaches the bearer token and handles 401 refresh with request queueing. |
 
 ### `gps.ts`
 
@@ -830,44 +948,46 @@ Zustand store caching the user's effective permission keys, fetched once after l
 
 `frontend/src/types/index.ts` · 376 lines
 
+Client-side TypeScript mirrors of the API payloads. These track the Prisma models but are hand-maintained — when a model changes, update this file or the UI silently drifts from the API. Canonical field detail lives in `docs/map/01-data-model.md`.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `UserRole` | type | 2 | _—_ |
-| `ServiceType` | type | 4 | _—_ |
-| `JobStatus` | type | 5 | _—_ |
-| `VehicleOwnership` | type | 6 | _—_ |
-| `Currency` | type | 7 | _—_ |
-| `InvoiceStatus` | type | 8 | _—_ |
-| `PaymentMethod` | type | 9 | _—_ |
-| `DocumentType` | type | 10 | _—_ |
-| `InvoiceCycleType` | type | 11 | _—_ |
-| `AuthUser` | type | 14 | _—_ |
-| `AuthResponse` | type | 26 | _—_ |
-| `LoginPayload` | type | 32 | _—_ |
-| `Country` | type | 38 | _—_ |
-| `Airport` | type | 46 | _—_ |
-| `City` | type | 56 | _—_ |
-| `Zone` | type | 65 | _—_ |
-| `Hotel` | type | 74 | _—_ |
-| `LocationTree` | type | 83 | _—_ |
-| `VehicleType` | type | 96 | _—_ |
-| `Vehicle` | type | 104 | _—_ |
-| `Driver` | type | 123 | _—_ |
-| `DriverVehicle` | type | 133 | _—_ |
-| `Rep` | type | 145 | _—_ |
-| `Agent` | type | 158 | _—_ |
-| `AgentCreditTerms` | type | 177 | _—_ |
-| `AgentInvoiceCycle` | type | 184 | _—_ |
-| `AgentDocument` | type | 192 | _—_ |
-| `Supplier` | type | 203 | _—_ |
-| `SupplierTripPrice` | type | 220 | _—_ |
-| `SupplierWithVehicles` | type | 237 | _—_ |
-| `TrafficJob` | type | 242 | _—_ |
-| `Customer` | type | 280 | _—_ |
-| `TrafficFlight` | type | 291 | _—_ |
-| `TrafficAssignment` | type | 301 | _—_ |
-| `AgentInvoice` | type | 315 | _—_ |
-| `InvoiceLine` | type | 337 | _—_ |
-| `Payment` | type | 349 | _—_ |
-| `PaginatedResponse` | type | 362 | _—_ |
-| `DispatchDayView` | type | 370 | _—_ |
+| `UserRole` | type | 2 | Legacy coarse roles (ADMIN, DISPATCHER, DRIVER, REP, SUPPLIER). |
+| `ServiceType` | type | 4 | Service type union — keep in sync with `lib/service-types.ts`. |
+| `JobStatus` | type | 5 | Job lifecycle states. Note the PORTAL legs use a separate status set (`driverStatus`/`repStatus`), which is not this type. |
+| `VehicleOwnership` | type | 6 | Whether a vehicle is company-owned or supplier-owned. |
+| `Currency` | type | 7 | Supported currencies; every financial transaction stores its exchange rate. |
+| `InvoiceStatus` | type | 8 | Invoice lifecycle. Records become immutable once posted. |
+| `PaymentMethod` | type | 9 | How a payment was taken; maps to an Odoo journal on export. |
+| `DocumentType` | type | 10 | Category of an uploaded agent or staff document. |
+| `InvoiceCycleType` | type | 11 | Agent invoicing cadence (weekly, fortnightly, monthly). |
+| `AuthUser` | type | 14 | The signed-in user as the frontend sees them, carrying both the legacy `role` and RBAC v2 `roleId`/`roleSlug`. |
+| `AuthResponse` | type | 26 | Login response: access token, refresh token and the user, including any resolved repId/driverId/supplierId. |
+| `LoginPayload` | type | 32 | Credentials sent to `/auth/login`. |
+| `Country` | type | 38 | Client-side shape of the `Country` API payload; see `docs/map/01-data-model.md#country` for the authoritative fields. |
+| `Airport` | type | 46 | Client-side shape of the `Airport` API payload; see `docs/map/01-data-model.md#airport` for the authoritative fields. |
+| `City` | type | 56 | Client-side shape of the `City` API payload; see `docs/map/01-data-model.md#city` for the authoritative fields. |
+| `Zone` | type | 65 | Client-side shape of the `Zone` API payload; see `docs/map/01-data-model.md#zone` for the authoritative fields. |
+| `Hotel` | type | 74 | Client-side shape of the `Hotel` API payload; see `docs/map/01-data-model.md#hotel` for the authoritative fields. |
+| `LocationTree` | type | 83 | Nested Country→Airport→City→Zone→Hotel tree used by the cascading pickers. |
+| `VehicleType` | type | 96 | Client-side shape of the `VehicleType` API payload; see `docs/map/01-data-model.md#vehicletype` for the authoritative fields. |
+| `Vehicle` | type | 104 | Client-side shape of the `Vehicle` API payload; see `docs/map/01-data-model.md#vehicle` for the authoritative fields. |
+| `Driver` | type | 123 | Client-side shape of the `Driver` API payload; see `docs/map/01-data-model.md#driver` for the authoritative fields. |
+| `DriverVehicle` | type | 133 | Client-side shape of the `DriverVehicle` API payload; see `docs/map/01-data-model.md#drivervehicle` for the authoritative fields. |
+| `Rep` | type | 145 | Client-side shape of the `Rep` API payload; see `docs/map/01-data-model.md#rep` for the authoritative fields. |
+| `Agent` | type | 158 | Client-side shape of the `Agent` API payload; see `docs/map/01-data-model.md#agent` for the authoritative fields. |
+| `AgentCreditTerms` | type | 177 | Client-side shape of the `AgentCreditTerms` API payload; see `docs/map/01-data-model.md#agentcreditterms` for the authoritative fields. |
+| `AgentInvoiceCycle` | type | 184 | Client-side shape of the `AgentInvoiceCycle` API payload; see `docs/map/01-data-model.md#agentinvoicecycle` for the authoritative fields. |
+| `AgentDocument` | type | 192 | Client-side shape of the `AgentDocument` API payload; see `docs/map/01-data-model.md#agentdocument` for the authoritative fields. |
+| `Supplier` | type | 203 | Client-side shape of the `Supplier` API payload; see `docs/map/01-data-model.md#supplier` for the authoritative fields. |
+| `SupplierTripPrice` | type | 220 | Client-side shape of the `SupplierTripPrice` API payload; see `docs/map/01-data-model.md#suppliertripprice` for the authoritative fields. |
+| `SupplierWithVehicles` | type | 237 | A supplier joined with its vehicles, for the supplier detail screen. |
+| `TrafficJob` | type | 242 | Client-side shape of the `TrafficJob` API payload; see `docs/map/01-data-model.md#trafficjob` for the authoritative fields. |
+| `Customer` | type | 280 | Client-side shape of the `Customer` API payload; see `docs/map/01-data-model.md#customer` for the authoritative fields. |
+| `TrafficFlight` | type | 291 | Client-side shape of the `TrafficFlight` API payload; see `docs/map/01-data-model.md#trafficflight` for the authoritative fields. |
+| `TrafficAssignment` | type | 301 | Client-side shape of the `TrafficAssignment` API payload; see `docs/map/01-data-model.md#trafficassignment` for the authoritative fields. |
+| `AgentInvoice` | type | 315 | Client-side shape of the `AgentInvoice` API payload; see `docs/map/01-data-model.md#agentinvoice` for the authoritative fields. |
+| `InvoiceLine` | type | 337 | Client-side shape of the `InvoiceLine` API payload; see `docs/map/01-data-model.md#invoiceline` for the authoritative fields. |
+| `Payment` | type | 349 | Client-side shape of the `Payment` API payload; see `docs/map/01-data-model.md#payment` for the authoritative fields. |
+| `PaginatedResponse` | type | 362 | The standard `{items, page, total}` envelope every list endpoint returns. |
+| `DispatchDayView` | type | 370 | The dispatch console day payload — jobs plus everything the grid renders. |
