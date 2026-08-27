@@ -479,11 +479,23 @@ const BACKEND_GROUPS = [
     blurb: 'The driver / rep / supplier / partner portals and the public B2C booking surface. All portal status transitions and evidence capture live here.',
     mods: ['driver-portal', 'rep-portal', 'supplier-portal', 'partner', 'guest-bookings', 'b2c', 'contact-messages'] },
   { out: '06-backend-platform.md', title: '06 — Backend Platform',
-    blurb: 'Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities.',
+    blurb: 'Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. ' +
+           'This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added ' +
+           'module can never silently vanish from the map.',
     mods: ['auth', 'users', 'permissions', 'sessions', 'settings', 'email', 'notifications',
            'push-notifications', 'whatsapp-notifications', 'google-drive', 'ai-parser', 'common',
-           'prisma', 'activity-logs', 'user-preferences', '_root'] },
+           'prisma', 'activity-logs', 'user-preferences', '_root'],
+    catchAll: true },
 ];
+
+// Modules explicitly claimed by a group; anything else falls to the catch-all.
+const CLAIMED = new Set(BACKEND_GROUPS.flatMap((g) => g.mods));
+
+function groupOwns(group, file) {
+  const mod = moduleOf(file);
+  if (group.mods.includes(mod)) return true;
+  return !!group.catchAll && !CLAIMED.has(mod);
+}
 
 const KIND_OF = (name) =>
   /Service$/.test(name) ? 'service' : /Controller$/.test(name) ? 'controller'
@@ -493,7 +505,8 @@ const KIND_OF = (name) =>
 
 function renderServiceGroup(group, classes, exports_) {
   const mine = classes
-    .filter((c) => group.mods.includes(moduleOf(c.file)))
+    .filter((c) => rel(c.file).startsWith('backend/src/'))
+    .filter((c) => groupOwns(group, c.file))
     .filter((c) => !['module', 'dto'].includes(KIND_OF(c.name)))
     .sort((a, b) => moduleOf(a.file).localeCompare(moduleOf(b.file)) || a.name.localeCompare(b.name));
 
@@ -527,7 +540,7 @@ function renderServiceGroup(group, classes, exports_) {
   const classNames = new Set(classes.map((c) => c.name));
   const loose = exports_
     .filter((e) => rel(e.file).startsWith('backend/src/'))
-    .filter((e) => group.mods.includes(moduleOf(e.file)))
+    .filter((e) => groupOwns(group, e.file))
     .filter((e) => !(e.kind === 'class' && classNames.has(e.name)))
     .filter((e) => e.kind !== 'class');
   if (loose.length) {
@@ -593,6 +606,63 @@ function renderShared(title, spec, exports_, classes) {
   return L.join('\n');
 }
 
+
+// ───────────────────── B2C standalone site map (10) ──────────────────────
+// The B2C site lives in its own repo on its own VPS. Running this script THERE
+// emits one self-contained file, which is both that repo's map and the copy
+// mirrored back into the main repo as docs/map/10-b2c-site.md.
+
+function renderSite(routes, exports_, classes, files) {
+  const loc = routes.filter((r) => r.route.startsWith('/[locale]'));
+  const root = routes.filter((r) => !r.route.startsWith('/[locale]'));
+  const L = ['# 10 — B2C Site (standalone repo)', '', STAMP, '',
+    'Repo `mg-gouda/iTourTT-B2CSite`, deployed to transfera.ae on its own VPS (31.97.45.33).',
+    'It holds no location or pricing data of its own — it reads reference data from, and books',
+    'through, the main system\'s `/api/partner` and `/api/w-api` endpoints.', '',
+    `**${files.length} files · ${routes.length} routes · ${exports_.length} exported symbols.**`, '',
+    '> **Locale gotcha:** middleware redirects root pages to `/[locale]`, so every new page needs a',
+    '> `[locale]` variant or it 404s. That is why most routes appear twice below.', ''];
+
+  const routeTable = (rows, title) => {
+    if (!rows.length) return;
+    L.push(`## ${title}`, '', '| Route | File | LOC | Purpose |', '|---|---|---|---|');
+    for (const r of rows) {
+      L.push(`| \`${esc(r.route)}\` | \`${rel(r.file)}\` | ${r.loc} | ${esc(desc(`${rel(r.file)}#default`)) || '_—_'} |`);
+    }
+    L.push('');
+  };
+  routeTable(loc, 'Localised routes (`/[locale]/…`)');
+  routeTable(root, 'Root routes');
+
+  const byFile = new Map();
+  for (const e of exports_.filter((x) => !/\/app\//.test(rel(x.file)))) {
+    if (!byFile.has(e.file)) byFile.set(e.file, []);
+    byFile.get(e.file).push(e);
+  }
+  const dirOf = (f) => rel(f).split('/').slice(0, -1).join('/');
+  const dirs = [...new Set([...byFile.keys()].map(dirOf))].sort();
+  L.push('## Shared modules', '');
+  for (const dir of dirs) {
+    L.push(`### \`${dir}/\``, '');
+    for (const f of [...byFile.keys()].filter((x) => dirOf(x) === dir).sort()) {
+      L.push(`**\`${rel(f).split('/').pop()}\`** — ${readLines(f).length} lines. ${esc(desc(`${rel(f)}#__file__`)) || '_—_'}`, '');
+      L.push('| Export | Kind | Line | Purpose |', '|---|---|---|---|');
+      for (const e of byFile.get(f).sort((a, b) => a.line - b.line)) {
+        L.push(`| \`${e.name}\` | ${e.kind} | ${e.line} | ${esc(desc(`${rel(f)}#${e.name}`)) || '_—_'} |`);
+      }
+      L.push('');
+    }
+  }
+
+  L.push('## Symbol index', '', '| Symbol | Kind | Location |', '|---|---|---|');
+  const rows = [...exports_.map((e) => ({ name: e.name, kind: e.kind, file: e.file, line: e.line })),
+    ...classes.flatMap((c) => c.methods.map((m) => ({ name: `${c.name}.${m.name}`, kind: 'method', file: c.file, line: m.line })))];
+  for (const r of rows.sort((a, b) => a.name.localeCompare(b.name) || a.file.localeCompare(b.file))) {
+    L.push(`| \`${esc(r.name)}\` | ${r.kind} | \`${rel(r.file)}:${r.line}\` |`);
+  }
+  return L.join('\n');
+}
+
 // ──────────────────────────────── main ───────────────────────────────────
 
 console.log(`codemap: root=${ROOT}`);
@@ -628,14 +698,35 @@ const symbolRows = [
   })),
 ];
 
+// Inside the B2C repo the only meaningful area is `site`; emit the single
+// combined map instead of the main repo's multi-file layout.
+const siteFiles = filesByArea.get('site');
+if (siteFiles && filesByArea.size === 1) {
+  write('10-b2c-site.md', renderSite(
+    routesByArea.get('B2C Site (Next.js)') ?? [], exports_, classes, siteFiles));
+  finishCoverage();
+  process.exit(0);
+}
+
 if (prisma.models.length) write('01-data-model.md', renderDataModel(prisma));
 if (endpoints.length) write('02-backend-api.md', renderApi(endpoints));
-if (backendFiles.length) for (const g of BACKEND_GROUPS) write(g.out, renderServiceGroup(g, classes, exports_));
+if (backendFiles.length) {
+  const unclaimed = [...new Set(backendFiles.map(moduleOf))].filter((m) => !CLAIMED.has(m)).sort();
+  if (unclaimed.length) {
+    console.log(`codemap: NOTE ${unclaimed.length} module(s) not assigned to a group, mapped via catch-all (06): ${unclaimed.join(', ')}`);
+  }
+  for (const g of BACKEND_GROUPS) write(g.out, renderServiceGroup(g, classes, exports_));
+}
 if (routesByArea.size) write('07-frontend-routes.md', renderRoutes(routesByArea));
 if (filesByArea.has('frontend')) write('08-frontend-shared.md', renderShared(
   '08 — Frontend Shared', {
     include: ['frontend/src/components', 'frontend/src/lib', 'frontend/src/hooks', 'frontend/src/stores', 'frontend/src/types'],
     blurb: 'Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.',
+  }, exports_, classes));
+if (filesByArea.has('site')) write('08-site-shared.md', renderShared(
+  '08 — B2C Site Shared', {
+    include: ['src/components', 'src/lib', 'src/stores'],
+    blurb: 'Everything the B2C pages reuse: admin API client, SEO and route-content helpers, i18n, site settings, and the shared UI/website components.',
   }, exports_, classes));
 if (filesByArea.has('mobile')) write('09-mobile.md', renderShared(
   '09 — Mobile Apps', {
@@ -644,17 +735,20 @@ if (filesByArea.has('mobile')) write('09-mobile.md', renderShared(
   }, exports_, classes));
 write('12-symbol-index.md', renderSymbolIndex(symbolRows));
 
-// Description coverage — this is the phase-2/3/4 worklist.
-if (!fs.existsSync(DESC_FILE)) fs.writeFileSync(DESC_FILE, '{}\n');
-const missing = [...wanted].filter((k) => !DESCRIPTIONS[k]).sort();
-const stale = Object.keys(DESCRIPTIONS).filter((k) => !wanted.has(k)).sort();
-fs.writeFileSync(TODO_FILE,
-  `# Symbols with no description yet — regenerate to refresh.\n` +
-  `# ${wanted.size - missing.length}/${wanted.size} described.\n` +
-  (stale.length ? `\n# STALE (description exists, symbol gone):\n${stale.map((s) => `! ${s}`).join('\n')}\n\n` : '') +
-  missing.join('\n') + '\n');
+// Description coverage — the remaining worklist, and the rot detector.
+function finishCoverage() {
+  if (!fs.existsSync(DESC_FILE)) fs.writeFileSync(DESC_FILE, '{}\n');
+  const missing = [...wanted].filter((k) => !DESCRIPTIONS[k]).sort();
+  const stale = Object.keys(DESCRIPTIONS).filter((k) => !wanted.has(k)).sort();
+  fs.writeFileSync(TODO_FILE,
+    `# Symbols with no description yet — regenerate to refresh.\n` +
+    `# ${wanted.size - missing.length}/${wanted.size} described.\n` +
+    (stale.length ? `\n# STALE (description exists, symbol gone):\n${stale.map((s) => `! ${s}`).join('\n')}\n\n` : '') +
+    missing.join('\n') + '\n');
+  console.log(`codemap: descriptions ${wanted.size - missing.length}/${wanted.size}` +
+    (stale.length ? ` · ${stale.length} stale` : ''));
+}
 
 console.log(`codemap: ${allFiles.length} files · ${endpoints.length} endpoints · ${classes.length} classes · ` +
   `${symbolRows.length} symbols · ${prisma.models.length} models · ${[...routesByArea.values()].flat().length} routes`);
-console.log(`codemap: descriptions ${wanted.size - missing.length}/${wanted.size}` +
-  (stale.length ? ` · ${stale.length} stale` : ''));
+finishCoverage();

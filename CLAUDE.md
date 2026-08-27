@@ -187,6 +187,32 @@ If conflicts appear, **ask before changing anything**.
 
 ---
 
+## 9A. CODE MAP (READ BEFORE SEARCHING THE CODEBASE)
+
+`CODEMAP.md` at the repo root is the index of the entire system — every endpoint, model, service
+method, route, component and mobile symbol, each with a one-line description.
+
+**Read `CODEMAP.md` before grepping or reading source files.** It is ~60 lines and tells you which
+detail map to open. Going straight to the code wastes context re-deriving what the map already
+states.
+
+- Locating a symbol → `docs/map/12-symbol-index.md` (A–Z → `file:line`)
+- Debugging unexpected behaviour → `docs/map/11-business-rules.md` **first**
+- Anything B2C → `docs/map/10-b2c-site.md` (separate repo, VPS and DB; its backend is a *fork*)
+
+**Keeping it true:**
+- Generated maps (`01`, `02`, `03`–`09`, `12`) are owned by `scripts/generate-codemap.mjs`. Never
+  hand-edit them. Descriptions live in `docs/map/descriptions.json`.
+- After adding, renaming, moving or deleting a file, run `node scripts/generate-codemap.mjs`.
+  The pre-commit hook does this automatically, but run it yourself if you bypass hooks.
+- After adding a new symbol, add its description via `scripts/add-descriptions.mjs`.
+  `docs/map/_undescribed.txt` lists what is missing and flags stale entries.
+- Hand-written files (`00-architecture.md`, `10-b2c-site.md`, `11-business-rules.md`) must be
+  updated by hand when the behaviour they describe changes — especially `11`, which records the
+  rules that are easy to break.
+
+---
+
 ## 10. VERSION CONTROL & DEPLOYMENT WORKFLOW (MANDATORY)
 
 Applies to **this system (`/opt/itour`) AND the B2C site repo/VPS** (iTourTT-B2CSite,

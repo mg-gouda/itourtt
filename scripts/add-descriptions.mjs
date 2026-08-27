@@ -14,12 +14,17 @@ const existing = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, 'utf8'))
 const known = new Set(fs.readFileSync(path.join(ROOT, 'docs/map/_undescribed.txt'), 'utf8')
   .split('\n').filter((l) => l && !l.startsWith('#') && !l.startsWith('!')));
 const before = Object.keys(existing).length;
+// Unknown keys are REJECTED, not written. Writing them was what created stale
+// prose that lingered until someone noticed the stale report.
 const unknown = [];
 for (const [k, v] of Object.entries(incoming)) {
-  if (!known.has(k) && !existing[k]) unknown.push(k);
+  if (!known.has(k) && !existing[k]) { unknown.push(k); continue; }
   existing[k] = v;
 }
 const sorted = Object.fromEntries(Object.keys(existing).sort().map((k) => [k, existing[k]]));
 fs.writeFileSync(FILE, JSON.stringify(sorted, null, 2) + '\n');
 console.log(`descriptions: ${before} -> ${Object.keys(sorted).length} (+${Object.keys(sorted).length - before})`);
-if (unknown.length) { console.log(`! ${unknown.length} key(s) match no known symbol — typo?`); unknown.forEach((k) => console.log(`  ${k}`)); }
+if (unknown.length) {
+  console.log(`! ${unknown.length} key(s) matched no known symbol and were SKIPPED (fix the key, or regenerate first):`);
+  unknown.forEach((k) => console.log(`  ${k}`));
+}

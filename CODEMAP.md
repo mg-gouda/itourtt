@@ -1,50 +1,59 @@
 # CODEMAP — iTour Transport & Traffic
 
-**Read this file first. It tells you which map to open; you should rarely need to grep the codebase blind.**
+**Read this file first. It tells you which map to open, so you never have to grep the tree blind.**
+
+Every map below is complete: **2,045 / 2,045 symbols described**, regenerated from the code itself.
 
 | Area | Files | LOC | Root |
 |---|---|---|---|
-| Backend (NestJS) | 246 | 40,492 | `backend/src` |
-| Frontend (Next.js) | 169 | 56,962 | `frontend/src` |
-| Mobile (4 RN apps + 2 pkgs) | 121 | 13,436 | `mobile` |
-| B2C site | 129 | 20,732 | separate repo `mg-gouda/iTourTT-B2CSite` |
-| Prisma schema (84 models) | 1 | 2,394 | `backend/prisma/schema.prisma` |
+| Backend (NestJS) | 246 | 40k | `backend/src` — 444 endpoints, 37 controllers, 52 services |
+| Frontend (Next.js) | 169 | 57k | `frontend/src` — 48 routes |
+| Mobile (4 RN apps) | 121 | 13k | `mobile/apps/{driver,rep,supplier,guest}` |
+| Prisma schema | 1 | 2.4k | `backend/prisma/schema.prisma` — 84 models |
+| B2C site | 422 | 65k | **separate repo + VPS + database** → `docs/map/10-b2c-site.md` |
 
 ## Which map do I open?
 
-| I need to find… | Open |
+| I need to… | Open |
 |---|---|
-| A function/class/method by name | `docs/map/12-symbol-index.md` — A–Z, gives `file:line` |
-| Which endpoint serves a URL, and what it calls | `docs/map/02-backend-api.md` — 444 endpoints |
-| A DB table, column, or relation | `docs/map/01-data-model.md` — 84 models |
-| Which page renders a screen, and what it calls | `docs/map/07-frontend-routes.md` — 48 routes |
-| Where a business rule is enforced | `docs/map/11-business-rules.md` _(phase 5)_ |
-| What a backend service method does | `docs/map/03…06-backend-*.md` _(phase 2)_ |
-| A shared component / hook / store | `docs/map/08-frontend-shared.md` _(phase 3)_ |
-| A mobile screen | `docs/map/09-mobile.md` _(phase 4)_ |
-| A B2C page | `docs/map/10-b2c-site.md` _(phase 4)_ |
-| How the system fits together | `docs/map/00-architecture.md` _(phase 5)_ |
+| Find a function/class/method by name | `docs/map/12-symbol-index.md` — A–Z → `file:line` |
+| Know **why** something behaves that way | `docs/map/11-business-rules.md` ← start here for bugs |
+| See how the pieces fit together | `docs/map/00-architecture.md` |
+| Trace a URL to its handler and service | `docs/map/02-backend-api.md` |
+| Look up a table, column or relation | `docs/map/01-data-model.md` |
+| Understand a backend service method | `03` ops · `04` finance · `05` portals · `06` platform |
+| Find the page that renders a screen | `docs/map/07-frontend-routes.md` |
+| Find a shared component, hook or store | `docs/map/08-frontend-shared.md` |
+| Find a mobile screen | `docs/map/09-mobile.md` |
+| Touch anything B2C | `docs/map/10-b2c-site.md` (it is a *fork*, read this first) |
 
-## How the map stays true
+## Fastest paths for common questions
 
-```
-node scripts/generate-codemap.mjs      # regenerate (~0.4s)
-```
+| Question | Go to |
+|---|---|
+| "Why can't the driver complete this job?" | `11` → *Why can't the driver complete this job?* (usually the collection gate) |
+| "Why is this job still ASSIGNED with both legs done?" | `11` → *The one rule that catches everyone* |
+| "Where is this fee calculated?" | `11` → *Money* |
+| "What does this endpoint call?" | `02` — every row lists its service method |
+| "What touches this table?" | `03`–`06` — every method lists the models it reads/writes |
+| "Which endpoints does this page call?" | `07` |
 
-- **Generated files are owned by the script.** Hand-edits to `01`, `02`, `07`, `12` are overwritten.
+## Rules of the map
+
+- **Generated files are owned by `scripts/generate-codemap.mjs`.** Hand-edits to `01`, `02`, `03`–`09`
+  and `12` are overwritten. `00`, `10` and `11` are hand-written and never touched by it.
 - **Prose lives in `docs/map/descriptions.json`**, keyed by stable symbol id
-  (`backend/src/x.service.ts#XService.method`). The generator merges it in, so regenerating
+  (`backend/src/x.service.ts#XService.method`), and is merged in at render time — so regenerating
   never destroys a description.
-- **`docs/map/_undescribed.txt`** lists symbols still missing a description, plus any *stale*
-  entries whose symbol no longer exists — that file is the work queue and the rot detector.
-- A **pre-commit hook** (`scripts/hooks/pre-commit`, wired via `core.hooksPath`) regenerates and
-  stages the map whenever a commit touches `.ts`/`.tsx`/`.prisma`.
+- **Line numbers appear only in generated files.** Hand-written prose refers to
+  `file.ts › symbolName`, which cannot rot.
+- **`docs/map/_undescribed.txt`** is the work queue *and* the rot detector: it lists symbols with no
+  prose, and flags stale entries whose symbol no longer exists.
 
-Line numbers appear **only** in generated files. Hand-written prose refers to symbols
-(`driver-portal.service.ts › submitCompleted`), never line numbers, so it cannot rot.
+```bash
+node scripts/generate-codemap.mjs     # regenerate (~0.4s, no dependencies)
+node scripts/add-descriptions.mjs     # merge a JSON batch of descriptions from stdin
+```
 
-## Status
-
-Phase 1 complete: generator, hook, and the four generated maps.
-Descriptions: **0 / 576** — phases 2–4 fill these in (final target ≈2,200 including service
-methods and exports, which register their description slots as those maps are added).
+A **pre-commit hook** (`scripts/hooks/pre-commit`, wired via `core.hooksPath`) regenerates and stages
+the map on any commit touching `.ts`/`.tsx`/`.prisma`, so it cannot silently fall behind.
