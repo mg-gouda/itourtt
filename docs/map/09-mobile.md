@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**94 files**, **184 exported symbols**.
+**94 files**, **196 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -440,6 +440,7 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `setApiBaseUrl` | function | 15 | _—_ |
+| `api` | const | 20 | _—_ |
 | `setOnAuthFailure` | function | 29 | _—_ |
 
 ## `mobile/packages/shared/src/api/endpoints/`
@@ -558,6 +559,8 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 | `getLocale` | function | 15 | _—_ |
 | `t` | function | 33 | _—_ |
 | `useT` | function | 38 | _—_ |
+| `en` | const | 42 | _—_ |
+| `ar` | const | 42 | _—_ |
 
 ## `mobile/packages/shared/src/native/`
 
@@ -641,6 +644,15 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 | `getColors` | function | 8 | _—_ |
 | `getStatusColors` | function | 13 | _—_ |
 | `useTheme` | function | 18 | _—_ |
+| `useThemeStore` | const | 25 | _—_ |
+| `lightColors` | const | 26 | _—_ |
+| `darkColors` | const | 26 | _—_ |
+| `statusColors` | const | 26 | _—_ |
+| `statusColorsDark` | const | 26 | _—_ |
+| `serviceTypeColors` | const | 26 | _—_ |
+| `spacing` | const | 27 | _—_ |
+| `borderRadius` | const | 27 | _—_ |
+| `typography` | const | 28 | _—_ |
 
 ### `spacing.ts`
 

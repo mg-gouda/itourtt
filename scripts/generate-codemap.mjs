@@ -259,13 +259,55 @@ function parseExports(files) {
   const out = [];
   for (const file of files) {
     const lines = readLines(file);
-    lines.forEach((l, i) => {
+    const seen = new Set();
+    const push = (name, kind, line) => {
+      if (seen.has(name)) return;
+      seen.add(name);
+      out.push({ name, kind, file, line });
+    };
+
+    // Find where a name is actually declared, so re-exported symbols still
+    // point at their definition rather than the export statement.
+    const declLine = (name) => {
+      const re = new RegExp(`^\\s*(?:export\\s+)?(?:declare\\s+)?(?:async\\s+)?(?:const|let|var|function|class|type|interface|enum)\\s+${name}\\b`);
+      const i = lines.findIndex((l) => re.test(l));
+      return i >= 0 ? i + 1 : null;
+    };
+    const declKind = (name) => {
+      const i = (declLine(name) ?? 0) - 1;
+      if (i < 0) return 'const';
+      const l = lines[i];
+      if (/\bfunction\b/.test(l)) return 'function';
+      if (/\bclass\b/.test(l)) return 'class';
+      if (/\b(type|interface|enum)\b/.test(l)) return 'type';
+      return 'const';
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
       let m;
-      if ((m = l.match(/^export (?:default )?(?:async )?function\s+(\w+)/))) out.push({ name: m[1], kind: 'function', file, line: i + 1 });
-      else if ((m = l.match(/^export (?:const|let)\s+(\w+)/))) out.push({ name: m[1], kind: 'const', file, line: i + 1 });
-      else if ((m = l.match(/^export (?:abstract )?class\s+(\w+)/))) out.push({ name: m[1], kind: 'class', file, line: i + 1 });
-      else if ((m = l.match(/^export (?:type|interface|enum)\s+(\w+)/))) out.push({ name: m[1], kind: 'type', file, line: i + 1 });
-    });
+      if ((m = l.match(/^export (?:default )?(?:async )?function\s+(\w+)/))) push(m[1], 'function', i + 1);
+      else if ((m = l.match(/^export (?:const|let)\s+(\w+)/))) push(m[1], 'const', i + 1);
+      else if ((m = l.match(/^export (?:abstract )?class\s+(\w+)/))) push(m[1], 'class', i + 1);
+      else if ((m = l.match(/^export (?:type|interface|enum)\s+(\w+)/))) push(m[1], 'type', i + 1);
+      // `export default api;` — the whole module's public surface in one line.
+      else if ((m = l.match(/^export default (\w+)\s*;?\s*$/))) push(m[1], declKind(m[1]), declLine(m[1]) ?? i + 1);
+      // `export { A, B }` re-export lists, possibly spanning lines. This is how
+      // every shadcn/ui component is exported — without it they are invisible.
+      else if (/^export \{/.test(l)) {
+        let block = l, j = i;
+        while (!block.includes('}') && j + 1 < lines.length) block += ' ' + lines[++j];
+        // `export { X } from './X'` is a barrel forward, not a definition — the
+        // symbol is already indexed at its source, so skip it here.
+        if (/\}\s*from\s/.test(block)) { i = j; continue; }
+        const inner = block.slice(block.indexOf('{') + 1, block.indexOf('}'));
+        for (const part of inner.split(',')) {
+          const nm = part.trim().split(/\s+as\s+/).pop()?.trim();
+          if (nm && /^[A-Za-z_$][\w$]*$/.test(nm) && nm !== 'default') push(nm, declKind(nm), declLine(nm) ?? i + 1);
+        }
+        i = j;
+      }
+    }
   }
   return out;
 }

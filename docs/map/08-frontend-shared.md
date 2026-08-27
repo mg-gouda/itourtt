@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**55 files**, **158 exported symbols**.
+**78 files**, **270 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -281,6 +281,76 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 
 ## `frontend/src/components/ui/`
 
+### `accordion.tsx`
+
+`frontend/src/components/ui/accordion.tsx` · 74 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Accordion` | function | 9 | _—_ |
+| `AccordionItem` | function | 22 | _—_ |
+| `AccordionTrigger` | function | 35 | _—_ |
+| `AccordionContent` | function | 57 | _—_ |
+
+### `alert-dialog.tsx`
+
+`frontend/src/components/ui/alert-dialog.tsx` · 197 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AlertDialog` | function | 9 | _—_ |
+| `AlertDialogTrigger` | function | 15 | _—_ |
+| `AlertDialogPortal` | function | 23 | _—_ |
+| `AlertDialogOverlay` | function | 31 | _—_ |
+| `AlertDialogContent` | function | 47 | _—_ |
+| `AlertDialogHeader` | function | 70 | _—_ |
+| `AlertDialogFooter` | function | 86 | _—_ |
+| `AlertDialogTitle` | function | 102 | _—_ |
+| `AlertDialogDescription` | function | 118 | _—_ |
+| `AlertDialogMedia` | function | 131 | _—_ |
+| `AlertDialogAction` | function | 147 | _—_ |
+| `AlertDialogCancel` | function | 165 | _—_ |
+
+### `badge.tsx`
+
+`frontend/src/components/ui/badge.tsx` · 49 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `badgeVariants` | const | 7 | _—_ |
+| `Badge` | function | 29 | _—_ |
+
+### `button.tsx`
+
+`frontend/src/components/ui/button.tsx` · 65 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `buttonVariants` | const | 7 | _—_ |
+| `Button` | function | 41 | _—_ |
+
+### `card.tsx`
+
+`frontend/src/components/ui/card.tsx` · 93 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Card` | function | 5 | _—_ |
+| `CardHeader` | function | 18 | _—_ |
+| `CardTitle` | function | 31 | _—_ |
+| `CardDescription` | function | 41 | _—_ |
+| `CardAction` | function | 51 | _—_ |
+| `CardContent` | function | 64 | _—_ |
+| `CardFooter` | function | 74 | _—_ |
+
+### `checkbox.tsx`
+
+`frontend/src/components/ui/checkbox.tsx` · 33 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Checkbox` | function | 9 | _—_ |
+
 ### `column-visibility-control.tsx`
 
 `frontend/src/components/ui/column-visibility-control.tsx` · 91 lines
@@ -288,6 +358,39 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `ColumnVisibilityControl` | function | 15 | _—_ |
+
+### `command.tsx`
+
+`frontend/src/components/ui/command.tsx` · 185 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Command` | function | 16 | _—_ |
+| `CommandDialog` | function | 32 | _—_ |
+| `CommandInput` | function | 63 | _—_ |
+| `CommandList` | function | 85 | _—_ |
+| `CommandEmpty` | function | 101 | _—_ |
+| `CommandGroup` | function | 113 | _—_ |
+| `CommandSeparator` | function | 129 | _—_ |
+| `CommandItem` | function | 142 | _—_ |
+| `CommandShortcut` | function | 158 | _—_ |
+
+### `dialog.tsx`
+
+`frontend/src/components/ui/dialog.tsx` · 159 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Dialog` | function | 10 | _—_ |
+| `DialogTrigger` | function | 16 | _—_ |
+| `DialogPortal` | function | 22 | _—_ |
+| `DialogClose` | function | 28 | _—_ |
+| `DialogOverlay` | function | 34 | _—_ |
+| `DialogContent` | function | 50 | _—_ |
+| `DialogHeader` | function | 84 | _—_ |
+| `DialogFooter` | function | 94 | _—_ |
+| `DialogTitle` | function | 121 | _—_ |
+| `DialogDescription` | function | 134 | _—_ |
 
 ### `draggable-table-header.tsx`
 
@@ -298,6 +401,28 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 | `ColumnDef` | type | 23 | _—_ |
 | `DraggableTableHeader` | function | 74 | _—_ |
 
+### `dropdown-menu.tsx`
+
+`frontend/src/components/ui/dropdown-menu.tsx` · 258 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `DropdownMenu` | function | 9 | _—_ |
+| `DropdownMenuPortal` | function | 15 | _—_ |
+| `DropdownMenuTrigger` | function | 23 | _—_ |
+| `DropdownMenuContent` | function | 34 | _—_ |
+| `DropdownMenuGroup` | function | 54 | _—_ |
+| `DropdownMenuItem` | function | 62 | _—_ |
+| `DropdownMenuCheckboxItem` | function | 85 | _—_ |
+| `DropdownMenuRadioGroup` | function | 111 | _—_ |
+| `DropdownMenuRadioItem` | function | 122 | _—_ |
+| `DropdownMenuLabel` | function | 146 | _—_ |
+| `DropdownMenuSeparator` | function | 166 | _—_ |
+| `DropdownMenuShortcut` | function | 179 | _—_ |
+| `DropdownMenuSub` | function | 195 | _—_ |
+| `DropdownMenuSubTrigger` | function | 201 | _—_ |
+| `DropdownMenuSubContent` | function | 225 | _—_ |
+
 ### `empty-state.tsx`
 
 `frontend/src/components/ui/empty-state.tsx` · 18 lines
@@ -305,6 +430,84 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `EmptyState` | function | 9 | _—_ |
+
+### `input.tsx`
+
+`frontend/src/components/ui/input.tsx` · 22 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Input` | function | 5 | _—_ |
+
+### `label.tsx`
+
+`frontend/src/components/ui/label.tsx` · 25 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Label` | function | 8 | _—_ |
+
+### `popover.tsx`
+
+`frontend/src/components/ui/popover.tsx` · 90 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Popover` | function | 8 | _—_ |
+| `PopoverTrigger` | function | 14 | _—_ |
+| `PopoverContent` | function | 20 | _—_ |
+| `PopoverAnchor` | function | 42 | _—_ |
+| `PopoverHeader` | function | 48 | _—_ |
+| `PopoverTitle` | function | 58 | _—_ |
+| `PopoverDescription` | function | 68 | _—_ |
+
+### `select.tsx`
+
+`frontend/src/components/ui/select.tsx` · 191 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Select` | function | 9 | _—_ |
+| `SelectGroup` | function | 15 | _—_ |
+| `SelectValue` | function | 21 | _—_ |
+| `SelectTrigger` | function | 27 | _—_ |
+| `SelectContent` | function | 53 | _—_ |
+| `SelectLabel` | function | 90 | _—_ |
+| `SelectItem` | function | 103 | _—_ |
+| `SelectSeparator` | function | 130 | _—_ |
+| `SelectScrollUpButton` | function | 143 | _—_ |
+| `SelectScrollDownButton` | function | 161 | _—_ |
+
+### `separator.tsx`
+
+`frontend/src/components/ui/separator.tsx` · 29 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Separator` | function | 8 | _—_ |
+
+### `sheet.tsx`
+
+`frontend/src/components/ui/sheet.tsx` · 144 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Sheet` | function | 9 | _—_ |
+| `SheetTrigger` | function | 13 | _—_ |
+| `SheetClose` | function | 19 | _—_ |
+| `SheetContent` | function | 47 | _—_ |
+| `SheetHeader` | function | 88 | _—_ |
+| `SheetFooter` | function | 98 | _—_ |
+| `SheetTitle` | function | 108 | _—_ |
+| `SheetDescription` | function | 121 | _—_ |
+
+### `skeleton.tsx`
+
+`frontend/src/components/ui/skeleton.tsx` · 16 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Skeleton` | function | 3 | _—_ |
 
 ### `skeletons.tsx`
 
@@ -327,6 +530,14 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 | `FinanceSkeleton` | function | 262 | _—_ |
 | `DispatchSkeleton` | function | 281 | _—_ |
 
+### `sonner.tsx`
+
+`frontend/src/components/ui/sonner.tsx` · 41 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Toaster` | const | 13 | _—_ |
+
 ### `status-badge.tsx`
 
 `frontend/src/components/ui/status-badge.tsx` · 56 lines
@@ -335,151 +546,241 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 |---|---|---|---|
 | `StatusBadge` | function | 43 | _—_ |
 
+### `switch.tsx`
+
+`frontend/src/components/ui/switch.tsx` · 36 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Switch` | function | 8 | _—_ |
+
+### `table.tsx`
+
+`frontend/src/components/ui/table.tsx` · 117 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Table` | function | 7 | _—_ |
+| `TableHeader` | function | 22 | _—_ |
+| `TableBody` | function | 32 | _—_ |
+| `TableFooter` | function | 42 | _—_ |
+| `TableRow` | function | 55 | _—_ |
+| `TableHead` | function | 68 | _—_ |
+| `TableCell` | function | 81 | _—_ |
+| `TableCaption` | function | 94 | _—_ |
+
+### `tabs.tsx`
+
+`frontend/src/components/ui/tabs.tsx` · 92 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Tabs` | function | 9 | _—_ |
+| `tabsListVariants` | const | 28 | _—_ |
+| `TabsList` | function | 43 | _—_ |
+| `TabsTrigger` | function | 59 | _—_ |
+| `TabsContent` | function | 78 | _—_ |
+
+### `textarea.tsx`
+
+`frontend/src/components/ui/textarea.tsx` · 19 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Textarea` | function | 5 | _—_ |
+
+### `tooltip.tsx`
+
+`frontend/src/components/ui/tooltip.tsx` · 62 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TooltipProvider` | function | 8 | _—_ |
+| `Tooltip` | function | 21 | _—_ |
+| `TooltipTrigger` | function | 31 | _—_ |
+| `TooltipContent` | function | 37 | _—_ |
+
 ## `frontend/src/hooks/`
 
 ### `use-license.ts`
 
 `frontend/src/hooks/use-license.ts` · 55 lines
 
+Licence state for the licence gate that blocks the portals when the licence is invalid.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useLicense` | function | 16 | _—_ |
+| `useLicense` | function | 16 | Current licence status. |
 
 ### `use-permission.ts`
 
 `frontend/src/hooks/use-permission.ts` · 25 lines
 
+Permission gating for the UI. Renders are gated by the same keys the backend enforces — the UI hiding a control is convenience, not security.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `usePermission` | function | 8 | _—_ |
-| `usePermissions` | function | 16 | _—_ |
+| `usePermission` | function | 8 | True when the signed-in user holds one permission key. |
+| `usePermissions` | function | 16 | Bulk check across several keys. |
 
 ### `use-sortable.ts`
 
 `frontend/src/hooks/use-sortable.ts` · 58 lines
 
+Client-side table sorting shared by the list screens.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SortDir` | type | 5 | _—_ |
-| `useSortable` | function | 7 | _—_ |
+| `SortDir` | type | 5 | Ascending or descending. |
+| `useSortable` | function | 7 | Sort state plus a comparator for a table column. |
 
 ### `useColumnOrder.ts`
 
 `frontend/src/hooks/useColumnOrder.ts` · 39 lines
 
+Per-user draggable column ordering, persisted server-side via `UserPreference`.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useColumnOrder` | function | 4 | _—_ |
+| `useColumnOrder` | function | 4 | Loads, applies and saves a table's column order for the signed-in user. |
 
 ### `useColumnPreferences.ts`
 
 `frontend/src/hooks/useColumnPreferences.ts` · 62 lines
 
+Per-user column visibility, persisted alongside column order.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useColumnPreferences` | function | 4 | _—_ |
+| `useColumnPreferences` | function | 4 | Loads and saves which columns a user shows or hides. |
 
 ## `frontend/src/lib/`
+
+### `api.ts`
+
+`frontend/src/lib/api.ts` · 122 lines
+
+★ The axios API client every page uses. Attaches the access token from localStorage, and on a 401 refreshes once while queueing concurrent failures so a token expiry causes one refresh, not a stampede.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `api` | const | 7 | _—_ |
 
 ### `gps.ts`
 
 `frontend/src/lib/gps.ts` · 67 lines
 
+GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window (cold outdoor fixes are slow), falling back to network/WiFi only on TIMEOUT — permission and unavailable errors propagate immediately.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `captureGPS` | function | 4 | _—_ |
-| `GeoError` | type | 44 | _—_ |
+| `captureGPS` | function | 4 | Resolves `{lat,lng}` or rejects. GPS is mandatory on every portal status change. |
+| `GeoError` | type | 44 | Distinguishes permission-denied, unavailable and timeout so the UI can advise correctly. |
 
 ### `i18n.ts`
 
 `frontend/src/lib/i18n.ts` · 3398 lines
 
+Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Locale` | type | 4 | _—_ |
-| `t` | function | 3375 | _—_ |
-| `getTranslator` | function | 3379 | _—_ |
-| `useT` | function | 3387 | _—_ |
-| `useLocaleId` | function | 3394 | _—_ |
+| `Locale` | type | 4 | Supported dashboard locales. |
+| `t` | function | 3375 | Translates a key in the current locale. |
+| `getTranslator` | function | 3379 | Translator for a specific locale, outside React. |
+| `useT` | function | 3387 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3394 | The active locale id. |
 
 ### `permission-registry.ts`
 
 `frontend/src/lib/permission-registry.ts` · 799 lines
 
+Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CrudType` | type | 9 | _—_ |
-| `PermissionNode` | type | 21 | _—_ |
-| `PERMISSION_REGISTRY` | const | 28 | _—_ |
-| `getAllPermissionKeys` | function | 710 | _—_ |
-| `isValidPermissionKey` | function | 726 | _—_ |
-| `getAncestorKeys` | function | 734 | _—_ |
-| `getDescendantKeys` | function | 746 | _—_ |
-| `findNode` | function | 786 | _—_ |
+| `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
+| `PermissionNode` | type | 21 | One node: key, label, children. |
+| `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
+| `getAllPermissionKeys` | function | 710 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 726 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 734 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 746 | Subtree, used by the master toggle. |
+| `findNode` | function | 786 | Looks up a node by key. |
 
 ### `service-types.ts`
 
 `frontend/src/lib/service-types.ts` · 108 lines
 
+★ Service types for the frontend — the mirror of `backend/src/common/utils/service-type.util.ts`. Never hard-code a service type string; change both files together.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SELECTABLE_SERVICE_TYPES` | const | 18 | _—_ |
-| `LEGACY_SERVICE_TYPES` | const | 30 | _—_ |
-| `ALL_SERVICE_TYPES` | const | 32 | _—_ |
-| `ServiceType` | type | 37 | _—_ |
-| `SERVICE_TYPE_COLORS` | const | 39 | _—_ |
-| `SERVICE_TYPE_COLORS_SOLID` | const | 50 | _—_ |
-| `SERVICE_TYPE_DROPDOWN_LABELS` | const | 72 | _—_ |
-| `serviceTypeDropdownLabel` | function | 83 | _—_ |
-| `SERVICE_TYPE_DROPDOWN_OPTIONS` | const | 89 | _—_ |
-| `useServiceTypeLabel` | function | 99 | _—_ |
+| `SELECTABLE_SERVICE_TYPES` | const | 18 | What dropdowns offer: ARR, DEP, DAY_TOUR, ONE_WAY_TRANSFER, RETURN. |
+| `LEGACY_SERVICE_TYPES` | const | 30 | Retired types still rendered for historical rows (TWO_WAY_TRANSFER, CITY_TO_CITY). |
+| `ALL_SERVICE_TYPES` | const | 32 | Selectable plus legacy — for filters, not dropdowns. |
+| `ServiceType` | type | 37 | Union type of all service types. |
+| `SERVICE_TYPE_COLORS` | const | 39 | Badge colour per service type (tinted). |
+| `SERVICE_TYPE_COLORS_SOLID` | const | 50 | Solid badge colour per service type, for dense grids. |
+| `SERVICE_TYPE_DROPDOWN_LABELS` | const | 72 | Bilingual labels — every service-type dropdown shows English and Arabic together. |
+| `serviceTypeDropdownLabel` | function | 83 | Bilingual label for one service type. |
+| `SERVICE_TYPE_DROPDOWN_OPTIONS` | const | 89 | Ready-made option objects for the dropdowns. |
+| `useServiceTypeLabel` | function | 99 | Hook returning the locale-appropriate label. |
 
 ### `site-settings.ts`
 
 `frontend/src/lib/site-settings.ts` · 171 lines
 
+Fetches and caches public website settings (branding, nav, feature toggles) for the public pages.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 17 | _—_ |
-| `FeatureItem` | type | 23 | _—_ |
-| `SiteSettings` | type | 30 | _—_ |
-| `DEFAULT_SITE_SETTINGS` | const | 89 | _—_ |
-| `fetchSiteSettings` | function | 128 | _—_ |
+| `NavLink` | type | 17 | A public navigation entry. |
+| `FeatureItem` | type | 23 | A homepage feature/value-prop entry. |
+| `SiteSettings` | type | 30 | Shape of the public website settings. |
+| `DEFAULT_SITE_SETTINGS` | const | 89 | Fallbacks so the public pages still render if settings are unavailable. |
+| `fetchSiteSettings` | function | 128 | Loads website settings from the public API. |
 
 ### `use-geo-capture.ts`
 
 `frontend/src/lib/use-geo-capture.ts` · 74 lines
 
+React wrapper around `captureGPS` with capturing/retry state for the evidence dialogs.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `GeoCapture` | type | 7 | _—_ |
-| `useGeoCapture` | function | 25 | _—_ |
+| `GeoCapture` | type | 7 | Shape returned by `useGeoCapture`. |
+| `useGeoCapture` | function | 25 | Hook exposing the current fix, capture state and a retry action. |
 
 ### `utils.ts`
 
 `frontend/src/lib/utils.ts` · 82 lines
 
+★ Shared helpers, including the app-wide timezone policy. Every displayed date/time is pinned to Africa/Cairo — never the device zone. Bypassing these helpers is what caused flight times to render wrong on non-Cairo devices.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `cn` | function | 4 | _—_ |
-| `APP_TZ` | const | 17 | _—_ |
-| `formatTimeCairo` | function | 20 | _—_ |
-| `dateStrCairo` | function | 33 | _—_ |
-| `cairoWallclockToISO` | function | 44 | _—_ |
-| `localDateStr` | function | 66 | _—_ |
-| `formatDate` | function | 74 | _—_ |
+| `cn` | function | 4 | Tailwind class merge (clsx + tailwind-merge). |
+| `APP_TZ` | const | 17 | `Africa/Cairo` — the single timezone constant. All display formatting must go through it. |
+| `formatTimeCairo` | function | 20 | Formats the HH:mm (24h) part of an instant in Cairo time. |
+| `dateStrCairo` | function | 33 | Formats an instant as YYYY-MM-DD in Cairo time. |
+| `cairoWallclockToISO` | function | 44 | Interprets a user-entered date + time as Cairo wall-clock and returns the correct UTC instant — use when SENDING a time to the API so it never depends on the device timezone. |
+| `localDateStr` | function | 66 | YYYY-MM-DD in the device's own zone; use only for local-only concerns like a date picker's default. |
+| `formatDate` | function | 74 | General-purpose date display helper. |
 
 ### `website-i18n.tsx`
 
 `frontend/src/lib/website-i18n.tsx` · 1145 lines
 
+Public/B2C-facing translations, separate from the dashboard's so marketing copy and admin strings stay independent.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Locale` | type | 11 | _—_ |
-| `Language` | type | 13 | _—_ |
-| `LANGUAGES` | const | 23 | _—_ |
-| `useLocaleStore` | const | 42 | _—_ |
-| `useWT` | function | 1127 | _—_ |
+| `Locale` | type | 11 | Supported public locale codes. |
+| `Language` | type | 13 | A public locale entry. |
+| `LANGUAGES` | const | 23 | Offered public locales with their labels and flags. |
+| `useLocaleStore` | const | 42 | Locale state for the public pages. |
+| `useWT` | function | 1127 | Website translator hook. |
 
 ## `frontend/src/stores/`
 
@@ -487,33 +788,41 @@ Everything the dashboard and portal pages reuse: shared components, API client, 
 
 `frontend/src/stores/auth-store.ts` · 120 lines
 
+Zustand store holding the session, tokens and the current user.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useAuthStore` | const | 26 | _—_ |
+| `useAuthStore` | const | 26 | Session state and login/logout actions. |
 
 ### `booking-store.ts`
 
 `frontend/src/stores/booking-store.ts` · 125 lines
 
+Zustand store for the multi-step public booking funnel, keeping selections across steps.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useBookingStore` | const | 100 | _—_ |
+| `useBookingStore` | const | 100 | Booking funnel state and step actions. |
 
 ### `company-store.ts`
 
 `frontend/src/stores/company-store.ts` · 59 lines
 
+Zustand store for company branding used across the shell.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useCompanyStore` | const | 35 | _—_ |
+| `useCompanyStore` | const | 35 | Company settings state. |
 
 ### `permissions-store.ts`
 
 `frontend/src/stores/permissions-store.ts` · 66 lines
 
+Zustand store caching the user's effective permission keys, fetched once after login.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `usePermissionsStore` | const | 18 | _—_ |
+| `usePermissionsStore` | const | 18 | The permission set backing `usePermission`. |
 
 ## `frontend/src/types/`
 

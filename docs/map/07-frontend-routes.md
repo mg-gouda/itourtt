@@ -8,54 +8,54 @@
 
 | Route | File | LOC | Calls | Permissions | Purpose |
 |---|---|---|---|---|---|
-| `/` | `frontend/src/app/page.tsx` | 6 | — | — | _—_ |
-| `/dashboard` | `frontend/src/app/(dashboard)/dashboard/page.tsx` | 444 | 1 | — | _—_ |
-| `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 749 | 5 | 1 | _—_ |
-| `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1229 | 10 | 12 | _—_ |
-| `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | _—_ |
-| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1308 | 9 | — | _—_ |
-| `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 485 | 7 | 3 | _—_ |
-| `/dashboard/customers` | `frontend/src/app/(dashboard)/dashboard/customers/page.tsx` | 1183 | 9 | 12 | _—_ |
-| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 322 | 7 | — | _—_ |
-| `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3032 | 10 | 4 | _—_ |
-| `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 1113 | 14 | 2 | _—_ |
-| `/dashboard/drivers` | `frontend/src/app/(dashboard)/dashboard/drivers/page.tsx` | 1089 | 11 | 14 | _—_ |
-| `/dashboard/drivers/[id]` | `frontend/src/app/(dashboard)/dashboard/drivers/[id]/page.tsx` | 859 | 9 | — | _—_ |
-| `/dashboard/email-settings` | `frontend/src/app/(dashboard)/dashboard/email-settings/page.tsx` | 408 | 2 | — | _—_ |
-| `/dashboard/finance` | `frontend/src/app/(dashboard)/dashboard/finance/page.tsx` | 2316 | 17 | 17 | _—_ |
-| `/dashboard/finance/b2c-invoices` | `frontend/src/app/(dashboard)/dashboard/finance/b2c-invoices/page.tsx` | 285 | 2 | — | _—_ |
-| `/dashboard/google-drive` | `frontend/src/app/(dashboard)/dashboard/google-drive/page.tsx` | 372 | 5 | — | _—_ |
-| `/dashboard/guest-bookings` | `frontend/src/app/(dashboard)/dashboard/guest-bookings/page.tsx` | 512 | 3 | 2 | _—_ |
-| `/dashboard/help` | `frontend/src/app/(dashboard)/dashboard/help/page.tsx` | 268 | — | — | _—_ |
-| `/dashboard/job-control` | `frontend/src/app/(dashboard)/dashboard/job-control/page.tsx` | 378 | 4 | 1 | _—_ |
-| `/dashboard/job-locks` | `frontend/src/app/(dashboard)/dashboard/job-locks/page.tsx` | 432 | 2 | 7 | _—_ |
-| `/dashboard/locations` | `frontend/src/app/(dashboard)/dashboard/locations/page.tsx` | 1397 | 8 | 14 | _—_ |
-| `/dashboard/profile` | `frontend/src/app/(dashboard)/dashboard/profile/page.tsx` | 210 | — | — | _—_ |
-| `/dashboard/reports` | `frontend/src/app/(dashboard)/dashboard/reports/page.tsx` | 5882 | 41 | 18 | _—_ |
-| `/dashboard/reps` | `frontend/src/app/(dashboard)/dashboard/reps/page.tsx` | 954 | 11 | 13 | _—_ |
-| `/dashboard/reps/[id]` | `frontend/src/app/(dashboard)/dashboard/reps/[id]/page.tsx` | 771 | 9 | — | _—_ |
-| `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 578 | — | — | _—_ |
-| `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1340 | 15 | 10 | _—_ |
-| `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 195 | 1 | — | _—_ |
-| `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | _—_ |
-| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1356 | 15 | 14 | _—_ |
-| `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1273 | 8 | 13 | _—_ |
-| `/dashboard/users` | `frontend/src/app/(dashboard)/dashboard/users/page.tsx` | 818 | 14 | 8 | _—_ |
-| `/dashboard/vehicles` | `frontend/src/app/(dashboard)/dashboard/vehicles/page.tsx` | 1095 | 10 | 9 | _—_ |
-| `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 693 | 8 | 8 | _—_ |
-| `/dashboard/vehicles/new` | `frontend/src/app/(dashboard)/dashboard/vehicles/new/page.tsx` | 300 | 2 | 8 | _—_ |
-| `/dashboard/whatsapp` | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx` | 713 | 7 | 3 | _—_ |
+| `/` | `frontend/src/app/page.tsx` | 6 | — | — | Root — redirects to the dashboard or login depending on session. |
+| `/dashboard` | `frontend/src/app/(dashboard)/dashboard/page.tsx` | 444 | 1 | — | Dashboard home — headline counts and shortcuts, permission-filtered. |
+| `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 749 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
+| `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1229 | 10 | 12 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
+| `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | One agent's detail — credit status, documents and price list. |
+| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1308 | 9 | — | Car-centric dispatch view — the day organised by vehicle rather than by job. |
+| `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 485 | 7 | 3 | Company identity and branding (logo, favicon) used on invoices and reference prefixes. |
+| `/dashboard/customers` | `frontend/src/app/(dashboard)/dashboard/customers/page.tsx` | 1183 | 9 | 12 | B2B customer management with price grids and import templates. |
+| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 322 | 7 | — | One customer's detail, price list and stored import templates. |
+| `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3032 | 10 | 4 | ★ The dispatch console. One window per day, ARR left and DEP right, Excel-like grid with inline editing, keyboard navigation and live conflict warnings. Assignment order is Vehicle → Driver → Rep. |
+| `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 1113 | 14 | 2 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
+| `/dashboard/drivers` | `frontend/src/app/(dashboard)/dashboard/drivers/page.tsx` | 1089 | 11 | 14 | Driver management: records, vehicle links, portal accounts, trip fees and Excel pipelines. |
+| `/dashboard/drivers/[id]` | `frontend/src/app/(dashboard)/dashboard/drivers/[id]/page.tsx` | 859 | 9 | — | One driver's detail, vehicles and fee history. |
+| `/dashboard/email-settings` | `frontend/src/app/(dashboard)/dashboard/email-settings/page.tsx` | 408 | 2 | — | SMTP configuration and the test-send button. |
+| `/dashboard/finance` | `frontend/src/app/(dashboard)/dashboard/finance/page.tsx` | 2316 | 17 | 17 | ★ Finance console: fees, agent and customer invoices, payments, collections and the Odoo-ready exports. |
+| `/dashboard/finance/b2c-invoices` | `frontend/src/app/(dashboard)/dashboard/finance/b2c-invoices/page.tsx` | 285 | 2 | — | B2C guest invoices (`INV-B2C-NNNNN`) and their PDFs. |
+| `/dashboard/google-drive` | `frontend/src/app/(dashboard)/dashboard/google-drive/page.tsx` | 372 | 5 | — | Google Drive connection for evidence storage — connect, test and migrate. An expired grant shows up here. |
+| `/dashboard/guest-bookings` | `frontend/src/app/(dashboard)/dashboard/guest-bookings/page.tsx` | 512 | 3 | 2 | B2C guest bookings and their conversion into operational jobs. |
+| `/dashboard/help` | `frontend/src/app/(dashboard)/dashboard/help/page.tsx` | 268 | — | — | In-app help and tips per module. |
+| `/dashboard/job-control` | `frontend/src/app/(dashboard)/dashboard/job-control/page.tsx` | 378 | 4 | 1 | Admin Force Control — sets job, rep and driver statuses directly, bypassing the transition rules. |
+| `/dashboard/job-locks` | `frontend/src/app/(dashboard)/dashboard/job-locks/page.tsx` | 432 | 2 | 7 | Per-role lock/unlock screen. Unlocking is how a legitimately late submission gets past a 48h timelock or the rep IN-PLACE window. |
+| `/dashboard/locations` | `frontend/src/app/(dashboard)/dashboard/locations/page.tsx` | 1397 | 8 | 14 | The location tree editor — Country → Airport → City → Zone → Hotel, plus coordinates (which set the geofence targets) and Excel import/export. |
+| `/dashboard/profile` | `frontend/src/app/(dashboard)/dashboard/profile/page.tsx` | 210 | — | — | The signed-in user's own profile and 2FA settings. |
+| `/dashboard/reports` | `frontend/src/app/(dashboard)/dashboard/reports/page.tsx` | 5882 | 41 | 18 | ★ Every report in one screen (5,882 lines, 41 API calls, 18 permission keys) — dispatch, driver trips, rep and driver scores, guest surveys, revenue, evidence, job status, visa, sales, departures, flight delays and reviews. Each tab has a matching xlsx export. The largest file in the frontend; navigate it via the symbol index rather than reading it end to end. |
+| `/dashboard/reps` | `frontend/src/app/(dashboard)/dashboard/reps/page.tsx` | 954 | 11 | 13 | Rep management: records, zone coverage, portal accounts and fees. A rep with no zone never appears in dispatch. |
+| `/dashboard/reps/[id]` | `frontend/src/app/(dashboard)/dashboard/reps/[id]/page.tsx` | 771 | 9 | — | One rep's detail, zones and fee history. |
+| `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 578 | — | — | Theme and appearance settings. |
+| `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1340 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
+| `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 195 | 1 | — | One supplier's detail. |
+| `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | Traffic jobs landing page with the shared filters. |
+| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1356 | 15 | 14 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
+| `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1273 | 8 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
+| `/dashboard/users` | `frontend/src/app/(dashboard)/dashboard/users/page.tsx` | 818 | 14 | 8 | Staff user administration and role assignment. |
+| `/dashboard/vehicles` | `frontend/src/app/(dashboard)/dashboard/vehicles/page.tsx` | 1095 | 10 | 9 | Fleet list with compliance status. |
+| `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 693 | 8 | 8 | Edit a vehicle, its compliance documents and deposit payments. |
+| `/dashboard/vehicles/new` | `frontend/src/app/(dashboard)/dashboard/vehicles/new/page.tsx` | 300 | 2 | 8 | Add a vehicle. |
+| `/dashboard/whatsapp` | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx` | 713 | 7 | 3 | WhatsApp settings, templates, media and delivery logs. |
 | `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 797 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
-| `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 344 | 1 | — | _—_ |
-| `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | _—_ |
-| `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | _—_ |
-| `/login` | `frontend/src/app/login/page.tsx` | 266 | — | — | _—_ |
-| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 931 | 6 | — | _—_ |
-| `/rep/history` | `frontend/src/app/(rep-portal)/rep/history/page.tsx` | 344 | 1 | — | _—_ |
-| `/rep/profile` | `frontend/src/app/(rep-portal)/rep/profile/page.tsx` | 8 | — | — | _—_ |
-| `/reset-password` | `frontend/src/app/reset-password/page.tsx` | 153 | 1 | — | _—_ |
-| `/supplier` | `frontend/src/app/(supplier-portal)/supplier/page.tsx` | 263 | 2 | — | _—_ |
-| `/supplier/profile` | `frontend/src/app/(supplier-portal)/supplier/profile/page.tsx` | 145 | 1 | — | _—_ |
+| `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 344 | 1 | — | Driver's completed/cancelled/no-show jobs with the fee earned per job. |
+| `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | Driver's own profile. |
+| `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | Requests a password-reset email. |
+| `/login` | `frontend/src/app/login/page.tsx` | 266 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
+| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 931 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
+| `/rep/history` | `frontend/src/app/(rep-portal)/rep/history/page.tsx` | 344 | 1 | — | Rep's terminal jobs with fees earned. |
+| `/rep/profile` | `frontend/src/app/(rep-portal)/rep/profile/page.tsx` | 8 | — | — | Rep's own profile. |
+| `/reset-password` | `frontend/src/app/reset-password/page.tsx` | 153 | 1 | — | Consumes a reset token and sets a new password. |
+| `/supplier` | `frontend/src/app/(supplier-portal)/supplier/page.tsx` | 263 | 2 | — | Supplier portal home — jobs assigned to this supplier and closing its own leg. |
+| `/supplier/profile` | `frontend/src/app/(supplier-portal)/supplier/profile/page.tsx` | 145 | 1 | — | Supplier's own company profile. |
 
 <details><summary>API calls & permission keys per route</summary>
 
