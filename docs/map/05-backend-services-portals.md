@@ -14,54 +14,60 @@ The driver / rep / supplier / partner portals and the public B2C booking surface
 
 `backend/src/b2c/b2c.controller.ts:30` · controller · 11 methods
 
+The `/api/w-api` surface consumed by the standalone B2C site for guest accounts: auth, invoices, bookings and proxied evidence images.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `login` | pub | 40 | `b2cService.login` | _—_ |
-| `changePassword` | pub | 47 | `b2cService.changePassword` | _—_ |
-| `forgotPassword` | pub | 55 | `b2cService.requestPasswordReset` | _—_ |
-| `resetPassword` | pub | 63 | `b2cService.resetPassword` | _—_ |
-| `getInvoices` | pub | 69 | `b2cInvoiceService.listForClient` | _—_ |
-| `getInvoicePdf` | pub | 75 | `b2cInvoiceService.getOwnedPdf` | _—_ |
-| `getBookings` | pub | 91 | `b2cService.getBookings` | _—_ |
-| `getBooking` | pub | 97 | `b2cService.getBooking` | _—_ |
-| `getEvidenceFile` | pub | 105 | `b2cService.getEvidenceFileStream` | _—_ |
-| `amendBooking` | pub | 121 | `b2cService.amendBooking` | _—_ |
-| `cancelBooking` | pub | 132 | `b2cService.cancelBooking` | _—_ |
+| `login` | pub | 40 | `b2cService.login` | Guest-account login. |
+| `changePassword` | pub | 47 | `b2cService.changePassword` | Guest password change. |
+| `forgotPassword` | pub | 55 | `b2cService.requestPasswordReset` | Starts the guest password-reset flow. |
+| `resetPassword` | pub | 63 | `b2cService.resetPassword` | Completes a guest password reset. |
+| `getInvoices` | pub | 69 | `b2cInvoiceService.listForClient` | The guest's own invoices. |
+| `getInvoicePdf` | pub | 75 | `b2cInvoiceService.getOwnedPdf` | Ownership-checked invoice PDF download. |
+| `getBookings` | pub | 91 | `b2cService.getBookings` | The guest's own bookings. |
+| `getBooking` | pub | 97 | `b2cService.getBooking` | One booking, ownership-scoped. |
+| `getEvidenceFile` | pub | 105 | `b2cService.getEvidenceFileStream` | Proxies an evidence image so Drive file ids stay server-side. |
+| `amendBooking` | pub | 121 | `b2cService.amendBooking` | Guest amends their booking. |
+| `cancelBooking` | pub | 132 | `b2cService.cancelBooking` | Guest cancels their booking. |
 
 ### B2CInvoiceService
 
 `backend/src/b2c/b2c-invoice.service.ts:10` · service · 9 methods
 
+Guest invoices for B2C bookings: numbering, PDF rendering and ownership-checked retrieval. Invoice numbers run `INV-B2C-NNNNN` and the PDF is emailed on payment.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `ensureForBooking` | pub | 37 | `b2CInvoice` `guestBooking` | _—_ |
-| `nextInvoiceNumber` | priv | 93 | — | _—_ |
-| `listForClient` | pub | 109 | `b2CInvoice` | _—_ |
-| `getOwnedPdf` | pub | 128 | `b2CInvoice` | _—_ |
-| `listAll` | pub | 145 | `b2CInvoice` | _—_ |
-| `getPdfById` | pub | 221 | — | _—_ |
-| `generatePdf` | pub | 230 | `b2CInvoice` `companySettings` `websiteSettings` | _—_ |
-| `fmtDate` | priv | 336 | — | _—_ |
-| `s` | priv | 342 | — | _—_ |
+| `ensureForBooking` | pub | 37 | `b2CInvoice` `guestBooking` | Idempotently creates the invoice for a booking, allocating a number only on first call. |
+| `nextInvoiceNumber` | priv | 93 | — | Allocates the next `INV-B2C-NNNNN` sequence value. |
+| `listForClient` | pub | 109 | `b2CInvoice` | The signed-in guest's own invoices. |
+| `getOwnedPdf` | pub | 128 | `b2CInvoice` | Returns the invoice PDF only if the calling guest owns it. |
+| `listAll` | pub | 145 | `b2CInvoice` | Admin-side list of every B2C invoice, for the finance screen. |
+| `getPdfById` | pub | 221 | — | Admin-side PDF fetch with no ownership check — do not expose this on a guest route. |
+| `generatePdf` | pub | 230 | `b2CInvoice` `companySettings` `websiteSettings` | Renders the invoice PDF, pulling branding from `CompanySettings` and `WebsiteSettings`. |
+| `fmtDate` | priv | 336 | — | Date formatting helper for the PDF layout. |
+| `s` | priv | 342 | — | Null-safe string helper for PDF fields. |
 
 ### B2CService
 
 `backend/src/b2c/b2c.service.ts:32` · service · 12 methods
 
+Guest-account backend for the B2C site: login, password lifecycle, booking self-service and evidence access. Guest users are ordinary `User` rows created on demand by `ensureB2CClientAccount`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `ensureB2CClientAccount` | pub | 43 | `user` | _—_ |
-| `login` | pub | 62 | `user` `jwtService.sign` | _—_ |
-| `changePassword` | pub | 81 | `user` | _—_ |
-| `requestPasswordReset` | pub | 98 | `user` | _—_ |
-| `resetPassword` | pub | 132 | `user` | _—_ |
-| `getBookings` | pub | 159 | `guestBooking` | _—_ |
-| `getBooking` | pub | 193 | `guestBooking` | _—_ |
-| `buildEvidence` | priv | 244 | — | _—_ |
-| `getEvidenceFileStream` | pub | 287 | `guestBooking` `googleDriveService.getFileStream` | _—_ |
-| `amendBooking` | pub | 320 | `guestBooking` `trafficJob` | _—_ |
-| `cancelBooking` | pub | 405 | `guestBooking` `trafficJob` | _—_ |
-| `sendAssignmentNotification` | pub | 468 | `guestBooking` | _—_ |
+| `ensureB2CClientAccount` | pub | 43 | `user` | Creates or returns the guest's User row so a booking email can become a login without a separate signup step. |
+| `login` | pub | 62 | `user` `jwtService.sign` | Guest-account login, issuing a JWT via `jwtService.sign`. |
+| `changePassword` | pub | 81 | `user` | Guest changes their own password. |
+| `requestPasswordReset` | pub | 98 | `user` | Issues a password-reset token and emails it to the guest. |
+| `resetPassword` | pub | 132 | `user` | Consumes a reset token and sets the new password. |
+| `getBookings` | pub | 159 | `guestBooking` | The signed-in guest's own bookings. |
+| `getBooking` | pub | 193 | `guestBooking` | One booking, ownership-scoped. Ownership scoping here is the fix for the earlier booking-lookup IDOR. |
+| `buildEvidence` | priv | 244 | — | Assembles the evidence photo list (no-show / in-place / in-progress / completed) exposed to the guest for their own booking. |
+| `getEvidenceFileStream` | pub | 287 | `guestBooking` `googleDriveService.getFileStream` | Streams one evidence image through the backend proxy so Google Drive file ids are never exposed to the browser. Ownership-checked. |
+| `amendBooking` | pub | 320 | `guestBooking` `trafficJob` | Guest-initiated amendment, writing through to both the GuestBooking and its linked TrafficJob. |
+| `cancelBooking` | pub | 405 | `guestBooking` `trafficJob` | Guest-initiated cancellation of a booking and its linked job. |
+| `sendAssignmentNotification` | pub | 468 | `guestBooking` | Emails the guest once a vehicle/driver has been assigned to their booking. |
 
 ## `contact-messages`
 
@@ -69,23 +75,27 @@ The driver / rep / supplier / partner portals and the public B2C booking surface
 
 `backend/src/contact-messages/contact-messages.admin.controller.ts:26` · controller · 4 methods
 
+Admin inbox surface for public contact-form submissions.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `list` | pub | 30 | — | _—_ |
-| `unreadCount` | pub | 35 | — | _—_ |
-| `setRead` | pub | 40 | — | _—_ |
-| `remove` | pub | 45 | — | _—_ |
+| `list` | pub | 30 | — | Lists contact messages. |
+| `unreadCount` | pub | 35 | — | Unread count for the sidebar badge. |
+| `setRead` | pub | 40 | — | Marks a message read/unread. |
+| `remove` | pub | 45 | — | Deletes a message. |
 
 ### ContactMessagesService
 
 `backend/src/contact-messages/contact-messages.service.ts:5` · service · 4 methods
 
+Storage and read-state for contact-form messages submitted from the public site.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `list` | pub | 9 | `contactMessage` | _—_ |
-| `unreadCount` | pub | 16 | `contactMessage` | _—_ |
-| `setRead` | pub | 23 | `contactMessage` | _—_ |
-| `remove` | pub | 34 | `contactMessage` | _—_ |
+| `list` | pub | 9 | `contactMessage` | Paginated contact messages for the admin inbox. |
+| `unreadCount` | pub | 16 | `contactMessage` | Unread badge count. |
+| `setRead` | pub | 23 | `contactMessage` | Flips one message's read flag. |
+| `remove` | pub | 34 | `contactMessage` | Deletes a contact message. |
 
 ## `driver-portal`
 
@@ -93,66 +103,74 @@ The driver / rep / supplier / partner portals and the public B2C booking surface
 
 `backend/src/driver-portal/driver-portal.controller.ts:71` · controller · 13 methods
 
+REST surface for the driver app and `/driver` web portal. Class-guarded to the DRIVER role; every mutation carries mandatory GPS. Photo endpoints stamp images server-side, then push to Google Drive with a local-disk fallback.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getMyJobs` | pub | 78 | `driverPortalService.getMyJobs` | _—_ |
+| `getMyJobs` | pub | 78 | `driverPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in driver. |
 | `getJobHistory` | pub | 87 | `driverPortalService.getJobHistory` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job. |
-| `getJobDetail` | pub | 102 | `driverPortalService.findJobDetail` | _—_ |
+| `getJobDetail` | pub | 102 | `driverPortalService.findJobDetail` | One job's full detail, scoped to the calling driver. |
 | `updateJobStatus` | pub | 111 | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
 | `markCollected` | pub | 127 | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
-| `submitNoShow` | pub | 138 | `driverPortalService.getJobStampMeta` `driverPortalService.submitNoShow` | _—_ |
-| `submitInProgress` | pub | 165 | `driverPortalService.getJobStampMeta` `driverPortalService.submitInProgress` | _—_ |
+| `submitNoShow` | pub | 138 | `driverPortalService.getJobStampMeta` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
+| `submitInProgress` | pub | 165 | `driverPortalService.getJobStampMeta` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
 | `submitCompleted` | pub | 192 | `driverPortalService.getJobStampMeta` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
-| `getNotifications` | pub | 218 | `driverPortalService.getNotifications` | _—_ |
-| `markNotificationRead` | pub | 224 | `driverPortalService.markNotificationRead` | _—_ |
-| `markAllRead` | pub | 233 | `driverPortalService.markAllRead` | _—_ |
-| `getProfile` | pub | 239 | `driverPortalService.getProfile` | _—_ |
-| `uploadFiles` | priv | 248 | `googleDriveService.uploadFile` | _—_ |
+| `getNotifications` | pub | 218 | `driverPortalService.getNotifications` | Driver's notification feed. |
+| `markNotificationRead` | pub | 224 | `driverPortalService.markNotificationRead` | Marks a single notification read. |
+| `markAllRead` | pub | 233 | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
+| `getProfile` | pub | 239 | `driverPortalService.getProfile` | The driver's own profile. |
+| `uploadFiles` | priv | 248 | `googleDriveService.uploadFile` | Shared helper for the three evidence endpoints: stamps each image, uploads to Google Drive, falls back to local `uploads/` on failure. A silent fallback here is the known symptom of expired Drive OAuth. |
 
 ### DriverPortalService
 
 `backend/src/driver-portal/driver-portal.service.ts:30` · service · 16 methods
 
+Everything the driver-facing portal does. Enforces four independent gates on every mutation: the PENDING→IN_PROGRESS→COMPLETED transition table, a 48h post-service timelock (bypassed by `TrafficJob.driverUnlockedAt`), a GPS geofence that only warns, and a collection gate. Completion delegates the job-level status roll-up to `JobCompletionService`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `resolveDriverId` | pub | 81 | `driver` | _—_ |
-| `getMyJobs` | pub | 91 | `trafficAssignment` | _—_ |
-| `getJobHistory` | pub | 132 | `trafficAssignment` | _—_ |
-| `updateJobStatus` | pub | 174 | `trafficAssignment` `statusChangeLog` `trafficJob` | _—_ |
-| `submitInProgress` | pub | 290 | `driver` `trafficAssignment` `inProgressEvidence` `statusChangeLog` | _—_ |
-| `submitCompleted` | pub | 396 | `driver` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | _—_ |
-| `markCollected` | pub | 516 | `trafficAssignment` `trafficJob` | _—_ |
-| `submitNoShow` | pub | 544 | `driver` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` +1 | _—_ |
-| `getNotifications` | pub | 658 | `driverNotification` | _—_ |
-| `markNotificationRead` | pub | 683 | `driverNotification` | _—_ |
-| `markAllRead` | pub | 700 | `driverNotification` | _—_ |
-| `getProfile` | pub | 711 | `driver` | _—_ |
-| `checkDriverTimelock` | priv | 731 | — | _—_ |
-| `checkDriverGeofence` | priv | 741 | — | _—_ |
-| `findJobDetail` | pub | 760 | `trafficJob` | _—_ |
-| `getJobStampMeta` | pub | 792 | `trafficJob` | _—_ |
+| `resolveDriverId` | pub | 81 | `driver` | Maps the JWT user id to a Driver row; throws Forbidden when the account has no linked driver profile. Every other method starts here. |
+| `getMyJobs` | pub | 91 | `trafficAssignment` | The driver's jobs for one day (defaults to today), sorted by effective start time — flight arrival for ARR, `pickUpTime` otherwise. Uses the trimmed `jobSummaryInclude`, so no agent or customer data reaches the driver. |
+| `getJobHistory` | pub | 132 | `trafficAssignment` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, each with the driver's own fee from `DriverTripFee`. |
+| `updateJobStatus` | pub | 174 | `trafficAssignment` `statusChangeLog` `trafficJob` | Non-evidence status transition, GPS-stamped into `StatusChangeLog`. Validates against `DRIVER_VALID_TRANSITIONS` and blocks IN_PROGRESS before the scheduled job time. |
+| `submitInProgress` | pub | 290 | `driver` `trafficAssignment` `inProgressEvidence` `statusChangeLog` | Starts the job with photo evidence. Blocked before the scheduled job time. Idempotent — re-submitting when already IN_PROGRESS attaches more evidence without a second status-change log. |
+| `submitCompleted` | pub | 396 | `driver` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | Closes the driver leg. Four gates in order: must be IN_PROGRESS, ≥15 min after job time, inside the 48h timelock, and `collectionCollected` if `collectionRequired`. Then writes evidence and calls `reconcileJobStatus` to roll up the job and materialise fees. |
+| `markCollected` | pub | 516 | `trafficAssignment` `trafficJob` | Flips `TrafficJob.collectionCollected` (and its timestamp). Rejects jobs that don't require collection. This is the gate that keeps the Complete button disabled — see [FT-1918 pattern]. |
+| `submitNoShow` | pub | 544 | `driver` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` +1 | Marks guest no-show with evidence. Allowed only from PENDING/IN_PROGRESS and only inside the no-show window (`checkNoShowWindow` — 80 min after job time). Sets BOTH the assignment leg and `TrafficJob.status` to NO_SHOW, then fires the dispute report email fire-and-forget. |
+| `getNotifications` | pub | 658 | `driverNotification` | Unread-first notification feed for this driver from `DriverNotification`. |
+| `markNotificationRead` | pub | 683 | `driverNotification` | Marks one notification read, scoped to the calling driver so ids cannot be probed across accounts. |
+| `markAllRead` | pub | 700 | `driverNotification` | Bulk-marks every unread notification for this driver. |
+| `getProfile` | pub | 711 | `driver` | Driver's own profile card — identity, licence and linked vehicle data. |
+| `checkDriverTimelock` | priv | 731 | — | Hard 48h cut-off after `jobDate`, skipped entirely when an admin has set `driverUnlockedAt`. Throws Forbidden — this is the usual cause of a driver being unable to touch an old job. |
+| `checkDriverGeofence` | priv | 741 | — | Compares GPS to the job's origin coordinates at a 2km radius. Deliberately NON-blocking: a miss is only logged as a warning, never thrown. Do not assume GPS enforcement for drivers (reps are stricter). |
+| `findJobDetail` | pub | 760 | `trafficJob` | Full job detail for one assigned job, including no-show evidence. Scoped by `assignment.driverId`, so a driver cannot read another's job. |
+| `getJobStampMeta` | pub | 792 | `trafficJob` | Supplies the name/status overlay burned into evidence photos by `stampEvidenceImage` before upload. |
 
 ### NoShowDisputeService
 
 `backend/src/driver-portal/no-show-dispute.service.ts:9` · service · 6 methods
 
+Builds a PDF evidence pack for a no-show and emails it to the agent's dispute address. Always invoked fire-and-forget so a mail or PDF failure can never roll back the driver's status change.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `generateAndSendDisputeReport` | pub | 18 | — | _—_ |
-| `_run` | priv | 33 | `trafficJob` `emailSettings` `emailService.sendDisputeReport` | _—_ |
-| `buildPdf` | priv | 137 | — | _—_ |
-| `embedImages` | priv | 341 | — | _—_ |
-| `buildRoute` | priv | 366 | — | _—_ |
-| `sanitize` | priv | 380 | — | _—_ |
+| `generateAndSendDisputeReport` | pub | 18 | — | Public entry point. Wraps `_run` and swallows every error (logged only) to protect the calling transaction. |
+| `_run` | priv | 33 | `trafficJob` `emailSettings` `emailService.sendDisputeReport` | Loads the job, renders the PDF, resolves the dispute recipient from `EmailSettings` and sends it. |
+| `buildPdf` | priv | 137 | — | Lays out the dispute PDF: job facts, route, GPS map link and the embedded evidence photos. |
+| `embedImages` | priv | 341 | — | Fetches each evidence image and embeds it into the PDF, skipping any that fail to load. |
+| `buildRoute` | priv | 366 | — | Renders the job's origin→destination as one human-readable line for the report. |
+| `sanitize` | priv | 380 | — | Strips characters the PDF font cannot render (notably Arabic) to avoid corrupt output. |
 
 ### SupplierAutoCompleteService
 
 `backend/src/driver-portal/supplier-auto-complete.service.ts:14` · service · 2 methods
 
+Midnight cron that closes stale supplier-car driver legs. Deliberately narrow — see `autoCompleteSupplierDrivers` for the exact conditions; do not widen its scope.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `autoCompleteJobs` | pub | 28 | `cronRunLock` | _—_ |
-| `autoCompleteSupplierDrivers` | priv | 57 | `trafficAssignment` `statusChangeLog` | _—_ |
+| `autoCompleteJobs` | pub | 28 | `cronRunLock` | Cron entry point, serialised through `CronRunLock` so only one pod runs it. |
+| `autoCompleteSupplierDrivers` | priv | 57 | `trafficAssignment` `statusChangeLog` | Auto-completes ONLY the driver leg of supplier-car assignments (a `supplierId` is set and there is no own vehicle/driver). Never touches rep status, supplier status, or `TrafficJob.status`. |
 
 ## `guest-bookings`
 
@@ -160,24 +178,28 @@ The driver / rep / supplier / partner portals and the public B2C booking surface
 
 `backend/src/guest-bookings/guest-bookings.controller.ts:23` · controller · 4 methods
 
+Admin REST surface for the guest-bookings screen.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 28 | `guestBookingsService.findAll` | _—_ |
-| `findOne` | pub | 34 | `guestBookingsService.findOne` | _—_ |
-| `convertToJob` | pub | 42 | `guestBookingsService.convertToJob` | _—_ |
-| `cancelBooking` | pub | 53 | `guestBookingsService.cancelBooking` | _—_ |
+| `findAll` | pub | 28 | `guestBookingsService.findAll` | Lists guest bookings. |
+| `findOne` | pub | 34 | `guestBookingsService.findOne` | One guest booking. |
+| `convertToJob` | pub | 42 | `guestBookingsService.convertToJob` | Converts a confirmed booking into a traffic job. |
+| `cancelBooking` | pub | 53 | `guestBookingsService.cancelBooking` | Cancels a guest booking. |
 
 ### GuestBookingsService
 
 `backend/src/guest-bookings/guest-bookings.service.ts:21` · service · 5 methods
 
+Admin-side handling of B2C guest bookings and their conversion into operational traffic jobs. The conversion is the delicate part — see `convertToJob`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 39 | `guestBooking` | _—_ |
-| `findOne` | pub | 86 | `guestBooking` | _—_ |
-| `convertToJob` | pub | 102 | `guestBooking` `agent` `trafficJob` `trafficFlight` | _—_ |
-| `cancelBooking` | pub | 272 | `guestBooking` | _—_ |
-| `generateInternalRef` | priv | 330 | — | _—_ |
+| `findAll` | pub | 39 | `guestBooking` | Filterable list of guest bookings for the admin screen. |
+| `findOne` | pub | 86 | `guestBooking` | One guest booking with its full relation graph. |
+| `convertToJob` | pub | 102 | `guestBooking` `agent` `trafficJob` `trafficFlight` | Creates a TrafficJob (channel B2C) plus its flight row from a CONFIRMED booking. Critical rule: a job must have EXACTLY ONE origin FK and one destination FK — the code picks the most specific hotel-side node (hotel, else zone) precisely because setting both zone and hotel breaks later edit/cancel validation. Rejects any booking not in CONFIRMED status. |
+| `cancelBooking` | pub | 272 | `guestBooking` | Cancels a guest booking and its linked job. |
+| `generateInternalRef` | priv | 330 | — | Allocates the next sequential `FT-nnnn` internal reference, using the same pattern as the traffic-jobs service. |
 
 ## `partner`
 
@@ -185,32 +207,38 @@ The driver / rep / supplier / partner portals and the public B2C booking surface
 
 `backend/src/partner/partner.controller.ts:23` · controller · 4 methods
 
+The `/api/partner` surface. Authenticated by shared API key via `PartnerKeyGuard`, NOT by JWT — this is the only controller in the system that authenticates that way.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getReference` | pub | 27 | `partnerService.getReference` | _—_ |
-| `pushPricing` | pub | 32 | `partnerService.pushPricing` | _—_ |
-| `createJob` | pub | 37 | `partnerService.createJob` | _—_ |
-| `getJobStatuses` | pub | 42 | `partnerService.getJobStatuses` | _—_ |
+| `getReference` | pub | 27 | `partnerService.getReference` | Reference data feed for the B2C mirror. |
+| `pushPricing` | pub | 32 | `partnerService.pushPricing` | Accepts a public price bulk-upsert from B2C. |
+| `createJob` | pub | 37 | `partnerService.createJob` | Creates (or returns the existing) traffic job for a B2C booking reference. |
+| `getJobStatuses` | pub | 42 | `partnerService.getJobStatuses` | Bulk job-status poll for the B2C site. |
 
 ### PartnerKeyGuard
 
 `backend/src/partner/guards/partner-key.guard.ts:15` · guard · 1 methods
 
+Shared-secret guard for the partner API — compares the request's API key header against the configured partner key. Failing this returns 401 without ever touching the JWT pipeline.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `canActivate` | pub | 16 | — | _—_ |
+| `canActivate` | pub | 16 | — | Validates the partner API key header against configuration. |
 
 ### PartnerService
 
 `backend/src/partner/partner.service.ts:16` · service · 5 methods
 
+Machine-to-machine API consumed by the standalone B2C site (transfera.ae), which runs in its own repo on its own VPS. The B2C mirror holds no location or pricing data of its own — it reads reference data from here, pushes prices here, and books through here.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getReference` | pub | 27 | `country` `vehicleType` | _—_ |
-| `pushPricing` | pub | 103 | `publicPricesService.bulkUpsert` | _—_ |
-| `createJob` | pub | 113 | `guestBooking` `user` `guestBookingsService.convertToJob` | _—_ |
-| `getJobStatuses` | pub | 191 | `trafficJob` | _—_ |
-| `jobPayload` | priv | 214 | — | _—_ |
+| `getReference` | pub | 27 | `country` `vehicleType` | Flattened reference feed the B2C mirror caches read-only: the whole location tree as flat `{id,type,name,parentId}` nodes, vehicle types and service types, plus a `latest` timestamp for cheap change detection. B2C prices and books against these iTourTT ids. |
+| `pushPricing` | pub | 103 | `publicPricesService.bulkUpsert` | Bulk-upserts public prices sent from the B2C side via `PublicPricesService.bulkUpsert`. |
+| `createJob` | pub | 113 | `guestBooking` `user` `guestBookingsService.convertToJob` | Turns a confirmed B2C booking into an operational job by reusing `GuestBookingsService.convertToJob`. Idempotent on `b2cBookingRef` — a repeat call returns the existing job rather than duplicating it. Requires an active ADMIN user to own the job. |
+| `getJobStatuses` | pub | 191 | `trafficJob` | Bulk status poll by `internalRef` for the B2C site. Driver/vehicle enrichment is deliberately null — the contract allows it. |
+| `jobPayload` | priv | 214 | — | Normalises a TrafficJob into the partner-contract response shape. |
 
 ## `rep-portal`
 
@@ -218,50 +246,54 @@ The driver / rep / supplier / partner portals and the public B2C booking surface
 
 `backend/src/rep-portal/rep-portal.controller.ts:110` · controller · 16 methods
 
+REST surface for the rep app and `/rep` web portal. REP-role guarded, GPS mandatory on mutations, photos stamped server-side then pushed to Google Drive with local fallback.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getMyJobs` | pub | 117 | `repPortalService.getMyJobs` | _—_ |
-| `getJobHistory` | pub | 126 | `repPortalService.getJobHistory` | _—_ |
-| `getJobDetail` | pub | 137 | `repPortalService.findJobDetail` | _—_ |
-| `updateJobStatus` | pub | 146 | `repPortalService.updateJobStatus` | _—_ |
-| `submitNoShow` | pub | 163 | `repPortalService.getJobStampMeta` `repPortalService.submitNoShow` | _—_ |
-| `submitInPlace` | pub | 190 | `repPortalService.getJobStampMeta` `repPortalService.submitInPlace` | _—_ |
-| `getGuestSurvey` | pub | 216 | `repPortalService.getGuestSurvey` | _—_ |
-| `submitGuestSurvey` | pub | 225 | `repPortalService.submitGuestSurvey` | _—_ |
-| `submitCompleted` | pub | 236 | `repPortalService.getJobStampMeta` `repPortalService.submitCompleted` | _—_ |
-| `submitFlightDelay` | pub | 262 | `repPortalService.submitFlightDelay` | _—_ |
-| `submitUpdate` | pub | 275 | `repPortalService.submitUpdate` | _—_ |
-| `getNotifications` | pub | 288 | `repPortalService.getNotifications` | _—_ |
-| `markNotificationRead` | pub | 294 | `repPortalService.markNotificationRead` | _—_ |
-| `markAllRead` | pub | 303 | `repPortalService.markAllRead` | _—_ |
-| `getProfile` | pub | 309 | `repPortalService.getProfile` | _—_ |
-| `uploadFiles` | priv | 318 | `googleDriveService.uploadFile` | _—_ |
+| `getMyJobs` | pub | 117 | `repPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in rep. |
+| `getJobHistory` | pub | 126 | `repPortalService.getJobHistory` | Completed/cancelled/no-show rep legs over a date range, with fees. |
+| `getJobDetail` | pub | 137 | `repPortalService.findJobDetail` | One job's detail, scoped to the calling rep. |
+| `updateJobStatus` | pub | 146 | `repPortalService.updateJobStatus` | GPS-stamped rep status transition without evidence upload. |
+| `submitNoShow` | pub | 163 | `repPortalService.getJobStampMeta` `repPortalService.submitNoShow` | Multipart rep no-show submission with stamped photos. |
+| `submitInPlace` | pub | 190 | `repPortalService.getJobStampMeta` `repPortalService.submitInPlace` | Multipart IN PLACE submission — the window-gated arrival confirmation. |
+| `getGuestSurvey` | pub | 216 | `repPortalService.getGuestSurvey` | Fetches the arrival guest survey for a job, if submitted. |
+| `submitGuestSurvey` | pub | 225 | `repPortalService.submitGuestSurvey` | Submits/updates the arrival guest survey; awards the survey score dimension. |
+| `submitCompleted` | pub | 236 | `repPortalService.getJobStampMeta` `repPortalService.submitCompleted` | Multipart rep completion with stamped evidence. |
+| `submitFlightDelay` | pub | 262 | `repPortalService.submitFlightDelay` | Reports a new arrival time and notifies traffic/dispatch staff. |
+| `submitUpdate` | pub | 275 | `repPortalService.submitUpdate` | Sends a free-text rep note to traffic/dispatch operators. |
+| `getNotifications` | pub | 288 | `repPortalService.getNotifications` | Rep's notification feed. |
+| `markNotificationRead` | pub | 294 | `repPortalService.markNotificationRead` | Marks a single notification read. |
+| `markAllRead` | pub | 303 | `repPortalService.markAllRead` | Marks every notification read for this rep. |
+| `getProfile` | pub | 309 | `repPortalService.getProfile` | The rep's own profile. |
+| `uploadFiles` | priv | 318 | `googleDriveService.uploadFile` | Shared stamp-then-upload helper for the rep evidence endpoints, with local-disk fallback when Drive is unavailable. |
 
 ### RepPortalService
 
 `backend/src/rep-portal/rep-portal.service.ts:30` · service · 19 methods
 
+Everything the rep-facing portal does. The rep leg runs PENDING→IN_PLACE→COMPLETED (note: IN_PLACE, not IN_PROGRESS — that is the driver leg). Adds two things the driver portal has no equivalent of: the arrival guest survey and per-job scoring that determines the rep's fee.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `resolveRepId` | pub | 61 | `rep` | _—_ |
-| `getMyJobs` | pub | 71 | `trafficAssignment` | _—_ |
-| `getJobHistory` | pub | 112 | `trafficAssignment` | _—_ |
-| `updateJobStatus` | pub | 163 | `trafficAssignment` `statusChangeLog` `trafficJob` | _—_ |
-| `submitNoShow` | pub | 254 | `rep` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` | _—_ |
-| `submitInPlace` | pub | 362 | `rep` `trafficAssignment` `trafficJob` `inPlaceEvidence` `statusChangeLog` | _—_ |
-| `getGuestSurvey` | pub | 493 | `trafficAssignment` `guestSurvey` | _—_ |
-| `submitGuestSurvey` | pub | 529 | `rep` `trafficAssignment` `guestSurvey` `repJobScore` `repFee` | _—_ |
-| `submitCompleted` | pub | 632 | `rep` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | _—_ |
-| `submitFlightDelay` | pub | 725 | `rep` `trafficAssignment` `trafficFlight` `user` `userNotification` | _—_ |
-| `submitUpdate` | pub | 817 | `rep` `trafficAssignment` `user` `userNotification` | _—_ |
-| `getNotifications` | pub | 886 | `repNotification` | _—_ |
-| `markNotificationRead` | pub | 911 | `repNotification` | _—_ |
-| `markAllRead` | pub | 928 | `repNotification` | _—_ |
-| `getProfile` | pub | 939 | `rep` | _—_ |
-| `checkRepTimelock` | priv | 964 | — | _—_ |
-| `checkRepGeofence` | priv | 974 | — | _—_ |
-| `findJobDetail` | pub | 993 | `trafficJob` | _—_ |
-| `getJobStampMeta` | pub | 1025 | `trafficJob` | _—_ |
+| `resolveRepId` | pub | 61 | `rep` | Maps the JWT user id to a Rep row; throws Forbidden when no rep profile is linked. |
+| `getMyJobs` | pub | 71 | `trafficAssignment` | The rep's jobs for one day (default today), sorted by flight arrival for ARR or `pickUpTime` otherwise. |
+| `getJobHistory` | pub | 112 | `trafficAssignment` | Terminal-status rep legs in a date range, with the fee earned per job. |
+| `updateJobStatus` | pub | 163 | `trafficAssignment` `statusChangeLog` `trafficJob` | Non-evidence rep transition against `REP_VALID_TRANSITIONS`. Can reach COMPLETED (IN_PLACE→COMPLETED), so it also triggers the job-level roll-up. |
+| `submitNoShow` | pub | 254 | `rep` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` | Rep-side no-show with evidence. Allowed from PENDING/IN_PLACE only and constrained by the shared `checkNoShowWindow` (80 min after job time). |
+| `submitInPlace` | pub | 362 | `rep` `trafficAssignment` `trafficJob` `inPlaceEvidence` `statusChangeLog` | Rep confirms arrival at the meeting point. Enforces a hard window of arrival −10 min to +80 min, but ONLY for ARR jobs, and skipped entirely when `repUnlockedAt` is set by an admin. Idempotent: re-submitting while already IN_PLACE returns current state without re-processing. |
+| `getGuestSurvey` | pub | 493 | `trafficAssignment` `guestSurvey` | Returns the arrival guest survey for a job if one has been submitted, scoped to the assigned rep. |
+| `submitGuestSurvey` | pub | 529 | `rep` `trafficAssignment` `guestSurvey` `repJobScore` `repFee` | Upserts the native arrival guest survey (ARR jobs only — replaced the old MS Forms flow). Submitting it auto-awards the 15-point survey scoring dimension and recalculates the rep fee, preserving existing score flags. |
+| `submitCompleted` | pub | 632 | `rep` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | Closes the rep leg with photo evidence. Requires IN_PLACE first, then calls `reconcileJobStatus` to roll the job up and materialise the rep fee — reps are paid only for completed jobs. |
+| `submitFlightDelay` | pub | 725 | `rep` `trafficAssignment` `trafficFlight` `user` `userNotification` | Rep reports a delayed arrival: rewrites `TrafficFlight.arrivalTime` and notifies every user holding the `traffic-jobs` or `dispatch` permission (plus all ADMINs). Rejected for non-ARR jobs or jobs with no flight row. |
+| `submitUpdate` | pub | 817 | `rep` `trafficAssignment` `user` `userNotification` | Free-text rep note pushed as a `UserNotification` to traffic/dispatch operators. Does not change any status. |
+| `getNotifications` | pub | 886 | `repNotification` | Rep's notification feed from `RepNotification`. |
+| `markNotificationRead` | pub | 911 | `repNotification` | Marks one notification read, scoped to the calling rep. |
+| `markAllRead` | pub | 928 | `repNotification` | Bulk-marks this rep's notifications read. |
+| `getProfile` | pub | 939 | `rep` | The rep's own profile, including assigned zones. |
+| `checkRepTimelock` | priv | 964 | — | 48h cut-off after `jobDate`, bypassed by `TrafficJob.repUnlockedAt`. Mirrors the driver timelock. |
+| `checkRepGeofence` | priv | 974 | — | 2km proximity check that only WARNS — it never throws. Note the in-app help text claims GPS proximity is required at 500m; the code does not enforce that for either portal. |
+| `findJobDetail` | pub | 993 | `trafficJob` | Full job detail for one assigned job, scoped by `assignment.repId`. |
+| `getJobStampMeta` | pub | 1025 | `trafficJob` | Name/status overlay burned into rep evidence photos before upload. |
 
 ## `supplier-portal`
 
@@ -269,22 +301,26 @@ The driver / rep / supplier / partner portals and the public B2C booking surface
 
 `backend/src/supplier-portal/supplier-portal.controller.ts:33` · controller · 4 methods
 
+REST surface for the supplier portal; SUPPLIER-role guarded.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getMyJobs` | pub | 37 | `supplierPortalService.getMyJobs` | _—_ |
-| `getJobDetail` | pub | 46 | `supplierPortalService.findJobDetail` | _—_ |
-| `completeJob` | pub | 55 | `supplierPortalService.completeJob` | _—_ |
-| `getProfile` | pub | 65 | `supplierPortalService.getProfile` | _—_ |
+| `getMyJobs` | pub | 37 | `supplierPortalService.getMyJobs` | This supplier's jobs for a day. |
+| `getJobDetail` | pub | 46 | `supplierPortalService.findJobDetail` | One job's detail, scoped to the supplier. |
+| `completeJob` | pub | 55 | `supplierPortalService.completeJob` | Closes the supplier leg for a job. |
+| `getProfile` | pub | 65 | `supplierPortalService.getProfile` | The supplier's own profile. |
 
 ### SupplierPortalService
 
 `backend/src/supplier-portal/supplier-portal.service.ts:12` · service · 6 methods
 
+Read-mostly portal for external car suppliers. A supplier sees only jobs assigned to it and can close its own leg (`supplierStatus`); it never touches the driver or rep legs.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `resolveSupplierId` | pub | 36 | `supplier` | _—_ |
-| `getMyJobs` | pub | 46 | `trafficAssignment` | _—_ |
-| `completeJob` | pub | 83 | `trafficAssignment` | _—_ |
-| `getProfile` | pub | 129 | `supplier` | _—_ |
-| `checkSupplierTimelock` | priv | 147 | — | _—_ |
-| `findJobDetail` | pub | 157 | `trafficJob` | _—_ |
+| `resolveSupplierId` | pub | 36 | `supplier` | Maps the JWT user id to a Supplier row; throws Forbidden when none is linked. |
+| `getMyJobs` | pub | 46 | `trafficAssignment` | Jobs assigned to this supplier for a given day. |
+| `completeJob` | pub | 83 | `trafficAssignment` | Closes the supplier leg, subject to the supplier timelock. |
+| `getProfile` | pub | 129 | `supplier` | The supplier's own company profile. |
+| `checkSupplierTimelock` | priv | 147 | — | 48h cut-off after `jobDate`, bypassed by `TrafficJob.supplierUnlockedAt`. |
+| `findJobDetail` | pub | 157 | `trafficJob` | One job's detail, scoped to the calling supplier. |

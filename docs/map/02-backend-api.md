@@ -123,17 +123,17 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/w-api/bookings` | `getBookings`:91 | `authed` | `b2cService.getBookings` | _—_ |
-| GET | `/api/w-api/bookings/:ref` | `getBooking`:97 | `authed` | `b2cService.getBooking` | _—_ |
-| PATCH | `/api/w-api/bookings/:ref` | `amendBooking`:121 | `authed` | `b2cService.amendBooking` | _—_ |
-| DELETE | `/api/w-api/bookings/:ref` | `cancelBooking`:132 | `authed` | `b2cService.cancelBooking` | _—_ |
-| GET | `/api/w-api/bookings/:ref/evidence-file/:fileId` | `getEvidenceFile`:105 | `authed` | `b2cService.getEvidenceFileStream` | _—_ |
-| POST | `/api/w-api/change-password` | `changePassword`:47 | `authed` | `b2cService.changePassword` | _—_ |
-| POST | `/api/w-api/forgot-password` | `forgotPassword`:55 | `public` | `b2cService.requestPasswordReset` | _—_ |
-| GET | `/api/w-api/invoices` | `getInvoices`:69 | `authed` | `b2cInvoiceService.listForClient` | _—_ |
-| GET | `/api/w-api/invoices/:id/pdf` | `getInvoicePdf`:75 | `authed` | `b2cInvoiceService.getOwnedPdf` | _—_ |
-| POST | `/api/w-api/login` | `login`:40 | `public` | `b2cService.login` | _—_ |
-| POST | `/api/w-api/reset-password` | `resetPassword`:63 | `public` | `b2cService.resetPassword` | _—_ |
+| GET | `/api/w-api/bookings` | `getBookings`:91 | `authed` | `b2cService.getBookings` | The guest's own bookings. |
+| GET | `/api/w-api/bookings/:ref` | `getBooking`:97 | `authed` | `b2cService.getBooking` | One booking, ownership-scoped. |
+| PATCH | `/api/w-api/bookings/:ref` | `amendBooking`:121 | `authed` | `b2cService.amendBooking` | Guest amends their booking. |
+| DELETE | `/api/w-api/bookings/:ref` | `cancelBooking`:132 | `authed` | `b2cService.cancelBooking` | Guest cancels their booking. |
+| GET | `/api/w-api/bookings/:ref/evidence-file/:fileId` | `getEvidenceFile`:105 | `authed` | `b2cService.getEvidenceFileStream` | Proxies an evidence image so Drive file ids stay server-side. |
+| POST | `/api/w-api/change-password` | `changePassword`:47 | `authed` | `b2cService.changePassword` | Guest password change. |
+| POST | `/api/w-api/forgot-password` | `forgotPassword`:55 | `public` | `b2cService.requestPasswordReset` | Starts the guest password-reset flow. |
+| GET | `/api/w-api/invoices` | `getInvoices`:69 | `authed` | `b2cInvoiceService.listForClient` | The guest's own invoices. |
+| GET | `/api/w-api/invoices/:id/pdf` | `getInvoicePdf`:75 | `authed` | `b2cInvoiceService.getOwnedPdf` | Ownership-checked invoice PDF download. |
+| POST | `/api/w-api/login` | `login`:40 | `public` | `b2cService.login` | Guest-account login. |
+| POST | `/api/w-api/reset-password` | `resetPassword`:63 | `public` | `b2cService.resetPassword` | Completes a guest password reset. |
 
 ### ContactMessagesAdminController
 
@@ -141,10 +141,10 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/admin/contact-messages` | `list`:30 | `perm:contact-messages` | `service.list` | _—_ |
-| DELETE | `/api/admin/contact-messages/:id` | `remove`:45 | `perm:contact-messages` | `service.remove` | _—_ |
-| PATCH | `/api/admin/contact-messages/:id/read` | `setRead`:40 | `perm:contact-messages` | `service.setRead` | _—_ |
-| GET | `/api/admin/contact-messages/unread-count` | `unreadCount`:35 | `perm:contact-messages` | `service.unreadCount` | _—_ |
+| GET | `/api/admin/contact-messages` | `list`:30 | `perm:contact-messages` | `service.list` | Lists contact messages. |
+| DELETE | `/api/admin/contact-messages/:id` | `remove`:45 | `perm:contact-messages` | `service.remove` | Deletes a message. |
+| PATCH | `/api/admin/contact-messages/:id/read` | `setRead`:40 | `perm:contact-messages` | `service.setRead` | Marks a message read/unread. |
+| GET | `/api/admin/contact-messages/unread-count` | `unreadCount`:35 | `perm:contact-messages` | `service.unreadCount` | Unread count for the sidebar badge. |
 
 ### CustomersController
 
@@ -191,18 +191,18 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/driver-portal/jobs` | `getMyJobs`:78 | `DRIVER` | `driverPortalService.getMyJobs` | _—_ |
-| GET | `/api/driver-portal/jobs/:jobId` | `getJobDetail`:102 | `DRIVER` | `driverPortalService.findJobDetail` | _—_ |
+| GET | `/api/driver-portal/jobs` | `getMyJobs`:78 | `DRIVER` | `driverPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in driver. |
+| GET | `/api/driver-portal/jobs/:jobId` | `getJobDetail`:102 | `DRIVER` | `driverPortalService.findJobDetail` | One job's full detail, scoped to the calling driver. |
 | PATCH | `/api/driver-portal/jobs/:jobId/collection` | `markCollected`:127 | `DRIVER` | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
 | POST | `/api/driver-portal/jobs/:jobId/completed` | `submitCompleted`:192 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
-| POST | `/api/driver-portal/jobs/:jobId/in-progress` | `submitInProgress`:165 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitInProgress` | _—_ |
-| POST | `/api/driver-portal/jobs/:jobId/no-show` | `submitNoShow`:138 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitNoShow` | _—_ |
+| POST | `/api/driver-portal/jobs/:jobId/in-progress` | `submitInProgress`:165 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
+| POST | `/api/driver-portal/jobs/:jobId/no-show` | `submitNoShow`:138 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
 | PATCH | `/api/driver-portal/jobs/:jobId/status` | `updateJobStatus`:111 | `DRIVER` | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
 | GET | `/api/driver-portal/jobs/history` | `getJobHistory`:87 | `DRIVER` | `driverPortalService.getJobHistory` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job. |
-| GET | `/api/driver-portal/notifications` | `getNotifications`:218 | `DRIVER` | `driverPortalService.getNotifications` | _—_ |
-| PATCH | `/api/driver-portal/notifications/:id/read` | `markNotificationRead`:224 | `DRIVER` | `driverPortalService.markNotificationRead` | _—_ |
-| PATCH | `/api/driver-portal/notifications/read-all` | `markAllRead`:233 | `DRIVER` | `driverPortalService.markAllRead` | _—_ |
-| GET | `/api/driver-portal/profile` | `getProfile`:239 | `DRIVER` | `driverPortalService.getProfile` | _—_ |
+| GET | `/api/driver-portal/notifications` | `getNotifications`:218 | `DRIVER` | `driverPortalService.getNotifications` | Driver's notification feed. |
+| PATCH | `/api/driver-portal/notifications/:id/read` | `markNotificationRead`:224 | `DRIVER` | `driverPortalService.markNotificationRead` | Marks a single notification read. |
+| PATCH | `/api/driver-portal/notifications/read-all` | `markAllRead`:233 | `DRIVER` | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
+| GET | `/api/driver-portal/profile` | `getProfile`:239 | `DRIVER` | `driverPortalService.getProfile` | The driver's own profile. |
 
 ### DriverTariffsController
 
@@ -336,10 +336,10 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/guest-bookings` | `findAll`:28 | `perm:guest-bookings` | `guestBookingsService.findAll` | _—_ |
-| GET | `/api/guest-bookings/:id` | `findOne`:34 | `perm:guest-bookings` | `guestBookingsService.findOne` | _—_ |
-| PATCH | `/api/guest-bookings/:id/cancel` | `cancelBooking`:53 | `ADMIN` `perm:guest-bookings.cancel` | `guestBookingsService.cancelBooking` | _—_ |
-| POST | `/api/guest-bookings/:id/convert` | `convertToJob`:42 | `ADMIN` `DISPATCHER` `perm:guest-bookings.convert` | `guestBookingsService.convertToJob` | _—_ |
+| GET | `/api/guest-bookings` | `findAll`:28 | `perm:guest-bookings` | `guestBookingsService.findAll` | Lists guest bookings. |
+| GET | `/api/guest-bookings/:id` | `findOne`:34 | `perm:guest-bookings` | `guestBookingsService.findOne` | One guest booking. |
+| PATCH | `/api/guest-bookings/:id/cancel` | `cancelBooking`:53 | `ADMIN` `perm:guest-bookings.cancel` | `guestBookingsService.cancelBooking` | Cancels a guest booking. |
+| POST | `/api/guest-bookings/:id/convert` | `convertToJob`:42 | `ADMIN` `DISPATCHER` `perm:guest-bookings.convert` | `guestBookingsService.convertToJob` | Converts a confirmed booking into a traffic job. |
 
 ### ImportTemplatesController
 
@@ -443,10 +443,10 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| POST | `/api/partner/jobs` | `createJob`:37 | `public` | `partnerService.createJob` | _—_ |
-| GET | `/api/partner/jobs` | `getJobStatuses`:42 | `public` | `partnerService.getJobStatuses` | _—_ |
-| POST | `/api/partner/pricing` | `pushPricing`:32 | `public` | `partnerService.pushPricing` | _—_ |
-| GET | `/api/partner/reference` | `getReference`:27 | `public` | `partnerService.getReference` | _—_ |
+| POST | `/api/partner/jobs` | `createJob`:37 | `public` | `partnerService.createJob` | Creates (or returns the existing) traffic job for a B2C booking reference. |
+| GET | `/api/partner/jobs` | `getJobStatuses`:42 | `public` | `partnerService.getJobStatuses` | Bulk job-status poll for the B2C site. |
+| POST | `/api/partner/pricing` | `pushPricing`:32 | `public` | `partnerService.pushPricing` | Accepts a public price bulk-upsert from B2C. |
+| GET | `/api/partner/reference` | `getReference`:27 | `public` | `partnerService.getReference` | Reference data feed for the B2C mirror. |
 
 ### PaymentsController
 
@@ -496,21 +496,21 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/rep-portal/jobs` | `getMyJobs`:117 | `REP` | `repPortalService.getMyJobs` | _—_ |
-| GET | `/api/rep-portal/jobs/:jobId` | `getJobDetail`:137 | `REP` | `repPortalService.findJobDetail` | _—_ |
-| POST | `/api/rep-portal/jobs/:jobId/completed` | `submitCompleted`:236 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitCompleted` | _—_ |
-| PATCH | `/api/rep-portal/jobs/:jobId/flight-delay` | `submitFlightDelay`:262 | `REP` | `repPortalService.submitFlightDelay` | _—_ |
-| POST | `/api/rep-portal/jobs/:jobId/in-place` | `submitInPlace`:190 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitInPlace` | _—_ |
-| POST | `/api/rep-portal/jobs/:jobId/no-show` | `submitNoShow`:163 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitNoShow` | _—_ |
-| PATCH | `/api/rep-portal/jobs/:jobId/status` | `updateJobStatus`:146 | `REP` | `repPortalService.updateJobStatus` | _—_ |
-| GET | `/api/rep-portal/jobs/:jobId/survey` | `getGuestSurvey`:216 | `REP` | `repPortalService.getGuestSurvey` | _—_ |
-| POST | `/api/rep-portal/jobs/:jobId/survey` | `submitGuestSurvey`:225 | `REP` | `repPortalService.submitGuestSurvey` | _—_ |
-| POST | `/api/rep-portal/jobs/:jobId/update` | `submitUpdate`:275 | `REP` | `repPortalService.submitUpdate` | _—_ |
-| GET | `/api/rep-portal/jobs/history` | `getJobHistory`:126 | `REP` | `repPortalService.getJobHistory` | _—_ |
-| GET | `/api/rep-portal/notifications` | `getNotifications`:288 | `REP` | `repPortalService.getNotifications` | _—_ |
-| PATCH | `/api/rep-portal/notifications/:id/read` | `markNotificationRead`:294 | `REP` | `repPortalService.markNotificationRead` | _—_ |
-| PATCH | `/api/rep-portal/notifications/read-all` | `markAllRead`:303 | `REP` | `repPortalService.markAllRead` | _—_ |
-| GET | `/api/rep-portal/profile` | `getProfile`:309 | `REP` | `repPortalService.getProfile` | _—_ |
+| GET | `/api/rep-portal/jobs` | `getMyJobs`:117 | `REP` | `repPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in rep. |
+| GET | `/api/rep-portal/jobs/:jobId` | `getJobDetail`:137 | `REP` | `repPortalService.findJobDetail` | One job's detail, scoped to the calling rep. |
+| POST | `/api/rep-portal/jobs/:jobId/completed` | `submitCompleted`:236 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitCompleted` | Multipart rep completion with stamped evidence. |
+| PATCH | `/api/rep-portal/jobs/:jobId/flight-delay` | `submitFlightDelay`:262 | `REP` | `repPortalService.submitFlightDelay` | Reports a new arrival time and notifies traffic/dispatch staff. |
+| POST | `/api/rep-portal/jobs/:jobId/in-place` | `submitInPlace`:190 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitInPlace` | Multipart IN PLACE submission — the window-gated arrival confirmation. |
+| POST | `/api/rep-portal/jobs/:jobId/no-show` | `submitNoShow`:163 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitNoShow` | Multipart rep no-show submission with stamped photos. |
+| PATCH | `/api/rep-portal/jobs/:jobId/status` | `updateJobStatus`:146 | `REP` | `repPortalService.updateJobStatus` | GPS-stamped rep status transition without evidence upload. |
+| GET | `/api/rep-portal/jobs/:jobId/survey` | `getGuestSurvey`:216 | `REP` | `repPortalService.getGuestSurvey` | Fetches the arrival guest survey for a job, if submitted. |
+| POST | `/api/rep-portal/jobs/:jobId/survey` | `submitGuestSurvey`:225 | `REP` | `repPortalService.submitGuestSurvey` | Submits/updates the arrival guest survey; awards the survey score dimension. |
+| POST | `/api/rep-portal/jobs/:jobId/update` | `submitUpdate`:275 | `REP` | `repPortalService.submitUpdate` | Sends a free-text rep note to traffic/dispatch operators. |
+| GET | `/api/rep-portal/jobs/history` | `getJobHistory`:126 | `REP` | `repPortalService.getJobHistory` | Completed/cancelled/no-show rep legs over a date range, with fees. |
+| GET | `/api/rep-portal/notifications` | `getNotifications`:288 | `REP` | `repPortalService.getNotifications` | Rep's notification feed. |
+| PATCH | `/api/rep-portal/notifications/:id/read` | `markNotificationRead`:294 | `REP` | `repPortalService.markNotificationRead` | Marks a single notification read. |
+| PATCH | `/api/rep-portal/notifications/read-all` | `markAllRead`:303 | `REP` | `repPortalService.markAllRead` | Marks every notification read for this rep. |
+| GET | `/api/rep-portal/profile` | `getProfile`:309 | `REP` | `repPortalService.getProfile` | The rep's own profile. |
 
 ### ReportsController
 
@@ -609,10 +609,10 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/supplier-portal/jobs` | `getMyJobs`:37 | `SUPPLIER` | `supplierPortalService.getMyJobs` | _—_ |
-| GET | `/api/supplier-portal/jobs/:jobId` | `getJobDetail`:46 | `SUPPLIER` | `supplierPortalService.findJobDetail` | _—_ |
-| PATCH | `/api/supplier-portal/jobs/:jobId/complete` | `completeJob`:55 | `SUPPLIER` | `supplierPortalService.completeJob` | _—_ |
-| GET | `/api/supplier-portal/profile` | `getProfile`:65 | `SUPPLIER` | `supplierPortalService.getProfile` | _—_ |
+| GET | `/api/supplier-portal/jobs` | `getMyJobs`:37 | `SUPPLIER` | `supplierPortalService.getMyJobs` | This supplier's jobs for a day. |
+| GET | `/api/supplier-portal/jobs/:jobId` | `getJobDetail`:46 | `SUPPLIER` | `supplierPortalService.findJobDetail` | One job's detail, scoped to the supplier. |
+| PATCH | `/api/supplier-portal/jobs/:jobId/complete` | `completeJob`:55 | `SUPPLIER` | `supplierPortalService.completeJob` | Closes the supplier leg for a job. |
+| GET | `/api/supplier-portal/profile` | `getProfile`:65 | `SUPPLIER` | `supplierPortalService.getProfile` | The supplier's own profile. |
 
 ### SuppliersController
 
