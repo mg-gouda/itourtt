@@ -12,9 +12,11 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/driver/src/App.tsx` · 88 lines
 
+Driver app root — providers, theme and navigation.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `App` | function | 26 | _—_ |
+| `App` | function | 26 | Driver app root — providers, theme and navigation. |
 
 ## `mobile/apps/driver/src/components/`
 
@@ -22,17 +24,21 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/driver/src/components/CollectionCard.tsx` · 65 lines
 
+Cash collection card with the Mark Collected action — the gate that unblocks Complete.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CollectionCard` | function | 20 | _—_ |
+| `CollectionCard` | function | 20 | Cash collection card with the Mark Collected action — the gate that unblocks Complete. |
 
 ### `DriverJobActions.tsx`
 
 `mobile/apps/driver/src/components/DriverJobActions.tsx` · 89 lines
 
+Driver status action buttons, mirroring the backend transition and collection rules.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `DriverJobActions` | function | 13 | _—_ |
+| `DriverJobActions` | function | 13 | Driver status action buttons, mirroring the backend transition and collection rules. |
 
 ## `mobile/apps/driver/src/navigation/`
 
@@ -40,19 +46,23 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 91 lines
 
+Driver app bottom tabs (Jobs, History, Notifications, Profile).
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 9 | _—_ |
-| `MainTabNavigator` | function | 18 | _—_ |
+| `MainTabParamList` | type | 9 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 18 | Driver app bottom tabs (Jobs, History, Notifications, Profile). |
 
 ### `RootNavigator.tsx`
 
 `mobile/apps/driver/src/navigation/RootNavigator.tsx` · 43 lines
 
+Driver app auth vs main navigation switch.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 9 | _—_ |
-| `RootNavigator` | function | 18 | _—_ |
+| `RootStackParamList` | type | 9 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 18 | Driver app auth vs main navigation switch. |
 
 ## `mobile/apps/driver/src/screens/`
 
@@ -60,57 +70,71 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/driver/src/screens/HistoryScreen.tsx` · 118 lines
 
+Driver's completed jobs and fees earned.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `HistoryScreen` | function | 15 | _—_ |
+| `HistoryScreen` | function | 15 | Driver's completed jobs and fees earned. |
 
 ### `JobDetailScreen.tsx`
 
 `mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 268 lines
 
+Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 38 | _—_ |
+| `JobDetailScreen` | function | 38 | Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces. |
 
 ### `JobsListScreen.tsx`
 
 `mobile/apps/driver/src/screens/JobsListScreen.tsx` · 147 lines
 
+Driver's jobs for a day, sorted by effective start time.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobsListScreen` | function | 22 | _—_ |
+| `JobsListScreen` | function | 22 | Driver's jobs for a day, sorted by effective start time. |
 
 ### `LoginScreen.tsx`
 
 `mobile/apps/driver/src/screens/LoginScreen.tsx` · 104 lines
 
+Driver login. A 409 here means another device holds the session.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoginScreen` | function | 13 | _—_ |
+| `LoginScreen` | function | 13 | Driver login. A 409 here means another device holds the session. |
 
 ### `NoShowScreen.tsx`
 
 `mobile/apps/driver/src/screens/NoShowScreen.tsx` · 173 lines
 
+Driver no-show submission with photos and GPS.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NoShowScreen` | function | 19 | _—_ |
+| `NoShowScreen` | function | 19 | Driver no-show submission with photos and GPS. |
 
 ### `NotificationsScreen.tsx`
 
 `mobile/apps/driver/src/screens/NotificationsScreen.tsx` · 107 lines
 
+Driver's notification feed.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NotificationsScreen` | function | 13 | _—_ |
+| `NotificationsScreen` | function | 13 | Driver's notification feed. |
 
 ### `ProfileScreen.tsx`
 
 `mobile/apps/driver/src/screens/ProfileScreen.tsx` · 180 lines
 
+Driver's own profile.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ProfileScreen` | function | 22 | _—_ |
+| `ProfileScreen` | function | 22 | Driver's own profile. |
 
 ## `mobile/apps/guest/src/`
 
@@ -118,9 +142,11 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/guest/src/App.tsx` · 30 lines
 
+Guest (B2C) app root.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `App` | function | 9 | _—_ |
+| `App` | function | 9 | Guest (B2C) app root. |
 
 ## `mobile/apps/guest/src/components/`
 
@@ -128,41 +154,51 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/guest/src/components/ExtrasSelector.tsx` · 127 lines
 
+Extras selection from the managed catalogue.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ExtrasSelector` | function | 45 | _—_ |
+| `ExtrasSelector` | function | 45 | Extras selection from the managed catalogue. |
 
 ### `LocationPicker.tsx`
 
 `mobile/apps/guest/src/components/LocationPicker.tsx` · 369 lines
 
+Pickup/dropoff picker over the location tree.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LocationPicker` | function | 56 | _—_ |
+| `LocationPicker` | function | 56 | Pickup/dropoff picker over the location tree. |
 
 ### `PriceSummary.tsx`
 
 `mobile/apps/guest/src/components/PriceSummary.tsx` · 111 lines
 
+Running price breakdown through the funnel.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PriceSummary` | function | 20 | _—_ |
+| `PriceSummary` | function | 20 | Running price breakdown through the funnel. |
 
 ### `StepIndicator.tsx`
 
 `mobile/apps/guest/src/components/StepIndicator.tsx` · 122 lines
 
+Funnel step progress indicator.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `StepIndicator` | function | 16 | _—_ |
+| `StepIndicator` | function | 16 | Funnel step progress indicator. |
 
 ### `VehicleTypeCard.tsx`
 
 `mobile/apps/guest/src/components/VehicleTypeCard.tsx` · 129 lines
 
+Selectable vehicle type card with price.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `VehicleTypeCard` | function | 18 | _—_ |
+| `VehicleTypeCard` | function | 18 | Selectable vehicle type card with price. |
 
 ## `mobile/apps/guest/src/navigation/`
 
@@ -170,10 +206,12 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/guest/src/navigation/RootNavigator.tsx` · 81 lines
 
+Guest app navigation.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 12 | _—_ |
-| `RootNavigator` | function | 28 | _—_ |
+| `RootStackParamList` | type | 12 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 28 | Guest app navigation. |
 
 ## `mobile/apps/guest/src/screens/`
 
@@ -181,65 +219,81 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/guest/src/screens/BookingDetailScreen.tsx` · 278 lines
 
+A guest's own booking detail, including evidence photos.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `BookingDetailScreen` | function | 28 | _—_ |
+| `BookingDetailScreen` | function | 28 | A guest's own booking detail, including evidence photos. |
 
 ### `BookingLookupScreen.tsx`
 
 `mobile/apps/guest/src/screens/BookingLookupScreen.tsx` · 138 lines
 
+Look up an existing booking. Email-gated — this is the fix for the earlier booking-lookup IDOR.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `BookingLookupScreen` | function | 13 | _—_ |
+| `BookingLookupScreen` | function | 13 | Look up an existing booking. Email-gated — this is the fix for the earlier booking-lookup IDOR. |
 
 ### `ConfirmationScreen.tsx`
 
 `mobile/apps/guest/src/screens/ConfirmationScreen.tsx` · 299 lines
 
+Booking confirmation with the reference.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ConfirmationScreen` | function | 25 | _—_ |
+| `ConfirmationScreen` | function | 25 | Booking confirmation with the reference. |
 
 ### `GuestDetailsScreen.tsx`
 
 `mobile/apps/guest/src/screens/GuestDetailsScreen.tsx` · 183 lines
 
+Guest details and flight information.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `GuestDetailsScreen` | function | 16 | _—_ |
+| `GuestDetailsScreen` | function | 16 | Guest details and flight information. |
 
 ### `HomeScreen.tsx`
 
 `mobile/apps/guest/src/screens/HomeScreen.tsx` · 228 lines
 
+Guest app home and entry to the booking funnel.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `HomeScreen` | function | 22 | _—_ |
+| `HomeScreen` | function | 22 | Guest app home and entry to the booking funnel. |
 
 ### `PaymentScreen.tsx`
 
 `mobile/apps/guest/src/screens/PaymentScreen.tsx` · 201 lines
 
+Hosted-checkout payment step.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PaymentScreen` | function | 34 | _—_ |
+| `PaymentScreen` | function | 34 | Hosted-checkout payment step. |
 
 ### `SearchScreen.tsx`
 
 `mobile/apps/guest/src/screens/SearchScreen.tsx` · 344 lines
 
+Route and date search, step 1 of the funnel.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SearchScreen` | function | 31 | _—_ |
+| `SearchScreen` | function | 31 | Route and date search, step 1 of the funnel. |
 
 ### `VehicleSelectScreen.tsx`
 
 `mobile/apps/guest/src/screens/VehicleSelectScreen.tsx` · 193 lines
 
+Vehicle type selection with pricing.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `VehicleSelectScreen` | function | 32 | _—_ |
+| `VehicleSelectScreen` | function | 32 | Vehicle type selection with pricing. |
 
 ## `mobile/apps/guest/src/stores/`
 
@@ -247,9 +301,11 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/guest/src/stores/booking-store.ts` · 96 lines
 
+Guest booking funnel state across steps.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useBookingStore` | const | 80 | _—_ |
+| `useBookingStore` | const | 80 | Guest booking funnel state across steps (`useBookingStore`). |
 
 ## `mobile/apps/rep/src/`
 
@@ -257,9 +313,11 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/rep/src/App.tsx` · 87 lines
 
+Rep app root.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `App` | function | 25 | _—_ |
+| `App` | function | 25 | Rep app root. |
 
 ## `mobile/apps/rep/src/components/`
 
@@ -267,17 +325,21 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/rep/src/components/EarningsSummary.tsx` · 40 lines
 
+Rep earnings summary for the period.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `EarningsSummary` | function | 12 | _—_ |
+| `EarningsSummary` | function | 12 | Rep earnings summary for the period. |
 
 ### `RepJobActions.tsx`
 
 `mobile/apps/rep/src/components/RepJobActions.tsx` · 62 lines
 
+Rep status action buttons, mirroring the IN PLACE window and transition rules.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RepJobActions` | function | 12 | _—_ |
+| `RepJobActions` | function | 12 | Rep status action buttons, mirroring the IN PLACE window and transition rules. |
 
 ## `mobile/apps/rep/src/navigation/`
 
@@ -285,19 +347,23 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 91 lines
 
+Rep app bottom tabs.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 9 | _—_ |
-| `MainTabNavigator` | function | 18 | _—_ |
+| `MainTabParamList` | type | 9 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 18 | Rep app bottom tabs. |
 
 ### `RootNavigator.tsx`
 
 `mobile/apps/rep/src/navigation/RootNavigator.tsx` · 43 lines
 
+Rep app auth vs main navigation switch.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 9 | _—_ |
-| `RootNavigator` | function | 18 | _—_ |
+| `RootStackParamList` | type | 9 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 18 | Rep app auth vs main navigation switch. |
 
 ## `mobile/apps/rep/src/screens/`
 
@@ -305,57 +371,71 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/rep/src/screens/HistoryScreen.tsx` · 107 lines
 
+Rep's completed jobs and fees.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `HistoryScreen` | function | 16 | _—_ |
+| `HistoryScreen` | function | 16 | Rep's completed jobs and fees. |
 
 ### `JobDetailScreen.tsx`
 
 `mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 244 lines
 
+Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 35 | _—_ |
+| `JobDetailScreen` | function | 35 | Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting. |
 
 ### `JobsListScreen.tsx`
 
 `mobile/apps/rep/src/screens/JobsListScreen.tsx` · 113 lines
 
+Rep's jobs for a day.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobsListScreen` | function | 20 | _—_ |
+| `JobsListScreen` | function | 20 | Rep's jobs for a day. |
 
 ### `LoginScreen.tsx`
 
 `mobile/apps/rep/src/screens/LoginScreen.tsx` · 104 lines
 
+Rep login. A 409 here means another device holds the session.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoginScreen` | function | 13 | _—_ |
+| `LoginScreen` | function | 13 | Rep login. A 409 here means another device holds the session. |
 
 ### `NoShowScreen.tsx`
 
 `mobile/apps/rep/src/screens/NoShowScreen.tsx` · 173 lines
 
+Rep no-show submission with photos and GPS.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NoShowScreen` | function | 19 | _—_ |
+| `NoShowScreen` | function | 19 | Rep no-show submission with photos and GPS. |
 
 ### `NotificationsScreen.tsx`
 
 `mobile/apps/rep/src/screens/NotificationsScreen.tsx` · 107 lines
 
+Rep's notification feed.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NotificationsScreen` | function | 13 | _—_ |
+| `NotificationsScreen` | function | 13 | Rep's notification feed. |
 
 ### `ProfileScreen.tsx`
 
 `mobile/apps/rep/src/screens/ProfileScreen.tsx` · 183 lines
 
+Rep's own profile.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ProfileScreen` | function | 23 | _—_ |
+| `ProfileScreen` | function | 23 | Rep's own profile. |
 
 ## `mobile/apps/supplier/src/`
 
@@ -363,9 +443,11 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/supplier/src/App.tsx` · 79 lines
 
+Supplier app root.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `App` | function | 25 | _—_ |
+| `App` | function | 25 | Supplier app root. |
 
 ## `mobile/apps/supplier/src/components/`
 
@@ -373,9 +455,11 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/supplier/src/components/FleetOverview.tsx` · 85 lines
 
+Summary of the supplier's fleet and its utilisation.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `FleetOverview` | function | 10 | _—_ |
+| `FleetOverview` | function | 10 | Summary of the supplier's fleet and its utilisation. |
 
 ## `mobile/apps/supplier/src/navigation/`
 
@@ -383,19 +467,23 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/supplier/src/navigation/MainTabNavigator.tsx` · 63 lines
 
+Supplier app bottom tabs.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 8 | _—_ |
-| `MainTabNavigator` | function | 16 | _—_ |
+| `MainTabParamList` | type | 8 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 16 | Supplier app bottom tabs. |
 
 ### `RootNavigator.tsx`
 
 `mobile/apps/supplier/src/navigation/RootNavigator.tsx` · 27 lines
 
+Supplier app navigation switch.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 7 | _—_ |
-| `RootNavigator` | function | 14 | _—_ |
+| `RootStackParamList` | type | 7 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 14 | Supplier app navigation switch. |
 
 ## `mobile/apps/supplier/src/screens/`
 
@@ -403,33 +491,41 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/apps/supplier/src/screens/DashboardScreen.tsx` · 120 lines
 
+Supplier dashboard overview.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `DashboardScreen` | function | 17 | _—_ |
+| `DashboardScreen` | function | 17 | Supplier dashboard overview. |
 
 ### `JobsListScreen.tsx`
 
 `mobile/apps/supplier/src/screens/JobsListScreen.tsx` · 166 lines
 
+Jobs assigned to this supplier.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobsListScreen` | function | 15 | _—_ |
+| `JobsListScreen` | function | 15 | Jobs assigned to this supplier. |
 
 ### `LoginScreen.tsx`
 
 `mobile/apps/supplier/src/screens/LoginScreen.tsx` · 104 lines
 
+Supplier login.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoginScreen` | function | 13 | _—_ |
+| `LoginScreen` | function | 13 | Supplier login. |
 
 ### `ProfileScreen.tsx`
 
 `mobile/apps/supplier/src/screens/ProfileScreen.tsx` · 208 lines
 
+Supplier's company profile.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ProfileScreen` | function | 22 | _—_ |
+| `ProfileScreen` | function | 22 | Supplier's company profile. |
 
 ## `mobile/packages/shared/src/api/`
 
@@ -437,11 +533,13 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/api/client.ts` · 113 lines
 
+The axios client for all four mobile apps: attaches the token from encrypted storage and refreshes once on 401.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `setApiBaseUrl` | function | 15 | _—_ |
-| `api` | const | 20 | _—_ |
-| `setOnAuthFailure` | function | 29 | _—_ |
+| `setApiBaseUrl` | function | 15 | The axios client for all four mobile apps: attaches the token from encrypted storage and refreshes once on 401 (`setApiBaseUrl`). |
+| `api` | const | 20 | The shared axios instance — token attach plus 401 refresh. |
+| `setOnAuthFailure` | function | 29 | The axios client for all four mobile apps: attaches the token from encrypted storage and refreshes once on 401 (`setOnAuthFailure`). |
 
 ## `mobile/packages/shared/src/api/endpoints/`
 
@@ -449,41 +547,51 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/api/endpoints/auth.ts` · 21 lines
 
+Auth calls — login, refresh, logout, device-token registration.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `authApi` | const | 4 | _—_ |
+| `authApi` | const | 4 | Auth calls — login, refresh, logout, device-token registration (`authApi`). |
 
 ### `driver-portal.ts`
 
 `mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 45 lines
 
+Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController`.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `driverPortalApi` | const | 4 | _—_ |
+| `driverPortalApi` | const | 4 | Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController` (`driverPortalApi`). |
 
 ### `public-api.ts`
 
 `mobile/packages/shared/src/api/endpoints/public-api.ts` · 37 lines
 
+Public B2C endpoints used by the guest app (search, pricing, booking).
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `publicApi` | const | 11 | _—_ |
+| `publicApi` | const | 11 | Public B2C endpoints used by the guest app (search, pricing, booking) (`publicApi`). |
 
 ### `rep-portal.ts`
 
 `mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 41 lines
 
+Typed wrappers over `/api/rep-portal`; mirrors `RepPortalController`.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `repPortalApi` | const | 4 | _—_ |
+| `repPortalApi` | const | 4 | Typed wrappers over `/api/rep-portal`; mirrors `RepPortalController` (`repPortalApi`). |
 
 ### `supplier-portal.ts`
 
 `mobile/packages/shared/src/api/endpoints/supplier-portal.ts` · 17 lines
 
+Typed wrappers over `/api/supplier-portal`.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `supplierPortalApi` | const | 4 | _—_ |
+| `supplierPortalApi` | const | 4 | Typed wrappers over `/api/supplier-portal` (`supplierPortalApi`). |
 
 ## `mobile/packages/shared/src/auth/`
 
@@ -491,18 +599,22 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/auth/auth-store.ts` · 69 lines
 
+Session state for the mobile apps, backed by encrypted storage.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useAuthStore` | const | 16 | _—_ |
-| `validateRole` | function | 66 | _—_ |
+| `useAuthStore` | const | 16 | Session state for the mobile apps, backed by encrypted storage (`useAuthStore`). |
+| `validateRole` | function | 66 | Session state for the mobile apps, backed by encrypted storage (`validateRole`). |
 
 ### `secure-storage.ts`
 
 `mobile/packages/shared/src/auth/secure-storage.ts` · 49 lines
 
+Tokens and user stored in the OS keychain/keystore via react-native-encrypted-storage — never AsyncStorage.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `secureStorage` | const | 9 | _—_ |
+| `secureStorage` | const | 9 | Keychain/keystore-backed token and user storage. |
 
 ## `mobile/packages/shared/src/hooks/`
 
@@ -510,25 +622,31 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/hooks/use-gps.ts` · 111 lines
 
+GPS capture with runtime permission handling (Android asks, iOS is granted at the manifest level). GPS is mandatory for every evidence submission.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useGPS` | function | 10 | _—_ |
+| `useGPS` | function | 10 | GPS capture with runtime permission handling. |
 
 ### `use-network.ts`
 
 `mobile/packages/shared/src/hooks/use-network.ts` · 16 lines
 
+Connectivity state driving the offline bar.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useNetwork` | function | 4 | _—_ |
+| `useNetwork` | function | 4 | Connectivity state driving the offline bar (`useNetwork`). |
 
 ### `use-refresh.ts`
 
 `mobile/packages/shared/src/hooks/use-refresh.ts` · 17 lines
 
+Pull-to-refresh state helper shared by the list screens.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useRefresh` | function | 3 | _—_ |
+| `useRefresh` | function | 3 | Pull-to-refresh state helper shared by the list screens (`useRefresh`). |
 
 ## `mobile/packages/shared/src/i18n/`
 
@@ -536,31 +654,37 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/i18n/ar.ts` · 164 lines
 
+Arabic strings for all four apps.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ar` | const | 3 | _—_ |
+| `ar` | const | 3 | Arabic strings for all four apps. |
 
 ### `en.ts`
 
 `mobile/packages/shared/src/i18n/en.ts` · 164 lines
 
+English strings for all four apps.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `en` | const | 1 | _—_ |
-| `TranslationKeys` | type | 163 | _—_ |
+| `en` | const | 1 | English strings for all four apps. |
+| `TranslationKeys` | type | 163 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
 `mobile/packages/shared/src/i18n/index.ts` · 44 lines
 
+Translator and locale selection for the mobile apps.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `setLocale` | function | 11 | _—_ |
-| `getLocale` | function | 15 | _—_ |
-| `t` | function | 33 | _—_ |
-| `useT` | function | 38 | _—_ |
-| `en` | const | 42 | _—_ |
-| `ar` | const | 42 | _—_ |
+| `setLocale` | function | 11 | Translator and locale selection for the mobile apps (`setLocale`). |
+| `getLocale` | function | 15 | Translator and locale selection for the mobile apps (`getLocale`). |
+| `t` | function | 33 | Translator and locale selection for the mobile apps (`t`). |
+| `useT` | function | 38 | Translator and locale selection for the mobile apps (`useT`). |
+| `en` | const | 42 | Translator and locale selection for the mobile apps (`en`). |
+| `ar` | const | 42 | Translator and locale selection for the mobile apps (`ar`). |
 
 ## `mobile/packages/shared/src/native/`
 
@@ -568,57 +692,67 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/native/camera.ts` · 125 lines
 
+Camera and gallery access for evidence photos.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CapturedPhoto` | type | 4 | _—_ |
-| `takePhoto` | function | 36 | _—_ |
-| `pickPhoto` | function | 80 | _—_ |
-| `captureOrPick` | function | 116 | _—_ |
+| `CapturedPhoto` | type | 4 | Camera and gallery access for evidence photos (`CapturedPhoto`). |
+| `takePhoto` | function | 36 | Camera and gallery access for evidence photos (`takePhoto`). |
+| `pickPhoto` | function | 80 | Camera and gallery access for evidence photos (`pickPhoto`). |
+| `captureOrPick` | function | 116 | Camera and gallery access for evidence photos (`captureOrPick`). |
 
 ### `location.ts`
 
 `mobile/packages/shared/src/native/location.ts` · 129 lines
 
+Native location permission and one-shot position helpers.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `GPSPosition` | type | 4 | _—_ |
-| `requestLocationPermission` | function | 14 | _—_ |
-| `getCurrentPosition` | function | 34 | _—_ |
-| `watchPosition` | function | 95 | _—_ |
-| `getMapLink` | function | 126 | _—_ |
+| `GPSPosition` | type | 4 | Native location permission and one-shot position helpers (`GPSPosition`). |
+| `requestLocationPermission` | function | 14 | Native location permission and one-shot position helpers (`requestLocationPermission`). |
+| `getCurrentPosition` | function | 34 | Native location permission and one-shot position helpers (`getCurrentPosition`). |
+| `watchPosition` | function | 95 | Native location permission and one-shot position helpers (`watchPosition`). |
+| `getMapLink` | function | 126 | Native location permission and one-shot position helpers (`getMapLink`). |
 
 ### `phone.ts`
 
 `mobile/packages/shared/src/native/phone.ts` · 34 lines
 
+Opens the dialler to call a guest, driver or rep.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `callPhone` | function | 7 | _—_ |
-| `openDialer` | function | 28 | _—_ |
+| `callPhone` | function | 7 | Opens the dialler to call a guest, driver or rep (`callPhone`). |
+| `openDialer` | function | 28 | Opens the dialler to call a guest, driver or rep (`openDialer`). |
 
 ### `push-notifications.ts`
 
 `mobile/packages/shared/src/native/push-notifications.ts` · 158 lines
 
+Firebase push registration and foreground handling; the token is registered against the user server-side.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `setFirebaseMessaging` | function | 25 | _—_ |
-| `requestNotificationPermission` | function | 32 | _—_ |
-| `registerDeviceToken` | function | 46 | _—_ |
-| `unregisterDeviceToken` | function | 66 | _—_ |
-| `onTokenRefresh` | function | 84 | _—_ |
-| `onForegroundMessage` | function | 102 | _—_ |
-| `onNotificationOpened` | function | 121 | _—_ |
-| `setBackgroundMessageHandler` | function | 149 | _—_ |
+| `setFirebaseMessaging` | function | 25 | Firebase push registration and foreground handling; the token is registered against the user server-side (`setFirebaseMessaging`). |
+| `requestNotificationPermission` | function | 32 | Firebase push registration and foreground handling; the token is registered against the user server-side (`requestNotificationPermission`). |
+| `registerDeviceToken` | function | 46 | Firebase push registration and foreground handling; the token is registered against the user server-side (`registerDeviceToken`). |
+| `unregisterDeviceToken` | function | 66 | Firebase push registration and foreground handling; the token is registered against the user server-side (`unregisterDeviceToken`). |
+| `onTokenRefresh` | function | 84 | Firebase push registration and foreground handling; the token is registered against the user server-side (`onTokenRefresh`). |
+| `onForegroundMessage` | function | 102 | Firebase push registration and foreground handling; the token is registered against the user server-side (`onForegroundMessage`). |
+| `onNotificationOpened` | function | 121 | Firebase push registration and foreground handling; the token is registered against the user server-side (`onNotificationOpened`). |
+| `setBackgroundMessageHandler` | function | 149 | Firebase push registration and foreground handling; the token is registered against the user server-side (`setBackgroundMessageHandler`). |
 
 ### `whatsapp.ts`
 
 `mobile/packages/shared/src/native/whatsapp.ts` · 41 lines
 
+Opens WhatsApp to a phone number.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `openWhatsApp` | function | 8 | _—_ |
-| `sendJobWhatsApp` | function | 29 | _—_ |
+| `openWhatsApp` | function | 8 | Opens WhatsApp to a phone number (`openWhatsApp`). |
+| `sendJobWhatsApp` | function | 29 | Opens WhatsApp to a phone number (`sendJobWhatsApp`). |
 
 ## `mobile/packages/shared/src/theme/`
 
@@ -626,58 +760,68 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/theme/colors.ts` · 75 lines
 
+Colour palette shared by the apps.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `lightColors` | const | 3 | _—_ |
-| `darkColors` | const | 24 | _—_ |
-| `statusColors` | const | 46 | _—_ |
-| `statusColorsDark` | const | 56 | _—_ |
-| `serviceTypeColors` | const | 66 | _—_ |
+| `lightColors` | const | 3 | Colour palette shared by the apps (`lightColors`). |
+| `darkColors` | const | 24 | Colour palette shared by the apps (`darkColors`). |
+| `statusColors` | const | 46 | Colour palette shared by the apps (`statusColors`). |
+| `statusColorsDark` | const | 56 | Colour palette shared by the apps (`statusColorsDark`). |
+| `serviceTypeColors` | const | 66 | Colour palette shared by the apps (`serviceTypeColors`). |
 
 ### `index.ts`
 
 `mobile/packages/shared/src/theme/index.ts` · 29 lines
 
+Theme barrel.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ThemeMode` | type | 6 | _—_ |
-| `getColors` | function | 8 | _—_ |
-| `getStatusColors` | function | 13 | _—_ |
-| `useTheme` | function | 18 | _—_ |
-| `useThemeStore` | const | 25 | _—_ |
-| `lightColors` | const | 26 | _—_ |
-| `darkColors` | const | 26 | _—_ |
-| `statusColors` | const | 26 | _—_ |
-| `statusColorsDark` | const | 26 | _—_ |
-| `serviceTypeColors` | const | 26 | _—_ |
-| `spacing` | const | 27 | _—_ |
-| `borderRadius` | const | 27 | _—_ |
-| `typography` | const | 28 | _—_ |
+| `ThemeMode` | type | 6 | Theme barrel (`ThemeMode`). |
+| `getColors` | function | 8 | Theme barrel (`getColors`). |
+| `getStatusColors` | function | 13 | Theme barrel (`getStatusColors`). |
+| `useTheme` | function | 18 | Theme barrel (`useTheme`). |
+| `useThemeStore` | const | 25 | Theme barrel (`useThemeStore`). |
+| `lightColors` | const | 26 | Theme barrel (`lightColors`). |
+| `darkColors` | const | 26 | Theme barrel (`darkColors`). |
+| `statusColors` | const | 26 | Theme barrel (`statusColors`). |
+| `statusColorsDark` | const | 26 | Theme barrel (`statusColorsDark`). |
+| `serviceTypeColors` | const | 26 | Theme barrel (`serviceTypeColors`). |
+| `spacing` | const | 27 | Theme barrel (`spacing`). |
+| `borderRadius` | const | 27 | Theme barrel (`borderRadius`). |
+| `typography` | const | 28 | Theme barrel (`typography`). |
 
 ### `spacing.ts`
 
 `mobile/packages/shared/src/theme/spacing.ts` · 32 lines
 
+Spacing scale.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `spacing` | const | 1 | _—_ |
-| `borderRadius` | const | 22 | _—_ |
+| `spacing` | const | 1 | Spacing scale. |
+| `borderRadius` | const | 22 | Spacing scale (`borderRadius`). |
 
 ### `theme-store.ts`
 
 `mobile/packages/shared/src/theme/theme-store.ts` · 51 lines
 
+Light/dark theme state.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useThemeStore` | const | 20 | _—_ |
+| `useThemeStore` | const | 20 | Light/dark theme state (`useThemeStore`). |
 
 ### `typography.ts`
 
 `mobile/packages/shared/src/theme/typography.ts` · 97 lines
 
+Type scale.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `typography` | const | 9 | _—_ |
+| `typography` | const | 9 | Type scale. |
 
 ## `mobile/packages/shared/src/types/`
 
@@ -685,56 +829,58 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/types/index.ts` · 453 lines
 
+Shared TypeScript types for API payloads across the apps.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `UserRole` | type | 2 | _—_ |
-| `ServiceType` | type | 4 | _—_ |
-| `JobStatus` | type | 5 | _—_ |
-| `PortalJobStatus` | type | 6 | _—_ |
-| `VehicleOwnership` | type | 7 | _—_ |
-| `Currency` | type | 8 | _—_ |
-| `InvoiceStatus` | type | 9 | _—_ |
-| `PaymentMethod` | type | 10 | _—_ |
-| `B2CPaymentMethod` | type | 11 | _—_ |
-| `B2CPaymentGateway` | type | 12 | _—_ |
-| `B2CPaymentStatus` | type | 13 | _—_ |
-| `GuestBookingStatus` | type | 14 | _—_ |
-| `NotificationType` | type | 15 | _—_ |
-| `AuthUser` | type | 18 | _—_ |
-| `AuthResponse` | type | 30 | _—_ |
-| `LoginPayload` | type | 36 | _—_ |
-| `Country` | type | 42 | _—_ |
-| `Airport` | type | 50 | _—_ |
-| `City` | type | 60 | _—_ |
-| `Zone` | type | 69 | _—_ |
-| `Hotel` | type | 78 | _—_ |
-| `LocationTree` | type | 87 | _—_ |
-| `VehicleType` | type | 100 | _—_ |
-| `Vehicle` | type | 108 | _—_ |
-| `Driver` | type | 127 | _—_ |
-| `DriverVehicle` | type | 137 | _—_ |
-| `Rep` | type | 149 | _—_ |
-| `Agent` | type | 160 | _—_ |
-| `Customer` | type | 174 | _—_ |
-| `Supplier` | type | 186 | _—_ |
-| `TrafficFlight` | type | 198 | _—_ |
-| `TrafficAssignment` | type | 208 | _—_ |
-| `TrafficJob` | type | 221 | _—_ |
-| `PortalJob` | type | 274 | _—_ |
-| `DriverPortalJob` | type | 304 | _—_ |
-| `RepPortalJob` | type | 313 | _—_ |
-| `SupplierPortalJob` | type | 322 | _—_ |
-| `PortalNotification` | type | 328 | _—_ |
-| `BookingExtras` | type | 338 | _—_ |
-| `QuoteRequest` | type | 344 | _—_ |
-| `QuoteResponse` | type | 356 | _—_ |
-| `CreateGuestBooking` | type | 362 | _—_ |
-| `GuestBooking` | type | 387 | _—_ |
-| `ApiResponse` | type | 413 | _—_ |
-| `PaginatedResponse` | type | 418 | _—_ |
-| `DriverProfile` | type | 426 | _—_ |
-| `RepProfile` | type | 435 | _—_ |
-| `SupplierProfile` | type | 444 | _—_ |
+| `UserRole` | type | 2 | Shared TypeScript types for API payloads across the apps (`UserRole`). |
+| `ServiceType` | type | 4 | Shared TypeScript types for API payloads across the apps (`ServiceType`). |
+| `JobStatus` | type | 5 | Shared TypeScript types for API payloads across the apps (`JobStatus`). |
+| `PortalJobStatus` | type | 6 | Shared TypeScript types for API payloads across the apps (`PortalJobStatus`). |
+| `VehicleOwnership` | type | 7 | Shared TypeScript types for API payloads across the apps (`VehicleOwnership`). |
+| `Currency` | type | 8 | Shared TypeScript types for API payloads across the apps (`Currency`). |
+| `InvoiceStatus` | type | 9 | Shared TypeScript types for API payloads across the apps (`InvoiceStatus`). |
+| `PaymentMethod` | type | 10 | Shared TypeScript types for API payloads across the apps (`PaymentMethod`). |
+| `B2CPaymentMethod` | type | 11 | Shared TypeScript types for API payloads across the apps (`B2CPaymentMethod`). |
+| `B2CPaymentGateway` | type | 12 | Shared TypeScript types for API payloads across the apps (`B2CPaymentGateway`). |
+| `B2CPaymentStatus` | type | 13 | Shared TypeScript types for API payloads across the apps (`B2CPaymentStatus`). |
+| `GuestBookingStatus` | type | 14 | Shared TypeScript types for API payloads across the apps (`GuestBookingStatus`). |
+| `NotificationType` | type | 15 | Shared TypeScript types for API payloads across the apps (`NotificationType`). |
+| `AuthUser` | type | 18 | Shared TypeScript types for API payloads across the apps (`AuthUser`). |
+| `AuthResponse` | type | 30 | Shared TypeScript types for API payloads across the apps (`AuthResponse`). |
+| `LoginPayload` | type | 36 | Shared TypeScript types for API payloads across the apps (`LoginPayload`). |
+| `Country` | type | 42 | Shared TypeScript types for API payloads across the apps (`Country`). |
+| `Airport` | type | 50 | Shared TypeScript types for API payloads across the apps (`Airport`). |
+| `City` | type | 60 | Shared TypeScript types for API payloads across the apps (`City`). |
+| `Zone` | type | 69 | Shared TypeScript types for API payloads across the apps (`Zone`). |
+| `Hotel` | type | 78 | Shared TypeScript types for API payloads across the apps (`Hotel`). |
+| `LocationTree` | type | 87 | Shared TypeScript types for API payloads across the apps (`LocationTree`). |
+| `VehicleType` | type | 100 | Shared TypeScript types for API payloads across the apps (`VehicleType`). |
+| `Vehicle` | type | 108 | Shared TypeScript types for API payloads across the apps (`Vehicle`). |
+| `Driver` | type | 127 | Shared TypeScript types for API payloads across the apps (`Driver`). |
+| `DriverVehicle` | type | 137 | Shared TypeScript types for API payloads across the apps (`DriverVehicle`). |
+| `Rep` | type | 149 | Shared TypeScript types for API payloads across the apps (`Rep`). |
+| `Agent` | type | 160 | Shared TypeScript types for API payloads across the apps (`Agent`). |
+| `Customer` | type | 174 | Shared TypeScript types for API payloads across the apps (`Customer`). |
+| `Supplier` | type | 186 | Shared TypeScript types for API payloads across the apps (`Supplier`). |
+| `TrafficFlight` | type | 198 | Shared TypeScript types for API payloads across the apps (`TrafficFlight`). |
+| `TrafficAssignment` | type | 208 | Shared TypeScript types for API payloads across the apps (`TrafficAssignment`). |
+| `TrafficJob` | type | 221 | Shared TypeScript types for API payloads across the apps (`TrafficJob`). |
+| `PortalJob` | type | 274 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
+| `DriverPortalJob` | type | 304 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
+| `RepPortalJob` | type | 313 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
+| `SupplierPortalJob` | type | 322 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
+| `PortalNotification` | type | 328 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
+| `BookingExtras` | type | 338 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 344 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 356 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 362 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 387 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 413 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 418 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 426 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 435 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 444 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 
@@ -742,31 +888,37 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/shared/src/utils/currency.ts` · 15 lines
 
+Currency formatting.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `formatCurrency` | function | 11 | _—_ |
+| `formatCurrency` | function | 11 | Formats an amount with its currency symbol. |
 
 ### `date.ts`
 
 `mobile/packages/shared/src/utils/date.ts` · 37 lines
 
+Date/time helpers, formatted in Africa/Cairo to match the web app.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `formatDate` | function | 4 | _—_ |
-| `toApiDate` | function | 14 | _—_ |
-| `formatTime` | function | 19 | _—_ |
-| `today` | function | 27 | _—_ |
-| `addDays` | function | 32 | _—_ |
+| `formatDate` | function | 4 | Formats a date for display (Africa/Cairo). |
+| `toApiDate` | function | 14 | Converts a Date to the YYYY-MM-DD the API expects. |
+| `formatTime` | function | 19 | Formats a time for display (Africa/Cairo). |
+| `today` | function | 27 | Today's date in the app's timezone. |
+| `addDays` | function | 32 | Adds days to a date. |
 
 ### `route.ts`
 
 `mobile/packages/shared/src/utils/route.ts` · 23 lines
 
+Renders a job route (origin → destination) as display text.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `getOriginLabel` | function | 4 | _—_ |
-| `getDestinationLabel` | function | 12 | _—_ |
-| `getRouteLabel` | function | 20 | _—_ |
+| `getOriginLabel` | function | 4 | Human label for a job origin. |
+| `getDestinationLabel` | function | 12 | Human label for a job destination. |
+| `getRouteLabel` | function | 20 | Renders "origin → destination" for a job. |
 
 ## `mobile/packages/ui/src/`
 
@@ -774,142 +926,178 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 `mobile/packages/ui/src/Badge.tsx` · 37 lines
 
+Badge primitive.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Badge` | function | 12 | _—_ |
+| `Badge` | function | 12 | Badge primitive. |
 
 ### `Button.tsx`
 
 `mobile/packages/ui/src/Button.tsx` · 97 lines
 
+Button primitive.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Button` | function | 27 | _—_ |
+| `Button` | function | 27 | Button primitive. |
 
 ### `Card.tsx`
 
 `mobile/packages/ui/src/Card.tsx` · 41 lines
 
+Card primitive.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Card` | function | 11 | _—_ |
+| `Card` | function | 11 | Card primitive. |
 
 ### `DateNavigator.tsx`
 
 `mobile/packages/ui/src/DateNavigator.tsx` · 65 lines
 
+Day back/forward control on the job list screens.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `DateNavigator` | function | 10 | _—_ |
+| `DateNavigator` | function | 10 | Day back/forward control on the job list screens. |
 
 ### `Dialog.tsx`
 
 `mobile/packages/ui/src/Dialog.tsx` · 63 lines
 
+Dialog primitive.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Dialog` | function | 14 | _—_ |
+| `Dialog` | function | 14 | Dialog primitive. |
 
 ### `EmptyState.tsx`
 
 `mobile/packages/ui/src/EmptyState.tsx` · 50 lines
 
+Empty-list placeholder.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `EmptyState` | function | 12 | _—_ |
+| `EmptyState` | function | 12 | Empty-list placeholder. |
 
 ### `ErrorBanner.tsx`
 
 `mobile/packages/ui/src/ErrorBanner.tsx` · 36 lines
 
+Inline error banner.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ErrorBanner` | function | 10 | _—_ |
+| `ErrorBanner` | function | 10 | Inline error banner. |
 
 ### `Input.tsx`
 
 `mobile/packages/ui/src/Input.tsx` · 67 lines
 
+Text input primitive.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Input` | const | 18 | _—_ |
+| `Input` | const | 18 | Text input primitive. |
 
 ### `JobCard.tsx`
 
 `mobile/packages/ui/src/JobCard.tsx` · 130 lines
 
+The job card used across the driver, rep and supplier job lists.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobCard` | function | 25 | _—_ |
+| `JobCard` | function | 25 | The job card used across the driver, rep and supplier job lists. |
 
 ### `LoadingSpinner.tsx`
 
 `mobile/packages/ui/src/LoadingSpinner.tsx` · 36 lines
 
+Loading spinner.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoadingSpinner` | function | 11 | _—_ |
+| `LoadingSpinner` | function | 11 | Loading spinner. |
 
 ### `NotificationItem.tsx`
 
 `mobile/packages/ui/src/NotificationItem.tsx` · 63 lines
 
+One notification row.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NotificationItem` | function | 10 | _—_ |
+| `NotificationItem` | function | 10 | One notification row. |
 
 ### `OfflineBar.tsx`
 
 `mobile/packages/ui/src/OfflineBar.tsx` · 28 lines
 
+Banner shown when the device loses connectivity.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `OfflineBar` | function | 5 | _—_ |
+| `OfflineBar` | function | 5 | Banner shown when the device loses connectivity. |
 
 ### `ServiceTypeBadge.tsx`
 
 `mobile/packages/ui/src/ServiceTypeBadge.tsx` · 20 lines
 
+Service-type badge (bilingual labels).
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ServiceTypeBadge` | function | 9 | _—_ |
+| `ServiceTypeBadge` | function | 9 | Service-type badge (bilingual labels). |
 
 ### `Skeleton.tsx`
 
 `mobile/packages/ui/src/Skeleton.tsx` · 42 lines
 
+Skeleton placeholder primitive.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Skeleton` | function | 12 | _—_ |
+| `Skeleton` | function | 12 | Skeleton placeholder primitive. |
 
 ### `SkeletonJobCard.tsx`
 
 `mobile/packages/ui/src/SkeletonJobCard.tsx` · 45 lines
 
+Job-card-shaped skeleton.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SkeletonJobCard` | function | 6 | _—_ |
+| `SkeletonJobCard` | function | 6 | Job-card-shaped skeleton. |
 
 ### `SkeletonList.tsx`
 
 `mobile/packages/ui/src/SkeletonList.tsx` · 18 lines
 
+List skeleton.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SkeletonList` | function | 9 | _—_ |
+| `SkeletonList` | function | 9 | List skeleton. |
 
 ### `SkeletonProfile.tsx`
 
 `mobile/packages/ui/src/SkeletonProfile.tsx` · 28 lines
 
+Profile-screen skeleton.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SkeletonProfile` | function | 6 | _—_ |
+| `SkeletonProfile` | function | 6 | Profile-screen skeleton. |
 
 ### `StatusBadge.tsx`
 
 `mobile/packages/ui/src/StatusBadge.tsx` · 22 lines
 
+Status badge shared across the apps.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `StatusBadge` | function | 9 | _—_ |
+| `StatusBadge` | function | 9 | Status badge shared across the apps. |
