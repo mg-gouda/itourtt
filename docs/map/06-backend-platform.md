@@ -14,17 +14,21 @@ Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cro
 
 `backend/src/app.controller.ts:6` · controller · 1 methods
 
+Root controller — health check.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getHello` | pub | 11 | `appService.getHello` | _—_ |
+| `getHello` | pub | 11 | `appService.getHello` | Health/liveness response. |
 
 ### AppService
 
 `backend/src/app.service.ts:4` · service · 1 methods
 
+Trivial root service backing the health/hello endpoint.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getHello` | pub | 5 | — | _—_ |
+| `getHello` | pub | 5 | — | Returns the service banner string. |
 
 ## `activity-logs`
 
@@ -32,26 +36,30 @@ Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cro
 
 `backend/src/activity-logs/activity-logs.controller.ts:20` · controller · 4 methods
 
+Read/export surface over the audit trail.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 24 | — | _—_ |
-| `exportExcel` | pub | 30 | — | _—_ |
-| `getEntities` | pub | 46 | — | _—_ |
-| `findOne` | pub | 51 | — | _—_ |
+| `findAll` | pub | 24 | — | Filterable, paginated audit log. |
+| `exportExcel` | pub | 30 | — | Exports the filtered audit log to xlsx. |
+| `getEntities` | pub | 46 | — | Distinct entity types for the filter dropdown. |
+| `findOne` | pub | 51 | — | One log entry with its field-level diff. |
 
 ### ActivityLogsService
 
 `backend/src/activity-logs/activity-logs.service.ts:22` · service · 7 methods
 
+Read and export side of the audit trail written by `AuditInterceptor`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `purgeOldActivityLogs` | pub | 29 | `activityLog` | _—_ |
-| `findAll` | pub | 42 | `activityLog` | _—_ |
-| `findOne` | pub | 105 | `activityLog` | _—_ |
-| `toFieldList` | priv | 171 | — | _—_ |
-| `resolveRefs` | priv | 182 | — | _—_ |
-| `exportToExcel` | pub | 227 | `activityLog` | _—_ |
-| `getDistinctEntities` | pub | 270 | `activityLog` | _—_ |
+| `purgeOldActivityLogs` | pub | 29 | `activityLog` | Retention cron trimming logs past the cut-off. |
+| `findAll` | pub | 42 | `activityLog` | Filterable, paginated audit log for the Activity Log screen. |
+| `findOne` | pub | 105 | `activityLog` | One log entry with its resolved field-level diff. |
+| `toFieldList` | priv | 171 | — | Turns a stored diff blob into displayable before/after field rows. |
+| `resolveRefs` | priv | 182 | — | Replaces raw UUIDs in a diff with human names so the log reads in business terms. |
+| `exportToExcel` | pub | 227 | `activityLog` | Exports the filtered audit log to xlsx. |
+| `getDistinctEntities` | pub | 270 | `activityLog` | Distinct entity types, for the filter dropdown. |
 
 ## `ai-parser`
 
@@ -59,23 +67,27 @@ Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cro
 
 `backend/src/ai-parser/ai-parser.controller.ts:41` · controller · 1 methods
 
+Upload endpoint for AI job extraction.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `extractJobs` | pub | 65 | `aiParserService.parseDocument` | _—_ |
+| `extractJobs` | pub | 65 | `aiParserService.parseDocument` | Accepts a manifest upload and returns the parsed, location-resolved job rows for review. |
 
 ### AiParserService
 
 `backend/src/ai-parser/ai-parser.service.ts:50` · service · 7 methods
 
+Gemini-backed extraction of job rows from an uploaded agent manifest (Excel/PDF). Resolves free-text location names against the real location tree rather than trusting the model's strings.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `parseDocument` | pub | 65 | `importTemplatesService.getTemplateContext` | _—_ |
-| `extractExcelContent` | priv | 171 | — | _—_ |
-| `buildLocationIndex` | priv | 187 | `airport` `zone` `hotel` | _—_ |
-| `buildPrompt` | priv | 210 | — | _—_ |
-| `extractJsonFromResponse` | priv | 297 | — | _—_ |
-| `resolveAndValidateJob` | priv | 320 | — | _—_ |
-| `resolveLocation` | priv | 408 | — | _—_ |
+| `parseDocument` | pub | 65 | `importTemplatesService.getTemplateContext` | Entry point: extracts content, builds a location-aware prompt, calls the model and validates every returned job. |
+| `extractExcelContent` | priv | 171 | — | Reads the uploaded workbook into text the model can consume. |
+| `buildLocationIndex` | priv | 187 | `airport` `zone` `hotel` | Loads airports, zones and hotels so extracted names can be matched to real ids. |
+| `buildPrompt` | priv | 210 | — | Assembles the extraction prompt, including the customer's import-template context. |
+| `extractJsonFromResponse` | priv | 297 | — | Pulls the JSON payload out of the model's reply, tolerating surrounding prose or code fences. |
+| `resolveAndValidateJob` | priv | 320 | — | Validates one extracted job and resolves its locations; rejects rows that cannot be mapped. |
+| `resolveLocation` | priv | 408 | — | Fuzzy-matches a free-text location name to a node in the location tree. |
 
 ## `auth`
 
@@ -83,52 +95,58 @@ Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cro
 
 `backend/src/auth/auth.controller.ts:33` · controller · 14 methods
 
+Public auth surface: login, 2FA, refresh, password reset, logout and mobile device-token registration. Login and reset are `@Public()`; everything else needs a token.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getLoginConfig` | pub | 41 | `systemSettings` | _—_ |
-| `login` | pub | 55 | `authService.login` | _—_ |
-| `sessionCtx` | priv | 72 | — | _—_ |
-| `setUploadsCookie` | priv | 79 | `authService.signUploadsToken` | _—_ |
-| `verifyTwoFactor` | pub | 94 | `authService.verifyTwoFactor` | _—_ |
-| `setupTwoFactor` | pub | 113 | `authService.setupTwoFactor` | _—_ |
-| `enableTwoFactor` | pub | 120 | `authService.enableTwoFactor` | _—_ |
-| `disableTwoFactor` | pub | 130 | `authService.disableTwoFactor` | _—_ |
-| `refresh` | pub | 141 | `authService.refresh` | _—_ |
-| `forgotPassword` | pub | 154 | `authService.forgotPassword` | _—_ |
-| `resetPassword` | pub | 163 | `authService.resetPassword` | _—_ |
-| `logout` | pub | 171 | `authService.logout` | _—_ |
-| `registerDeviceToken` | pub | 184 | `deviceToken` | _—_ |
-| `removeDeviceToken` | pub | 207 | `deviceToken` | _—_ |
+| `getLoginConfig` | pub | 41 | `systemSettings` | Public branding for the login screen (logo, background) so it renders before anyone authenticates. |
+| `login` | pub | 55 | `authService.login` | Credentials in, session or 2FA challenge out. Returns 409 for a REP/DRIVER already signed in elsewhere. |
+| `sessionCtx` | priv | 72 | — | Extracts ip and User-Agent from the request to stamp the device session. |
+| `setUploadsCookie` | priv | 79 | `authService.signUploadsToken` | Sets the httpOnly uploads cookie so `<img>` tags can fetch private evidence files. |
+| `verifyTwoFactor` | pub | 94 | `authService.verifyTwoFactor` | Exchanges the 2FA challenge plus a code for a real session. |
+| `setupTwoFactor` | pub | 113 | `authService.setupTwoFactor` | Starts 2FA enrolment, returning the secret and QR URI. |
+| `enableTwoFactor` | pub | 120 | `authService.enableTwoFactor` | Confirms enrolment and returns recovery codes. |
+| `disableTwoFactor` | pub | 130 | `authService.disableTwoFactor` | Turns 2FA off. |
+| `refresh` | pub | 141 | `authService.refresh` | Rotates the token pair without disturbing the device session. |
+| `forgotPassword` | pub | 154 | `authService.forgotPassword` | Starts a password reset; deliberately does not reveal whether the address exists. |
+| `resetPassword` | pub | 163 | `authService.resetPassword` | Completes a password reset with a valid token. |
+| `logout` | pub | 171 | `authService.logout` | Ends the device session and revokes the refresh token. |
+| `registerDeviceToken` | pub | 184 | `deviceToken` | Registers an FCM device token so the mobile apps can receive push. |
+| `removeDeviceToken` | pub | 207 | `deviceToken` | Removes a device token on logout or uninstall. |
 
 ### AuthService
 
 `backend/src/auth/auth.service.ts:36` · service · 15 methods
 
+JWT + refresh-token auth, 2FA step-up, password reset, and the single-device lock for REP/DRIVER. Access tokens carry `sessionId`; `JwtStrategy` re-checks it for REP/DRIVER so a force-logout invalidates a live token.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `login` | pub | 56 | `jwtService.signAsync` | _—_ |
-| `issueSession` | priv | 101 | `user` `rep` `driver` `supplier` | _—_ |
-| `signUploadsToken` | pub | 185 | `jwtService.signAsync` | _—_ |
-| `setupTwoFactor` | pub | 195 | `user` | _—_ |
-| `enableTwoFactor` | pub | 207 | `user` | _—_ |
-| `disableTwoFactor` | pub | 225 | `user` | _—_ |
-| `verifyTwoFactor` | pub | 249 | `user` `jwtService.verifyAsync` | _—_ |
-| `refresh` | pub | 292 | `user` `jwtService.verify` | _—_ |
-| `logout` | pub | 372 | `userSession` `user` | _—_ |
-| `validateUser` | pub | 395 | `user` | _—_ |
-| `hashPassword` | pub | 430 | — | _—_ |
-| `comparePassword` | pub | 438 | — | _—_ |
-| `forgotPassword` | pub | 446 | `user` | _—_ |
-| `resetPassword` | pub | 485 | `user` | _—_ |
-| `generateTokens` | pub | 523 | `jwtService.signAsync` | _—_ |
+| `login` | pub | 56 | `jwtService.signAsync` | Validates credentials, then applies the single-device lock: a REP or DRIVER with an ACTIVE session elsewhere is rejected with 409 and managers are notified (the user is not told who). Active means not ended and seen within `SESSION_IDLE_MINUTES` (default 30), so a dead device frees itself. If 2FA is on, returns a 5-minute challenge instead of a session. |
+| `issueSession` | priv | 101 | `user` `rep` `driver` `supplier` | Mints the token pair, stores the hashed refresh token plus a fresh `sessionId`, records the device session, and resolves the caller's repId/driverId/supplierId into the response. Shared by login and 2FA verify. |
+| `signUploadsToken` | pub | 185 | `jwtService.signAsync` | Short-lived token delivered as an httpOnly cookie so `<img>` tags — which cannot send an Authorization header — can load private `/uploads` files. Carries `typ:'uploads'`. |
+| `setupTwoFactor` | pub | 195 | `user` | Generates a TOTP secret and otpauth URI for enrolment; does not enable 2FA yet. |
+| `enableTwoFactor` | pub | 207 | `user` | Confirms enrolment with a valid code and switches 2FA on, returning recovery codes. |
+| `disableTwoFactor` | pub | 225 | `user` | Turns 2FA off after re-verification. |
+| `verifyTwoFactor` | pub | 249 | `user` `jwtService.verifyAsync` | Exchanges the login challenge token plus a TOTP or recovery code for a real session. |
+| `refresh` | pub | 292 | `user` `jwtService.verify` | Rotates the token pair. Compares the presented refresh token against the stored hash, KEEPS the existing `sessionId` and extends its expiry — so refreshing never trips the single-device lock. |
+| `logout` | pub | 372 | `userSession` `user` | Ends the device session and clears the stored refresh token. |
+| `validateUser` | pub | 395 | `user` | Looks up by email or username and verifies the password; rejects inactive or soft-deleted users. |
+| `hashPassword` | pub | 430 | — | bcrypt hash — used for passwords AND for refresh tokens at rest. |
+| `comparePassword` | pub | 438 | — | bcrypt comparison. |
+| `forgotPassword` | pub | 446 | `user` | Issues a reset token and emails it. Always succeeds outwardly, so it cannot be used to probe which emails exist. |
+| `resetPassword` | pub | 485 | `user` | Consumes a valid reset token and sets the new password. |
+| `generateTokens` | pub | 523 | `jwtService.signAsync` | Signs the access/refresh pair with their separate secrets. |
 
 ### JwtStrategy
 
 `backend/src/auth/strategies/jwt.strategy.ts:19` · strategy · 1 methods
 
+passport-jwt validation. Beyond signature checks it re-reads the user and, for REP/DRIVER, verifies the token's `sessionId` still matches the stored one — this is what makes admin force-logout take effect immediately.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `validate` | pub | 37 | `user` | _—_ |
+| `validate` | pub | 37 | `user` | Resolves the JWT payload to a live user, rejecting inactive, deleted, or superseded-session accounts. |
 
 ## `common`
 
@@ -136,11 +154,15 @@ Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cro
 
 `backend/src/common/filters/http-exception.filter.ts:13` · middleware · 0 methods
 
+Global exception filter normalising every error into the standard API envelope.
+
 _No methods._
 
 ### ApiResponse
 
 `backend/src/common/dto/api-response.dto.ts:1` · class · 0 methods
+
+The standard success envelope every controller returns.
 
 _No methods._
 
@@ -148,55 +170,67 @@ _No methods._
 
 `backend/src/common/interceptors/audit.interceptor.ts:98` · middleware · 7 methods
 
+Writes an `ActivityLog` row for every create/update/delete, capturing actor, entity and a field-level diff. This is what satisfies the mandatory audit-logging rule without touching each service.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `intercept` | pub | 105 | — | _—_ |
-| `captureBefore` | priv | 142 | — | _—_ |
-| `enqueue` | priv | 186 | — | _—_ |
-| `flush` | priv | 228 | — | _—_ |
-| `methodToAction` | priv | 243 | — | _—_ |
-| `parseEntityFromPath` | priv | 257 | — | _—_ |
-| `sanitizeBody` | priv | 290 | — | _—_ |
+| `intercept` | pub | 105 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
+| `captureBefore` | priv | 142 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
+| `enqueue` | priv | 186 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
+| `flush` | priv | 228 | — | Batch-writes queued audit rows. |
+| `methodToAction` | priv | 243 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
+| `parseEntityFromPath` | priv | 257 | — | Derives the entity type and id from the request path. |
+| `sanitizeBody` | priv | 290 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
 
 ### CaptchaService
 
 `backend/src/common/services/captcha.service.ts:13` · service · 1 methods
 
+Cloudflare Turnstile verification. Opt-in — disabled unless configured.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `assertValid` | pub | 29 | — | _—_ |
+| `assertValid` | pub | 29 | — | Throws when the Turnstile token is missing or invalid; returns silently when captcha is disabled. |
 
 ### GeocodingService
 
 `backend/src/common/geocoding.service.ts:13` · service · 3 methods
 
+Google Places/Geocoding lookups behind the backend, used for pickup/dropoff coordinates.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getApiKey` | priv | 18 | — | _—_ |
-| `searchPlaces` | pub | 34 | — | _—_ |
-| `geocodeAddress` | pub | 82 | — | _—_ |
+| `getApiKey` | priv | 18 | — | Reads the Google API key from configuration. |
+| `searchPlaces` | pub | 34 | — | Place autocomplete search. Note the B2C booking widget uses the NEW Places API directly in the browser; legacy `google.maps.places.Autocomplete` is blocked for this Cloud project. |
+| `geocodeAddress` | pub | 82 | — | Resolves an address string to coordinates. |
 
 ### JobCompletionService
 
 `backend/src/common/services/job-completion.service.ts:38` · service · 3 methods
 
+★ Single source of truth for "is this job finished?". `TrafficJob.status` is a STORED column, not derived, so every write that can move a portal leg to COMPLETED must call `reconcileJobStatus` afterwards. Before this existed the roll-up was duplicated inline in the two `/completed` handlers only, stranding jobs at ASSIGNED with both legs done and no fees.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `reconcileJobStatus` | pub | 43 | `trafficJob` `trafficAssignment` | _—_ |
-| `ensureDriverTripFee` | priv | 106 | `driverTripFee` `driverTariffsService.resolveJobTripFee` | _—_ |
-| `ensureRepFee` | priv | 131 | `repFee` `repJobScore` `rep` | _—_ |
+| `reconcileJobStatus` | pub | 43 | `trafficJob` `trafficAssignment` | Idempotent roll-up. Refuses to touch jobs already CANCELLED/NO_SHOW. Auto-closes the rep leg on DEP jobs once the driver finishes (a DEP rep has no work left after the car runs). A supplier-sourced car has no own driver, so a null `driverId` is not a gate. Requires at least one leg actually worked before flipping to COMPLETED, then materialises both fees. |
+| `ensureDriverTripFee` | priv | 106 | `driverTripFee` `driverTariffsService.resolveJobTripFee` | Creates the driver's `DriverTripFee` from the airport-aware tariff table, if one does not already exist. |
+| `ensureRepFee` | priv | 131 | `repFee` `repJobScore` `rep` | Creates the rep's fee from their `RepJobScore`, converting score to money via `scoreToFeeAndEval`. |
 
 ### JwtAuthGuard
 
 `backend/src/common/guards/jwt-auth.guard.ts:7` · guard · 1 methods
 
+Globally registered, making the API deny-by-default. Routes opt out with `@Public()` — the only way to expose an unauthenticated endpoint.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `canActivate` | pub | 12 | — | _—_ |
+| `canActivate` | pub | 12 | — | Short-circuits for `@Public()` handlers/controllers, otherwise defers to passport-jwt. |
 
 ### PaginatedResponse
 
 `backend/src/common/dto/api-response.dto.ts:11` · class · 0 methods
+
+The standard paginated envelope (items plus page metadata).
 
 _No methods._
 
@@ -204,19 +238,23 @@ _No methods._
 
 `backend/src/common/guards/permissions.guard.ts:9` · guard · 3 methods
 
+Enforces `@Permissions()` (and legacy `@Roles()`). Holds a STATIC 5-minute in-memory cache of userId → permission set, shared across guard instances — services must invalidate it when roles or permissions change, or a permission edit appears not to take effect for up to five minutes.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `canActivate` | pub | 24 | — | _—_ |
-| `getUserPermissions` | pub | 64 | `user` `rolePermissionV2` | _—_ |
-| `invalidateCache` | pub | 123 | — | _—_ |
+| `canActivate` | pub | 24 | — | Allows when neither decorator is present; otherwise resolves the user's permission set (cached) and checks it. |
+| `getUserPermissions` | pub | 64 | `user` `rolePermissionV2` | Loads a user's permission set, serving from the 5-minute static cache when warm. |
+| `invalidateCache` | pub | 123 | — | Drops a user's cached permissions. Any code changing roles or permissions must call this, or the change appears not to apply for up to 5 minutes. |
 
 ### RolesGuard
 
 `backend/src/common/guards/roles.guard.ts:6` · guard · 1 methods
 
+Legacy coarse role check. Deliberately yields: if the user is on the granular system (`roleId` present) it returns true and lets `PermissionsGuard` decide.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `canActivate` | pub | 9 | — | _—_ |
+| `canActivate` | pub | 9 | — | Passes when no `@Roles()` is declared, when the user has a `roleId`, or when their legacy role matches. |
 
 ## `email`
 
@@ -224,26 +262,28 @@ _No methods._
 
 `backend/src/email/email.service.ts:140` · service · 18 methods
 
+All outbound SMTP. The transporter is built lazily: env `SMTP_*` wins, otherwise `EmailSettings` from the DB — so an env host silently overrides whatever the admin UI shows. Hostnames are resolved to IPv4 because the pods are IPv6-unreachable.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `ensureTransporter` | priv | 161 | `emailSettings` | _—_ |
-| `resolveToIPv4` | priv | 208 | — | _—_ |
-| `reloadTransporter` | pub | 218 | — | _—_ |
-| `getGuestBranding` | priv | 230 | `websiteSettings` | _—_ |
-| `sendBookingConfirmation` | pub | 266 | — | _—_ |
-| `sendPaymentReceipt` | pub | 271 | — | _—_ |
-| `sendOnlinePaymentFailed` | pub | 279 | — | _—_ |
-| `sendBookingCancellation` | pub | 288 | — | _—_ |
-| `getNotificationRecipients` | priv | 297 | `websiteSettings` | _—_ |
-| `esc` | priv | 319 | — | _—_ |
-| `notifyOpsBookingEvent` | pub | 332 | — | _—_ |
-| `notifyFinancePayment` | pub | 388 | — | _—_ |
-| `sendStaffAssignment` | pub | 423 | — | _—_ |
-| `sendJobUpdateNotification` | pub | 428 | — | _—_ |
-| `sendContactNotification` | pub | 437 | — | _—_ |
-| `sendDisputeReport` | pub | 471 | — | _—_ |
-| `sendTestEmail` | pub | 516 | — | _—_ |
-| `send` | priv | 544 | — | _—_ |
+| `ensureTransporter` | priv | 161 | `emailSettings` | Lazily builds the nodemailer transport, env config taking priority over the DB row. Caches until `reloadTransporter` is called. |
+| `resolveToIPv4` | priv | 208 | — | Resolves a hostname to an A record to avoid ENETUNREACH on IPv6-only pods; falls back to the hostname on failure. |
+| `reloadTransporter` | pub | 218 | — | Drops the cached transport so the next send re-reads settings. Call after any SMTP settings change. |
+| `getGuestBranding` | priv | 230 | `websiteSettings` | Builds Transfera (B2C) branding for guest-facing mail from website settings. An SVG site logo is ignored in favour of the bundled raster, since email clients cannot render SVG. |
+| `sendBookingConfirmation` | pub | 266 | — | Guest booking confirmation email. |
+| `sendPaymentReceipt` | pub | 271 | — | Guest payment receipt, with the B2C invoice PDF attached. |
+| `sendOnlinePaymentFailed` | pub | 279 | — | Guest notification that an online payment failed. |
+| `sendBookingCancellation` | pub | 288 | — | Guest booking cancellation email. |
+| `getNotificationRecipients` | priv | 297 | `websiteSettings` | Resolves the internal ops/finance recipient lists from website settings. |
+| `esc` | priv | 319 | — | HTML-escapes interpolated values in email bodies. |
+| `notifyOpsBookingEvent` | pub | 332 | — | Internal ops alert for a new or changed B2C booking. |
+| `notifyFinancePayment` | pub | 388 | — | Internal finance alert for a received payment. |
+| `sendStaffAssignment` | pub | 423 | — | Tells an assigned driver/rep about their job by email. |
+| `sendJobUpdateNotification` | pub | 428 | — | Emails staff that a job they are attached to has changed. |
+| `sendContactNotification` | pub | 437 | — | Forwards a public contact-form submission to the configured inbox. |
+| `sendDisputeReport` | pub | 471 | — | Emails the no-show dispute PDF to the agent's dispute address. |
+| `sendTestEmail` | pub | 516 | — | Admin "send test" button — the quickest way to prove SMTP settings work. |
+| `send` | priv | 544 | — | Low-level send used by every public helper; logs and swallows transport errors. |
 
 ## `google-drive`
 
@@ -251,21 +291,23 @@ _No methods._
 
 `backend/src/google-drive/google-drive.service.ts:19` · service · 13 methods
 
+Evidence photo storage in Google Drive, with a folder per job reference. Every method degrades to null rather than throwing when Drive is unconfigured or the OAuth grant has expired — which is why a broken Drive shows up as silent local-disk fallback, not as an error.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getConfig` | pub | 35 | `googleDriveSettings` | _—_ |
-| `clearCache` | pub | 63 | — | _—_ |
-| `getOAuth2Client` | priv | 72 | — | _—_ |
-| `getDrive` | priv | 77 | — | _—_ |
-| `generateAuthUrl` | pub | 88 | `googleDriveSettings` | _—_ |
-| `exchangeCode` | pub | 102 | `googleDriveSettings` | _—_ |
-| `getOrCreateFolder` | priv | 130 | — | _—_ |
-| `resolveEvidenceFolder` | pub | 163 | — | _—_ |
-| `uploadFile` | pub | 177 | `trafficJob` | _—_ |
-| `getFileBuffer` | pub | 227 | — | _—_ |
-| `getFileStream` | pub | 244 | — | _—_ |
-| `testConnection` | pub | 269 | — | _—_ |
-| `migrateLocalFilesToDrive` | pub | 298 | — | _—_ |
+| `getConfig` | pub | 35 | `googleDriveSettings` | Cached Drive configuration and tokens; returns null when not connected, disabling every other method. |
+| `clearCache` | pub | 63 | — | Drops the cached config after a settings change or reconnect. |
+| `getOAuth2Client` | priv | 72 | — | Builds the OAuth2 client from stored credentials. |
+| `getDrive` | priv | 77 | — | Returns an authenticated Drive API client. |
+| `generateAuthUrl` | pub | 88 | `googleDriveSettings` | Produces the consent URL an admin visits to connect Drive. |
+| `exchangeCode` | pub | 102 | `googleDriveSettings` | Exchanges the OAuth callback code for tokens and stores them. An `invalid_grant` here means the refresh token is dead and an admin must reconnect. |
+| `getOrCreateFolder` | priv | 130 | — | Finds or creates a folder by name under a parent — the primitive behind the per-job folder layout. |
+| `resolveEvidenceFolder` | pub | 163 | — | Resolves `<root>/<job ref>/<Rep\|Driver\|No-Show Evidence>`, creating levels as needed. |
+| `uploadFile` | pub | 177 | `trafficJob` | Uploads one stamped evidence image into the job's evidence folder and returns the Drive file id — or null on any failure, which is what makes callers fall back to local disk. |
+| `getFileBuffer` | pub | 227 | — | Downloads a file as a Buffer, used for PDF embedding. |
+| `getFileStream` | pub | 244 | — | Streams a file, used by the image proxy so Drive ids never reach the browser. |
+| `testConnection` | pub | 269 | — | Admin connectivity check for the Drive settings screen. |
+| `migrateLocalFilesToDrive` | pub | 298 | — | One-off migration lifting evidence files already on the pod filesystem into Drive. |
 
 ## `notifications`
 
@@ -273,23 +315,27 @@ _No methods._
 
 `backend/src/notifications/notifications.controller.ts:16` · controller · 3 methods
 
+In-app notification feed for signed-in staff.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getNotifications` | pub | 20 | `notificationsService.getUserNotifications` | _—_ |
-| `markAsRead` | pub | 26 | `notificationsService.markAsRead` | _—_ |
-| `markAllAsRead` | pub | 35 | `notificationsService.markAllAsRead` | _—_ |
+| `getNotifications` | pub | 20 | `notificationsService.getUserNotifications` | The caller's notifications. |
+| `markAsRead` | pub | 26 | `notificationsService.markAsRead` | Marks one notification read. |
+| `markAllAsRead` | pub | 35 | `notificationsService.markAllAsRead` | Marks all read. |
 
 ### NotificationsService
 
 `backend/src/notifications/notifications.service.ts:8` · service · 5 methods
 
+In-app `UserNotification` fan-out to staff, with email escalation for job updates.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `notifyJobUpdate` | pub | 21 | `trafficJob` `user` `userNotification` `companySettings` `emailService.sendJobUpdateNotification` | _—_ |
-| `notifyDispatchAction` | pub | 150 | `trafficJob` `user` `userNotification` | _—_ |
-| `getUserNotifications` | pub | 218 | `userNotification` | _—_ |
-| `markAsRead` | pub | 241 | `userNotification` | _—_ |
-| `markAllAsRead` | pub | 251 | `userNotification` | _—_ |
+| `notifyJobUpdate` | pub | 21 | `trafficJob` `user` `userNotification` `companySettings` `emailService.sendJobUpdateNotification` | Notifies relevant staff (and emails them) that a job changed. |
+| `notifyDispatchAction` | pub | 150 | `trafficJob` `user` `userNotification` | Notifies staff of a dispatch action on a job. |
+| `getUserNotifications` | pub | 218 | `userNotification` | The signed-in user's notification feed. |
+| `markAsRead` | pub | 241 | `userNotification` | Marks one notification read. |
+| `markAllAsRead` | pub | 251 | `userNotification` | Marks all of a user's notifications read. |
 
 ## `permissions`
 
@@ -297,34 +343,38 @@ _No methods._
 
 `backend/src/permissions/permissions.controller.ts:24` · controller · 9 methods
 
+RBAC v2 surface: the permission registry, custom roles, and role→permission assignment. This is the current system; `UsersController`'s permission endpoints are legacy.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getRegistry` | pub | 30 | `permissionsService.getRegistry` | _—_ |
-| `getMyPermissions` | pub | 35 | `permissionsService.getUserPermissionKeys` | _—_ |
-| `findAllRoles` | pub | 45 | `permissionsService.findAllRoles` | _—_ |
-| `findRoleById` | pub | 52 | `permissionsService.findRoleById` | _—_ |
-| `createRole` | pub | 59 | `permissionsService.createRole` | _—_ |
-| `updateRole` | pub | 66 | `permissionsService.updateRole` | _—_ |
-| `deleteRole` | pub | 73 | `permissionsService.deleteRole` | _—_ |
-| `setRolePermissions` | pub | 80 | `permissionsService.setRolePermissions` | _—_ |
-| `seedSystemRoles` | pub | 91 | `permissionsService.seedSystemRoles` | _—_ |
+| `getRegistry` | pub | 30 | `permissionsService.getRegistry` | Serves the permission tree that renders the admin permission matrix. |
+| `getMyPermissions` | pub | 35 | `permissionsService.getUserPermissionKeys` | The caller's own effective permission keys — what the frontend gates UI on. |
+| `findAllRoles` | pub | 45 | `permissionsService.findAllRoles` | Lists roles with user counts. |
+| `findRoleById` | pub | 52 | `permissionsService.findRoleById` | One role and its permission keys. |
+| `createRole` | pub | 59 | `permissionsService.createRole` | Creates a custom role. |
+| `updateRole` | pub | 66 | `permissionsService.updateRole` | Renames or edits a role. |
+| `deleteRole` | pub | 73 | `permissionsService.deleteRole` | Deletes a role, refusing if users still hold it. |
+| `setRolePermissions` | pub | 80 | `permissionsService.setRolePermissions` | Replaces a role's permission set. In production, granting a NEW key to a non-admin role may still need a manual `rolePermissionV2` insert because deploys run with SKIP_PERMISSION_SEED=true. |
+| `seedSystemRoles` | pub | 91 | `permissionsService.seedSystemRoles` | Seeds the built-in roles; skipped on production deploys. |
 
 ### PermissionsService
 
 `backend/src/permissions/permissions.service.ts:18` · service · 10 methods
 
+The granular RBAC v2 system: custom roles and their permission keys, validated against `PERMISSION_REGISTRY`. Note production deploys run with SKIP_PERMISSION_SEED=true — ADMIN resolves all keys dynamically, but a NEW permission for a non-admin role needs a manual `rolePermissionV2` insert in prod.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `createRole` | pub | 23 | `role` | _—_ |
-| `updateRole` | pub | 43 | `role` | _—_ |
-| `deleteRole` | pub | 58 | `role` `user` `rolePermissionV2` | _—_ |
-| `findAllRoles` | pub | 81 | `role` | _—_ |
-| `findRoleById` | pub | 102 | `role` | _—_ |
-| `setRolePermissions` | pub | 128 | `role` `rolePermissionV2` | _—_ |
-| `getUserPermissionKeys` | pub | 176 | `user` `rolePermissionV2` | _—_ |
-| `getRegistry` | pub | 208 | — | _—_ |
-| `seedSystemRoles` | pub | 214 | `role` `rolePermissionV2` `user` | _—_ |
-| `slugify` | priv | 368 | — | _—_ |
+| `createRole` | pub | 23 | `role` | Creates a custom role from a name, slugifying it. |
+| `updateRole` | pub | 43 | `role` | Renames or edits a role's metadata. |
+| `deleteRole` | pub | 58 | `role` `user` `rolePermissionV2` | Deletes a role after checking no user still holds it, cascading its permission rows. |
+| `findAllRoles` | pub | 81 | `role` | All roles with their user counts, for the roles screen. |
+| `findRoleById` | pub | 102 | `role` | One role plus its full permission key set. |
+| `setRolePermissions` | pub | 128 | `role` `rolePermissionV2` | Replaces a role's permission set. Must invalidate the `PermissionsGuard` static cache, otherwise the change appears not to apply for up to 5 minutes. |
+| `getUserPermissionKeys` | pub | 176 | `user` `rolePermissionV2` | Resolves a user's effective permission keys; ADMIN receives every key in the registry rather than stored rows. |
+| `getRegistry` | pub | 208 | — | Serves `PERMISSION_REGISTRY` to the frontend so the permission matrix renders from one source. |
+| `seedSystemRoles` | pub | 214 | `role` `rolePermissionV2` `user` | Creates the built-in roles and their permissions. Skipped in production via SKIP_PERMISSION_SEED. |
+| `slugify` | priv | 368 | — | Turns a role name into a URL-safe slug. |
 
 ## `prisma`
 
@@ -332,10 +382,12 @@ _No methods._
 
 `backend/src/prisma/prisma.service.ts:10` · service · 2 methods
 
+The Prisma client as an injectable, connecting on module init and disconnecting on shutdown. Every service takes this rather than constructing its own client.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `onModuleInit` | pub | 27 | — | _—_ |
-| `onModuleDestroy` | pub | 36 | — | _—_ |
+| `onModuleInit` | pub | 27 | — | Opens the database connection at boot. |
+| `onModuleDestroy` | pub | 36 | — | Closes the connection on shutdown. |
 
 ## `push-notifications`
 
@@ -343,12 +395,14 @@ _No methods._
 
 `backend/src/push-notifications/push-notifications.service.ts:6` · service · 4 methods
 
+Firebase Cloud Messaging push to the mobile apps, addressed via `DeviceToken` rows.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `initializeFirebase` | priv | 14 | — | _—_ |
-| `sendToUser` | pub | 45 | `deviceToken` | _—_ |
-| `sendToDriver` | pub | 100 | `driver` | _—_ |
-| `sendToRep` | pub | 119 | `rep` | _—_ |
+| `initializeFirebase` | priv | 14 | — | Lazily initialises the Firebase Admin SDK; a missing credential degrades to no-op rather than throwing. |
+| `sendToUser` | pub | 45 | `deviceToken` | Pushes to every registered device token for a user. |
+| `sendToDriver` | pub | 100 | `driver` | Resolves a driver to their user and pushes. |
+| `sendToRep` | pub | 119 | `rep` | Resolves a rep to their user and pushes. |
 
 ## `sessions`
 
@@ -356,26 +410,30 @@ _No methods._
 
 `backend/src/sessions/sessions.controller.ts:23` · controller · 3 methods
 
+Admin surface for viewing and killing device sessions.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `list` | pub | 27 | — | _—_ |
-| `forceLogout` | pub | 33 | — | _—_ |
-| `clear` | pub | 44 | — | _—_ |
+| `list` | pub | 27 | — | Lists a user's sessions. |
+| `forceLogout` | pub | 33 | — | Force-logs-out one device. |
+| `clear` | pub | 44 | — | Clears a session row entirely — use when a stuck record is blocking login. |
 
 ### SessionsService
 
 `backend/src/sessions/sessions.service.ts:31` · service · 8 methods
 
+Device-session tracking that powers the admin Active-Sessions view and the REP/DRIVER single-device lock. Idle sessions expire on their own after `SESSION_IDLE_MINUTES` (default 30) so a dead phone cannot lock a rep out permanently.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `start` | pub | 42 | `userSession` | _—_ |
-| `findActive` | pub | 59 | `userSession` | _—_ |
-| `touch` | pub | 68 | `userSession` | _—_ |
-| `end` | pub | 77 | `userSession` | _—_ |
-| `listForUser` | pub | 85 | `userSession` | _—_ |
-| `forceLogout` | pub | 102 | `user` | _—_ |
-| `clear` | pub | 116 | `userSession` | _—_ |
-| `notifyManagersOfConflict` | pub | 123 | `user` `userNotification` | _—_ |
+| `start` | pub | 42 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
+| `findActive` | pub | 59 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
+| `touch` | pub | 68 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
+| `end` | pub | 77 | `userSession` | Marks a session ended on logout. |
+| `listForUser` | pub | 85 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
+| `forceLogout` | pub | 102 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
+| `clear` | pub | 116 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
+| `notifyManagersOfConflict` | pub | 123 | `user` `userNotification` | Notifies Admin / Dispatch Manager / Online Manager when a rep or driver login is blocked by the lock. |
 
 ## `settings`
 
@@ -383,75 +441,81 @@ _No methods._
 
 `backend/src/settings/license-heartbeat.service.ts:8` · service · 1 methods
 
+Periodic licence re-validation against the licence server; a failure eventually blocks the portals via the licence gate.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `beat` | pub | 14 | — | _—_ |
+| `beat` | pub | 14 | — | One heartbeat: re-checks the licence and caches the result. |
 
 ### SettingsController
 
 `backend/src/settings/settings.controller.ts:48` · controller · 27 methods
 
+Admin surface for every settings group — system, company, email, website (B2C), licence and Google Drive — plus the image upload endpoints for each branding asset.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getSystemSettings` | pub | 60 | `settingsService.getSystemSettings` | _—_ |
-| `updateSystemSettings` | pub | 72 | `settingsService.updateSystemSettings` | _—_ |
-| `uploadInnerBgImage` | pub | 85 | `settingsService.updateInnerBgImage` | _—_ |
-| `uploadLoginBgImage` | pub | 100 | `settingsService.updateLoginBgImage` | _—_ |
-| `uploadLoginLogoImage` | pub | 115 | `settingsService.updateLoginLogoImage` | _—_ |
-| `getLicenseStatus` | pub | 126 | `settingsService.getLicenseStatus` | _—_ |
-| `recheckLicense` | pub | 135 | `settingsService.recheckLicense` | _—_ |
-| `activateLicense` | pub | 148 | `settingsService.activateLicense` | _—_ |
-| `getCompanySettings` | pub | 157 | `settingsService.getCompanySettings` | _—_ |
-| `updateCompanySettings` | pub | 169 | `settingsService.updateCompanySettings` | _—_ |
-| `uploadLogo` | pub | 182 | `settingsService.updateLogo` | _—_ |
-| `uploadFavicon` | pub | 197 | `settingsService.updateFavicon` | _—_ |
-| `getEmailSettings` | pub | 211 | `settingsService.getEmailSettings` | _—_ |
-| `updateEmailSettings` | pub | 223 | `settingsService.updateEmailSettings` `emailService.reloadTransporter` | _—_ |
-| `sendTestEmail` | pub | 238 | `emailService.sendTestEmail` | _—_ |
-| `getWebsiteSettings` | pub | 251 | `settingsService.getWebsiteSettings` | _—_ |
-| `updateWebsiteSettings` | pub | 263 | `settingsService.updateWebsiteSettings` | _—_ |
-| `uploadSiteLogo` | pub | 276 | `settingsService.updateSiteLogo` | _—_ |
-| `uploadSiteFavicon` | pub | 291 | `settingsService.updateSiteFavicon` | _—_ |
-| `uploadHeroImage` | pub | 306 | `settingsService.updateHeroImage` | _—_ |
-| `getGoogleDriveSettings` | pub | 320 | `settingsService.getGoogleDriveSettings` | _—_ |
-| `updateGoogleDriveSettings` | pub | 332 | `settingsService.updateGoogleDriveSettings` `googleDriveService.clearCache` | _—_ |
-| `getGoogleDriveAuthUrl` | pub | 347 | `googleDriveService.generateAuthUrl` | _—_ |
-| `exchangeGoogleDriveCode` | pub | 361 | `googleDriveService.exchangeCode` | _—_ |
-| `disconnectGoogleDrive` | pub | 375 | `settingsService.disconnectGoogleDrive` `googleDriveService.clearCache` | _—_ |
-| `testGoogleDriveConnection` | pub | 389 | `googleDriveService.testConnection` | _—_ |
-| `migrateEvidenceToDrive` | pub | 401 | `googleDriveService.migrateLocalFilesToDrive` | _—_ |
+| `getSystemSettings` | pub | 60 | `settingsService.getSystemSettings` | Reads system settings. |
+| `updateSystemSettings` | pub | 72 | `settingsService.updateSystemSettings` | Updates system settings. |
+| `uploadInnerBgImage` | pub | 85 | `settingsService.updateInnerBgImage` | Uploads the dashboard inner-page background. |
+| `uploadLoginBgImage` | pub | 100 | `settingsService.updateLoginBgImage` | Uploads the login screen background. |
+| `uploadLoginLogoImage` | pub | 115 | `settingsService.updateLoginLogoImage` | Uploads the login screen logo. |
+| `getLicenseStatus` | pub | 126 | `settingsService.getLicenseStatus` | Current licence status driving the portal-wide licence gate. |
+| `recheckLicense` | pub | 135 | `settingsService.recheckLicense` | Forces a licence re-check. |
+| `activateLicense` | pub | 148 | `settingsService.activateLicense` | Activates a licence key. |
+| `getCompanySettings` | pub | 157 | `settingsService.getCompanySettings` | Reads company identity/branding. |
+| `updateCompanySettings` | pub | 169 | `settingsService.updateCompanySettings` | Updates company identity/branding. |
+| `uploadLogo` | pub | 182 | `settingsService.updateLogo` | Uploads the company logo. |
+| `uploadFavicon` | pub | 197 | `settingsService.updateFavicon` | Uploads the company favicon. |
+| `getEmailSettings` | pub | 211 | `settingsService.getEmailSettings` | SMTP settings with the password redacted. |
+| `updateEmailSettings` | pub | 223 | `settingsService.updateEmailSettings` `emailService.reloadTransporter` | Updates SMTP settings and reloads the mail transport. |
+| `sendTestEmail` | pub | 238 | `emailService.sendTestEmail` | Sends a test email — the fastest way to verify SMTP. |
+| `getWebsiteSettings` | pub | 251 | `settingsService.getWebsiteSettings` | Reads B2C website settings including feature toggles. |
+| `updateWebsiteSettings` | pub | 263 | `settingsService.updateWebsiteSettings` | Updates B2C website settings. |
+| `uploadSiteLogo` | pub | 276 | `settingsService.updateSiteLogo` | Uploads the B2C site logo (raster only). |
+| `uploadSiteFavicon` | pub | 291 | `settingsService.updateSiteFavicon` | Uploads the B2C site favicon. |
+| `uploadHeroImage` | pub | 306 | `settingsService.updateHeroImage` | Uploads the B2C homepage hero image. |
+| `getGoogleDriveSettings` | pub | 320 | `settingsService.getGoogleDriveSettings` | Drive connection status and folder config. |
+| `updateGoogleDriveSettings` | pub | 332 | `settingsService.updateGoogleDriveSettings` `googleDriveService.clearCache` | Updates Drive folder configuration. |
+| `getGoogleDriveAuthUrl` | pub | 347 | `googleDriveService.generateAuthUrl` | Returns the OAuth consent URL for connecting Drive. |
+| `exchangeGoogleDriveCode` | pub | 361 | `googleDriveService.exchangeCode` | OAuth callback — exchanges the code for tokens. `invalid_grant` here means reconnect is required. |
+| `disconnectGoogleDrive` | pub | 375 | `settingsService.disconnectGoogleDrive` `googleDriveService.clearCache` | Clears Drive tokens. |
+| `testGoogleDriveConnection` | pub | 389 | `googleDriveService.testConnection` | Connectivity test for the Drive settings screen. |
+| `migrateEvidenceToDrive` | pub | 401 | `googleDriveService.migrateLocalFilesToDrive` | Runs the one-off migration of local evidence files into Drive. |
 
 ### SettingsService
 
 `backend/src/settings/settings.service.ts:96` · service · 25 methods
 
+All persisted configuration: system, company, email, website (B2C), Google Drive and the licence. Most getters strip secrets — use the explicit `...Raw` variant when the actual credentials are needed.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getSystemSettings` | pub | 106 | `systemSettings` | _—_ |
-| `updateSystemSettings` | pub | 114 | `systemSettings` | _—_ |
-| `getCompanySettings` | pub | 149 | `companySettings` | _—_ |
-| `updateCompanySettings` | pub | 157 | `companySettings` | _—_ |
-| `noKeyStatus` | priv | 192 | — | _—_ |
-| `evaluate` | priv | 204 | `companySettings` | _—_ |
-| `getLicenseStatus` | pub | 244 | `companySettings` | _—_ |
-| `recheckLicense` | pub | 253 | `companySettings` | _—_ |
-| `activateLicense` | pub | 261 | `companySettings` | _—_ |
-| `updateLogo` | pub | 288 | `companySettings` | _—_ |
-| `updateFavicon` | pub | 306 | `companySettings` | _—_ |
-| `getEmailSettings` | pub | 328 | `emailSettings` | _—_ |
-| `updateEmailSettings` | pub | 340 | `emailSettings` | _—_ |
-| `getEmailSettingsRaw` | pub | 390 | `emailSettings` | _—_ |
-| `getWebsiteSettings` | pub | 399 | `websiteSettings` | _—_ |
-| `updateWebsiteSettings` | pub | 407 | `websiteSettings` | _—_ |
-| `updateSiteLogo` | pub | 501 | `websiteSettings` | _—_ |
-| `updateSiteFavicon` | pub | 519 | `websiteSettings` | _—_ |
-| `updateHeroImage` | pub | 537 | `websiteSettings` | _—_ |
-| `updateInnerBgImage` | pub | 555 | `systemSettings` | _—_ |
-| `updateLoginBgImage` | pub | 563 | `systemSettings` | _—_ |
-| `updateLoginLogoImage` | pub | 571 | `systemSettings` | _—_ |
-| `getGoogleDriveSettings` | pub | 583 | `googleDriveSettings` | _—_ |
-| `disconnectGoogleDrive` | pub | 596 | `googleDriveSettings` | _—_ |
-| `updateGoogleDriveSettings` | pub | 605 | `googleDriveSettings` | _—_ |
+| `getSystemSettings` | pub | 106 | `systemSettings` | Global system settings singleton. |
+| `updateSystemSettings` | pub | 114 | `systemSettings` | Updates the system settings singleton. |
+| `getCompanySettings` | pub | 149 | `companySettings` | Company identity and branding used on invoices, PDFs and the dashboard. |
+| `updateCompanySettings` | pub | 157 | `companySettings` | Updates company identity/branding. |
+| `noKeyStatus` | priv | 192 | — | The licence status returned when no public key is configured at all. |
+| `evaluate` | priv | 204 | `companySettings` | Runs the licence check and normalises it into a status. Everything licence-related funnels through here. |
+| `getLicenseStatus` | pub | 244 | `companySettings` | Current licence status for the UI gate. An invalid licence hard-blocks every portal. |
+| `recheckLicense` | pub | 253 | `companySettings` | Forces a fresh licence check against the licence server. |
+| `activateLicense` | pub | 261 | `companySettings` | Stores a new licence token/key and re-evaluates. Production needs LICENSE_SERVER_URL plus LICENSE_PUBLIC_KEY. |
+| `updateLogo` | pub | 288 | `companySettings` | Replaces the company logo asset. |
+| `updateFavicon` | pub | 306 | `companySettings` | Replaces the company favicon. |
+| `getEmailSettings` | pub | 328 | `emailSettings` | SMTP settings with the password redacted — safe for the admin UI. |
+| `updateEmailSettings` | pub | 340 | `emailSettings` | Updates SMTP settings; must trigger `EmailService.reloadTransporter` or the old transport stays cached. |
+| `getEmailSettingsRaw` | pub | 390 | `emailSettings` | SMTP settings INCLUDING the password — server-side callers only, never return this to a client. |
+| `getWebsiteSettings` | pub | 399 | `websiteSettings` | B2C website settings: branding, hero content, notification recipients, feature toggles such as AI Mode. |
+| `updateWebsiteSettings` | pub | 407 | `websiteSettings` | Updates B2C website settings. |
+| `updateSiteLogo` | pub | 501 | `websiteSettings` | Replaces the B2C site logo. Must be raster — email clients do not render SVG. |
+| `updateSiteFavicon` | pub | 519 | `websiteSettings` | Replaces the B2C site favicon. |
+| `updateHeroImage` | pub | 537 | `websiteSettings` | Replaces the B2C homepage hero image. |
+| `updateInnerBgImage` | pub | 555 | `systemSettings` | Replaces the dashboard inner-page background. |
+| `updateLoginBgImage` | pub | 563 | `systemSettings` | Replaces the login screen background. |
+| `updateLoginLogoImage` | pub | 571 | `systemSettings` | Replaces the login screen logo. |
+| `getGoogleDriveSettings` | pub | 583 | `googleDriveSettings` | Drive integration status and folder configuration, without tokens. |
+| `disconnectGoogleDrive` | pub | 596 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
+| `updateGoogleDriveSettings` | pub | 605 | `googleDriveSettings` | Updates Drive folder configuration. |
 
 ## `user-preferences`
 
@@ -459,19 +523,23 @@ _No methods._
 
 `backend/src/user-preferences/user-preferences.controller.ts:7` · controller · 2 methods
 
+Per-user UI preference storage (column order, column visibility).
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `get` | pub | 11 | — | _—_ |
-| `set` | pub | 17 | — | _—_ |
+| `get` | pub | 11 | — | Reads a preference blob by key. |
+| `set` | pub | 17 | — | Upserts a preference blob. |
 
 ### UserPreferencesService
 
 `backend/src/user-preferences/user-preferences.service.ts:5` · service · 2 methods
 
+Per-user UI state persisted server-side — column order, column visibility and similar table preferences.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `get` | pub | 8 | `userPreference` | _—_ |
-| `set` | pub | 15 | `userPreference` | _—_ |
+| `get` | pub | 8 | `userPreference` | Reads a preference blob by key for the signed-in user. |
+| `set` | pub | 15 | `userPreference` | Upserts a preference blob for the signed-in user. |
 
 ## `users`
 
@@ -479,49 +547,55 @@ _No methods._
 
 `backend/src/users/role-permissions.service.ts:44` · service · 4 methods
 
+LEGACY coarse role→permission mapping, superseded by `PermissionsService` (RBAC v2). Present for older roles; prefer the v2 path for new work.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 51 | `rolePermission` | _—_ |
-| `findByRole` | pub | 61 | `rolePermission` | _—_ |
-| `bulkUpdate` | pub | 72 | `rolePermission` | _—_ |
-| `seedDefaults` | pub | 102 | — | _—_ |
+| `findAll` | pub | 51 | `rolePermission` | All legacy role-permission rows. |
+| `findByRole` | pub | 61 | `rolePermission` | Legacy permissions for one role. |
+| `bulkUpdate` | pub | 72 | `rolePermission` | Replaces a legacy role's permission set. |
+| `seedDefaults` | pub | 102 | — | Seeds the legacy defaults. |
 
 ### UsersController
 
 `backend/src/users/users.controller.ts:33` · controller · 13 methods
 
+Staff user administration plus the legacy role-permission endpoints. New permission work belongs on `PermissionsController` (RBAC v2).
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `create` | pub | 47 | `usersService.create` | _—_ |
-| `findAll` | pub | 59 | `usersService.findAll` | _—_ |
-| `getMe` | pub | 68 | `usersService.findOne` | _—_ |
-| `getPermissions` | pub | 80 | `rolePermissionsService.findAll` | _—_ |
-| `updatePermissions` | pub | 92 | `rolePermissionsService.bulkUpdate` | _—_ |
-| `seedPermissions` | pub | 104 | `rolePermissionsService.seedDefaults` | _—_ |
-| `getPermissionsByRole` | pub | 116 | `rolePermissionsService.findByRole` | _—_ |
-| `findOne` | pub | 130 | `usersService.findOne` | _—_ |
-| `update` | pub | 142 | `usersService.update` | _—_ |
-| `updateRole` | pub | 157 | `usersService.updateRole` | _—_ |
-| `changePassword` | pub | 172 | `usersService.changePassword` | _—_ |
-| `deactivate` | pub | 187 | `usersService.deactivate` | _—_ |
-| `reactivate` | pub | 199 | `usersService.reactivate` | _—_ |
+| `create` | pub | 47 | `usersService.create` | Creates a staff user. |
+| `findAll` | pub | 59 | `usersService.findAll` | Lists users, split Active/Inactive. |
+| `getMe` | pub | 68 | `usersService.findOne` | The signed-in user's own record. |
+| `getPermissions` | pub | 80 | `rolePermissionsService.findAll` | LEGACY: all role-permission rows. |
+| `updatePermissions` | pub | 92 | `rolePermissionsService.bulkUpdate` | LEGACY: bulk-replaces a role's permissions. |
+| `seedPermissions` | pub | 104 | `rolePermissionsService.seedDefaults` | LEGACY: seeds default role permissions. |
+| `getPermissionsByRole` | pub | 116 | `rolePermissionsService.findByRole` | LEGACY: permissions for one role. |
+| `findOne` | pub | 130 | `usersService.findOne` | One user's detail. |
+| `update` | pub | 142 | `usersService.update` | Updates a user's profile fields. |
+| `updateRole` | pub | 157 | `usersService.updateRole` | Reassigns a user's role. |
+| `changePassword` | pub | 172 | `usersService.changePassword` | Changes a password and clears the stored session, so a reset also frees a locked device. |
+| `deactivate` | pub | 187 | `usersService.deactivate` | Deactivates a user (soft; they cannot authenticate). |
+| `reactivate` | pub | 199 | `usersService.reactivate` | Restores a deactivated user. |
 
 ### UsersService
 
 `backend/src/users/users.service.ts:27` · service · 10 methods
 
+Staff user CRUD. Lists split into Active/Inactive; deletion is deactivation, never a hard delete.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `create` | pub | 34 | `user` | _—_ |
-| `findAll` | pub | 62 | `user` | _—_ |
-| `findOne` | pub | 96 | `user` | _—_ |
-| `findByEmail` | pub | 113 | `user` | _—_ |
-| `update` | pub | 123 | `user` | _—_ |
-| `updateRole` | pub | 151 | `user` | _—_ |
-| `changePassword` | pub | 170 | `user` | _—_ |
-| `deactivate` | pub | 189 | `user` | _—_ |
-| `reactivate` | pub | 201 | `user` | _—_ |
-| `ensureUserExists` | priv | 220 | `user` | _—_ |
+| `create` | pub | 34 | `user` | Creates a user with a hashed password and a role assignment. |
+| `findAll` | pub | 62 | `user` | Filterable user list (active/inactive tabs). |
+| `findOne` | pub | 96 | `user` | One user with role and permission detail. |
+| `findByEmail` | pub | 113 | `user` | Lookup by email, used by auth flows. |
+| `update` | pub | 123 | `user` | Updates profile fields. |
+| `updateRole` | pub | 151 | `user` | Reassigns a user's role — must invalidate the permission cache to take effect promptly. |
+| `changePassword` | pub | 170 | `user` | Admin/self password change. Also clears the stored session so a reset frees a locked device. |
+| `deactivate` | pub | 189 | `user` | Soft-deactivates a user (they move to the Inactive tab and can no longer authenticate). |
+| `reactivate` | pub | 201 | `user` | Restores a deactivated user. |
+| `ensureUserExists` | priv | 220 | `user` | Throws NotFound unless the id resolves to a live user. |
 
 ## `whatsapp-notifications`
 
@@ -529,34 +603,294 @@ _No methods._
 
 `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:44` · controller · 7 methods
 
+Admin surface for WhatsApp settings, templates, media and delivery logs.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getSettings` | pub | 51 | `whatsappService.getSettings` | _—_ |
-| `updateSettings` | pub | 57 | `whatsappService.updateSettings` | _—_ |
-| `getLogs` | pub | 63 | `whatsappService.getLogs` | _—_ |
-| `sendTestMessage` | pub | 75 | `whatsappService.sendTestMessage` | _—_ |
-| `getTemplates` | pub | 81 | `whatsappService.getTemplates` | _—_ |
-| `updateTemplate` | pub | 87 | `whatsappService.updateTemplate` | _—_ |
-| `uploadMedia` | pub | 97 | `whatsappService.updateMediaUrl` | _—_ |
+| `getSettings` | pub | 51 | `whatsappService.getSettings` | WhatsApp settings, credentials redacted. |
+| `updateSettings` | pub | 57 | `whatsappService.updateSettings` | Updates provider credentials and toggles. |
+| `getLogs` | pub | 63 | `whatsappService.getLogs` | Delivery log — first stop when a message did not arrive. |
+| `sendTestMessage` | pub | 75 | `whatsappService.sendTestMessage` | Admin test send. |
+| `getTemplates` | pub | 81 | `whatsappService.getTemplates` | Lists templates and their enabled state. |
+| `updateTemplate` | pub | 87 | `whatsappService.updateTemplate` | Edits or toggles one template. |
+| `uploadMedia` | pub | 97 | `whatsappService.updateMediaUrl` | Uploads the media asset attached to template messages. |
 
 ### WhatsappNotificationsService
 
 `backend/src/whatsapp-notifications/whatsapp-notifications.service.ts:59` · service · 15 methods
 
+Templated WhatsApp messaging to guests and staff, with per-template toggles, a delivery log and a scheduled reminder cron. Every send is a no-op when credentials are incomplete.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getSettings` | pub | 66 | `whatsappSettings` | _—_ |
-| `getRawSettings` | pub | 72 | `whatsappSettings` | _—_ |
-| `updateSettings` | pub | 76 | `whatsappSettings` | _—_ |
-| `updateMediaUrl` | pub | 102 | `whatsappSettings` | _—_ |
-| `getTemplates` | pub | 112 | `whatsappTemplate` | _—_ |
-| `updateTemplate` | pub | 116 | `whatsappTemplate` | _—_ |
-| `getLogs` | pub | 129 | `whatsappNotificationLog` | _—_ |
-| `sendTestMessage` | pub | 145 | — | _—_ |
-| `triggerJobCreated` | pub | 164 | `whatsappTemplate` `trafficJob` | _—_ |
-| `triggerDriverAssigned` | pub | 186 | `whatsappTemplate` `trafficJob` | _—_ |
-| `handleCron` | pub | 210 | `whatsappTemplate` `trafficJob` | _—_ |
-| `credentialsOk` | priv | 255 | — | _—_ |
-| `buildMessageBody` | priv | 264 | — | _—_ |
-| `sendWhatsappForJob` | priv | 300 | `whatsappNotificationLog` | _—_ |
-| `generateJobSignPdf` | pub | 383 | `companySettings` | _—_ |
+| `getSettings` | pub | 66 | `whatsappSettings` | WhatsApp settings with credentials redacted. |
+| `getRawSettings` | pub | 72 | `whatsappSettings` | Settings including credentials — server-side callers only. |
+| `updateSettings` | pub | 76 | `whatsappSettings` | Updates provider credentials and toggles. |
+| `updateMediaUrl` | pub | 102 | `whatsappSettings` | Sets the media asset attached to outgoing template messages. |
+| `getTemplates` | pub | 112 | `whatsappTemplate` | Lists message templates and their enabled state. |
+| `updateTemplate` | pub | 116 | `whatsappTemplate` | Edits one template body or toggles it. |
+| `getLogs` | pub | 129 | `whatsappNotificationLog` | Delivery log — the place to check when a message did not arrive. |
+| `sendTestMessage` | pub | 145 | — | Admin test send. |
+| `triggerJobCreated` | pub | 164 | `whatsappTemplate` `trafficJob` | Fires the job-created template for a new job, if enabled. |
+| `triggerDriverAssigned` | pub | 186 | `whatsappTemplate` `trafficJob` | Fires the driver-assigned template once a vehicle/driver is attached. |
+| `handleCron` | pub | 210 | `whatsappTemplate` `trafficJob` | Scheduled pass sending time-based reminder templates for upcoming jobs. |
+| `credentialsOk` | priv | 255 | — | Guard that turns every send into a no-op when the provider is not fully configured. |
+| `buildMessageBody` | priv | 264 | — | Interpolates job fields into a template body. |
+| `sendWhatsappForJob` | priv | 300 | `whatsappNotificationLog` | Performs one send and records the outcome in the notification log. |
+| `generateJobSignPdf` | pub | 383 | `companySettings` | Renders the printable guest name-sign PDF (company-branded) that reps hold at arrivals. |
+
+## Standalone exports
+
+84 free functions, constants and types in these modules.
+
+### `backend/src/activity-logs/activity-log-format.ts`
+
+Presentation helpers that make raw audit rows human-readable: model display names, field humanisation, UUID detection and value formatting.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `windowLabel` | function | 37 | Human label for a log's time window filter. |
+| `entityModel` | function | 59 | Maps an audited entity name to its Prisma model. |
+| `MODEL_DISPLAY` | const | 117 | Business-facing display names per model, so the log reads in operator language rather than table names. |
+| `humanizeField` | function | 165 | Turns a camelCase column into a readable field label. |
+| `fieldModel` | function | 177 | Maps a foreign-key field to the model it points at, so ids can be resolved to names. |
+| `isUuid` | function | 182 | Detects a UUID value that should be resolved to a human name instead of shown raw. |
+| `formatValue` | function | 190 | Renders a diff value for display (dates, money, booleans, nulls). |
+| `isHiddenField` | function | 224 | Suppresses noisy or sensitive fields from the diff view. |
+
+### `backend/src/ai-parser/ai-parser.service.ts`
+
+Gemini-backed extraction of job rows from uploaded agent manifests, resolved against the real location tree.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ParsedJob` | type | 11 | Shape of one extracted job row before it becomes a TrafficJob. |
+
+### `backend/src/auth/auth.service.ts`
+
+JWT/refresh auth, 2FA, password reset and the REP/DRIVER single-device lock.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TwoFactorChallenge` | type | 26 | `{twoFactorRequired, challengeToken}` — returned by login instead of a session when 2FA is enabled. |
+
+### `backend/src/auth/strategies/jwt.strategy.ts`
+
+passport-jwt strategy — also enforces the live `sessionId` for REP/DRIVER.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `JwtPayload` | type | 8 | Access-token claims: `sub`, email, role, roleId, roleSlug, sessionId. |
+
+### `backend/src/common/decorators/current-user.decorator.ts`
+
+`@CurrentUser()` param decorator for the authenticated user.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `CurrentUser` | const | 3 | Param decorator pulling the JWT user off the request; `@CurrentUser('id')` extracts one field. |
+
+### `backend/src/common/decorators/permissions.decorator.ts`
+
+`@Permissions()` — declares required RBAC v2 keys.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PERMISSIONS_KEY` | const | 3 | Metadata key read by `PermissionsGuard`. |
+| `Permissions` | const | 4 | Declares the granular permission keys a handler requires. |
+
+### `backend/src/common/decorators/public.decorator.ts`
+
+`@Public()` — the only way to opt a route out of the global deny-by-default JWT guard.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `IS_PUBLIC_KEY` | const | 9 | Metadata key read by `JwtAuthGuard`. |
+| `Public` | const | 10 | Marks a route or controller as reachable without a JWT. Use sparingly — login, public B2C API, payment webhooks, health check. |
+
+### `backend/src/common/decorators/roles.decorator.ts`
+
+`@Roles()` — legacy coarse role requirement.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ROLES_KEY` | const | 3 | Metadata key read by `RolesGuard` and `PermissionsGuard`. |
+| `Roles` | const | 4 | Legacy coarse role requirement (ADMIN, DRIVER, REP, SUPPLIER). |
+
+### `backend/src/common/geocoding.service.ts`
+
+Google Geocoding/Places lookups proxied through the backend so the API key stays server-side.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PlaceResult` | type | 4 | Normalised place lookup result (place id, address, lat/lng). |
+
+### `backend/src/common/geofence.util.ts`
+
+Haversine distance and geofence target resolution. Note both portals call these in WARN-ONLY mode — computing a miss never blocks a submission.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `haversineDistance` | function | 12 | Great-circle distance in metres between two lat/lng points. |
+| `isWithinGeofence` | function | 28 | True when two points are within `radiusMeters` (default 500). Callers pass 2000 in practice. |
+| `resolveRepGeofenceTarget` | function | 65 | Reps are always at the airport, so this is simply the job's origin airport coordinate. |
+| `resolveDriverGeofenceTarget` | function | 74 | ARR → origin airport. DEP/CITY → origin hotel, falling back to origin zone, then the hotel's parent zone. Returns null when no coordinate is configured, which makes the geofence check a no-op. |
+
+### `backend/src/common/license-verify.ts`
+
+★ Ed25519 licence verification. Production requires both LICENSE_SERVER_URL (ilicense.tech) and LICENSE_PUBLIC_KEY; an invalid licence hard-blocks every portal. A previous HMAC→Ed25519 swap locked production out.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `LicensePayload` | type | 20 | Decoded licence token claims. |
+| `LicenseStatus` | type | 36 | Verifier-internal licence state — valid, expired, invalid signature, unreachable. |
+| `CheckResult` | type | 47 | Outcome of a licence check. |
+| `CheckConfig` | type | 58 | Inputs to a licence check (server URL, public key, install id). |
+| `decodeToken` | function | 78 | Decodes the licence token payload without verifying it. |
+| `verifySignature` | function | 87 | Ed25519 signature verification against the configured public key. |
+| `verifyOffline` | function | 109 | Validates a cached licence token by signature and expiry when the licence server is unreachable. |
+| `makeInstallId` | function | 123 | Derives the stable per-installation identifier sent to the licence server. |
+| `checkLicense` | function | 138 | Full licence check: online validation against the licence server with offline signature fallback. |
+
+### `backend/src/common/license.util.ts`
+
+Normalisation helpers around licence status and public-key formats.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `LicenseStatus` | type | 7 | UI-facing licence status shape (distinct from the verifier's internal `LicenseStatus`). |
+| `toLicenseStatus` | function | 30 | Normalises a licence check result into the status the API and UI consume. |
+| `normalizePublicKey` | function | 50 | Accepts the public key in either raw or PEM form and normalises it for verification. |
+
+### `backend/src/common/services/job-completion.service.ts`
+
+★ The job status roll-up and fee materialisation. Read this before changing anything that completes a leg.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ReconcileResult` | type | 11 | What the roll-up did: `{completed, statusChanged, driverFeeCreated, repFeeCreated}`. |
+
+### `backend/src/common/utils/no-show-window.util.ts`
+
+The 80-minute no-show delay, shared by both portals so drivers and reps cannot mis-tap the button the moment a job appears.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `NO_SHOW_DELAY_MS` | const | 8 | 80 minutes. The single place this delay is defined. |
+| `getNoShowJobTime` | function | 17 | Job time used by the guard: flight arrival for ARR, `pickUpTime` otherwise. |
+| `checkNoShowWindow` | function | 26 | Throws unless at least 80 minutes past the job time. No job time configured means no guard at all. |
+
+### `backend/src/common/utils/rep-score.util.ts`
+
+★ Rep job scoring, single source of truth. Weights sum to 100 and must stay in sync with the `RepJobScore` model and the Rep Fees modal checkboxes.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RepScoreFlags` | type | 9 | The five boolean scoring dimensions: attendance, appearance, work, survey, review. |
+| `REP_SCORE_WEIGHTS` | const | 17 | Attendance 20 · Appearance 15 · Work 15 · Survey 15 · Review 35 = 100. Work was cut from 30 to 15 when the Survey dimension was introduced. |
+| `calcRepScore` | function | 25 | Sums the weights of the flags that are set. |
+| `scoreToFeeAndEval` | function | 35 | Score → fee band: ≥90 Excellent 50 · ≥75 Good 40 · ≥61 Average 30 · else Poor 20 (EGP). |
+
+### `backend/src/common/utils/service-type.util.ts`
+
+★ Service types, single source of truth for the backend. Never hard-code service type strings — mirror file is `frontend/src/lib/service-types.ts` and `mobile/packages/shared/src/i18n`.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `SELECTABLE_SERVICE_TYPES` | const | 15 | What every dropdown offers, in order: ARR, DEP, DAY_TOUR, ONE_WAY_TRANSFER, RETURN. |
+| `LEGACY_SERVICE_TYPES` | const | 28 | Retired values (TWO_WAY_TRANSFER, CITY_TO_CITY). Never selectable, but still filtered and rendered — historical rows reference them and a Postgres enum value cannot be dropped while in use. |
+| `ALL_SERVICE_TYPES` | const | 30 | Selectable plus legacy — use this for filters and validation, not for dropdowns. |
+| `SelectableServiceType` | type | 35 | Union type of the selectable service types. |
+| `serviceTypeLabel` | function | 58 | Business-facing display name (Arrival, Departure, Day Tour, Going, Return). |
+| `SERVICE_TYPE_LABEL_PAIRS` | const | 68 | English + Arabic label pairs — every service-type dropdown shows both languages. |
+| `NON_FLIGHT_SERVICE_TYPES` | const | 72 | Types with no flight leg, so the flight fields are hidden and not required. |
+
+### `backend/src/common/utils/stamp-image.ts`
+
+Server-side evidence photo stamping, so the overlay cannot be forged by the client.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `StampMeta` | type | 3 | Overlay payload for `stampEvidenceImage`, supplied by each portal's `getJobStampMeta`. |
+| `stampEvidenceImage` | function | 18 | Burns job reference, submitter name, status and timestamp into an evidence photo server-side before upload, so the stamp cannot be forged client-side. |
+
+### `backend/src/common/utils/totp.util.ts`
+
+Hand-rolled TOTP for two-factor auth — base32, code generation/verification, otpauth URI and recovery codes.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `base32Encode` | function | 12 | Base32 encoding used by the TOTP secret format. |
+| `base32Decode` | function | 28 | Base32 decoding used when verifying codes. |
+| `generateTotpSecret` | function | 47 | Creates a new base32 TOTP secret for a user enrolling in 2FA. |
+| `generateTotp` | function | 68 | Computes the current TOTP code for a secret. |
+| `verifyTotp` | function | 83 | Verifies a submitted code, allowing for clock drift. |
+| `otpauthUri` | function | 108 | Builds the `otpauth://` URI rendered as the enrolment QR code. |
+| `generateRecoveryCodes` | function | 125 | Generates single-use recovery codes for lost authenticators. |
+
+### `backend/src/email/email.service.ts`
+
+All outbound SMTP. Env `SMTP_*` overrides the DB-configured settings.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `BookingEmailData` | type | 22 | Payload for the guest booking confirmation email. |
+| `PaymentReceiptData` | type | 40 | Payload for the guest payment receipt email. |
+| `PaymentFailedData` | type | 51 | Payload for the failed online payment email. |
+| `StaffAssignmentData` | type | 59 | Payload telling a driver or rep they have been assigned a job. |
+| `OpsBookingNotificationData` | type | 78 | Payload for the internal ops booking alert. |
+| `FinancePaymentNotificationData` | type | 102 | Payload for the internal finance payment alert. |
+| `JobUpdateEmailData` | type | 114 | Payload for the job-changed staff email. |
+
+### `backend/src/email/templates/index.ts`
+
+HTML email templates. All take an `EmailBranding` object so guest-facing (Transfera) and internal mail can share one layout.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `EmailBranding` | type | 6 | Logo, colours and company strings injected into every template so guest (Transfera) and internal mail share one layout. |
+| `bookingConfirmationTemplate` | function | 80 | Guest booking confirmation HTML. |
+| `paymentReceiptTemplate` | function | 106 | Guest payment receipt HTML. |
+| `onlinePaymentFailedTemplate` | function | 125 | Failed online payment HTML. |
+| `bookingCancellationTemplate` | function | 139 | Guest booking cancellation HTML. |
+| `staffAssignmentTemplate` | function | 163 | Driver/rep assignment HTML. |
+| `jobUpdateNotificationTemplate` | function | 209 | Job-changed notification HTML. |
+
+### `backend/src/google-drive/google-drive.service.ts`
+
+Google Drive evidence storage. Degrades to null (never throws) when unconfigured — the reason a broken OAuth grant looks like silent local-disk fallback.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `isDriveFileId` | function | 6 | Distinguishes a Drive file id from a local `/uploads` path, so callers can serve either storage backend. |
+
+### `backend/src/permissions/permission-registry.ts`
+
+★ The permission tree — the authoritative list of every permission key in the system. A key that is not here cannot be granted, and `PermissionsGuard` validates against it.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PermissionNode` | type | 9 | One node: key, label, optional children. |
+| `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
+| `getAllPermissionKeys` | function | 642 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 658 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 666 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 678 | Subtree of a key, used when a master toggle grants a whole section. |
+
+### `backend/src/prisma/seed-egypt-locations.ts`
+
+Seed data for the Egyptian location tree — the Country→Airport→City→Zone→Hotel hierarchy the whole pricing model rests on.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `EGYPT_DATA` | const | 51 | The literal Egyptian location hierarchy used by the seed. |
+| `seedEgyptLocations` | function | 614 | Idempotently inserts the Egyptian location tree. |
+
+### `backend/src/sessions/sessions.service.ts`
+
+Device-session tracking behind the admin Active-Sessions view and the single-device lock.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `SessionContext` | type | 5 | Request context captured with a session: ip and userAgent. |
+| `deviceNameFromUA` | function | 11 | Best-effort friendly device label (e.g. "Chrome · Android", "Mobile app") from a User-Agent string. |

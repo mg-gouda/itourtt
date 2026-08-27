@@ -52,10 +52,10 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/activity-logs` | `findAll`:24 | `perm:activity-logs` | `service.findAll` | _—_ |
-| GET | `/api/activity-logs/:id` | `findOne`:51 | `perm:activity-logs` | `service.findOne` | _—_ |
-| GET | `/api/activity-logs/entities` | `getEntities`:46 | `perm:activity-logs` | `service.getDistinctEntities` | _—_ |
-| GET | `/api/activity-logs/export` | `exportExcel`:30 | `perm:activity-logs` | `service.exportToExcel` | _—_ |
+| GET | `/api/activity-logs` | `findAll`:24 | `perm:activity-logs` | `service.findAll` | Filterable, paginated audit log. |
+| GET | `/api/activity-logs/:id` | `findOne`:51 | `perm:activity-logs` | `service.findOne` | One log entry with its field-level diff. |
+| GET | `/api/activity-logs/entities` | `getEntities`:46 | `perm:activity-logs` | `service.getDistinctEntities` | Distinct entity types for the filter dropdown. |
+| GET | `/api/activity-logs/export` | `exportExcel`:30 | `perm:activity-logs` | `service.exportToExcel` | Exports the filtered audit log to xlsx. |
 
 ### AgentsController
 
@@ -88,7 +88,7 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| POST | `/api/ai-parser/extract-jobs` | `extractJobs`:65 | `perm:traffic-jobs.b2b.importJobs` | `aiParserService.parseDocument` | _—_ |
+| POST | `/api/ai-parser/extract-jobs` | `extractJobs`:65 | `perm:traffic-jobs.b2b.importJobs` | `aiParserService.parseDocument` | Accepts a manifest upload and returns the parsed, location-resolved job rows for review. |
 
 ### AppController
 
@@ -96,7 +96,7 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api` | `getHello`:11 | `public` | `appService.getHello` | _—_ |
+| GET | `/api` | `getHello`:11 | `public` | `appService.getHello` | Health/liveness response. |
 
 ### AuthController
 
@@ -104,18 +104,18 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| POST | `/api/auth/2fa/disable` | `disableTwoFactor`:130 | `authed` | `authService.disableTwoFactor` | _—_ |
-| POST | `/api/auth/2fa/enable` | `enableTwoFactor`:120 | `authed` | `authService.enableTwoFactor` | _—_ |
-| POST | `/api/auth/2fa/setup` | `setupTwoFactor`:113 | `authed` | `authService.setupTwoFactor` | _—_ |
-| POST | `/api/auth/2fa/verify` | `verifyTwoFactor`:94 | `public` | `authService.verifyTwoFactor` | _—_ |
-| POST | `/api/auth/device-token` | `registerDeviceToken`:184 | `authed` | — | _—_ |
-| DELETE | `/api/auth/device-token` | `removeDeviceToken`:207 | `authed` | — | _—_ |
-| POST | `/api/auth/forgot-password` | `forgotPassword`:154 | `public` | `authService.forgotPassword` | _—_ |
-| POST | `/api/auth/login` | `login`:55 | `public` | `authService.login` | _—_ |
-| GET | `/api/auth/login-config` | `getLoginConfig`:41 | `public` | — | _—_ |
-| POST | `/api/auth/logout` | `logout`:171 | `authed` | `authService.logout` | _—_ |
-| POST | `/api/auth/refresh` | `refresh`:141 | `public` | `authService.refresh` | _—_ |
-| POST | `/api/auth/reset-password` | `resetPassword`:163 | `public` | `authService.resetPassword` | _—_ |
+| POST | `/api/auth/2fa/disable` | `disableTwoFactor`:130 | `authed` | `authService.disableTwoFactor` | Turns 2FA off. |
+| POST | `/api/auth/2fa/enable` | `enableTwoFactor`:120 | `authed` | `authService.enableTwoFactor` | Confirms enrolment and returns recovery codes. |
+| POST | `/api/auth/2fa/setup` | `setupTwoFactor`:113 | `authed` | `authService.setupTwoFactor` | Starts 2FA enrolment, returning the secret and QR URI. |
+| POST | `/api/auth/2fa/verify` | `verifyTwoFactor`:94 | `public` | `authService.verifyTwoFactor` | Exchanges the 2FA challenge plus a code for a real session. |
+| POST | `/api/auth/device-token` | `registerDeviceToken`:184 | `authed` | — | Registers an FCM device token so the mobile apps can receive push. |
+| DELETE | `/api/auth/device-token` | `removeDeviceToken`:207 | `authed` | — | Removes a device token on logout or uninstall. |
+| POST | `/api/auth/forgot-password` | `forgotPassword`:154 | `public` | `authService.forgotPassword` | Starts a password reset; deliberately does not reveal whether the address exists. |
+| POST | `/api/auth/login` | `login`:55 | `public` | `authService.login` | Credentials in, session or 2FA challenge out. Returns 409 for a REP/DRIVER already signed in elsewhere. |
+| GET | `/api/auth/login-config` | `getLoginConfig`:41 | `public` | — | Public branding for the login screen (logo, background) so it renders before anyone authenticates. |
+| POST | `/api/auth/logout` | `logout`:171 | `authed` | `authService.logout` | Ends the device session and revokes the refresh token. |
+| POST | `/api/auth/refresh` | `refresh`:141 | `public` | `authService.refresh` | Rotates the token pair without disturbing the device session. |
+| POST | `/api/auth/reset-password` | `resetPassword`:163 | `public` | `authService.resetPassword` | Completes a password reset with a valid token. |
 
 ### B2CController
 
@@ -433,9 +433,9 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/notifications` | `getNotifications`:20 | `authed` | `notificationsService.getUserNotifications` | _—_ |
-| PATCH | `/api/notifications/:id/read` | `markAsRead`:26 | `authed` | `notificationsService.markAsRead` | _—_ |
-| PATCH | `/api/notifications/read-all` | `markAllAsRead`:35 | `authed` | `notificationsService.markAllAsRead` | _—_ |
+| GET | `/api/notifications` | `getNotifications`:20 | `authed` | `notificationsService.getUserNotifications` | The caller's notifications. |
+| PATCH | `/api/notifications/:id/read` | `markAsRead`:26 | `authed` | `notificationsService.markAsRead` | Marks one notification read. |
+| PATCH | `/api/notifications/read-all` | `markAllAsRead`:35 | `authed` | `notificationsService.markAllAsRead` | Marks all read. |
 
 ### PartnerController
 
@@ -468,15 +468,15 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/permissions/mine` | `getMyPermissions`:35 | `authed` | `permissionsService.getUserPermissionKeys` | _—_ |
-| GET | `/api/permissions/registry` | `getRegistry`:30 | `authed` | `permissionsService.getRegistry` | _—_ |
-| GET | `/api/permissions/roles` | `findAllRoles`:45 | `ADMIN` `perm:users.roles` | `permissionsService.findAllRoles` | _—_ |
-| POST | `/api/permissions/roles` | `createRole`:59 | `ADMIN` `perm:users.roles.addButton` | `permissionsService.createRole` | _—_ |
-| GET | `/api/permissions/roles/:id` | `findRoleById`:52 | `ADMIN` `perm:users.roles` | `permissionsService.findRoleById` | _—_ |
-| PATCH | `/api/permissions/roles/:id` | `updateRole`:66 | `ADMIN` `perm:users.roles.editButton` | `permissionsService.updateRole` | _—_ |
-| DELETE | `/api/permissions/roles/:id` | `deleteRole`:73 | `ADMIN` `perm:users.roles.deleteButton` | `permissionsService.deleteRole` | _—_ |
-| PUT | `/api/permissions/roles/:id/permissions` | `setRolePermissions`:80 | `ADMIN` `perm:users.roles.editPermissions` | `permissionsService.setRolePermissions` | _—_ |
-| POST | `/api/permissions/seed` | `seedSystemRoles`:91 | `ADMIN` | `permissionsService.seedSystemRoles` | _—_ |
+| GET | `/api/permissions/mine` | `getMyPermissions`:35 | `authed` | `permissionsService.getUserPermissionKeys` | The caller's own effective permission keys — what the frontend gates UI on. |
+| GET | `/api/permissions/registry` | `getRegistry`:30 | `authed` | `permissionsService.getRegistry` | Serves the permission tree that renders the admin permission matrix. |
+| GET | `/api/permissions/roles` | `findAllRoles`:45 | `ADMIN` `perm:users.roles` | `permissionsService.findAllRoles` | Lists roles with user counts. |
+| POST | `/api/permissions/roles` | `createRole`:59 | `ADMIN` `perm:users.roles.addButton` | `permissionsService.createRole` | Creates a custom role. |
+| GET | `/api/permissions/roles/:id` | `findRoleById`:52 | `ADMIN` `perm:users.roles` | `permissionsService.findRoleById` | One role and its permission keys. |
+| PATCH | `/api/permissions/roles/:id` | `updateRole`:66 | `ADMIN` `perm:users.roles.editButton` | `permissionsService.updateRole` | Renames or edits a role. |
+| DELETE | `/api/permissions/roles/:id` | `deleteRole`:73 | `ADMIN` `perm:users.roles.deleteButton` | `permissionsService.deleteRole` | Deletes a role, refusing if users still hold it. |
+| PUT | `/api/permissions/roles/:id/permissions` | `setRolePermissions`:80 | `ADMIN` `perm:users.roles.editPermissions` | `permissionsService.setRolePermissions` | Replaces a role's permission set. In production, granting a NEW key to a non-admin role may still need a manual `rolePermissionV2` insert because deploys run with SKIP_PERMISSION_SEED=true. |
+| POST | `/api/permissions/seed` | `seedSystemRoles`:91 | `ADMIN` | `permissionsService.seedSystemRoles` | Seeds the built-in roles; skipped on production deploys. |
 
 ### PublicPricesController
 
@@ -565,9 +565,9 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/users/:userId/sessions` | `list`:27 | `ADMIN` `perm:users` | `sessions.listForUser` | _—_ |
-| DELETE | `/api/users/:userId/sessions/:sessionId` | `clear`:44 | `ADMIN` `perm:users` | `sessions.clear` | _—_ |
-| POST | `/api/users/:userId/sessions/:sessionId/logout` | `forceLogout`:33 | `ADMIN` `perm:users` | `sessions.forceLogout` | _—_ |
+| GET | `/api/users/:userId/sessions` | `list`:27 | `ADMIN` `perm:users` | `sessions.listForUser` | Lists a user's sessions. |
+| DELETE | `/api/users/:userId/sessions/:sessionId` | `clear`:44 | `ADMIN` `perm:users` | `sessions.clear` | Clears a session row entirely — use when a stuck record is blocking login. |
+| POST | `/api/users/:userId/sessions/:sessionId/logout` | `forceLogout`:33 | `ADMIN` `perm:users` | `sessions.forceLogout` | Force-logs-out one device. |
 
 ### SettingsController
 
@@ -575,33 +575,33 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| POST | `/api/settings/activate-license` | `activateLicense`:148 | `ADMIN` `perm:company.editSettings` | `settingsService.activateLicense` | _—_ |
-| GET | `/api/settings/company` | `getCompanySettings`:157 | `authed` | `settingsService.getCompanySettings` | _—_ |
-| PATCH | `/api/settings/company` | `updateCompanySettings`:169 | `ADMIN` `perm:company.editSettings` | `settingsService.updateCompanySettings` | _—_ |
-| POST | `/api/settings/company/favicon` | `uploadFavicon`:197 | `ADMIN` `perm:company.uploadFavicon` | `settingsService.updateFavicon` | _—_ |
-| POST | `/api/settings/company/logo` | `uploadLogo`:182 | `ADMIN` `perm:company.uploadLogo` | `settingsService.updateLogo` | _—_ |
-| GET | `/api/settings/email` | `getEmailSettings`:211 | `ADMIN` `perm:company.editSettings` | `settingsService.getEmailSettings` | _—_ |
-| PATCH | `/api/settings/email` | `updateEmailSettings`:223 | `ADMIN` `perm:company.editSettings` | `settingsService.updateEmailSettings` `emailService.reloadTransporter` | _—_ |
-| POST | `/api/settings/email/test` | `sendTestEmail`:238 | `ADMIN` `perm:company.editSettings` | `emailService.sendTestEmail` | _—_ |
-| GET | `/api/settings/google-drive` | `getGoogleDriveSettings`:320 | `ADMIN` `perm:company.editSettings` | `settingsService.getGoogleDriveSettings` | _—_ |
-| PATCH | `/api/settings/google-drive` | `updateGoogleDriveSettings`:332 | `ADMIN` `perm:company.editSettings` | `settingsService.updateGoogleDriveSettings` `googleDriveService.clearCache` | _—_ |
-| POST | `/api/settings/google-drive/auth-url` | `getGoogleDriveAuthUrl`:347 | `ADMIN` `perm:company.editSettings` | `googleDriveService.generateAuthUrl` | _—_ |
-| POST | `/api/settings/google-drive/disconnect` | `disconnectGoogleDrive`:375 | `ADMIN` `perm:company.editSettings` | `settingsService.disconnectGoogleDrive` `googleDriveService.clearCache` | _—_ |
-| POST | `/api/settings/google-drive/exchange-code` | `exchangeGoogleDriveCode`:361 | `ADMIN` `perm:company.editSettings` | `googleDriveService.exchangeCode` | _—_ |
-| POST | `/api/settings/google-drive/migrate` | `migrateEvidenceToDrive`:401 | `ADMIN` `perm:company.editSettings` | `googleDriveService.migrateLocalFilesToDrive` | _—_ |
-| POST | `/api/settings/google-drive/test` | `testGoogleDriveConnection`:389 | `ADMIN` `perm:company.editSettings` | `googleDriveService.testConnection` | _—_ |
-| POST | `/api/settings/license-recheck` | `recheckLicense`:135 | `ADMIN` `perm:company.editSettings` | `settingsService.recheckLicense` | _—_ |
-| GET | `/api/settings/license-status` | `getLicenseStatus`:126 | `authed` | `settingsService.getLicenseStatus` | _—_ |
-| GET | `/api/settings/system` | `getSystemSettings`:60 | `authed` | `settingsService.getSystemSettings` | _—_ |
-| PATCH | `/api/settings/system` | `updateSystemSettings`:72 | `ADMIN` `perm:company.editSettings` | `settingsService.updateSystemSettings` | _—_ |
-| POST | `/api/settings/system/inner-bg` | `uploadInnerBgImage`:85 | `ADMIN` `perm:company.editSettings` | `settingsService.updateInnerBgImage` | _—_ |
-| POST | `/api/settings/system/login-bg` | `uploadLoginBgImage`:100 | `ADMIN` `perm:company.editSettings` | `settingsService.updateLoginBgImage` | _—_ |
-| POST | `/api/settings/system/login-logo` | `uploadLoginLogoImage`:115 | `ADMIN` `perm:company.editSettings` | `settingsService.updateLoginLogoImage` | _—_ |
-| GET | `/api/settings/website` | `getWebsiteSettings`:251 | `ADMIN` `perm:company.editSettings` | `settingsService.getWebsiteSettings` | _—_ |
-| PATCH | `/api/settings/website` | `updateWebsiteSettings`:263 | `ADMIN` `perm:company.editSettings` | `settingsService.updateWebsiteSettings` | _—_ |
-| POST | `/api/settings/website/favicon` | `uploadSiteFavicon`:291 | `ADMIN` `perm:company.uploadFavicon` | `settingsService.updateSiteFavicon` | _—_ |
-| POST | `/api/settings/website/hero-image` | `uploadHeroImage`:306 | `ADMIN` `perm:company.editSettings` | `settingsService.updateHeroImage` | _—_ |
-| POST | `/api/settings/website/logo` | `uploadSiteLogo`:276 | `ADMIN` `perm:company.uploadLogo` | `settingsService.updateSiteLogo` | _—_ |
+| POST | `/api/settings/activate-license` | `activateLicense`:148 | `ADMIN` `perm:company.editSettings` | `settingsService.activateLicense` | Activates a licence key. |
+| GET | `/api/settings/company` | `getCompanySettings`:157 | `authed` | `settingsService.getCompanySettings` | Reads company identity/branding. |
+| PATCH | `/api/settings/company` | `updateCompanySettings`:169 | `ADMIN` `perm:company.editSettings` | `settingsService.updateCompanySettings` | Updates company identity/branding. |
+| POST | `/api/settings/company/favicon` | `uploadFavicon`:197 | `ADMIN` `perm:company.uploadFavicon` | `settingsService.updateFavicon` | Uploads the company favicon. |
+| POST | `/api/settings/company/logo` | `uploadLogo`:182 | `ADMIN` `perm:company.uploadLogo` | `settingsService.updateLogo` | Uploads the company logo. |
+| GET | `/api/settings/email` | `getEmailSettings`:211 | `ADMIN` `perm:company.editSettings` | `settingsService.getEmailSettings` | SMTP settings with the password redacted. |
+| PATCH | `/api/settings/email` | `updateEmailSettings`:223 | `ADMIN` `perm:company.editSettings` | `settingsService.updateEmailSettings` `emailService.reloadTransporter` | Updates SMTP settings and reloads the mail transport. |
+| POST | `/api/settings/email/test` | `sendTestEmail`:238 | `ADMIN` `perm:company.editSettings` | `emailService.sendTestEmail` | Sends a test email — the fastest way to verify SMTP. |
+| GET | `/api/settings/google-drive` | `getGoogleDriveSettings`:320 | `ADMIN` `perm:company.editSettings` | `settingsService.getGoogleDriveSettings` | Drive connection status and folder config. |
+| PATCH | `/api/settings/google-drive` | `updateGoogleDriveSettings`:332 | `ADMIN` `perm:company.editSettings` | `settingsService.updateGoogleDriveSettings` `googleDriveService.clearCache` | Updates Drive folder configuration. |
+| POST | `/api/settings/google-drive/auth-url` | `getGoogleDriveAuthUrl`:347 | `ADMIN` `perm:company.editSettings` | `googleDriveService.generateAuthUrl` | Returns the OAuth consent URL for connecting Drive. |
+| POST | `/api/settings/google-drive/disconnect` | `disconnectGoogleDrive`:375 | `ADMIN` `perm:company.editSettings` | `settingsService.disconnectGoogleDrive` `googleDriveService.clearCache` | Clears Drive tokens. |
+| POST | `/api/settings/google-drive/exchange-code` | `exchangeGoogleDriveCode`:361 | `ADMIN` `perm:company.editSettings` | `googleDriveService.exchangeCode` | OAuth callback — exchanges the code for tokens. `invalid_grant` here means reconnect is required. |
+| POST | `/api/settings/google-drive/migrate` | `migrateEvidenceToDrive`:401 | `ADMIN` `perm:company.editSettings` | `googleDriveService.migrateLocalFilesToDrive` | Runs the one-off migration of local evidence files into Drive. |
+| POST | `/api/settings/google-drive/test` | `testGoogleDriveConnection`:389 | `ADMIN` `perm:company.editSettings` | `googleDriveService.testConnection` | Connectivity test for the Drive settings screen. |
+| POST | `/api/settings/license-recheck` | `recheckLicense`:135 | `ADMIN` `perm:company.editSettings` | `settingsService.recheckLicense` | Forces a licence re-check. |
+| GET | `/api/settings/license-status` | `getLicenseStatus`:126 | `authed` | `settingsService.getLicenseStatus` | Current licence status driving the portal-wide licence gate. |
+| GET | `/api/settings/system` | `getSystemSettings`:60 | `authed` | `settingsService.getSystemSettings` | Reads system settings. |
+| PATCH | `/api/settings/system` | `updateSystemSettings`:72 | `ADMIN` `perm:company.editSettings` | `settingsService.updateSystemSettings` | Updates system settings. |
+| POST | `/api/settings/system/inner-bg` | `uploadInnerBgImage`:85 | `ADMIN` `perm:company.editSettings` | `settingsService.updateInnerBgImage` | Uploads the dashboard inner-page background. |
+| POST | `/api/settings/system/login-bg` | `uploadLoginBgImage`:100 | `ADMIN` `perm:company.editSettings` | `settingsService.updateLoginBgImage` | Uploads the login screen background. |
+| POST | `/api/settings/system/login-logo` | `uploadLoginLogoImage`:115 | `ADMIN` `perm:company.editSettings` | `settingsService.updateLoginLogoImage` | Uploads the login screen logo. |
+| GET | `/api/settings/website` | `getWebsiteSettings`:251 | `ADMIN` `perm:company.editSettings` | `settingsService.getWebsiteSettings` | Reads B2C website settings including feature toggles. |
+| PATCH | `/api/settings/website` | `updateWebsiteSettings`:263 | `ADMIN` `perm:company.editSettings` | `settingsService.updateWebsiteSettings` | Updates B2C website settings. |
+| POST | `/api/settings/website/favicon` | `uploadSiteFavicon`:291 | `ADMIN` `perm:company.uploadFavicon` | `settingsService.updateSiteFavicon` | Uploads the B2C site favicon. |
+| POST | `/api/settings/website/hero-image` | `uploadHeroImage`:306 | `ADMIN` `perm:company.editSettings` | `settingsService.updateHeroImage` | Uploads the B2C homepage hero image. |
+| POST | `/api/settings/website/logo` | `uploadSiteLogo`:276 | `ADMIN` `perm:company.uploadLogo` | `settingsService.updateSiteLogo` | Uploads the B2C site logo (raster only). |
 
 ### SupplierPortalController
 
@@ -684,8 +684,8 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/user-preferences/:key` | `get`:11 | `authed` | `service.get` | _—_ |
-| PUT | `/api/user-preferences/:key` | `set`:17 | `authed` | `service.set` | _—_ |
+| GET | `/api/user-preferences/:key` | `get`:11 | `authed` | `service.get` | Reads a preference blob by key. |
+| PUT | `/api/user-preferences/:key` | `set`:17 | `authed` | `service.set` | Upserts a preference blob. |
 
 ### UsersController
 
@@ -693,19 +693,19 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| POST | `/api/users` | `create`:47 | `ADMIN` `perm:users.addButton` | `usersService.create` | _—_ |
-| GET | `/api/users` | `findAll`:59 | `ADMIN` `perm:users` | `usersService.findAll` | _—_ |
-| GET | `/api/users/:id` | `findOne`:130 | `ADMIN` `perm:users` | `usersService.findOne` | _—_ |
-| PATCH | `/api/users/:id` | `update`:142 | `ADMIN` `perm:users.table.editButton` | `usersService.update` | _—_ |
-| DELETE | `/api/users/:id` | `deactivate`:187 | `ADMIN` `perm:users.table.deactivate` | `usersService.deactivate` | _—_ |
-| PATCH | `/api/users/:id/password` | `changePassword`:172 | `ADMIN` `perm:users.table.editButton` | `usersService.changePassword` | _—_ |
-| PATCH | `/api/users/:id/reactivate` | `reactivate`:199 | `ADMIN` `perm:users.table.deactivate` | `usersService.reactivate` | _—_ |
-| PATCH | `/api/users/:id/role` | `updateRole`:157 | `ADMIN` `perm:users.table.changeRole` | `usersService.updateRole` | _—_ |
-| GET | `/api/users/me` | `getMe`:68 | `authed` | `usersService.findOne` | _—_ |
-| GET | `/api/users/permissions` | `getPermissions`:80 | `ADMIN` `perm:users.roles` | `rolePermissionsService.findAll` | _—_ |
-| PUT | `/api/users/permissions` | `updatePermissions`:92 | `ADMIN` `perm:users.roles.editPermissions` | `rolePermissionsService.bulkUpdate` | _—_ |
-| GET | `/api/users/permissions/:role` | `getPermissionsByRole`:116 | `ADMIN` `perm:users.roles` | `rolePermissionsService.findByRole` | _—_ |
-| GET | `/api/users/permissions/seed` | `seedPermissions`:104 | `ADMIN` `perm:users.roles` | `rolePermissionsService.seedDefaults` | _—_ |
+| POST | `/api/users` | `create`:47 | `ADMIN` `perm:users.addButton` | `usersService.create` | Creates a staff user. |
+| GET | `/api/users` | `findAll`:59 | `ADMIN` `perm:users` | `usersService.findAll` | Lists users, split Active/Inactive. |
+| GET | `/api/users/:id` | `findOne`:130 | `ADMIN` `perm:users` | `usersService.findOne` | One user's detail. |
+| PATCH | `/api/users/:id` | `update`:142 | `ADMIN` `perm:users.table.editButton` | `usersService.update` | Updates a user's profile fields. |
+| DELETE | `/api/users/:id` | `deactivate`:187 | `ADMIN` `perm:users.table.deactivate` | `usersService.deactivate` | Deactivates a user (soft; they cannot authenticate). |
+| PATCH | `/api/users/:id/password` | `changePassword`:172 | `ADMIN` `perm:users.table.editButton` | `usersService.changePassword` | Changes a password and clears the stored session, so a reset also frees a locked device. |
+| PATCH | `/api/users/:id/reactivate` | `reactivate`:199 | `ADMIN` `perm:users.table.deactivate` | `usersService.reactivate` | Restores a deactivated user. |
+| PATCH | `/api/users/:id/role` | `updateRole`:157 | `ADMIN` `perm:users.table.changeRole` | `usersService.updateRole` | Reassigns a user's role. |
+| GET | `/api/users/me` | `getMe`:68 | `authed` | `usersService.findOne` | The signed-in user's own record. |
+| GET | `/api/users/permissions` | `getPermissions`:80 | `ADMIN` `perm:users.roles` | `rolePermissionsService.findAll` | LEGACY: all role-permission rows. |
+| PUT | `/api/users/permissions` | `updatePermissions`:92 | `ADMIN` `perm:users.roles.editPermissions` | `rolePermissionsService.bulkUpdate` | LEGACY: bulk-replaces a role's permissions. |
+| GET | `/api/users/permissions/:role` | `getPermissionsByRole`:116 | `ADMIN` `perm:users.roles` | `rolePermissionsService.findByRole` | LEGACY: permissions for one role. |
+| GET | `/api/users/permissions/seed` | `seedPermissions`:104 | `ADMIN` `perm:users.roles` | `rolePermissionsService.seedDefaults` | LEGACY: seeds default role permissions. |
 
 ### VehiclesController
 
@@ -741,10 +741,10 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/whatsapp-notifications/logs` | `getLogs`:63 | `ADMIN` `perm:whatsapp.logs` | `whatsappService.getLogs` | _—_ |
-| GET | `/api/whatsapp-notifications/settings` | `getSettings`:51 | `ADMIN` `perm:whatsapp.settings` | `whatsappService.getSettings` | _—_ |
-| PATCH | `/api/whatsapp-notifications/settings` | `updateSettings`:57 | `ADMIN` `perm:whatsapp.settings.editSettings` | `whatsappService.updateSettings` | _—_ |
-| GET | `/api/whatsapp-notifications/templates` | `getTemplates`:81 | `ADMIN` `perm:whatsapp.settings` | `whatsappService.getTemplates` | _—_ |
-| PATCH | `/api/whatsapp-notifications/templates/:id` | `updateTemplate`:87 | `ADMIN` `perm:whatsapp.settings.editSettings` | `whatsappService.updateTemplate` | _—_ |
-| POST | `/api/whatsapp-notifications/test` | `sendTestMessage`:75 | `ADMIN` `perm:whatsapp.testSend` | `whatsappService.sendTestMessage` | _—_ |
-| POST | `/api/whatsapp-notifications/upload-media` | `uploadMedia`:97 | `ADMIN` `perm:whatsapp.uploadMedia` | `whatsappService.updateMediaUrl` | _—_ |
+| GET | `/api/whatsapp-notifications/logs` | `getLogs`:63 | `ADMIN` `perm:whatsapp.logs` | `whatsappService.getLogs` | Delivery log — first stop when a message did not arrive. |
+| GET | `/api/whatsapp-notifications/settings` | `getSettings`:51 | `ADMIN` `perm:whatsapp.settings` | `whatsappService.getSettings` | WhatsApp settings, credentials redacted. |
+| PATCH | `/api/whatsapp-notifications/settings` | `updateSettings`:57 | `ADMIN` `perm:whatsapp.settings.editSettings` | `whatsappService.updateSettings` | Updates provider credentials and toggles. |
+| GET | `/api/whatsapp-notifications/templates` | `getTemplates`:81 | `ADMIN` `perm:whatsapp.settings` | `whatsappService.getTemplates` | Lists templates and their enabled state. |
+| PATCH | `/api/whatsapp-notifications/templates/:id` | `updateTemplate`:87 | `ADMIN` `perm:whatsapp.settings.editSettings` | `whatsappService.updateTemplate` | Edits or toggles one template. |
+| POST | `/api/whatsapp-notifications/test` | `sendTestMessage`:75 | `ADMIN` `perm:whatsapp.testSend` | `whatsappService.sendTestMessage` | Admin test send. |
+| POST | `/api/whatsapp-notifications/upload-media` | `uploadMedia`:97 | `ADMIN` `perm:whatsapp.uploadMedia` | `whatsappService.updateMediaUrl` | Uploads the media asset attached to template messages. |

@@ -398,3 +398,22 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 | `flightDelayReport` | pub | 1226 | `userNotification` | _—_ |
 | `flightDelayForJob` | pub | 1299 | `userNotification` | _—_ |
 | `reviewReport` | pub | 1356 | `trafficJob` | _—_ |
+
+## Standalone exports
+
+5 free functions, constants and types in these modules.
+
+### `backend/src/payments/gateways/gateway.interface.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PaymentSessionResult` | type | 1 | _—_ |
+| `PaymentCustomer` | type | 12 | _—_ |
+| `PaymentVerificationResult` | type | 28 | _—_ |
+| `PaymentGateway` | type | 35 | _—_ |
+
+### `backend/src/payments/gateways/getpayin.gateway.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `GetPayInCallback` | type | 20 | _—_ |

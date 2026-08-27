@@ -449,7 +449,7 @@ const KIND_OF = (name) =>
   : /Module$/.test(name) ? 'module' : /Dto$/.test(name) ? 'dto'
   : /Filter$|Interceptor$|Pipe$/.test(name) ? 'middleware' : 'class';
 
-function renderServiceGroup(group, classes) {
+function renderServiceGroup(group, classes, exports_) {
   const mine = classes
     .filter((c) => group.mods.includes(moduleOf(c.file)))
     .filter((c) => !['module', 'dto'].includes(KIND_OF(c.name)))
@@ -477,6 +477,35 @@ function renderServiceGroup(group, classes) {
       L.push(`| \`${m.name}\` | ${m.visibility === 'public' ? 'pub' : m.visibility.slice(0, 4)} | ${m.line} | ${touches} | ${esc(desc(key)) || '_—_'} |`);
     }
     L.push('');
+  }
+
+  // Free functions and constants in this group's modules — geofence maths, score
+  // utils, service-type tables. These carry real business rules and are easy to
+  // miss because they live outside any class.
+  const classNames = new Set(classes.map((c) => c.name));
+  const loose = exports_
+    .filter((e) => rel(e.file).startsWith('backend/src/'))
+    .filter((e) => group.mods.includes(moduleOf(e.file)))
+    .filter((e) => !(e.kind === 'class' && classNames.has(e.name)))
+    .filter((e) => e.kind !== 'class');
+  if (loose.length) {
+    L.push('## Standalone exports', '',
+      `${loose.length} free functions, constants and types in these modules.`, '');
+    const byFile = new Map();
+    for (const e of loose) {
+      if (!byFile.has(e.file)) byFile.set(e.file, []);
+      byFile.get(e.file).push(e);
+    }
+    for (const f of [...byFile.keys()].sort()) {
+      L.push(`### \`${rel(f)}\``, '');
+      const d = desc(`${rel(f)}#__file__`);
+      if (d) L.push(d, '');
+      L.push('| Export | Kind | Line | Purpose |', '|---|---|---|---|');
+      for (const e of byFile.get(f).sort((a, b) => a.line - b.line)) {
+        L.push(`| \`${e.name}\` | ${e.kind} | ${e.line} | ${esc(desc(`${rel(f)}#${e.name}`)) || '_—_'} |`);
+      }
+      L.push('');
+    }
   }
   return L.join('\n');
 }
@@ -559,7 +588,7 @@ const symbolRows = [
 
 if (prisma.models.length) write('01-data-model.md', renderDataModel(prisma));
 if (endpoints.length) write('02-backend-api.md', renderApi(endpoints));
-if (backendFiles.length) for (const g of BACKEND_GROUPS) write(g.out, renderServiceGroup(g, classes));
+if (backendFiles.length) for (const g of BACKEND_GROUPS) write(g.out, renderServiceGroup(g, classes, exports_));
 if (routesByArea.size) write('07-frontend-routes.md', renderRoutes(routesByArea));
 if (filesByArea.has('frontend')) write('08-frontend-shared.md', renderShared(
   '08 — Frontend Shared', {

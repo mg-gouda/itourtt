@@ -627,3 +627,31 @@ Jobs, dispatch, the location tree, fleet and counterparties. This is where the c
 | `addDepositPayment` | pub | 862 | `vehicleCompliance` `user` `vehicleDepositPayment` | _—_ |
 | `removeDepositPayment` | pub | 889 | `vehicleDepositPayment` | _—_ |
 | `listDepositPayments` | pub | 906 | `vehicleCompliance` `vehicleDepositPayment` | _—_ |
+
+## Standalone exports
+
+4 free functions, constants and types in these modules.
+
+### `backend/src/agents/dto/agent-price-list.dto.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ServiceTypeEnum` | type | 13 | _—_ |
+
+### `backend/src/customers/dto/price-list.dto.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ServiceTypeEnum` | type | 13 | _—_ |
+
+### `backend/src/suppliers/dto/create-vehicle.dto.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `VehicleOwnershipEnum` | type | 11 | _—_ |
+
+### `backend/src/suppliers/dto/supplier-price-list.dto.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ServiceTypeEnum` | type | 13 | _—_ |
