@@ -1,0 +1,28 @@
+#!/bin/bash
+# Keeps docs/map/ in sync with the code. Installed via:  git config core.hooksPath scripts/hooks
+# Fast path: does nothing unless the commit touches code the map is derived from.
+set -e
+
+CHANGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|prisma)$' || true)
+[ -z "$CHANGED" ] && exit 0
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "codemap: node not found — skipping map regeneration" >&2
+  exit 0
+fi
+
+ROOT=$(git rev-parse --show-toplevel)
+[ -f "$ROOT/scripts/generate-codemap.mjs" ] || exit 0
+
+node "$ROOT/scripts/generate-codemap.mjs" >/dev/null || {
+  echo "codemap: generator failed — commit aborted. Run: node scripts/generate-codemap.mjs" >&2
+  exit 1
+}
+
+# Stage only the generated artefacts; never touch anything else the user has staged.
+git add -- "$ROOT/docs/map/01-data-model.md" \
+           "$ROOT/docs/map/02-backend-api.md" \
+           "$ROOT/docs/map/07-frontend-routes.md" \
+           "$ROOT/docs/map/12-symbol-index.md" \
+           "$ROOT/docs/map/_undescribed.txt" 2>/dev/null || true
+exit 0
