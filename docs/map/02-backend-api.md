@@ -210,11 +210,11 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/driver-tariffs` | `findAll`:39 | `perm:driver-tariffs` | `driverTariffsService.findAll` | _—_ |
-| POST | `/api/driver-tariffs` | `upsert`:74 | `ADMIN` `DISPATCHER` `perm:driver-tariffs.upsert` | `driverTariffsService.upsert` | _—_ |
-| DELETE | `/api/driver-tariffs/:id` | `remove`:82 | `ADMIN` `perm:driver-tariffs.delete` | `driverTariffsService.remove` | _—_ |
-| POST | `/api/driver-tariffs/import/excel` | `importExcel`:60 | `ADMIN` `DISPATCHER` `perm:driver-tariffs.upsert` | `driverTariffsService.importFromExcel` | _—_ |
-| GET | `/api/driver-tariffs/import/template` | `downloadTemplate`:46 | `perm:driver-tariffs` | `driverTariffsService.generateTemplate` | _—_ |
+| GET | `/api/driver-tariffs` | `findAll`:39 | `perm:driver-tariffs` | `driverTariffsService.findAll` | Lists tariff rows. |
+| POST | `/api/driver-tariffs` | `upsert`:74 | `ADMIN` `DISPATCHER` `perm:driver-tariffs.upsert` | `driverTariffsService.upsert` | Creates or updates a tariff row. |
+| DELETE | `/api/driver-tariffs/:id` | `remove`:82 | `ADMIN` `perm:driver-tariffs.delete` | `driverTariffsService.remove` | Deletes a tariff row. |
+| POST | `/api/driver-tariffs/import/excel` | `importExcel`:60 | `ADMIN` `DISPATCHER` `perm:driver-tariffs.upsert` | `driverTariffsService.importFromExcel` | Multipart tariff import. |
+| GET | `/api/driver-tariffs/import/template` | `downloadTemplate`:46 | `perm:driver-tariffs` | `driverTariffsService.generateTemplate` | Blank tariff import workbook. |
 
 ### DriversController
 
@@ -244,40 +244,40 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/export/odoo/agent-statement/:agentId` | `exportAgentStatement`:177 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.agentStatement` | `exportService.exportAgentStatement` | _—_ |
-| GET | `/api/export/odoo/car-jobs` | `getCarJobsReport`:230 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.carJobs` | `exportService.getCarJobsReport` | _—_ |
-| GET | `/api/export/odoo/car-jobs-excel` | `exportCarJobsExcel`:484 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.carJobs` | `exportService.exportCarJobsExcel` | _—_ |
-| GET | `/api/export/odoo/car-jobs/vehicles` | `getCarJobsVehicles`:219 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.carJobs` | `exportService.getOwnedActiveVehicles` | _—_ |
-| GET | `/api/export/odoo/client-signs` | `exportClientSigns`:121 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:dispatch.exportButton` `perm:traffic-jobs.online.createJob` | `exportService.generateClientSigns` | _—_ |
-| GET | `/api/export/odoo/collections` | `exportCollections`:108 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.collections` | `exportService.exportCollections` | _—_ |
-| GET | `/api/export/odoo/customers` | `exportCustomers`:50 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.customers` | `exportService.exportCustomers` | _—_ |
-| GET | `/api/export/odoo/daily-dispatch` | `exportDailyDispatch`:148 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.dailyDispatch` | `exportService.exportDailyDispatchReport` | _—_ |
-| GET | `/api/export/odoo/departure` | `exportDeparture`:444 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.departure` | `exportService.exportDepartureReport` | _—_ |
-| GET | `/api/export/odoo/dispatch` | `exportDispatchDay`:23 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:dispatch.exportButton` | `exportService.exportDispatchDay` | _—_ |
-| GET | `/api/export/odoo/driver-score` | `exportDriverScore`:388 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.driverScore` | `exportService.exportDriverScoreReport` | _—_ |
-| GET | `/api/export/odoo/driver-trips` | `exportDriverTrips`:162 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.driverTrips` | `exportService.exportDriverTrips` | _—_ |
-| GET | `/api/export/odoo/evidence-data/:jobId` | `getEvidenceData`:295 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `exportService.getEvidenceData` | _—_ |
-| GET | `/api/export/odoo/evidence-excel` | `exportEvidenceExcel`:372 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `exportService.exportEvidenceReport` | _—_ |
-| GET | `/api/export/odoo/evidence-file/:fileId` | `proxyEvidenceFile`:349 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `googleDriveService.getFileStream` | _—_ |
-| GET | `/api/export/odoo/evidence-pdf/:jobId` | `downloadEvidencePdf`:302 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `exportService.generateJobEvidencePdf` | _—_ |
-| GET | `/api/export/odoo/evidence-zip/:jobId` | `downloadEvidenceZip`:328 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `exportService.streamEvidenceZip` | _—_ |
-| GET | `/api/export/odoo/flight-delay` | `exportFlightDelay`:457 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.flightDelay` | `exportService.exportFlightDelayReport` | _—_ |
-| GET | `/api/export/odoo/guest-surveys` | `exportGuestSurveys`:414 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.guestSurveys` | `exportService.exportGuestSurveyReport` | _—_ |
-| GET | `/api/export/odoo/invoices` | `exportInvoices`:64 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.invoices` | `exportService.exportInvoices` | _—_ |
-| GET | `/api/export/odoo/job-status` | `exportJobStatus`:427 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.jobStatus` | `exportService.exportJobStatusReport` | _—_ |
-| GET | `/api/export/odoo/journals` | `exportJournalEntries`:97 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.journals` | `exportService.exportJournalEntries` | _—_ |
-| GET | `/api/export/odoo/payments` | `exportPayments`:86 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.payments` | `exportService.exportPayments` | _—_ |
-| GET | `/api/export/odoo/rep-fees` | `exportRepFees`:36 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.repFees` | `exportService.exportRepFees` | _—_ |
-| GET | `/api/export/odoo/rep-score` | `exportRepScore`:401 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.repScore` | `exportService.exportRepScoreReport` | _—_ |
-| GET | `/api/export/odoo/revenue` | `exportRevenue`:192 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.revenue` | `exportService.exportRevenue` | _—_ |
-| GET | `/api/export/odoo/review` | `exportReview`:497 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.review` | `exportService.exportReviewReport` | _—_ |
-| GET | `/api/export/odoo/sales` | `exportSales`:278 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.sales` | `exportService.exportSalesReport` | _—_ |
-| GET | `/api/export/odoo/supplier-jobs` | `getSupplierJobsReport`:246 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.supplierJobs` | `exportService.getSupplierJobsReport` | _—_ |
-| GET | `/api/export/odoo/supplier-jobs-excel` | `exportSupplierJobsExcel`:470 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.supplierJobs` | `exportService.exportSupplierJobsExcel` | _—_ |
-| GET | `/api/export/odoo/suppliers` | `exportSuppliers`:57 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.suppliers` | `exportService.exportSuppliers` | _—_ |
-| GET | `/api/export/odoo/vehicle-compliance` | `exportVehicleCompliance`:207 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.vehicleCompliance` | `exportService.exportVehicleCompliance` | _—_ |
-| GET | `/api/export/odoo/vendor-bills` | `exportVendorBills`:75 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.vendorBills` | `exportService.exportVendorBills` | _—_ |
-| GET | `/api/export/odoo/visa` | `exportVisa`:262 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.visa` | `exportService.exportVisaReport` | _—_ |
+| GET | `/api/export/odoo/agent-statement/:agentId` | `exportAgentStatement`:177 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.agentStatement` | `exportService.exportAgentStatement` | Agent statement of account. |
+| GET | `/api/export/odoo/car-jobs` | `getCarJobsReport`:230 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.carJobs` | `exportService.getCarJobsReport` | Car jobs report data as JSON, for the on-screen report. |
+| GET | `/api/export/odoo/car-jobs-excel` | `exportCarJobsExcel`:484 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.carJobs` | `exportService.exportCarJobsExcel` | Car jobs (owned fleet utilisation) as xlsx. |
+| GET | `/api/export/odoo/car-jobs/vehicles` | `getCarJobsVehicles`:219 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.carJobs` | `exportService.getOwnedActiveVehicles` | Owned active vehicles forming the car-jobs report rows. |
+| GET | `/api/export/odoo/client-signs` | `exportClientSigns`:121 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:dispatch.exportButton` `perm:traffic-jobs.online.createJob` | `exportService.generateClientSigns` | Downloads printable guest name-sign PDFs. |
+| GET | `/api/export/odoo/collections` | `exportCollections`:108 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.collections` | `exportService.exportCollections` | Driver cash collections and their liquidation state. |
+| GET | `/api/export/odoo/customers` | `exportCustomers`:50 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.customers` | `exportService.exportCustomers` | Agents/customers as xlsx. |
+| GET | `/api/export/odoo/daily-dispatch` | `exportDailyDispatch`:148 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.dailyDispatch` | `exportService.exportDailyDispatchReport` | Daily dispatch summary as xlsx. |
+| GET | `/api/export/odoo/departure` | `exportDeparture`:444 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.departure` | `exportService.exportDepartureReport` | Departures report as xlsx. |
+| GET | `/api/export/odoo/dispatch` | `exportDispatchDay`:23 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:dispatch.exportButton` | `exportService.exportDispatchDay` | One day's dispatch grid as xlsx. |
+| GET | `/api/export/odoo/driver-score` | `exportDriverScore`:388 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.driverScore` | `exportService.exportDriverScoreReport` | Driver scores as xlsx. |
+| GET | `/api/export/odoo/driver-trips` | `exportDriverTrips`:162 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.driverTrips` | `exportService.exportDriverTrips` | Driver trips and fees for a period. |
+| GET | `/api/export/odoo/evidence-data/:jobId` | `getEvidenceData`:295 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `exportService.getEvidenceData` | Evidence photos and metadata for one job as JSON. |
+| GET | `/api/export/odoo/evidence-excel` | `exportEvidenceExcel`:372 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `exportService.exportEvidenceReport` | Evidence coverage report as xlsx. |
+| GET | `/api/export/odoo/evidence-file/:fileId` | `proxyEvidenceFile`:349 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `googleDriveService.getFileStream` | Proxies an evidence image so Google Drive file ids never reach the browser; serves local-disk files too. |
+| GET | `/api/export/odoo/evidence-pdf/:jobId` | `downloadEvidencePdf`:302 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `exportService.generateJobEvidencePdf` | Downloads one job's evidence pack as PDF. |
+| GET | `/api/export/odoo/evidence-zip/:jobId` | `downloadEvidenceZip`:328 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.evidence` | `exportService.streamEvidenceZip` | Streams all evidence photos for a job selection as a zip. |
+| GET | `/api/export/odoo/flight-delay` | `exportFlightDelay`:457 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.flightDelay` | `exportService.exportFlightDelayReport` | Flight delay report as xlsx. |
+| GET | `/api/export/odoo/guest-surveys` | `exportGuestSurveys`:414 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.guestSurveys` | `exportService.exportGuestSurveyReport` | Arrival guest surveys as xlsx (reuses the `reports.guestSurveys` permission). |
+| GET | `/api/export/odoo/invoices` | `exportInvoices`:64 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.invoices` | `exportService.exportInvoices` | Agent invoices as xlsx. |
+| GET | `/api/export/odoo/job-status` | `exportJobStatus`:427 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.jobStatus` | `exportService.exportJobStatusReport` | Job status breakdown as xlsx. |
+| GET | `/api/export/odoo/journals` | `exportJournalEntries`:97 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.journals` | `exportService.exportJournalEntries` | Journal entries as xlsx. |
+| GET | `/api/export/odoo/payments` | `exportPayments`:86 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.payments` | `exportService.exportPayments` | Payments as xlsx. |
+| GET | `/api/export/odoo/rep-fees` | `exportRepFees`:36 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.repFees` | `exportService.exportRepFees` | Rep fees per job, with the score that produced each fee. |
+| GET | `/api/export/odoo/rep-score` | `exportRepScore`:401 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.repScore` | `exportService.exportRepScoreReport` | Rep scores and fees as xlsx. |
+| GET | `/api/export/odoo/revenue` | `exportRevenue`:192 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.revenue` | `exportService.exportRevenue` | Revenue against driver, rep and supplier costs. |
+| GET | `/api/export/odoo/review` | `exportReview`:497 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.review` | `exportService.exportReviewReport` | Guest review report as xlsx. |
+| GET | `/api/export/odoo/sales` | `exportSales`:278 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.sales` | `exportService.exportSalesReport` | Sales report as xlsx. |
+| GET | `/api/export/odoo/supplier-jobs` | `getSupplierJobsReport`:246 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.supplierJobs` | `exportService.getSupplierJobsReport` | Supplier jobs report data as JSON. |
+| GET | `/api/export/odoo/supplier-jobs-excel` | `exportSupplierJobsExcel`:470 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.supplierJobs` | `exportService.exportSupplierJobsExcel` | Supplier jobs report as xlsx. |
+| GET | `/api/export/odoo/suppliers` | `exportSuppliers`:57 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.suppliers` | `exportService.exportSuppliers` | Suppliers as xlsx. |
+| GET | `/api/export/odoo/vehicle-compliance` | `exportVehicleCompliance`:207 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.vehicleCompliance` | `exportService.exportVehicleCompliance` | Fleet compliance and expiry report. |
+| GET | `/api/export/odoo/vendor-bills` | `exportVendorBills`:75 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.exports.vendorBills` | `exportService.exportVendorBills` | Supplier costs as vendor bills. |
+| GET | `/api/export/odoo/visa` | `exportVisa`:262 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:reports.visa` | `exportService.exportVisaReport` | Visa report as xlsx. |
 
 ### ExtrasController
 
@@ -298,37 +298,37 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/finance/agent-jobs` | `getAgentJobsForInvoice`:291 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getAgentJobsForInvoice` | _—_ |
-| GET | `/api/finance/agent-options` | `getAgentOptions`:263 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getAgentOptions` | _—_ |
-| GET | `/api/finance/b2c-invoices` | `listB2CInvoices`:240 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.b2cInvoices` | `b2cInvoiceService.listAll` | _—_ |
-| GET | `/api/finance/b2c-invoices/:id/pdf` | `getB2CInvoicePdf`:246 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.b2cInvoices` | `b2cInvoiceService.getPdfById` | _—_ |
-| GET | `/api/finance/collections` | `getCollections`:341 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.getCollections` | _—_ |
-| PATCH | `/api/finance/collections/:jobId/liquidate` | `liquidateCollection`:352 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.liquidateCollection` | _—_ |
-| GET | `/api/finance/customer-invoices` | `listCustomerInvoices`:224 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.listCustomerInvoices` | _—_ |
-| GET | `/api/finance/customer-invoices/:id` | `getCustomerInvoice`:231 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getCustomerInvoice` | _—_ |
-| POST | `/api/finance/customer-invoices/generate` | `generateCustomerInvoices`:214 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices.addButton` | `financeService.generateCustomerInvoices` | _—_ |
-| GET | `/api/finance/customer-jobs` | `getCustomerJobsForInvoice`:277 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getCustomerJobsForInvoice` | _—_ |
-| GET | `/api/finance/customer-options` | `getCustomerOptions`:270 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getCustomerOptions` | _—_ |
-| POST | `/api/finance/driver-fees` | `createDriverFee`:99 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.createDriverFee` | _—_ |
-| POST | `/api/finance/invoices` | `createInvoice`:145 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices.addButton` | `financeService.createInvoice` | _—_ |
-| GET | `/api/finance/invoices` | `listInvoices`:155 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.listInvoices` | _—_ |
-| GET | `/api/finance/invoices/:id` | `getInvoice`:162 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getInvoice` | _—_ |
-| GET | `/api/finance/invoices/:id/excel` | `getInvoiceExcel`:323 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `invoiceExportService.generateInvoiceExcel` | _—_ |
-| PATCH | `/api/finance/invoices/:id/lines` | `updateInvoiceLines`:169 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices.detail.editLines` | `financeService.updateInvoiceLines` | _—_ |
-| GET | `/api/finance/invoices/:id/pdf` | `getInvoicePdf`:307 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `invoiceExportService.generateInvoicePdf` | _—_ |
-| PATCH | `/api/finance/invoices/:id/status` | `updateInvoiceStatus`:179 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices.detail.postButton` | `financeService.updateInvoiceStatus` | _—_ |
-| GET | `/api/finance/jobs/:jobId/financials` | `getJobFinancials`:203 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.getJobFinancials` | _—_ |
-| GET | `/api/finance/odoo/all-in-one` | `odooAllInOne`:460 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportAllInOne` | _—_ |
-| GET | `/api/finance/odoo/b2c-invoices` | `odooB2CInvoices`:412 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportB2CCustomerInvoices` | _—_ |
-| GET | `/api/finance/odoo/b2c-partners` | `odooB2CPartners`:396 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportB2CPartners` | _—_ |
-| GET | `/api/finance/odoo/customer-invoices` | `odooCustomerInvoices`:380 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportCustomerInvoices` | _—_ |
-| GET | `/api/finance/odoo/partners` | `odooPartners`:368 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportPartners` | _—_ |
-| GET | `/api/finance/odoo/payments` | `odooPayments`:444 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportPayments` | _—_ |
-| GET | `/api/finance/odoo/vendor-bills` | `odooVendorBills`:428 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportVendorBills` | _—_ |
-| POST | `/api/finance/payments` | `createPayment`:191 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.payments.addButton` | `financeService.createPayment` | _—_ |
-| POST | `/api/finance/rep-fees` | `createRepFee`:111 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.createRepFee` | _—_ |
-| GET | `/api/finance/rep-fees/:repId/daily` | `getRepDailyFees`:121 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.getRepDailyFees` | _—_ |
-| POST | `/api/finance/supplier-costs` | `createSupplierCost`:133 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.createSupplierCost` | _—_ |
+| GET | `/api/finance/agent-jobs` | `getAgentJobsForInvoice`:291 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getAgentJobsForInvoice` | Uninvoiced agent jobs with their resolved prices. |
+| GET | `/api/finance/agent-options` | `getAgentOptions`:263 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getAgentOptions` | Agents available for invoicing, for the picker. |
+| GET | `/api/finance/b2c-invoices` | `listB2CInvoices`:240 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.b2cInvoices` | `b2cInvoiceService.listAll` | Admin list of B2C guest invoices. |
+| GET | `/api/finance/b2c-invoices/:id/pdf` | `getB2CInvoicePdf`:246 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.b2cInvoices` | `b2cInvoiceService.getPdfById` | Admin download of a B2C invoice PDF (no ownership check — admin-only route). |
+| GET | `/api/finance/collections` | `getCollections`:341 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.getCollections` | Cash collections drivers have taken on jobs, and their liquidation state. |
+| PATCH | `/api/finance/collections/:jobId/liquidate` | `liquidateCollection`:352 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.liquidateCollection` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
+| GET | `/api/finance/customer-invoices` | `listCustomerInvoices`:224 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.listCustomerInvoices` | Filterable customer invoice list. |
+| GET | `/api/finance/customer-invoices/:id` | `getCustomerInvoice`:231 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getCustomerInvoice` | One customer invoice. |
+| POST | `/api/finance/customer-invoices/generate` | `generateCustomerInvoices`:214 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices.addButton` | `financeService.generateCustomerInvoices` | Batch-generates B2B invoices from completed jobs priced off each customer's price list. |
+| GET | `/api/finance/customer-jobs` | `getCustomerJobsForInvoice`:277 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getCustomerJobsForInvoice` | Uninvoiced customer jobs with their resolved prices, ready to select. |
+| GET | `/api/finance/customer-options` | `getCustomerOptions`:270 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getCustomerOptions` | Customers available for invoicing. |
+| POST | `/api/finance/driver-fees` | `createDriverFee`:99 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.createDriverFee` | Manually records a driver trip fee (the automatic path is `resolveJobTripFee` via the completion roll-up). |
+| POST | `/api/finance/invoices` | `createInvoice`:145 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices.addButton` | `financeService.createInvoice` | Builds an agent invoice from selected jobs, applying the agent price list and credit check. |
+| GET | `/api/finance/invoices` | `listInvoices`:155 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.listInvoices` | Filterable invoice list. |
+| GET | `/api/finance/invoices/:id` | `getInvoice`:162 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `financeService.getInvoice` | One invoice with its lines and payments. |
+| GET | `/api/finance/invoices/:id/excel` | `getInvoiceExcel`:323 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `invoiceExportService.generateInvoiceExcel` | Downloads the invoice as xlsx. |
+| PATCH | `/api/finance/invoices/:id/lines` | `updateInvoiceLines`:169 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices.detail.editLines` | `financeService.updateInvoiceLines` | Edits invoice lines — only valid while the invoice is unposted; posted financial records are immutable. |
+| GET | `/api/finance/invoices/:id/pdf` | `getInvoicePdf`:307 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices` | `invoiceExportService.generateInvoicePdf` | Downloads the branded invoice PDF. |
+| PATCH | `/api/finance/invoices/:id/status` | `updateInvoiceStatus`:179 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.invoices.detail.postButton` | `financeService.updateInvoiceStatus` | Moves an invoice through its lifecycle (draft → posted → paid). Posting is the point after which it must not change. |
+| GET | `/api/finance/jobs/:jobId/financials` | `getJobFinancials`:203 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.getJobFinancials` | Everything financial attached to one job: driver fee, rep fee, supplier cost and invoice lines — the per-job P&L view. |
+| GET | `/api/finance/odoo/all-in-one` | `odooAllInOne`:460 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportAllInOne` | Single workbook with every Odoo sheet, for one import pass. |
+| GET | `/api/finance/odoo/b2c-invoices` | `odooB2CInvoices`:412 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportB2CCustomerInvoices` | Odoo account.move export for B2C guest invoices. |
+| GET | `/api/finance/odoo/b2c-partners` | `odooB2CPartners`:396 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportB2CPartners` | Odoo res.partner export synthesised from B2C guests. |
+| GET | `/api/finance/odoo/customer-invoices` | `odooCustomerInvoices`:380 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportCustomerInvoices` | Odoo account.move export for customer invoices. |
+| GET | `/api/finance/odoo/partners` | `odooPartners`:368 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportPartners` | Odoo res.partner export (agents + suppliers). |
+| GET | `/api/finance/odoo/payments` | `odooPayments`:444 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportPayments` | Odoo account.payment export. |
+| GET | `/api/finance/odoo/vendor-bills` | `odooVendorBills`:428 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.odooExport` | `odooExportService.exportVendorBills` | Odoo vendor-bill export from supplier costs. |
+| POST | `/api/finance/payments` | `createPayment`:191 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance.payments.addButton` | `financeService.createPayment` | Records a payment against an invoice, with its exchange rate stored on the transaction. |
+| POST | `/api/finance/rep-fees` | `createRepFee`:111 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.createRepFee` | Manually records a rep fee. Reps are paid only for completed jobs. |
+| GET | `/api/finance/rep-fees/:repId/daily` | `getRepDailyFees`:121 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.getRepDailyFees` | A rep's fees per day, for the accounting screen. |
+| POST | `/api/finance/supplier-costs` | `createSupplierCost`:133 | `ADMIN` `MANAGER` `ACCOUNTANT` `perm:finance` | `financeService.createSupplierCost` | Records what we owe a supplier for a job — the vendor-bill side. |
 
 ### GuestBookingsController
 
@@ -454,13 +454,13 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| POST | `/api/payments/create-session` | `createSession`:51 | `authed` | `paymentsService.createPaymentSession` | _—_ |
-| POST | `/api/payments/return/getpayin` | `getPayInReturnPost`:97 | `public` | — | _—_ |
-| GET | `/api/payments/return/getpayin` | `getPayInReturn`:103 | `public` | — | _—_ |
-| POST | `/api/payments/verify/:bookingRef` | `verifyPayment`:150 | `public` | `paymentsService.verifyPaymentStatus` | _—_ |
-| POST | `/api/payments/webhook/getpayin` | `getPayInWebhook`:90 | `public` | — | _—_ |
-| GET | `/api/payments/webhook/getpayin` | `getPayInWebhookGet`:109 | `public` | — | _—_ |
-| POST | `/api/payments/webhook/stripe` | `stripeWebhook`:65 | `public` | `paymentsService.handleStripeWebhook` | _—_ |
+| POST | `/api/payments/create-session` | `createSession`:51 | `authed` | `paymentsService.createPaymentSession` | Starts a hosted checkout for a guest booking. |
+| POST | `/api/payments/return/getpayin` | `getPayInReturnPost`:97 | `public` | — | Browser return URL after GetPayIn checkout (POST). |
+| GET | `/api/payments/return/getpayin` | `getPayInReturn`:103 | `public` | — | Browser return URL after GetPayIn checkout (GET). |
+| POST | `/api/payments/verify/:bookingRef` | `verifyPayment`:150 | `public` | `paymentsService.verifyPaymentStatus` | Re-queries the gateway for a booking's authoritative payment state. |
+| POST | `/api/payments/webhook/getpayin` | `getPayInWebhook`:90 | `public` | — | GetPayIn webhook (POST); verifies the HMAC before acting. |
+| GET | `/api/payments/webhook/getpayin` | `getPayInWebhookGet`:109 | `public` | — | GET variant of the GetPayIn webhook, since the provider may call either verb. |
+| POST | `/api/payments/webhook/stripe` | `stripeWebhook`:65 | `public` | `paymentsService.handleStripeWebhook` | Stripe webhook receiver; verifies the Stripe signature. |
 
 ### PermissionsController
 
@@ -484,11 +484,11 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/public-prices` | `findAll`:39 | `perm:public-prices` | `publicPricesService.findAll` | _—_ |
-| PATCH | `/api/public-prices/:id` | `updateOne`:64 | `ADMIN` `perm:public-prices.bulk` | `publicPricesService.updateOne` | _—_ |
-| DELETE | `/api/public-prices/:id` | `remove`:72 | `ADMIN` `perm:public-prices.delete` | `publicPricesService.remove` | _—_ |
-| POST | `/api/public-prices/bulk` | `bulkUpsert`:56 | `ADMIN` `perm:public-prices.bulk` | `publicPricesService.bulkUpsert` | _—_ |
-| GET | `/api/public-prices/export/template` | `downloadTemplate`:46 | `perm:public-prices` | `publicPricesService.buildImportTemplate` | _—_ |
+| GET | `/api/public-prices` | `findAll`:39 | `perm:public-prices` | `publicPricesService.findAll` | The public price grid. |
+| PATCH | `/api/public-prices/:id` | `updateOne`:64 | `ADMIN` `perm:public-prices.bulk` | `publicPricesService.updateOne` | Edits one public price row. |
+| DELETE | `/api/public-prices/:id` | `remove`:72 | `ADMIN` `perm:public-prices.delete` | `publicPricesService.remove` | Deletes a public price row. |
+| POST | `/api/public-prices/bulk` | `bulkUpsert`:56 | `ADMIN` `perm:public-prices.bulk` | `publicPricesService.bulkUpsert` | Bulk-replaces public prices — the write path used by the partner API's `pushPricing`. |
+| GET | `/api/public-prices/export/template` | `downloadTemplate`:46 | `perm:public-prices` | `publicPricesService.buildImportTemplate` | Blank public-price workbook pre-filled with zones and vehicle types. |
 
 ### RepPortalController
 
@@ -518,24 +518,24 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/reports/agent-statement/:agentId` | `agentStatement`:212 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.agentStatement` | `reportsService.agentStatement` | _—_ |
-| GET | `/api/reports/daily-dispatch` | `dailyDispatchSummary`:177 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.dailyDispatch` | `reportsService.dailyDispatchSummary` | _—_ |
-| GET | `/api/reports/departure` | `departureReport`:351 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.departure` | `reportsService.departureReport` | _—_ |
-| GET | `/api/reports/driver-score` | `driverScoreReport`:300 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.driverScore` | `reportsService.driverScoreReport` | _—_ |
-| PUT | `/api/reports/driver-score/:jobId` | `upsertDriverScore`:261 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.driverScore` | `reportsService.upsertDriverScore` | _—_ |
-| GET | `/api/reports/driver-trips` | `driverTripReport`:197 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.driverTrips` | `reportsService.driverTripReport` | _—_ |
-| GET | `/api/reports/evidence` | `evidenceReport`:314 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.evidence` | `reportsService.evidenceReport` | _—_ |
-| GET | `/api/reports/flight-delay` | `flightDelayReport`:385 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.flightDelay` | `reportsService.flightDelayReport` | _—_ |
-| GET | `/api/reports/flight-delay/:jobId` | `flightDelayForJob`:399 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.flightDelay` | `reportsService.flightDelayForJob` | _—_ |
-| GET | `/api/reports/guest-surveys` | `guestSurveyReport`:286 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.guestSurveys` | `reportsService.guestSurveyReport` | _—_ |
-| GET | `/api/reports/job-status` | `jobStatusReport`:365 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.jobStatus` | `reportsService.jobStatusReport` | _—_ |
-| GET | `/api/reports/rep-fees` | `repFeeReport`:187 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.repFees` | `reportsService.repFeeReport` | _—_ |
-| GET | `/api/reports/rep-score` | `repScoreReport`:272 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.repScore` | `reportsService.repScoreReport` | _—_ |
-| PUT | `/api/reports/rep-score/:jobId` | `upsertRepScore`:246 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.repScore` | `reportsService.upsertRepScore` | _—_ |
-| GET | `/api/reports/revenue` | `revenueReport`:231 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.revenue` | `reportsService.revenueReport` | _—_ |
-| GET | `/api/reports/review` | `reviewReport`:406 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.review` | `reportsService.reviewReport` | _—_ |
-| GET | `/api/reports/sales` | `salesReport`:341 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.sales` | `reportsService.salesReport` | _—_ |
-| GET | `/api/reports/visa` | `visaReport`:331 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.visa` | `reportsService.visaReport` | _—_ |
+| GET | `/api/reports/agent-statement/:agentId` | `agentStatement`:212 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.agentStatement` | `reportsService.agentStatement` | Statement of account for an agent: invoices, payments and balance. |
+| GET | `/api/reports/daily-dispatch` | `dailyDispatchSummary`:177 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.dailyDispatch` | `reportsService.dailyDispatchSummary` | One day's dispatch counts and status breakdown. |
+| GET | `/api/reports/departure` | `departureReport`:351 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.departure` | `reportsService.departureReport` | Departure jobs report. |
+| GET | `/api/reports/driver-score` | `driverScoreReport`:300 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.driverScore` | `reportsService.driverScoreReport` | Driver scores across jobs. |
+| PUT | `/api/reports/driver-score/:jobId` | `upsertDriverScore`:261 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.driverScore` | `reportsService.upsertDriverScore` | Sets a driver's per-job score, recalculating the fee it implies. |
+| GET | `/api/reports/driver-trips` | `driverTripReport`:197 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.driverTrips` | `reportsService.driverTripReport` | Trips and fees per driver over a period. |
+| GET | `/api/reports/evidence` | `evidenceReport`:314 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.evidence` | `reportsService.evidenceReport` | Which jobs have evidence photos and which are missing them. |
+| GET | `/api/reports/flight-delay` | `flightDelayReport`:385 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.flightDelay` | `reportsService.flightDelayReport` | Flight delays reported by reps, reconstructed from the notifications they raised. |
+| GET | `/api/reports/flight-delay/:jobId` | `flightDelayForJob`:399 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.flightDelay` | `reportsService.flightDelayForJob` | Delay history for one job. |
+| GET | `/api/reports/guest-surveys` | `guestSurveyReport`:286 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.guestSurveys` | `reportsService.guestSurveyReport` | Arrival guest survey responses. |
+| GET | `/api/reports/job-status` | `jobStatusReport`:365 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.jobStatus` | `reportsService.jobStatusReport` | Job counts by status over a period. |
+| GET | `/api/reports/rep-fees` | `repFeeReport`:187 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.repFees` | `reportsService.repFeeReport` | Rep fees per job, with the score behind each. |
+| GET | `/api/reports/rep-score` | `repScoreReport`:272 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.repScore` | `reportsService.repScoreReport` | Rep scores across jobs. |
+| PUT | `/api/reports/rep-score/:jobId` | `upsertRepScore`:246 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.repScore` | `reportsService.upsertRepScore` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
+| GET | `/api/reports/revenue` | `revenueReport`:231 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.revenue` | `reportsService.revenueReport` | Revenue against driver, rep and supplier costs for a period. |
+| GET | `/api/reports/review` | `reviewReport`:406 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.review` | `reportsService.reviewReport` | Guest reviews per job. |
+| GET | `/api/reports/sales` | `salesReport`:341 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.sales` | `reportsService.salesReport` | Sales by period and counterparty. |
+| GET | `/api/reports/visa` | `visaReport`:331 | `ADMIN` `MANAGER` `ACCOUNTANT` `DISPATCHER` `perm:reports.visa` | `reportsService.visaReport` | Visa-related job report. |
 
 ### RepsController
 

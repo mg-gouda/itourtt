@@ -14,27 +14,31 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
 `backend/src/driver-tariffs/driver-tariffs.controller.ts:34` · controller · 5 methods
 
+REST surface for the driver tariff table.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 39 | `driverTariffsService.findAll` | _—_ |
-| `downloadTemplate` | pub | 46 | `driverTariffsService.generateTemplate` | _—_ |
-| `importExcel` | pub | 60 | `driverTariffsService.importFromExcel` | _—_ |
-| `upsert` | pub | 74 | `driverTariffsService.upsert` | _—_ |
-| `remove` | pub | 82 | `driverTariffsService.remove` | _—_ |
+| `findAll` | pub | 39 | `driverTariffsService.findAll` | Lists tariff rows. |
+| `downloadTemplate` | pub | 46 | `driverTariffsService.generateTemplate` | Blank tariff import workbook. |
+| `importExcel` | pub | 60 | `driverTariffsService.importFromExcel` | Multipart tariff import. |
+| `upsert` | pub | 74 | `driverTariffsService.upsert` | Creates or updates a tariff row. |
+| `remove` | pub | 82 | `driverTariffsService.remove` | Deletes a tariff row. |
 
 ### DriverTariffsService
 
 `backend/src/driver-tariffs/driver-tariffs.service.ts:8` · service · 7 methods
 
+★ The driver trip-fee tariff table. Drivers are paid per trip by route, and a tariff row is keyed on a from/to pair (zone OR airport on either side) plus vehicle type. `resolveJobTripFee` is the one place that turns a completed job into money.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 20 | `driverPriceTariff` | _—_ |
-| `upsert` | pub | 33 | `driverPriceTariff` | _—_ |
-| `remove` | pub | 86 | `driverPriceTariff` | _—_ |
-| `lookup` | pub | 96 | `driverPriceTariff` | _—_ |
-| `resolveJobTripFee` | pub | 133 | `vehicle` | _—_ |
-| `generateTemplate` | pub | 184 | `zone` `airport` `vehicleType` `jobServiceType` | _—_ |
-| `importFromExcel` | pub | 275 | `zone` `airport` `vehicleType` `jobServiceType` | _—_ |
+| `findAll` | pub | 20 | `driverPriceTariff` | Lists tariff rows for the tariff editor. |
+| `upsert` | pub | 33 | `driverPriceTariff` | Creates or updates a tariff row. |
+| `remove` | pub | 86 | `driverPriceTariff` | Deletes a tariff row. |
+| `lookup` | pub | 96 | `driverPriceTariff` | Airport-aware tariff match. Builds an OR over the four valid from/to shapes (zone→zone, airport→zone, zone→airport, airport→airport), requiring the unused side to be explicitly null so a zone rule cannot accidentally match an airport job. |
+| `resolveJobTripFee` | pub | 133 | `vehicle` | ★ Builds the `DriverTripFee` payload for a completed job: resolves the vehicle's type, looks up the tariff, and returns null if the job has no from+to pair. Amount falls back to 0 when nothing matches. Centralised here specifically so the portals stopped creating fees at amount 0. |
+| `generateTemplate` | pub | 184 | `zone` `airport` `vehicleType` `jobServiceType` | Blank tariff workbook pre-filled with real zones, airports, vehicle types and service types. |
+| `importFromExcel` | pub | 275 | `zone` `airport` `vehicleType` `jobServiceType` | Bulk-imports tariff rows, resolving names to ids. |
 
 ## `export`
 
@@ -42,93 +46,97 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
 `backend/src/export/export.controller.ts:14` · controller · 35 methods
 
+Download surface for every Excel/PDF/zip export. Each endpoint streams a file rather than JSON; Odoo accounting exports sit under `/api/export/odoo`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `exportDispatchDay` | pub | 23 | `exportService.exportDispatchDay` | _—_ |
-| `exportRepFees` | pub | 36 | `exportService.exportRepFees` | _—_ |
-| `exportCustomers` | pub | 50 | `exportService.exportCustomers` | _—_ |
-| `exportSuppliers` | pub | 57 | `exportService.exportSuppliers` | _—_ |
-| `exportInvoices` | pub | 64 | `exportService.exportInvoices` | _—_ |
-| `exportVendorBills` | pub | 75 | `exportService.exportVendorBills` | _—_ |
-| `exportPayments` | pub | 86 | `exportService.exportPayments` | _—_ |
-| `exportJournalEntries` | pub | 97 | `exportService.exportJournalEntries` | _—_ |
-| `exportCollections` | pub | 108 | `exportService.exportCollections` | _—_ |
-| `exportClientSigns` | pub | 121 | `exportService.generateClientSigns` | _—_ |
-| `exportDailyDispatch` | pub | 148 | `exportService.exportDailyDispatchReport` | _—_ |
-| `exportDriverTrips` | pub | 162 | `exportService.exportDriverTrips` | _—_ |
-| `exportAgentStatement` | pub | 177 | `exportService.exportAgentStatement` | _—_ |
-| `exportRevenue` | pub | 192 | `exportService.exportRevenue` | _—_ |
-| `exportVehicleCompliance` | pub | 207 | `exportService.exportVehicleCompliance` | _—_ |
-| `getCarJobsVehicles` | pub | 219 | `exportService.getOwnedActiveVehicles` | _—_ |
-| `getCarJobsReport` | pub | 230 | `exportService.getCarJobsReport` | _—_ |
-| `getSupplierJobsReport` | pub | 246 | `exportService.getSupplierJobsReport` | _—_ |
-| `exportVisa` | pub | 262 | `exportService.exportVisaReport` | _—_ |
-| `exportSales` | pub | 278 | `exportService.exportSalesReport` | _—_ |
-| `getEvidenceData` | pub | 295 | `exportService.getEvidenceData` | _—_ |
-| `downloadEvidencePdf` | pub | 302 | `exportService.generateJobEvidencePdf` | _—_ |
-| `downloadEvidenceZip` | pub | 328 | `exportService.streamEvidenceZip` | _—_ |
-| `proxyEvidenceFile` | pub | 349 | `googleDriveService.getFileStream` | _—_ |
-| `exportEvidenceExcel` | pub | 372 | `exportService.exportEvidenceReport` | _—_ |
-| `exportDriverScore` | pub | 388 | `exportService.exportDriverScoreReport` | _—_ |
-| `exportRepScore` | pub | 401 | `exportService.exportRepScoreReport` | _—_ |
-| `exportGuestSurveys` | pub | 414 | `exportService.exportGuestSurveyReport` | _—_ |
-| `exportJobStatus` | pub | 427 | `exportService.exportJobStatusReport` | _—_ |
-| `exportDeparture` | pub | 444 | `exportService.exportDepartureReport` | _—_ |
-| `exportFlightDelay` | pub | 457 | `exportService.exportFlightDelayReport` | _—_ |
-| `exportSupplierJobsExcel` | pub | 470 | `exportService.exportSupplierJobsExcel` | _—_ |
-| `exportCarJobsExcel` | pub | 484 | `exportService.exportCarJobsExcel` | _—_ |
-| `exportReview` | pub | 497 | `exportService.exportReviewReport` | _—_ |
-| `sendXlsx` | priv | 508 | — | _—_ |
+| `exportDispatchDay` | pub | 23 | `exportService.exportDispatchDay` | One day's dispatch grid as xlsx. |
+| `exportRepFees` | pub | 36 | `exportService.exportRepFees` | Rep fees per job, with the score that produced each fee. |
+| `exportCustomers` | pub | 50 | `exportService.exportCustomers` | Agents/customers as xlsx. |
+| `exportSuppliers` | pub | 57 | `exportService.exportSuppliers` | Suppliers as xlsx. |
+| `exportInvoices` | pub | 64 | `exportService.exportInvoices` | Agent invoices as xlsx. |
+| `exportVendorBills` | pub | 75 | `exportService.exportVendorBills` | Supplier costs as vendor bills. |
+| `exportPayments` | pub | 86 | `exportService.exportPayments` | Payments as xlsx. |
+| `exportJournalEntries` | pub | 97 | `exportService.exportJournalEntries` | Journal entries as xlsx. |
+| `exportCollections` | pub | 108 | `exportService.exportCollections` | Driver cash collections and their liquidation state. |
+| `exportClientSigns` | pub | 121 | `exportService.generateClientSigns` | Downloads printable guest name-sign PDFs. |
+| `exportDailyDispatch` | pub | 148 | `exportService.exportDailyDispatchReport` | Daily dispatch summary as xlsx. |
+| `exportDriverTrips` | pub | 162 | `exportService.exportDriverTrips` | Driver trips and fees for a period. |
+| `exportAgentStatement` | pub | 177 | `exportService.exportAgentStatement` | Agent statement of account. |
+| `exportRevenue` | pub | 192 | `exportService.exportRevenue` | Revenue against driver, rep and supplier costs. |
+| `exportVehicleCompliance` | pub | 207 | `exportService.exportVehicleCompliance` | Fleet compliance and expiry report. |
+| `getCarJobsVehicles` | pub | 219 | `exportService.getOwnedActiveVehicles` | Owned active vehicles forming the car-jobs report rows. |
+| `getCarJobsReport` | pub | 230 | `exportService.getCarJobsReport` | Car jobs report data as JSON, for the on-screen report. |
+| `getSupplierJobsReport` | pub | 246 | `exportService.getSupplierJobsReport` | Supplier jobs report data as JSON. |
+| `exportVisa` | pub | 262 | `exportService.exportVisaReport` | Visa report as xlsx. |
+| `exportSales` | pub | 278 | `exportService.exportSalesReport` | Sales report as xlsx. |
+| `getEvidenceData` | pub | 295 | `exportService.getEvidenceData` | Evidence photos and metadata for one job as JSON. |
+| `downloadEvidencePdf` | pub | 302 | `exportService.generateJobEvidencePdf` | Downloads one job's evidence pack as PDF. |
+| `downloadEvidenceZip` | pub | 328 | `exportService.streamEvidenceZip` | Streams all evidence photos for a job selection as a zip. |
+| `proxyEvidenceFile` | pub | 349 | `googleDriveService.getFileStream` | Proxies an evidence image so Google Drive file ids never reach the browser; serves local-disk files too. |
+| `exportEvidenceExcel` | pub | 372 | `exportService.exportEvidenceReport` | Evidence coverage report as xlsx. |
+| `exportDriverScore` | pub | 388 | `exportService.exportDriverScoreReport` | Driver scores as xlsx. |
+| `exportRepScore` | pub | 401 | `exportService.exportRepScoreReport` | Rep scores and fees as xlsx. |
+| `exportGuestSurveys` | pub | 414 | `exportService.exportGuestSurveyReport` | Arrival guest surveys as xlsx (reuses the `reports.guestSurveys` permission). |
+| `exportJobStatus` | pub | 427 | `exportService.exportJobStatusReport` | Job status breakdown as xlsx. |
+| `exportDeparture` | pub | 444 | `exportService.exportDepartureReport` | Departures report as xlsx. |
+| `exportFlightDelay` | pub | 457 | `exportService.exportFlightDelayReport` | Flight delay report as xlsx. |
+| `exportSupplierJobsExcel` | pub | 470 | `exportService.exportSupplierJobsExcel` | Supplier jobs report as xlsx. |
+| `exportCarJobsExcel` | pub | 484 | `exportService.exportCarJobsExcel` | Car jobs (owned fleet utilisation) as xlsx. |
+| `exportReview` | pub | 497 | `exportService.exportReviewReport` | Guest review report as xlsx. |
+| `sendXlsx` | priv | 508 | — | Shared helper writing a workbook to the response with the right content-type and filename. |
 
 ### ExportService
 
 `backend/src/export/export.service.ts:91` · service · 43 methods
 
+The Excel export layer — the largest file in the backend. One export function per report or entity, all producing xlsx. Odoo-specific accounting exports live in `OdooExportService` instead.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `exportCustomers` | pub | 103 | `agent` | _—_ |
-| `exportSuppliers` | pub | 141 | `supplier` | _—_ |
-| `exportInvoices` | pub | 175 | `agentInvoice` | _—_ |
-| `exportVendorBills` | pub | 223 | `supplierCost` | _—_ |
-| `exportPayments` | pub | 271 | `payment` | _—_ |
-| `exportJournalEntries` | pub | 306 | `journalEntry` | _—_ |
-| `exportCollections` | pub | 349 | `trafficJob` | _—_ |
-| `exportRepFees` | pub | 407 | `trafficAssignment` | _—_ |
-| `exportDispatchDay` | pub | 520 | `trafficJob` | _—_ |
-| `generateClientSigns` | pub | 679 | `companySettings` `trafficJob` | _—_ |
-| `generateJobEvidencePdf` | pub | 801 | `companySettings` `trafficJob` | _—_ |
-| `exportDailyDispatchReport` | pub | 1105 | `trafficJob` | _—_ |
-| `exportDriverTrips` | pub | 1155 | `trafficAssignment` `driverTripFee` | _—_ |
-| `exportAgentStatement` | pub | 1250 | `agent` `agentInvoice` | _—_ |
-| `exportRevenue` | pub | 1328 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | _—_ |
-| `exportVehicleCompliance` | pub | 1436 | `vehicle` | _—_ |
-| `autoSizeColumns` | priv | 1480 | — | _—_ |
-| `formatDate` | priv | 1500 | — | _—_ |
-| `cairoDate` | priv | 1506 | — | _—_ |
-| `cairoTime` | priv | 1511 | — | _—_ |
-| `cairoDateTime` | priv | 1516 | — | _—_ |
-| `mapPaymentJournal` | priv | 1521 | — | _—_ |
-| `mapJournalType` | priv | 1534 | — | _—_ |
-| `streamEvidenceZip` | pub | 1555 | `trafficJob` | _—_ |
-| `fetchAllInBatches` | priv | 1631 | — | _—_ |
-| `createWorkbook` | priv | 1645 | — | _—_ |
-| `getEvidenceData` | pub | 1673 | `companySettings` `trafficJob` | _—_ |
-| `getSupplierJobsReport` | pub | 1778 | `trafficAssignment` | _—_ |
-| `getOwnedActiveVehicles` | pub | 1851 | `vehicle` | _—_ |
-| `getCarJobsReport` | pub | 1859 | `trafficAssignment` | _—_ |
-| `exportVisaReport` | pub | 1932 | `trafficJob` | _—_ |
-| `exportSalesReport` | pub | 1962 | `trafficJob` | _—_ |
-| `exportEvidenceReport` | pub | 2012 | `trafficJob` | _—_ |
-| `exportDriverScoreReport` | pub | 2108 | `driverJobScore` | _—_ |
-| `exportRepScoreReport` | pub | 2181 | `repJobScore` | _—_ |
-| `exportGuestSurveyReport` | pub | 2244 | `guestSurvey` | _—_ |
-| `exportJobStatusReport` | pub | 2292 | `trafficJob` | _—_ |
-| `exportDepartureReport` | pub | 2366 | `trafficJob` | _—_ |
-| `exportFlightDelayReport` | pub | 2398 | `userNotification` | _—_ |
-| `exportSupplierJobsExcel` | pub | 2467 | — | _—_ |
-| `exportCarJobsExcel` | pub | 2491 | — | _—_ |
-| `exportReviewReport` | pub | 2518 | `trafficJob` | _—_ |
-| `buildDateFilter` | priv | 2583 | — | _—_ |
+| `exportCustomers` | pub | 103 | `agent` | Agents/customers as xlsx. |
+| `exportSuppliers` | pub | 141 | `supplier` | Suppliers as xlsx. |
+| `exportInvoices` | pub | 175 | `agentInvoice` | Agent invoices as xlsx. |
+| `exportVendorBills` | pub | 223 | `supplierCost` | Supplier costs as vendor bills. |
+| `exportPayments` | pub | 271 | `payment` | Payments as xlsx. |
+| `exportJournalEntries` | pub | 306 | `journalEntry` | Journal entries as xlsx. |
+| `exportCollections` | pub | 349 | `trafficJob` | Driver cash collections and their liquidation state. |
+| `exportRepFees` | pub | 407 | `trafficAssignment` | Rep fees per job, with the score that produced each fee. |
+| `exportDispatchDay` | pub | 520 | `trafficJob` | One day's dispatch grid as xlsx. |
+| `generateClientSigns` | pub | 679 | `companySettings` `trafficJob` | Printable guest name-sign PDFs (company-branded) that reps hold at arrivals. |
+| `generateJobEvidencePdf` | pub | 801 | `companySettings` `trafficJob` | PDF evidence pack for one job, with the photos embedded. |
+| `exportDailyDispatchReport` | pub | 1105 | `trafficJob` | Daily dispatch summary as xlsx. |
+| `exportDriverTrips` | pub | 1155 | `trafficAssignment` `driverTripFee` | Driver trips and fees for a period. |
+| `exportAgentStatement` | pub | 1250 | `agent` `agentInvoice` | Agent statement of account. |
+| `exportRevenue` | pub | 1328 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | Revenue against driver, rep and supplier costs. |
+| `exportVehicleCompliance` | pub | 1436 | `vehicle` | Fleet compliance and expiry report. |
+| `autoSizeColumns` | priv | 1480 | — | Widens worksheet columns to fit their content. |
+| `formatDate` | priv | 1500 | — | Plain date formatting for sheets. |
+| `cairoDate` | priv | 1506 | — | Date rendered in Africa/Cairo — every exported timestamp is pinned to Cairo, never the server or device zone. |
+| `cairoTime` | priv | 1511 | — | Time rendered in Africa/Cairo. |
+| `cairoDateTime` | priv | 1516 | — | Date and time rendered in Africa/Cairo. |
+| `mapPaymentJournal` | priv | 1521 | — | Maps a payment method to its Odoo journal. |
+| `mapJournalType` | priv | 1534 | — | Maps an internal journal type to Odoo's. |
+| `streamEvidenceZip` | pub | 1555 | `trafficJob` | Streams every evidence photo for a job selection as a zip, rather than buffering it in memory. |
+| `fetchAllInBatches` | priv | 1631 | — | Pages through large result sets so a big export cannot exhaust memory. |
+| `createWorkbook` | priv | 1645 | — | Shared workbook scaffolding used by every export. |
+| `getEvidenceData` | pub | 1673 | `companySettings` `trafficJob` | Collects a job's evidence photos and metadata for the PDF and zip paths. |
+| `getSupplierJobsReport` | pub | 1778 | `trafficAssignment` | Jobs run by each supplier, for reconciliation against their invoices. |
+| `getOwnedActiveVehicles` | pub | 1851 | `vehicle` | Active owned vehicles, used as the row set of the car-jobs report. |
+| `getCarJobsReport` | pub | 1859 | `trafficAssignment` | Jobs per owned car — utilisation view. |
+| `exportVisaReport` | pub | 1932 | `trafficJob` | Visa report as xlsx. |
+| `exportSalesReport` | pub | 1962 | `trafficJob` | Sales report as xlsx. |
+| `exportEvidenceReport` | pub | 2012 | `trafficJob` | Evidence coverage report — which jobs have photos and which do not. |
+| `exportDriverScoreReport` | pub | 2108 | `driverJobScore` | Driver scores as xlsx. |
+| `exportRepScoreReport` | pub | 2181 | `repJobScore` | Rep scores and resulting fees as xlsx. |
+| `exportGuestSurveyReport` | pub | 2244 | `guestSurvey` | Arrival guest surveys as xlsx. |
+| `exportJobStatusReport` | pub | 2292 | `trafficJob` | Job status breakdown as xlsx. |
+| `exportDepartureReport` | pub | 2366 | `trafficJob` | Departures report as xlsx. |
+| `exportFlightDelayReport` | pub | 2398 | `userNotification` | Flight delays reported by reps, sourced from the notifications they generated. |
+| `exportSupplierJobsExcel` | pub | 2467 | — | Supplier jobs report as xlsx. |
+| `exportCarJobsExcel` | pub | 2491 | — | Car jobs report as xlsx. |
+| `exportReviewReport` | pub | 2518 | `trafficJob` | Guest review report as xlsx. |
+| `buildDateFilter` | priv | 2583 | — | Shared date-range predicate used by every report query. |
 
 ## `finance`
 
@@ -136,113 +144,123 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
 `backend/src/finance/finance.controller.ts:87` · controller · 31 methods
 
+Finance surface: fees, invoices (agent, customer and B2C), payments, collections, invoice documents, and the Odoo-ready accounting exports.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `createDriverFee` | pub | 99 | `financeService.createDriverFee` | _—_ |
-| `createRepFee` | pub | 111 | `financeService.createRepFee` | _—_ |
-| `getRepDailyFees` | pub | 121 | `financeService.getRepDailyFees` | _—_ |
-| `createSupplierCost` | pub | 133 | `financeService.createSupplierCost` | _—_ |
-| `createInvoice` | pub | 145 | `financeService.createInvoice` | _—_ |
-| `listInvoices` | pub | 155 | `financeService.listInvoices` | _—_ |
-| `getInvoice` | pub | 162 | `financeService.getInvoice` | _—_ |
-| `updateInvoiceLines` | pub | 169 | `financeService.updateInvoiceLines` | _—_ |
-| `updateInvoiceStatus` | pub | 179 | `financeService.updateInvoiceStatus` | _—_ |
-| `createPayment` | pub | 191 | `financeService.createPayment` | _—_ |
-| `getJobFinancials` | pub | 203 | `financeService.getJobFinancials` | _—_ |
-| `generateCustomerInvoices` | pub | 214 | `financeService.generateCustomerInvoices` | _—_ |
-| `listCustomerInvoices` | pub | 224 | `financeService.listCustomerInvoices` | _—_ |
-| `getCustomerInvoice` | pub | 231 | `financeService.getCustomerInvoice` | _—_ |
-| `listB2CInvoices` | pub | 240 | `b2cInvoiceService.listAll` | _—_ |
-| `getB2CInvoicePdf` | pub | 246 | `b2cInvoiceService.getPdfById` | _—_ |
-| `getAgentOptions` | pub | 263 | `financeService.getAgentOptions` | _—_ |
-| `getCustomerOptions` | pub | 270 | `financeService.getCustomerOptions` | _—_ |
-| `getCustomerJobsForInvoice` | pub | 277 | `financeService.getCustomerJobsForInvoice` | _—_ |
-| `getAgentJobsForInvoice` | pub | 291 | `financeService.getAgentJobsForInvoice` | _—_ |
-| `getInvoicePdf` | pub | 307 | `invoiceExportService.generateInvoicePdf` | _—_ |
-| `getInvoiceExcel` | pub | 323 | `invoiceExportService.generateInvoiceExcel` | _—_ |
-| `getCollections` | pub | 341 | `financeService.getCollections` | _—_ |
-| `liquidateCollection` | pub | 352 | `financeService.liquidateCollection` | _—_ |
-| `odooPartners` | pub | 368 | `odooExportService.exportPartners` | _—_ |
-| `odooCustomerInvoices` | pub | 380 | `odooExportService.exportCustomerInvoices` | _—_ |
-| `odooB2CPartners` | pub | 396 | `odooExportService.exportB2CPartners` | _—_ |
-| `odooB2CInvoices` | pub | 412 | `odooExportService.exportB2CCustomerInvoices` | _—_ |
-| `odooVendorBills` | pub | 428 | `odooExportService.exportVendorBills` | _—_ |
-| `odooPayments` | pub | 444 | `odooExportService.exportPayments` | _—_ |
-| `odooAllInOne` | pub | 460 | `odooExportService.exportAllInOne` | _—_ |
+| `createDriverFee` | pub | 99 | `financeService.createDriverFee` | Manually records a driver trip fee (the automatic path is `resolveJobTripFee` via the completion roll-up). |
+| `createRepFee` | pub | 111 | `financeService.createRepFee` | Manually records a rep fee. Reps are paid only for completed jobs. |
+| `getRepDailyFees` | pub | 121 | `financeService.getRepDailyFees` | A rep's fees per day, for the accounting screen. |
+| `createSupplierCost` | pub | 133 | `financeService.createSupplierCost` | Records what we owe a supplier for a job — the vendor-bill side. |
+| `createInvoice` | pub | 145 | `financeService.createInvoice` | Builds an agent invoice from selected jobs, applying the agent price list and credit check. |
+| `listInvoices` | pub | 155 | `financeService.listInvoices` | Filterable invoice list. |
+| `getInvoice` | pub | 162 | `financeService.getInvoice` | One invoice with its lines and payments. |
+| `updateInvoiceLines` | pub | 169 | `financeService.updateInvoiceLines` | Edits invoice lines — only valid while the invoice is unposted; posted financial records are immutable. |
+| `updateInvoiceStatus` | pub | 179 | `financeService.updateInvoiceStatus` | Moves an invoice through its lifecycle (draft → posted → paid). Posting is the point after which it must not change. |
+| `createPayment` | pub | 191 | `financeService.createPayment` | Records a payment against an invoice, with its exchange rate stored on the transaction. |
+| `getJobFinancials` | pub | 203 | `financeService.getJobFinancials` | Everything financial attached to one job: driver fee, rep fee, supplier cost and invoice lines — the per-job P&L view. |
+| `generateCustomerInvoices` | pub | 214 | `financeService.generateCustomerInvoices` | Batch-generates B2B invoices from completed jobs priced off each customer's price list. |
+| `listCustomerInvoices` | pub | 224 | `financeService.listCustomerInvoices` | Filterable customer invoice list. |
+| `getCustomerInvoice` | pub | 231 | `financeService.getCustomerInvoice` | One customer invoice. |
+| `listB2CInvoices` | pub | 240 | `b2cInvoiceService.listAll` | Admin list of B2C guest invoices. |
+| `getB2CInvoicePdf` | pub | 246 | `b2cInvoiceService.getPdfById` | Admin download of a B2C invoice PDF (no ownership check — admin-only route). |
+| `getAgentOptions` | pub | 263 | `financeService.getAgentOptions` | Agents available for invoicing, for the picker. |
+| `getCustomerOptions` | pub | 270 | `financeService.getCustomerOptions` | Customers available for invoicing. |
+| `getCustomerJobsForInvoice` | pub | 277 | `financeService.getCustomerJobsForInvoice` | Uninvoiced customer jobs with their resolved prices, ready to select. |
+| `getAgentJobsForInvoice` | pub | 291 | `financeService.getAgentJobsForInvoice` | Uninvoiced agent jobs with their resolved prices. |
+| `getInvoicePdf` | pub | 307 | `invoiceExportService.generateInvoicePdf` | Downloads the branded invoice PDF. |
+| `getInvoiceExcel` | pub | 323 | `invoiceExportService.generateInvoiceExcel` | Downloads the invoice as xlsx. |
+| `getCollections` | pub | 341 | `financeService.getCollections` | Cash collections drivers have taken on jobs, and their liquidation state. |
+| `liquidateCollection` | pub | 352 | `financeService.liquidateCollection` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
+| `odooPartners` | pub | 368 | `odooExportService.exportPartners` | Odoo res.partner export (agents + suppliers). |
+| `odooCustomerInvoices` | pub | 380 | `odooExportService.exportCustomerInvoices` | Odoo account.move export for customer invoices. |
+| `odooB2CPartners` | pub | 396 | `odooExportService.exportB2CPartners` | Odoo res.partner export synthesised from B2C guests. |
+| `odooB2CInvoices` | pub | 412 | `odooExportService.exportB2CCustomerInvoices` | Odoo account.move export for B2C guest invoices. |
+| `odooVendorBills` | pub | 428 | `odooExportService.exportVendorBills` | Odoo vendor-bill export from supplier costs. |
+| `odooPayments` | pub | 444 | `odooExportService.exportPayments` | Odoo account.payment export. |
+| `odooAllInOne` | pub | 460 | `odooExportService.exportAllInOne` | Single workbook with every Odoo sheet, for one import pass. |
 
 ### FinanceService
 
 `backend/src/finance/finance.service.ts:21` · service · 25 methods
 
+Fees, invoices, payments and collections. Two invoice families share the `AgentInvoice` table: agent invoices (ONLINE channel) and customer invoices (B2B), each with its own numbering. Tax follows Egyptian law; there is no commission logic anywhere.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `createDriverFee` | pub | 28 | `trafficJob` `driver` `driverTripFee` | _—_ |
-| `createRepFee` | pub | 80 | `trafficJob` `rep` `repFee` | _—_ |
-| `getRepDailyFees` | pub | 129 | `rep` `repFee` | _—_ |
-| `createSupplierCost` | pub | 180 | `trafficJob` `supplier` `supplierCost` | _—_ |
-| `checkAgentCreditLimit` | priv | 223 | `agentCreditTerms` `agentInvoice` | _—_ |
-| `calculateLineTax` | priv | 258 | — | _—_ |
-| `calculateInvoiceTotals` | priv | 272 | — | _—_ |
-| `generateInvoiceNumber` | priv | 294 | — | _—_ |
-| `createInvoice` | pub | 303 | `agent` `trafficJob` `agentInvoice` | _—_ |
-| `getInvoice` | pub | 421 | `agentInvoice` | _—_ |
-| `updateInvoiceLines` | pub | 452 | `agentInvoice` `invoiceLine` | _—_ |
-| `updateInvoiceStatus` | pub | 516 | `agentInvoice` | _—_ |
-| `listInvoices` | pub | 559 | `agentInvoice` | _—_ |
-| `createPayment` | pub | 613 | `agentInvoice` `payment` | _—_ |
-| `getJobFinancials` | pub | 689 | `trafficJob` `driverTripFee` `repFee` `supplierCost` `invoiceLine` | _—_ |
-| `generateCustomerInvoiceNumber` | priv | 744 | — | _—_ |
-| `generateCustomerInvoices` | pub | 754 | `customer` `trafficJob` `customerPriceItem` `agentInvoice` | _—_ |
-| `getCustomerInvoice` | pub | 958 | `agentInvoice` | _—_ |
-| `listCustomerInvoices` | pub | 976 | `agentInvoice` | _—_ |
-| `getAgentOptions` | pub | 1018 | `agent` | _—_ |
-| `getCustomerOptions` | pub | 1034 | `customer` | _—_ |
-| `getCustomerJobsForInvoice` | pub | 1048 | `customer` `trafficJob` `customerPriceItem` | _—_ |
-| `getAgentJobsForInvoice` | pub | 1116 | `agent` `trafficJob` `agentPriceItem` | _—_ |
-| `getCollections` | pub | 1195 | `trafficJob` | _—_ |
-| `liquidateCollection` | pub | 1233 | `trafficJob` | _—_ |
+| `createDriverFee` | pub | 28 | `trafficJob` `driver` `driverTripFee` | Manually records a driver trip fee (the automatic path is `resolveJobTripFee` via the completion roll-up). |
+| `createRepFee` | pub | 80 | `trafficJob` `rep` `repFee` | Manually records a rep fee. Reps are paid only for completed jobs. |
+| `getRepDailyFees` | pub | 129 | `rep` `repFee` | A rep's fees per day, for the accounting screen. |
+| `createSupplierCost` | pub | 180 | `trafficJob` `supplier` `supplierCost` | Records what we owe a supplier for a job — the vendor-bill side. |
+| `checkAgentCreditLimit` | priv | 223 | `agentCreditTerms` `agentInvoice` | Blocks or warns when a new invoice would push an agent past their credit limit or credit days. |
+| `calculateLineTax` | priv | 258 | — | Per-line tax under Egyptian tax rules. |
+| `calculateInvoiceTotals` | priv | 272 | — | Rolls lines into net, tax and gross totals. |
+| `generateInvoiceNumber` | priv | 294 | — | Allocates the next agent invoice number. |
+| `createInvoice` | pub | 303 | `agent` `trafficJob` `agentInvoice` | Builds an agent invoice from selected jobs, applying the agent price list and credit check. |
+| `getInvoice` | pub | 421 | `agentInvoice` | One invoice with its lines and payments. |
+| `updateInvoiceLines` | pub | 452 | `agentInvoice` `invoiceLine` | Edits invoice lines — only valid while the invoice is unposted; posted financial records are immutable. |
+| `updateInvoiceStatus` | pub | 516 | `agentInvoice` | Moves an invoice through its lifecycle (draft → posted → paid). Posting is the point after which it must not change. |
+| `listInvoices` | pub | 559 | `agentInvoice` | Filterable invoice list. |
+| `createPayment` | pub | 613 | `agentInvoice` `payment` | Records a payment against an invoice, with its exchange rate stored on the transaction. |
+| `getJobFinancials` | pub | 689 | `trafficJob` `driverTripFee` `repFee` `supplierCost` `invoiceLine` | Everything financial attached to one job: driver fee, rep fee, supplier cost and invoice lines — the per-job P&L view. |
+| `generateCustomerInvoiceNumber` | priv | 744 | — | Allocates the next customer (B2B) invoice number, a separate sequence from agent invoices. |
+| `generateCustomerInvoices` | pub | 754 | `customer` `trafficJob` `customerPriceItem` `agentInvoice` | Batch-generates B2B invoices from completed jobs priced off each customer's price list. |
+| `getCustomerInvoice` | pub | 958 | `agentInvoice` | One customer invoice. |
+| `listCustomerInvoices` | pub | 976 | `agentInvoice` | Filterable customer invoice list. |
+| `getAgentOptions` | pub | 1018 | `agent` | Agents available for invoicing, for the picker. |
+| `getCustomerOptions` | pub | 1034 | `customer` | Customers available for invoicing. |
+| `getCustomerJobsForInvoice` | pub | 1048 | `customer` `trafficJob` `customerPriceItem` | Uninvoiced customer jobs with their resolved prices, ready to select. |
+| `getAgentJobsForInvoice` | pub | 1116 | `agent` `trafficJob` `agentPriceItem` | Uninvoiced agent jobs with their resolved prices. |
+| `getCollections` | pub | 1195 | `trafficJob` | Cash collections drivers have taken on jobs, and their liquidation state. |
+| `liquidateCollection` | pub | 1233 | `trafficJob` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
 
 ### InvoiceExportService
 
 `backend/src/finance/invoice-export.service.ts:9` · service · 8 methods
 
+Renders invoices as PDF/Excel documents for sending to agents and customers (distinct from the Odoo accounting exports).
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `fetchInvoiceData` | priv | 16 | `agentInvoice` `companySettings` | _—_ |
-| `buildRoute` | priv | 58 | — | _—_ |
-| `buildExtras` | priv | 72 | — | _—_ |
-| `formatDate` | priv | 79 | — | _—_ |
-| `stripHtml` | priv | 84 | — | _—_ |
-| `sanitizeForPdf` | priv | 90 | — | _—_ |
-| `generateInvoicePdf` | pub | 106 | `user` | _—_ |
-| `generateInvoiceExcel` | pub | 492 | `user` | _—_ |
+| `fetchInvoiceData` | priv | 16 | `agentInvoice` `companySettings` | Loads an invoice plus company branding for rendering. |
+| `buildRoute` | priv | 58 | — | Renders a job's origin→destination as one line on the invoice. |
+| `buildExtras` | priv | 72 | — | Renders booked extras as invoice line detail. |
+| `formatDate` | priv | 79 | — | Date formatting for invoice documents. |
+| `stripHtml` | priv | 84 | — | Removes markup from stored notes before they reach a PDF. |
+| `sanitizeForPdf` | priv | 90 | — | Strips characters the PDF font cannot render, notably Arabic, to avoid corrupt output. |
+| `generateInvoicePdf` | pub | 106 | `user` | Renders the branded invoice PDF sent to agents and customers. |
+| `generateInvoiceExcel` | pub | 492 | `user` | Renders the invoice as xlsx. |
 
 ### InvoiceSchedulerService
 
 `backend/src/finance/invoice-scheduler.service.ts:28` · service · 4 methods
 
+Cron that generates invoices on each agent's configured invoice cycle.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `runInvoiceCycleJob` | pub | 38 | `agent` | _—_ |
-| `isCycleDueToday` | priv | 74 | — | _—_ |
-| `isoWeekNumber` | priv | 96 | — | _—_ |
-| `generateCycleInvoice` | priv | 103 | `agent` `agentPriceItem` `trafficJob` `agentInvoice` | _—_ |
+| `runInvoiceCycleJob` | pub | 38 | `agent` | Cron entry point: finds agents whose invoice cycle falls due today and generates their invoices. |
+| `isCycleDueToday` | priv | 74 | — | Decides whether an agent's configured cycle (weekly, fortnightly, monthly) lands on today. |
+| `isoWeekNumber` | priv | 96 | — | ISO week number, used by fortnightly cycles. |
+| `generateCycleInvoice` | priv | 103 | `agent` `agentPriceItem` `trafficJob` `agentInvoice` | Builds one agent's cycle invoice from their uninvoiced completed jobs and price list. |
 
 ### OdooExportService
 
 `backend/src/finance/odoo-export.service.ts:35` · service · 9 methods
 
+★ Odoo-ready exports. The hard requirement is that these import into stock Odoo with NO customisation, so column names and XML-ids match Odoo's own import format — country codes map to `base.xx` refs, and the sheets align to res.partner / account.move / account.payment.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `exportPartners` | pub | 42 | `agent` `supplier` | _—_ |
-| `exportCustomerInvoices` | pub | 146 | `agentInvoice` | _—_ |
-| `b2cPartnerId` | priv | 240 | — | _—_ |
-| `b2cInvoiceWhere` | priv | 250 | — | _—_ |
-| `exportB2CPartners` | pub | 283 | `b2CInvoice` | _—_ |
-| `exportB2CCustomerInvoices` | pub | 326 | `b2CInvoice` | _—_ |
-| `exportVendorBills` | pub | 386 | `supplierCost` | _—_ |
-| `exportPayments` | pub | 469 | `payment` | _—_ |
-| `exportAllInOne` | pub | 546 | `agent` `supplier` `agentInvoice` `supplierCost` `payment` | _—_ |
+| `exportPartners` | pub | 42 | `agent` `supplier` | res.partner — agents as customers, suppliers as vendors. |
+| `exportCustomerInvoices` | pub | 146 | `agentInvoice` | account.move — customer invoices with their lines and taxes. |
+| `b2cPartnerId` | priv | 240 | — | Derives a stable Odoo partner id for a B2C guest, who has no Agent or Customer record. |
+| `b2cInvoiceWhere` | priv | 250 | — | Shared filter selecting the B2C invoices eligible for export. |
+| `exportB2CPartners` | pub | 283 | `b2CInvoice` | res.partner rows synthesised from B2C guests. |
+| `exportB2CCustomerInvoices` | pub | 326 | `b2CInvoice` | account.move rows for B2C guest invoices. |
+| `exportVendorBills` | pub | 386 | `supplierCost` | account.move (vendor bills) from supplier costs. |
+| `exportPayments` | pub | 469 | `payment` | account.payment rows. |
+| `exportAllInOne` | pub | 546 | `agent` `supplier` `agentInvoice` `supplierCost` `payment` | One workbook with every sheet, for a single import pass into Odoo. |
 
 ## `payments`
 
@@ -250,76 +268,88 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
 `backend/src/payments/gateways/dubai-bank.gateway.ts:9` · class · 3 methods
 
+Dubai bank card gateway implementation.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `createSession` | pub | 10 | — | _—_ |
-| `verifyPayment` | pub | 22 | — | _—_ |
-| `refund` | pub | 28 | — | _—_ |
+| `createSession` | pub | 10 | — | Creates a Dubai bank checkout session. |
+| `verifyPayment` | pub | 22 | — | Queries the Dubai bank for payment status. |
+| `refund` | pub | 28 | — | Issues a refund through the Dubai bank. |
 
 ### EgyptBankGateway
 
 `backend/src/payments/gateways/egypt-bank.gateway.ts:9` · class · 3 methods
 
+Egyptian bank card gateway implementation.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `createSession` | pub | 10 | — | _—_ |
-| `verifyPayment` | pub | 22 | — | _—_ |
-| `refund` | pub | 28 | — | _—_ |
+| `createSession` | pub | 10 | — | Creates an Egyptian bank checkout session. |
+| `verifyPayment` | pub | 22 | — | Queries the Egyptian bank for payment status. |
+| `refund` | pub | 28 | — | Issues a refund through the Egyptian bank. |
 
 ### GetPayInGateway
 
 `backend/src/payments/gateways/getpayin.gateway.ts:41` · class · 7 methods
 
+GetPayIn hosted-checkout (Paylink) gateway: HMAC-signed init, plus webhook and redirect handling. Dashboard callback URLs must point at the backend host, not the site host.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getCredentials` | priv | 53 | — | _—_ |
-| `signBase64` | priv | 65 | — | _—_ |
-| `signHex` | priv | 70 | — | _—_ |
-| `createSession` | pub | 74 | — | _—_ |
-| `verifyCallback` | pub | 174 | — | _—_ |
-| `verifyPayment` | pub | 209 | — | _—_ |
-| `refund` | pub | 217 | — | _—_ |
+| `getCredentials` | priv | 53 | — | Reads the GetPayIn tokens from configuration. |
+| `signBase64` | priv | 65 | — | Base64 HMAC signature variant required by GetPayIn. |
+| `signHex` | priv | 70 | — | Hex HMAC signature variant required by GetPayIn. |
+| `createSession` | pub | 74 | — | Creates a GetPayIn hosted checkout and returns its URL. |
+| `verifyCallback` | pub | 174 | — | Validates the HMAC on an inbound callback — the only thing standing in for auth on those public routes. |
+| `verifyPayment` | pub | 209 | — | Queries GetPayIn for a transaction's status. |
+| `refund` | pub | 217 | — | Issues a GetPayIn refund. |
 
 ### PaymentsController
 
 `backend/src/payments/payments.controller.ts:42` · controller · 9 methods
 
+Checkout initiation plus every gateway callback. Webhook and return routes are `@Public()` by necessity — they are called by the gateway, not by a signed-in user, so each verifies a signature instead of a token.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `createSession` | pub | 51 | `paymentsService.createPaymentSession` | _—_ |
-| `stripeWebhook` | pub | 65 | `paymentsService.handleStripeWebhook` | _—_ |
-| `getPayInWebhook` | pub | 90 | — | _—_ |
-| `getPayInReturnPost` | pub | 97 | — | _—_ |
-| `getPayInReturn` | pub | 103 | — | _—_ |
-| `getPayInWebhookGet` | pub | 109 | — | _—_ |
-| `recordGetPayInCallback` | priv | 114 | `paymentsService.processGetPayInCallback` | _—_ |
-| `redirectGetPayInCallback` | priv | 120 | `paymentsService.processGetPayInCallback` | _—_ |
-| `verifyPayment` | pub | 150 | `paymentsService.verifyPaymentStatus` | _—_ |
+| `createSession` | pub | 51 | `paymentsService.createPaymentSession` | Starts a hosted checkout for a guest booking. |
+| `stripeWebhook` | pub | 65 | `paymentsService.handleStripeWebhook` | Stripe webhook receiver; verifies the Stripe signature. |
+| `getPayInWebhook` | pub | 90 | — | GetPayIn webhook (POST); verifies the HMAC before acting. |
+| `getPayInReturnPost` | pub | 97 | — | Browser return URL after GetPayIn checkout (POST). |
+| `getPayInReturn` | pub | 103 | — | Browser return URL after GetPayIn checkout (GET). |
+| `getPayInWebhookGet` | pub | 109 | — | GET variant of the GetPayIn webhook, since the provider may call either verb. |
+| `recordGetPayInCallback` | priv | 114 | `paymentsService.processGetPayInCallback` | Records a GetPayIn callback payload for reconciliation. |
+| `redirectGetPayInCallback` | priv | 120 | `paymentsService.processGetPayInCallback` | Redirects the guest back to the B2C site with the payment outcome. |
+| `verifyPayment` | pub | 150 | `paymentsService.verifyPaymentStatus` | Re-queries the gateway for a booking's authoritative payment state. |
 
 ### PaymentsService
 
 `backend/src/payments/payments.service.ts:24` · service · 7 methods
 
+Payment orchestration across pluggable gateways. Gateway choice is per-transaction; each implements the shared gateway interface.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getGateway` | priv | 38 | — | _—_ |
-| `buildInvoiceAttachment` | priv | 58 | `b2cInvoiceService.ensureForBooking` `b2cInvoiceService.generatePdf` | _—_ |
-| `createPaymentSession` | pub | 73 | `guestBooking` `paymentTransaction` | _—_ |
-| `handleStripeWebhook` | pub | 177 | `paymentTransaction` `guestBooking` | _—_ |
-| `processGetPayInCallback` | pub | 297 | `paymentTransaction` `guestBooking` `trafficJob` `getPayInGateway.verifyCallback` | _—_ |
-| `verifyPaymentStatus` | pub | 432 | `guestBooking` | _—_ |
-| `refundPayment` | pub | 472 | `guestBooking` `paymentTransaction` | _—_ |
+| `getGateway` | priv | 38 | — | Resolves the configured gateway implementation for a transaction. |
+| `buildInvoiceAttachment` | priv | 58 | `b2cInvoiceService.ensureForBooking` `b2cInvoiceService.generatePdf` | Ensures the B2C invoice exists and renders its PDF for the receipt email. |
+| `createPaymentSession` | pub | 73 | `guestBooking` `paymentTransaction` | Starts a hosted checkout for a guest booking and records the pending transaction. |
+| `handleStripeWebhook` | pub | 177 | `paymentTransaction` `guestBooking` | Processes a Stripe webhook, marking the transaction and booking paid. |
+| `processGetPayInCallback` | pub | 297 | `paymentTransaction` `guestBooking` `trafficJob` `getPayInGateway.verifyCallback` | Handles the GetPayIn webhook/redirect, verifying the HMAC before marking payment complete and emailing the invoice. |
+| `verifyPaymentStatus` | pub | 432 | `guestBooking` | Re-queries the gateway for a booking's authoritative payment state. |
+| `refundPayment` | pub | 472 | `guestBooking` `paymentTransaction` | Issues a refund through the originating gateway. |
 
 ### StripeGateway
 
 `backend/src/payments/gateways/stripe.gateway.ts:11` · class · 4 methods
 
+Stripe payment gateway implementation.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `ensureConfigured` | priv | 23 | — | _—_ |
-| `createSession` | pub | 32 | — | _—_ |
-| `verifyPayment` | pub | 71 | — | _—_ |
-| `refund` | pub | 84 | — | _—_ |
+| `ensureConfigured` | priv | 23 | — | Throws when Stripe keys are missing, rather than failing mid-checkout. |
+| `createSession` | pub | 32 | — | Creates a Stripe Checkout session. |
+| `verifyPayment` | pub | 71 | — | Queries Stripe for payment status. |
+| `refund` | pub | 84 | — | Issues a Stripe refund. |
 
 ## `public-prices`
 
@@ -327,25 +357,29 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
 `backend/src/public-prices/public-prices.controller.ts:34` · controller · 5 methods
 
+Admin surface for the public B2C price grid.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 39 | `publicPricesService.findAll` | _—_ |
-| `downloadTemplate` | pub | 46 | `publicPricesService.buildImportTemplate` | _—_ |
-| `bulkUpsert` | pub | 56 | `publicPricesService.bulkUpsert` | _—_ |
-| `updateOne` | pub | 64 | `publicPricesService.updateOne` | _—_ |
-| `remove` | pub | 72 | `publicPricesService.remove` | _—_ |
+| `findAll` | pub | 39 | `publicPricesService.findAll` | The public price grid. |
+| `downloadTemplate` | pub | 46 | `publicPricesService.buildImportTemplate` | Blank public-price workbook pre-filled with zones and vehicle types. |
+| `bulkUpsert` | pub | 56 | `publicPricesService.bulkUpsert` | Bulk-replaces public prices — the write path used by the partner API's `pushPricing`. |
+| `updateOne` | pub | 64 | `publicPricesService.updateOne` | Edits one public price row. |
+| `remove` | pub | 72 | `publicPricesService.remove` | Deletes a public price row. |
 
 ### PublicPricesService
 
 `backend/src/public-prices/public-prices.service.ts:14` · service · 5 methods
 
+The public B2C price list (zone pair × vehicle type) that the standalone site quotes from. Written to by the partner API's `pushPricing`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 17 | `publicPriceItem` | _—_ |
-| `bulkUpsert` | pub | 38 | `publicPriceItem` | _—_ |
-| `updateOne` | pub | 81 | `publicPriceItem` | _—_ |
-| `remove` | pub | 101 | `publicPriceItem` | _—_ |
-| `buildImportTemplate` | pub | 107 | `zone` `vehicleType` | _—_ |
+| `findAll` | pub | 17 | `publicPriceItem` | The public price grid. |
+| `bulkUpsert` | pub | 38 | `publicPriceItem` | Bulk-replaces public prices — the write path used by the partner API's `pushPricing`. |
+| `updateOne` | pub | 81 | `publicPriceItem` | Edits one public price row. |
+| `remove` | pub | 101 | `publicPriceItem` | Deletes a public price row. |
+| `buildImportTemplate` | pub | 107 | `zone` `vehicleType` | Blank public-price workbook pre-filled with real zones and vehicle types. |
 
 ## `reports`
 
@@ -353,51 +387,55 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
 `backend/src/reports/reports.controller.ts:172` · controller · 18 methods
 
+JSON surface for every on-screen report; the matching xlsx downloads live on `ExportController`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `dailyDispatchSummary` | pub | 177 | `reportsService.dailyDispatchSummary` | _—_ |
-| `repFeeReport` | pub | 187 | `reportsService.repFeeReport` | _—_ |
-| `driverTripReport` | pub | 197 | `reportsService.driverTripReport` | _—_ |
-| `agentStatement` | pub | 212 | `reportsService.agentStatement` | _—_ |
-| `revenueReport` | pub | 231 | `reportsService.revenueReport` | _—_ |
-| `upsertRepScore` | pub | 246 | `reportsService.upsertRepScore` | _—_ |
-| `upsertDriverScore` | pub | 261 | `reportsService.upsertDriverScore` | _—_ |
-| `repScoreReport` | pub | 272 | `reportsService.repScoreReport` | _—_ |
-| `guestSurveyReport` | pub | 286 | `reportsService.guestSurveyReport` | _—_ |
-| `driverScoreReport` | pub | 300 | `reportsService.driverScoreReport` | _—_ |
-| `evidenceReport` | pub | 314 | `reportsService.evidenceReport` | _—_ |
-| `visaReport` | pub | 331 | `reportsService.visaReport` | _—_ |
-| `salesReport` | pub | 341 | `reportsService.salesReport` | _—_ |
-| `departureReport` | pub | 351 | `reportsService.departureReport` | _—_ |
-| `jobStatusReport` | pub | 365 | `reportsService.jobStatusReport` | _—_ |
-| `flightDelayReport` | pub | 385 | `reportsService.flightDelayReport` | _—_ |
-| `flightDelayForJob` | pub | 399 | `reportsService.flightDelayForJob` | _—_ |
-| `reviewReport` | pub | 406 | `reportsService.reviewReport` | _—_ |
+| `dailyDispatchSummary` | pub | 177 | `reportsService.dailyDispatchSummary` | One day's dispatch counts and status breakdown. |
+| `repFeeReport` | pub | 187 | `reportsService.repFeeReport` | Rep fees per job, with the score behind each. |
+| `driverTripReport` | pub | 197 | `reportsService.driverTripReport` | Trips and fees per driver over a period. |
+| `agentStatement` | pub | 212 | `reportsService.agentStatement` | Statement of account for an agent: invoices, payments and balance. |
+| `revenueReport` | pub | 231 | `reportsService.revenueReport` | Revenue against driver, rep and supplier costs for a period. |
+| `upsertRepScore` | pub | 246 | `reportsService.upsertRepScore` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
+| `upsertDriverScore` | pub | 261 | `reportsService.upsertDriverScore` | Sets a driver's per-job score, recalculating the fee it implies. |
+| `repScoreReport` | pub | 272 | `reportsService.repScoreReport` | Rep scores across jobs. |
+| `guestSurveyReport` | pub | 286 | `reportsService.guestSurveyReport` | Arrival guest survey responses. |
+| `driverScoreReport` | pub | 300 | `reportsService.driverScoreReport` | Driver scores across jobs. |
+| `evidenceReport` | pub | 314 | `reportsService.evidenceReport` | Which jobs have evidence photos and which are missing them. |
+| `visaReport` | pub | 331 | `reportsService.visaReport` | Visa-related job report. |
+| `salesReport` | pub | 341 | `reportsService.salesReport` | Sales by period and counterparty. |
+| `departureReport` | pub | 351 | `reportsService.departureReport` | Departure jobs report. |
+| `jobStatusReport` | pub | 365 | `reportsService.jobStatusReport` | Job counts by status over a period. |
+| `flightDelayReport` | pub | 385 | `reportsService.flightDelayReport` | Flight delays reported by reps, reconstructed from the notifications they raised. |
+| `flightDelayForJob` | pub | 399 | `reportsService.flightDelayForJob` | Delay history for one job. |
+| `reviewReport` | pub | 406 | `reportsService.reviewReport` | Guest reviews per job. |
 
 ### ReportsService
 
 `backend/src/reports/reports.service.ts:51` · service · 18 methods
 
+Every operational and financial report behind the Reports screen. Each report is a filtered aggregate query with a matching Excel export in `ExportService`.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `dailyDispatchSummary` | pub | 58 | `trafficJob` | _—_ |
-| `driverTripReport` | pub | 130 | `trafficAssignment` `driverTripFee` | _—_ |
-| `upsertDriverScore` | pub | 291 | `trafficAssignment` `driverJobScore` `driverTripFee` | _—_ |
-| `agentStatement` | pub | 340 | `agent` `agentInvoice` `trafficJob` | _—_ |
-| `repFeeReport` | pub | 425 | `trafficAssignment` | _—_ |
-| `upsertRepScore` | pub | 556 | `trafficAssignment` `repJobScore` `repFee` | _—_ |
-| `revenueReport` | pub | 611 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | _—_ |
-| `repScoreReport` | pub | 731 | `repJobScore` | _—_ |
-| `guestSurveyReport` | pub | 805 | `guestSurvey` | _—_ |
-| `driverScoreReport` | pub | 873 | `driverJobScore` | _—_ |
-| `evidenceReport` | pub | 939 | `trafficJob` | _—_ |
-| `jobStatusReport` | pub | 1042 | `trafficJob` | _—_ |
-| `visaReport` | pub | 1130 | `trafficJob` | _—_ |
-| `salesReport` | pub | 1160 | `trafficJob` | _—_ |
-| `departureReport` | pub | 1197 | `trafficJob` | _—_ |
-| `flightDelayReport` | pub | 1226 | `userNotification` | _—_ |
-| `flightDelayForJob` | pub | 1299 | `userNotification` | _—_ |
-| `reviewReport` | pub | 1356 | `trafficJob` | _—_ |
+| `dailyDispatchSummary` | pub | 58 | `trafficJob` | One day's dispatch counts and status breakdown. |
+| `driverTripReport` | pub | 130 | `trafficAssignment` `driverTripFee` | Trips and fees per driver over a period. |
+| `upsertDriverScore` | pub | 291 | `trafficAssignment` `driverJobScore` `driverTripFee` | Sets a driver's per-job score, recalculating the fee it implies. |
+| `agentStatement` | pub | 340 | `agent` `agentInvoice` `trafficJob` | Statement of account for an agent: invoices, payments and balance. |
+| `repFeeReport` | pub | 425 | `trafficAssignment` | Rep fees per job, with the score behind each. |
+| `upsertRepScore` | pub | 556 | `trafficAssignment` `repJobScore` `repFee` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
+| `revenueReport` | pub | 611 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | Revenue against driver, rep and supplier costs for a period. |
+| `repScoreReport` | pub | 731 | `repJobScore` | Rep scores across jobs. |
+| `guestSurveyReport` | pub | 805 | `guestSurvey` | Arrival guest survey responses. |
+| `driverScoreReport` | pub | 873 | `driverJobScore` | Driver scores across jobs. |
+| `evidenceReport` | pub | 939 | `trafficJob` | Which jobs have evidence photos and which are missing them. |
+| `jobStatusReport` | pub | 1042 | `trafficJob` | Job counts by status over a period. |
+| `visaReport` | pub | 1130 | `trafficJob` | Visa-related job report. |
+| `salesReport` | pub | 1160 | `trafficJob` | Sales by period and counterparty. |
+| `departureReport` | pub | 1197 | `trafficJob` | Departure jobs report. |
+| `flightDelayReport` | pub | 1226 | `userNotification` | Flight delays reported by reps, reconstructed from the notifications they raised. |
+| `flightDelayForJob` | pub | 1299 | `userNotification` | Delay history for one job. |
+| `reviewReport` | pub | 1356 | `trafficJob` | Guest reviews per job. |
 
 ## Standalone exports
 
@@ -405,15 +443,19 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
 ### `backend/src/payments/gateways/gateway.interface.ts`
 
+The contract every payment gateway implements — init, verify, and webhook handling — so gateways stay swappable.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PaymentSessionResult` | type | 1 | _—_ |
-| `PaymentCustomer` | type | 12 | _—_ |
-| `PaymentVerificationResult` | type | 28 | _—_ |
-| `PaymentGateway` | type | 35 | _—_ |
+| `PaymentSessionResult` | type | 1 | What createSession returns — the hosted checkout URL and provider reference. |
+| `PaymentCustomer` | type | 12 | Guest identity passed to a gateway at checkout. |
+| `PaymentVerificationResult` | type | 28 | Normalised verification outcome across providers. |
+| `PaymentGateway` | type | 35 | The interface every gateway implements: createSession, verifyPayment, refund. |
 
 ### `backend/src/payments/gateways/getpayin.gateway.ts`
 
+GetPayIn (Paylink) hosted-checkout gateway and its HMAC signing.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `GetPayInCallback` | type | 20 | _—_ |
+| `GetPayInCallback` | type | 20 | Shape of a GetPayIn webhook/return payload. |
