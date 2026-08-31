@@ -32,6 +32,9 @@ const WINDOW_LABELS: Record<string, string> = {
   Whatsapp: 'WhatsApp',
   ActivityLog: 'Activity Log',
   User: 'Users',
+  DriverPortal: 'Driver Portal',
+  RepPortal: 'Rep Portal',
+  SupplierPortal: 'Supplier Portal',
 };
 
 export function windowLabel(entity: string): string {
@@ -53,6 +56,12 @@ const ENTITY_TO_MODEL: Record<string, string> = {
   Vehicle: 'vehicle',
   VehicleType: 'vehicleType',
   User: 'user',
+  // Portal routes are addressed by job id (`/driver-portal/jobs/:id/...`), so the
+  // record resolves to the job's internal ref. Non-job portal routes (a
+  // notification read) simply miss the lookup and fall back to the raw id.
+  DriverPortal: 'trafficJob',
+  RepPortal: 'trafficJob',
+  SupplierPortal: 'trafficJob',
 };
 
 /** The Prisma model an audit entity's record id points to, if resolvable. */

@@ -58,6 +58,9 @@ const ENTITY_MAP: Record<string, string> = {
   reports: 'Report',
   whatsapp: 'Whatsapp',
   'activity-logs': 'ActivityLog',
+  'driver-portal': 'DriverPortal',
+  'rep-portal': 'RepPortal',
+  'supplier-portal': 'SupplierPortal',
 };
 
 /** Map URL segment → Prisma model delegate, used to snapshot a record's state
@@ -457,26 +460,30 @@ export class AuditInterceptor implements NestInterceptor {
     entity: string;
     entityId: string | null;
   } {
-    // path: /api/agents/uuid or /api/agents/uuid/price-list
+    // path: /api/agents/uuid, /api/agents/uuid/price-list,
+    //       /api/dispatch/assignments/uuid, /api/driver-portal/jobs/uuid/completed
     const segments = path
       .replace(/^\/api\//, '')
       .split('/')
       .filter(Boolean);
 
-    let entity = segments[0] || 'Unknown';
-    let entityId: string | null = null;
-
     // Map first segment to friendly name
-    entity = ENTITY_MAP[entity] || entity;
+    let entity = ENTITY_MAP[segments[0]] || segments[0] || 'Unknown';
 
-    // Look for UUID in second segment
-    if (segments[1] && UUID_RE.test(segments[1])) {
-      entityId = segments[1];
-    }
+    // The addressed record id is the first UUID ANYWHERE in the path, not just
+    // segment 1. `/dispatch/assignments/:id` and `/driver-portal/jobs/:id/...`
+    // carry it deeper; recording it is what lets a row be traced back to its
+    // assignment or job afterwards. Before this, every dispatch edit and every
+    // portal action stored a null id and could never be linked to its job.
+    const idAt = segments.findIndex((s) => UUID_RE.test(s));
+    const entityId: string | null = idAt === -1 ? null : segments[idAt];
 
-    // If there's a sub-resource (e.g. /agents/uuid/price-list), append it
-    if (segments[2] && !UUID_RE.test(segments[2])) {
-      const subEntity = segments[2]
+    // Sub-resource: the first non-UUID segment after the id — or segment 2 when
+    // the path carries no id at all. `/agents/:id/price-list` → "Agent.PriceList",
+    // `/driver-portal/jobs/:id/completed` → "DriverPortal.Completed".
+    const sub = segments[idAt === -1 ? 2 : idAt + 1];
+    if (sub && !UUID_RE.test(sub)) {
+      const subEntity = sub
         .split('-')
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join('');

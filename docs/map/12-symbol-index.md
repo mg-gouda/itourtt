@@ -139,17 +139,17 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `AssignJobDto` | class | `backend/src/dispatch/dto/assign-job.dto.ts:3` |
 | `AssignVehicleDto` | class | `backend/src/drivers/dto/assign-vehicle.dto.ts:3` |
 | `AssignZoneDto` | class | `backend/src/reps/dto/assign-zone.dto.ts:3` |
-| `AuditInterceptor` | class | `backend/src/common/interceptors/audit.interceptor.ts:106` |
-| `AuditInterceptor.buildSummary` | method | `backend/src/common/interceptors/audit.interceptor.ts:285` |
-| `AuditInterceptor.captureBefore` | method | `backend/src/common/interceptors/audit.interceptor.ts:159` |
-| `AuditInterceptor.enqueue` | method | `backend/src/common/interceptors/audit.interceptor.ts:203` |
-| `AuditInterceptor.flush` | method | `backend/src/common/interceptors/audit.interceptor.ts:250` |
-| `AuditInterceptor.intercept` | method | `backend/src/common/interceptors/audit.interceptor.ts:113` |
-| `AuditInterceptor.methodToAction` | method | `backend/src/common/interceptors/audit.interceptor.ts:442` |
-| `AuditInterceptor.parseEntityFromPath` | method | `backend/src/common/interceptors/audit.interceptor.ts:456` |
-| `AuditInterceptor.resolveJob` | method | `backend/src/common/interceptors/audit.interceptor.ts:347` |
-| `AuditInterceptor.resolveJobRefs` | method | `backend/src/common/interceptors/audit.interceptor.ts:294` |
-| `AuditInterceptor.sanitizeBody` | method | `backend/src/common/interceptors/audit.interceptor.ts:489` |
+| `AuditInterceptor` | class | `backend/src/common/interceptors/audit.interceptor.ts:109` |
+| `AuditInterceptor.buildSummary` | method | `backend/src/common/interceptors/audit.interceptor.ts:288` |
+| `AuditInterceptor.captureBefore` | method | `backend/src/common/interceptors/audit.interceptor.ts:162` |
+| `AuditInterceptor.enqueue` | method | `backend/src/common/interceptors/audit.interceptor.ts:206` |
+| `AuditInterceptor.flush` | method | `backend/src/common/interceptors/audit.interceptor.ts:253` |
+| `AuditInterceptor.intercept` | method | `backend/src/common/interceptors/audit.interceptor.ts:116` |
+| `AuditInterceptor.methodToAction` | method | `backend/src/common/interceptors/audit.interceptor.ts:445` |
+| `AuditInterceptor.parseEntityFromPath` | method | `backend/src/common/interceptors/audit.interceptor.ts:459` |
+| `AuditInterceptor.resolveJob` | method | `backend/src/common/interceptors/audit.interceptor.ts:350` |
+| `AuditInterceptor.resolveJobRefs` | method | `backend/src/common/interceptors/audit.interceptor.ts:297` |
+| `AuditInterceptor.sanitizeBody` | method | `backend/src/common/interceptors/audit.interceptor.ts:496` |
 | `authApi` | const | `mobile/packages/shared/src/api/endpoints/auth.ts:4` |
 | `AuthController` | class | `backend/src/auth/auth.controller.ts:33` |
 | `AuthController.disableTwoFactor` | method | `backend/src/auth/auth.controller.ts:130` |
@@ -671,7 +671,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `EmptyState` | function | `mobile/packages/ui/src/EmptyState.tsx:12` |
 | `en` | const | `mobile/packages/shared/src/i18n/en.ts:1` |
 | `en` | const | `mobile/packages/shared/src/i18n/index.ts:42` |
-| `entityModel` | function | `backend/src/activity-logs/activity-log-format.ts:59` |
+| `entityModel` | function | `backend/src/activity-logs/activity-log-format.ts:68` |
 | `ErrorBanner` | function | `mobile/packages/ui/src/ErrorBanner.tsx:10` |
 | `ExportController` | class | `backend/src/export/export.controller.ts:14` |
 | `ExportController.downloadEvidencePdf` | method | `backend/src/export/export.controller.ts:302` |
@@ -778,7 +778,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 |---|---|---|
 | `FeatureItem` | type | `frontend/src/lib/site-settings.ts:23` |
 | `fetchSiteSettings` | function | `frontend/src/lib/site-settings.ts:128` |
-| `fieldModel` | function | `backend/src/activity-logs/activity-log-format.ts:177` |
+| `fieldModel` | function | `backend/src/activity-logs/activity-log-format.ts:186` |
 | `FilterBarSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:50` |
 | `FinanceController` | class | `backend/src/finance/finance.controller.ts:87` |
 | `FinanceController.createDriverFee` | method | `backend/src/finance/finance.controller.ts:99` |
@@ -852,7 +852,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `formatDate` | function | `mobile/packages/shared/src/utils/date.ts:4` |
 | `formatTime` | function | `mobile/packages/shared/src/utils/date.ts:19` |
 | `formatTimeCairo` | function | `frontend/src/lib/utils.ts:20` |
-| `formatValue` | function | `backend/src/activity-logs/activity-log-format.ts:190` |
+| `formatValue` | function | `backend/src/activity-logs/activity-log-format.ts:199` |
 | `FormSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:136` |
 
 ## G
@@ -1158,7 +1158,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `Hotel` | model | `backend/prisma/schema.prisma:430` |
 | `Hotel` | type | `frontend/src/types/index.ts:74` |
 | `Hotel` | type | `mobile/packages/shared/src/types/index.ts:78` |
-| `humanizeField` | function | `backend/src/activity-logs/activity-log-format.ts:165` |
+| `humanizeField` | function | `backend/src/activity-logs/activity-log-format.ts:174` |
 
 ## I
 
@@ -1205,8 +1205,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `InvoiceStatus` | type | `mobile/packages/shared/src/types/index.ts:9` |
 | `IS_PUBLIC_KEY` | const | `backend/src/common/decorators/public.decorator.ts:9` |
 | `isDriveFileId` | function | `backend/src/google-drive/google-drive.service.ts:6` |
-| `isHiddenField` | function | `backend/src/activity-logs/activity-log-format.ts:224` |
-| `isUuid` | function | `backend/src/activity-logs/activity-log-format.ts:182` |
+| `isHiddenField` | function | `backend/src/activity-logs/activity-log-format.ts:233` |
+| `isUuid` | function | `backend/src/activity-logs/activity-log-format.ts:191` |
 | `isValidPermissionKey` | function | `backend/src/permissions/permission-registry.ts:658` |
 | `isValidPermissionKey` | function | `frontend/src/lib/permission-registry.ts:726` |
 | `isWithinGeofence` | function | `backend/src/common/geofence.util.ts:28` |
@@ -1437,7 +1437,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `metadata` | const | `frontend/src/app/layout.tsx:16` |
 | `MobileProfilePage` | function | `frontend/src/components/mobile-profile-page.tsx:43` |
 | `MobileSidebar` | function | `frontend/src/components/mobile-sidebar.tsx:30` |
-| `MODEL_DISPLAY` | const | `backend/src/activity-logs/activity-log-format.ts:117` |
+| `MODEL_DISPLAY` | const | `backend/src/activity-logs/activity-log-format.ts:126` |
 
 ## N
 
@@ -2599,7 +2599,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `WhatsAppPage` | function | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx:341` |
 | `WhatsappSettings` | model | `backend/prisma/schema.prisma:1736` |
 | `WhatsappTemplate` | model | `backend/prisma/schema.prisma:1719` |
-| `windowLabel` | function | `backend/src/activity-logs/activity-log-format.ts:37` |
+| `windowLabel` | function | `backend/src/activity-logs/activity-log-format.ts:40` |
 
 ## Z
 
