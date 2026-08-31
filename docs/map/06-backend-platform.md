@@ -169,22 +169,22 @@ _No methods._
 
 ### AuditInterceptor
 
-`backend/src/common/interceptors/audit.interceptor.ts:106` · middleware · 10 methods
+`backend/src/common/interceptors/audit.interceptor.ts:109` · middleware · 10 methods
 
 Writes an `ActivityLog` row for every create/update/delete, capturing actor, entity and a field-level diff. This is what satisfies the mandatory audit-logging rule without touching each service.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `intercept` | pub | 113 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
-| `captureBefore` | priv | 159 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
-| `enqueue` | priv | 203 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
-| `flush` | priv | 250 | `activityLog` | Batch-writes queued audit rows. |
-| `buildSummary` | priv | 285 | — | Composes a log summary from action, entity and the resolved job reference. |
-| `resolveJobRefs` | priv | 294 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
-| `resolveJob` | priv | 347 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
-| `methodToAction` | priv | 442 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
-| `parseEntityFromPath` | priv | 456 | — | Derives the entity type and id from the request path. |
-| `sanitizeBody` | priv | 489 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
+| `intercept` | pub | 116 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
+| `captureBefore` | priv | 162 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
+| `enqueue` | priv | 206 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
+| `flush` | priv | 253 | `activityLog` | Batch-writes queued audit rows. |
+| `buildSummary` | priv | 288 | — | Composes a log summary from action, entity and the resolved job reference. |
+| `resolveJobRefs` | priv | 297 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
+| `resolveJob` | priv | 350 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
+| `methodToAction` | priv | 445 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
+| `parseEntityFromPath` | priv | 459 | — | Derives the entity type and id from the request path. |
+| `sanitizeBody` | priv | 496 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
 
 ### CaptchaService
 
@@ -653,14 +653,14 @@ Presentation helpers that make raw audit rows human-readable: model display name
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `windowLabel` | function | 37 | Human label for a log's time window filter. |
-| `entityModel` | function | 59 | Maps an audited entity name to its Prisma model. |
-| `MODEL_DISPLAY` | const | 117 | Business-facing display names per model, so the log reads in operator language rather than table names. |
-| `humanizeField` | function | 165 | Turns a camelCase column into a readable field label. |
-| `fieldModel` | function | 177 | Maps a foreign-key field to the model it points at, so ids can be resolved to names. |
-| `isUuid` | function | 182 | Detects a UUID value that should be resolved to a human name instead of shown raw. |
-| `formatValue` | function | 190 | Renders a diff value for display (dates, money, booleans, nulls). |
-| `isHiddenField` | function | 224 | Suppresses noisy or sensitive fields from the diff view. |
+| `windowLabel` | function | 40 | Human label for a log's time window filter. |
+| `entityModel` | function | 68 | Maps an audited entity name to its Prisma model. |
+| `MODEL_DISPLAY` | const | 126 | Business-facing display names per model, so the log reads in operator language rather than table names. |
+| `humanizeField` | function | 174 | Turns a camelCase column into a readable field label. |
+| `fieldModel` | function | 186 | Maps a foreign-key field to the model it points at, so ids can be resolved to names. |
+| `isUuid` | function | 191 | Detects a UUID value that should be resolved to a human name instead of shown raw. |
+| `formatValue` | function | 199 | Renders a diff value for display (dates, money, booleans, nulls). |
+| `isHiddenField` | function | 233 | Suppresses noisy or sensitive fields from the diff view. |
 
 ### `backend/src/ai-parser/ai-parser.service.ts`
 
