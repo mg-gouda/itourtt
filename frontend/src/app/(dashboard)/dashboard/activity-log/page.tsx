@@ -50,6 +50,7 @@ const ACTIVITY_COL_DEFS: ColumnDef[] = [
   { key: "user", label: "User" },
   { key: "action", label: "Action" },
   { key: "entity", label: "Window" },
+  { key: "jobRef", label: "Job ID" },
   { key: "summary", label: "Summary" },
 ];
 
@@ -92,6 +93,8 @@ interface ActivityLog {
   action: string;
   entity: string;
   entityId: string | null;
+  jobId: string | null;
+  jobRef: string | null;
   summary: string;
   ipAddress: string | null;
   createdAt: string;
@@ -352,7 +355,7 @@ export default function ActivityLogPage() {
         <div className="relative w-52">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={t("common.search") + "..."}
+            placeholder={t("activityLog.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50 h-9"
@@ -481,6 +484,7 @@ export default function ActivityLogPage() {
                   {isVis("user") && <SortableHeader label={t("activityLog.user")} sortKey="userName" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
                   {isVis("action") && <SortableHeader label={t("activityLog.action")} sortKey="action" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
                   {isVis("entity") && <SortableHeader label={t("activityLog.entity")} sortKey="entity" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
+                  {isVis("jobRef") && <SortableHeader label={t("activityLog.jobRef")} sortKey="jobRef" currentKey={sortKey} currentDir={sortDir} onSort={onSort} />}
                   {isVis("summary") && <TableHead className="text-muted-foreground text-xs">{t("activityLog.summary")}</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -499,6 +503,7 @@ export default function ActivityLogPage() {
                     {isVis("user") && <TableCell className="font-medium text-foreground whitespace-nowrap">{log.userName}</TableCell>}
                     {isVis("action") && <TableCell>{actionBadge(log.action)}</TableCell>}
                     {isVis("entity") && <TableCell><Badge variant="secondary" className="bg-secondary text-muted-foreground">{windowLabel(log.entity)}</Badge></TableCell>}
+                    {isVis("jobRef") && <TableCell className="font-mono text-xs whitespace-nowrap text-foreground">{log.jobRef || "—"}</TableCell>}
                     {isVis("summary") && <TableCell className="text-muted-foreground max-w-xs truncate">{log.summary}</TableCell>}
                   </TableRow>
                 ))}
@@ -576,6 +581,14 @@ export default function ActivityLogPage() {
                   </span>
                   <p className="text-foreground">
                     {selectedLog.window ?? windowLabel(selectedLog.entity)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">
+                    {t("activityLog.jobRef")}
+                  </span>
+                  <p className="text-foreground font-mono text-sm">
+                    {selectedLog.jobRef || "—"}
                   </p>
                 </div>
                 {(selectedLog.entityRef || selectedLog.entityId) && (

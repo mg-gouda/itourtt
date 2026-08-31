@@ -797,17 +797,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3398 lines
+`frontend/src/lib/i18n.ts` · 3402 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3375 | Translates a key in the current locale. |
-| `getTranslator` | function | 3379 | Translator for a specific locale, outside React. |
-| `useT` | function | 3387 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3394 | The active locale id. |
+| `t` | function | 3379 | Translates a key in the current locale. |
+| `getTranslator` | function | 3383 | Translator for a specific locale, outside React. |
+| `useT` | function | 3391 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3398 | The active locale id. |
 
 ### `permission-registry.ts`
 

@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**39 classes**, **251 methods**.
+**39 classes**, **255 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -47,7 +47,7 @@ Read/export surface over the audit trail.
 
 ### ActivityLogsService
 
-`backend/src/activity-logs/activity-logs.service.ts:22` · service · 7 methods
+`backend/src/activity-logs/activity-logs.service.ts:22` · service · 8 methods
 
 Read and export side of the audit trail written by `AuditInterceptor`.
 
@@ -55,11 +55,12 @@ Read and export side of the audit trail written by `AuditInterceptor`.
 |---|---|---|---|---|
 | `purgeOldActivityLogs` | pub | 29 | `activityLog` | Retention cron trimming logs past the cut-off. |
 | `findAll` | pub | 42 | `activityLog` | Filterable, paginated audit log for the Activity Log screen. |
-| `findOne` | pub | 105 | `activityLog` | One log entry with its resolved field-level diff. |
-| `toFieldList` | priv | 171 | — | Turns a stored diff blob into displayable before/after field rows. |
-| `resolveRefs` | priv | 182 | — | Replaces raw UUIDs in a diff with human names so the log reads in business terms. |
-| `exportToExcel` | pub | 227 | `activityLog` | Exports the filtered audit log to xlsx. |
-| `getDistinctEntities` | pub | 270 | `activityLog` | Distinct entity types, for the filter dropdown. |
+| `searchWhere` | priv | 109 | — | Free-text search predicate — matches summary, job reference, or a pasted record id. |
+| `findOne` | pub | 121 | `activityLog` | One log entry with its resolved field-level diff. |
+| `toFieldList` | priv | 187 | — | Turns a stored diff blob into displayable before/after field rows. |
+| `resolveRefs` | priv | 198 | — | Replaces raw UUIDs in a diff with human names so the log reads in business terms. |
+| `exportToExcel` | pub | 243 | `activityLog` | Exports the filtered audit log to xlsx. |
+| `getDistinctEntities` | pub | 287 | `activityLog` | Distinct entity types, for the filter dropdown. |
 
 ## `ai-parser`
 
@@ -168,19 +169,22 @@ _No methods._
 
 ### AuditInterceptor
 
-`backend/src/common/interceptors/audit.interceptor.ts:98` · middleware · 7 methods
+`backend/src/common/interceptors/audit.interceptor.ts:106` · middleware · 10 methods
 
 Writes an `ActivityLog` row for every create/update/delete, capturing actor, entity and a field-level diff. This is what satisfies the mandatory audit-logging rule without touching each service.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `intercept` | pub | 105 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
-| `captureBefore` | priv | 142 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
-| `enqueue` | priv | 186 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
-| `flush` | priv | 228 | — | Batch-writes queued audit rows. |
-| `methodToAction` | priv | 243 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
-| `parseEntityFromPath` | priv | 257 | — | Derives the entity type and id from the request path. |
-| `sanitizeBody` | priv | 290 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
+| `intercept` | pub | 113 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
+| `captureBefore` | priv | 159 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
+| `enqueue` | priv | 203 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
+| `flush` | priv | 250 | `activityLog` | Batch-writes queued audit rows. |
+| `buildSummary` | priv | 285 | — | Composes a log summary from action, entity and the resolved job reference. |
+| `resolveJobRefs` | priv | 294 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
+| `resolveJob` | priv | 347 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
+| `methodToAction` | priv | 442 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
+| `parseEntityFromPath` | priv | 456 | — | Derives the entity type and id from the request path. |
+| `sanitizeBody` | priv | 489 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
 
 ### CaptchaService
 

@@ -10,7 +10,7 @@
 |---|---|---|---|---|---|
 | `/` | `frontend/src/app/page.tsx` | 6 | — | — | Root — redirects to the dashboard or login depending on session. |
 | `/dashboard` | `frontend/src/app/(dashboard)/dashboard/page.tsx` | 444 | 1 | — | Dashboard home — headline counts and shortcuts, permission-filtered. |
-| `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 749 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
+| `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 762 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
 | `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1229 | 10 | 12 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
 | `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | One agent's detail — credit status, documents and price list. |
 | `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1308 | 9 | — | Car-centric dispatch view — the day organised by vehicle rather than by job. |

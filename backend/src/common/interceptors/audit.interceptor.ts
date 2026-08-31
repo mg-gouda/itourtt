@@ -85,10 +85,18 @@ type AuditEntry = {
   action: string;
   entity: string;
   entityId: string | null;
+  /** Traffic job this action touched, when one is resolvable. */
+  jobId: string | null;
+  /** The job's internal reference — denormalised so the Activity Log can show
+   *  and search by Job ID without joining. Resolved at flush time. */
+  jobRef: string | null;
   summary: string;
   details?: Record<string, unknown>;
   previousData?: Record<string, unknown>;
   ipAddress: string | null;
+  /** Transient: a dispatch assignment id whose job is resolved at flush time.
+   *  Stripped before the row is written. */
+  assignmentId?: string | null;
 };
 
 const FLUSH_INTERVAL_MS = 5_000;
@@ -128,8 +136,17 @@ export class AuditInterceptor implements NestInterceptor {
     return from(this.captureBefore(method, path)).pipe(
       switchMap((before) =>
         next.handle().pipe(
-          tap(() => {
-            this.enqueue(method, path, userId, userName, body, ip, before);
+          tap((response) => {
+            this.enqueue(
+              method,
+              path,
+              userId,
+              userName,
+              body,
+              ip,
+              before,
+              response,
+            );
           }),
         ),
       ),
@@ -191,12 +208,13 @@ export class AuditInterceptor implements NestInterceptor {
     body: any,
     ip: string,
     before?: Record<string, unknown> | null,
+    response?: unknown,
   ) {
     if (!userId) return;
 
     const action = this.methodToAction(method);
     const { entity, entityId } = this.parseEntityFromPath(path);
-    const summary = `${action} ${entity}${entityId ? ` (${entityId.slice(0, 8)}…)` : ''}`;
+    const job = this.resolveJob(path, entity, entityId, body, before, response);
     const sanitized = this.sanitizeBody(body);
 
     this.queue.push({
@@ -205,7 +223,11 @@ export class AuditInterceptor implements NestInterceptor {
       action,
       entity,
       entityId,
-      summary,
+      jobId: job.jobId,
+      jobRef: job.jobRef,
+      assignmentId: job.assignmentId,
+      // Finalised in flush(), once jobRef has been resolved for the batch.
+      summary: '',
       details:
         sanitized && Object.keys(sanitized).length > 0 ? sanitized : undefined,
       previousData:
@@ -233,11 +255,188 @@ export class AuditInterceptor implements NestInterceptor {
     if (this.queue.length === 0) return;
 
     const batch = this.queue.splice(0, FLUSH_BATCH_SIZE);
-    this.prisma.activityLog
-      .createMany({ data: batch as any })
+    void this.resolveJobRefs(batch)
+      .catch(() => {
+        // A failed lookup only costs the Job ID column — still write the rows.
+      })
+      .then(() => {
+        // `assignmentId` is transient scaffolding — never persisted.
+        const data = batch.map((row) => ({
+          userId: row.userId,
+          userName: row.userName,
+          action: row.action,
+          entity: row.entity,
+          entityId: row.entityId,
+          jobId: row.jobId,
+          jobRef: row.jobRef,
+          summary: this.buildSummary(row),
+          details: row.details,
+          previousData: row.previousData,
+          ipAddress: row.ipAddress,
+        }));
+        return this.prisma.activityLog.createMany({ data: data as any });
+      })
       .catch((err) =>
         this.logger.warn(`Failed to flush audit logs: ${err.message}`),
       );
+  }
+
+  /** "UPDATE TrafficJob (ITT-00123)" — falls back to a short record id. */
+  private buildSummary(entry: Omit<AuditEntry, 'assignmentId'>): string {
+    const ref =
+      entry.jobRef ??
+      (entry.entityId ? `${entry.entityId.slice(0, 8)}…` : null);
+    return `${entry.action} ${entry.entity}${ref ? ` (${ref})` : ''}`;
+  }
+
+  /** Fill in `jobRef` for queued entries: one lookup per batch, resolving both
+   *  direct job ids and dispatch assignment ids. */
+  private async resolveJobRefs(batch: AuditEntry[]): Promise<void> {
+    const assignmentIds = [
+      ...new Set(
+        batch
+          .filter((e) => !e.jobId && e.assignmentId)
+          .map((e) => e.assignmentId!),
+      ),
+    ];
+    if (assignmentIds.length > 0) {
+      const assignments = await this.prisma.trafficAssignment.findMany({
+        where: { id: { in: assignmentIds } },
+        select: { id: true, trafficJobId: true },
+      });
+      const byId = new Map(assignments.map((a) => [a.id, a.trafficJobId]));
+      for (const entry of batch) {
+        if (!entry.jobId && entry.assignmentId) {
+          entry.jobId = byId.get(entry.assignmentId) ?? null;
+        }
+      }
+    }
+
+    const jobIds = [
+      ...new Set(
+        batch.filter((e) => e.jobId && !e.jobRef).map((e) => e.jobId!),
+      ),
+    ];
+    if (jobIds.length === 0) return;
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: { id: { in: jobIds } },
+      select: { id: true, internalRef: true },
+    });
+    const refById = new Map(jobs.map((j) => [j.id, j.internalRef]));
+    for (const entry of batch) {
+      if (entry.jobId && !entry.jobRef) {
+        entry.jobRef = refById.get(entry.jobId) ?? null;
+        // Candidate ids come from URLs and request bodies — drop the ones that
+        // turn out not to be traffic jobs rather than storing a bogus link.
+        if (!entry.jobRef) entry.jobId = null;
+      }
+    }
+  }
+
+  /**
+   * Work out which traffic job an audited request touched. Job ids reach us in
+   * four shapes, checked in order of reliability:
+   *   1. the response of a create (`POST /traffic-jobs` returns the new job)
+   *   2. the URL — `/traffic-jobs/:id`, `.../jobs/:id/...`, `/job-locks/:scope/:id/...`
+   *   3. the request body — `trafficJobId` / `jobId` (dispatch assign, fees, …)
+   *   4. the before-snapshot of a traffic job row
+   * `/dispatch/assignments/:id` addresses the assignment, not the job, so its
+   * id is carried through and resolved at flush time.
+   */
+  private resolveJob(
+    path: string,
+    entity: string,
+    entityId: string | null,
+    body: unknown,
+    before: Record<string, unknown> | null | undefined,
+    response: unknown,
+  ): {
+    jobId: string | null;
+    jobRef: string | null;
+    assignmentId: string | null;
+  } {
+    const segments = path
+      .replace(/^\/api\//, '')
+      .split('/')
+      .filter(Boolean);
+
+    // 1. Response of a job create/update — carries both id and reference.
+    const asRecord = (value: unknown): Record<string, unknown> | null =>
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : null;
+    const resBody = asRecord(response);
+    const resJob = asRecord(resBody?.job) ?? resBody;
+    if (
+      entity.startsWith('TrafficJob') &&
+      resJob &&
+      typeof resJob.internalRef === 'string' &&
+      typeof resJob.id === 'string' &&
+      UUID_RE.test(resJob.id)
+    ) {
+      return {
+        jobId: resJob.id,
+        jobRef: resJob.internalRef,
+        assignmentId: null,
+      };
+    }
+
+    // 2. URL-addressed job.
+    const fromPath = (): string | null => {
+      if (segments[0] === 'traffic-jobs' && UUID_RE.test(segments[1] ?? '')) {
+        return segments[1];
+      }
+      // `<portal>/jobs/:jobId/...`
+      const jobsAt = segments.indexOf('jobs');
+      if (jobsAt !== -1 && UUID_RE.test(segments[jobsAt + 1] ?? '')) {
+        return segments[jobsAt + 1];
+      }
+      // `job-locks/<scope>/:jobId/(lock|unlock)`
+      if (segments[0] === 'job-locks' && UUID_RE.test(segments[2] ?? '')) {
+        return segments[2];
+      }
+      return null;
+    };
+    const pathJobId = fromPath();
+    if (pathJobId)
+      return { jobId: pathJobId, jobRef: null, assignmentId: null };
+
+    // 3. Job id in the request body.
+    const bodyObj = asRecord(body);
+    for (const key of ['trafficJobId', 'jobId']) {
+      const value = bodyObj?.[key];
+      if (typeof value === 'string' && UUID_RE.test(value)) {
+        return { jobId: value, jobRef: null, assignmentId: null };
+      }
+    }
+
+    // 4. Before-snapshot of the traffic job row itself.
+    if (
+      entity.startsWith('TrafficJob') &&
+      typeof before?.internalRef === 'string' &&
+      typeof before?.id === 'string'
+    ) {
+      return {
+        jobId: before.id,
+        jobRef: before.internalRef,
+        assignmentId: null,
+      };
+    }
+    if (entity.startsWith('TrafficJob') && entityId) {
+      return { jobId: entityId, jobRef: null, assignmentId: null };
+    }
+
+    // Dispatch assignment — resolved to its job at flush time.
+    if (
+      segments[0] === 'dispatch' &&
+      segments[1] === 'assignments' &&
+      UUID_RE.test(segments[2] ?? '')
+    ) {
+      return { jobId: null, jobRef: null, assignmentId: segments[2] };
+    }
+
+    return { jobId: null, jobRef: null, assignmentId: null };
   }
 
   private methodToAction(method: string): string {

@@ -67,7 +67,7 @@ export class ActivityLogsService {
       }
     }
     if (query.search) {
-      where.summary = { contains: query.search, mode: 'insensitive' };
+      Object.assign(where, this.searchWhere(query.search));
     }
 
     const [logs, total] = await Promise.all([
@@ -83,6 +83,8 @@ export class ActivityLogsService {
           action: true,
           entity: true,
           entityId: true,
+          jobId: true,
+          jobRef: true,
           summary: true,
           ipAddress: true,
           createdAt: true,
@@ -100,6 +102,20 @@ export class ActivityLogsService {
       })),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  /** Free-text search — matches the summary, the job's internal reference, or
+   *  an exact record id pasted in whole. */
+  private searchWhere(term: string) {
+    const search = term.trim();
+    const OR: any[] = [
+      { summary: { contains: search, mode: 'insensitive' } },
+      { jobRef: { contains: search, mode: 'insensitive' } },
+    ];
+    if (isUuid(search)) {
+      OR.push({ entityId: search }, { jobId: search });
+    }
+    return { OR };
   }
 
   async findOne(id: string) {
@@ -240,7 +256,7 @@ export class ActivityLogsService {
       }
     }
     if (query.search) {
-      where.summary = { contains: query.search, mode: 'insensitive' };
+      Object.assign(where, this.searchWhere(query.search));
     }
 
     const logs = await this.prisma.activityLog.findMany({
@@ -255,6 +271,7 @@ export class ActivityLogsService {
       User: l.user?.name || l.userName,
       Action: l.action,
       Window: windowLabel(l.entity),
+      'Job ID': l.jobRef || '',
       Record: l.entityId || '',
       Summary: l.summary,
       'IP Address': l.ipAddress || '',

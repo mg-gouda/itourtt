@@ -1399,6 +1399,12 @@ model ActivityLog {
   action    String // CREATE, UPDATE, DELETE
   entity    String // e.g. "TrafficJob", "Agent", "Invoice"
   entityId  String?  @map("entity_id")
+  // The traffic job this action touched, when one can be resolved (from the
+  // URL, the request body, the response, or a dispatch assignment). `jobRef`
+  // is the job's internal reference — denormalised so the Activity Log can
+  // display and search by it without a join.
+  jobId     String?  @map("job_id")
+  jobRef    String?  @map("job_ref")
   summary   String // Human-readable: "Created traffic job TJ-00123"
   details      Json? // Submitted/new values (request body)
   previousData Json?  @map("previous_data") // Snapshot of the record BEFORE an update/delete
@@ -1410,6 +1416,7 @@ model ActivityLog {
   @@index([userId])
   @@index([entity])
   @@index([createdAt])
+  @@index([jobRef])
   @@map("activity_logs")
 }
 
