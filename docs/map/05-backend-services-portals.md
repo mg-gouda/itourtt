@@ -144,7 +144,7 @@ Everything the driver-facing portal does. Enforces four independent gates on eve
 | `checkDriverTimelock` | priv | 731 | — | Hard 48h cut-off after `jobDate`, skipped entirely when an admin has set `driverUnlockedAt`. Throws Forbidden — this is the usual cause of a driver being unable to touch an old job. |
 | `checkDriverGeofence` | priv | 741 | — | Compares GPS to the job's origin coordinates at a 2km radius. Deliberately NON-blocking: a miss is only logged as a warning, never thrown. Do not assume GPS enforcement for drivers (reps are stricter). |
 | `findJobDetail` | pub | 760 | `trafficJob` | Full job detail for one assigned job, including no-show evidence. Scoped by `assignment.driverId`, so a driver cannot read another's job. |
-| `getJobStampMeta` | pub | 792 | `trafficJob` | Supplies the name/status overlay burned into evidence photos by `stampEvidenceImage` before upload. |
+| `getJobStampMeta` | pub | 800 | `trafficJob` | Supplies the name/status overlay burned into evidence photos by `stampEvidenceImage` before upload. |
 
 ### NoShowDisputeService
 
@@ -293,7 +293,7 @@ Everything the rep-facing portal does. The rep leg runs PENDING→IN_PLACE→COM
 | `checkRepTimelock` | priv | 964 | — | 48h cut-off after `jobDate`, bypassed by `TrafficJob.repUnlockedAt`. Mirrors the driver timelock. |
 | `checkRepGeofence` | priv | 974 | — | 2km proximity check that only WARNS — it never throws. Note the in-app help text claims GPS proximity is required at 500m; the code does not enforce that for either portal. |
 | `findJobDetail` | pub | 993 | `trafficJob` | Full job detail for one assigned job, scoped by `assignment.repId`. |
-| `getJobStampMeta` | pub | 1025 | `trafficJob` | Name/status overlay burned into rep evidence photos before upload. |
+| `getJobStampMeta` | pub | 1033 | `trafficJob` | Name/status overlay burned into rep evidence photos before upload. |
 
 ## `supplier-portal`
 

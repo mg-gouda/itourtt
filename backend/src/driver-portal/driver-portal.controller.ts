@@ -153,7 +153,7 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
+    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId, 'NO_SHOW').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
 
     const result = await this.driverPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
@@ -180,7 +180,7 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
+    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId, 'IN_PROGRESS').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'in-progress', latitude, longitude, stampMeta);
 
     const result = await this.driverPortalService.submitInProgress(userId, jobId, imageUrls, latitude, longitude);
@@ -207,7 +207,7 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId).catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
+    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId, 'COMPLETED').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
     const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed', latitude, longitude, stampMeta);
 
     const result = await this.driverPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);

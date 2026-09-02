@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**39 classes**, **255 methods**.
+**39 classes**, **256 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -210,15 +210,16 @@ Google Places/Geocoding lookups behind the backend, used for pickup/dropoff coor
 
 ### JobCompletionService
 
-`backend/src/common/services/job-completion.service.ts:38` · service · 3 methods
+`backend/src/common/services/job-completion.service.ts:38` · service · 4 methods
 
 ★ Single source of truth for "is this job finished?". `TrafficJob.status` is a STORED column, not derived, so every write that can move a portal leg to COMPLETED must call `reconcileJobStatus` afterwards. Before this existed the roll-up was duplicated inline in the two `/completed` handlers only, stranding jobs at ASSIGNED with both legs done and no fees.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `reconcileJobStatus` | pub | 43 | `trafficJob` `trafficAssignment` | Idempotent roll-up. Refuses to touch jobs already CANCELLED/NO_SHOW. Auto-closes the rep leg on DEP jobs once the driver finishes (a DEP rep has no work left after the car runs). A supplier-sourced car has no own driver, so a null `driverId` is not a gate. Requires at least one leg actually worked before flipping to COMPLETED, then materialises both fees. |
-| `ensureDriverTripFee` | priv | 106 | `driverTripFee` `driverTariffsService.resolveJobTripFee` | Creates the driver's `DriverTripFee` from the airport-aware tariff table, if one does not already exist. |
-| `ensureRepFee` | priv | 131 | `repFee` `repJobScore` `rep` | Creates the rep's fee from their `RepJobScore`, converting score to money via `scoreToFeeAndEval`. |
+| `projectJobStatus` | pub | 52 | — | Predicts, without writing, the job status reconcileJobStatus would produce if a portal leg moved to the given target — used by the evidence stamp so the burned-in overlay shows the resulting status, not the pre-transition one. |
+| `reconcileJobStatus` | pub | 96 | `trafficJob` `trafficAssignment` | Idempotent roll-up. Refuses to touch jobs already CANCELLED/NO_SHOW. Auto-closes the rep leg on DEP jobs once the driver finishes (a DEP rep has no work left after the car runs). A supplier-sourced car has no own driver, so a null `driverId` is not a gate. Requires at least one leg actually worked before flipping to COMPLETED, then materialises both fees. |
+| `ensureDriverTripFee` | priv | 159 | `driverTripFee` `driverTariffsService.resolveJobTripFee` | Creates the driver's `DriverTripFee` from the airport-aware tariff table, if one does not already exist. |
+| `ensureRepFee` | priv | 184 | `repFee` `repJobScore` `rep` | Creates the rep's fee from their `RepJobScore`, converting score to money via `scoreToFeeAndEval`. |
 
 ### JwtAuthGuard
 

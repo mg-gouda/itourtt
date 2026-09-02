@@ -149,7 +149,10 @@ render wrong on non-Cairo devices.
 ## Storage & integrations
 
 - Evidence photos are **stamped server-side** (`common/utils/stamp-image.ts`) before upload, so the
-  overlay can't be forged.
+  overlay can't be forged. The photo is burned *before* the status transaction runs, so the two
+  portal `getJobStampMeta` methods take the **target** status and project both overlay lines forward
+  (`job-completion.service.ts › projectJobStatus` mirrors the roll-up rules). Reading the stored
+  status instead is what made a rep's COMPLETE photo read "Rep: IN PLACE".
 - `GoogleDriveService` returns **null instead of throwing** when unconfigured or when OAuth expires,
   which is why a dead Drive grant appears as silent local-disk fallback rather than an error.
 - Email transport prefers env `SMTP_*` over the DB settings row — an env host silently overrides

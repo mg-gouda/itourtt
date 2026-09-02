@@ -1022,25 +1022,53 @@ export class RepPortalService {
     return job;
   }
 
-  async getJobStampMeta(jobId: string) {
+  /**
+   * Overlay metadata for the evidence stamp.
+   *
+   * `target` is the rep status this submission is about to write. The stamp is
+   * burned before the status transaction runs, so both status lines are
+   * projected forward to what the submission produces — otherwise a rep hitting
+   * COMPLETE is photographed as "IN PLACE".
+   */
+  async getJobStampMeta(jobId: string, target: 'IN_PLACE' | 'COMPLETED' | 'NO_SHOW') {
     const job = await this.prisma.trafficJob.findUnique({
       where: { id: jobId },
       select: {
         status: true,
+        serviceType: true,
         assignment: {
           select: {
+            driverId: true,
+            repId: true,
+            driverStatus: true,
             repStatus: true,
             rep: { select: { name: true } },
           },
         },
       },
     });
-    const rs = job?.assignment?.repStatus;
+
+    const projected = job
+      ? this.jobCompletion.projectJobStatus(
+          { status: job.status as string, serviceType: job.serviceType as string },
+          job.assignment
+            ? {
+                driverId: job.assignment.driverId,
+                repId: job.assignment.repId,
+                driverStatus: job.assignment.driverStatus as string,
+                repStatus: job.assignment.repStatus as string,
+              }
+            : null,
+          'rep',
+          target,
+        )
+      : null;
+
     return {
       rep: job?.assignment?.rep?.name ?? null,
       driver: null,
-      status: job?.status ?? null,
-      portalStatus: rs ? `Rep: ${rs.replace(/_/g, ' ')}` : null,
+      status: projected,
+      portalStatus: `Rep: ${target.replace(/_/g, ' ')}`,
     };
   }
 }

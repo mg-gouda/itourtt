@@ -40,6 +40,59 @@ export class JobCompletionService {
 
   constructor(private readonly driverTariffsService: DriverTariffsService) {}
 
+  /**
+   * What `reconcileJobStatus` *would* leave `TrafficJob.status` as if the given
+   * portal leg moved to `target` — decided in memory, writing nothing.
+   *
+   * The evidence stamp needs this: the photo is burned and uploaded *before* the
+   * status transaction runs, so reading the stored status would print the state
+   * the submission is leaving rather than the one it produces (a rep completing
+   * a job stamped "IN PLACE"). Mirrors the rules below — keep the two in step.
+   */
+  projectJobStatus(
+    job: { status: string; serviceType: string },
+    assignment: {
+      driverId: string | null;
+      repId: string | null;
+      driverStatus: string;
+      repStatus: string;
+    } | null,
+    leg: 'driver' | 'rep',
+    target: string,
+  ): string {
+    // No-show is written straight onto the job by the portal handler; it never
+    // goes through the roll-up.
+    if (target === 'NO_SHOW') return 'NO_SHOW';
+    // IN_PLACE / IN_PROGRESS move a leg only — the job status is untouched.
+    if (target !== 'COMPLETED') return job.status;
+    if (!assignment) return job.status;
+    if (TERMINAL_JOB_STATUSES.includes(job.status)) return job.status;
+
+    const driverStatus = leg === 'driver' ? target : assignment.driverStatus;
+    let repStatus = leg === 'rep' ? target : assignment.repStatus;
+
+    if (
+      job.serviceType === 'DEP' &&
+      assignment.driverId &&
+      driverStatus === 'COMPLETED' &&
+      assignment.repId &&
+      !TERMINAL_PORTAL_STATUSES.includes(repStatus)
+    ) {
+      repStatus = 'COMPLETED';
+    }
+
+    const driverAssigned = !!assignment.driverId;
+    const repAssigned = !!assignment.repId;
+    const driverDone = driverStatus === 'COMPLETED';
+    const repDone = repStatus === 'COMPLETED';
+
+    const driverLegClear = !driverAssigned || driverDone;
+    const repLegClear = !repAssigned || repDone;
+    const anyLegDone = (driverAssigned && driverDone) || (repAssigned && repDone);
+
+    return driverLegClear && repLegClear && anyLegDone ? 'COMPLETED' : job.status;
+  }
+
   async reconcileJobStatus(
     tx: Prisma.TransactionClient,
     jobId: string,

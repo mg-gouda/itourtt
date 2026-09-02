@@ -789,25 +789,53 @@ export class DriverPortalService {
     return job;
   }
 
-  async getJobStampMeta(jobId: string) {
+  /**
+   * Overlay metadata for the evidence stamp.
+   *
+   * `target` is the driver status this submission is about to write. The stamp
+   * is burned before the status transaction runs, so both status lines are
+   * projected forward to what the submission produces — otherwise a completing
+   * driver is photographed as "IN PROGRESS" and a starting one as "PENDING".
+   */
+  async getJobStampMeta(jobId: string, target: 'IN_PROGRESS' | 'COMPLETED' | 'NO_SHOW') {
     const job = await this.prisma.trafficJob.findUnique({
       where: { id: jobId },
       select: {
         status: true,
+        serviceType: true,
         assignment: {
           select: {
+            driverId: true,
+            repId: true,
             driverStatus: true,
+            repStatus: true,
             driver: { select: { name: true } },
           },
         },
       },
     });
-    const ds = job?.assignment?.driverStatus;
+
+    const projected = job
+      ? this.jobCompletion.projectJobStatus(
+          { status: job.status as string, serviceType: job.serviceType as string },
+          job.assignment
+            ? {
+                driverId: job.assignment.driverId,
+                repId: job.assignment.repId,
+                driverStatus: job.assignment.driverStatus as string,
+                repStatus: job.assignment.repStatus as string,
+              }
+            : null,
+          'driver',
+          target,
+        )
+      : null;
+
     return {
       rep: null,
       driver: job?.assignment?.driver?.name ?? null,
-      status: job?.status ?? null,
-      portalStatus: ds ? `Driver: ${ds.replace(/_/g, ' ')}` : null,
+      status: projected,
+      portalStatus: `Driver: ${target.replace(/_/g, ' ')}`,
     };
   }
 }
