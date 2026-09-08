@@ -755,6 +755,45 @@ async function main() {
       console.log('B2C invoices backfill: none needed');
     }
 
+    // ── Complaint categories ──
+    // The complaint form requires a category, so without a starter set the
+    // feature is unusable on a fresh install. Penalties all seed at 0: the
+    // score drives the pay band, so a non-zero default would silently change
+    // what someone is paid the first time a complaint is upheld.
+    const complaintCategories = [
+      { nameEn: 'Driver late', nameAr: 'تأخر السائق', defaultParty: 'DRIVER' as const },
+      { nameEn: 'Vehicle condition', nameAr: 'حالة السيارة', defaultParty: 'DRIVER' as const },
+      { nameEn: 'Rep no-show', nameAr: 'عدم حضور المندوب', defaultParty: 'REP' as const },
+      { nameEn: 'Wrong pickup', nameAr: 'خطأ في مكان الاستلام', defaultParty: 'OFFICE' as const },
+      { nameEn: 'Flight handling', nameAr: 'التعامل مع الرحلة', defaultParty: 'OFFICE' as const },
+      { nameEn: 'Billing', nameAr: 'الفواتير', defaultParty: 'OFFICE' as const },
+      { nameEn: 'Other', nameAr: 'أخرى', defaultParty: null },
+    ];
+
+    let categoriesAdded = 0;
+    for (let i = 0; i < complaintCategories.length; i++) {
+      const c = complaintCategories[i];
+      const existing = await prisma.complaintCategory.findFirst({
+        where: { nameEn: c.nameEn },
+      });
+      if (existing) continue;
+      await prisma.complaintCategory.create({
+        data: {
+          nameEn: c.nameEn,
+          nameAr: c.nameAr,
+          defaultParty: c.defaultParty,
+          defaultPenaltyPoints: 0,
+          sortOrder: i,
+        },
+      });
+      categoriesAdded++;
+    }
+    console.log(
+      categoriesAdded > 0
+        ? `Complaint categories seeded: ${categoriesAdded}`
+        : 'Complaint categories: already present',
+    );
+
     console.log('\nSeed completed successfully.');
   } finally {
     await prisma.$disconnect();
