@@ -57,6 +57,33 @@ A job carries **three independent legs** on its single `TrafficAssignment`, plus
 Completion materialises money: `DriverTripFee` from the tariff table, `RepFee` from the rep's score.
 Details in `11-business-rules.md`.
 
+## The complaint lifecycle
+
+A complaint hangs off a job and runs its own lifecycle, deliberately kept apart from the job's:
+
+```
+  OPEN → UNDER_REVIEW → REPLIED → ESCALATED → WON | PARTIALLY_LOST | LOST | CANCELLED
+                                                    └── the four terminal states
+
+  reply window     replyDueAt = complaintDate + slaHours   → slaBreached is a FLAG
+                   complaint-sla.service.ts (hourly)         it never changes status
+```
+
+A lost complaint moves money in two independent directions, neither of them automatic:
+
+```
+  ComplaintCharge   raise → approve → post → void      against driver / rep / supplier
+                                      └── the only step that writes: a NEGATIVE row in
+                                          RepFee / DriverTripFee / SupplierCost
+
+  AgentAdjustment   created PENDING inside the transition's own transaction
+                    └── negative invoice line | CREDIT_NOTE invoice (Odoo out_refund) | waived
+```
+
+The score penalty is the third consequence, and the one with a guard: it is applied only while that
+job's fee row is still `isPosted: false`. Settled pay is never rewritten. See `11-business-rules.md`
+§ Complaints.
+
 ## Layout
 
 | Path | What |
@@ -75,7 +102,9 @@ Details in `11-business-rules.md`.
 - **Soft delete everywhere** — `deletedAt`, never a hard delete. Every list query filters it.
 - **Shared rules live in `common/utils`** and have exactly one home: service types, rep scoring,
   the no-show window, geofencing. Never hard-code a service-type string.
-- **Africa/Cairo, always.** Use the timezone helpers; never format with the device zone.
+- **Africa/Cairo, always.** Use the timezone helpers; never format with the device zone. A job's
+  service date is compared on the Cairo calendar and can never be in the past — see
+  `common/utils/service-date.util.ts` and `lib/utils.ts › serviceDateMin`.
 - **Excel pipelines come in threes**: `exportToExcel`, `generateImportTemplate`, `importFromExcel`.
   Templates are pre-filled with real zones and vehicle types so imported names resolve to ids.
 - **Permission keys are hierarchical** and mirrored between `backend/src/permissions/
@@ -91,6 +120,7 @@ Details in `11-business-rules.md`.
 | A new admin screen | `frontend/src/app/(dashboard)/dashboard/<name>/page.tsx` + a sidebar entry |
 | A new report | `reports.service.ts` (JSON) **and** `export.service.ts` (xlsx) — they pair up |
 | A rule that both portals share | `backend/src/common/utils/`, not one portal |
+| A name-only picker over a guarded resource | a `lookup` endpoint (see `agents.service.ts › lookup`) rather than widening the full list |
 
 ## Deployment
 

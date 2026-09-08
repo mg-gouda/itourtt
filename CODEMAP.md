@@ -2,14 +2,14 @@
 
 **Read this file first. It tells you which map to open, so you never have to grep the tree blind.**
 
-Every map below is complete: **2,045 / 2,045 symbols described**, regenerated from the code itself.
+Every map below is complete: **2,213 / 2,213 symbols described**, regenerated from the code itself.
 
 | Area | Files | LOC | Root |
 |---|---|---|---|
-| Backend (NestJS) | 246 | 40k | `backend/src` — 444 endpoints, 37 controllers, 52 services |
-| Frontend (Next.js) | 169 | 57k | `frontend/src` — 48 routes |
-| Mobile (4 RN apps) | 121 | 13k | `mobile/apps/{driver,rep,supplier,guest}` |
-| Prisma schema | 1 | 2.4k | `backend/prisma/schema.prisma` — 84 models |
+| Backend (NestJS) | 266 | 44k | `backend/src` — 471 endpoints, 40 controllers, 58 services |
+| Frontend (Next.js) | 176 | 60k | `frontend/src` — 51 routes |
+| Mobile (4 RN apps) | 116 | 11k | `mobile/apps/{driver,rep,supplier,guest}` |
+| Prisma schema | 1 | 2.7k | `backend/prisma/schema.prisma` — 89 models |
 | B2C site | 422 | 65k | **separate repo + VPS + database** → `docs/map/10-b2c-site.md` |
 
 ## Which map do I open?
@@ -37,6 +37,8 @@ Every map below is complete: **2,045 / 2,045 symbols described**, regenerated fr
 | "What does this endpoint call?" | `02` — every row lists its service method |
 | "What touches this table?" | `03`–`06` — every method lists the models it reads/writes |
 | "Which endpoints does this page call?" | `07` |
+| "Why did this complaint not deduct anything?" | `11` → *Complaints* (the fee was already posted) |
+| "Why can't I pick this service date?" | `11` → *A service date is never in the past* |
 
 ## Rules of the map
 
