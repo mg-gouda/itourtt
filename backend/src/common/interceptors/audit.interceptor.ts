@@ -61,6 +61,9 @@ const ENTITY_MAP: Record<string, string> = {
   'driver-portal': 'DriverPortal',
   'rep-portal': 'RepPortal',
   'supplier-portal': 'SupplierPortal',
+  complaints: 'Complaint',
+  'complaint-categories': 'ComplaintCategory',
+  'agent-adjustments': 'AgentAdjustment',
 };
 
 /** Map URL segment → Prisma model delegate, used to snapshot a record's state
@@ -76,6 +79,9 @@ const MODEL_MAP: Record<string, string> = {
   'vehicle-types': 'vehicleType',
   'traffic-jobs': 'trafficJob',
   invoices: 'invoice',
+  complaints: 'complaint',
+  'complaint-categories': 'complaintCategory',
+  'agent-adjustments': 'agentAdjustment',
 };
 
 /** UUID v4 regex */

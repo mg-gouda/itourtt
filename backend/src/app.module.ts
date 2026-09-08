@@ -32,6 +32,7 @@ import { PublicPricesModule } from './public-prices/public-prices.module.js';
 import { ExtrasModule } from './extras/extras.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { GuestBookingsModule } from './guest-bookings/guest-bookings.module.js';
+import { ComplaintsModule } from './complaints/complaints.module.js';
 import { B2CModule } from './b2c/b2c.module.js';
 import { EmailModule } from './email/email.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
@@ -83,6 +84,7 @@ import { PartnerModule } from './partner/partner.module.js';
     JobServiceTypesModule,
     PaymentsModule,
     GuestBookingsModule,
+    ComplaintsModule,
     B2CModule,
     NotificationsModule,
     ImportTemplatesModule,

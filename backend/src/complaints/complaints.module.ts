@@ -1,0 +1,22 @@
+import { Module } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ComplaintsController } from './complaints.controller.js';
+import { ComplaintsService } from './complaints.service.js';
+import { ComplaintCategoriesController } from './complaint-categories.controller.js';
+import { ComplaintCategoriesService } from './complaint-categories.service.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
+
+@Module({
+  controllers: [ComplaintsController, ComplaintCategoriesController],
+  // PermissionsGuard is provided here as well as globally: the service and
+  // controller resolve permission keys through it to gate the money fields,
+  // and it shares the same static 5-minute cache either way.
+  providers: [
+    ComplaintsService,
+    ComplaintCategoriesService,
+    PermissionsGuard,
+    Reflector,
+  ],
+  exports: [ComplaintsService, ComplaintCategoriesService],
+})
+export class ComplaintsModule {}
