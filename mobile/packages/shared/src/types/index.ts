@@ -334,6 +334,29 @@ export interface PortalNotification {
   createdAt: string;
 }
 
+// ─── Complaints ─────────────────────────────────────────────────
+/**
+ * A settled complaint the signed-in rep or driver was held responsible for.
+ * Only terminal outcomes ever reach the portals — a dispute still being argued
+ * is internal — and the claimed/conceded amounts are never sent.
+ */
+export interface PortalComplaint {
+  id: string;
+  complaintNo: string;
+  subject: string;
+  status: 'WON' | 'PARTIALLY_LOST' | 'LOST';
+  resolvedAt: string | null;
+  scorePenalty: number;
+  categoryEn: string;
+  categoryAr: string;
+  jobRef: string;
+  jobDate: string;
+  serviceType: string;
+  /** Set only when a charge against this person was actually posted. */
+  chargedAmount: number | null;
+  chargedCurrency: string | null;
+}
+
 // ─── Guest Booking ──────────────────────────────────────────────
 export interface BookingExtras {
   boosterSeatQty: number;

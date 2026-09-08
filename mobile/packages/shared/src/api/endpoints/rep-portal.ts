@@ -1,5 +1,5 @@
 import api from '../client';
-import type { RepPortalJob, RepProfile, PortalNotification } from '../../types';
+import type { RepPortalJob, RepProfile, PortalNotification, PortalComplaint } from '../../types';
 
 export const repPortalApi = {
   getJobs(date: string) {
@@ -20,6 +20,10 @@ export const repPortalApi = {
     return api.post(`/rep-portal/jobs/${jobId}/no-show`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+  },
+
+  getComplaints() {
+    return api.get<PortalComplaint[]>('/rep-portal/complaints');
   },
 
   getNotifications() {

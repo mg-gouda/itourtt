@@ -1,5 +1,5 @@
 import api from '../client';
-import type { DriverPortalJob, DriverProfile, PortalNotification } from '../../types';
+import type { DriverPortalJob, DriverProfile, PortalNotification, PortalComplaint } from '../../types';
 
 export const driverPortalApi = {
   getJobs(date: string) {
@@ -24,6 +24,10 @@ export const driverPortalApi = {
     return api.post(`/driver-portal/jobs/${jobId}/no-show`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+  },
+
+  getComplaints() {
+    return api.get<PortalComplaint[]>('/driver-portal/complaints');
   },
 
   getNotifications() {

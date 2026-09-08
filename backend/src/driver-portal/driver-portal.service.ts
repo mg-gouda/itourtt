@@ -655,6 +655,58 @@ export class DriverPortalService {
     });
   }
 
+  /**
+   * Complaints this driver is answerable for — and only the settled ones.
+   *
+   * A dispute still being argued is internal: the driver sees the outcome, not
+   * the argument. So this returns terminal LOST / PARTIALLY_LOST / WON only,
+   * and never the claimed or conceded amounts.
+   */
+  async getComplaints(userId: string) {
+    const driverId = await this.resolveDriverId(userId);
+
+    const complaints = await this.prisma.complaint.findMany({
+      where: {
+        deletedAt: null,
+        responsibleParty: 'DRIVER',
+        responsibleDriverId: driverId,
+        status: { in: ['WON', 'PARTIALLY_LOST', 'LOST'] },
+      },
+      orderBy: { resolvedAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        complaintNo: true,
+        subject: true,
+        status: true,
+        resolvedAt: true,
+        scorePenaltyApplied: true,
+        category: { select: { nameEn: true, nameAr: true } },
+        trafficJob: {
+          select: { internalRef: true, jobDate: true, serviceType: true },
+        },
+        charge: { select: { status: true, amount: true, currency: true } },
+      },
+    });
+
+    return complaints.map((c) => ({
+      id: c.id,
+      complaintNo: c.complaintNo,
+      subject: c.subject,
+      status: c.status,
+      resolvedAt: c.resolvedAt,
+      scorePenalty: c.scorePenaltyApplied,
+      categoryEn: c.category.nameEn,
+      categoryAr: c.category.nameAr,
+      jobRef: c.trafficJob.internalRef,
+      jobDate: c.trafficJob.jobDate,
+      serviceType: c.trafficJob.serviceType,
+      // Only a charge that was actually posted is money the driver has lost.
+      chargedAmount: c.charge?.status === 'POSTED' ? Number(c.charge.amount) : null,
+      chargedCurrency: c.charge?.status === 'POSTED' ? c.charge.currency : null,
+    }));
+  }
+
   async getNotifications(userId: string) {
     const driverId = await this.resolveDriverId(userId);
 

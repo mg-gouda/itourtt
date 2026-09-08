@@ -86,6 +86,50 @@ check entirely, since `resolveDriverGeofenceTarget` returns null.
 
 ---
 
+## Complaints
+
+A complaint is always attached to a job (`trafficJobId` is required) and carries the stage it arose
+at — before, during or after. The lifecycle is
+`OPEN → UNDER_REVIEW → REPLIED → ESCALATED → WON / PARTIALLY_LOST / LOST / CANCELLED`, with the last
+four terminal. `VALID_TRANSITIONS` in `complaints.service.ts` is the authority; the frontend's
+`NEXT_STATUSES` only decides which buttons to draw.
+
+**The 48-hour reply window flags, it never decides.** `replyDueAt = complaintDate + slaHours`
+(stored per row, so a later policy change can't rewrite history). `complaint-sla.service.ts` runs
+hourly and does exactly two things: flip `slaBreached` and write notifications. It must **never**
+touch `status` — a missed deadline is a flag, not an outcome. Note `CronRunLock.runDate` is
+`@db.Date` and cannot separate hours, so the sweep puts the hour in the `jobName` instead;
+reverting that would leave only the day's first run ever executing.
+
+**Money moves in two directions and never automatically.**
+- Against the party at fault: a `ComplaintCharge` is raised, approved and posted as three separately
+  permissioned acts. Only *posting* writes anything — a negative, still-unposted row in `RepFee`,
+  `DriverTripFee` or `SupplierCost` against the same job, so it flows through existing totals and
+  exports untouched. Voiding deletes that row while unposted, or writes a compensating positive row
+  once it has been paid out.
+- Toward the agent: a LOST / PARTIALLY_LOST outcome with a conceded amount creates one PENDING
+  `AgentAdjustment` **inside the transition's own transaction**, so an outcome can never be recorded
+  without its debt. Finance then settles it as a negative invoice line, a standalone `CREDIT_NOTE`
+  invoice, or a waiver. `updateInvoiceLines` deletes and recreates every line, so it releases
+  attached adjustments back to PENDING first — otherwise they would read `ON_INVOICE` while their
+  `invoiceLineId` was nulled by cascade.
+
+**Settled pay is never rewritten.** A category's `defaultPenaltyPoints` is deducted from the rep or
+driver job score, which moves the pay band — so it is applied *only* while that job's fee row is
+still `isPosted: false`. If the fee is posted, the penalty is skipped and the reason recorded in
+`Complaint.scorePenaltyNote`. Seeded categories default to `0` so nothing touches pay until someone
+deliberately configures it. Re-scoring a job reads the penalty back off the saved row, so the
+scoring form can't wipe it.
+
+**Amounts are stripped server-side.** Without `complaints.financial.viewAmounts`,
+`redactAmounts` removes `claimedAmount`, `lossAmount`, `currency`, `exchangeRate`, the charge and the
+adjustments from the payload — they are absent, not null. Hiding them in the UI alone is not the
+rule.
+
+Reps and drivers see a complaint **only once it is terminal** and only where they are the
+responsible party (`/driver-portal/complaints`, `/rep-portal/complaints`). A dispute still being
+argued is internal, and the claimed/conceded amounts never reach the portals.
+
 ## Dispatch
 
 | Rule | Where |

@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**94 files**, **196 exported symbols**.
+**96 files**, **199 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -44,14 +44,14 @@ Driver status action buttons, mirroring the backend transition and collection ru
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 91 lines
+`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 101 lines
 
 Driver app bottom tabs (Jobs, History, Notifications, Profile).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 9 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 18 | Driver app bottom tabs (Jobs, History, Notifications, Profile). |
+| `MainTabParamList` | type | 10 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 20 | Driver app bottom tabs (Jobs, History, Notifications, Profile). |
 
 ### `RootNavigator.tsx`
 
@@ -65,6 +65,16 @@ Driver app auth vs main navigation switch.
 | `RootNavigator` | function | 18 | Driver app auth vs main navigation switch. |
 
 ## `mobile/apps/driver/src/screens/`
+
+### `ComplaintsScreen.tsx`
+
+`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 148 lines
+
+Driver app Complaints tab.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ComplaintsScreen` | function | 20 | Read-only list of the driver's settled complaints and what each one cost them. |
 
 ### `HistoryScreen.tsx`
 
@@ -345,14 +355,14 @@ Rep status action buttons, mirroring the IN PLACE window and transition rules.
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 91 lines
+`mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 101 lines
 
 Rep app bottom tabs.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 9 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 18 | Rep app bottom tabs. |
+| `MainTabParamList` | type | 10 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 20 | Rep app bottom tabs. |
 
 ### `RootNavigator.tsx`
 
@@ -366,6 +376,16 @@ Rep app auth vs main navigation switch.
 | `RootNavigator` | function | 18 | Rep app auth vs main navigation switch. |
 
 ## `mobile/apps/rep/src/screens/`
+
+### `ComplaintsScreen.tsx`
+
+`mobile/apps/rep/src/screens/ComplaintsScreen.tsx` · 148 lines
+
+Rep app Complaints tab.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ComplaintsScreen` | function | 20 | Read-only list of the rep's settled complaints and what each one cost them. |
 
 ### `HistoryScreen.tsx`
 
@@ -555,7 +575,7 @@ Auth calls — login, refresh, logout, device-token registration.
 
 ### `driver-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 45 lines
+`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 49 lines
 
 Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController`.
 
@@ -575,7 +595,7 @@ Public B2C endpoints used by the guest app (search, pricing, booking).
 
 ### `rep-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 41 lines
+`mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 45 lines
 
 Typed wrappers over `/api/rep-portal`; mirrors `RepPortalController`.
 
@@ -827,7 +847,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 453 lines
+`mobile/packages/shared/src/types/index.ts` · 476 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -871,16 +891,17 @@ Shared TypeScript types for API payloads across the apps.
 | `RepPortalJob` | type | 313 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
 | `SupplierPortalJob` | type | 322 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
 | `PortalNotification` | type | 328 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
-| `BookingExtras` | type | 338 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 344 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 356 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 362 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 387 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 413 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 418 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 426 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 435 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 444 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `PortalComplaint` | type | 343 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
+| `BookingExtras` | type | 361 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 367 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 379 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 385 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 410 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 436 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 441 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 449 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 458 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 467 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 

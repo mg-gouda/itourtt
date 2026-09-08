@@ -883,6 +883,58 @@ export class RepPortalService {
     return { success: true, recipientCount: recipients.length };
   }
 
+  /**
+   * Complaints this rep is answerable for — settled ones only.
+   *
+   * A dispute still being argued is internal: the rep sees the outcome, not the
+   * argument. Terminal WON / PARTIALLY_LOST / LOST only, and never the claimed
+   * or conceded amounts.
+   */
+  async getComplaints(userId: string) {
+    const repId = await this.resolveRepId(userId);
+
+    const complaints = await this.prisma.complaint.findMany({
+      where: {
+        deletedAt: null,
+        responsibleParty: 'REP',
+        responsibleRepId: repId,
+        status: { in: ['WON', 'PARTIALLY_LOST', 'LOST'] },
+      },
+      orderBy: { resolvedAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        complaintNo: true,
+        subject: true,
+        status: true,
+        resolvedAt: true,
+        scorePenaltyApplied: true,
+        category: { select: { nameEn: true, nameAr: true } },
+        trafficJob: {
+          select: { internalRef: true, jobDate: true, serviceType: true },
+        },
+        charge: { select: { status: true, amount: true, currency: true } },
+      },
+    });
+
+    return complaints.map((c) => ({
+      id: c.id,
+      complaintNo: c.complaintNo,
+      subject: c.subject,
+      status: c.status,
+      resolvedAt: c.resolvedAt,
+      scorePenalty: c.scorePenaltyApplied,
+      categoryEn: c.category.nameEn,
+      categoryAr: c.category.nameAr,
+      jobRef: c.trafficJob.internalRef,
+      jobDate: c.trafficJob.jobDate,
+      serviceType: c.trafficJob.serviceType,
+      // Only a posted charge is money the rep has actually lost.
+      chargedAmount: c.charge?.status === 'POSTED' ? Number(c.charge.amount) : null,
+      chargedCurrency: c.charge?.status === 'POSTED' ? c.charge.currency : null,
+    }));
+  }
+
   async getNotifications(userId: string) {
     const repId = await this.resolveRepId(userId);
 

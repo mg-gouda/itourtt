@@ -214,6 +214,12 @@ export class DriverPortalController {
     return new ApiResponse(result, 'Completed evidence submitted');
   }
 
+  @Get('complaints')
+  async getComplaints(@CurrentUser('id') userId: string) {
+    const result = await this.driverPortalService.getComplaints(userId);
+    return new ApiResponse(result);
+  }
+
   @Get('notifications')
   async getNotifications(@CurrentUser('id') userId: string) {
     const result = await this.driverPortalService.getNotifications(userId);

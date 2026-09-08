@@ -3,12 +3,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getColors, repPortalApi, useT } from '@itour/shared';
 import { JobsListScreen } from '../screens/JobsListScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
+import { ComplaintsScreen } from '../screens/ComplaintsScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 
 export type MainTabParamList = {
   Jobs: undefined;
   History: undefined;
+  Complaints: undefined;
   Notifications: undefined;
   Profile: undefined;
 };
@@ -66,6 +68,14 @@ export function MainTabNavigator() {
         options={{
           title: t('jobs.history'),
           tabBarLabel: t('tabs.history'),
+        }}
+      />
+      <Tab.Screen
+        name="Complaints"
+        component={ComplaintsScreen}
+        options={{
+          title: 'Complaints',
+          tabBarLabel: 'Complaints',
         }}
       />
       <Tab.Screen

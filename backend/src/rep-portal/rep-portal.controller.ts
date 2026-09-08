@@ -284,6 +284,12 @@ export class RepPortalController {
     return new ApiResponse(result, 'Update submitted');
   }
 
+  @Get('complaints')
+  async getComplaints(@CurrentUser('id') userId: string) {
+    const result = await this.repPortalService.getComplaints(userId);
+    return new ApiResponse(result);
+  }
+
   @Get('notifications')
   async getNotifications(@CurrentUser('id') userId: string) {
     const result = await this.repPortalService.getNotifications(userId);
