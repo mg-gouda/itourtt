@@ -96,6 +96,30 @@ class RepScoreQueryDto {
   repId?: string;
 }
 
+class ComplaintsReportQueryDto {
+  @IsString()
+  from!: string;
+
+  @IsString()
+  to!: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  agentId?: string;
+
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  responsibleParty?: string;
+}
+
 class DriverScoreQueryDto {
   @IsString()
   from!: string;
@@ -292,6 +316,21 @@ export class ReportsController {
       query.to,
       query.repId,
     );
+    return new ApiResponse(result);
+  }
+
+  @Get('complaints')
+  @Permissions('reports.complaints')
+  async complaintsReport(@Query() query: ComplaintsReportQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.complaintsReport(query.from, query.to, {
+      status: query.status,
+      agentId: query.agentId,
+      categoryId: query.categoryId,
+      responsibleParty: query.responsibleParty,
+    });
     return new ApiResponse(result);
   }
 

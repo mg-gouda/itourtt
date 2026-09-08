@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   ClipboardList,
+  MessageSquareWarning,
   Camera,
   Truck,
   Plane,
@@ -67,6 +68,13 @@ import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { DraggableTableHeader, type ColumnDef } from "@/components/ui/draggable-table-header";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS, useServiceTypeLabel } from "@/lib/service-types";
+import {
+  type ComplaintStatus,
+  type ComplaintParty,
+  COMPLAINT_STATUS_META,
+  PARTY_LABELS,
+  formatMoney,
+} from "@/lib/complaints";
 
 // ────────────────────────────────────────────
 // Types
@@ -316,6 +324,53 @@ interface GuestSurveyReport {
   count: number;
   reps: Array<{ repId: string; repName: string; count: number }>;
   rows: GuestSurveyRow[];
+}
+
+interface ComplaintsReportRow {
+  id: string;
+  complaintNo: string;
+  jobId: string;
+  internalRef: string;
+  agentRef: string | null;
+  jobDate: string;
+  serviceType: string;
+  agentName: string | null;
+  categoryId: string;
+  categoryName: string;
+  stage: string;
+  source: string;
+  subject: string;
+  status: ComplaintStatus;
+  complaintDate: string;
+  replyDueAt: string;
+  repliedAt: string | null;
+  slaBreached: boolean;
+  resolvedAt: string | null;
+  claimedAmount: number | null;
+  lossAmount: number | null;
+  currency: string;
+  responsibleParty: ComplaintParty | null;
+  responsibleName: string | null;
+  scorePenaltyApplied: number;
+  chargeStatus: string | null;
+  chargeAmount: number | null;
+  assignedToName: string | null;
+}
+
+interface ComplaintsReport {
+  rows: ComplaintsReportRow[];
+  summary: {
+    total: number;
+    byStatus: Record<string, number>;
+    byParty: Record<string, number>;
+    lossByCurrency: Record<string, number>;
+    replied: number;
+    slaBreached: number;
+    slaComplianceRate: number | null;
+    winRate: number | null;
+    byCategory: Array<{ categoryId: string; name: string; count: number }>;
+    byAgent: Array<{ agentId: string; name: string; count: number; loss: number }>;
+  };
 }
 
 interface DriverScoreRow {
@@ -864,6 +919,7 @@ export default function ReportsPage() {
   const canRepFees = usePermission("reports.repFees");
   const canRepScore = usePermission("reports.repScore");
   const canGuestSurveys = usePermission("reports.guestSurveys");
+  const canComplaints = usePermission("reports.complaints");
   const canRevenue = usePermission("reports.revenue");
   const canVehicleCompliance = usePermission("reports.vehicleCompliance");
   const canJobStatus = usePermission("reports.jobStatus");
@@ -971,6 +1027,14 @@ export default function ReportsPage() {
   const [guestSurveyData, setGuestSurveyData] = useState<GuestSurveyReport | null>(null);
   const [guestSurveyLoading, setGuestSurveyLoading] = useState(false);
   const guestSurveyPrintRef = useRef<HTMLDivElement>(null);
+
+  const [complaintsFrom, setComplaintsFrom] = useState(thirtyDaysAgo);
+  const [complaintsTo, setComplaintsTo] = useState(today);
+  const [complaintsStatus, setComplaintsStatus] = useState("ALL");
+  const [complaintsParty, setComplaintsParty] = useState("ALL");
+  const [complaintsData, setComplaintsData] = useState<ComplaintsReport | null>(null);
+  const [complaintsLoading, setComplaintsLoading] = useState(false);
+  const complaintsPrintRef = useRef<HTMLDivElement>(null);
 
   // Driver Score
   const [driverScoreFrom, setDriverScoreFrom] = useState(thirtyDaysAgo);
@@ -1559,6 +1623,39 @@ export default function ReportsPage() {
     }
   };
 
+  const complaintsQuery = () => {
+    const p = new URLSearchParams({ from: complaintsFrom, to: complaintsTo });
+    if (complaintsStatus !== "ALL") p.set("status", complaintsStatus);
+    if (complaintsParty !== "ALL") p.set("responsibleParty", complaintsParty);
+    return p.toString();
+  };
+
+  const fetchComplaints = async () => {
+    setComplaintsLoading(true);
+    try {
+      const { data } = await api.get(`/reports/complaints?${complaintsQuery()}`);
+      setComplaintsData(data.data);
+    } catch {
+      toast.error("Failed to load the complaints report");
+    } finally {
+      setComplaintsLoading(false);
+    }
+  };
+
+  const exportComplaintsPdf = () =>
+    printFromRef(complaintsPrintRef, `Complaints - ${complaintsFrom} to ${complaintsTo}`);
+
+  const exportComplaintsExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/complaints?${complaintsQuery()}`, {
+        responseType: "blob",
+      });
+      downloadBlob(res.data, `complaints_${complaintsFrom}_to_${complaintsTo}.xlsx`);
+    } catch {
+      toast.error("Failed to export the complaints report");
+    }
+  };
+
   const exportGuestSurveysPdf = () => printFromRef(guestSurveyPrintRef, `Guest Surveys - ${guestSurveyFrom} to ${guestSurveyTo}`);
 
   const exportGuestSurveysExcel = async () => {
@@ -1967,7 +2064,8 @@ export default function ReportsPage() {
         canJobStatus ? "job-status" :
         canEvidence ? "evidence" :
         canSupplierJobs ? "supplier-jobs" :
-        canCarJobs ? "car-jobs" : "dispatch"
+        canCarJobs ? "car-jobs" :
+        canComplaints ? "complaints" : "dispatch"
       } className="space-y-4">
         <TabsList className="bg-card border border-border !h-auto flex-wrap w-full justify-start gap-y-1">
           {canDailyDispatch && (
@@ -2031,6 +2129,15 @@ export default function ReportsPage() {
             >
               <ClipboardList className="h-3.5 w-3.5" />
               Guest Surveys
+            </TabsTrigger>
+          )}
+          {canComplaints && (
+            <TabsTrigger
+              value="complaints"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <MessageSquareWarning className="h-3.5 w-3.5" />
+              Complaints
             </TabsTrigger>
           )}
           {canRevenue && (
@@ -4868,6 +4975,203 @@ export default function ReportsPage() {
 
                 <ColumnVisibilityControl columns={REVIEW_COLUMNS} visibility={reviewColOrder.visibility} onSave={reviewColOrder.saveVisibility} />
               </>
+            )}
+          </TabsContent>
+        )}
+
+        {canComplaints && (
+          <TabsContent value="complaints" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-muted-foreground text-xs">From</Label>
+                  <Input
+                    type="date"
+                    value={complaintsFrom}
+                    onChange={(e) => setComplaintsFrom(e.target.value)}
+                    className="border-border bg-card text-foreground h-9 w-[150px]"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">To</Label>
+                  <Input
+                    type="date"
+                    value={complaintsTo}
+                    onChange={(e) => setComplaintsTo(e.target.value)}
+                    className="border-border bg-card text-foreground h-9 w-[150px]"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Status</Label>
+                  <Select value={complaintsStatus} onValueChange={setComplaintsStatus}>
+                    <SelectTrigger className="border-border bg-card text-foreground h-9 w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Statuses</SelectItem>
+                      {Object.entries(COMPLAINT_STATUS_META).map(([value, meta]) => (
+                        <SelectItem key={value} value={value}>
+                          {meta.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Responsible</Label>
+                  <Select value={complaintsParty} onValueChange={setComplaintsParty}>
+                    <SelectTrigger className="border-border bg-card text-foreground h-9 w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Anyone</SelectItem>
+                      {Object.entries(PARTY_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" onClick={fetchComplaints} disabled={complaintsLoading} className="gap-1.5">
+                  {complaintsLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                  Run
+                </Button>
+                {complaintsData && complaintsData.rows.length > 0 && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={exportComplaintsPdf} className="gap-1.5">
+                      <Printer className="h-3.5 w-3.5" />
+                      PDF
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={exportComplaintsExcel} className="gap-1.5">
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      Excel
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            {complaintsLoading ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : complaintsData ? (
+              <div ref={complaintsPrintRef}>
+                <div className="grid gap-3 sm:grid-cols-4 mb-4">
+                  <Card className="border-border bg-card p-3">
+                    <p className="text-xs text-muted-foreground">Complaints</p>
+                    <p className="text-lg font-bold text-foreground">{complaintsData.summary.total}</p>
+                  </Card>
+                  <Card className="border-border bg-card p-3">
+                    <p className="text-xs text-muted-foreground">Won (of decided)</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {complaintsData.summary.winRate === null ? "—" : `${complaintsData.summary.winRate}%`}
+                    </p>
+                  </Card>
+                  <Card className="border-border bg-card p-3">
+                    <p className="text-xs text-muted-foreground">Replied in time</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {complaintsData.summary.slaComplianceRate === null
+                        ? "—"
+                        : `${complaintsData.summary.slaComplianceRate}%`}
+                    </p>
+                  </Card>
+                  <Card className="border-border bg-card p-3">
+                    <p className="text-xs text-muted-foreground">SLA breached</p>
+                    <p className="text-lg font-bold text-foreground">{complaintsData.summary.slaBreached}</p>
+                  </Card>
+                </div>
+
+                {Object.keys(complaintsData.summary.lossByCurrency).length > 0 && (
+                  <Card className="border-border bg-card p-3 mb-4">
+                    <p className="text-xs text-muted-foreground mb-1">Conceded</p>
+                    <div className="flex flex-wrap gap-3 text-sm">
+                      {Object.entries(complaintsData.summary.lossByCurrency).map(([cur, amt]) => (
+                        <span key={cur} className="font-medium">
+                          {formatMoney(amt, cur)}
+                        </span>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {complaintsData.summary.byCategory.length > 0 && (
+                  <Card className="border-border bg-card p-3 mb-4">
+                    <p className="text-xs text-muted-foreground mb-1">By category</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                      {complaintsData.summary.byCategory.map((c) => (
+                        <span key={c.categoryId}>
+                          {c.name} <span className="text-muted-foreground">({c.count})</span>
+                        </span>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                {complaintsData.rows.length === 0 ? (
+                  <p className="text-center text-sm text-muted-foreground py-8">
+                    No complaints in this period.
+                  </p>
+                ) : (
+                  <div className="rounded-md border border-border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Complaint #</TableHead>
+                          <TableHead>Job</TableHead>
+                          <TableHead>Agent</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Received</TableHead>
+                          <TableHead>SLA</TableHead>
+                          <TableHead>Responsible</TableHead>
+                          <TableHead>Loss</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {complaintsData.rows.map((row) => (
+                          <TableRow key={row.id} className={row.slaBreached ? "bg-destructive/5" : ""}>
+                            <TableCell className="font-medium">{row.complaintNo}</TableCell>
+                            <TableCell className="text-xs">{row.internalRef}</TableCell>
+                            <TableCell className="text-xs">{row.agentName ?? "—"}</TableCell>
+                            <TableCell className="text-xs">{row.categoryName}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              {formatDate(row.complaintDate)}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {row.slaBreached ? (
+                                <span className="text-destructive">Breached</span>
+                              ) : row.repliedAt ? (
+                                "In time"
+                              ) : (
+                                "Open"
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {row.responsibleParty
+                                ? `${PARTY_LABELS[row.responsibleParty]}${row.responsibleName ? ` — ${row.responsibleName}` : ""}`
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {row.lossAmount ? formatMoney(row.lossAmount, row.currency) : "—"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={COMPLAINT_STATUS_META[row.status].variant}>
+                                {COMPLAINT_STATUS_META[row.status].label}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-8">
+                Pick a period and run the report.
+              </p>
             )}
           </TabsContent>
         )}

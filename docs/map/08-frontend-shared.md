@@ -91,13 +91,13 @@ Evidence dialog for a driver starting a job.
 
 ### `job-detail-modal.tsx`
 
-`frontend/src/components/job-detail-modal.tsx` · 294 lines
+`frontend/src/components/job-detail-modal.tsx` · 353 lines
 
 Full job detail modal used across dispatch and the job lists.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailModal` | function | 120 | Full job detail modal — route, flight, assignment, evidence and financials. |
+| `JobDetailModal` | function | 126 | Full job detail modal — route, flight, assignment, evidence and financials. |
 
 ### `job-extras-editor.tsx`
 

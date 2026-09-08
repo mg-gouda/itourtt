@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquareWarning } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -11,6 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
+import {
+  type Complaint,
+  COMPLAINT_STATUS_META,
+  TERMINAL_STATUSES,
+} from "@/lib/complaints";
 
 interface JobDetail {
   id: string;
@@ -119,7 +125,9 @@ interface Props {
 
 export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traffic-jobs" }: Props) {
   const t = useT();
+  const canSeeComplaints = usePermission("complaints.view");
   const [job, setJob] = useState<JobDetail | null>(null);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -132,6 +140,24 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [open, jobId]);
+
+  // Separate call: the portals pass their own apiBase, and complaints are read
+  // from the dashboard endpoint regardless. A 403 just means no complaints
+  // section for this viewer.
+  useEffect(() => {
+    if (!open || !jobId || !canSeeComplaints) {
+      setComplaints([]);
+      return;
+    }
+    api
+      .get(`/complaints/job/${jobId}`)
+      .then(({ data }) => setComplaints(data.data ?? []))
+      .catch(() => setComplaints([]));
+  }, [open, jobId, canSeeComplaints]);
+
+  const openComplaints = complaints.filter(
+    (c) => !TERMINAL_STATUSES.includes(c.status),
+  );
 
   const originLabel =
     job?.originAirport?.code ||
@@ -180,6 +206,13 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
               <Badge variant="outline" className="text-xs">
                 {job.bookingChannel}
               </Badge>
+              {openComplaints.length > 0 && (
+                <Badge variant="destructive" className="text-xs gap-1">
+                  <MessageSquareWarning className="h-3 w-3" />
+                  {openComplaints.length} open complaint
+                  {openComplaints.length === 1 ? "" : "s"}
+                </Badge>
+              )}
             </div>
 
             {/* ── Two-column grid ── */}
@@ -278,6 +311,32 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
                 <Row label={t("common.createdAt")} value={fmtDate(job.createdAt)} />
               </Section>
             </div>
+
+            {/* ── Complaints (full width) ── */}
+            {complaints.length > 0 && (
+              <Section title="Complaints">
+                <div className="space-y-2">
+                  {complaints.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                    >
+                      <span className="font-medium">{c.complaintNo}</span>
+                      <Badge variant={COMPLAINT_STATUS_META[c.status].variant}>
+                        {COMPLAINT_STATUS_META[c.status].label}
+                      </Badge>
+                      {c.slaBreached && (
+                        <Badge variant="destructive" className="text-xs">
+                          SLA breached
+                        </Badge>
+                      )}
+                      <span className="text-muted-foreground">{c.category?.nameEn}</span>
+                      <span className="truncate">{c.subject}</span>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
 
             {/* ── Notes (full width) ── */}
             {job.notes && (

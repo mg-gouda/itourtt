@@ -409,6 +409,27 @@ export class ExportController {
     this.sendXlsx(res, buffer, `rep_score_${from}_${to}`);
   }
 
+  @Get('complaints')
+  @Permissions('reports.complaints')
+  async exportComplaints(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('status') status: string,
+    @Query('agentId') agentId: string,
+    @Query('categoryId') categoryId: string,
+    @Query('responsibleParty') responsibleParty: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportComplaintsReport(from, to, {
+      status: status || undefined,
+      agentId: agentId || undefined,
+      categoryId: categoryId || undefined,
+      responsibleParty: responsibleParty || undefined,
+    });
+    this.sendXlsx(res, buffer, `complaints_${from}_${to}`);
+  }
+
   @Get('guest-surveys')
   @Permissions('reports.guestSurveys')
   async exportGuestSurveys(

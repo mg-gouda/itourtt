@@ -2279,6 +2279,89 @@ export class ExportService {
   }
 
   // ─────────────────────────────────────────────
+  // COMPLAINTS EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportComplaintsReport(
+    from: string,
+    to: string,
+    filters: {
+      status?: string;
+      agentId?: string;
+      categoryId?: string;
+      responsibleParty?: string;
+    } = {},
+  ): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const complaints = await this.prisma.complaint.findMany({
+      where: {
+        deletedAt: null,
+        ...(filters.status ? { status: filters.status as any } : {}),
+        ...(filters.agentId ? { agentId: filters.agentId } : {}),
+        ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+        ...(filters.responsibleParty
+          ? { responsibleParty: filters.responsibleParty as any }
+          : {}),
+        trafficJob: { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null },
+      },
+      include: {
+        category: { select: { nameEn: true } },
+        agent: { select: { legalName: true, tradeName: true } },
+        responsibleDriver: { select: { name: true } },
+        responsibleRep: { select: { name: true } },
+        responsibleSupplier: { select: { legalName: true, tradeName: true } },
+        assignedTo: { select: { name: true } },
+        charge: { select: { status: true, amount: true } },
+        trafficJob: {
+          select: { internalRef: true, agentRef: true, jobDate: true, serviceType: true },
+        },
+      },
+      orderBy: { complaintDate: 'desc' },
+    });
+
+    const rows = complaints.map((c) => ({
+      'Complaint #': c.complaintNo,
+      'Job Ref': c.trafficJob.internalRef,
+      'Agent Ref': c.trafficJob.agentRef ?? '',
+      'Job Date': this.formatDate(c.trafficJob.jobDate),
+      'Service Type': serviceTypeLabel(c.trafficJob.serviceType),
+      'Agent': c.agent?.tradeName || c.agent?.legalName || '',
+      'Category': c.category.nameEn,
+      'Stage': c.stage,
+      'Source': c.source,
+      'Subject': c.subject,
+      'Status': c.status,
+      'Received': this.cairoDateTime(c.complaintDate),
+      'Reply Due': this.cairoDateTime(c.replyDueAt),
+      'Replied': this.cairoDateTime(c.repliedAt),
+      'SLA Breached': c.slaBreached ? 'Yes' : 'No',
+      'Resolved': this.cairoDateTime(c.resolvedAt),
+      'Claimed': c.claimedAmount ? Number(c.claimedAmount) : '',
+      'Loss': c.lossAmount ? Number(c.lossAmount) : '',
+      'Currency': c.currency,
+      'Responsible': c.responsibleParty ?? '',
+      'Responsible Name':
+        c.responsibleDriver?.name ||
+        c.responsibleRep?.name ||
+        c.responsibleSupplier?.tradeName ||
+        c.responsibleSupplier?.legalName ||
+        '',
+      'Score Penalty': c.scorePenaltyApplied || '',
+      'Charge Status': c.charge?.status ?? '',
+      'Charge Amount': c.charge ? Number(c.charge.amount) : '',
+      'Owner': c.assignedTo?.name ?? '',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    this.autoSizeColumns(ws, rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Complaints');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
   // JOB STATUS EXCEL EXPORT
   // ─────────────────────────────────────────────
 

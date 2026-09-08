@@ -4,7 +4,7 @@
 
 Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
-**19 classes**, **246 methods**.
+**19 classes**, **250 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -44,7 +44,7 @@ REST surface for the driver tariff table.
 
 ### ExportController
 
-`backend/src/export/export.controller.ts:14` · controller · 35 methods
+`backend/src/export/export.controller.ts:14` · controller · 36 methods
 
 Download surface for every Excel/PDF/zip export. Each endpoint streams a file rather than JSON; Odoo accounting exports sit under `/api/export/odoo`.
 
@@ -77,18 +77,19 @@ Download surface for every Excel/PDF/zip export. Each endpoint streams a file ra
 | `exportEvidenceExcel` | pub | 372 | `exportService.exportEvidenceReport` | Evidence coverage report as xlsx. |
 | `exportDriverScore` | pub | 388 | `exportService.exportDriverScoreReport` | Driver scores as xlsx. |
 | `exportRepScore` | pub | 401 | `exportService.exportRepScoreReport` | Rep scores and fees as xlsx. |
-| `exportGuestSurveys` | pub | 414 | `exportService.exportGuestSurveyReport` | Arrival guest surveys as xlsx (reuses the `reports.guestSurveys` permission). |
-| `exportJobStatus` | pub | 427 | `exportService.exportJobStatusReport` | Job status breakdown as xlsx. |
-| `exportDeparture` | pub | 444 | `exportService.exportDepartureReport` | Departures report as xlsx. |
-| `exportFlightDelay` | pub | 457 | `exportService.exportFlightDelayReport` | Flight delay report as xlsx. |
-| `exportSupplierJobsExcel` | pub | 470 | `exportService.exportSupplierJobsExcel` | Supplier jobs report as xlsx. |
-| `exportCarJobsExcel` | pub | 484 | `exportService.exportCarJobsExcel` | Car jobs (owned fleet utilisation) as xlsx. |
-| `exportReview` | pub | 497 | `exportService.exportReviewReport` | Guest review report as xlsx. |
-| `sendXlsx` | priv | 508 | — | Shared helper writing a workbook to the response with the right content-type and filename. |
+| `exportComplaints` | pub | 414 | `exportService.exportComplaintsReport` | GET /export/odoo/complaints — downloads the complaints report as xlsx. |
+| `exportGuestSurveys` | pub | 435 | `exportService.exportGuestSurveyReport` | Arrival guest surveys as xlsx (reuses the `reports.guestSurveys` permission). |
+| `exportJobStatus` | pub | 448 | `exportService.exportJobStatusReport` | Job status breakdown as xlsx. |
+| `exportDeparture` | pub | 465 | `exportService.exportDepartureReport` | Departures report as xlsx. |
+| `exportFlightDelay` | pub | 478 | `exportService.exportFlightDelayReport` | Flight delay report as xlsx. |
+| `exportSupplierJobsExcel` | pub | 491 | `exportService.exportSupplierJobsExcel` | Supplier jobs report as xlsx. |
+| `exportCarJobsExcel` | pub | 505 | `exportService.exportCarJobsExcel` | Car jobs (owned fleet utilisation) as xlsx. |
+| `exportReview` | pub | 518 | `exportService.exportReviewReport` | Guest review report as xlsx. |
+| `sendXlsx` | priv | 529 | — | Shared helper writing a workbook to the response with the right content-type and filename. |
 
 ### ExportService
 
-`backend/src/export/export.service.ts:96` · service · 43 methods
+`backend/src/export/export.service.ts:96` · service · 44 methods
 
 The Excel export layer — the largest file in the backend. One export function per report or entity, all producing xlsx. Odoo-specific accounting exports live in `OdooExportService` instead.
 
@@ -130,13 +131,14 @@ The Excel export layer — the largest file in the backend. One export function 
 | `exportDriverScoreReport` | pub | 2117 | `driverJobScore` | Driver scores as xlsx. |
 | `exportRepScoreReport` | pub | 2174 | `repJobScore` | Rep scores and resulting fees as xlsx. |
 | `exportGuestSurveyReport` | pub | 2237 | `guestSurvey` | Arrival guest surveys as xlsx. |
-| `exportJobStatusReport` | pub | 2285 | `trafficJob` | Job status breakdown as xlsx. |
-| `exportDepartureReport` | pub | 2359 | `trafficJob` | Departures report as xlsx. |
-| `exportFlightDelayReport` | pub | 2391 | `userNotification` | Flight delays reported by reps, sourced from the notifications they generated. |
-| `exportSupplierJobsExcel` | pub | 2460 | — | Supplier jobs report as xlsx. |
-| `exportCarJobsExcel` | pub | 2484 | — | Car jobs report as xlsx. |
-| `exportReviewReport` | pub | 2511 | `trafficJob` | Guest review report as xlsx. |
-| `buildDateFilter` | priv | 2576 | — | Shared date-range predicate used by every report query. |
+| `exportComplaintsReport` | pub | 2285 | `complaint` | Builds the complaints xlsx, dates rendered in Cairo time. |
+| `exportJobStatusReport` | pub | 2368 | `trafficJob` | Job status breakdown as xlsx. |
+| `exportDepartureReport` | pub | 2442 | `trafficJob` | Departures report as xlsx. |
+| `exportFlightDelayReport` | pub | 2474 | `userNotification` | Flight delays reported by reps, sourced from the notifications they generated. |
+| `exportSupplierJobsExcel` | pub | 2543 | — | Supplier jobs report as xlsx. |
+| `exportCarJobsExcel` | pub | 2567 | — | Car jobs report as xlsx. |
+| `exportReviewReport` | pub | 2594 | `trafficJob` | Guest review report as xlsx. |
+| `buildDateFilter` | priv | 2659 | — | Shared date-range predicate used by every report query. |
 
 ## `finance`
 
@@ -385,34 +387,35 @@ The public B2C price list (zone pair × vehicle type) that the standalone site q
 
 ### ReportsController
 
-`backend/src/reports/reports.controller.ts:172` · controller · 18 methods
+`backend/src/reports/reports.controller.ts:196` · controller · 19 methods
 
 JSON surface for every on-screen report; the matching xlsx downloads live on `ExportController`.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `dailyDispatchSummary` | pub | 177 | `reportsService.dailyDispatchSummary` | One day's dispatch counts and status breakdown. |
-| `repFeeReport` | pub | 187 | `reportsService.repFeeReport` | Rep fees per job, with the score behind each. |
-| `driverTripReport` | pub | 197 | `reportsService.driverTripReport` | Trips and fees per driver over a period. |
-| `agentStatement` | pub | 212 | `reportsService.agentStatement` | Statement of account for an agent: invoices, payments and balance. |
-| `revenueReport` | pub | 231 | `reportsService.revenueReport` | Revenue against driver, rep and supplier costs for a period. |
-| `upsertRepScore` | pub | 246 | `reportsService.upsertRepScore` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
-| `upsertDriverScore` | pub | 261 | `reportsService.upsertDriverScore` | Sets a driver's per-job score, recalculating the fee it implies. |
-| `repScoreReport` | pub | 272 | `reportsService.repScoreReport` | Rep scores across jobs. |
-| `guestSurveyReport` | pub | 286 | `reportsService.guestSurveyReport` | Arrival guest survey responses. |
-| `driverScoreReport` | pub | 300 | `reportsService.driverScoreReport` | Driver scores across jobs. |
-| `evidenceReport` | pub | 314 | `reportsService.evidenceReport` | Which jobs have evidence photos and which are missing them. |
-| `visaReport` | pub | 331 | `reportsService.visaReport` | Visa-related job report. |
-| `salesReport` | pub | 341 | `reportsService.salesReport` | Sales by period and counterparty. |
-| `departureReport` | pub | 351 | `reportsService.departureReport` | Departure jobs report. |
-| `jobStatusReport` | pub | 365 | `reportsService.jobStatusReport` | Job counts by status over a period. |
-| `flightDelayReport` | pub | 385 | `reportsService.flightDelayReport` | Flight delays reported by reps, reconstructed from the notifications they raised. |
-| `flightDelayForJob` | pub | 399 | `reportsService.flightDelayForJob` | Delay history for one job. |
-| `reviewReport` | pub | 406 | `reportsService.reviewReport` | Guest reviews per job. |
+| `dailyDispatchSummary` | pub | 201 | `reportsService.dailyDispatchSummary` | One day's dispatch counts and status breakdown. |
+| `repFeeReport` | pub | 211 | `reportsService.repFeeReport` | Rep fees per job, with the score behind each. |
+| `driverTripReport` | pub | 221 | `reportsService.driverTripReport` | Trips and fees per driver over a period. |
+| `agentStatement` | pub | 236 | `reportsService.agentStatement` | Statement of account for an agent: invoices, payments and balance. |
+| `revenueReport` | pub | 255 | `reportsService.revenueReport` | Revenue against driver, rep and supplier costs for a period. |
+| `upsertRepScore` | pub | 270 | `reportsService.upsertRepScore` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
+| `upsertDriverScore` | pub | 285 | `reportsService.upsertDriverScore` | Sets a driver's per-job score, recalculating the fee it implies. |
+| `repScoreReport` | pub | 296 | `reportsService.repScoreReport` | Rep scores across jobs. |
+| `guestSurveyReport` | pub | 310 | `reportsService.guestSurveyReport` | Arrival guest survey responses. |
+| `complaintsReport` | pub | 324 | `reportsService.complaintsReport` | GET /reports/complaints — the complaints report, filterable by status, agent, category and responsible party. |
+| `driverScoreReport` | pub | 339 | `reportsService.driverScoreReport` | Driver scores across jobs. |
+| `evidenceReport` | pub | 353 | `reportsService.evidenceReport` | Which jobs have evidence photos and which are missing them. |
+| `visaReport` | pub | 370 | `reportsService.visaReport` | Visa-related job report. |
+| `salesReport` | pub | 380 | `reportsService.salesReport` | Sales by period and counterparty. |
+| `departureReport` | pub | 390 | `reportsService.departureReport` | Departure jobs report. |
+| `jobStatusReport` | pub | 404 | `reportsService.jobStatusReport` | Job counts by status over a period. |
+| `flightDelayReport` | pub | 424 | `reportsService.flightDelayReport` | Flight delays reported by reps, reconstructed from the notifications they raised. |
+| `flightDelayForJob` | pub | 438 | `reportsService.flightDelayForJob` | Delay history for one job. |
+| `reviewReport` | pub | 445 | `reportsService.reviewReport` | Guest reviews per job. |
 
 ### ReportsService
 
-`backend/src/reports/reports.service.ts:25` · service · 18 methods
+`backend/src/reports/reports.service.ts:25` · service · 19 methods
 
 Every operational and financial report behind the Reports screen. Each report is a filtered aggregate query with a matching Excel export in `ExportService`.
 
@@ -421,21 +424,22 @@ Every operational and financial report behind the Reports screen. Each report is
 | `dailyDispatchSummary` | pub | 32 | `trafficJob` | One day's dispatch counts and status breakdown. |
 | `driverTripReport` | pub | 104 | `trafficAssignment` `driverTripFee` | Trips and fees per driver over a period. |
 | `upsertDriverScore` | pub | 265 | `trafficAssignment` `driverJobScore` `driverTripFee` | Sets a driver's per-job score, recalculating the fee it implies. |
-| `agentStatement` | pub | 316 | `agent` `agentInvoice` `trafficJob` | Statement of account for an agent: invoices, payments and balance. |
-| `repFeeReport` | pub | 401 | `trafficAssignment` | Rep fees per job, with the score behind each. |
-| `upsertRepScore` | pub | 532 | `trafficAssignment` `repJobScore` `repFee` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
-| `revenueReport` | pub | 588 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | Revenue against driver, rep and supplier costs for a period. |
-| `repScoreReport` | pub | 708 | `repJobScore` | Rep scores across jobs. |
-| `guestSurveyReport` | pub | 782 | `guestSurvey` | Arrival guest survey responses. |
-| `driverScoreReport` | pub | 850 | `driverJobScore` | Driver scores across jobs. |
-| `evidenceReport` | pub | 916 | `trafficJob` | Which jobs have evidence photos and which are missing them. |
-| `jobStatusReport` | pub | 1019 | `trafficJob` | Job counts by status over a period. |
-| `visaReport` | pub | 1107 | `trafficJob` | Visa-related job report. |
-| `salesReport` | pub | 1137 | `trafficJob` | Sales by period and counterparty. |
-| `departureReport` | pub | 1174 | `trafficJob` | Departure jobs report. |
-| `flightDelayReport` | pub | 1203 | `userNotification` | Flight delays reported by reps, reconstructed from the notifications they raised. |
-| `flightDelayForJob` | pub | 1276 | `userNotification` | Delay history for one job. |
-| `reviewReport` | pub | 1333 | `trafficJob` | Guest reviews per job. |
+| `complaintsReport` | pub | 325 | `complaint` | Complaints on jobs in the period with aggregates: counts by status/category/agent/party, win rate, SLA compliance and loss by currency. |
+| `agentStatement` | pub | 484 | `agent` `agentInvoice` `trafficJob` | Statement of account for an agent: invoices, payments and balance. |
+| `repFeeReport` | pub | 569 | `trafficAssignment` | Rep fees per job, with the score behind each. |
+| `upsertRepScore` | pub | 700 | `trafficAssignment` `repJobScore` `repFee` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
+| `revenueReport` | pub | 756 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | Revenue against driver, rep and supplier costs for a period. |
+| `repScoreReport` | pub | 876 | `repJobScore` | Rep scores across jobs. |
+| `guestSurveyReport` | pub | 950 | `guestSurvey` | Arrival guest survey responses. |
+| `driverScoreReport` | pub | 1018 | `driverJobScore` | Driver scores across jobs. |
+| `evidenceReport` | pub | 1084 | `trafficJob` | Which jobs have evidence photos and which are missing them. |
+| `jobStatusReport` | pub | 1187 | `trafficJob` | Job counts by status over a period. |
+| `visaReport` | pub | 1275 | `trafficJob` | Visa-related job report. |
+| `salesReport` | pub | 1305 | `trafficJob` | Sales by period and counterparty. |
+| `departureReport` | pub | 1342 | `trafficJob` | Departure jobs report. |
+| `flightDelayReport` | pub | 1371 | `userNotification` | Flight delays reported by reps, reconstructed from the notifications they raised. |
+| `flightDelayForJob` | pub | 1444 | `userNotification` | Delay history for one job. |
+| `reviewReport` | pub | 1501 | `trafficJob` | Guest reviews per job. |
 
 ## Standalone exports
 

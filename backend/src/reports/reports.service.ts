@@ -310,6 +310,174 @@ export class ReportsService {
   }
 
   // ─────────────────────────────────────────────
+  // COMPLAINTS REPORT
+  // ─────────────────────────────────────────────
+
+  /**
+   * Complaints raised on jobs in the period, with the aggregates the business
+   * actually asks for: how many, how many we won, how often we missed the
+   * 48-hour reply window, what the losses cost, and who generates them.
+   *
+   * Filtered on the *job* date rather than the complaint date, matching
+   * guestSurveyReport, so a period lines up with the operational period it
+   * describes.
+   */
+  async complaintsReport(
+    from: string,
+    to: string,
+    filters: {
+      status?: string;
+      agentId?: string;
+      categoryId?: string;
+      responsibleParty?: string;
+    } = {},
+  ) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const complaints = await this.prisma.complaint.findMany({
+      where: {
+        deletedAt: null,
+        ...(filters.status ? { status: filters.status as any } : {}),
+        ...(filters.agentId ? { agentId: filters.agentId } : {}),
+        ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+        ...(filters.responsibleParty
+          ? { responsibleParty: filters.responsibleParty as any }
+          : {}),
+        trafficJob: {
+          jobDate: { gte: fromDate, lte: toDate },
+          deletedAt: null,
+        },
+      },
+      include: {
+        category: { select: { id: true, nameEn: true, nameAr: true } },
+        agent: { select: { id: true, legalName: true, tradeName: true } },
+        responsibleDriver: { select: { id: true, name: true } },
+        responsibleRep: { select: { id: true, name: true } },
+        responsibleSupplier: { select: { id: true, legalName: true, tradeName: true } },
+        assignedTo: { select: { id: true, name: true } },
+        charge: { select: { status: true, amount: true, currency: true } },
+        trafficJob: {
+          select: {
+            id: true,
+            internalRef: true,
+            agentRef: true,
+            jobDate: true,
+            serviceType: true,
+          },
+        },
+      },
+      orderBy: { complaintDate: 'desc' },
+    });
+
+    const rows = complaints.map((c) => ({
+      id: c.id,
+      complaintNo: c.complaintNo,
+      jobId: c.trafficJobId,
+      internalRef: c.trafficJob.internalRef,
+      agentRef: c.trafficJob.agentRef,
+      jobDate: c.trafficJob.jobDate,
+      serviceType: c.trafficJob.serviceType,
+      agentId: c.agentId,
+      agentName: c.agent?.tradeName || c.agent?.legalName || null,
+      categoryId: c.categoryId,
+      categoryName: c.category.nameEn,
+      stage: c.stage,
+      source: c.source,
+      subject: c.subject,
+      status: c.status,
+      complaintDate: c.complaintDate,
+      replyDueAt: c.replyDueAt,
+      repliedAt: c.repliedAt,
+      slaBreached: c.slaBreached,
+      resolvedAt: c.resolvedAt,
+      claimedAmount: c.claimedAmount ? Number(c.claimedAmount) : null,
+      lossAmount: c.lossAmount ? Number(c.lossAmount) : null,
+      currency: c.currency,
+      responsibleParty: c.responsibleParty,
+      responsibleName:
+        c.responsibleDriver?.name ||
+        c.responsibleRep?.name ||
+        c.responsibleSupplier?.tradeName ||
+        c.responsibleSupplier?.legalName ||
+        null,
+      scorePenaltyApplied: c.scorePenaltyApplied,
+      chargeStatus: c.charge?.status ?? null,
+      chargeAmount: c.charge ? Number(c.charge.amount) : null,
+      assignedToName: c.assignedTo?.name ?? null,
+    }));
+
+    // ── Aggregates ──
+    const byStatus: Record<string, number> = {};
+    const byCategory = new Map<string, { name: string; count: number }>();
+    const byAgent = new Map<string, { name: string; count: number; loss: number }>();
+    const byParty: Record<string, number> = {};
+    const lossByCurrency: Record<string, number> = {};
+
+    let repliedCount = 0;
+    let breachedCount = 0;
+
+    for (const r of rows) {
+      byStatus[r.status] = (byStatus[r.status] ?? 0) + 1;
+      if (r.repliedAt) repliedCount++;
+      if (r.slaBreached) breachedCount++;
+
+      const cat = byCategory.get(r.categoryId);
+      if (cat) cat.count++;
+      else byCategory.set(r.categoryId, { name: r.categoryName, count: 1 });
+
+      if (r.responsibleParty) {
+        byParty[r.responsibleParty] = (byParty[r.responsibleParty] ?? 0) + 1;
+      }
+
+      if (r.lossAmount) {
+        lossByCurrency[r.currency] = (lossByCurrency[r.currency] ?? 0) + r.lossAmount;
+      }
+
+      if (r.agentId) {
+        const a = byAgent.get(r.agentId);
+        if (a) {
+          a.count++;
+          a.loss += r.lossAmount ?? 0;
+        } else {
+          byAgent.set(r.agentId, {
+            name: r.agentName ?? 'Unknown',
+            count: 1,
+            loss: r.lossAmount ?? 0,
+          });
+        }
+      }
+    }
+
+    const decided = (byStatus.WON ?? 0) + (byStatus.LOST ?? 0) + (byStatus.PARTIALLY_LOST ?? 0);
+
+    return {
+      rows,
+      summary: {
+        total: rows.length,
+        byStatus,
+        byParty,
+        lossByCurrency,
+        replied: repliedCount,
+        slaBreached: breachedCount,
+        // Of the complaints answered at all, the share answered in time.
+        slaComplianceRate:
+          repliedCount > 0
+            ? Math.round(((repliedCount - breachedCount) / repliedCount) * 100)
+            : null,
+        // Of the complaints actually decided, the share we won outright.
+        winRate: decided > 0 ? Math.round(((byStatus.WON ?? 0) / decided) * 100) : null,
+        byCategory: Array.from(byCategory.entries())
+          .map(([id, v]) => ({ categoryId: id, ...v }))
+          .sort((a, b) => b.count - a.count),
+        byAgent: Array.from(byAgent.entries())
+          .map(([id, v]) => ({ agentId: id, ...v }))
+          .sort((a, b) => b.count - a.count),
+      },
+    };
+  }
+
+  // ─────────────────────────────────────────────
   // AGENT STATEMENT
   // ─────────────────────────────────────────────
 
