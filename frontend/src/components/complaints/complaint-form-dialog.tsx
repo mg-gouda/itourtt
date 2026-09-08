@@ -55,6 +55,7 @@ const emptyForm = {
   categoryId: "",
   stage: "DURING_JOB",
   source: "AGENT",
+  agentId: "",
   subject: "",
   description: "",
   complaintDate: "",
@@ -94,6 +95,7 @@ export function ComplaintFormDialog({
 
   const [jobQuery, setJobQuery] = useState("");
   const [jobSearching, setJobSearching] = useState(false);
+  const [agents, setAgents] = useState<ComboboxItem[]>([]);
   const [jobOptions, setJobOptions] = useState<ComboboxItem[]>([]);
   const [drivers, setDrivers] = useState<PersonOption[]>([]);
   const [reps, setReps] = useState<PersonOption[]>([]);
@@ -112,6 +114,7 @@ export function ComplaintFormDialog({
         categoryId: complaint.categoryId,
         stage: complaint.stage,
         source: complaint.source,
+        agentId: complaint.agentId ?? "",
         subject: complaint.subject,
         description: complaint.description,
         complaintDate: toLocalInput(complaint.complaintDate),
@@ -192,6 +195,38 @@ export function ComplaintFormDialog({
     return () => clearTimeout(id);
   }, [jobQuery, searchJobs]);
 
+  // ── agents, loaded once the source says an agent raised it ──────────
+  useEffect(() => {
+    if (!open || form.source !== "AGENT" || agents.length > 0) return;
+    api
+      .get("/agents/lookup")
+      .then((res) => {
+        const rows = res.data?.data ?? [];
+        setAgents(
+          rows.map((a: any) => ({
+            value: a.id,
+            label: a.tradeName || a.legalName,
+            sub: a.tradeName && a.legalName !== a.tradeName ? a.legalName : undefined,
+          })),
+        );
+      })
+      .catch(() => setAgents([]));
+  }, [open, form.source, agents.length]);
+
+  // Picking a job pre-fills the agent that booked it — the usual case is that
+  // the booking agent is the one complaining. Only on new complaints, and only
+  // when nothing has been chosen yet, so it never overwrites a deliberate pick.
+  useEffect(() => {
+    if (isEdit || !form.trafficJobId || form.agentId) return;
+    api
+      .get(`/traffic-jobs/${form.trafficJobId}`)
+      .then((res) => {
+        const jobAgentId = (res.data?.data ?? res.data)?.agentId;
+        if (jobAgentId) set("agentId", jobAgentId);
+      })
+      .catch(() => {});
+  }, [form.trafficJobId, isEdit, form.agentId]);
+
   // ── responsible-person lists, loaded only for the selected party ─────
   useEffect(() => {
     if (!open) return;
@@ -241,6 +276,9 @@ export function ComplaintFormDialog({
       categoryId: form.categoryId,
       stage: form.stage,
       source: form.source,
+      // Only meaningful when an agent raised it; otherwise the backend
+      // keeps the job's own agent.
+      agentId: form.source === "AGENT" && form.agentId ? form.agentId : undefined,
       subject: form.subject.trim(),
       description: form.description.trim(),
       complaintDate: new Date(form.complaintDate).toISOString(),
@@ -306,7 +344,7 @@ export function ComplaintFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[92vw] max-w-5xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[80vw] max-w-none sm:max-w-none overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Complaint" : "Log Complaint"}</DialogTitle>
           <DialogDescription>
@@ -399,6 +437,25 @@ export function ComplaintFormDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {form.source === "AGENT" && (
+            <div>
+              <Label>Which agent{isEdit ? "" : " *"}</Label>
+              <div className="mt-1">
+                <SearchableCombobox
+                  items={agents}
+                  value={form.agentId}
+                  onChange={(v) => set("agentId", v)}
+                  placeholder="Select the agent…"
+                  searchPlaceholder="Search agents…"
+                  emptyText="No agents found."
+                />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Anything conceded on this complaint is owed to this agent.
+              </p>
+            </div>
+          )}
 
           <div>
             <Label>Received *</Label>

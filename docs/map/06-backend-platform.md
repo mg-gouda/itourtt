@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**48 classes**, **326 methods**.
+**48 classes**, **327 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -390,7 +390,7 @@ The reply-window sweep: flips slaBreached and writes notifications, and never to
 
 ### ComplaintsService
 
-`backend/src/complaints/complaints.service.ts:64` · service · 17 methods
+`backend/src/complaints/complaints.service.ts:64` · service · 18 methods
 
 Complaint lifecycle: numbering, SLA computation, guarded status transitions and server-side redaction of the money fields.
 
@@ -401,18 +401,19 @@ Complaint lifecycle: numbering, SLA computation, guarded status transitions and 
 | `findByJob` | pub | 142 | `complaint` | All complaints on one job, newest first. |
 | `buildWhere` | priv | 153 | — | Turns the query DTO into the Prisma where clause, always excluding soft-deleted rows. |
 | `create` | pub | 204 | `trafficJob` `complaintCategory` `complaint` | Logs a complaint: denormalises the agent off the job, computes replyDueAt in Cairo time and allocates the CMP- number. |
-| `update` | pub | 262 | `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
-| `assign` | pub | 313 | `complaint` | Sets the owning user without touching status. |
-| `remove` | pub | 322 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
-| `transition` | pub | 351 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` `slaService.notifyResponsibleParty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
-| `assertOutcomeAmounts` | priv | 482 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
-| `computeReplyDueAt` | priv | 520 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
-| `isBreached` | priv | 525 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
-| `getEditable` | priv | 529 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
-| `assertResponsibleConsistent` | priv | 543 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
-| `generateComplaintNo` | priv | 584 | — | Allocates the next sequential CMP-00001 reference. |
-| `canViewAmounts` | pub | 596 | — | Whether this user holds complaints.financial.viewAmounts. |
-| `redactAmounts` | priv | 606 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
+| `update` | pub | 266 | `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
+| `assign` | pub | 318 | `complaint` | Sets the owning user without touching status. |
+| `remove` | pub | 327 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
+| `transition` | pub | 356 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` `slaService.notifyResponsibleParty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
+| `assertOutcomeAmounts` | priv | 487 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
+| `computeReplyDueAt` | priv | 525 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
+| `isBreached` | priv | 530 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
+| `getEditable` | priv | 534 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
+| `assertResponsibleConsistent` | priv | 548 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
+| `resolveAgentId` | priv | 593 | `agent` | Resolves the agent a complaint is with — an explicit choice wins over the job's agent, and both are validated since this is who a conceded amount is owed to. |
+| `generateComplaintNo` | priv | 609 | — | Allocates the next sequential CMP-00001 reference. |
+| `canViewAmounts` | pub | 621 | — | Whether this user holds complaints.financial.viewAmounts. |
+| `redactAmounts` | priv | 631 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
 
 ## `email`
 

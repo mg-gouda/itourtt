@@ -224,6 +224,8 @@ export class ComplaintsService {
       dto.responsibleSupplierId,
     );
 
+    const agentId = await this.resolveAgentId(dto.agentId, job.agentId);
+
     const complaintDate = new Date(dto.complaintDate);
     const slaHours = dto.slaHours ?? DEFAULT_SLA_HOURS;
     const complaintNo = await this.generateComplaintNo();
@@ -233,7 +235,9 @@ export class ComplaintsService {
         complaintNo,
         trafficJobId: job.id,
         // Snapshot the agent so reporting survives a later edit of the job.
-        agentId: job.agentId,
+        // An explicit agentId wins — a B2B job carries a customer, not an
+        // agent, so without it a complaint on one could never reach an invoice.
+        agentId,
         categoryId: dto.categoryId,
         stage: dto.stage as ComplaintStage,
         source: (dto.source ?? 'AGENT') as ComplaintSource,
@@ -279,6 +283,7 @@ export class ComplaintsService {
       where: { id },
       data: {
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+        ...(dto.agentId !== undefined && { agentId: dto.agentId }),
         ...(dto.stage !== undefined && { stage: dto.stage as ComplaintStage }),
         ...(dto.source !== undefined && { source: dto.source as ComplaintSource }),
         ...(dto.subject !== undefined && { subject: dto.subject }),
@@ -579,6 +584,26 @@ export class ComplaintsService {
         `A responsible supplier cannot be set when the responsible party is ${party}.`,
       );
     }
+  }
+
+  /**
+   * The agent a complaint is with. An explicit choice wins over the job's own
+   * agent; both are validated, because this is who a conceded amount is owed to.
+   */
+  private async resolveAgentId(
+    explicit: string | undefined,
+    jobAgentId: string | null,
+  ): Promise<string | null> {
+    if (!explicit) return jobAgentId;
+
+    const agent = await this.prisma.agent.findFirst({
+      where: { id: explicit, deletedAt: null },
+      select: { id: true },
+    });
+    if (!agent) {
+      throw new NotFoundException(`Agent with ID "${explicit}" not found`);
+    }
+    return agent.id;
   }
 
   private async generateComplaintNo(): Promise<string> {

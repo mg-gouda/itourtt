@@ -335,13 +335,13 @@ Read-and-act detail dialog for one complaint.
 
 ### `complaint-form-dialog.tsx`
 
-`frontend/src/components/complaints/complaint-form-dialog.tsx` · 565 lines
+`frontend/src/components/complaints/complaint-form-dialog.tsx` · 622 lines
 
 Create/edit dialog for a complaint.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintFormDialog` | function | 81 | Log or edit a complaint: job picker, category, stage, source, responsible party and (permission-gated) amounts. |
+| `ComplaintFormDialog` | function | 82 | Log or edit a complaint: job picker, category, stage, source, responsible party and (permission-gated) amounts. |
 
 ## `frontend/src/components/public/`
 

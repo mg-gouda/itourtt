@@ -27,6 +27,11 @@ export class UpdateComplaintDto {
   @IsUUID()
   categoryId?: string;
 
+  /** The agent this complaint is with — see CreateComplaintDto.agentId. */
+  @IsOptional()
+  @IsUUID()
+  agentId?: string;
+
   @IsOptional()
   @IsIn(COMPLAINT_STAGES)
   stage?: (typeof COMPLAINT_STAGES)[number];

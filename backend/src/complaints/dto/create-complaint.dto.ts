@@ -27,6 +27,15 @@ export class CreateComplaintDto {
   @IsUUID()
   categoryId!: string;
 
+  /**
+   * The agent this complaint is with. Defaults to the job's agent when omitted.
+   * This is the agent any conceded amount is owed to, so it drives the
+   * AgentAdjustment and any credit note — not merely a label.
+   */
+  @IsOptional()
+  @IsUUID()
+  agentId?: string;
+
   @IsIn(COMPLAINT_STAGES)
   stage!: (typeof COMPLAINT_STAGES)[number];
 

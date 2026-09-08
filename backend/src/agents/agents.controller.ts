@@ -51,6 +51,17 @@ export class AgentsController {
     return this.agentsService.findAll(pagination, isActive);
   }
 
+  /**
+   * Name-only list for pickers. Readable by anyone who can log or edit a
+   * complaint as well as by agent managers, so the complaint form's agent
+   * dropdown works without handing out the full agent profile.
+   */
+  @Get('lookup')
+  @Permissions('agents', 'complaints.addButton', 'complaints.editButton', 'complaints.view')
+  async lookup() {
+    return new ApiResponse(await this.agentsService.lookup());
+  }
+
   @Get('export/excel')
   @Roles('ADMIN', 'AGENT_MANAGER')
   @Permissions('agents.export')

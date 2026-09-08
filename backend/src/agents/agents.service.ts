@@ -42,6 +42,19 @@ export class AgentsService {
     return new PaginatedResponse(data, total, page, limit);
   }
 
+  /**
+   * Names only, for pickers. Deliberately separate from findAll, which returns
+   * the full commercial profile including credit terms — a complaint logger
+   * needs to name an agent, not read their credit limit.
+   */
+  async lookup() {
+    return this.prisma.agent.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: { id: true, legalName: true, tradeName: true },
+      orderBy: [{ tradeName: 'asc' }, { legalName: 'asc' }],
+    });
+  }
+
   async findOne(id: string) {
     const agent = await this.prisma.agent.findFirst({
       where: { id, deletedAt: null },
