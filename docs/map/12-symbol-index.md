@@ -2214,7 +2214,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | Symbol | Kind | Location |
 |---|---|---|
 | `scoreToFeeAndEval` | function | `backend/src/common/utils/rep-score.util.ts:43` |
-| `SearchableCombobox` | function | `frontend/src/components/searchable-combobox.tsx:38` |
+| `SearchableCombobox` | function | `frontend/src/components/searchable-combobox.tsx:47` |
 | `SearchScreen` | function | `mobile/apps/guest/src/screens/SearchScreen.tsx:31` |
 | `secureStorage` | const | `mobile/packages/shared/src/auth/secure-storage.ts:9` |
 | `seedEgyptLocations` | function | `backend/src/prisma/seed-egypt-locations.ts:614` |

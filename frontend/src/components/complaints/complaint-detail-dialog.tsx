@@ -215,7 +215,7 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
 
   return (
     <Dialog open={!!complaintId} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[92vw] max-w-5xl overflow-y-auto">
         {loading || !complaint ? (
           <div className="flex h-40 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

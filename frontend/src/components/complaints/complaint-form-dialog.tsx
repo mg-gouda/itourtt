@@ -93,6 +93,7 @@ export function ComplaintFormDialog({
   const [saving, setSaving] = useState(false);
 
   const [jobQuery, setJobQuery] = useState("");
+  const [jobSearching, setJobSearching] = useState(false);
   const [jobOptions, setJobOptions] = useState<ComboboxItem[]>([]);
   const [drivers, setDrivers] = useState<PersonOption[]>([]);
   const [reps, setReps] = useState<PersonOption[]>([]);
@@ -148,23 +149,43 @@ export function ComplaintFormDialog({
 
   // ── job search ───────────────────────────────────────────────────────
   const searchJobs = useCallback(async (term: string) => {
-    if (!term || term.length < 2) return;
+    if (!term || term.trim().length < 2) return;
+    setJobSearching(true);
     try {
       const res = await api.get(
-        `/traffic-jobs?search=${encodeURIComponent(term)}&limit=20`,
+        `/traffic-jobs?search=${encodeURIComponent(term.trim())}&limit=20`,
       );
       const jobs = res.data.data || [];
-      setJobOptions(
-        jobs.map((j: any) => ({
-          value: j.id,
-          label: j.internalRef,
-          sub: [j.agentRef, j.clientName].filter(Boolean).join(" · ") || undefined,
-        })),
+      const found: ComboboxItem[] = jobs.map((j: any) => ({
+        value: j.id,
+        label: j.internalRef,
+        sub:
+          [j.agentRef, j.clientName, j.jobDate ? String(j.jobDate).slice(0, 10) : null]
+            .filter(Boolean)
+            .join(" · ") || undefined,
+      }));
+
+      // Keep whatever is already selected in the list, or the trigger would
+      // fall back to showing the raw id once the results replace it.
+      setJobOptions((prev) => {
+        const selected = prev.find((o) => o.value === form.trafficJobId);
+        return selected && !found.some((f) => f.value === selected.value)
+          ? [selected, ...found]
+          : found;
+      });
+    } catch (err: any) {
+      // Don't fail silently: a 403 from /traffic-jobs looks exactly like
+      // "no such job" in the dropdown, which is what made this hard to spot.
+      setJobOptions([]);
+      toast.error(
+        err?.response?.status === 403
+          ? "You don't have permission to search jobs."
+          : err?.response?.data?.message || "Job search failed.",
       );
-    } catch {
-      // Leave the current options in place; the field stays usable.
+    } finally {
+      setJobSearching(false);
     }
-  }, []);
+  }, [form.trafficJobId]);
 
   useEffect(() => {
     const id = setTimeout(() => searchJobs(jobQuery), 300);
@@ -285,7 +306,7 @@ export function ComplaintFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[92vw] max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Complaint" : "Log Complaint"}</DialogTitle>
           <DialogDescription>
@@ -312,9 +333,15 @@ export function ComplaintFormDialog({
                   items={jobOptions}
                   value={form.trafficJobId}
                   onChange={(v) => set("trafficJobId", v)}
+                  onSearchChange={setJobQuery}
+                  loading={jobSearching}
                   placeholder="Search a job by reference…"
-                  searchPlaceholder="Type at least 2 characters…"
-                  emptyText="No matching jobs."
+                  searchPlaceholder="Job ref, agent ref or client name…"
+                  emptyText={
+                    jobQuery.trim().length < 2
+                      ? "Type at least 2 characters."
+                      : "No matching jobs."
+                  }
                 />
               </div>
             )}

@@ -225,14 +225,14 @@ Rich text editor for CMS and notes fields.
 
 ### `searchable-combobox.tsx`
 
-`frontend/src/components/searchable-combobox.tsx` · 102 lines
+`frontend/src/components/searchable-combobox.tsx` · 117 lines
 
 Generic searchable select, used for large lists such as the car source.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `ComboboxItem` | type | 21 | One option in a searchable combobox. |
-| `SearchableCombobox` | function | 38 | Generic searchable select for long lists. |
+| `SearchableCombobox` | function | 47 | Generic searchable select for long lists. |
 
 ### `session-conflict-modal.tsx`
 
@@ -335,7 +335,7 @@ Read-and-act detail dialog for one complaint.
 
 ### `complaint-form-dialog.tsx`
 
-`frontend/src/components/complaints/complaint-form-dialog.tsx` · 538 lines
+`frontend/src/components/complaints/complaint-form-dialog.tsx` · 565 lines
 
 Create/edit dialog for a complaint.
 

@@ -33,6 +33,15 @@ interface Props {
   emptyText?: string;
   className?: string;
   triggerClassName?: string;
+  /**
+   * Fires as the user types. Supply it when the options come from the server:
+   * client-side filtering is then turned off, so results the server returned
+   * are shown as-is instead of being filtered a second time against the raw
+   * query (which hides matches found on fields the label doesn't show).
+   */
+  onSearchChange?: (term: string) => void;
+  /** Shown in place of the empty text while a server search is running. */
+  loading?: boolean;
 }
 
 export function SearchableCombobox({
@@ -43,8 +52,11 @@ export function SearchableCombobox({
   searchPlaceholder = "Search…",
   emptyText = "No results.",
   triggerClassName,
+  onSearchChange,
+  loading = false,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const serverSearch = typeof onSearchChange === "function";
   const selected = items.find((i) => i.value === value);
 
   return (
@@ -72,10 +84,13 @@ export function SearchableCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command shouldFilter={!serverSearch}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            onValueChange={onSearchChange}
+          />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>{loading ? "Searching…" : emptyText}</CommandEmpty>
             <CommandGroup>
               {items.map((item) => (
                 <CommandItem
