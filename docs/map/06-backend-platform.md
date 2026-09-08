@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**39 classes**, **256 methods**.
+**43 classes**, **292 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -169,22 +169,22 @@ _No methods._
 
 ### AuditInterceptor
 
-`backend/src/common/interceptors/audit.interceptor.ts:109` · middleware · 10 methods
+`backend/src/common/interceptors/audit.interceptor.ts:115` · middleware · 10 methods
 
 Writes an `ActivityLog` row for every create/update/delete, capturing actor, entity and a field-level diff. This is what satisfies the mandatory audit-logging rule without touching each service.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `intercept` | pub | 116 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
-| `captureBefore` | priv | 162 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
-| `enqueue` | priv | 206 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
-| `flush` | priv | 253 | `activityLog` | Batch-writes queued audit rows. |
-| `buildSummary` | priv | 288 | — | Composes a log summary from action, entity and the resolved job reference. |
-| `resolveJobRefs` | priv | 297 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
-| `resolveJob` | priv | 350 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
-| `methodToAction` | priv | 445 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
-| `parseEntityFromPath` | priv | 459 | — | Derives the entity type and id from the request path. |
-| `sanitizeBody` | priv | 496 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
+| `intercept` | pub | 122 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
+| `captureBefore` | priv | 168 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
+| `enqueue` | priv | 212 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
+| `flush` | priv | 259 | `activityLog` | Batch-writes queued audit rows. |
+| `buildSummary` | priv | 294 | — | Composes a log summary from action, entity and the resolved job reference. |
+| `resolveJobRefs` | priv | 303 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
+| `resolveJob` | priv | 356 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
+| `methodToAction` | priv | 451 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
+| `parseEntityFromPath` | priv | 465 | — | Derives the entity type and id from the request path. |
+| `sanitizeBody` | priv | 502 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
 
 ### CaptchaService
 
@@ -260,6 +260,72 @@ Legacy coarse role check. Deliberately yields: if the user is on the granular sy
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `canActivate` | pub | 9 | — | Passes when no `@Roles()` is declared, when the user has a `roleId`, or when their legacy role matches. |
+
+## `complaints`
+
+### ComplaintCategoriesController
+
+`backend/src/complaints/complaint-categories.controller.ts:23` · controller · 5 methods
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `findAll` | pub | 29 | `categoriesService.findAll` | _—_ |
+| `findOne` | pub | 36 | `categoriesService.findOne` | _—_ |
+| `create` | pub | 42 | `categoriesService.create` | _—_ |
+| `update` | pub | 48 | `categoriesService.update` | _—_ |
+| `remove` | pub | 57 | `categoriesService.remove` | _—_ |
+
+### ComplaintCategoriesService
+
+`backend/src/complaints/complaint-categories.service.ts:7` · service · 5 methods
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `findAll` | pub | 10 | `complaintCategory` | _—_ |
+| `findOne` | pub | 20 | `complaintCategory` | _—_ |
+| `create` | pub | 30 | `complaintCategory` | _—_ |
+| `update` | pub | 43 | `complaintCategory` | _—_ |
+| `remove` | pub | 62 | `complaint` `complaintCategory` | _—_ |
+
+### ComplaintsController
+
+`backend/src/complaints/complaints.controller.ts:39` · controller · 9 methods
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `findAll` | pub | 47 | `complaintsService.findAll` | _—_ |
+| `findByJob` | pub | 53 | `complaintsService.findByJob` | _—_ |
+| `findOne` | pub | 62 | `complaintsService.findOne` | _—_ |
+| `create` | pub | 71 | `complaintsService.create` | _—_ |
+| `update` | pub | 78 | `complaintsService.update` | _—_ |
+| `transition` | pub | 100 | `complaintsService.transition` | _—_ |
+| `assign` | pub | 119 | `complaintsService.assign` | _—_ |
+| `remove` | pub | 129 | `complaintsService.remove` | _—_ |
+| `assertMayEditAmounts` | priv | 137 | — | _—_ |
+
+### ComplaintsService
+
+`backend/src/complaints/complaints.service.ts:61` · service · 17 methods
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `findAll` | pub | 94 | `complaint` | _—_ |
+| `findOne` | pub | 117 | `complaint` | _—_ |
+| `findByJob` | pub | 136 | `complaint` | _—_ |
+| `buildWhere` | priv | 147 | — | _—_ |
+| `create` | pub | 198 | `trafficJob` `complaintCategory` `complaint` | _—_ |
+| `update` | pub | 256 | `complaint` | _—_ |
+| `assign` | pub | 307 | `complaint` | _—_ |
+| `remove` | pub | 316 | `complaint` | _—_ |
+| `transition` | pub | 345 | `complaint` | _—_ |
+| `assertOutcomeAmounts` | priv | 416 | — | _—_ |
+| `computeReplyDueAt` | priv | 454 | — | _—_ |
+| `isBreached` | priv | 459 | — | _—_ |
+| `getEditable` | priv | 463 | `complaint` | _—_ |
+| `assertResponsibleConsistent` | priv | 477 | — | _—_ |
+| `generateComplaintNo` | priv | 518 | — | _—_ |
+| `canViewAmounts` | pub | 530 | — | _—_ |
+| `redactAmounts` | priv | 540 | — | _—_ |
 
 ## `email`
 
@@ -646,7 +712,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-84 free functions, constants and types in these modules.
+95 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -832,6 +898,27 @@ Hand-rolled TOTP for two-factor auth — base32, code generation/verification, o
 | `verifyTotp` | function | 83 | Verifies a submitted code, allowing for clock drift. |
 | `otpauthUri` | function | 108 | Builds the `otpauth://` URI rendered as the enrolment QR code. |
 | `generateRecoveryCodes` | function | 125 | Generates single-use recovery codes for lost authenticators. |
+
+### `backend/src/complaints/complaints.service.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TERMINAL_STATUSES` | const | 38 | _—_ |
+| `LOSS_STATUSES` | const | 46 | _—_ |
+| `VIEW_AMOUNTS_PERMISSION` | const | 58 | _—_ |
+
+### `backend/src/complaints/dto/complaint-constants.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `COMPLAINT_STAGES` | const | 5 | _—_ |
+| `COMPLAINT_SOURCES` | const | 7 | _—_ |
+| `COMPLAINT_STATUSES` | const | 9 | _—_ |
+| `COMPLAINT_PARTIES` | const | 20 | _—_ |
+| `COMPLAINT_ATTACHMENT_KINDS` | const | 30 | _—_ |
+| `CURRENCIES` | const | 32 | _—_ |
+| `DEFAULT_SLA_HOURS` | const | 35 | _—_ |
+| `SLA_WARNING_HOURS` | const | 38 | _—_ |
 
 ### `backend/src/email/email.service.ts`
 
