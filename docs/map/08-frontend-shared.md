@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**81 files**, **290 exported symbols**.
+**82 files**, **298 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -246,19 +246,19 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 407 lines
+`frontend/src/components/sidebar.tsx` · 409 lines
 
 Main dashboard navigation, filtered by permission.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 54 | A navigation link with active-state styling. |
-| `NavSeparator` | type | 64 | Divider between sidebar sections. |
-| `NavSectionLabel` | type | 68 | Section heading in the sidebar. |
-| `NavGroup` | type | 73 | A collapsible navigation group. |
-| `NavItem` | type | 80 | One navigation entry. |
-| `navigation` | const | 87 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 128 | Main dashboard navigation, permission-filtered. |
+| `NavLink` | type | 55 | A navigation link with active-state styling. |
+| `NavSeparator` | type | 65 | Divider between sidebar sections. |
+| `NavSectionLabel` | type | 69 | Section heading in the sidebar. |
+| `NavGroup` | type | 74 | A collapsible navigation group. |
+| `NavItem` | type | 81 | One navigation entry. |
+| `navigation` | const | 88 | The navigation definition — sections, items and the permission key gating each. |
+| `Sidebar` | function | 130 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -313,15 +313,25 @@ Admin view of a user's device sessions, with force-logout and Clear — Clear is
 
 ## `frontend/src/components/complaints/`
 
+### `complaint-charge-panel.tsx`
+
+`frontend/src/components/complaints/complaint-charge-panel.tsx` · 325 lines
+
+Charge and adjustment panel inside the complaint detail dialog.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ComplaintChargePanel` | function | 43 | The money half of a complaint: raise/approve/post/void the party deduction, and show what is owed to the agent. |
+
 ### `complaint-detail-dialog.tsx`
 
-`frontend/src/components/complaints/complaint-detail-dialog.tsx` · 534 lines
+`frontend/src/components/complaints/complaint-detail-dialog.tsx` · 546 lines
 
 Read-and-act detail dialog for one complaint.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintDetailDialog` | function | 87 | Complaint detail — SLA banner, summary, description, amounts, attachments, owner, and the per-status transition buttons. |
+| `ComplaintDetailDialog` | function | 88 | Complaint detail — SLA banner, summary, description, amounts, attachments, owner, and the per-status transition buttons. |
 
 ### `complaint-form-dialog.tsx`
 
@@ -808,7 +818,7 @@ Per-user column visibility, persisted alongside column order.
 
 ### `complaints.ts`
 
-`frontend/src/lib/complaints.ts` · 233 lines
+`frontend/src/lib/complaints.ts` · 318 lines
 
 Shared complaint types, labels, transition maps and SLA/money formatting for the dashboard.
 
@@ -821,17 +831,24 @@ Shared complaint types, labels, transition maps and SLA/money formatting for the
 | `CURRENCIES` | const | 28 | Currency options offered on complaint amounts. |
 | `ComplaintCategory` | type | 30 | Client-side shape of a complaint category. |
 | `Complaint` | type | 40 | Client-side shape of a complaint; the money fields are absent, not null, when the viewer lacks financial.viewAmounts. |
-| `ComplaintAttachment` | type | 94 | Client-side shape of a complaint attachment. |
-| `COMPLAINT_STATUS_META` | const | 104 | Label and badge variant for each complaint status. |
-| `STAGE_LABELS` | const | 118 | Display labels for the complaint stages. |
-| `SOURCE_LABELS` | const | 124 | Display labels for the complaint sources. |
-| `PARTY_LABELS` | const | 132 | Display labels for the responsible parties. |
-| `TERMINAL_STATUSES` | const | 142 | Statuses a complaint can no longer move out of. |
-| `NEXT_STATUSES` | const | 154 | Which statuses each state may move to — mirrors VALID_TRANSITIONS; the backend stays the authority. |
-| `TRANSITION_PERMISSION` | const | 166 | The permission key each target status needs, matching the controller's gate. |
-| `SlaTone` | type | 177 | Severity of the reply-window state, driving the badge colour. |
-| `formatSlaCountdown` | function | 183 | Turns the reply deadline into a human label — time left, overdue by, or whether the reply landed in time. |
-| `formatMoney` | function | 221 | Formats a complaint amount with its currency, or an em dash when absent. |
+| `ComplaintAttachment` | type | 97 | Client-side shape of a complaint attachment. |
+| `ComplaintChargeStatus` | type | 107 | Charge lifecycle: pending approval, approved, posted to fees, or void. |
+| `ComplaintCharge` | type | 109 | Client-side shape of a party deduction raised against a complaint. |
+| `AgentAdjustmentStatus` | type | 130 | Whether an adjustment is still pending or was settled on an invoice, as a credit note, or by waiver. |
+| `AgentAdjustment` | type | 136 | Client-side shape of money owed to an agent from a lost complaint. |
+| `CHARGE_STATUS_META` | const | 166 | Label and badge variant for each charge status. |
+| `ADJUSTMENT_STATUS_META` | const | 176 | Label and badge variant for each adjustment status. |
+| `CHARGEABLE_PARTIES` | const | 187 | The parties with a fee table a deduction can actually be posted into. |
+| `COMPLAINT_STATUS_META` | const | 189 | Label and badge variant for each complaint status. |
+| `STAGE_LABELS` | const | 203 | Display labels for the complaint stages. |
+| `SOURCE_LABELS` | const | 209 | Display labels for the complaint sources. |
+| `PARTY_LABELS` | const | 217 | Display labels for the responsible parties. |
+| `TERMINAL_STATUSES` | const | 227 | Statuses a complaint can no longer move out of. |
+| `NEXT_STATUSES` | const | 239 | Which statuses each state may move to — mirrors VALID_TRANSITIONS; the backend stays the authority. |
+| `TRANSITION_PERMISSION` | const | 251 | The permission key each target status needs, matching the controller's gate. |
+| `SlaTone` | type | 262 | Severity of the reply-window state, driving the badge colour. |
+| `formatSlaCountdown` | function | 268 | Turns the reply deadline into a human label — time left, overdue by, or whether the reply landed in time. |
+| `formatMoney` | function | 306 | Formats a complaint amount with its currency, or an em dash when absent. |
 
 ### `gps.ts`
 
@@ -846,17 +863,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3498 lines
+`frontend/src/lib/i18n.ts` · 3506 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3475 | Translates a key in the current locale. |
-| `getTranslator` | function | 3479 | Translator for a specific locale, outside React. |
-| `useT` | function | 3487 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3494 | The active locale id. |
+| `t` | function | 3483 | Translates a key in the current locale. |
+| `getTranslator` | function | 3487 | Translator for a specific locale, outside React. |
+| `useT` | function | 3495 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3502 | The active locale id. |
 
 ### `permission-registry.ts`
 

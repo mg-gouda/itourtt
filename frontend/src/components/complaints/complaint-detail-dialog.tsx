@@ -47,6 +47,7 @@ import {
   formatSlaCountdown,
   formatMoney,
 } from "@/lib/complaints";
+import { ComplaintChargePanel } from "@/components/complaints/complaint-charge-panel";
 
 interface Props {
   complaintId: string | null;
@@ -198,6 +199,11 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
     }
   };
 
+  const handleChanged = useCallback(async () => {
+    await fetchComplaint();
+    onChanged();
+  }, [fetchComplaint, onChanged]);
+
   const sla = complaint ? formatSlaCountdown(complaint) : null;
   const nextStatuses = complaint ? NEXT_STATUSES[complaint.status] : [];
   const responsibleName =
@@ -332,6 +338,12 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
                   <Field label="Exchange rate">{complaint.exchangeRate ?? "—"}</Field>
                 </div>
               </>
+            )}
+
+            {/* Charge and adjustments live behind viewAmounts — the backend
+                strips both from the payload without it. */}
+            {canViewAmounts && (
+              <ComplaintChargePanel complaint={complaint} onChanged={handleChanged} />
             )}
 
             {canViewAttachments && complaint.attachments && complaint.attachments.length > 0 && (

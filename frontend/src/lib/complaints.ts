@@ -88,6 +88,9 @@ export interface Complaint {
   assignedTo?: { id: string; name: string } | null;
   createdBy?: { id: string; name: string } | null;
   attachments?: ComplaintAttachment[];
+  // Stripped along with the amounts when the viewer lacks financial.viewAmounts.
+  charge?: ComplaintCharge | null;
+  adjustments?: AgentAdjustment[];
   createdAt: string;
 }
 
@@ -100,6 +103,88 @@ export interface ComplaintAttachment {
   mimeType?: string | null;
   createdAt: string;
 }
+
+export type ComplaintChargeStatus = "PENDING" | "APPROVED" | "POSTED" | "VOID";
+
+export interface ComplaintCharge {
+  id: string;
+  complaintId: string;
+  party: ComplaintParty;
+  driverId?: string | null;
+  repId?: string | null;
+  supplierId?: string | null;
+  amount: number | string;
+  currency: string;
+  status: ComplaintChargeStatus;
+  approvedAt?: string | null;
+  postedAt?: string | null;
+  postedFeeId?: string | null;
+  voidedAt?: string | null;
+  voidReason?: string | null;
+  driver?: { id: string; name: string } | null;
+  rep?: { id: string; name: string } | null;
+  supplier?: { id: string; legalName: string; tradeName?: string | null } | null;
+  approvedBy?: { id: string; name: string } | null;
+}
+
+export type AgentAdjustmentStatus =
+  | "PENDING"
+  | "ON_INVOICE"
+  | "ISSUED_CREDIT_NOTE"
+  | "WAIVED";
+
+export interface AgentAdjustment {
+  id: string;
+  adjustmentNo: string;
+  agentId: string;
+  complaintId?: string | null;
+  description: string;
+  amount: number | string;
+  currency: string;
+  exchangeRate: number | string;
+  status: AgentAdjustmentStatus;
+  invoiceLineId?: string | null;
+  creditNoteInvoiceId?: string | null;
+  waivedReason?: string | null;
+  createdAt: string;
+  agent?: { id: string; legalName: string; tradeName?: string | null } | null;
+  complaint?: {
+    id: string;
+    complaintNo: string;
+    subject: string;
+    status: ComplaintStatus;
+  } | null;
+  invoiceLine?: { id: string; invoiceId: string; description: string } | null;
+  creditNote?: {
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    total: number | string;
+  } | null;
+}
+
+export const CHARGE_STATUS_META: Record<
+  ComplaintChargeStatus,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  PENDING: { label: "Pending approval", variant: "secondary" },
+  APPROVED: { label: "Approved", variant: "outline" },
+  POSTED: { label: "Posted to fees", variant: "default" },
+  VOID: { label: "Void", variant: "destructive" },
+};
+
+export const ADJUSTMENT_STATUS_META: Record<
+  AgentAdjustmentStatus,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  PENDING: { label: "Pending", variant: "secondary" },
+  ON_INVOICE: { label: "On invoice", variant: "default" },
+  ISSUED_CREDIT_NOTE: { label: "Credit note", variant: "default" },
+  WAIVED: { label: "Waived", variant: "outline" },
+};
+
+/** Only these parties have a fee table a deduction can be posted into. */
+export const CHARGEABLE_PARTIES: ComplaintParty[] = ["DRIVER", "REP", "SUPPLIER"];
 
 export const COMPLAINT_STATUS_META: Record<
   ComplaintStatus,
