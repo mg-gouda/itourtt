@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**46 classes**, **319 methods**.
+**48 classes**, **326 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -363,31 +363,56 @@ REST surface for complaints; every status change is gated by its own permission 
 | `remove` | pub | 181 | `complaintsService.remove` | DELETE /complaints/:id — soft-delete; refused once the charge has been posted. |
 | `assertMayEditAmounts` | priv | 189 | — | Blocks a caller with only editButton from setting claimed/loss/currency/rate. |
 
+### ComplaintScoringService
+
+`backend/src/complaints/complaint-scoring.service.ts:23` · service · 3 methods
+
+Applies a lost complaint's score penalty to the rep or driver it blames — but never once their pay for the job is posted.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `applyPenalty` | pub | 31 | `complaintCategory` | Reads the category's penalty points and routes to the rep or driver path; a no-op for other parties or a zero-point category. |
+| `applyRepPenalty` | priv | 63 | `repJobScore` `repFee` | Deducts the penalty from the rep's job score and re-derives the fee band, unless the RepFee is already posted. |
+| `applyDriverPenalty` | priv | 113 | `driverJobScore` `driverTripFee` | Deducts the penalty from the driver's job score and re-applies the fee multiplier, unless the DriverTripFee is already posted. |
+
+### ComplaintSlaService
+
+`backend/src/complaints/complaint-sla.service.ts:17` · service · 4 methods
+
+The reply-window sweep: flips slaBreached and writes notifications, and never touches a complaint's status.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `sweep` | pub | 25 | `cronRunLock` | Hourly cron, claimed per hour via CronRunLock so only one pod runs it. |
+| `flagBreaches` | priv | 61 | `complaint` `userNotification` | Flags unanswered complaints past their deadline and notifies the owner. |
+| `warnDueSoon` | priv | 109 | `complaint` `userNotification` | One nudge per complaint as its deadline approaches; the notification metadata stops it repeating hourly. |
+| `notifyResponsibleParty` | pub | 167 | `repNotification` `driverNotification` | Tells a rep or driver a complaint naming them was upheld — only for terminal LOST / PARTIALLY_LOST, never mid-dispute. |
+
 ### ComplaintsService
 
-`backend/src/complaints/complaints.service.ts:62` · service · 17 methods
+`backend/src/complaints/complaints.service.ts:64` · service · 17 methods
 
 Complaint lifecycle: numbering, SLA computation, guarded status transitions and server-side redaction of the money fields.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 96 | `complaint` | Paginated query plus per-viewer amount redaction. |
-| `findOne` | pub | 119 | `complaint` | One complaint with attachments, charge and adjustments, redacted for the viewer. |
-| `findByJob` | pub | 138 | `complaint` | All complaints on one job, newest first. |
-| `buildWhere` | priv | 149 | — | Turns the query DTO into the Prisma where clause, always excluding soft-deleted rows. |
-| `create` | pub | 200 | `trafficJob` `complaintCategory` `complaint` | Logs a complaint: denormalises the agent off the job, computes replyDueAt in Cairo time and allocates the CMP- number. |
-| `update` | pub | 258 | `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
-| `assign` | pub | 309 | `complaint` | Sets the owning user without touching status. |
-| `remove` | pub | 318 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
-| `transition` | pub | 347 | `complaint` `adjustmentsService.createFromComplaint` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
-| `assertOutcomeAmounts` | priv | 440 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
-| `computeReplyDueAt` | priv | 478 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
-| `isBreached` | priv | 483 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
-| `getEditable` | priv | 487 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
-| `assertResponsibleConsistent` | priv | 501 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
-| `generateComplaintNo` | priv | 542 | — | Allocates the next sequential CMP-00001 reference. |
-| `canViewAmounts` | pub | 554 | — | Whether this user holds complaints.financial.viewAmounts. |
-| `redactAmounts` | priv | 564 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
+| `findAll` | pub | 100 | `complaint` | Paginated query plus per-viewer amount redaction. |
+| `findOne` | pub | 123 | `complaint` | One complaint with attachments, charge and adjustments, redacted for the viewer. |
+| `findByJob` | pub | 142 | `complaint` | All complaints on one job, newest first. |
+| `buildWhere` | priv | 153 | — | Turns the query DTO into the Prisma where clause, always excluding soft-deleted rows. |
+| `create` | pub | 204 | `trafficJob` `complaintCategory` `complaint` | Logs a complaint: denormalises the agent off the job, computes replyDueAt in Cairo time and allocates the CMP- number. |
+| `update` | pub | 262 | `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
+| `assign` | pub | 313 | `complaint` | Sets the owning user without touching status. |
+| `remove` | pub | 322 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
+| `transition` | pub | 351 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` `slaService.notifyResponsibleParty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
+| `assertOutcomeAmounts` | priv | 482 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
+| `computeReplyDueAt` | priv | 520 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
+| `isBreached` | priv | 525 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
+| `getEditable` | priv | 529 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
+| `assertResponsibleConsistent` | priv | 543 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
+| `generateComplaintNo` | priv | 584 | — | Allocates the next sequential CMP-00001 reference. |
+| `canViewAmounts` | pub | 596 | — | Whether this user holds complaints.financial.viewAmounts. |
+| `redactAmounts` | priv | 606 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
 
 ## `email`
 
@@ -774,7 +799,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-99 free functions, constants and types in these modules.
+104 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -903,6 +928,18 @@ Normalisation helpers around licence status and public-key formats.
 |---|---|---|---|
 | `ReconcileResult` | type | 11 | What the roll-up did: `{completed, statusChanged, driverFeeCreated, repFeeCreated}`. |
 
+### `backend/src/common/utils/driver-score.util.ts`
+
+Single source of truth for driver job scoring; replaces two drifted copies whose multiplier tables disagreed.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `DriverScoreFlags` | type | 16 | The five driver scoring criteria, mirroring the DriverJobScore booleans. |
+| `DRIVER_SCORE_WEIGHTS` | const | 24 | Point weights summing to 100: attendance 30, appearance 20, cleanliness 10, maintenance 10, work 30. |
+| `calcDriverScore` | function | 39 | The job score out of 100 less any complaint penalty, floored at 0. |
+| `driverScoreToEval` | function | 50 | Excellent / Good / Average / Poor for a score total. |
+| `driverScoreToMultiplier` | function | 58 | Fraction of the tariff a driver is paid for this score — the table that actually writes DriverTripFee.amount. |
+
 ### `backend/src/common/utils/no-show-window.util.ts`
 
 The 80-minute no-show delay, shared by both portals so drivers and reps cannot mis-tap the button the moment a job appears.
@@ -921,8 +958,8 @@ The 80-minute no-show delay, shared by both portals so drivers and reps cannot m
 |---|---|---|---|
 | `RepScoreFlags` | type | 9 | The five boolean scoring dimensions: attendance, appearance, work, survey, review. |
 | `REP_SCORE_WEIGHTS` | const | 17 | Attendance 20 · Appearance 15 · Work 15 · Survey 15 · Review 35 = 100. Work was cut from 30 to 15 when the Survey dimension was introduced. |
-| `calcRepScore` | function | 25 | Sums the weights of the flags that are set. |
-| `scoreToFeeAndEval` | function | 35 | Score → fee band: ≥90 Excellent 50 · ≥75 Good 40 · ≥61 Average 30 · else Poor 20 (EGP). |
+| `calcRepScore` | function | 32 | Sums the weights of the flags that are set. |
+| `scoreToFeeAndEval` | function | 43 | Score → fee band: ≥90 Excellent 50 · ≥75 Good 40 · ≥61 Average 30 · else Poor 20 (EGP). |
 
 ### `backend/src/common/utils/service-date.util.ts`
 
@@ -977,9 +1014,9 @@ Complaint lifecycle service — numbering, SLA, transitions, amount redaction.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TERMINAL_STATUSES` | const | 39 | Statuses a complaint can never move out of. |
-| `LOSS_STATUSES` | const | 47 | Outcomes that carry a conceded amount (LOST, PARTIALLY_LOST). |
-| `VIEW_AMOUNTS_PERMISSION` | const | 59 | The permission key that decides whether the money fields survive redaction. |
+| `TERMINAL_STATUSES` | const | 41 | Statuses a complaint can never move out of. |
+| `LOSS_STATUSES` | const | 49 | Outcomes that carry a conceded amount (LOST, PARTIALLY_LOST). |
+| `VIEW_AMOUNTS_PERMISSION` | const | 61 | The permission key that decides whether the money fields survive redaction. |
 
 ### `backend/src/complaints/dto/agent-adjustment.dto.ts`
 

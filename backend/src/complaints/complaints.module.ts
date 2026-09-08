@@ -7,6 +7,8 @@ import { ComplaintCategoriesService } from './complaint-categories.service.js';
 import { ComplaintChargesService } from './complaint-charges.service.js';
 import { AgentAdjustmentsController } from './agent-adjustments.controller.js';
 import { AgentAdjustmentsService } from './agent-adjustments.service.js';
+import { ComplaintScoringService } from './complaint-scoring.service.js';
+import { ComplaintSlaService } from './complaint-sla.service.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 
 @Module({
@@ -23,6 +25,8 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
     ComplaintCategoriesService,
     ComplaintChargesService,
     AgentAdjustmentsService,
+    ComplaintScoringService,
+    ComplaintSlaService,
     PermissionsGuard,
     Reflector,
   ],

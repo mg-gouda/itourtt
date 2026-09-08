@@ -200,13 +200,16 @@ export class JobCompletionService {
     let amount: number;
     if (score) {
       amount = scoreToFeeAndEval(
-        calcRepScore({
-          attendance: score.attendance,
-          appearance: score.appearance,
-          work: score.work,
-          survey: score.survey,
-          review: score.review,
-        }),
+        calcRepScore(
+          {
+            attendance: score.attendance,
+            appearance: score.appearance,
+            work: score.work,
+            survey: score.survey,
+            review: score.review,
+          },
+          score.complaintPenalty,
+        ),
       ).fee;
     } else {
       const rep = await tx.rep.findUniqueOrThrow({ where: { id: assignment.repId } });

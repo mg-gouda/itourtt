@@ -22,14 +22,22 @@ export const REP_SCORE_WEIGHTS = {
   review: 35,
 } as const;
 
-export function calcRepScore(s: RepScoreFlags): number {
-  return (
+/**
+ * The job score out of 100, less any complaint penalty, floored at 0.
+ *
+ * `complaintPenalty` comes from `RepJobScore.complaintPenalty`, written when a
+ * complaint blaming this rep is settled as lost. It is deducted from the total
+ * rather than re-weighting the criteria, so existing scores never move.
+ */
+export function calcRepScore(s: RepScoreFlags, complaintPenalty = 0): number {
+  const earned =
     (s.attendance ? REP_SCORE_WEIGHTS.attendance : 0) +
     (s.appearance ? REP_SCORE_WEIGHTS.appearance : 0) +
     (s.work ? REP_SCORE_WEIGHTS.work : 0) +
     (s.survey ? REP_SCORE_WEIGHTS.survey : 0) +
-    (s.review ? REP_SCORE_WEIGHTS.review : 0)
-  );
+    (s.review ? REP_SCORE_WEIGHTS.review : 0);
+
+  return Math.max(0, earned - complaintPenalty);
 }
 
 export function scoreToFeeAndEval(total: number): {

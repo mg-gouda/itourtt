@@ -12,6 +12,8 @@ import { UpdateComplaintDto } from './dto/update-complaint.dto.js';
 import { TransitionComplaintDto } from './dto/transition-complaint.dto.js';
 import { ComplaintQueryDto } from './dto/complaint-query.dto.js';
 import { AgentAdjustmentsService } from './agent-adjustments.service.js';
+import { ComplaintScoringService } from './complaint-scoring.service.js';
+import { ComplaintSlaService } from './complaint-sla.service.js';
 import { DEFAULT_SLA_HOURS } from './dto/complaint-constants.js';
 import type {
   ComplaintStatus,
@@ -66,6 +68,8 @@ export class ComplaintsService {
     private readonly prisma: PrismaService,
     private readonly permissionsGuard: PermissionsGuard,
     private readonly adjustmentsService: AgentAdjustmentsService,
+    private readonly scoringService: ComplaintScoringService,
+    private readonly slaService: ComplaintSlaService,
   ) {}
 
   private readonly complaintInclude = {
@@ -406,20 +410,58 @@ export class ComplaintsService {
         include: this.complaintInclude,
       });
 
-      if ((LOSS_STATUSES as readonly string[]).includes(to) && lossAmount > 0) {
-        await this.adjustmentsService.createFromComplaint(
-          tx,
-          {
-            id: row.id,
-            complaintNo: row.complaintNo,
-            agentId: row.agentId,
-            subject: row.subject,
-            currency: row.currency,
-            exchangeRate: row.exchangeRate,
-          },
-          lossAmount,
-          userId,
-        );
+      if ((LOSS_STATUSES as readonly string[]).includes(to)) {
+        if (lossAmount > 0) {
+          await this.adjustmentsService.createFromComplaint(
+            tx,
+            {
+              id: row.id,
+              complaintNo: row.complaintNo,
+              agentId: row.agentId,
+              subject: row.subject,
+              currency: row.currency,
+              exchangeRate: row.exchangeRate,
+            },
+            lossAmount,
+            userId,
+          );
+        }
+
+        // A lost complaint also costs the responsible rep or driver score
+        // points — but never once their pay for the job has been posted.
+        const penalty = await this.scoringService.applyPenalty(tx, {
+          id: row.id,
+          complaintNo: row.complaintNo,
+          trafficJobId: row.trafficJobId,
+          categoryId: row.categoryId,
+          responsibleParty: row.responsibleParty,
+          responsibleRepId: row.responsibleRepId,
+          responsibleDriverId: row.responsibleDriverId,
+        });
+
+        if (penalty.note) {
+          await tx.complaint.update({
+            where: { id: row.id },
+            data: {
+              scorePenaltyApplied: penalty.applied,
+              scorePenaltyNote: penalty.note,
+            },
+          });
+          row.scorePenaltyApplied = penalty.applied;
+          row.scorePenaltyNote = penalty.note;
+        }
+
+        // Reps and drivers only ever hear about a complaint once it is settled
+        // against us — never while it is still being argued.
+        await this.slaService.notifyResponsibleParty(tx, {
+          complaintNo: row.complaintNo,
+          subject: row.subject,
+          status: to,
+          trafficJobId: row.trafficJobId,
+          responsibleParty: row.responsibleParty,
+          responsibleRepId: row.responsibleRepId,
+          responsibleDriverId: row.responsibleDriverId,
+        });
       }
 
       return row;

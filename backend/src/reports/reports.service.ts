@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { JobStatus, ServiceType } from '../../generated/prisma/client.js';
 import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
+import {
+  calcDriverScore,
+  driverScoreToEval,
+  driverScoreToMultiplier,
+} from '../common/utils/driver-score.util.js';
 
 /** Returns the effective driver name: direct driver → external driver name → supplier name. */
 function resolveDriverName(assignment: {
@@ -14,37 +19,6 @@ function resolveDriverName(assignment: {
   if (assignment.externalDriverName) return assignment.externalDriverName;
   if (assignment.supplier) return assignment.supplier.tradeName ?? assignment.supplier.legalName;
   return null;
-}
-
-function calcDriverScore(s: {
-  attendance: boolean;
-  appearance: boolean;
-  carCleanliness: boolean;
-  maintenance: boolean;
-  work: boolean;
-}): number {
-  return (
-    (s.attendance ? 30 : 0) +
-    (s.appearance ? 20 : 0) +
-    (s.carCleanliness ? 10 : 0) +
-    (s.maintenance ? 10 : 0) +
-    (s.work ? 30 : 0)
-  );
-}
-
-function driverScoreToEval(total: number): string {
-  if (total >= 90) return 'Excellent';
-  if (total >= 70) return 'Good';
-  if (total >= 50) return 'Average';
-  return 'Poor';
-}
-
-/** Returns the fee multiplier for a given driver score total (out of 100). */
-function driverScoreToMultiplier(total: number): number {
-  if (total >= 90) return 1.0;
-  if (total >= 70) return 0.8;
-  if (total >= 50) return 0.6;
-  return 0.4;
 }
 
 @Injectable()
@@ -189,7 +163,7 @@ export class ReportsService {
     for (const a of assignments) {
       if (!a.driver) continue;
       const djs = a.trafficJob.driverJobScore;
-      const scoreTotal = djs ? calcDriverScore(djs) : null;
+      const scoreTotal = djs ? calcDriverScore(djs, djs.complaintPenalty) : null;
       const tripInfo = {
         jobId: a.trafficJobId,
         internalRef: a.trafficJob.internalRef,
@@ -306,13 +280,15 @@ export class ReportsService {
       throw new NotFoundException(`No driver assignment found for job ${jobId}`);
     }
 
-    await this.prisma.driverJobScore.upsert({
+    // The penalty is owned by the complaint flow, not the scoring form, so it
+    // survives a re-score instead of being wiped by the incoming flags.
+    const saved = await this.prisma.driverJobScore.upsert({
       where: { trafficJobId: jobId },
       update: { ...data, scoredById },
       create: { trafficJobId: jobId, driverId: assignment.driverId, scoredById, ...data },
     });
 
-    const total = calcDriverScore(data);
+    const total = calcDriverScore(data, saved.complaintPenalty);
     const multiplier = driverScoreToMultiplier(total);
 
     // Update the trip fee based on the score multiplier
@@ -488,7 +464,7 @@ export class ReportsService {
           : 0;
 
       const rjs = a.trafficJob.repJobScore;
-      const scoreTotal = rjs ? calcRepScore(rjs) : null;
+      const scoreTotal = rjs ? calcRepScore(rjs, rjs.complaintPenalty) : null;
       const feeAndEval = scoreTotal !== null ? scoreToFeeAndEval(scoreTotal) : null;
 
       const feeEntry = {
@@ -575,14 +551,15 @@ export class ReportsService {
     const repId = assignment.repId;
     const isArr = assignment.trafficJob.serviceType === 'ARR';
 
-    await this.prisma.repJobScore.upsert({
+    // As above: a re-score must not clear a penalty the complaint flow set.
+    const saved = await this.prisma.repJobScore.upsert({
       where: { trafficJobId: jobId },
       update: { ...data, scoredById },
       create: { trafficJobId: jobId, repId, scoredById, ...data },
     });
 
     if (isArr) {
-      const total = calcRepScore(data);
+      const total = calcRepScore(data, saved.complaintPenalty);
       const { fee } = scoreToFeeAndEval(total);
 
       const existingFee = await this.prisma.repFee.findFirst({
@@ -760,7 +737,7 @@ export class ReportsService {
     });
 
     const rows = scores.map((s) => {
-      const total = calcRepScore(s);
+      const total = calcRepScore(s, s.complaintPenalty);
       const { fee, evaluation } = scoreToFeeAndEval(total);
       return {
         jobId: s.trafficJobId,
@@ -897,7 +874,7 @@ export class ReportsService {
     });
 
     const rows = scores.map((s) => {
-      const total      = calcDriverScore(s);
+      const total      = calcDriverScore(s, s.complaintPenalty);
       const multiplier = driverScoreToMultiplier(total);
       const evaluation = driverScoreToEval(total);
       return {

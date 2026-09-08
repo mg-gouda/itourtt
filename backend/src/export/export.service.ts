@@ -2,6 +2,11 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
 import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
+import {
+  calcDriverScore,
+  driverScoreToEval,
+  driverScoreToMultiplier,
+} from '../common/utils/driver-score.util.js';
 import * as XLSX from 'xlsx';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
@@ -2113,22 +2118,6 @@ export class ExportService {
     const fromDate = new Date(from);
     const toDate = new Date(to);
 
-    function calcDriverScore(s: { attendance: boolean; appearance: boolean; carCleanliness: boolean; maintenance: boolean; work: boolean }) {
-      return (s.attendance ? 30 : 0) + (s.appearance ? 20 : 0) + (s.carCleanliness ? 10 : 0) + (s.maintenance ? 10 : 0) + (s.work ? 30 : 0);
-    }
-    function driverScoreToEval(total: number) {
-      if (total >= 90) return 'Excellent';
-      if (total >= 70) return 'Good';
-      if (total >= 50) return 'Average';
-      return 'Poor';
-    }
-    function driverScoreToMultiplier(total: number) {
-      if (total >= 90) return 1.0;
-      if (total >= 70) return 0.9;
-      if (total >= 50) return 0.75;
-      return 0.5;
-    }
-
     const scores = await this.prisma.driverJobScore.findMany({
       where: {
         ...(driverId ? { driverId } : {}),
@@ -2149,7 +2138,7 @@ export class ExportService {
     });
 
     const rows = scores.map((s) => {
-      const total = calcDriverScore(s);
+      const total = calcDriverScore(s, s.complaintPenalty);
       const from = s.trafficJob.originAirport?.code ?? s.trafficJob.fromZone?.name ?? '—';
       const to = s.trafficJob.destinationAirport?.code ?? s.trafficJob.toZone?.name ?? '—';
       return {
@@ -2209,7 +2198,7 @@ export class ExportService {
     });
 
     const rows = scores.map((s) => {
-      const total = calcRepScore(s);
+      const total = calcRepScore(s, s.complaintPenalty);
       const { fee, evaluation } = scoreToFeeAndEval(total);
       const origin = s.trafficJob.originAirport?.code ?? s.trafficJob.originHotel?.name ?? s.trafficJob.originZone?.name ?? '—';
       const dest = s.trafficJob.destinationAirport?.code ?? s.trafficJob.destinationHotel?.name ?? s.trafficJob.destinationZone?.name ?? '—';
