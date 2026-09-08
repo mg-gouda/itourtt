@@ -153,6 +153,72 @@ enum JobExtraSource {
 enum InvoiceType {
   TRANSFER
   DRIVER_TIP
+  CREDIT_NOTE
+}
+
+// ─────────────────────────────────────────────
+// COMPLAINTS
+// ─────────────────────────────────────────────
+
+// When the complaint arose relative to the job it is attached to.
+enum ComplaintStage {
+  BEFORE_JOB
+  DURING_JOB
+  AFTER_JOB
+}
+
+// Where the complaint reached us from.
+enum ComplaintSource {
+  AGENT
+  GUEST
+  DRIVER
+  REP
+  INTERNAL
+}
+
+// WON / PARTIALLY_LOST / LOST / CANCELLED are terminal.
+enum ComplaintStatus {
+  OPEN
+  UNDER_REVIEW
+  REPLIED
+  ESCALATED
+  WON
+  PARTIALLY_LOST
+  LOST
+  CANCELLED
+}
+
+// Who is held responsible for the complaint.
+enum ComplaintParty {
+  DRIVER
+  REP
+  SUPPLIER
+  OFFICE
+  AGENT
+  CLIENT
+  NONE
+}
+
+enum ComplaintAttachmentKind {
+  COMPLAINT_DOC
+  REPLY_DOC
+  EVIDENCE
+}
+
+// A deduction against the responsible party. Money only moves at POSTED.
+enum ComplaintChargeStatus {
+  PENDING
+  APPROVED
+  POSTED
+  VOID
+}
+
+// Disposition of a complaint loss on the agent side.
+enum AgentAdjustmentStatus {
+  PENDING
+  ON_INVOICE
+  ISSUED_CREDIT_NOTE
+  WAIVED
 }
 
 enum B2CPaymentMethod {
@@ -234,25 +300,25 @@ model RolePermissionV2 {
 // ─────────────────────────────────────────────
 
 model User {
-  id                  String    @id @default(uuid())
-  email               String    @unique
-  phone               String?   @unique
-  passwordHash        String    @map("password_hash")
-  name                String
-  role                UserRole  @default(VIEWER)
-  roleId              String?   @map("role_id")
-  isActive            Boolean   @default(true) @map("is_active")
-  refreshToken        String?   @map("refresh_token")
-  sessionId           String?   @map("session_id")
-  sessionExpiresAt    DateTime? @map("session_expires_at")
-  twoFactorEnabled       Boolean  @default(false) @map("two_factor_enabled")
-  twoFactorSecret        String?  @map("two_factor_secret")
-  twoFactorRecoveryCodes String[] @default([]) @map("two_factor_recovery_codes")
-  passwordResetToken  String?   @map("password_reset_token")
-  passwordResetExpiry DateTime? @map("password_reset_expiry")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  deletedAt           DateTime? @map("deleted_at")
+  id                     String    @id @default(uuid())
+  email                  String    @unique
+  phone                  String?   @unique
+  passwordHash           String    @map("password_hash")
+  name                   String
+  role                   UserRole  @default(VIEWER)
+  roleId                 String?   @map("role_id")
+  isActive               Boolean   @default(true) @map("is_active")
+  refreshToken           String?   @map("refresh_token")
+  sessionId              String?   @map("session_id")
+  sessionExpiresAt       DateTime? @map("session_expires_at")
+  twoFactorEnabled       Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret        String?   @map("two_factor_secret")
+  twoFactorRecoveryCodes String[]  @default([]) @map("two_factor_recovery_codes")
+  passwordResetToken     String?   @map("password_reset_token")
+  passwordResetExpiry    DateTime? @map("password_reset_expiry")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  deletedAt              DateTime? @map("deleted_at")
 
   roleRef              Role?               @relation(fields: [roleId], references: [id])
   createdJobs          TrafficJob[]        @relation("JobCreatedBy")
@@ -274,6 +340,10 @@ model User {
   b2cBookings          GuestBooking[]      @relation("B2CClientBookings")
   b2cInvoices          B2CInvoice[]        @relation("B2CClientInvoices")
   sessions             UserSession[]
+
+  complaintsCreated        Complaint[]       @relation("ComplaintCreatedBy")
+  complaintsAssigned       Complaint[]       @relation("ComplaintAssignedTo")
+  complaintChargesApproved ComplaintCharge[] @relation("ComplaintChargeApprovedBy")
 
   @@map("users")
 }
@@ -579,13 +649,15 @@ model Driver {
   updatedAt         DateTime  @updatedAt @map("updated_at")
   deletedAt         DateTime? @map("deleted_at")
 
-  supplier        Supplier?            @relation(fields: [supplierId], references: [id])
-  user            User?                @relation(fields: [userId], references: [id])
-  driverVehicles  DriverVehicle[]
-  assignments     TrafficAssignment[]
-  tripFees        DriverTripFee[]
-  notifications   DriverNotification[]
-  driverJobScores DriverJobScore[]
+  supplier         Supplier?            @relation(fields: [supplierId], references: [id])
+  user             User?                @relation(fields: [userId], references: [id])
+  driverVehicles   DriverVehicle[]
+  assignments      TrafficAssignment[]
+  tripFees         DriverTripFee[]
+  notifications    DriverNotification[]
+  driverJobScores  DriverJobScore[]
+  complaints       Complaint[]          @relation("ComplaintResponsibleDriver")
+  complaintCharges ComplaintCharge[]    @relation("ComplaintChargeDriver")
 
   @@index([supplierId])
   @@map("drivers")
@@ -627,6 +699,9 @@ model Rep {
   repJobScores  RepJobScore[]
   guestSurveys  GuestSurvey[]
   notifications RepNotification[]
+
+  complaints       Complaint[]       @relation("ComplaintResponsibleRep")
+  complaintCharges ComplaintCharge[] @relation("ComplaintChargeRep")
 
   @@map("reps")
 }
@@ -675,6 +750,9 @@ model Agent {
   trafficJobs  TrafficJob[]
   invoices     AgentInvoice[]
   priceItems   AgentPriceItem[]
+
+  complaints  Complaint[]
+  adjustments AgentAdjustment[]
 
   @@map("agents")
 }
@@ -1101,6 +1179,9 @@ model Supplier {
   carTypes      SupplierCarType[]
   assignments   TrafficAssignment[] @relation("AssignmentSupplier")
 
+  complaints       Complaint[]       @relation("ComplaintResponsibleSupplier")
+  complaintCharges ComplaintCharge[] @relation("ComplaintChargeSupplier")
+
   @@map("suppliers")
 }
 
@@ -1286,6 +1367,7 @@ model TrafficJob {
   whatsappLogs        WhatsappNotificationLog[]
   userNotifications   UserNotification[]
   guestBooking        GuestBooking?             @relation("GuestBookingJob")
+  complaints          Complaint[]
 
   @@unique([customerJobId])
   @@index([jobDate])
@@ -1393,23 +1475,23 @@ model CronRunLock {
 // ─────────────────────────────────────────────
 
 model ActivityLog {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  userName  String   @map("user_name")
-  action    String // CREATE, UPDATE, DELETE
-  entity    String // e.g. "TrafficJob", "Agent", "Invoice"
-  entityId  String?  @map("entity_id")
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  userName     String   @map("user_name")
+  action       String // CREATE, UPDATE, DELETE
+  entity       String // e.g. "TrafficJob", "Agent", "Invoice"
+  entityId     String?  @map("entity_id")
   // The traffic job this action touched, when one can be resolved (from the
   // URL, the request body, the response, or a dispatch assignment). `jobRef`
   // is the job's internal reference — denormalised so the Activity Log can
   // display and search by it without a join.
-  jobId     String?  @map("job_id")
-  jobRef    String?  @map("job_ref")
-  summary   String // Human-readable: "Created traffic job TJ-00123"
+  jobId        String?  @map("job_id")
+  jobRef       String?  @map("job_ref")
+  summary      String // Human-readable: "Created traffic job TJ-00123"
   details      Json? // Submitted/new values (request body)
-  previousData Json?  @map("previous_data") // Snapshot of the record BEFORE an update/delete
-  ipAddress String?  @map("ip_address")
-  createdAt DateTime @default(now()) @map("created_at")
+  previousData Json?    @map("previous_data") // Snapshot of the record BEFORE an update/delete
+  ipAddress    String?  @map("ip_address")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
 
@@ -1559,10 +1641,11 @@ model AgentInvoice {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  agent    Agent?        @relation(fields: [agentId], references: [id])
-  customer Customer?     @relation(fields: [customerId], references: [id])
-  lines    InvoiceLine[]
-  payments Payment[]
+  agent                 Agent?            @relation(fields: [agentId], references: [id])
+  customer              Customer?         @relation(fields: [customerId], references: [id])
+  lines                 InvoiceLine[]
+  payments              Payment[]
+  creditNoteAdjustments AgentAdjustment[] @relation("AgentAdjustmentCreditNote")
 
   @@index([agentId])
   @@index([customerId])
@@ -1584,8 +1667,9 @@ model InvoiceLine {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  invoice    AgentInvoice @relation(fields: [invoiceId], references: [id])
-  trafficJob TrafficJob?  @relation(fields: [trafficJobId], references: [id])
+  invoice     AgentInvoice      @relation(fields: [invoiceId], references: [id])
+  trafficJob  TrafficJob?       @relation(fields: [trafficJobId], references: [id])
+  adjustments AgentAdjustment[]
 
   @@index([invoiceId])
   @@index([trafficJobId])
@@ -1695,19 +1779,19 @@ model SystemSettings {
 // ─────────────────────────────────────────────
 
 model CompanySettings {
-  id               String   @id @default(uuid())
-  companyName      String   @default("iTour TT") @map("company_name")
-  logoUrl          String?  @map("logo_url")
-  faviconUrl       String?  @map("favicon_url")
-  reportHeaderHtml String?  @map("report_header_html")
-  reportFooterHtml String?  @map("report_footer_html")
-  licenseKey       String?  @map("license_key")
-  installId        String?  @map("install_id")         // stable per-deployment id (heartbeat)
-  licenseLastCheck DateTime? @map("license_last_check") // last successful online license check
+  id                      String    @id @default(uuid())
+  companyName             String    @default("iTour TT") @map("company_name")
+  logoUrl                 String?   @map("logo_url")
+  faviconUrl              String?   @map("favicon_url")
+  reportHeaderHtml        String?   @map("report_header_html")
+  reportFooterHtml        String?   @map("report_footer_html")
+  licenseKey              String?   @map("license_key")
+  installId               String?   @map("install_id") // stable per-deployment id (heartbeat)
+  licenseLastCheck        DateTime? @map("license_last_check") // last successful online license check
   // Single mailbox that receives all automated system notifications (e.g. job updates).
-  systemNotificationEmail String? @map("system_notification_email")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  systemNotificationEmail String?   @map("system_notification_email")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
   @@map("company_settings")
 }
@@ -1892,9 +1976,9 @@ model NoShowEvidence {
   id            String   @id @default(uuid())
   trafficJobId  String   @map("traffic_job_id")
   imageUrls     String[] @map("image_urls")
-  gpsLatitude   Decimal?  @map("gps_latitude") @db.Decimal(10, 7)
-  gpsLongitude  Decimal?  @map("gps_longitude") @db.Decimal(10, 7)
-  gpsMapLink    String?   @map("gps_map_link")
+  gpsLatitude   Decimal? @map("gps_latitude") @db.Decimal(10, 7)
+  gpsLongitude  Decimal? @map("gps_longitude") @db.Decimal(10, 7)
+  gpsMapLink    String?  @map("gps_map_link")
   submittedBy   String   @map("submitted_by")
   submittedById String   @map("submitted_by_id")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -1913,9 +1997,9 @@ model InPlaceEvidence {
   id            String   @id @default(uuid())
   trafficJobId  String   @map("traffic_job_id")
   imageUrls     String[] @map("image_urls")
-  gpsLatitude   Decimal?  @map("gps_latitude") @db.Decimal(10, 7)
-  gpsLongitude  Decimal?  @map("gps_longitude") @db.Decimal(10, 7)
-  gpsMapLink    String?   @map("gps_map_link")
+  gpsLatitude   Decimal? @map("gps_latitude") @db.Decimal(10, 7)
+  gpsLongitude  Decimal? @map("gps_longitude") @db.Decimal(10, 7)
+  gpsMapLink    String?  @map("gps_map_link")
   submittedBy   String   @map("submitted_by")
   submittedById String   @map("submitted_by_id")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -1934,9 +2018,9 @@ model CompletedEvidence {
   id            String   @id @default(uuid())
   trafficJobId  String   @map("traffic_job_id")
   imageUrls     String[] @map("image_urls")
-  gpsLatitude   Decimal?  @map("gps_latitude") @db.Decimal(10, 7)
-  gpsLongitude  Decimal?  @map("gps_longitude") @db.Decimal(10, 7)
-  gpsMapLink    String?   @map("gps_map_link")
+  gpsLatitude   Decimal? @map("gps_latitude") @db.Decimal(10, 7)
+  gpsLongitude  Decimal? @map("gps_longitude") @db.Decimal(10, 7)
+  gpsMapLink    String?  @map("gps_map_link")
   submittedBy   String   @map("submitted_by")
   submittedById String   @map("submitted_by_id")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -1955,9 +2039,9 @@ model InProgressEvidence {
   id            String   @id @default(uuid())
   trafficJobId  String   @map("traffic_job_id")
   imageUrls     String[] @map("image_urls")
-  gpsLatitude   Decimal?  @map("gps_latitude") @db.Decimal(10, 7)
-  gpsLongitude  Decimal?  @map("gps_longitude") @db.Decimal(10, 7)
-  gpsMapLink    String?   @map("gps_map_link")
+  gpsLatitude   Decimal? @map("gps_latitude") @db.Decimal(10, 7)
+  gpsLongitude  Decimal? @map("gps_longitude") @db.Decimal(10, 7)
+  gpsMapLink    String?  @map("gps_map_link")
   submittedBy   String   @map("submitted_by")
   submittedById String   @map("submitted_by_id")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -1973,17 +2057,19 @@ model InProgressEvidence {
 // ─────────────────────────────────────────────
 
 model RepJobScore {
-  id           String   @id @default(uuid())
-  trafficJobId String   @unique @map("traffic_job_id")
-  repId        String   @map("rep_id")
-  attendance   Boolean  @default(false) // 20 pts — In Place evidence
-  appearance   Boolean  @default(false) // 15 pts — In Place evidence
-  work         Boolean  @default(false) // 15 pts — Completed status
-  survey       Boolean  @default(false) // 15 pts — Guest survey submitted
-  review       Boolean  @default(false) // 35 pts — manual
-  scoredById   String   @map("scored_by_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  trafficJobId     String   @unique @map("traffic_job_id")
+  repId            String   @map("rep_id")
+  attendance       Boolean  @default(false) // 20 pts — In Place evidence
+  appearance       Boolean  @default(false) // 15 pts — In Place evidence
+  work             Boolean  @default(false) // 15 pts — Completed status
+  survey           Boolean  @default(false) // 15 pts — Guest survey submitted
+  review           Boolean  @default(false) // 35 pts — manual
+  // Points deducted by a substantiated complaint. Existing weights are untouched.
+  complaintPenalty Int      @default(0) @map("complaint_penalty")
+  scoredById       String   @map("scored_by_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
   rep        Rep        @relation(fields: [repId], references: [id])
@@ -2029,17 +2115,19 @@ model GuestSurvey {
 }
 
 model DriverJobScore {
-  id             String   @id @default(uuid())
-  trafficJobId   String   @unique @map("traffic_job_id")
-  driverId       String   @map("driver_id")
-  attendance     Boolean  @default(false) // 30 pts — manual
-  appearance     Boolean  @default(false) // 20 pts — manual
-  carCleanliness Boolean  @default(false) @map("car_cleanliness") // 10 pts — manual
-  maintenance    Boolean  @default(false) // 10 pts — manual
-  work           Boolean  @default(false) // 20 pts — auto from COMPLETED status
-  scoredById     String   @map("scored_by_id")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  trafficJobId     String   @unique @map("traffic_job_id")
+  driverId         String   @map("driver_id")
+  attendance       Boolean  @default(false) // 30 pts — manual
+  appearance       Boolean  @default(false) // 20 pts — manual
+  carCleanliness   Boolean  @default(false) @map("car_cleanliness") // 10 pts — manual
+  maintenance      Boolean  @default(false) // 10 pts — manual
+  work             Boolean  @default(false) // 20 pts — auto from COMPLETED status
+  // Points deducted by a substantiated complaint. Existing weights are untouched.
+  complaintPenalty Int      @default(0) @map("complaint_penalty")
+  scoredById       String   @map("scored_by_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
   driver     Driver     @relation(fields: [driverId], references: [id])
@@ -2398,4 +2486,191 @@ model ContactMessage {
 
   @@index([isRead, createdAt])
   @@map("contact_messages")
+}
+
+// ─────────────────────────────────────────────
+// COMPLAINT TRACKING
+// ─────────────────────────────────────────────
+
+// Admin-managed catalog of complaint reasons. Deliberately a table, not an enum,
+// so new reasons never need a migration (same choice as B2cExtra).
+model ComplaintCategory {
+  id                   String          @id @default(uuid())
+  nameEn               String          @map("name_en")
+  nameAr               String          @map("name_ar")
+  defaultParty         ComplaintParty? @map("default_party")
+  // Points deducted from the rep/driver job score. 0 by default: a category only
+  // affects pay once someone deliberately configures it.
+  defaultPenaltyPoints Int             @default(0) @map("default_penalty_points")
+  isActive             Boolean         @default(true) @map("is_active")
+  sortOrder            Int             @default(0) @map("sort_order")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+  deletedAt            DateTime?       @map("deleted_at")
+
+  complaints Complaint[]
+
+  @@index([isActive, sortOrder])
+  @@index([deletedAt])
+  @@map("complaint_categories")
+}
+
+model Complaint {
+  id           String          @id @default(uuid())
+  complaintNo  String          @unique @map("complaint_no")
+  // Named exactly `trafficJobId` so AuditInterceptor.resolveJob picks it out of the
+  // request body and links every complaint action to the job in the Activity Log.
+  trafficJobId String          @map("traffic_job_id")
+  // Denormalised from the job at creation so agent reporting/invoicing survives a
+  // later edit of the job's agent.
+  agentId      String?         @map("agent_id")
+  categoryId   String          @map("category_id")
+  stage        ComplaintStage
+  source       ComplaintSource @default(AGENT)
+  subject      String
+  description  String          @db.Text
+  status       ComplaintStatus @default(OPEN)
+
+  // ── 48h reply SLA (flags only — never changes status) ──
+  complaintDate DateTime  @map("complaint_date")
+  slaHours      Int       @default(48) @map("sla_hours")
+  replyDueAt    DateTime  @map("reply_due_at")
+  repliedAt     DateTime? @map("replied_at")
+  slaBreached   Boolean   @default(false) @map("sla_breached")
+  slaWarnedAt   DateTime? @map("sla_warned_at")
+  resolvedAt    DateTime? @map("resolved_at")
+
+  // ── Money ──
+  claimedAmount Decimal? @map("claimed_amount") @db.Decimal(15, 2)
+  lossAmount    Decimal? @map("loss_amount") @db.Decimal(15, 2)
+  currency      Currency @default(EGP)
+  exchangeRate  Decimal  @default(1) @map("exchange_rate") @db.Decimal(10, 4)
+
+  // ── Accountability (exactly one responsible* id, enforced in the service) ──
+  responsibleParty      ComplaintParty? @map("responsible_party")
+  responsibleDriverId   String?         @map("responsible_driver_id")
+  responsibleRepId      String?         @map("responsible_rep_id")
+  responsibleSupplierId String?         @map("responsible_supplier_id")
+
+  // Score penalty actually applied (0 when the fee was already posted).
+  scorePenaltyApplied Int     @default(0) @map("score_penalty_applied")
+  scorePenaltyNote    String? @map("score_penalty_note")
+
+  assignedToId String?   @map("assigned_to_id")
+  createdById  String    @map("created_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  trafficJob          TrafficJob        @relation(fields: [trafficJobId], references: [id])
+  agent               Agent?            @relation(fields: [agentId], references: [id])
+  category            ComplaintCategory @relation(fields: [categoryId], references: [id])
+  responsibleDriver   Driver?           @relation("ComplaintResponsibleDriver", fields: [responsibleDriverId], references: [id])
+  responsibleRep      Rep?              @relation("ComplaintResponsibleRep", fields: [responsibleRepId], references: [id])
+  responsibleSupplier Supplier?         @relation("ComplaintResponsibleSupplier", fields: [responsibleSupplierId], references: [id])
+  assignedTo          User?             @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
+  createdBy           User              @relation("ComplaintCreatedBy", fields: [createdById], references: [id])
+
+  attachments ComplaintAttachment[]
+  charge      ComplaintCharge?
+  adjustments AgentAdjustment[]
+
+  @@index([trafficJobId])
+  @@index([agentId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([complaintDate])
+  @@index([replyDueAt, repliedAt])
+  @@index([responsibleDriverId])
+  @@index([responsibleRepId])
+  @@index([responsibleSupplierId])
+  @@index([assignedToId])
+  @@index([deletedAt])
+  @@map("complaints")
+}
+
+model ComplaintAttachment {
+  id           String                  @id @default(uuid())
+  complaintId  String                  @map("complaint_id")
+  kind         ComplaintAttachmentKind @default(COMPLAINT_DOC)
+  // Google Drive file id, or a /uploads/complaints/... path when Drive is unavailable.
+  fileUrl      String                  @map("file_url")
+  fileName     String                  @map("file_name")
+  mimeType     String?                 @map("mime_type")
+  submittedBy  String?                 @map("submitted_by")
+  uploadedById String                  @map("uploaded_by_id")
+  createdAt    DateTime                @default(now()) @map("created_at")
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId])
+  @@map("complaint_attachments")
+}
+
+// A deduction against the responsible party. Nothing moves until status = POSTED,
+// which writes a negative row into the party's existing fee table.
+model ComplaintCharge {
+  id           String                @id @default(uuid())
+  complaintId  String                @unique @map("complaint_id")
+  party        ComplaintParty
+  driverId     String?               @map("driver_id")
+  repId        String?               @map("rep_id")
+  supplierId   String?               @map("supplier_id")
+  amount       Decimal               @db.Decimal(15, 2)
+  currency     Currency              @default(EGP)
+  status       ComplaintChargeStatus @default(PENDING)
+  approvedById String?               @map("approved_by_id")
+  approvedAt   DateTime?             @map("approved_at")
+  postedAt     DateTime?             @map("posted_at")
+  // Id of the RepFee / DriverTripFee / SupplierCost row this created. No FK:
+  // it points at one of three tables depending on `party`.
+  postedFeeId  String?               @map("posted_fee_id")
+  voidedAt     DateTime?             @map("voided_at")
+  voidReason   String?               @map("void_reason")
+  createdById  String                @map("created_by_id")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  complaint  Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  driver     Driver?   @relation("ComplaintChargeDriver", fields: [driverId], references: [id])
+  rep        Rep?      @relation("ComplaintChargeRep", fields: [repId], references: [id])
+  supplier   Supplier? @relation("ComplaintChargeSupplier", fields: [supplierId], references: [id])
+  approvedBy User?     @relation("ComplaintChargeApprovedBy", fields: [approvedById], references: [id])
+
+  @@index([status])
+  @@index([driverId])
+  @@index([repId])
+  @@index([supplierId])
+  @@map("complaint_charges")
+}
+
+// The agent-side disposition of a complaint loss. One record, three outcomes:
+// a negative invoice line, a standalone CREDIT_NOTE invoice, or left PENDING.
+model AgentAdjustment {
+  id                  String                @id @default(uuid())
+  adjustmentNo        String                @unique @map("adjustment_no")
+  agentId             String                @map("agent_id")
+  complaintId         String?               @map("complaint_id")
+  description         String
+  amount              Decimal               @db.Decimal(15, 2)
+  currency            Currency              @default(EGP)
+  exchangeRate        Decimal               @default(1) @map("exchange_rate") @db.Decimal(10, 4)
+  status              AgentAdjustmentStatus @default(PENDING)
+  invoiceLineId       String?               @map("invoice_line_id")
+  creditNoteInvoiceId String?               @map("credit_note_invoice_id")
+  waivedReason        String?               @map("waived_reason")
+  createdById         String                @map("created_by_id")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  agent       Agent         @relation(fields: [agentId], references: [id])
+  complaint   Complaint?    @relation(fields: [complaintId], references: [id])
+  invoiceLine InvoiceLine?  @relation(fields: [invoiceLineId], references: [id], onDelete: SetNull)
+  creditNote  AgentInvoice? @relation("AgentAdjustmentCreditNote", fields: [creditNoteInvoiceId], references: [id])
+
+  @@index([agentId])
+  @@index([status])
+  @@index([complaintId])
+  @@index([invoiceLineId])
+  @@map("agent_adjustments")
 }

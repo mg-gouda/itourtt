@@ -1,3 +1,7 @@
 # Symbols with no description yet — regenerate to refresh.
-# 2050/2050 described.
-
+# 2050/2055 described.
+backend/prisma/schema.prisma#AgentAdjustment
+backend/prisma/schema.prisma#Complaint
+backend/prisma/schema.prisma#ComplaintAttachment
+backend/prisma/schema.prisma#ComplaintCategory
+backend/prisma/schema.prisma#ComplaintCharge
