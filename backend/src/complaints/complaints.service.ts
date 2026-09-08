@@ -11,6 +11,7 @@ import { CreateComplaintDto } from './dto/create-complaint.dto.js';
 import { UpdateComplaintDto } from './dto/update-complaint.dto.js';
 import { TransitionComplaintDto } from './dto/transition-complaint.dto.js';
 import { ComplaintQueryDto } from './dto/complaint-query.dto.js';
+import { AgentAdjustmentsService } from './agent-adjustments.service.js';
 import { DEFAULT_SLA_HOURS } from './dto/complaint-constants.js';
 import type {
   ComplaintStatus,
@@ -64,6 +65,7 @@ export class ComplaintsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissionsGuard: PermissionsGuard,
+    private readonly adjustmentsService: AgentAdjustmentsService,
   ) {}
 
   private readonly complaintInclude = {
@@ -395,10 +397,32 @@ export class ComplaintsService {
       data.lossAmount = null;
     }
 
-    const updated = await this.prisma.complaint.update({
-      where: { id },
-      data,
-      include: this.complaintInclude,
+    // The outcome and the money it owes the agent are recorded together:
+    // a conceded loss must never end up without its pending adjustment.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.complaint.update({
+        where: { id },
+        data,
+        include: this.complaintInclude,
+      });
+
+      if ((LOSS_STATUSES as readonly string[]).includes(to) && lossAmount > 0) {
+        await this.adjustmentsService.createFromComplaint(
+          tx,
+          {
+            id: row.id,
+            complaintNo: row.complaintNo,
+            agentId: row.agentId,
+            subject: row.subject,
+            currency: row.currency,
+            exchangeRate: row.exchangeRate,
+          },
+          lossAmount,
+          userId,
+        );
+      }
+
+      return row;
     });
 
     this.logger.log(

@@ -97,46 +97,46 @@ The Excel export layer — the largest file in the backend. One export function 
 | `exportCustomers` | pub | 103 | `agent` | Agents/customers as xlsx. |
 | `exportSuppliers` | pub | 141 | `supplier` | Suppliers as xlsx. |
 | `exportInvoices` | pub | 175 | `agentInvoice` | Agent invoices as xlsx. |
-| `exportVendorBills` | pub | 223 | `supplierCost` | Supplier costs as vendor bills. |
-| `exportPayments` | pub | 271 | `payment` | Payments as xlsx. |
-| `exportJournalEntries` | pub | 306 | `journalEntry` | Journal entries as xlsx. |
-| `exportCollections` | pub | 349 | `trafficJob` | Driver cash collections and their liquidation state. |
-| `exportRepFees` | pub | 407 | `trafficAssignment` | Rep fees per job, with the score that produced each fee. |
-| `exportDispatchDay` | pub | 520 | `trafficJob` | One day's dispatch grid as xlsx. |
-| `generateClientSigns` | pub | 679 | `companySettings` `trafficJob` | Printable guest name-sign PDFs (company-branded) that reps hold at arrivals. |
-| `generateJobEvidencePdf` | pub | 801 | `companySettings` `trafficJob` | PDF evidence pack for one job, with the photos embedded. |
-| `exportDailyDispatchReport` | pub | 1105 | `trafficJob` | Daily dispatch summary as xlsx. |
-| `exportDriverTrips` | pub | 1155 | `trafficAssignment` `driverTripFee` | Driver trips and fees for a period. |
-| `exportAgentStatement` | pub | 1250 | `agent` `agentInvoice` | Agent statement of account. |
-| `exportRevenue` | pub | 1328 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | Revenue against driver, rep and supplier costs. |
-| `exportVehicleCompliance` | pub | 1436 | `vehicle` | Fleet compliance and expiry report. |
-| `autoSizeColumns` | priv | 1480 | — | Widens worksheet columns to fit their content. |
-| `formatDate` | priv | 1500 | — | Plain date formatting for sheets. |
-| `cairoDate` | priv | 1506 | — | Date rendered in Africa/Cairo — every exported timestamp is pinned to Cairo, never the server or device zone. |
-| `cairoTime` | priv | 1511 | — | Time rendered in Africa/Cairo. |
-| `cairoDateTime` | priv | 1516 | — | Date and time rendered in Africa/Cairo. |
-| `mapPaymentJournal` | priv | 1521 | — | Maps a payment method to its Odoo journal. |
-| `mapJournalType` | priv | 1534 | — | Maps an internal journal type to Odoo's. |
-| `streamEvidenceZip` | pub | 1555 | `trafficJob` | Streams every evidence photo for a job selection as a zip, rather than buffering it in memory. |
-| `fetchAllInBatches` | priv | 1631 | — | Pages through large result sets so a big export cannot exhaust memory. |
-| `createWorkbook` | priv | 1645 | — | Shared workbook scaffolding used by every export. |
-| `getEvidenceData` | pub | 1673 | `companySettings` `trafficJob` | Collects a job's evidence photos and metadata for the PDF and zip paths. |
-| `getSupplierJobsReport` | pub | 1778 | `trafficAssignment` | Jobs run by each supplier, for reconciliation against their invoices. |
-| `getOwnedActiveVehicles` | pub | 1851 | `vehicle` | Active owned vehicles, used as the row set of the car-jobs report. |
-| `getCarJobsReport` | pub | 1859 | `trafficAssignment` | Jobs per owned car — utilisation view. |
-| `exportVisaReport` | pub | 1932 | `trafficJob` | Visa report as xlsx. |
-| `exportSalesReport` | pub | 1962 | `trafficJob` | Sales report as xlsx. |
-| `exportEvidenceReport` | pub | 2012 | `trafficJob` | Evidence coverage report — which jobs have photos and which do not. |
-| `exportDriverScoreReport` | pub | 2108 | `driverJobScore` | Driver scores as xlsx. |
-| `exportRepScoreReport` | pub | 2181 | `repJobScore` | Rep scores and resulting fees as xlsx. |
-| `exportGuestSurveyReport` | pub | 2244 | `guestSurvey` | Arrival guest surveys as xlsx. |
-| `exportJobStatusReport` | pub | 2292 | `trafficJob` | Job status breakdown as xlsx. |
-| `exportDepartureReport` | pub | 2366 | `trafficJob` | Departures report as xlsx. |
-| `exportFlightDelayReport` | pub | 2398 | `userNotification` | Flight delays reported by reps, sourced from the notifications they generated. |
-| `exportSupplierJobsExcel` | pub | 2467 | — | Supplier jobs report as xlsx. |
-| `exportCarJobsExcel` | pub | 2491 | — | Car jobs report as xlsx. |
-| `exportReviewReport` | pub | 2518 | `trafficJob` | Guest review report as xlsx. |
-| `buildDateFilter` | priv | 2583 | — | Shared date-range predicate used by every report query. |
+| `exportVendorBills` | pub | 227 | `supplierCost` | Supplier costs as vendor bills. |
+| `exportPayments` | pub | 275 | `payment` | Payments as xlsx. |
+| `exportJournalEntries` | pub | 310 | `journalEntry` | Journal entries as xlsx. |
+| `exportCollections` | pub | 353 | `trafficJob` | Driver cash collections and their liquidation state. |
+| `exportRepFees` | pub | 411 | `trafficAssignment` | Rep fees per job, with the score that produced each fee. |
+| `exportDispatchDay` | pub | 524 | `trafficJob` | One day's dispatch grid as xlsx. |
+| `generateClientSigns` | pub | 683 | `companySettings` `trafficJob` | Printable guest name-sign PDFs (company-branded) that reps hold at arrivals. |
+| `generateJobEvidencePdf` | pub | 805 | `companySettings` `trafficJob` | PDF evidence pack for one job, with the photos embedded. |
+| `exportDailyDispatchReport` | pub | 1109 | `trafficJob` | Daily dispatch summary as xlsx. |
+| `exportDriverTrips` | pub | 1159 | `trafficAssignment` `driverTripFee` | Driver trips and fees for a period. |
+| `exportAgentStatement` | pub | 1254 | `agent` `agentInvoice` | Agent statement of account. |
+| `exportRevenue` | pub | 1332 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | Revenue against driver, rep and supplier costs. |
+| `exportVehicleCompliance` | pub | 1440 | `vehicle` | Fleet compliance and expiry report. |
+| `autoSizeColumns` | priv | 1484 | — | Widens worksheet columns to fit their content. |
+| `formatDate` | priv | 1504 | — | Plain date formatting for sheets. |
+| `cairoDate` | priv | 1510 | — | Date rendered in Africa/Cairo — every exported timestamp is pinned to Cairo, never the server or device zone. |
+| `cairoTime` | priv | 1515 | — | Time rendered in Africa/Cairo. |
+| `cairoDateTime` | priv | 1520 | — | Date and time rendered in Africa/Cairo. |
+| `mapPaymentJournal` | priv | 1525 | — | Maps a payment method to its Odoo journal. |
+| `mapJournalType` | priv | 1538 | — | Maps an internal journal type to Odoo's. |
+| `streamEvidenceZip` | pub | 1559 | `trafficJob` | Streams every evidence photo for a job selection as a zip, rather than buffering it in memory. |
+| `fetchAllInBatches` | priv | 1635 | — | Pages through large result sets so a big export cannot exhaust memory. |
+| `createWorkbook` | priv | 1649 | — | Shared workbook scaffolding used by every export. |
+| `getEvidenceData` | pub | 1677 | `companySettings` `trafficJob` | Collects a job's evidence photos and metadata for the PDF and zip paths. |
+| `getSupplierJobsReport` | pub | 1782 | `trafficAssignment` | Jobs run by each supplier, for reconciliation against their invoices. |
+| `getOwnedActiveVehicles` | pub | 1855 | `vehicle` | Active owned vehicles, used as the row set of the car-jobs report. |
+| `getCarJobsReport` | pub | 1863 | `trafficAssignment` | Jobs per owned car — utilisation view. |
+| `exportVisaReport` | pub | 1936 | `trafficJob` | Visa report as xlsx. |
+| `exportSalesReport` | pub | 1966 | `trafficJob` | Sales report as xlsx. |
+| `exportEvidenceReport` | pub | 2016 | `trafficJob` | Evidence coverage report — which jobs have photos and which do not. |
+| `exportDriverScoreReport` | pub | 2112 | `driverJobScore` | Driver scores as xlsx. |
+| `exportRepScoreReport` | pub | 2185 | `repJobScore` | Rep scores and resulting fees as xlsx. |
+| `exportGuestSurveyReport` | pub | 2248 | `guestSurvey` | Arrival guest surveys as xlsx. |
+| `exportJobStatusReport` | pub | 2296 | `trafficJob` | Job status breakdown as xlsx. |
+| `exportDepartureReport` | pub | 2370 | `trafficJob` | Departures report as xlsx. |
+| `exportFlightDelayReport` | pub | 2402 | `userNotification` | Flight delays reported by reps, sourced from the notifications they generated. |
+| `exportSupplierJobsExcel` | pub | 2471 | — | Supplier jobs report as xlsx. |
+| `exportCarJobsExcel` | pub | 2495 | — | Car jobs report as xlsx. |
+| `exportReviewReport` | pub | 2522 | `trafficJob` | Guest review report as xlsx. |
+| `buildDateFilter` | priv | 2587 | — | Shared date-range predicate used by every report query. |
 
 ## `finance`
 
@@ -182,37 +182,37 @@ Finance surface: fees, invoices (agent, customer and B2C), payments, collections
 
 ### FinanceService
 
-`backend/src/finance/finance.service.ts:21` · service · 25 methods
+`backend/src/finance/finance.service.ts:23` · service · 25 methods
 
 Fees, invoices, payments and collections. Two invoice families share the `AgentInvoice` table: agent invoices (ONLINE channel) and customer invoices (B2B), each with its own numbering. Tax follows Egyptian law; there is no commission logic anywhere.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `createDriverFee` | pub | 28 | `trafficJob` `driver` `driverTripFee` | Manually records a driver trip fee (the automatic path is `resolveJobTripFee` via the completion roll-up). |
-| `createRepFee` | pub | 80 | `trafficJob` `rep` `repFee` | Manually records a rep fee. Reps are paid only for completed jobs. |
-| `getRepDailyFees` | pub | 129 | `rep` `repFee` | A rep's fees per day, for the accounting screen. |
-| `createSupplierCost` | pub | 180 | `trafficJob` `supplier` `supplierCost` | Records what we owe a supplier for a job — the vendor-bill side. |
-| `checkAgentCreditLimit` | priv | 223 | `agentCreditTerms` `agentInvoice` | Blocks or warns when a new invoice would push an agent past their credit limit or credit days. |
-| `calculateLineTax` | priv | 258 | — | Per-line tax under Egyptian tax rules. |
-| `calculateInvoiceTotals` | priv | 272 | — | Rolls lines into net, tax and gross totals. |
-| `generateInvoiceNumber` | priv | 294 | — | Allocates the next agent invoice number. |
-| `createInvoice` | pub | 303 | `agent` `trafficJob` `agentInvoice` | Builds an agent invoice from selected jobs, applying the agent price list and credit check. |
-| `getInvoice` | pub | 421 | `agentInvoice` | One invoice with its lines and payments. |
-| `updateInvoiceLines` | pub | 452 | `agentInvoice` `invoiceLine` | Edits invoice lines — only valid while the invoice is unposted; posted financial records are immutable. |
-| `updateInvoiceStatus` | pub | 516 | `agentInvoice` | Moves an invoice through its lifecycle (draft → posted → paid). Posting is the point after which it must not change. |
-| `listInvoices` | pub | 559 | `agentInvoice` | Filterable invoice list. |
-| `createPayment` | pub | 613 | `agentInvoice` `payment` | Records a payment against an invoice, with its exchange rate stored on the transaction. |
-| `getJobFinancials` | pub | 689 | `trafficJob` `driverTripFee` `repFee` `supplierCost` `invoiceLine` | Everything financial attached to one job: driver fee, rep fee, supplier cost and invoice lines — the per-job P&L view. |
-| `generateCustomerInvoiceNumber` | priv | 744 | — | Allocates the next customer (B2B) invoice number, a separate sequence from agent invoices. |
-| `generateCustomerInvoices` | pub | 754 | `customer` `trafficJob` `customerPriceItem` `agentInvoice` | Batch-generates B2B invoices from completed jobs priced off each customer's price list. |
-| `getCustomerInvoice` | pub | 958 | `agentInvoice` | One customer invoice. |
-| `listCustomerInvoices` | pub | 976 | `agentInvoice` | Filterable customer invoice list. |
-| `getAgentOptions` | pub | 1018 | `agent` | Agents available for invoicing, for the picker. |
-| `getCustomerOptions` | pub | 1034 | `customer` | Customers available for invoicing. |
-| `getCustomerJobsForInvoice` | pub | 1048 | `customer` `trafficJob` `customerPriceItem` | Uninvoiced customer jobs with their resolved prices, ready to select. |
-| `getAgentJobsForInvoice` | pub | 1116 | `agent` `trafficJob` `agentPriceItem` | Uninvoiced agent jobs with their resolved prices. |
-| `getCollections` | pub | 1195 | `trafficJob` | Cash collections drivers have taken on jobs, and their liquidation state. |
-| `liquidateCollection` | pub | 1233 | `trafficJob` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
+| `createDriverFee` | pub | 35 | `trafficJob` `driver` `driverTripFee` | Manually records a driver trip fee (the automatic path is `resolveJobTripFee` via the completion roll-up). |
+| `createRepFee` | pub | 87 | `trafficJob` `rep` `repFee` | Manually records a rep fee. Reps are paid only for completed jobs. |
+| `getRepDailyFees` | pub | 136 | `rep` `repFee` | A rep's fees per day, for the accounting screen. |
+| `createSupplierCost` | pub | 187 | `trafficJob` `supplier` `supplierCost` | Records what we owe a supplier for a job — the vendor-bill side. |
+| `checkAgentCreditLimit` | priv | 230 | `agentCreditTerms` `agentInvoice` | Blocks or warns when a new invoice would push an agent past their credit limit or credit days. |
+| `calculateLineTax` | priv | 265 | — | Per-line tax under Egyptian tax rules. |
+| `calculateInvoiceTotals` | priv | 279 | — | Rolls lines into net, tax and gross totals. |
+| `generateInvoiceNumber` | priv | 301 | — | Allocates the next agent invoice number. |
+| `createInvoice` | pub | 310 | `agent` `trafficJob` `agentInvoice` | Builds an agent invoice from selected jobs, applying the agent price list and credit check. |
+| `getInvoice` | pub | 428 | `agentInvoice` | One invoice with its lines and payments. |
+| `updateInvoiceLines` | pub | 459 | `agentInvoice` `invoiceLine` `adjustmentsService.releaseFromInvoice` | Edits invoice lines — only valid while the invoice is unposted; posted financial records are immutable. |
+| `updateInvoiceStatus` | pub | 534 | `agentInvoice` | Moves an invoice through its lifecycle (draft → posted → paid). Posting is the point after which it must not change. |
+| `listInvoices` | pub | 577 | `agentInvoice` | Filterable invoice list. |
+| `createPayment` | pub | 631 | `agentInvoice` `payment` | Records a payment against an invoice, with its exchange rate stored on the transaction. |
+| `getJobFinancials` | pub | 707 | `trafficJob` `driverTripFee` `repFee` `supplierCost` `invoiceLine` | Everything financial attached to one job: driver fee, rep fee, supplier cost and invoice lines — the per-job P&L view. |
+| `generateCustomerInvoiceNumber` | priv | 762 | — | Allocates the next customer (B2B) invoice number, a separate sequence from agent invoices. |
+| `generateCustomerInvoices` | pub | 772 | `customer` `trafficJob` `customerPriceItem` `agentInvoice` | Batch-generates B2B invoices from completed jobs priced off each customer's price list. |
+| `getCustomerInvoice` | pub | 976 | `agentInvoice` | One customer invoice. |
+| `listCustomerInvoices` | pub | 994 | `agentInvoice` | Filterable customer invoice list. |
+| `getAgentOptions` | pub | 1036 | `agent` | Agents available for invoicing, for the picker. |
+| `getCustomerOptions` | pub | 1052 | `customer` | Customers available for invoicing. |
+| `getCustomerJobsForInvoice` | pub | 1066 | `customer` `trafficJob` `customerPriceItem` | Uninvoiced customer jobs with their resolved prices, ready to select. |
+| `getAgentJobsForInvoice` | pub | 1134 | `agent` `trafficJob` `agentPriceItem` | Uninvoiced agent jobs with their resolved prices. |
+| `getCollections` | pub | 1213 | `trafficJob` | Cash collections drivers have taken on jobs, and their liquidation state. |
+| `liquidateCollection` | pub | 1251 | `trafficJob` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
 
 ### InvoiceExportService
 

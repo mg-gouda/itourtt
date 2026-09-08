@@ -1,9 +1,11 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AgentAdjustmentsService } from '../complaints/agent-adjustments.service.js';
 import { CreateDriverFeeDto } from './dto/create-driver-fee.dto.js';
 import { CreateRepFeeDto } from './dto/create-rep-fee.dto.js';
 import { CreateSupplierCostDto } from './dto/create-supplier-cost.dto.js';
@@ -19,7 +21,12 @@ import type { InvoiceType } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(FinanceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly adjustmentsService: AgentAdjustmentsService,
+  ) {}
 
   // ─────────────────────────────────────────────
   // DRIVER TRIP FEES
@@ -479,6 +486,17 @@ export class FinanceService {
     );
 
     return this.prisma.$transaction(async (tx) => {
+      // Every line is deleted and recreated below. Any complaint adjustment
+      // riding on one of them would silently detach (invoiceLineId → null on
+      // cascade) while still reading ON_INVOICE, so release them back to
+      // PENDING first — money owed must never fall out of sight.
+      const released = await this.adjustmentsService.releaseFromInvoice(tx, id);
+      if (released > 0) {
+        this.logger.log(
+          `Invoice ${invoice.invoiceNumber}: released ${released} agent adjustment(s) back to PENDING while rebuilding lines`,
+        );
+      }
+
       await tx.invoiceLine.deleteMany({ where: { invoiceId: id } });
 
       for (const line of calculatedLines) {

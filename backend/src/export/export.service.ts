@@ -193,14 +193,18 @@ export class ExportService {
 
     for (const inv of invoices) {
       const partnerName = inv.agent?.legalName || inv.customer?.legalName || 'Unknown';
+      const isCreditNote = inv.invoiceType === 'CREDIT_NOTE';
       for (const line of inv.lines) {
         rows.push({
-          move_type: 'out_invoice',
+          // A credit note is a refund move in Odoo. Emitting out_refund on the
+          // Credit Notes journal is the whole Odoo delta for complaint losses —
+          // it imports natively, with no customization on the Odoo side.
+          move_type: isCreditNote ? 'out_refund' : 'out_invoice',
           partner_id: partnerName,
           invoice_date: this.formatDate(inv.invoiceDate),
           invoice_date_due: this.formatDate(inv.dueDate),
           currency_id: inv.currency,
-          journal_id: 'Customer Invoices',
+          journal_id: isCreditNote ? 'Credit Notes' : 'Customer Invoices',
           ref: inv.invoiceNumber,
           name: line.description,
           account_id: '400000',
