@@ -13,7 +13,7 @@
 | `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 762 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
 | `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1229 | 10 | 12 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
 | `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | One agent's detail — credit status, documents and price list. |
-| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1308 | 9 | — | Car-centric dispatch view — the day organised by vehicle rather than by job. |
+| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1318 | 9 | — | Car-centric dispatch view — the day organised by vehicle rather than by job. |
 | `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 485 | 7 | 3 | Company identity and branding (logo, favicon) used on invoices and reference prefixes. |
 | `/dashboard/complaint-categories` | `frontend/src/app/(dashboard)/dashboard/complaint-categories/page.tsx` | 354 | 4 | 3 | Complaint category catalog CRUD, including the pay-affecting default score penalty. |
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 566 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
@@ -41,8 +41,8 @@
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1340 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
 | `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 195 | 1 | — | One supplier's detail. |
 | `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | Traffic jobs landing page with the shared filters. |
-| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1356 | 15 | 14 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
-| `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1273 | 8 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
+| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1359 | 15 | 14 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
+| `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1276 | 8 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
 | `/dashboard/users` | `frontend/src/app/(dashboard)/dashboard/users/page.tsx` | 818 | 14 | 8 | Staff user administration and role assignment. |
 | `/dashboard/vehicles` | `frontend/src/app/(dashboard)/dashboard/vehicles/page.tsx` | 1095 | 10 | 9 | Fleet list with compliance status. |
 | `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 693 | 8 | 8 | Edit a vehicle, its compliance documents and deposit payments. |

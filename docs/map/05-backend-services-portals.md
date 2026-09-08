@@ -50,24 +50,24 @@ Guest invoices for B2C bookings: numbering, PDF rendering and ownership-checked 
 
 ### B2CService
 
-`backend/src/b2c/b2c.service.ts:32` · service · 12 methods
+`backend/src/b2c/b2c.service.ts:33` · service · 12 methods
 
 Guest-account backend for the B2C site: login, password lifecycle, booking self-service and evidence access. Guest users are ordinary `User` rows created on demand by `ensureB2CClientAccount`.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `ensureB2CClientAccount` | pub | 43 | `user` | Creates or returns the guest's User row so a booking email can become a login without a separate signup step. |
-| `login` | pub | 62 | `user` `jwtService.sign` | Guest-account login, issuing a JWT via `jwtService.sign`. |
-| `changePassword` | pub | 81 | `user` | Guest changes their own password. |
-| `requestPasswordReset` | pub | 98 | `user` | Issues a password-reset token and emails it to the guest. |
-| `resetPassword` | pub | 132 | `user` | Consumes a reset token and sets the new password. |
-| `getBookings` | pub | 159 | `guestBooking` | The signed-in guest's own bookings. |
-| `getBooking` | pub | 193 | `guestBooking` | One booking, ownership-scoped. Ownership scoping here is the fix for the earlier booking-lookup IDOR. |
-| `buildEvidence` | priv | 244 | — | Assembles the evidence photo list (no-show / in-place / in-progress / completed) exposed to the guest for their own booking. |
-| `getEvidenceFileStream` | pub | 287 | `guestBooking` `googleDriveService.getFileStream` | Streams one evidence image through the backend proxy so Google Drive file ids are never exposed to the browser. Ownership-checked. |
-| `amendBooking` | pub | 320 | `guestBooking` `trafficJob` | Guest-initiated amendment, writing through to both the GuestBooking and its linked TrafficJob. |
-| `cancelBooking` | pub | 405 | `guestBooking` `trafficJob` | Guest-initiated cancellation of a booking and its linked job. |
-| `sendAssignmentNotification` | pub | 468 | `guestBooking` | Emails the guest once a vehicle/driver has been assigned to their booking. |
+| `ensureB2CClientAccount` | pub | 44 | `user` | Creates or returns the guest's User row so a booking email can become a login without a separate signup step. |
+| `login` | pub | 63 | `user` `jwtService.sign` | Guest-account login, issuing a JWT via `jwtService.sign`. |
+| `changePassword` | pub | 82 | `user` | Guest changes their own password. |
+| `requestPasswordReset` | pub | 99 | `user` | Issues a password-reset token and emails it to the guest. |
+| `resetPassword` | pub | 133 | `user` | Consumes a reset token and sets the new password. |
+| `getBookings` | pub | 160 | `guestBooking` | The signed-in guest's own bookings. |
+| `getBooking` | pub | 194 | `guestBooking` | One booking, ownership-scoped. Ownership scoping here is the fix for the earlier booking-lookup IDOR. |
+| `buildEvidence` | priv | 245 | — | Assembles the evidence photo list (no-show / in-place / in-progress / completed) exposed to the guest for their own booking. |
+| `getEvidenceFileStream` | pub | 288 | `guestBooking` `googleDriveService.getFileStream` | Streams one evidence image through the backend proxy so Google Drive file ids are never exposed to the browser. Ownership-checked. |
+| `amendBooking` | pub | 321 | `guestBooking` `trafficJob` | Guest-initiated amendment, writing through to both the GuestBooking and its linked TrafficJob. |
+| `cancelBooking` | pub | 414 | `guestBooking` `trafficJob` | Guest-initiated cancellation of a booking and its linked job. |
+| `sendAssignmentNotification` | pub | 477 | `guestBooking` | Emails the guest once a vehicle/driver has been assigned to their booking. |
 
 ## `contact-messages`
 
@@ -228,17 +228,17 @@ Shared-secret guard for the partner API — compares the request's API key heade
 
 ### PartnerService
 
-`backend/src/partner/partner.service.ts:16` · service · 5 methods
+`backend/src/partner/partner.service.ts:18` · service · 5 methods
 
 Machine-to-machine API consumed by the standalone B2C site (transfera.ae), which runs in its own repo on its own VPS. The B2C mirror holds no location or pricing data of its own — it reads reference data from here, pushes prices here, and books through here.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getReference` | pub | 27 | `country` `vehicleType` | Flattened reference feed the B2C mirror caches read-only: the whole location tree as flat `{id,type,name,parentId}` nodes, vehicle types and service types, plus a `latest` timestamp for cheap change detection. B2C prices and books against these iTourTT ids. |
-| `pushPricing` | pub | 103 | `publicPricesService.bulkUpsert` | Bulk-upserts public prices sent from the B2C side via `PublicPricesService.bulkUpsert`. |
-| `createJob` | pub | 113 | `guestBooking` `user` `guestBookingsService.convertToJob` | Turns a confirmed B2C booking into an operational job by reusing `GuestBookingsService.convertToJob`. Idempotent on `b2cBookingRef` — a repeat call returns the existing job rather than duplicating it. Requires an active ADMIN user to own the job. |
-| `getJobStatuses` | pub | 191 | `trafficJob` | Bulk status poll by `internalRef` for the B2C site. Driver/vehicle enrichment is deliberately null — the contract allows it. |
-| `jobPayload` | priv | 214 | — | Normalises a TrafficJob into the partner-contract response shape. |
+| `getReference` | pub | 29 | `country` `vehicleType` | Flattened reference feed the B2C mirror caches read-only: the whole location tree as flat `{id,type,name,parentId}` nodes, vehicle types and service types, plus a `latest` timestamp for cheap change detection. B2C prices and books against these iTourTT ids. |
+| `pushPricing` | pub | 105 | `publicPricesService.bulkUpsert` | Bulk-upserts public prices sent from the B2C side via `PublicPricesService.bulkUpsert`. |
+| `createJob` | pub | 115 | `guestBooking` `user` `guestBookingsService.convertToJob` | Turns a confirmed B2C booking into an operational job by reusing `GuestBookingsService.convertToJob`. Idempotent on `b2cBookingRef` — a repeat call returns the existing job rather than duplicating it. Requires an active ADMIN user to own the job. |
+| `getJobStatuses` | pub | 201 | `trafficJob` | Bulk status poll by `internalRef` for the B2C site. Driver/vehicle enrichment is deliberately null — the contract allows it. |
+| `jobPayload` | priv | 224 | — | Normalises a TrafficJob into the partner-contract response shape. |
 
 ## `rep-portal`
 

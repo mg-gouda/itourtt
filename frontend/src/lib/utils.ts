@@ -36,6 +36,36 @@ export function dateStrCairo(value: string | Date): string {
   return d.toLocaleDateString("en-CA", { timeZone: APP_TZ }); // en-CA => YYYY-MM-DD
 }
 
+/** Today's calendar date in Cairo as YYYY-MM-DD. */
+export function todayCairo(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: APP_TZ });
+}
+
+/**
+ * The `min` for a service-date picker.
+ *
+ * A service date is when the transfer actually happens, so it must never be
+ * back-dated. Jobs entered late used to land in the past (FT-2108 / FT-2109
+ * were booked on 08/09 for a service date of 07/09), which silently keeps them
+ * off the dispatch board for the day they were needed and distorts driver pay.
+ *
+ * An already-saved earlier date stays selectable, so an old job is still
+ * editable — the floor only stops someone choosing a *new* past date. Pass the
+ * job's saved date when editing; pass nothing when creating.
+ */
+export function serviceDateMin(savedValue?: string | null): string {
+  const today = todayCairo();
+  if (!savedValue) return today;
+  const saved = dateStrCairo(savedValue);
+  return saved && saved < today ? saved : today;
+}
+
+/** True when a YYYY-MM-DD service date falls before today in Cairo. */
+export function isPastServiceDate(value?: string | null): boolean {
+  if (!value) return false;
+  return value.slice(0, 10) < todayCairo();
+}
+
 /**
  * Interpret a wall-clock date (YYYY-MM-DD) + time (HH:mm) as Africa/Cairo and
  * return the corresponding UTC instant as an ISO string. Use when sending a

@@ -16,6 +16,7 @@ import { WhatsappNotificationsService } from '../whatsapp-notifications/whatsapp
 import { SettingsService } from '../settings/settings.service.js';
 import { DriverTariffsService } from '../driver-tariffs/driver-tariffs.service.js';
 import { JobCompletionService } from '../common/services/job-completion.service.js';
+import { isPastServiceDate, todayCairo } from '../common/utils/service-date.util.js';
 
 type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
@@ -225,6 +226,17 @@ export class TrafficJobsService {
   }
 
   async create(dto: CreateJobDto, userId: string) {
+    // A service date is when the transfer happens, so it can never be in the
+    // past. Jobs entered late used to be back-dated (FT-2108 / FT-2109 were
+    // booked on 08/09 for a service date of 07/09), which keeps them off the
+    // dispatch board for the day they were needed and distorts driver pay.
+    // The pickers enforce this too; this is the guard that actually holds.
+    if (isPastServiceDate(dto.jobDate)) {
+      throw new BadRequestException(
+        `Service date ${dto.jobDate} is in the past. A job cannot be back-dated — today in Cairo is ${todayCairo()}.`,
+      );
+    }
+
     // Validate channel requirements
     if (dto.bookingChannel === 'ONLINE') {
       if (!dto.agentId) throw new BadRequestException('Agent is required for Online bookings');
@@ -479,7 +491,16 @@ export class TrafficJobsService {
     if (dto.customerJobId !== undefined && dto.customerJobId !== job.customerJobId) changedFields.push('customerJobId');
     if (dto.customerId !== undefined && dto.customerId !== job.customerId) changedFields.push('customerId');
     if (dto.serviceType !== undefined && dto.serviceType !== job.serviceType) changedFields.push('serviceType');
-    if (dto.jobDate !== undefined && dto.jobDate !== job.jobDate.toISOString().split('T')[0]) changedFields.push('jobDate');
+    if (dto.jobDate !== undefined && dto.jobDate !== job.jobDate.toISOString().split('T')[0]) {
+      // Guard the change, not the record: an old job stays editable, but its
+      // service date can never be moved into the past.
+      if (isPastServiceDate(dto.jobDate)) {
+        throw new BadRequestException(
+          `Service date ${dto.jobDate} is in the past. A job cannot be back-dated — today in Cairo is ${todayCairo()}.`,
+        );
+      }
+      changedFields.push('jobDate');
+    }
     if (dto.adultCount !== undefined && dto.adultCount !== job.adultCount) changedFields.push('adultCount');
     if (dto.childCount !== undefined && dto.childCount !== job.childCount) changedFields.push('childCount');
     if (dto.clientName !== undefined && dto.clientName !== job.clientName) changedFields.push('clientName');

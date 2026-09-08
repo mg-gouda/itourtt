@@ -4,19 +4,19 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**82 files**, **298 exported symbols**.
+**82 files**, **301 exported symbols**.
 
 ## `frontend/src/components/`
 
 ### `b2b-job-import-modal.tsx`
 
-`frontend/src/components/b2b-job-import-modal.tsx` · 636 lines
+`frontend/src/components/b2b-job-import-modal.tsx` · 637 lines
 
 Bulk job import for B2B customers, including the AI manifest parser flow.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `B2BJobImportModal` | function | 93 | Bulk B2B job import: upload a manifest, run the AI parser, review the resolved rows, then commit. |
+| `B2BJobImportModal` | function | 94 | Bulk B2B job import: upload a manifest, run the AI parser, review the resolved rows, then commit. |
 
 ### `completed-evidence-dialog.tsx`
 
@@ -938,7 +938,7 @@ React wrapper around `captureGPS` with capturing/retry state for the evidence di
 
 ### `utils.ts`
 
-`frontend/src/lib/utils.ts` · 82 lines
+`frontend/src/lib/utils.ts` · 112 lines
 
 ★ Shared helpers, including the app-wide timezone policy. Every displayed date/time is pinned to Africa/Cairo — never the device zone. Bypassing these helpers is what caused flight times to render wrong on non-Cairo devices.
 
@@ -948,9 +948,12 @@ React wrapper around `captureGPS` with capturing/retry state for the evidence di
 | `APP_TZ` | const | 17 | `Africa/Cairo` — the single timezone constant. All display formatting must go through it. |
 | `formatTimeCairo` | function | 20 | Formats the HH:mm (24h) part of an instant in Cairo time. |
 | `dateStrCairo` | function | 33 | Formats an instant as YYYY-MM-DD in Cairo time. |
-| `cairoWallclockToISO` | function | 44 | Interprets a user-entered date + time as Cairo wall-clock and returns the correct UTC instant — use when SENDING a time to the API so it never depends on the device timezone. |
-| `localDateStr` | function | 66 | YYYY-MM-DD in the device's own zone; use only for local-only concerns like a date picker's default. |
-| `formatDate` | function | 74 | General-purpose date display helper. |
+| `todayCairo` | function | 40 | Today's calendar date in Cairo as YYYY-MM-DD. |
+| `serviceDateMin` | function | 56 | The min= for a service-date picker: today, unless the job already holds an earlier saved date, so old jobs stay editable but new past dates can't be chosen. |
+| `isPastServiceDate` | function | 64 | Whether a YYYY-MM-DD service date falls before today in Cairo. |
+| `cairoWallclockToISO` | function | 74 | Interprets a user-entered date + time as Cairo wall-clock and returns the correct UTC instant — use when SENDING a time to the API so it never depends on the device timezone. |
+| `localDateStr` | function | 96 | YYYY-MM-DD in the device's own zone; use only for local-only concerns like a date picker's default. |
+| `formatDate` | function | 104 | General-purpose date display helper. |
 
 ### `website-i18n.tsx`
 

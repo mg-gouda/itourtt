@@ -41,7 +41,7 @@ import { JobExtrasEditor, type JobExtra } from "@/components/job-extras-editor";
 import api from "@/lib/api";
 import { usePermission } from "@/hooks/use-permission";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { cn, formatDate , localDateStr } from "@/lib/utils";
+import { cn, formatDate , localDateStr, serviceDateMin } from "@/lib/utils";
 import { useSortable } from "@/hooks/use-sortable";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
@@ -239,6 +239,9 @@ export default function OnlineJobPage() {
   const limit = 20;
 
   const serviceTypeLabel = useServiceTypeLabel();
+  // The saved service date of the job being edited. It is the only thing
+  // allowed to sit before today in the date picker — see serviceDateMin.
+  const editingJob = editingJobId ? jobs.find((j) => j.id === editingJobId) : undefined;
 
   const updateForm = useCallback((updates: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...updates }));
@@ -818,7 +821,7 @@ export default function OnlineJobPage() {
                 type="date"
                 value={form.jobDate}
                 onChange={(e) => updateForm({ jobDate: e.target.value })}
-                min="2020-01-01"
+                min={serviceDateMin(editingJob?.jobDate)}
                 className="border-border bg-card text-foreground h-9"
               />
             </div>

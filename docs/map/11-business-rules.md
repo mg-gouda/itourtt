@@ -137,6 +137,27 @@ helpers live in `lib/utils.ts` (`APP_TZ`, `formatTimeCairo`, `cairoWallclockToIS
 `export.service.ts › cairoDate/cairoTime/cairoDateTime`. Bypassing these is what made flight times
 render wrong on non-Cairo devices.
 
+### A service date is never in the past
+
+`TrafficJob.jobDate` is when the transfer actually happens, so it can only ever be today or later.
+Jobs entered late used to be back-dated (FT-2108 / FT-2109 were booked on 08/09 for a service date
+of 07/09), which keeps them off the dispatch board for the day they were needed and distorts driver
+pay and period totals.
+
+- Pickers floor at today via `lib/utils.ts › serviceDateMin(savedValue?)`. Pass the job's **saved**
+  date when editing — an already-past date stays selectable so old jobs remain editable, while a
+  *new* past date cannot be chosen. Pass nothing when creating.
+- The authoritative guard is `common/utils/service-date.util.ts › isPastServiceDate`, enforced in
+  `traffic-jobs.service.ts` (`create`, and `update` only when the date is actually changing),
+  `partner.service.ts › createJob` (after its idempotency short-circuit) and
+  `b2c.service.ts › amendBooking`. `bulkCreate` inherits it by calling `create`.
+- The car-dispatch board's day selector is **both** a view filter and the new job's service date, so
+  browsing a past day stays allowed but creating on one is blocked with an inline notice.
+- Report ranges, activity-log filters and `complaintDate` are *not* service dates and must keep
+  accepting past dates — do not apply the floor to them.
+- Comparison is on the **Cairo** calendar, so a job dated today in Cairo never reads as yesterday
+  because the server is elsewhere.
+
 ## Scheduled work
 
 - `supplier-auto-complete.service.ts` — midnight cron that auto-completes **only** the driver leg of

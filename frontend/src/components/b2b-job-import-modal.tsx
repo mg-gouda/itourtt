@@ -42,6 +42,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { SELECTABLE_SERVICE_TYPES, serviceTypeDropdownLabel } from "@/lib/service-types";
+import { serviceDateMin } from "@/lib/utils";
 
 interface Customer {
   id: string;
@@ -445,7 +446,7 @@ export function B2BJobImportModal({
                             type="date"
                             value={job.jobDate}
                             onChange={(e) => updateJob(idx, "jobDate", e.target.value)}
-                            min="2020-01-01"
+                            min={serviceDateMin()}
                             className="h-7 w-32 text-xs border-border bg-transparent"
                           />
                         </TableCell>

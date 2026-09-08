@@ -774,7 +774,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-96 free functions, constants and types in these modules.
+99 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -923,6 +923,16 @@ The 80-minute no-show delay, shared by both portals so drivers and reps cannot m
 | `REP_SCORE_WEIGHTS` | const | 17 | Attendance 20 · Appearance 15 · Work 15 · Survey 15 · Review 35 = 100. Work was cut from 30 to 15 when the Survey dimension was introduced. |
 | `calcRepScore` | function | 25 | Sums the weights of the flags that are set. |
 | `scoreToFeeAndEval` | function | 35 | Score → fee band: ≥90 Excellent 50 · ≥75 Good 40 · ≥61 Average 30 · else Poor 20 (EGP). |
+
+### `backend/src/common/utils/service-date.util.ts`
+
+Cairo-calendar helpers behind the rule that a job's service date can never be in the past.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `APP_TZ` | const | 1 | Africa/Cairo — service dates are compared on the Cairo calendar, never the server's timezone. |
+| `todayCairo` | function | 4 | Today's calendar date in Cairo as YYYY-MM-DD. |
+| `isPastServiceDate` | function | 16 | Whether a service date falls before today in Cairo — the guard that stops a job being back-dated. |
 
 ### `backend/src/common/utils/service-type.util.ts`
 

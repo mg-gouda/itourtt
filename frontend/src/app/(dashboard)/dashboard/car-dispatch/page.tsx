@@ -41,7 +41,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
 
@@ -625,6 +625,11 @@ function CarDispatchContent() {
 
     // Client-side validation
     const errors: string[] = [];
+    // The board's day doubles as the new job's service date, so browsing a past
+    // day must not become a way to back-date a job. Viewing stays open; only
+    // creating is blocked.
+    if (isPastServiceDate(jobDate))
+      errors.push("Can't create a job on a past date — switch the board to today or later");
     if (!job.customerId) errors.push("Customer is required");
     if (!job.originZoneId && !job.originAirportId && !job.originHotelId)
       errors.push("Origin is required");
@@ -834,6 +839,11 @@ function CarDispatchContent() {
               min="2020-01-01"
               className="h-9 w-[160px]"
             />
+            {isPastServiceDate(jobDate) && (
+              <span className="text-xs text-amber-600 dark:text-amber-400">
+                Past day — view only, new jobs can&apos;t be added
+              </span>
+            )}
           </div>
           <Button onClick={() => setAddCarOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />

@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
 import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
 import { B2CLoginDto, B2CChangePasswordDto, B2CAmendBookingDto } from './dto/b2c.dto.js';
+import { isPastServiceDate, todayCairo } from '../common/utils/service-date.util.js';
 
 // Evidence relations on the linked traffic job, exposed to the guest so they can
 // follow up on no-show / delay / dispute. One row per submitter (driver/rep).
@@ -335,6 +336,14 @@ export class B2CService {
     const hoursUntilJob = (jobDateTime.getTime() - Date.now()) / 3_600_000;
     if (hoursUntilJob < 24) {
       throw new BadRequestException('Amendments must be made at least 24 hours before the job');
+    }
+
+    // The 24h rule above guards the date the booking already has; this guards
+    // the one being moved to. A transfer can't be rescheduled into the past.
+    if (dto.jobDate && isPastServiceDate(dto.jobDate)) {
+      throw new BadRequestException(
+        `Service date ${dto.jobDate} is in the past — today in Cairo is ${todayCairo()}.`,
+      );
     }
 
     const updateData: Record<string, any> = { amendedAt: new Date() };

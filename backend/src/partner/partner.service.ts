@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -9,6 +10,7 @@ import { GuestBookingsService } from '../guest-bookings/guest-bookings.service.j
 import { UpsertPublicPricesDto } from '../public-prices/dto/upsert-public-prices.dto.js';
 import { PartnerJobDto } from './dto/partner-job.dto.js';
 import { ALL_SERVICE_TYPES } from '../common/utils/service-type.util.js';
+import { isPastServiceDate, todayCairo } from '../common/utils/service-date.util.js';
 
 const SERVICE_TYPES = [...ALL_SERVICE_TYPES];
 
@@ -117,6 +119,14 @@ export class PartnerService {
     });
     if (existing?.trafficJob) {
       return this.jobPayload(existing.trafficJob);
+    }
+
+    // Checked after the idempotency short-circuit: a job already created stays
+    // retrievable, but a *new* one can never arrive with a past service date.
+    if (isPastServiceDate(dto.jobDate)) {
+      throw new BadRequestException(
+        `Service date ${dto.jobDate} is in the past — today in Cairo is ${todayCairo()}.`,
+      );
     }
 
     const systemUser = await this.prisma.user.findFirst({

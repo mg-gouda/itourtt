@@ -39,7 +39,7 @@ import { SearchableCombobox } from "@/components/searchable-combobox";
 import { B2BJobImportModal } from "@/components/b2b-job-import-modal";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
-import { cn, formatDate , localDateStr } from "@/lib/utils";
+import { cn, formatDate , localDateStr, serviceDateMin } from "@/lib/utils";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
@@ -268,6 +268,9 @@ export default function B2BJobPage() {
   const [importModalOpen, setImportModalOpen] = useState(false);
 
   const serviceTypeLabel = useServiceTypeLabel();
+  // The saved service date of the job being edited. It is the only thing
+  // allowed to sit before today in the date picker — see serviceDateMin.
+  const editingJob = editingJobId ? jobs.find((j) => j.id === editingJobId) : undefined;
 
   const updateForm = useCallback((updates: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...updates }));
@@ -858,7 +861,7 @@ export default function B2BJobPage() {
                 type="date"
                 value={form.jobDate}
                 onChange={(e) => updateForm({ jobDate: e.target.value })}
-                min="2020-01-01"
+                min={serviceDateMin(editingJob?.jobDate)}
                 className={cn("border-border bg-card text-foreground h-9", !form.jobDate && "border-red-500")}
                 required
               />
