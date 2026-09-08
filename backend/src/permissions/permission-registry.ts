@@ -241,6 +241,16 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       },
       { key: 'finance.b2cInvoices', labelKey: 'permissions.finance.b2cInvoices' },
       {
+        key: 'finance.agentAdjustments',
+        labelKey: 'permissions.finance.agentAdjustments',
+        children: [
+          { key: 'finance.agentAdjustments.view', labelKey: 'permissions.finance.agentAdjustments.view' },
+          { key: 'finance.agentAdjustments.onInvoice', labelKey: 'permissions.finance.agentAdjustments.onInvoice' },
+          { key: 'finance.agentAdjustments.creditNote', labelKey: 'permissions.finance.agentAdjustments.creditNote' },
+          { key: 'finance.agentAdjustments.waive', labelKey: 'permissions.finance.agentAdjustments.waive' },
+        ],
+      },
+      {
         key: 'finance.payments',
         labelKey: 'permissions.finance.payments',
         children: [
@@ -277,6 +287,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'reports.repFees', labelKey: 'permissions.reports.repFees' },
       { key: 'reports.repScore', labelKey: 'permissions.reports.repScore' },
       { key: 'reports.guestSurveys', labelKey: 'permissions.reports.guestSurveys' },
+      { key: 'reports.complaints', labelKey: 'permissions.reports.complaints' },
       { key: 'reports.revenue', labelKey: 'permissions.reports.revenue' },
       { key: 'reports.vehicleCompliance', labelKey: 'permissions.reports.vehicleCompliance' },
       { key: 'reports.jobStatus', labelKey: 'permissions.reports.jobStatus' },
@@ -545,6 +556,70 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     children: [
       { key: 'public-prices.bulk', labelKey: 'permissions.publicPrices.bulk' },
       { key: 'public-prices.delete', labelKey: 'permissions.publicPrices.delete' },
+    ],
+  },
+
+  // ─── COMPLAINTS ───
+  {
+    key: 'complaints',
+    labelKey: 'permissions.complaints',
+    children: [
+      { key: 'complaints.view', labelKey: 'permissions.complaints.view' },
+      { key: 'complaints.addButton', labelKey: 'permissions.complaints.addButton' },
+      { key: 'complaints.editButton', labelKey: 'permissions.complaints.editButton' },
+      { key: 'complaints.deleteButton', labelKey: 'permissions.complaints.deleteButton' },
+      { key: 'complaints.assign', labelKey: 'permissions.complaints.assign' },
+      {
+        key: 'complaints.transition',
+        labelKey: 'permissions.complaints.transition',
+        children: [
+          { key: 'complaints.transition.review', labelKey: 'permissions.complaints.transition.review' },
+          { key: 'complaints.transition.reply', labelKey: 'permissions.complaints.transition.reply' },
+          { key: 'complaints.transition.escalate', labelKey: 'permissions.complaints.transition.escalate' },
+          { key: 'complaints.transition.resolve', labelKey: 'permissions.complaints.transition.resolve' },
+          { key: 'complaints.transition.cancel', labelKey: 'permissions.complaints.transition.cancel' },
+        ],
+      },
+      {
+        key: 'complaints.financial',
+        labelKey: 'permissions.complaints.financial',
+        children: [
+          { key: 'complaints.financial.viewAmounts', labelKey: 'permissions.complaints.financial.viewAmounts' },
+          { key: 'complaints.financial.editAmounts', labelKey: 'permissions.complaints.financial.editAmounts' },
+        ],
+      },
+      {
+        key: 'complaints.charge',
+        labelKey: 'permissions.complaints.charge',
+        children: [
+          { key: 'complaints.charge.create', labelKey: 'permissions.complaints.charge.create' },
+          { key: 'complaints.charge.approve', labelKey: 'permissions.complaints.charge.approve' },
+          { key: 'complaints.charge.post', labelKey: 'permissions.complaints.charge.post' },
+          { key: 'complaints.charge.void', labelKey: 'permissions.complaints.charge.void' },
+        ],
+      },
+      { key: 'complaints.scorePenalty', labelKey: 'permissions.complaints.scorePenalty' },
+      {
+        key: 'complaints.attachments',
+        labelKey: 'permissions.complaints.attachments',
+        children: [
+          { key: 'complaints.attachments.view', labelKey: 'permissions.complaints.attachments.view' },
+          { key: 'complaints.attachments.upload', labelKey: 'permissions.complaints.attachments.upload' },
+          { key: 'complaints.attachments.delete', labelKey: 'permissions.complaints.attachments.delete' },
+        ],
+      },
+      { key: 'complaints.export', labelKey: 'permissions.complaints.export' },
+    ],
+  },
+
+  // ─── COMPLAINT CATEGORIES ───
+  {
+    key: 'complaint-categories',
+    labelKey: 'permissions.complaintCategories',
+    children: [
+      { key: 'complaint-categories.addButton', labelKey: 'permissions.complaintCategories.addButton' },
+      { key: 'complaint-categories.editButton', labelKey: 'permissions.complaintCategories.editButton' },
+      { key: 'complaint-categories.deleteButton', labelKey: 'permissions.complaintCategories.deleteButton' },
     ],
   },
 

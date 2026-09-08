@@ -899,7 +899,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `FinanceService.updateInvoiceLines` | method | `backend/src/finance/finance.service.ts:452` |
 | `FinanceService.updateInvoiceStatus` | method | `backend/src/finance/finance.service.ts:516` |
 | `FinanceSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:262` |
-| `findNode` | function | `frontend/src/lib/permission-registry.ts:786` |
+| `findNode` | function | `frontend/src/lib/permission-registry.ts:868` |
 | `FleetOverview` | function | `mobile/apps/supplier/src/components/FleetOverview.tsx:10` |
 | `FlightInfoDto` | class | `backend/src/traffic-jobs/dto/create-job.dto.ts:9` |
 | `ForceControlDto` | class | `backend/src/traffic-jobs/dto/force-control.dto.ts:6` |
@@ -1138,14 +1138,14 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `GET /api/whatsapp-notifications/logs` | endpoint | `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:63` |
 | `GET /api/whatsapp-notifications/settings` | endpoint | `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:51` |
 | `GET /api/whatsapp-notifications/templates` | endpoint | `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:81` |
-| `getAllPermissionKeys` | function | `backend/src/permissions/permission-registry.ts:642` |
-| `getAllPermissionKeys` | function | `frontend/src/lib/permission-registry.ts:710` |
-| `getAncestorKeys` | function | `backend/src/permissions/permission-registry.ts:666` |
-| `getAncestorKeys` | function | `frontend/src/lib/permission-registry.ts:734` |
+| `getAllPermissionKeys` | function | `backend/src/permissions/permission-registry.ts:717` |
+| `getAllPermissionKeys` | function | `frontend/src/lib/permission-registry.ts:792` |
+| `getAncestorKeys` | function | `backend/src/permissions/permission-registry.ts:741` |
+| `getAncestorKeys` | function | `frontend/src/lib/permission-registry.ts:816` |
 | `getColors` | function | `mobile/packages/shared/src/theme/index.ts:8` |
 | `getCurrentPosition` | function | `mobile/packages/shared/src/native/location.ts:34` |
-| `getDescendantKeys` | function | `backend/src/permissions/permission-registry.ts:678` |
-| `getDescendantKeys` | function | `frontend/src/lib/permission-registry.ts:746` |
+| `getDescendantKeys` | function | `backend/src/permissions/permission-registry.ts:753` |
+| `getDescendantKeys` | function | `frontend/src/lib/permission-registry.ts:828` |
 | `getDestinationLabel` | function | `mobile/packages/shared/src/utils/route.ts:12` |
 | `getLocale` | function | `mobile/packages/shared/src/i18n/index.ts:15` |
 | `getMapLink` | function | `mobile/packages/shared/src/native/location.ts:126` |
@@ -1162,7 +1162,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `GetPayInGateway.verifyPayment` | method | `backend/src/payments/gateways/getpayin.gateway.ts:209` |
 | `getRouteLabel` | function | `mobile/packages/shared/src/utils/route.ts:20` |
 | `getStatusColors` | function | `mobile/packages/shared/src/theme/index.ts:13` |
-| `getTranslator` | function | `frontend/src/lib/i18n.ts:3383` |
+| `getTranslator` | function | `frontend/src/lib/i18n.ts:3455` |
 | `GoogleDriveAuthUrlDto` | class | `backend/src/settings/dto/update-google-drive-settings.dto.ts:21` |
 | `GoogleDriveExchangeCodeDto` | class | `backend/src/settings/dto/update-google-drive-settings.dto.ts:26` |
 | `GoogleDriveModule` | class | `backend/src/google-drive/google-drive.module.ts:10` |
@@ -1269,8 +1269,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `isDriveFileId` | function | `backend/src/google-drive/google-drive.service.ts:6` |
 | `isHiddenField` | function | `backend/src/activity-logs/activity-log-format.ts:233` |
 | `isUuid` | function | `backend/src/activity-logs/activity-log-format.ts:191` |
-| `isValidPermissionKey` | function | `backend/src/permissions/permission-registry.ts:658` |
-| `isValidPermissionKey` | function | `frontend/src/lib/permission-registry.ts:726` |
+| `isValidPermissionKey` | function | `backend/src/permissions/permission-registry.ts:733` |
+| `isValidPermissionKey` | function | `frontend/src/lib/permission-registry.ts:808` |
 | `isWithinGeofence` | function | `backend/src/common/geofence.util.ts:28` |
 
 ## J
@@ -1724,7 +1724,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `PermissionsService.getUserPermissionKeys` | method | `backend/src/permissions/permissions.service.ts:176` |
 | `PermissionsService.seedSystemRoles` | method | `backend/src/permissions/permissions.service.ts:214` |
 | `PermissionsService.setRolePermissions` | method | `backend/src/permissions/permissions.service.ts:128` |
-| `PermissionsService.slugify` | method | `backend/src/permissions/permissions.service.ts:368` |
+| `PermissionsService.slugify` | method | `backend/src/permissions/permissions.service.ts:415` |
 | `PermissionsService.updateRole` | method | `backend/src/permissions/permissions.service.ts:43` |
 | `PermissionTree` | function | `frontend/src/components/permission-tree.tsx:18` |
 | `pickPhoto` | function | `mobile/packages/shared/src/native/camera.ts:80` |
@@ -2389,7 +2389,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 
 | Symbol | Kind | Location |
 |---|---|---|
-| `t` | function | `frontend/src/lib/i18n.ts:3379` |
+| `t` | function | `frontend/src/lib/i18n.ts:3451` |
 | `t` | function | `mobile/packages/shared/src/i18n/index.ts:33` |
 | `Table` | function | `frontend/src/components/ui/table.tsx:7` |
 | `TableBody` | function | `frontend/src/components/ui/table.tsx:32` |
@@ -2514,7 +2514,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `useGeoCapture` | function | `frontend/src/lib/use-geo-capture.ts:25` |
 | `useGPS` | function | `mobile/packages/shared/src/hooks/use-gps.ts:10` |
 | `useLicense` | function | `frontend/src/hooks/use-license.ts:16` |
-| `useLocaleId` | function | `frontend/src/lib/i18n.ts:3398` |
+| `useLocaleId` | function | `frontend/src/lib/i18n.ts:3470` |
 | `useLocaleStore` | const | `frontend/src/lib/website-i18n.tsx:42` |
 | `useNetwork` | function | `mobile/packages/shared/src/hooks/use-network.ts:4` |
 | `usePermission` | function | `frontend/src/hooks/use-permission.ts:8` |
@@ -2564,7 +2564,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `UsersService.updateRole` | method | `backend/src/users/users.service.ts:151` |
 | `useServiceTypeLabel` | function | `frontend/src/lib/service-types.ts:99` |
 | `useSortable` | function | `frontend/src/hooks/use-sortable.ts:7` |
-| `useT` | function | `frontend/src/lib/i18n.ts:3391` |
+| `useT` | function | `frontend/src/lib/i18n.ts:3463` |
 | `useT` | function | `mobile/packages/shared/src/i18n/index.ts:38` |
 | `useTheme` | function | `frontend/src/components/theme-provider.tsx:52` |
 | `useTheme` | function | `mobile/packages/shared/src/theme/index.ts:18` |

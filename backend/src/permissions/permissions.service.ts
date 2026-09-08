@@ -268,40 +268,87 @@ export class PermissionsService {
       // Determine default permissions for each system role
       let defaultKeys: string[] = [];
 
+      // Complaints are deliberately split: ops may log and answer them, but
+      // deciding won/lost and moving money is the finance side's call.
+      const complaintOpsKeys = [
+        'complaints',
+        'complaints.view',
+        'complaints.addButton',
+        'complaints.editButton',
+        'complaints.assign',
+        'complaints.transition',
+        'complaints.transition.review',
+        'complaints.transition.reply',
+        'complaints.transition.escalate',
+        'complaints.attachments',
+        'complaints.attachments.view',
+        'complaints.attachments.upload',
+        'complaint-categories',
+      ];
+
+      const complaintFinanceKeys = [
+        'complaints',
+        'complaints.view',
+        'complaints.transition',
+        'complaints.transition.resolve',
+        'complaints.transition.cancel',
+        'complaints.financial',
+        'complaints.financial.viewAmounts',
+        'complaints.financial.editAmounts',
+        'complaints.charge',
+        'complaints.charge.create',
+        'complaints.charge.approve',
+        'complaints.charge.post',
+        'complaints.charge.void',
+        'complaints.scorePenalty',
+        'complaints.attachments',
+        'complaints.attachments.view',
+        'complaints.export',
+      ];
+
       switch (role.slug) {
         case 'dispatcher':
-          defaultKeys = allKeys.filter(
-            (k) =>
-              k.startsWith('dashboard') ||
-              k.startsWith('dispatch') ||
-              k.startsWith('traffic-jobs') ||
-              k.startsWith('vehicles') ||
-              k.startsWith('drivers') ||
-              k.startsWith('reps') ||
-              k.startsWith('locations'),
-          );
+          defaultKeys = [
+            ...allKeys.filter(
+              (k) =>
+                k.startsWith('dashboard') ||
+                k.startsWith('dispatch') ||
+                k.startsWith('traffic-jobs') ||
+                k.startsWith('vehicles') ||
+                k.startsWith('drivers') ||
+                k.startsWith('reps') ||
+                k.startsWith('locations'),
+            ),
+            ...complaintOpsKeys,
+          ];
           break;
 
         case 'accountant':
-          defaultKeys = allKeys.filter(
-            (k) =>
-              k.startsWith('dashboard') ||
-              k.startsWith('finance') ||
-              k.startsWith('reports') ||
-              k.startsWith('agents') ||
-              k.startsWith('customers') ||
-              k.startsWith('suppliers'),
-          );
+          defaultKeys = [
+            ...allKeys.filter(
+              (k) =>
+                k.startsWith('dashboard') ||
+                k.startsWith('finance') ||
+                k.startsWith('reports') ||
+                k.startsWith('agents') ||
+                k.startsWith('customers') ||
+                k.startsWith('suppliers'),
+            ),
+            ...complaintFinanceKeys,
+          ];
           break;
 
         case 'agent-manager':
-          defaultKeys = allKeys.filter(
-            (k) =>
-              k.startsWith('dashboard') ||
-              k.startsWith('agents') ||
-              k.startsWith('customers') ||
-              k.startsWith('traffic-jobs'),
-          );
+          defaultKeys = [
+            ...allKeys.filter(
+              (k) =>
+                k.startsWith('dashboard') ||
+                k.startsWith('agents') ||
+                k.startsWith('customers') ||
+                k.startsWith('traffic-jobs'),
+            ),
+            ...complaintOpsKeys,
+          ];
           break;
 
         case 'viewer':

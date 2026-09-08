@@ -276,6 +276,17 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       },
       { key: 'finance.b2cInvoices', labelKey: 'permissions.finance.b2cInvoices', crudType: 'R' },
       {
+        key: 'finance.agentAdjustments',
+        labelKey: 'permissions.finance.agentAdjustments',
+        crudType: 'section',
+        children: [
+          { key: 'finance.agentAdjustments.view',       labelKey: 'permissions.finance.agentAdjustments.view',       crudType: 'R' },
+          { key: 'finance.agentAdjustments.onInvoice',  labelKey: 'permissions.finance.agentAdjustments.onInvoice',  crudType: 'action' },
+          { key: 'finance.agentAdjustments.creditNote', labelKey: 'permissions.finance.agentAdjustments.creditNote', crudType: 'action' },
+          { key: 'finance.agentAdjustments.waive',      labelKey: 'permissions.finance.agentAdjustments.waive',      crudType: 'action' },
+        ],
+      },
+      {
         key: 'finance.payments',
         labelKey: 'permissions.finance.payments',
         crudType: 'section',
@@ -315,6 +326,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'reports.repFees',          labelKey: 'permissions.reports.repFees',          crudType: 'R' },
       { key: 'reports.repScore',         labelKey: 'permissions.reports.repScore',         crudType: 'R' },
       { key: 'reports.guestSurveys',     labelKey: 'permissions.reports.guestSurveys',     crudType: 'R' },
+      { key: 'reports.complaints',       labelKey: 'permissions.reports.complaints',       crudType: 'R' },
       { key: 'reports.revenue',          labelKey: 'permissions.reports.revenue',          crudType: 'R' },
       { key: 'reports.vehicleCompliance',labelKey: 'permissions.reports.vehicleCompliance',crudType: 'R' },
       { key: 'reports.jobStatus',        labelKey: 'permissions.reports.jobStatus',        crudType: 'R' },
@@ -608,6 +620,76 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     children: [
       { key: 'public-prices.bulk',   labelKey: 'permissions.publicPrices.bulk',   crudType: 'action' },
       { key: 'public-prices.delete', labelKey: 'permissions.publicPrices.delete', crudType: 'D' },
+    ],
+  },
+
+  // ─── COMPLAINTS ───
+  {
+    key: 'complaints',
+    labelKey: 'permissions.complaints',
+    crudType: 'page',
+    children: [
+      { key: 'complaints.view',         labelKey: 'permissions.complaints.view',         crudType: 'R' },
+      { key: 'complaints.addButton',    labelKey: 'permissions.complaints.addButton',    crudType: 'C' },
+      { key: 'complaints.editButton',   labelKey: 'permissions.complaints.editButton',   crudType: 'U' },
+      { key: 'complaints.deleteButton', labelKey: 'permissions.complaints.deleteButton', crudType: 'D' },
+      { key: 'complaints.assign',       labelKey: 'permissions.complaints.assign',       crudType: 'action' },
+      {
+        key: 'complaints.transition',
+        labelKey: 'permissions.complaints.transition',
+        crudType: 'section',
+        children: [
+          { key: 'complaints.transition.review',   labelKey: 'permissions.complaints.transition.review',   crudType: 'action' },
+          { key: 'complaints.transition.reply',    labelKey: 'permissions.complaints.transition.reply',    crudType: 'action' },
+          { key: 'complaints.transition.escalate', labelKey: 'permissions.complaints.transition.escalate', crudType: 'action' },
+          { key: 'complaints.transition.resolve',  labelKey: 'permissions.complaints.transition.resolve',  crudType: 'action' },
+          { key: 'complaints.transition.cancel',   labelKey: 'permissions.complaints.transition.cancel',   crudType: 'action' },
+        ],
+      },
+      {
+        key: 'complaints.financial',
+        labelKey: 'permissions.complaints.financial',
+        crudType: 'section',
+        children: [
+          { key: 'complaints.financial.viewAmounts', labelKey: 'permissions.complaints.financial.viewAmounts', crudType: 'R' },
+          { key: 'complaints.financial.editAmounts', labelKey: 'permissions.complaints.financial.editAmounts', crudType: 'U' },
+        ],
+      },
+      {
+        key: 'complaints.charge',
+        labelKey: 'permissions.complaints.charge',
+        crudType: 'section',
+        children: [
+          { key: 'complaints.charge.create',  labelKey: 'permissions.complaints.charge.create',  crudType: 'C' },
+          { key: 'complaints.charge.approve', labelKey: 'permissions.complaints.charge.approve', crudType: 'action' },
+          { key: 'complaints.charge.post',    labelKey: 'permissions.complaints.charge.post',    crudType: 'action' },
+          { key: 'complaints.charge.void',    labelKey: 'permissions.complaints.charge.void',    crudType: 'action' },
+        ],
+      },
+      { key: 'complaints.scorePenalty', labelKey: 'permissions.complaints.scorePenalty', crudType: 'action' },
+      {
+        key: 'complaints.attachments',
+        labelKey: 'permissions.complaints.attachments',
+        crudType: 'section',
+        children: [
+          { key: 'complaints.attachments.view',   labelKey: 'permissions.complaints.attachments.view',   crudType: 'R' },
+          { key: 'complaints.attachments.upload', labelKey: 'permissions.complaints.attachments.upload', crudType: 'C' },
+          { key: 'complaints.attachments.delete', labelKey: 'permissions.complaints.attachments.delete', crudType: 'D' },
+        ],
+      },
+      { key: 'complaints.export', labelKey: 'permissions.complaints.export', crudType: 'export' },
+    ],
+  },
+
+  // ─── COMPLAINT CATEGORIES ───
+  {
+    key: 'complaint-categories',
+    labelKey: 'permissions.complaintCategories',
+    crudType: 'page',
+    children: [
+      { key: 'complaint-categories.addButton',    labelKey: 'permissions.complaintCategories.addButton',    crudType: 'C' },
+      { key: 'complaint-categories.editButton',   labelKey: 'permissions.complaintCategories.editButton',   crudType: 'U' },
+      { key: 'complaint-categories.deleteButton', labelKey: 'permissions.complaintCategories.deleteButton', crudType: 'D' },
     ],
   },
 
