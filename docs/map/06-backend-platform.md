@@ -267,65 +267,73 @@ Legacy coarse role check. Deliberately yields: if the user is on the granular sy
 
 `backend/src/complaints/complaint-categories.controller.ts:23` · controller · 5 methods
 
+CRUD for the complaint category catalog; readable by anyone who can see complaints because the log form needs the list.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 29 | `categoriesService.findAll` | _—_ |
-| `findOne` | pub | 36 | `categoriesService.findOne` | _—_ |
-| `create` | pub | 42 | `categoriesService.create` | _—_ |
-| `update` | pub | 48 | `categoriesService.update` | _—_ |
-| `remove` | pub | 57 | `categoriesService.remove` | _—_ |
+| `findAll` | pub | 29 | `categoriesService.findAll` | GET /complaint-categories — active categories, or all with ?includeInactive=true. |
+| `findOne` | pub | 36 | `categoriesService.findOne` | GET /complaint-categories/:id. |
+| `create` | pub | 42 | `categoriesService.create` | POST /complaint-categories. |
+| `update` | pub | 48 | `categoriesService.update` | PUT /complaint-categories/:id. |
+| `remove` | pub | 57 | `categoriesService.remove` | DELETE /complaint-categories/:id — refused while complaints still reference it. |
 
 ### ComplaintCategoriesService
 
 `backend/src/complaints/complaint-categories.service.ts:7` · service · 5 methods
 
+Reads and writes the complaint category catalog, ordered by sortOrder then name.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 10 | `complaintCategory` | _—_ |
-| `findOne` | pub | 20 | `complaintCategory` | _—_ |
-| `create` | pub | 30 | `complaintCategory` | _—_ |
-| `update` | pub | 43 | `complaintCategory` | _—_ |
-| `remove` | pub | 62 | `complaint` `complaintCategory` | _—_ |
+| `findAll` | pub | 10 | `complaintCategory` | Categories ordered for the picker; inactive ones only on request. |
+| `findOne` | pub | 20 | `complaintCategory` | One category by id. |
+| `create` | pub | 30 | `complaintCategory` | Creates a category. |
+| `update` | pub | 43 | `complaintCategory` | Updates a category. |
+| `remove` | pub | 62 | `complaint` `complaintCategory` | Soft-deletes a category, refusing while complaints still use it. |
 
 ### ComplaintsController
 
 `backend/src/complaints/complaints.controller.ts:39` · controller · 9 methods
 
+REST surface for complaints; every status change is gated by its own permission key so 'may answer' never implies 'may decide'.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 47 | `complaintsService.findAll` | _—_ |
-| `findByJob` | pub | 53 | `complaintsService.findByJob` | _—_ |
-| `findOne` | pub | 62 | `complaintsService.findOne` | _—_ |
-| `create` | pub | 71 | `complaintsService.create` | _—_ |
-| `update` | pub | 78 | `complaintsService.update` | _—_ |
-| `transition` | pub | 100 | `complaintsService.transition` | _—_ |
-| `assign` | pub | 119 | `complaintsService.assign` | _—_ |
-| `remove` | pub | 129 | `complaintsService.remove` | _—_ |
-| `assertMayEditAmounts` | priv | 137 | — | _—_ |
+| `findAll` | pub | 47 | `complaintsService.findAll` | GET /complaints — paginated list with status, stage, party, SLA and date filters. |
+| `findByJob` | pub | 53 | `complaintsService.findByJob` | GET /complaints/job/:jobId — every complaint on one job, for the job screen's Complaints tab. |
+| `findOne` | pub | 62 | `complaintsService.findOne` | GET /complaints/:id — one complaint with attachments, charge and adjustments. |
+| `create` | pub | 71 | `complaintsService.create` | POST /complaints — log a complaint against a job. |
+| `update` | pub | 78 | `complaintsService.update` | PATCH /complaints/:id — edit the complaint's details; amount fields need financial.editAmounts on top. |
+| `transition` | pub | 100 | `complaintsService.transition` | POST /complaints/:id/transition — the only way status moves; checks the caller holds the key for that specific target state. |
+| `assign` | pub | 119 | `complaintsService.assign` | PATCH /complaints/:id/assign — set the dashboard user who owns the reply. |
+| `remove` | pub | 129 | `complaintsService.remove` | DELETE /complaints/:id — soft-delete; refused once the charge has been posted. |
+| `assertMayEditAmounts` | priv | 137 | — | Blocks a caller with only editButton from setting claimed/loss/currency/rate. |
 
 ### ComplaintsService
 
 `backend/src/complaints/complaints.service.ts:61` · service · 17 methods
 
+Complaint lifecycle: numbering, SLA computation, guarded status transitions and server-side redaction of the money fields.
+
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 94 | `complaint` | _—_ |
-| `findOne` | pub | 117 | `complaint` | _—_ |
-| `findByJob` | pub | 136 | `complaint` | _—_ |
-| `buildWhere` | priv | 147 | — | _—_ |
-| `create` | pub | 198 | `trafficJob` `complaintCategory` `complaint` | _—_ |
-| `update` | pub | 256 | `complaint` | _—_ |
-| `assign` | pub | 307 | `complaint` | _—_ |
-| `remove` | pub | 316 | `complaint` | _—_ |
-| `transition` | pub | 345 | `complaint` | _—_ |
-| `assertOutcomeAmounts` | priv | 416 | — | _—_ |
-| `computeReplyDueAt` | priv | 454 | — | _—_ |
-| `isBreached` | priv | 459 | — | _—_ |
-| `getEditable` | priv | 463 | `complaint` | _—_ |
-| `assertResponsibleConsistent` | priv | 477 | — | _—_ |
-| `generateComplaintNo` | priv | 518 | — | _—_ |
-| `canViewAmounts` | pub | 530 | — | _—_ |
-| `redactAmounts` | priv | 540 | — | _—_ |
+| `findAll` | pub | 94 | `complaint` | Paginated query plus per-viewer amount redaction. |
+| `findOne` | pub | 117 | `complaint` | One complaint with attachments, charge and adjustments, redacted for the viewer. |
+| `findByJob` | pub | 136 | `complaint` | All complaints on one job, newest first. |
+| `buildWhere` | priv | 147 | — | Turns the query DTO into the Prisma where clause, always excluding soft-deleted rows. |
+| `create` | pub | 198 | `trafficJob` `complaintCategory` `complaint` | Logs a complaint: denormalises the agent off the job, computes replyDueAt in Cairo time and allocates the CMP- number. |
+| `update` | pub | 256 | `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
+| `assign` | pub | 307 | `complaint` | Sets the owning user without touching status. |
+| `remove` | pub | 316 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
+| `transition` | pub | 345 | `complaint` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
+| `assertOutcomeAmounts` | priv | 416 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
+| `computeReplyDueAt` | priv | 454 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
+| `isBreached` | priv | 459 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
+| `getEditable` | priv | 463 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
+| `assertResponsibleConsistent` | priv | 477 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
+| `generateComplaintNo` | priv | 518 | — | Allocates the next sequential CMP-00001 reference. |
+| `canViewAmounts` | pub | 530 | — | Whether this user holds complaints.financial.viewAmounts. |
+| `redactAmounts` | priv | 540 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
 
 ## `email`
 
@@ -445,7 +453,7 @@ The granular RBAC v2 system: custom roles and their permission keys, validated a
 | `getUserPermissionKeys` | pub | 176 | `user` `rolePermissionV2` | Resolves a user's effective permission keys; ADMIN receives every key in the registry rather than stored rows. |
 | `getRegistry` | pub | 208 | — | Serves `PERMISSION_REGISTRY` to the frontend so the permission matrix renders from one source. |
 | `seedSystemRoles` | pub | 214 | `role` `rolePermissionV2` `user` | Creates the built-in roles and their permissions. Skipped in production via SKIP_PERMISSION_SEED. |
-| `slugify` | priv | 368 | — | Turns a role name into a URL-safe slug. |
+| `slugify` | priv | 415 | — | Turns a role name into a URL-safe slug. |
 
 ## `prisma`
 
@@ -901,24 +909,28 @@ Hand-rolled TOTP for two-factor auth — base32, code generation/verification, o
 
 ### `backend/src/complaints/complaints.service.ts`
 
+Complaint lifecycle service — numbering, SLA, transitions, amount redaction.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TERMINAL_STATUSES` | const | 38 | _—_ |
-| `LOSS_STATUSES` | const | 46 | _—_ |
-| `VIEW_AMOUNTS_PERMISSION` | const | 58 | _—_ |
+| `TERMINAL_STATUSES` | const | 38 | Statuses a complaint can never move out of. |
+| `LOSS_STATUSES` | const | 46 | Outcomes that carry a conceded amount (LOST, PARTIALLY_LOST). |
+| `VIEW_AMOUNTS_PERMISSION` | const | 58 | The permission key that decides whether the money fields survive redaction. |
 
 ### `backend/src/complaints/dto/complaint-constants.ts`
 
+Shared complaint enums and SLA constants used by the DTOs and the service.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `COMPLAINT_STAGES` | const | 5 | _—_ |
-| `COMPLAINT_SOURCES` | const | 7 | _—_ |
-| `COMPLAINT_STATUSES` | const | 9 | _—_ |
-| `COMPLAINT_PARTIES` | const | 20 | _—_ |
-| `COMPLAINT_ATTACHMENT_KINDS` | const | 30 | _—_ |
-| `CURRENCIES` | const | 32 | _—_ |
-| `DEFAULT_SLA_HOURS` | const | 35 | _—_ |
-| `SLA_WARNING_HOURS` | const | 38 | _—_ |
+| `COMPLAINT_STAGES` | const | 5 | When the complaint arose relative to the job: BEFORE_JOB / DURING_JOB / AFTER_JOB. |
+| `COMPLAINT_SOURCES` | const | 7 | Who reported it: agent, guest, driver, rep or internal. |
+| `COMPLAINT_STATUSES` | const | 9 | The complaint lifecycle states, shared by the DTOs and the service. |
+| `COMPLAINT_PARTIES` | const | 20 | Who can be held responsible: driver, rep, supplier, office, agent, client or nobody. |
+| `COMPLAINT_ATTACHMENT_KINDS` | const | 30 | What an attached file is: the complaint document, our reply, or evidence. |
+| `CURRENCIES` | const | 32 | Currencies a complaint amount may be recorded in. |
+| `DEFAULT_SLA_HOURS` | const | 35 | The 48-hour reply window, stored per complaint so history survives a policy change. |
+| `SLA_WARNING_HOURS` | const | 38 | How long before the deadline the owner gets the 'reply due soon' nudge. |
 
 ### `backend/src/email/email.service.ts`
 
@@ -964,10 +976,10 @@ Google Drive evidence storage. Degrades to null (never throws) when unconfigured
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 642 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 658 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 666 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 678 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 717 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 733 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 741 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 753 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 

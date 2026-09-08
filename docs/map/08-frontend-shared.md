@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**78 files**, **270 exported symbols**.
+**81 files**, **290 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -246,19 +246,19 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 404 lines
+`frontend/src/components/sidebar.tsx` · 407 lines
 
 Main dashboard navigation, filtered by permission.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 53 | A navigation link with active-state styling. |
-| `NavSeparator` | type | 63 | Divider between sidebar sections. |
-| `NavSectionLabel` | type | 67 | Section heading in the sidebar. |
-| `NavGroup` | type | 72 | A collapsible navigation group. |
-| `NavItem` | type | 79 | One navigation entry. |
-| `navigation` | const | 86 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 125 | Main dashboard navigation, permission-filtered. |
+| `NavLink` | type | 54 | A navigation link with active-state styling. |
+| `NavSeparator` | type | 64 | Divider between sidebar sections. |
+| `NavSectionLabel` | type | 68 | Section heading in the sidebar. |
+| `NavGroup` | type | 73 | A collapsible navigation group. |
+| `NavItem` | type | 80 | One navigation entry. |
+| `navigation` | const | 87 | The navigation definition — sections, items and the permission key gating each. |
+| `Sidebar` | function | 128 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -310,6 +310,28 @@ Admin view of a user's device sessions, with force-logout and Clear — Clear is
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `UserSessionsDialog` | function | 33 | Admin device-session view with force-logout and Clear. |
+
+## `frontend/src/components/complaints/`
+
+### `complaint-detail-dialog.tsx`
+
+`frontend/src/components/complaints/complaint-detail-dialog.tsx` · 534 lines
+
+Read-and-act detail dialog for one complaint.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ComplaintDetailDialog` | function | 87 | Complaint detail — SLA banner, summary, description, amounts, attachments, owner, and the per-status transition buttons. |
+
+### `complaint-form-dialog.tsx`
+
+`frontend/src/components/complaints/complaint-form-dialog.tsx` · 538 lines
+
+Create/edit dialog for a complaint.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ComplaintFormDialog` | function | 81 | Log or edit a complaint: job picker, category, stage, source, responsible party and (permission-gated) amounts. |
 
 ## `frontend/src/components/public/`
 
@@ -784,6 +806,33 @@ Per-user column visibility, persisted alongside column order.
 |---|---|---|---|
 | `api` | const | 7 | The configured axios instance. Import this rather than calling fetch — it attaches the bearer token and handles 401 refresh with request queueing. |
 
+### `complaints.ts`
+
+`frontend/src/lib/complaints.ts` · 233 lines
+
+Shared complaint types, labels, transition maps and SLA/money formatting for the dashboard.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ComplaintStatus` | type | 5 | The complaint lifecycle states, mirroring the Prisma enum. |
+| `ComplaintStage` | type | 15 | When the complaint arose relative to the job. |
+| `ComplaintSource` | type | 17 | Who reported the complaint. |
+| `ComplaintParty` | type | 19 | Who can be held responsible for a complaint. |
+| `CURRENCIES` | const | 28 | Currency options offered on complaint amounts. |
+| `ComplaintCategory` | type | 30 | Client-side shape of a complaint category. |
+| `Complaint` | type | 40 | Client-side shape of a complaint; the money fields are absent, not null, when the viewer lacks financial.viewAmounts. |
+| `ComplaintAttachment` | type | 94 | Client-side shape of a complaint attachment. |
+| `COMPLAINT_STATUS_META` | const | 104 | Label and badge variant for each complaint status. |
+| `STAGE_LABELS` | const | 118 | Display labels for the complaint stages. |
+| `SOURCE_LABELS` | const | 124 | Display labels for the complaint sources. |
+| `PARTY_LABELS` | const | 132 | Display labels for the responsible parties. |
+| `TERMINAL_STATUSES` | const | 142 | Statuses a complaint can no longer move out of. |
+| `NEXT_STATUSES` | const | 154 | Which statuses each state may move to — mirrors VALID_TRANSITIONS; the backend stays the authority. |
+| `TRANSITION_PERMISSION` | const | 166 | The permission key each target status needs, matching the controller's gate. |
+| `SlaTone` | type | 177 | Severity of the reply-window state, driving the badge colour. |
+| `formatSlaCountdown` | function | 183 | Turns the reply deadline into a human label — time left, overdue by, or whether the reply landed in time. |
+| `formatMoney` | function | 221 | Formats a complaint amount with its currency, or an em dash when absent. |
+
 ### `gps.ts`
 
 `frontend/src/lib/gps.ts` · 67 lines
@@ -797,21 +846,21 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3402 lines
+`frontend/src/lib/i18n.ts` · 3498 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3379 | Translates a key in the current locale. |
-| `getTranslator` | function | 3383 | Translator for a specific locale, outside React. |
-| `useT` | function | 3391 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3398 | The active locale id. |
+| `t` | function | 3475 | Translates a key in the current locale. |
+| `getTranslator` | function | 3479 | Translator for a specific locale, outside React. |
+| `useT` | function | 3487 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3494 | The active locale id. |
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 799 lines
+`frontend/src/lib/permission-registry.ts` · 881 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -820,11 +869,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 710 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 726 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 734 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 746 | Subtree, used by the master toggle. |
-| `findNode` | function | 786 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 792 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 808 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 816 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 828 | Subtree, used by the master toggle. |
+| `findNode` | function | 868 | Looks up a node by key. |
 
 ### `service-types.ts`
 

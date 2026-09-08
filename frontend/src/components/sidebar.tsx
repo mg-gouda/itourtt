@@ -36,6 +36,7 @@ import {
   Newspaper,
   Search,
   FileText,
+  MessageSquareWarning,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -89,6 +90,7 @@ export const navigation: NavItem[] = [
   { type: "link", nameKey: "sidebar.dispatch", href: "/dashboard/dispatch", icon: CalendarClock, permissionKey: "dispatch" },
   { type: "link", nameKey: "sidebar.carDispatch", href: "/dashboard/car-dispatch", icon: Car, permissionKey: "dispatch", featureFlag: "NEXT_PUBLIC_ENABLE_CAR_DISPATCH" },
   { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase, permissionKey: "traffic-jobs" },
+  { type: "link", nameKey: "sidebar.complaints", href: "/dashboard/complaints", icon: MessageSquareWarning, permissionKey: "complaints" },
   { type: "section-label", labelKey: "sidebar.section.finance" },
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
   { type: "link", nameKey: "sidebar.b2cInvoices", href: "/dashboard/finance/b2c-invoices", icon: FileText, permissionKey: "finance.b2cInvoices" },
@@ -116,6 +118,7 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.googleDrive", href: "/dashboard/google-drive", icon: HardDrive, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck, permissionKey: "users" },
       { type: "link", nameKey: "sidebar.jobControl", href: "/dashboard/job-control", icon: SlidersHorizontal, permissionKey: "job-control" },
+      { type: "link", nameKey: "sidebar.complaintCategories", href: "/dashboard/complaint-categories", icon: MessageSquareWarning, permissionKey: "complaint-categories" },
     ],
   },
 ];

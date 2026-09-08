@@ -143,11 +143,11 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/complaint-categories` | `findAll`:29 | `perm:complaint-categories` `perm:complaints` | `categoriesService.findAll` | _—_ |
-| POST | `/api/complaint-categories` | `create`:42 | `perm:complaint-categories.addButton` | `categoriesService.create` | _—_ |
-| GET | `/api/complaint-categories/:id` | `findOne`:36 | `perm:complaint-categories` `perm:complaints` | `categoriesService.findOne` | _—_ |
-| PUT | `/api/complaint-categories/:id` | `update`:48 | `perm:complaint-categories.editButton` | `categoriesService.update` | _—_ |
-| DELETE | `/api/complaint-categories/:id` | `remove`:57 | `perm:complaint-categories.deleteButton` | `categoriesService.remove` | _—_ |
+| GET | `/api/complaint-categories` | `findAll`:29 | `perm:complaint-categories` `perm:complaints` | `categoriesService.findAll` | GET /complaint-categories — active categories, or all with ?includeInactive=true. |
+| POST | `/api/complaint-categories` | `create`:42 | `perm:complaint-categories.addButton` | `categoriesService.create` | POST /complaint-categories. |
+| GET | `/api/complaint-categories/:id` | `findOne`:36 | `perm:complaint-categories` `perm:complaints` | `categoriesService.findOne` | GET /complaint-categories/:id. |
+| PUT | `/api/complaint-categories/:id` | `update`:48 | `perm:complaint-categories.editButton` | `categoriesService.update` | PUT /complaint-categories/:id. |
+| DELETE | `/api/complaint-categories/:id` | `remove`:57 | `perm:complaint-categories.deleteButton` | `categoriesService.remove` | DELETE /complaint-categories/:id — refused while complaints still reference it. |
 
 ### ComplaintsController
 
@@ -155,14 +155,14 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/complaints` | `findAll`:47 | `perm:complaints.view` `perm:complaints` | `complaintsService.findAll` | _—_ |
-| POST | `/api/complaints` | `create`:71 | `perm:complaints.addButton` | `complaintsService.create` | _—_ |
-| GET | `/api/complaints/:id` | `findOne`:62 | `perm:complaints.view` `perm:complaints` | `complaintsService.findOne` | _—_ |
-| PATCH | `/api/complaints/:id` | `update`:78 | `perm:complaints.editButton` | `complaintsService.update` | _—_ |
-| DELETE | `/api/complaints/:id` | `remove`:129 | `perm:complaints.deleteButton` | `complaintsService.remove` | _—_ |
-| PATCH | `/api/complaints/:id/assign` | `assign`:119 | `perm:complaints.assign` | `complaintsService.assign` | _—_ |
-| POST | `/api/complaints/:id/transition` | `transition`:100 | `perm:complaints.transition.review` `perm:complaints.transition.reply` `perm:complaints.transition.escalate` `perm:complaints.transition.resolve` `perm:complaints.transition.cancel` | `permissionsGuard.getUserPermissions` `complaintsService.transition` | _—_ |
-| GET | `/api/complaints/job/:jobId` | `findByJob`:53 | `perm:complaints.view` `perm:complaints` | `complaintsService.findByJob` | _—_ |
+| GET | `/api/complaints` | `findAll`:47 | `perm:complaints.view` `perm:complaints` | `complaintsService.findAll` | GET /complaints — paginated list with status, stage, party, SLA and date filters. |
+| POST | `/api/complaints` | `create`:71 | `perm:complaints.addButton` | `complaintsService.create` | POST /complaints — log a complaint against a job. |
+| GET | `/api/complaints/:id` | `findOne`:62 | `perm:complaints.view` `perm:complaints` | `complaintsService.findOne` | GET /complaints/:id — one complaint with attachments, charge and adjustments. |
+| PATCH | `/api/complaints/:id` | `update`:78 | `perm:complaints.editButton` | `complaintsService.update` | PATCH /complaints/:id — edit the complaint's details; amount fields need financial.editAmounts on top. |
+| DELETE | `/api/complaints/:id` | `remove`:129 | `perm:complaints.deleteButton` | `complaintsService.remove` | DELETE /complaints/:id — soft-delete; refused once the charge has been posted. |
+| PATCH | `/api/complaints/:id/assign` | `assign`:119 | `perm:complaints.assign` | `complaintsService.assign` | PATCH /complaints/:id/assign — set the dashboard user who owns the reply. |
+| POST | `/api/complaints/:id/transition` | `transition`:100 | `perm:complaints.transition.review` `perm:complaints.transition.reply` `perm:complaints.transition.escalate` `perm:complaints.transition.resolve` `perm:complaints.transition.cancel` | `permissionsGuard.getUserPermissions` `complaintsService.transition` | POST /complaints/:id/transition — the only way status moves; checks the caller holds the key for that specific target state. |
+| GET | `/api/complaints/job/:jobId` | `findByJob`:53 | `perm:complaints.view` `perm:complaints` | `complaintsService.findByJob` | GET /complaints/job/:jobId — every complaint on one job, for the job screen's Complaints tab. |
 
 ### ContactMessagesAdminController
 

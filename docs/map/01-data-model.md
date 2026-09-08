@@ -83,6 +83,8 @@ ONLINE-channel counterparty with a full legal profile. `refPattern`/`refExample`
 
 `agent_adjustments` · schema.prisma:2649 · 15 fields, 4 relations
 
+A pending money adjustment owed to an agent from a lost complaint — finance puts it on an invoice, issues a credit note, or waives it.
+
 | Field | Type | Column | Flags |
 |---|---|---|---|
 | `id` | String | — | PK |
@@ -450,6 +452,8 @@ Company identity and branding used on invoices, PDFs and reference-number prefix
 
 `complaints` · schema.prisma:2518 · 32 fields, 11 relations
 
+A client complaint raised against one traffic job — stage, category, 48h reply SLA, outcome (won/lost) and the money conceded.
+
 | Field | Type | Column | Flags |
 |---|---|---|---|
 | `id` | String | — | PK |
@@ -491,6 +495,8 @@ Company identity and branding used on invoices, PDFs and reference-number prefix
 
 `complaint_attachments` · schema.prisma:2592 · 9 fields, 1 relations
 
+A file attached to a complaint (the complaint doc, our reply, or evidence); stores a Drive file id or an /uploads path.
+
 | Field | Type | Column | Flags |
 |---|---|---|---|
 | `id` | String | — | PK |
@@ -508,6 +514,8 @@ Company identity and branding used on invoices, PDFs and reference-number prefix
 ### ComplaintCategory
 
 `complaint_categories` · schema.prisma:2497 · 10 fields, 1 relations
+
+Admin-managed catalog of complaint types, each with a default responsible party and a default score penalty.
 
 | Field | Type | Column | Flags |
 |---|---|---|---|
@@ -527,6 +535,8 @@ Company identity and branding used on invoices, PDFs and reference-number prefix
 ### ComplaintCharge
 
 `complaint_charges` · schema.prisma:2612 · 18 fields, 5 relations
+
+A manual, approval-gated deduction against the party blamed for a complaint; posting writes a negative row in their fee table.
 
 | Field | Type | Column | Flags |
 |---|---|---|---|
