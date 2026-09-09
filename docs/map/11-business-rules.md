@@ -101,6 +101,35 @@ touch `status` — a missed deadline is a flag, not an outcome. Note `CronRunLoc
 `@db.Date` and cannot separate hours, so the sweep puts the hour in the `jobName` instead;
 reverting that would leave only the day's first run ever executing.
 
+**The reply date can be logged by hand.** `repliedAt` is normally stamped by the REPLIED
+transition, but the complaint form sets it directly for a reply that went out by email or phone.
+Saving recomputes `slaBreached` from it — replied late is breached, clearing it drops the complaint
+back into the countdown. A new complaint that is merely overdue is *not* flagged on create: the
+hourly sweep is what both flags and notifies, and pre-flagging it would silence the notification.
+The form's "time left" field is the same maths as the sweep, computed client-side from the dates
+still being edited.
+
+**`outcome` (WON / LOST) is what reveals the amounts.** It sits beside the money on the complaint
+and gates the Amounts section of the form — nothing can be typed until a loss is admitted, and
+choosing WON clears any provisional `lossAmount`, exactly as the WON transition does. Transitions
+keep it in step (WON → `WON`, LOST / PARTIALLY_LOST → `LOST`), and a plain PATCH that contradicts a
+terminal status is rejected, or the charge and adjustment already raised would no longer match the
+row. It records the outcome; `status` remains the lifecycle authority. The same radios appear in the
+detail dialog (`ComplaintOutcomeRadios`, shared by both), where they PATCH the complaint directly and
+turn read-only once a transition has settled it.
+
+**The exchange rate is stored, not typed.** No screen asks for it any more — it stays on the row at
+its default of 1, and is still what converts a foreign-currency claim into the EGP-equivalent totals
+on the analytics screen. Removing the input did not remove the field, and the transition and update
+DTOs still accept one.
+
+**Analytics is one pass, redacted like everything else.** `complaint-analytics.service.ts` reads the
+complaints in range once and aggregates in memory rather than issuing a dozen `groupBy` queries, so
+every breakdown agrees with the headline totals. Without `complaints.financial.viewAmounts` the whole
+money block and every per-slice `lossAmount` is absent from the response — not zeroed. `GET
+/complaints/analytics` is declared before `GET /complaints/:id` so the word is never parsed as an id,
+and it is gated by the new `complaints.analytics` key.
+
 **Money moves in two directions and never automatically.**
 - Against the party at fault: a `ComplaintCharge` is raised, approved and posted as three separately
   permissioned acts. Only *posting* writes anything — a negative, still-unposted row in `RepFee`,

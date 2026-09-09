@@ -36,18 +36,21 @@ import { usePermission } from "@/hooks/use-permission";
 import { APP_TZ } from "@/lib/utils";
 import {
   type Complaint,
+  type ComplaintOutcome,
   type ComplaintStatus,
   CURRENCIES,
   COMPLAINT_STATUS_META,
   STAGE_LABELS,
   SOURCE_LABELS,
   PARTY_LABELS,
+  OUTCOME_LABELS,
   NEXT_STATUSES,
   TRANSITION_PERMISSION,
   formatSlaCountdown,
   formatMoney,
 } from "@/lib/complaints";
 import { ComplaintChargePanel } from "@/components/complaints/complaint-charge-panel";
+import { ComplaintOutcomeRadios } from "@/components/complaints/complaint-outcome-radios";
 
 interface Props {
   complaintId: string | null;
@@ -87,6 +90,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: Props) {
   const canAssign = usePermission("complaints.assign");
+  const canEdit = usePermission("complaints.editButton");
   const canViewAmounts = usePermission("complaints.financial.viewAmounts");
   const canViewAttachments = usePermission("complaints.attachments.view");
 
@@ -100,7 +104,6 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
   const [claimedAmount, setClaimedAmount] = useState("");
   const [lossAmount, setLossAmount] = useState("");
   const [currency, setCurrency] = useState<string>("EGP");
-  const [exchangeRate, setExchangeRate] = useState("1");
 
   const [users, setUsers] = useState<UserOption[]>([]);
 
@@ -110,7 +113,6 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
     setClaimedAmount("");
     setLossAmount("");
     setCurrency("EGP");
-    setExchangeRate("1");
   }, []);
 
   const fetchComplaint = useCallback(async () => {
@@ -122,7 +124,6 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
       setComplaint(data);
       setClaimedAmount(data.claimedAmount != null ? String(data.claimedAmount) : "");
       setCurrency(data.currency ?? "EGP");
-      setExchangeRate(data.exchangeRate != null ? String(data.exchangeRate) : "1");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to load the complaint");
       onOpenChange(false);
@@ -165,7 +166,6 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
       body.lossAmount = loss;
       if (claimedAmount) body.claimedAmount = Number(claimedAmount);
       body.currency = currency;
-      body.exchangeRate = Number(exchangeRate) || 1;
     }
 
     setWorking(true);
@@ -199,12 +199,36 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
     }
   };
 
+  /**
+   * The outcome can be recorded before the complaint is settled — it is what
+   * decides whether any money is owed. Once a transition has settled it, the
+   * status owns it and the backend refuses a contradicting edit.
+   */
+  const handleOutcome = async (outcome: ComplaintOutcome | null) => {
+    if (!complaint) return;
+    setWorking(true);
+    try {
+      await api.patch(`/complaints/${complaint.id}`, { outcome });
+      toast.success(outcome ? `Outcome set to ${OUTCOME_LABELS[outcome]}` : "Outcome cleared");
+      await fetchComplaint();
+      onChanged();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Could not record the outcome");
+    } finally {
+      setWorking(false);
+    }
+  };
+
   const handleChanged = useCallback(async () => {
     await fetchComplaint();
     onChanged();
   }, [fetchComplaint, onChanged]);
 
   const sla = complaint ? formatSlaCountdown(complaint) : null;
+  // A settled complaint keeps the outcome its transition wrote.
+  const outcomeSettled =
+    !!complaint &&
+    (complaint.status === "WON" || LOSS_STATUSES.includes(complaint.status));
   const nextStatuses = complaint ? NEXT_STATUSES[complaint.status] : [];
   const responsibleName =
     complaint?.responsibleDriver?.name ||
@@ -296,6 +320,26 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
               <Field label="Replied">{formatDateTime(complaint.repliedAt)}</Field>
               <Field label="Resolved">{formatDateTime(complaint.resolvedAt)}</Field>
 
+              <Field label="Outcome">
+                {canEdit && !outcomeSettled ? (
+                  <ComplaintOutcomeRadios
+                    name="complaint-detail-outcome"
+                    value={complaint.outcome ?? ""}
+                    onChange={(value) => handleOutcome(value)}
+                    onClear={() => handleOutcome(null)}
+                    disabled={working}
+                  />
+                ) : (
+                  <>
+                    {complaint.outcome ? OUTCOME_LABELS[complaint.outcome] : "Not decided"}
+                    {outcomeSettled && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (settled — set by the status)
+                      </span>
+                    )}
+                  </>
+                )}
+              </Field>
               <Field label="Responsible">
                 {complaint.responsibleParty
                   ? `${PARTY_LABELS[complaint.responsibleParty]}${
@@ -328,14 +372,13 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
             {canViewAmounts && (
               <>
                 <Separator />
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Claimed">
                     {formatMoney(complaint.claimedAmount, complaint.currency)}
                   </Field>
                   <Field label="Loss conceded">
                     {formatMoney(complaint.lossAmount, complaint.currency)}
                   </Field>
-                  <Field label="Exchange rate">{complaint.exchangeRate ?? "—"}</Field>
                 </div>
               </>
             )}
@@ -425,7 +468,7 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
                             Recording a loss requires the amount we conceded.
                           </p>
                         )}
-                        <div className="grid gap-3 sm:grid-cols-4">
+                        <div className="grid gap-3 sm:grid-cols-3">
                           <div>
                             <Label>Claimed</Label>
                             <Input
@@ -462,17 +505,6 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
                                 ))}
                               </SelectContent>
                             </Select>
-                          </div>
-                          <div>
-                            <Label>Exchange rate</Label>
-                            <Input
-                              type="number"
-                              min={0.0001}
-                              step="0.0001"
-                              value={exchangeRate}
-                              onChange={(e) => setExchangeRate(e.target.value)}
-                              className="mt-1"
-                            />
                           </div>
                         </div>
                         {target === "PARTIALLY_LOST" && (

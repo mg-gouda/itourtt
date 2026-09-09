@@ -188,6 +188,15 @@ enum ComplaintStatus {
   CANCELLED
 }
 
+// The outcome with the agent, recorded on the complaint itself: WON means we
+// conceded nothing, LOST means money is owed. Kept in step with `status` when a
+// terminal outcome is recorded, but settable earlier — it is what decides
+// whether amounts apply at all.
+enum ComplaintOutcome {
+  WON
+  LOST
+}
+
 // Who is held responsible for the complaint.
 enum ComplaintParty {
   DRIVER
@@ -2539,6 +2548,9 @@ model Complaint {
   slaBreached   Boolean   @default(false) @map("sla_breached")
   slaWarnedAt   DateTime? @map("sla_warned_at")
   resolvedAt    DateTime? @map("resolved_at")
+
+  // ── Outcome (decides whether any money applies) ──
+  outcome ComplaintOutcome?
 
   // ── Money ──
   claimedAmount Decimal? @map("claimed_amount") @db.Decimal(15, 2)

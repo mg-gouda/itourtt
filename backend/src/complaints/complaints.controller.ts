@@ -16,6 +16,8 @@ import { CreateComplaintDto } from './dto/create-complaint.dto.js';
 import { UpdateComplaintDto } from './dto/update-complaint.dto.js';
 import { TransitionComplaintDto } from './dto/transition-complaint.dto.js';
 import { ComplaintQueryDto } from './dto/complaint-query.dto.js';
+import { ComplaintAnalyticsQueryDto } from './dto/complaint-analytics-query.dto.js';
+import { ComplaintAnalyticsService } from './complaint-analytics.service.js';
 import { ComplaintChargesService } from './complaint-charges.service.js';
 import {
   CreateComplaintChargeDto,
@@ -45,6 +47,7 @@ export class ComplaintsController {
   constructor(
     private readonly complaintsService: ComplaintsService,
     private readonly chargesService: ComplaintChargesService,
+    private readonly analyticsService: ComplaintAnalyticsService,
     private readonly permissionsGuard: PermissionsGuard,
   ) {}
 
@@ -52,6 +55,21 @@ export class ComplaintsController {
   @Permissions('complaints.view', 'complaints')
   async findAll(@Query() query: ComplaintQueryDto, @CurrentUser('id') userId: string) {
     return this.complaintsService.findAll(query, userId);
+  }
+
+  /**
+   * Declared before `:id` so the word "analytics" is never read as a complaint
+   * id. Money in the response follows the same rule as everywhere else: it is
+   * left out entirely without financial.viewAmounts.
+   */
+  @Get('analytics')
+  @Permissions('complaints.analytics', 'complaints')
+  async analytics(
+    @Query() query: ComplaintAnalyticsQueryDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    const canViewAmounts = await this.complaintsService.canViewAmounts(userId);
+    return new ApiResponse(await this.analyticsService.summary(query, canViewAmounts));
   }
 
   @Get('job/:jobId')

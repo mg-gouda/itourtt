@@ -14,6 +14,9 @@ export type ComplaintStatus =
 
 export type ComplaintStage = "BEFORE_JOB" | "DURING_JOB" | "AFTER_JOB";
 
+/** How the case went with the agent. Only a loss carries money. */
+export type ComplaintOutcome = "WON" | "LOST";
+
 export type ComplaintSource = "AGENT" | "GUEST" | "DRIVER" | "REP" | "INTERNAL";
 
 export type ComplaintParty =
@@ -55,6 +58,7 @@ export interface Complaint {
   repliedAt?: string | null;
   slaBreached: boolean;
   resolvedAt?: string | null;
+  outcome?: ComplaintOutcome | null;
 
   // Absent entirely (not null) when the viewer lacks
   // complaints.financial.viewAmounts — the backend strips them.
@@ -214,6 +218,11 @@ export const SOURCE_LABELS: Record<ComplaintSource, string> = {
   INTERNAL: "Internal",
 };
 
+export const OUTCOME_LABELS: Record<ComplaintOutcome, string> = {
+  WON: "Won",
+  LOST: "Lost",
+};
+
 export const PARTY_LABELS: Record<ComplaintParty, string> = {
   DRIVER: "Driver",
   REP: "Rep",
@@ -279,7 +288,29 @@ export function formatSlaCountdown(
     return { label: "—", tone: "neutral" };
   }
 
-  const due = new Date(complaint.replyDueAt).getTime();
+  return describeReplyWindow(complaint.replyDueAt, null, now);
+}
+
+/**
+ * Time left against a reply deadline, computed from the dates alone — the form
+ * needs this before anything is saved, so it cannot read the stored
+ * `slaBreached` flag the way {@link formatSlaCountdown} does.
+ */
+export function describeReplyWindow(
+  replyDueAt: string | Date,
+  repliedAt?: string | Date | null,
+  now: Date = new Date(),
+): { label: string; tone: SlaTone } {
+  const due = new Date(replyDueAt).getTime();
+  if (Number.isNaN(due)) return { label: "—", tone: "neutral" };
+
+  if (repliedAt) {
+    const margin = due - new Date(repliedAt).getTime();
+    return margin >= 0
+      ? { label: `Replied ${formatDuration(margin)} before the deadline`, tone: "ok" }
+      : { label: `Replied ${formatDuration(-margin)} late`, tone: "danger" };
+  }
+
   const diffMs = due - now.getTime();
 
   if (diffMs <= 0) {

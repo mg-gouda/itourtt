@@ -677,6 +677,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'complaints.attachments.delete', labelKey: 'permissions.complaints.attachments.delete', crudType: 'D' },
         ],
       },
+      { key: 'complaints.analytics',   labelKey: 'permissions.complaints.analytics',   crudType: 'R' },
       { key: 'complaints.export', labelKey: 'permissions.complaints.export', crudType: 'export' },
     ],
   },

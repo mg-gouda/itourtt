@@ -28,12 +28,16 @@ import { usePermission } from "@/hooks/use-permission";
 import {
   type Complaint,
   type ComplaintCategory,
+  type ComplaintOutcome,
   type ComplaintParty,
   CURRENCIES,
   STAGE_LABELS,
   SOURCE_LABELS,
   PARTY_LABELS,
+  TERMINAL_STATUSES,
+  describeReplyWindow,
 } from "@/lib/complaints";
+import { ComplaintOutcomeRadios } from "@/components/complaints/complaint-outcome-radios";
 
 interface Props {
   open: boolean;
@@ -60,10 +64,11 @@ const emptyForm = {
   description: "",
   complaintDate: "",
   slaHours: 48,
+  repliedAt: "",
+  outcome: "" as "" | ComplaintOutcome,
   claimedAmount: "",
   lossAmount: "",
   currency: "EGP",
-  exchangeRate: "1",
   responsibleParty: "NONE" as ComplaintParty,
   responsibleDriverId: "",
   responsibleRepId: "",
@@ -101,6 +106,16 @@ export function ComplaintFormDialog({
   const [reps, setReps] = useState<PersonOption[]>([]);
   const [suppliers, setSuppliers] = useState<PersonOption[]>([]);
 
+  // The countdown is derived from the dates in the form, so it has to re-render
+  // on its own while the dialog sits open.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    if (!open) return;
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, [open]);
+
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -119,11 +134,12 @@ export function ComplaintFormDialog({
         description: complaint.description,
         complaintDate: toLocalInput(complaint.complaintDate),
         slaHours: complaint.slaHours,
+        repliedAt: complaint.repliedAt ? toLocalInput(complaint.repliedAt) : "",
+        outcome: complaint.outcome ?? "",
         claimedAmount:
           complaint.claimedAmount != null ? String(complaint.claimedAmount) : "",
         lossAmount: complaint.lossAmount != null ? String(complaint.lossAmount) : "",
         currency: complaint.currency ?? "EGP",
-        exchangeRate: complaint.exchangeRate != null ? String(complaint.exchangeRate) : "1",
         responsibleParty: complaint.responsibleParty ?? "NONE",
         responsibleDriverId: complaint.responsibleDriverId ?? "",
         responsibleRepId: complaint.responsibleRepId ?? "",
@@ -283,6 +299,9 @@ export function ComplaintFormDialog({
       description: form.description.trim(),
       complaintDate: new Date(form.complaintDate).toISOString(),
       slaHours: Number(form.slaHours) || 48,
+      // Null clears a reply that was logged by mistake and restarts the countdown.
+      repliedAt: form.repliedAt ? new Date(form.repliedAt).toISOString() : null,
+      outcome: form.outcome || null,
       responsibleParty: form.responsibleParty,
       responsibleDriverId: form.responsibleDriverId || undefined,
       responsibleRepId: form.responsibleRepId || undefined,
@@ -290,12 +309,12 @@ export function ComplaintFormDialog({
     };
 
     // Only send money fields when the user is allowed to set them, so a
-    // read-only user's PATCH is never rejected for touching them.
-    if (canEditAmounts) {
+    // read-only user's PATCH is never rejected for touching them — and only
+    // for a lost case, since that is the only outcome that costs anything.
+    if (canEditAmounts && form.outcome === "LOST") {
       if (form.claimedAmount !== "") payload.claimedAmount = Number(form.claimedAmount);
       if (form.lossAmount !== "") payload.lossAmount = Number(form.lossAmount);
       payload.currency = form.currency;
-      payload.exchangeRate = Number(form.exchangeRate) || 1;
     }
 
     setSaving(true);
@@ -315,6 +334,39 @@ export function ComplaintFormDialog({
       setSaving(false);
     }
   };
+
+  // Deadline maths mirrors computeReplyDueAt on the backend: received + window.
+  const replyDueAt = form.complaintDate
+    ? new Date(
+        new Date(form.complaintDate).getTime() + (Number(form.slaHours) || 48) * 3_600_000,
+      )
+    : null;
+  const replyWindow =
+    replyDueAt && !Number.isNaN(replyDueAt.getTime())
+      ? describeReplyWindow(replyDueAt, form.repliedAt || null, now)
+      : null;
+
+  const replyWindowClass =
+    replyWindow?.tone === "danger"
+      ? "text-destructive"
+      : replyWindow?.tone === "warning"
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-muted-foreground";
+
+  // A complaint already settled through a transition keeps the outcome that
+  // settlement wrote — the backend rejects an edit that contradicts it.
+  const outcomeLocked =
+    !!complaint &&
+    TERMINAL_STATUSES.includes(complaint.status) &&
+    complaint.status !== "CANCELLED";
+
+  /** Winning concedes nothing, so the loss it may have carried goes with it. */
+  const onOutcomeChange = (outcome: ComplaintOutcome) =>
+    setForm((f) => ({
+      ...f,
+      outcome,
+      lossAmount: outcome === "WON" ? "" : f.lossAmount,
+    }));
 
   const responsibleOptions: PersonOption[] =
     form.responsibleParty === "DRIVER"
@@ -483,6 +535,41 @@ export function ComplaintFormDialog({
             </p>
           </div>
 
+          <div>
+            <Label>Replied on</Label>
+            <Input
+              type="datetime-local"
+              value={form.repliedAt}
+              onChange={(e) => set("repliedAt", e.target.value)}
+              className="mt-1"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              When the reply actually went out. Leave empty until it has — clearing it
+              puts the complaint back inside the countdown.
+            </p>
+          </div>
+
+          <div>
+            <Label>Time left to reply</Label>
+            <Input
+              value={replyWindow?.label ?? "—"}
+              readOnly
+              tabIndex={-1}
+              className={`mt-1 font-medium ${replyWindowClass}`}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {replyDueAt && !Number.isNaN(replyDueAt.getTime())
+                ? `Deadline ${replyDueAt.toLocaleString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`
+                : "Set the date received to see the deadline."}
+            </p>
+          </div>
+
           <div className="sm:col-span-2">
             <Label>Subject *</Label>
             <Input
@@ -542,12 +629,37 @@ export function ComplaintFormDialog({
             </div>
           )}
 
-          {canEditAmounts && (
+          <div className="sm:col-span-2 mt-2 border-t pt-3">
+            <p className="text-sm font-medium">Outcome</p>
+            <p className="text-xs text-muted-foreground">
+              Money is only owed on a lost case — the amounts appear once you pick
+              Lost.
+            </p>
+            <div className="mt-2">
+              <ComplaintOutcomeRadios
+                name="complaint-form-outcome"
+                value={form.outcome}
+                onChange={onOutcomeChange}
+                onClear={() => set("outcome", "")}
+                disabled={outcomeLocked}
+              />
+            </div>
+            {outcomeLocked && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                This complaint was settled as{" "}
+                {complaint?.status.toLowerCase().replace("_", " ")}; its outcome can no
+                longer be changed.
+              </p>
+            )}
+          </div>
+
+          {canEditAmounts && form.outcome === "LOST" && (
             <>
-              <div className="sm:col-span-2 mt-2 border-t pt-3">
+              <div className="sm:col-span-2">
                 <p className="text-sm font-medium">Amounts</p>
                 <p className="text-xs text-muted-foreground">
-                  The loss amount is normally set when the outcome is decided, not here.
+                  What the agent claimed, and what we conceded to settle it. The
+                  conceded amount is what the agent is credited.
                 </p>
               </div>
 
@@ -591,17 +703,6 @@ export function ComplaintFormDialog({
                 </Select>
               </div>
 
-              <div>
-                <Label>Exchange rate</Label>
-                <Input
-                  type="number"
-                  min={0.0001}
-                  step="0.0001"
-                  value={form.exchangeRate}
-                  onChange={(e) => set("exchangeRate", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
             </>
           )}
         </div>

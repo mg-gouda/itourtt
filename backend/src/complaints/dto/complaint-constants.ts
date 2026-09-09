@@ -17,6 +17,8 @@ export const COMPLAINT_STATUSES = [
   'CANCELLED',
 ] as const;
 
+export const COMPLAINT_OUTCOMES = ['WON', 'LOST'] as const;
+
 export const COMPLAINT_PARTIES = [
   'DRIVER',
   'REP',

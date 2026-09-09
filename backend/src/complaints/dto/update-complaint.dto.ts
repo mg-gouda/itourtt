@@ -14,6 +14,7 @@ import {
   COMPLAINT_STAGES,
   COMPLAINT_SOURCES,
   COMPLAINT_PARTIES,
+  COMPLAINT_OUTCOMES,
   CURRENCIES,
 } from './complaint-constants.js';
 
@@ -58,6 +59,16 @@ export class UpdateComplaintDto {
   @Min(1)
   @Max(720)
   slaHours?: number;
+
+  /** When we replied — see CreateComplaintDto.repliedAt. Null clears it. */
+  @IsOptional()
+  @IsDateString()
+  repliedAt?: string | null;
+
+  /** WON / LOST — see CreateComplaintDto.outcome. Null puts it back undecided. */
+  @IsOptional()
+  @IsIn(COMPLAINT_OUTCOMES)
+  outcome?: (typeof COMPLAINT_OUTCOMES)[number] | null;
 
   @IsOptional()
   @IsNumber()

@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**82 files**, **301 exported symbols**.
+**83 files**, **305 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -246,7 +246,7 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 409 lines
+`frontend/src/components/sidebar.tsx` · 410 lines
 
 Main dashboard navigation, filtered by permission.
 
@@ -258,7 +258,7 @@ Main dashboard navigation, filtered by permission.
 | `NavGroup` | type | 74 | A collapsible navigation group. |
 | `NavItem` | type | 81 | One navigation entry. |
 | `navigation` | const | 88 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 130 | Main dashboard navigation, permission-filtered. |
+| `Sidebar` | function | 131 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -325,23 +325,33 @@ Charge and adjustment panel inside the complaint detail dialog.
 
 ### `complaint-detail-dialog.tsx`
 
-`frontend/src/components/complaints/complaint-detail-dialog.tsx` · 546 lines
+`frontend/src/components/complaints/complaint-detail-dialog.tsx` · 578 lines
 
 Read-and-act detail dialog for one complaint.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintDetailDialog` | function | 88 | Complaint detail — SLA banner, summary, description, amounts, attachments, owner, and the per-status transition buttons. |
+| `ComplaintDetailDialog` | function | 91 | Complaint detail — SLA banner, summary, description, amounts, attachments, owner, and the per-status transition buttons. |
 
 ### `complaint-form-dialog.tsx`
 
-`frontend/src/components/complaints/complaint-form-dialog.tsx` · 622 lines
+`frontend/src/components/complaints/complaint-form-dialog.tsx` · 723 lines
 
 Create/edit dialog for a complaint.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintFormDialog` | function | 82 | Log or edit a complaint: job picker, category, stage, source, responsible party and (permission-gated) amounts. |
+| `ComplaintFormDialog` | function | 87 | Log or edit a complaint: job picker, category, stage, source, responsible party and (permission-gated) amounts. |
+
+### `complaint-outcome-radios.tsx`
+
+`frontend/src/components/complaints/complaint-outcome-radios.tsx` · 66 lines
+
+The Won / Lost radio group shared by the complaint form and the complaint detail dialog.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ComplaintOutcomeRadios` | function | 23 | Won / Lost radios with an optional 'not decided yet' reset, disabled once a transition has settled the complaint. |
 
 ## `frontend/src/components/public/`
 
@@ -818,7 +828,7 @@ Per-user column visibility, persisted alongside column order.
 
 ### `complaints.ts`
 
-`frontend/src/lib/complaints.ts` · 318 lines
+`frontend/src/lib/complaints.ts` · 349 lines
 
 Shared complaint types, labels, transition maps and SLA/money formatting for the dashboard.
 
@@ -826,29 +836,32 @@ Shared complaint types, labels, transition maps and SLA/money formatting for the
 |---|---|---|---|
 | `ComplaintStatus` | type | 5 | The complaint lifecycle states, mirroring the Prisma enum. |
 | `ComplaintStage` | type | 15 | When the complaint arose relative to the job. |
-| `ComplaintSource` | type | 17 | Who reported the complaint. |
-| `ComplaintParty` | type | 19 | Who can be held responsible for a complaint. |
-| `CURRENCIES` | const | 28 | Currency options offered on complaint amounts. |
-| `ComplaintCategory` | type | 30 | Client-side shape of a complaint category. |
-| `Complaint` | type | 40 | Client-side shape of a complaint; the money fields are absent, not null, when the viewer lacks financial.viewAmounts. |
-| `ComplaintAttachment` | type | 97 | Client-side shape of a complaint attachment. |
-| `ComplaintChargeStatus` | type | 107 | Charge lifecycle: pending approval, approved, posted to fees, or void. |
-| `ComplaintCharge` | type | 109 | Client-side shape of a party deduction raised against a complaint. |
-| `AgentAdjustmentStatus` | type | 130 | Whether an adjustment is still pending or was settled on an invoice, as a credit note, or by waiver. |
-| `AgentAdjustment` | type | 136 | Client-side shape of money owed to an agent from a lost complaint. |
-| `CHARGE_STATUS_META` | const | 166 | Label and badge variant for each charge status. |
-| `ADJUSTMENT_STATUS_META` | const | 176 | Label and badge variant for each adjustment status. |
-| `CHARGEABLE_PARTIES` | const | 187 | The parties with a fee table a deduction can actually be posted into. |
-| `COMPLAINT_STATUS_META` | const | 189 | Label and badge variant for each complaint status. |
-| `STAGE_LABELS` | const | 203 | Display labels for the complaint stages. |
-| `SOURCE_LABELS` | const | 209 | Display labels for the complaint sources. |
-| `PARTY_LABELS` | const | 217 | Display labels for the responsible parties. |
-| `TERMINAL_STATUSES` | const | 227 | Statuses a complaint can no longer move out of. |
-| `NEXT_STATUSES` | const | 239 | Which statuses each state may move to — mirrors VALID_TRANSITIONS; the backend stays the authority. |
-| `TRANSITION_PERMISSION` | const | 251 | The permission key each target status needs, matching the controller's gate. |
-| `SlaTone` | type | 262 | Severity of the reply-window state, driving the badge colour. |
-| `formatSlaCountdown` | function | 268 | Turns the reply deadline into a human label — time left, overdue by, or whether the reply landed in time. |
-| `formatMoney` | function | 306 | Formats a complaint amount with its currency, or an em dash when absent. |
+| `ComplaintOutcome` | type | 18 | WON \| LOST — how the case went with the agent; only a loss carries money. |
+| `ComplaintSource` | type | 20 | Who reported the complaint. |
+| `ComplaintParty` | type | 22 | Who can be held responsible for a complaint. |
+| `CURRENCIES` | const | 31 | Currency options offered on complaint amounts. |
+| `ComplaintCategory` | type | 33 | Client-side shape of a complaint category. |
+| `Complaint` | type | 43 | Client-side shape of a complaint; the money fields are absent, not null, when the viewer lacks financial.viewAmounts. |
+| `ComplaintAttachment` | type | 101 | Client-side shape of a complaint attachment. |
+| `ComplaintChargeStatus` | type | 111 | Charge lifecycle: pending approval, approved, posted to fees, or void. |
+| `ComplaintCharge` | type | 113 | Client-side shape of a party deduction raised against a complaint. |
+| `AgentAdjustmentStatus` | type | 134 | Whether an adjustment is still pending or was settled on an invoice, as a credit note, or by waiver. |
+| `AgentAdjustment` | type | 140 | Client-side shape of money owed to an agent from a lost complaint. |
+| `CHARGE_STATUS_META` | const | 170 | Label and badge variant for each charge status. |
+| `ADJUSTMENT_STATUS_META` | const | 180 | Label and badge variant for each adjustment status. |
+| `CHARGEABLE_PARTIES` | const | 191 | The parties with a fee table a deduction can actually be posted into. |
+| `COMPLAINT_STATUS_META` | const | 193 | Label and badge variant for each complaint status. |
+| `STAGE_LABELS` | const | 207 | Display labels for the complaint stages. |
+| `SOURCE_LABELS` | const | 213 | Display labels for the complaint sources. |
+| `OUTCOME_LABELS` | const | 221 | Display labels for the two complaint outcomes. |
+| `PARTY_LABELS` | const | 226 | Display labels for the responsible parties. |
+| `TERMINAL_STATUSES` | const | 236 | Statuses a complaint can no longer move out of. |
+| `NEXT_STATUSES` | const | 248 | Which statuses each state may move to — mirrors VALID_TRANSITIONS; the backend stays the authority. |
+| `TRANSITION_PERMISSION` | const | 260 | The permission key each target status needs, matching the controller's gate. |
+| `SlaTone` | type | 271 | Severity of the reply-window state, driving the badge colour. |
+| `formatSlaCountdown` | function | 277 | Turns the reply deadline into a human label — time left, overdue by, or whether the reply landed in time. |
+| `describeReplyWindow` | function | 299 | Time left against a reply deadline computed from dates alone, so the form can show a countdown before anything is saved. |
+| `formatMoney` | function | 337 | Formats a complaint amount with its currency, or an em dash when absent. |
 
 ### `gps.ts`
 
@@ -863,21 +876,21 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3506 lines
+`frontend/src/lib/i18n.ts` · 3514 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3483 | Translates a key in the current locale. |
-| `getTranslator` | function | 3487 | Translator for a specific locale, outside React. |
-| `useT` | function | 3495 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3502 | The active locale id. |
+| `t` | function | 3491 | Translates a key in the current locale. |
+| `getTranslator` | function | 3495 | Translator for a specific locale, outside React. |
+| `useT` | function | 3503 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3510 | The active locale id. |
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 881 lines
+`frontend/src/lib/permission-registry.ts` · 882 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -886,11 +899,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 792 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 808 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 816 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 828 | Subtree, used by the master toggle. |
-| `findNode` | function | 868 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 793 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 809 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 817 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 829 | Subtree, used by the master toggle. |
+| `findNode` | function | 869 | Looks up a node by key. |
 
 ### `service-types.ts`
 

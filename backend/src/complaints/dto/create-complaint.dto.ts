@@ -15,6 +15,7 @@ import {
   COMPLAINT_STAGES,
   COMPLAINT_SOURCES,
   COMPLAINT_PARTIES,
+  COMPLAINT_OUTCOMES,
   CURRENCIES,
 } from './complaint-constants.js';
 
@@ -60,6 +61,23 @@ export class CreateComplaintDto {
   @Min(1)
   @Max(720)
   slaHours?: number;
+
+  /**
+   * When we actually replied. Normally stamped by the REPLIED transition, but
+   * it can be logged directly for a reply that went out over email or phone.
+   * Null clears it and puts the complaint back inside the countdown.
+   */
+  @IsOptional()
+  @IsDateString()
+  repliedAt?: string | null;
+
+  /**
+   * WON means we conceded nothing; LOST is what makes the amounts below
+   * meaningful. Null while the outcome is still undecided.
+   */
+  @IsOptional()
+  @IsIn(COMPLAINT_OUTCOMES)
+  outcome?: (typeof COMPLAINT_OUTCOMES)[number] | null;
 
   @IsOptional()
   @IsNumber()

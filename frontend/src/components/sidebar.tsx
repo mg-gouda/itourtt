@@ -92,6 +92,7 @@ export const navigation: NavItem[] = [
   { type: "link", nameKey: "sidebar.carDispatch", href: "/dashboard/car-dispatch", icon: Car, permissionKey: "dispatch", featureFlag: "NEXT_PUBLIC_ENABLE_CAR_DISPATCH" },
   { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase, permissionKey: "traffic-jobs" },
   { type: "link", nameKey: "sidebar.complaints", href: "/dashboard/complaints", icon: MessageSquareWarning, permissionKey: "complaints" },
+  { type: "link", nameKey: "sidebar.complaintAnalytics", href: "/dashboard/complaints/analytics", icon: BarChart3, permissionKey: "complaints.analytics" },
   { type: "section-label", labelKey: "sidebar.section.finance" },
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
   { type: "link", nameKey: "sidebar.b2cInvoices", href: "/dashboard/finance/b2c-invoices", icon: FileText, permissionKey: "finance.b2cInvoices" },

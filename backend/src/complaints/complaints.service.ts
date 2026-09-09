@@ -20,6 +20,7 @@ import type {
   ComplaintStage,
   ComplaintSource,
   ComplaintParty,
+  ComplaintOutcome,
   Currency,
 } from '../../generated/prisma/enums.js';
 
@@ -228,7 +229,12 @@ export class ComplaintsService {
 
     const complaintDate = new Date(dto.complaintDate);
     const slaHours = dto.slaHours ?? DEFAULT_SLA_HOURS;
+    const replyDueAt = this.computeReplyDueAt(complaintDate, slaHours);
+    const repliedAt = dto.repliedAt ? new Date(dto.repliedAt) : null;
+    const outcome = (dto.outcome ?? null) as ComplaintOutcome | null;
     const complaintNo = await this.generateComplaintNo();
+
+    this.assertOutcomeConsistent(outcome, dto.lossAmount);
 
     return this.prisma.complaint.create({
       data: {
@@ -245,9 +251,16 @@ export class ComplaintsService {
         description: dto.description,
         complaintDate,
         slaHours,
-        replyDueAt: this.computeReplyDueAt(complaintDate, slaHours),
+        replyDueAt,
+        repliedAt,
+        // Only a reply logged after the deadline counts as breached here. An
+        // unanswered backdated complaint is left to the hourly sweep, which is
+        // what also notifies its owner — flagging it now would silence that.
+        slaBreached: repliedAt ? this.isBreached(replyDueAt, repliedAt) : false,
+        outcome,
         claimedAmount: dto.claimedAmount ?? null,
-        lossAmount: dto.lossAmount ?? null,
+        // Nothing was conceded on a won complaint, whatever was typed.
+        lossAmount: outcome === 'WON' ? null : (dto.lossAmount ?? null),
         currency: (dto.currency ?? 'EGP') as Currency,
         exchangeRate: dto.exchangeRate ?? 1,
         responsibleParty:
@@ -279,6 +292,20 @@ export class ComplaintsService {
     const slaHours = dto.slaHours ?? existing.slaHours;
     const replyDueAt = this.computeReplyDueAt(complaintDate, slaHours);
 
+    // Omitted leaves the stamp alone; an explicit null clears it and drops the
+    // complaint back into the countdown.
+    const repliedAt =
+      dto.repliedAt === undefined
+        ? existing.repliedAt
+        : dto.repliedAt
+          ? new Date(dto.repliedAt)
+          : null;
+
+    if (dto.outcome !== undefined) {
+      this.assertOutcomeMatchesStatus(existing.status, dto.outcome);
+      this.assertOutcomeConsistent(dto.outcome, dto.lossAmount);
+    }
+
     return this.prisma.complaint.update({
       where: { id },
       data: {
@@ -288,8 +315,15 @@ export class ComplaintsService {
         ...(dto.source !== undefined && { source: dto.source as ComplaintSource }),
         ...(dto.subject !== undefined && { subject: dto.subject }),
         ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.outcome !== undefined && {
+          outcome: dto.outcome as ComplaintOutcome | null,
+        }),
         ...(dto.claimedAmount !== undefined && { claimedAmount: dto.claimedAmount }),
-        ...(dto.lossAmount !== undefined && { lossAmount: dto.lossAmount }),
+        // Recording a win clears any provisional loss, the same way the WON
+        // transition does — a won complaint must never carry one.
+        ...(dto.outcome === 'WON'
+          ? { lossAmount: null }
+          : dto.lossAmount !== undefined && { lossAmount: dto.lossAmount }),
         ...(dto.currency !== undefined && { currency: dto.currency as Currency }),
         ...(dto.exchangeRate !== undefined && { exchangeRate: dto.exchangeRate }),
         ...(dto.responsibleParty !== undefined && {
@@ -308,8 +342,9 @@ export class ComplaintsService {
         complaintDate,
         slaHours,
         replyDueAt,
-        // Recompute against the possibly-moved deadline.
-        slaBreached: this.isBreached(replyDueAt, existing.repliedAt),
+        repliedAt,
+        // Recompute against the possibly-moved deadline and reply date.
+        slaBreached: this.isBreached(replyDueAt, repliedAt),
       },
       include: this.complaintInclude,
     });
@@ -406,6 +441,13 @@ export class ComplaintsService {
       data.lossAmount = null;
     }
 
+    // The outcome field mirrors whatever the settlement decided, so the form
+    // and the status can never disagree about how the complaint went.
+    if (to === 'WON') data.outcome = 'WON' as ComplaintOutcome;
+    if ((LOSS_STATUSES as readonly string[]).includes(to)) {
+      data.outcome = 'LOST' as ComplaintOutcome;
+    }
+
     // The outcome and the money it owes the agent are recorded together:
     // a conceded loss must never end up without its pending adjustment.
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -478,6 +520,37 @@ export class ComplaintsService {
     );
 
     return updated;
+  }
+
+  /** A won complaint cannot be saved with money conceded on it. */
+  private assertOutcomeConsistent(outcome?: string | null, lossAmount?: number) {
+    if (outcome === 'WON' && (lossAmount ?? 0) > 0) {
+      throw new BadRequestException(
+        'A won complaint cannot carry a loss amount. Record the outcome as lost instead.',
+      );
+    }
+  }
+
+  /**
+   * A complaint already settled through a transition keeps the outcome that
+   * settlement wrote. A plain edit must never contradict a terminal status, or
+   * the charge and agent adjustment raised against it would no longer match.
+   */
+  private assertOutcomeMatchesStatus(status: string, outcome?: string | null) {
+    if (!outcome) return;
+
+    const settled =
+      status === 'WON'
+        ? 'WON'
+        : (LOSS_STATUSES as readonly string[]).includes(status)
+          ? 'LOST'
+          : null;
+
+    if (settled && settled !== outcome) {
+      throw new BadRequestException(
+        `This complaint was settled as ${status}; its outcome cannot be changed to ${outcome}.`,
+      );
+    }
   }
 
   /**
