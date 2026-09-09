@@ -81,8 +81,18 @@ A lost complaint moves money in two independent directions, neither of them auto
 ```
 
 The score penalty is the third consequence, and the one with a guard: it is applied only while that
-job's fee row is still `isPosted: false`. Settled pay is never rewritten. See `11-business-rules.md`
-§ Complaints.
+job's fee row is still `isPosted: false`. Settled pay is never rewritten.
+
+`Complaint.outcome` (WON / LOST) rides alongside that lifecycle rather than inside it: it is what the
+form and the detail dialog set to decide whether any money is owed at all, and it is what reveals the
+Amounts section. Transitions keep it in step with `status`, which remains the authority. The reply
+date itself (`repliedAt`) is editable, so a reply sent by email can be logged against the window it
+was actually answered in.
+
+`GET /complaints/analytics` (`complaint-analytics.service.ts` → `/dashboard/complaints/analytics`)
+reads the complaints in a range once and aggregates in memory: volume, the reply-window split,
+outcomes, breakdowns and cost. Money in that payload obeys the same redaction rule as the complaint
+itself. See `11-business-rules.md` § Complaints.
 
 ## Layout
 

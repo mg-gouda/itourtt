@@ -123,6 +123,42 @@ User requested:
 - Updated B2B traffic jobs page
 - Updated i18n translations (en + ar)
 
+## Session – 2026-09-09 (Complaints: reply date, outcome, analytics)
+
+> This file was last written to in February 2026 and does not cover the months between. The durable
+> record is `CODEMAP.md` + `docs/map/` (rules in `11-business-rules.md`); this entry resumes it.
+
+### Instructions Received
+1. Complaint modal: add a field logging the date the complaint was replied to (date picker).
+2. Complaint modal: add a field showing the time left before the reply deadline.
+3. Complaint modal: two radio buttons — Won / Lost — before the Amounts section; Amounts appear only
+   when Lost is selected.
+4. Hold all commits, pushes and deploys until told the modifications were finished.
+5. Show the outcome radios in the detail dialog too, remove the exchange-rate field, and add a page
+   with complete analytics for the complaints received.
+6. Commit, push and deploy.
+
+### Decisions Made
+- The reply date uses `datetime-local`, not a date-only picker: the SLA is measured in hours, so a
+  midnight assumption would decide "in time / late" wrongly.
+- Won/Lost is a **new persisted field** (`Complaint.outcome`), not a re-use of `status`: the outcome
+  has to be recordable before a complaint is settled, while `status` stays the lifecycle authority.
+  Transitions keep the two in step and the backend refuses an edit that contradicts a terminal status.
+- A new complaint that is merely overdue is left unflagged on create, because the hourly sweep both
+  flags it and notifies its owner — pre-flagging would silence the notification.
+- The exchange-rate **column stays** (defaulting to 1) though the input is gone; it still converts
+  foreign-currency claims into the EGP totals on the analytics screen.
+- Analytics aggregates in a single in-memory pass rather than a dozen `groupBy` queries, so every
+  breakdown agrees with the headline numbers. No chart library was added — the bars are CSS.
+
+### Outcome
+Shipped in commit `5c2e12a`, deployed to production the same day: migration applied, pods healthy,
+`/dashboard/complaints/analytics` serving. Still open, and the user's call: `complaints.analytics`
+(like the rest of the complaint keys) is not granted to the 10 custom production roles, which needs a
+manual `rolePermissionV2` insert because prod deploys with `SKIP_PERMISSION_SEED=true`.
+
+---
+
 ---
 
 ## Change Log
@@ -135,3 +171,5 @@ User requested:
 | 2026-02-06 | Phase 10 completed: all dispatch validations confirmed, customers added to role permissions | User |
 | 2026-02-06 | Phase 11: Driver Extranet + No Show Evidence (schema, backend, frontend) | User |
 | 2026-02-08 | Session 4: Customer rep fields, dispatch export, client sign PDF, WYSIWYG editor, reports UI | User |
+| 2026-09-08 | Complaint tracking shipped: lifecycle, 48h reply SLA, charges, agent adjustments, score penalties | User |
+| 2026-09-09 | Complaint reply date + deadline countdown, Won/Lost outcome, exchange-rate field removed, Complaint Analytics page | User |

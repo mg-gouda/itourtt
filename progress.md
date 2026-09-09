@@ -1042,6 +1042,40 @@ Operators receive traffic job files from B2B customers in various formats (PDF, 
 - [x] Add i18n keys (English + Arabic)
 - [x] Prisma client regenerated
 
+## Phase 20: Complaint Tracking
+
+> This file went dormant after v2.0.0 (2026-02-20) while the system kept shipping — phases 1–19 are
+> not the whole history. The live record of what exists is `CODEMAP.md` + `docs/map/`; the rules that
+> are easy to break are in `docs/map/11-business-rules.md`. This phase is written from the two
+> complaint releases and is accurate; the gap between February and September is not reconstructed.
+
+### 20.1 Complaint tracking core (shipped 2026-09-08)
+- [x] `Complaint`, `ComplaintCategory`, `ComplaintAttachment`, `ComplaintCharge`, `AgentAdjustment`
+- [x] Lifecycle OPEN → UNDER_REVIEW → REPLIED → ESCALATED → WON / PARTIALLY_LOST / LOST / CANCELLED
+- [x] 48-hour reply window: `replyDueAt`, hourly sweep that flags `slaBreached` and notifies, never
+      touching `status`
+- [x] Charge against the responsible party (raise → approve → post → void); only *post* writes, as a
+      negative `RepFee` / `DriverTripFee` / `SupplierCost` row
+- [x] `AgentAdjustment` toward the agent, created inside the transition's own transaction
+      (invoice line / `CREDIT_NOTE` invoice exported as Odoo `out_refund` / waived)
+- [x] Score penalty applied only while the job's fee row is still unposted
+- [x] Granular permissions with `financial.viewAmounts` stripped server-side
+- [x] Driver/rep portal tabs, restricted to terminal complaints they are responsible for
+- [x] Complaint categories admin screen, seeded catalog
+
+### 20.2 Reply date, outcome and analytics (shipped 2026-09-09)
+- [x] `repliedAt` editable from the complaint form, recomputing `slaBreached`
+- [x] Live "time left to reply" in the form, computed from the dates being edited
+- [x] `ComplaintOutcome` (WON / LOST) on the complaint + migration with backfill from terminal status
+- [x] Won/Lost radios before the Amounts section in the form; Amounts appear only for a loss
+- [x] Same radios in the complaint detail dialog, read-only once a transition has settled it
+- [x] Exchange-rate input removed from both dialogs (the column stays, defaulting to 1)
+- [x] `GET /complaints/analytics` — one in-memory pass, redacted without `financial.viewAmounts`
+- [x] Complaint Analytics page: KPIs, reply-window split, monthly trend, breakdowns, agents, people,
+      money panel — no chart library, CSS bars only
+- [x] New `complaints.analytics` permission key (EN + AR), sidebar entry under Operations
+- [x] `docs/map/00-architecture.md` + `11-business-rules.md` updated, code map regenerated
+
 ---
 
 ## Version History
@@ -1050,3 +1084,4 @@ Operators receive traffic job files from B2B customers in various formats (PDF, 
 |---------|------|---------|
 | v1.0.0 | 2026-02-18 | Production release — Phases 1-15 complete. Full transport system with dispatch, finance, Odoo exports, reports, driver/rep portals, vehicle compliance, WYSIWYG editor. |
 | v2.0.0 | 2026-02-20 | AI-powered B2B job import (Gemini), inline location creation, Customer Job ID, production deployment hardening, location search filter. |
+| v3.6.0 | 2026-09-09 | Complaint tracking, then the reply date, the won/lost outcome and the Complaint Analytics screen. Releases between v2.0.0 and this one are recorded in git history and `docs/map/`, not here. |
