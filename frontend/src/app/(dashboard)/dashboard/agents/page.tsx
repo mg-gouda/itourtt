@@ -70,6 +70,9 @@ interface Agent {
   currency: string;
   refPattern: string | null;
   refExample: string | null;
+  // Null = this agent uses the company default NO SHOW wait.
+  noShowWaitStandardMinutes: number | null;
+  noShowWaitDepMinutes: number | null;
   isActive: boolean;
   creditTerms?: { creditLimit: number; creditDays: number } | null;
 }
@@ -96,6 +99,9 @@ const INITIAL_FORM = {
   currency: "EGP",
   refPattern: "",
   refExample: "",
+  // Empty means "inherit the company default", which is the normal case.
+  noShowWaitStandardMinutes: "",
+  noShowWaitDepMinutes: "",
 };
 
 export default function AgentsPage() {
@@ -114,6 +120,7 @@ export default function AgentsPage() {
   const canCurrency = usePermission("agents.form.currency");
   const canRefPattern = usePermission("agents.form.refPattern");
   const canCreditLimit = usePermission("agents.form.creditLimit");
+  const canNoShowWait = usePermission("agents.form.noShowWait");
   const canCreditDays = usePermission("agents.form.creditDays");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,6 +170,16 @@ export default function AgentsPage() {
   const [currency, setCurrency] = useState(INITIAL_FORM.currency);
   const [refPattern, setRefPattern] = useState(INITIAL_FORM.refPattern);
   const [refExample, setRefExample] = useState(INITIAL_FORM.refExample);
+  const [noShowWaitStandard, setNoShowWaitStandard] = useState(
+    INITIAL_FORM.noShowWaitStandardMinutes,
+  );
+  const [noShowWaitDep, setNoShowWaitDep] = useState(INITIAL_FORM.noShowWaitDepMinutes);
+  // Only to show what an empty override falls back to. GET /settings/company is
+  // open to any signed-in user, so this needs no extra permission.
+  const [waitDefaults, setWaitDefaults] = useState<{
+    standard: number;
+    dep: number;
+  } | null>(null);
   const [creditLimit, setCreditLimit] = useState<number>(0);
   const [creditDays, setCreditDays] = useState<number>(0);
 
@@ -181,6 +198,22 @@ export default function AgentsPage() {
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
+
+  // The company defaults, shown as the placeholder so an empty override reads
+  // as "inherits 80" rather than as an unanswered question.
+  useEffect(() => {
+    if (!canNoShowWait) return;
+    api
+      .get("/settings/company")
+      .then((res) => {
+        const data = res.data?.data ?? res.data;
+        setWaitDefaults({
+          standard: data?.noShowWaitStandardMinutes ?? 80,
+          dep: data?.noShowWaitDepMinutes ?? 15,
+        });
+      })
+      .catch(() => setWaitDefaults(null));
+  }, [canNoShowWait]);
 
   async function handleToggleStatus(id: string) {
     try {
@@ -255,6 +288,8 @@ export default function AgentsPage() {
     setCurrency(INITIAL_FORM.currency);
     setRefPattern(INITIAL_FORM.refPattern);
     setRefExample(INITIAL_FORM.refExample);
+    setNoShowWaitStandard(INITIAL_FORM.noShowWaitStandardMinutes);
+    setNoShowWaitDep(INITIAL_FORM.noShowWaitDepMinutes);
     setCreditLimit(0);
     setCreditDays(0);
   }
@@ -278,6 +313,12 @@ export default function AgentsPage() {
     setCurrency(agent.currency || "EGP");
     setRefPattern(agent.refPattern || "");
     setRefExample(agent.refExample || "");
+    setNoShowWaitStandard(
+      agent.noShowWaitStandardMinutes != null ? String(agent.noShowWaitStandardMinutes) : "",
+    );
+    setNoShowWaitDep(
+      agent.noShowWaitDepMinutes != null ? String(agent.noShowWaitDepMinutes) : "",
+    );
     setCreditLimit(agent.creditTerms ? Number(agent.creditTerms.creditLimit) : 0);
     setCreditDays(agent.creditTerms ? agent.creditTerms.creditDays : 0);
     setEditDialogOpen(true);
@@ -306,6 +347,12 @@ export default function AgentsPage() {
           currency,
           ...(refPattern.trim() ? { refPattern: refPattern.trim() } : { refPattern: null }),
           ...(refExample.trim() ? { refExample: refExample.trim() } : { refExample: null }),
+          // An empty box is an explicit null: it puts the agent back on the
+          // company default rather than leaving the old override in place.
+          noShowWaitStandardMinutes: noShowWaitStandard.trim()
+            ? Number(noShowWaitStandard)
+            : null,
+          noShowWaitDepMinutes: noShowWaitDep.trim() ? Number(noShowWaitDep) : null,
         }),
         api.put(`/agents/${editingAgent.id}/credit`, {
           creditLimit,
@@ -345,6 +392,10 @@ export default function AgentsPage() {
         currency,
         ...(refPattern.trim() && { refPattern: refPattern.trim() }),
         ...(refExample.trim() && { refExample: refExample.trim() }),
+        ...(noShowWaitStandard.trim() && {
+          noShowWaitStandardMinutes: Number(noShowWaitStandard),
+        }),
+        ...(noShowWaitDep.trim() && { noShowWaitDepMinutes: Number(noShowWaitDep) }),
       });
       toast.success(t("agents.created"));
       setDialogOpen(false);
@@ -844,6 +895,62 @@ export default function AgentsPage() {
                 </div>
               </>
             )}
+
+            {canNoShowWait && (
+              <div className="col-span-2 border-t border-border pt-3 mt-1">
+                <p className="text-sm font-medium text-foreground mb-1">
+                  {t("agents.noShowWait")}
+                </p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {t("agents.noShowWaitHint")}
+                </p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="noShowWaitStandard"
+                      className="text-muted-foreground"
+                    >
+                      {t("agents.noShowWaitStandard")}
+                    </Label>
+                    <Input
+                      id="noShowWaitStandard"
+                      type="number"
+                      min={0}
+                      max={720}
+                      value={noShowWaitStandard}
+                      onChange={(e) => setNoShowWaitStandard(e.target.value)}
+                      placeholder={
+                        waitDefaults
+                          ? `${t("agents.noShowWaitDefault")} ${waitDefaults.standard}`
+                          : t("agents.noShowWaitDefault")
+                      }
+                      className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="noShowWaitDep" className="text-muted-foreground">
+                      {t("agents.noShowWaitDep")}
+                    </Label>
+                    <Input
+                      id="noShowWaitDep"
+                      type="number"
+                      min={0}
+                      max={720}
+                      value={noShowWaitDep}
+                      onChange={(e) => setNoShowWaitDep(e.target.value)}
+                      placeholder={
+                        waitDefaults
+                          ? `${t("agents.noShowWaitDefault")} ${waitDefaults.dep}`
+                          : t("agents.noShowWaitDefault")
+                      }
+                      className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
 
           <DialogFooter>
@@ -1061,6 +1168,61 @@ export default function AgentsPage() {
                   />
                 </div>
               </>
+            )}
+
+            {canNoShowWait && (
+              <div className="col-span-2 border-t border-border pt-3 mt-1">
+                <p className="text-sm font-medium text-foreground mb-1">
+                  {t("agents.noShowWait")}
+                </p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {t("agents.noShowWaitHint")}
+                </p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="edit-noShowWaitStandard"
+                      className="text-muted-foreground"
+                    >
+                      {t("agents.noShowWaitStandard")}
+                    </Label>
+                    <Input
+                      id="edit-noShowWaitStandard"
+                      type="number"
+                      min={0}
+                      max={720}
+                      value={noShowWaitStandard}
+                      onChange={(e) => setNoShowWaitStandard(e.target.value)}
+                      placeholder={
+                        waitDefaults
+                          ? `${t("agents.noShowWaitDefault")} ${waitDefaults.standard}`
+                          : t("agents.noShowWaitDefault")
+                      }
+                      className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-noShowWaitDep" className="text-muted-foreground">
+                      {t("agents.noShowWaitDep")}
+                    </Label>
+                    <Input
+                      id="edit-noShowWaitDep"
+                      type="number"
+                      min={0}
+                      max={720}
+                      value={noShowWaitDep}
+                      onChange={(e) => setNoShowWaitDep(e.target.value)}
+                      placeholder={
+                        waitDefaults
+                          ? `${t("agents.noShowWaitDefault")} ${waitDefaults.dep}`
+                          : t("agents.noShowWaitDefault")
+                      }
+                      className="border-border bg-card text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+                </div>
+              </div>
             )}
 
             {(canCreditLimit || canCreditDays) && (

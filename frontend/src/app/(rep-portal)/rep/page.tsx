@@ -58,6 +58,13 @@ interface RepJob {
   clientMobile: string | null;
   paxCount: number;
   pickUpTime: string | null;
+  /**
+   * When NO SHOW unlocks, computed server-side from the agent's wait or the
+   * company default. Null means the job has no resolvable time, and therefore
+   * no guard at all. Never recompute this from a constant here — the wait
+   * varies by agent and by service type.
+   */
+  noShowAvailableFrom: string | null;
   notes: string | null;
   custRepName: string | null;
   custRepMobile: string | null;
@@ -116,9 +123,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "NO_SHOW"];
-
-/** NO SHOW can only be reported 80 minutes after the job time (ARR + DEP) */
-const NO_SHOW_DELAY_MS = 80 * 60 * 1000;
 
 export default function RepDashboardPage() {
   const t = useT();
@@ -700,14 +704,13 @@ function JobCard({
     return t("portal.availableWindow").replace("{start}", fmt(start)).replace("{end}", fmt(end));
   })();
 
-  // NO SHOW only becomes available 80 minutes after the job time (ARR + DEP)
-  const jobTime = (() => {
-    const rawTime = job.serviceType === "ARR" ? job.flight?.arrivalTime : job.pickUpTime;
-    return rawTime ? new Date(rawTime) : null;
-  })();
-  const canNoShow = !jobTime || new Date() >= new Date(jobTime.getTime() + NO_SHOW_DELAY_MS);
-  const noShowBlockMsg = jobTime && !canNoShow
-    ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + NO_SHOW_DELAY_MS).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
+  // The NO SHOW unlock comes from the server: the wait differs by agent and is
+  // shorter for departures, so it can no longer be derived from a constant here.
+  // (The IN PLACE window above is a separate policy and keeps its own 80.)
+  const noShowAt = job.noShowAvailableFrom ? new Date(job.noShowAvailableFrom) : null;
+  const canNoShow = !noShowAt || new Date() >= noShowAt;
+  const noShowBlockMsg = noShowAt && !canNoShow
+    ? `${t("portal.availableFrom")} ${noShowAt.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "";
 
   return (

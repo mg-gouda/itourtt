@@ -88,6 +88,9 @@ export class AgentsService {
         ...(dto.currency && { currency: dto.currency as Currency }),
         refPattern: dto.refPattern ?? null,
         refExample: dto.refExample ?? null,
+        // Null keeps the agent on the company default; see CreateAgentDto.
+        noShowWaitStandardMinutes: dto.noShowWaitStandardMinutes ?? null,
+        noShowWaitDepMinutes: dto.noShowWaitDepMinutes ?? null,
       },
       include: {
         creditTerms: true,
@@ -113,6 +116,14 @@ export class AgentsService {
         ...(dto.currency !== undefined && { currency: dto.currency as Currency }),
         ...(dto.refPattern !== undefined && { refPattern: dto.refPattern }),
         ...(dto.refExample !== undefined && { refExample: dto.refExample }),
+        // An explicit null clears the override and puts the agent back on the
+        // company default, which is how the form empties the box.
+        ...(dto.noShowWaitStandardMinutes !== undefined && {
+          noShowWaitStandardMinutes: dto.noShowWaitStandardMinutes,
+        }),
+        ...(dto.noShowWaitDepMinutes !== undefined && {
+          noShowWaitDepMinutes: dto.noShowWaitDepMinutes,
+        }),
       },
       include: {
         creditTerms: true,

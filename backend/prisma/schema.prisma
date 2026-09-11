@@ -732,26 +732,32 @@ model RepZone {
 // ─────────────────────────────────────────────
 
 model Agent {
-  id           String    @id @default(uuid())
-  legalName    String    @map("legal_name")
-  tradeName    String?   @map("trade_name")
-  taxId        String?   @map("tax_id")
-  address      String?
-  city         String?
-  country      String?
-  phone        String?
-  email        String?
-  disputeEmail String?   @map("dispute_email")
-  currency     Currency  @default(EGP)
-  refPattern   String?   @map("ref_pattern")
-  refExample   String?   @map("ref_example")
-  isActive     Boolean   @default(true) @map("is_active")
+  id                        String    @id @default(uuid())
+  legalName                 String    @map("legal_name")
+  tradeName                 String?   @map("trade_name")
+  taxId                     String?   @map("tax_id")
+  address                   String?
+  city                      String?
+  country                   String?
+  phone                     String?
+  email                     String?
+  disputeEmail              String?   @map("dispute_email")
+  currency                  Currency  @default(EGP)
+  refPattern                String?   @map("ref_pattern")
+  refExample                String?   @map("ref_example")
+  isActive                  Boolean   @default(true) @map("is_active")
+  // How long a driver/rep must wait past the job time before NO SHOW unlocks.
+  // Null means "use the company default" — the wait is the same for nearly
+  // every agent, so it is stored once in CompanySettings and only the agents
+  // that actually differ carry a number here.
+  noShowWaitStandardMinutes Int?      @map("no_show_wait_standard_minutes")
+  noShowWaitDepMinutes      Int?      @map("no_show_wait_dep_minutes")
   // Stable marker for the single seeded "website" agent. Its display name tracks
   // WebsiteSettings.siteName; this flag lets the convert flow find it reliably.
-  isB2cWebsite Boolean   @default(false) @map("is_b2c_website")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
+  isB2cWebsite              Boolean   @default(false) @map("is_b2c_website")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  deletedAt                 DateTime? @map("deleted_at")
 
   documents    AgentDocument[]
   creditTerms  AgentCreditTerms?
@@ -1788,19 +1794,26 @@ model SystemSettings {
 // ─────────────────────────────────────────────
 
 model CompanySettings {
-  id                      String    @id @default(uuid())
-  companyName             String    @default("iTour TT") @map("company_name")
-  logoUrl                 String?   @map("logo_url")
-  faviconUrl              String?   @map("favicon_url")
-  reportHeaderHtml        String?   @map("report_header_html")
-  reportFooterHtml        String?   @map("report_footer_html")
-  licenseKey              String?   @map("license_key")
-  installId               String?   @map("install_id") // stable per-deployment id (heartbeat)
-  licenseLastCheck        DateTime? @map("license_last_check") // last successful online license check
+  id                        String    @id @default(uuid())
+  companyName               String    @default("iTour TT") @map("company_name")
+  logoUrl                   String?   @map("logo_url")
+  faviconUrl                String?   @map("favicon_url")
+  reportHeaderHtml          String?   @map("report_header_html")
+  reportFooterHtml          String?   @map("report_footer_html")
+  licenseKey                String?   @map("license_key")
+  installId                 String?   @map("install_id") // stable per-deployment id (heartbeat)
+  licenseLastCheck          DateTime? @map("license_last_check") // last successful online license check
   // Single mailbox that receives all automated system notifications (e.g. job updates).
-  systemNotificationEmail String?   @map("system_notification_email")
-  createdAt               DateTime  @default(now()) @map("created_at")
-  updatedAt               DateTime  @updatedAt @map("updated_at")
+  systemNotificationEmail   String?   @map("system_notification_email")
+  // The NO SHOW wait, in minutes past the job time. Departures are their own
+  // number because a guest who misses a hotel pick-up is established far sooner
+  // than one who never comes out of an airport. Every other service type —
+  // arrivals, day tours, going, return — uses the standard wait.
+  // An Agent may override either; see Agent.noShowWaitStandardMinutes.
+  noShowWaitStandardMinutes Int       @default(80) @map("no_show_wait_standard_minutes")
+  noShowWaitDepMinutes      Int       @default(15) @map("no_show_wait_dep_minutes")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
 
   @@map("company_settings")
 }

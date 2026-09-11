@@ -57,6 +57,13 @@ interface DriverJob {
   clientMobile: string | null;
   paxCount: number;
   pickUpTime: string | null;
+  /**
+   * When NO SHOW unlocks, computed server-side from the agent's wait or the
+   * company default. Null means the job has no resolvable time, and therefore
+   * no guard at all. Never recompute this from a constant here — the wait
+   * varies by agent and by service type.
+   */
+  noShowAvailableFrom: string | null;
   notes: string | null;
   custRepName: string | null;
   custRepMobile: string | null;
@@ -117,9 +124,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "NO_SHOW"];
-
-/** NO SHOW can only be reported 80 minutes after the job time (ARR + DEP) */
-const NO_SHOW_DELAY_MS = 80 * 60 * 1000;
 
 export default function DriverDashboardPage() {
   const t = useT();
@@ -568,10 +572,12 @@ function DriverJobCard({
   const completeBlockMsg = jobTime && !canComplete
     ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + 15 * 60 * 1000).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "";
-  // NO SHOW only becomes available 80 minutes after the job time (ARR + DEP)
-  const canNoShow = !jobTime || now >= new Date(jobTime.getTime() + NO_SHOW_DELAY_MS);
-  const noShowBlockMsg = jobTime && !canNoShow
-    ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + NO_SHOW_DELAY_MS).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
+  // The NO SHOW unlock comes from the server: the wait differs by agent and is
+  // shorter for departures, so it can no longer be derived from a constant here.
+  const noShowAt = job.noShowAvailableFrom ? new Date(job.noShowAvailableFrom) : null;
+  const canNoShow = !noShowAt || now >= noShowAt;
+  const noShowBlockMsg = noShowAt && !canNoShow
+    ? `${t("portal.availableFrom")} ${noShowAt.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
     : "";
 
   return (

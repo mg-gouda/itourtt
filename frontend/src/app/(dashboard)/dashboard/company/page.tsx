@@ -24,6 +24,8 @@ interface CompanySettingsData {
   reportFooterHtml: string | null;
   licenseKey: string | null;
   systemNotificationEmail: string | null;
+  noShowWaitStandardMinutes: number;
+  noShowWaitDepMinutes: number;
 }
 
 type LicenseVerdict =
@@ -75,6 +77,9 @@ export default function CompanyPage() {
   const [reportHeaderHtml, setReportHeaderHtml] = useState("");
   const [reportFooterHtml, setReportFooterHtml] = useState("");
   const [systemNotificationEmail, setSystemNotificationEmail] = useState("");
+  // The NO SHOW wait every agent inherits unless they carry their own override.
+  const [noShowWaitStandard, setNoShowWaitStandard] = useState("80");
+  const [noShowWaitDep, setNoShowWaitDep] = useState("15");
   const [licenseKey, setLicenseKey] = useState("");
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
   const [activatingLicense, setActivatingLicense] = useState(false);
@@ -96,6 +101,8 @@ export default function CompanyPage() {
         setReportHeaderHtml(data.reportHeaderHtml ?? "");
         setReportFooterHtml(data.reportFooterHtml ?? "");
         setSystemNotificationEmail(data.systemNotificationEmail ?? "");
+        setNoShowWaitStandard(String(data.noShowWaitStandardMinutes ?? 80));
+        setNoShowWaitDep(String(data.noShowWaitDepMinutes ?? 15));
         setLicenseKey(data.licenseKey ?? "");
         setLicenseStatus(licenseRes.data);
       })
@@ -145,6 +152,8 @@ export default function CompanyPage() {
         reportHeaderHtml: reportHeaderHtml || null,
         reportFooterHtml: reportFooterHtml || null,
         systemNotificationEmail: systemNotificationEmail.trim() || null,
+        noShowWaitStandardMinutes: Number(noShowWaitStandard) || 0,
+        noShowWaitDepMinutes: Number(noShowWaitDep) || 0,
       });
       toast.success(t("company.settingsSaved"));
     } catch {
@@ -307,6 +316,47 @@ export default function CompanyPage() {
             placeholder="info@fulvago.com"
             disabled={!canEditSettings}
           />
+        </div>
+      </Card>
+
+      {/* No Show wait */}
+      <Card className="border-border bg-card p-6">
+        <h3 className="mb-1 text-base font-medium text-foreground">
+          {t("company.noShowWait") || "No Show Wait"}
+        </h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          {t("company.noShowWaitDesc") ||
+            "How long a driver or rep must wait past the job time before No Show unlocks. Departures are separate because a guest who misses a hotel pick-up is established far sooner than one who never comes out of an airport. An individual agent can override either of these on their own record."}
+        </p>
+        <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label className="text-foreground/70">
+              {t("company.noShowWaitStandard") || "Arrival & other services (minutes)"}
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              max={720}
+              value={noShowWaitStandard}
+              onChange={(e) => setNoShowWaitStandard(e.target.value)}
+              className="border-border bg-muted/50 text-foreground"
+              disabled={!canEditSettings}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-foreground/70">
+              {t("company.noShowWaitDep") || "Departure (minutes)"}
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              max={720}
+              value={noShowWaitDep}
+              onChange={(e) => setNoShowWaitDep(e.target.value)}
+              className="border-border bg-muted/50 text-foreground"
+              disabled={!canEditSettings}
+            />
+          </div>
         </div>
       </Card>
 

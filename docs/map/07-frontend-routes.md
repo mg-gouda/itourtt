@@ -11,10 +11,10 @@
 | `/` | `frontend/src/app/page.tsx` | 6 | — | — | Root — redirects to the dashboard or login depending on session. |
 | `/dashboard` | `frontend/src/app/(dashboard)/dashboard/page.tsx` | 444 | 1 | — | Dashboard home — headline counts and shortcuts, permission-filtered. |
 | `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 762 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
-| `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1229 | 10 | 12 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
+| `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1391 | 10 | 13 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
 | `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | One agent's detail — credit status, documents and price list. |
 | `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1318 | 9 | — | Car-centric dispatch view — the day organised by vehicle rather than by job. |
-| `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 485 | 7 | 3 | Company identity and branding (logo, favicon) used on invoices and reference prefixes. |
+| `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 535 | 7 | 3 | Company identity and branding (logo, favicon) used on invoices and reference prefixes. |
 | `/dashboard/complaint-categories` | `frontend/src/app/(dashboard)/dashboard/complaint-categories/page.tsx` | 354 | 4 | 3 | Complaint category catalog CRUD, including the pay-affecting default score penalty. |
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 571 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
 | `/dashboard/complaints/analytics` | `frontend/src/app/(dashboard)/dashboard/complaints/analytics/page.tsx` | 800 | 1 | 1 | Complaint Analytics screen: filters, headline KPIs, reply-window split, monthly trend, breakdowns and the money panel. |
@@ -49,12 +49,12 @@
 | `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 693 | 8 | 8 | Edit a vehicle, its compliance documents and deposit payments. |
 | `/dashboard/vehicles/new` | `frontend/src/app/(dashboard)/dashboard/vehicles/new/page.tsx` | 300 | 2 | 8 | Add a vehicle. |
 | `/dashboard/whatsapp` | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx` | 713 | 7 | 3 | WhatsApp settings, templates, media and delivery logs. |
-| `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 797 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
+| `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 803 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
 | `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 344 | 1 | — | Driver's completed/cancelled/no-show jobs with the fee earned per job. |
 | `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | Driver's own profile. |
 | `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | Requests a password-reset email. |
 | `/login` | `frontend/src/app/login/page.tsx` | 266 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
-| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 931 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
+| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 934 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
 | `/rep/history` | `frontend/src/app/(rep-portal)/rep/history/page.tsx` | 344 | 1 | — | Rep's terminal jobs with fees earned. |
 | `/rep/profile` | `frontend/src/app/(rep-portal)/rep/profile/page.tsx` | 8 | — | — | Rep's own profile. |
 | `/reset-password` | `frontend/src/app/reset-password/page.tsx` | 153 | 1 | — | Consumes a reset token and sets a new password. |
@@ -75,7 +75,7 @@
 **`/dashboard/agents`**
 
 - calls: `GET /agents`, `PATCH /agents/:x/status`, `DELETE /agents/:x`, `DELETE /agents/bulk`, `PUT /agents/:x`, `PUT /agents/:x/credit`, `POST /agents`, `GET /agents/export/excel`, `GET /agents/import/template`, `POST /agents/import/excel`
-- perms: `agents.addButton`, `agents.table.editButton`, `agents.table.deleteButton`, `agents.table.toggleStatus`, `agents.form.legalName`, `agents.form.tradeName`, `agents.form.taxId`, `agents.form.contactInfo`, `agents.form.currency`, `agents.form.refPattern`, `agents.form.creditLimit`, `agents.form.creditDays`
+- perms: `agents.addButton`, `agents.table.editButton`, `agents.table.deleteButton`, `agents.table.toggleStatus`, `agents.form.legalName`, `agents.form.tradeName`, `agents.form.taxId`, `agents.form.contactInfo`, `agents.form.currency`, `agents.form.refPattern`, `agents.form.creditLimit`, `agents.form.noShowWait`, `agents.form.creditDays`
 
 **`/dashboard/agents/[id]`**
 

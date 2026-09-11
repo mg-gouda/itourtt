@@ -50,21 +50,21 @@ Agents (the ONLINE booking channel counterparties): legal profile, credit terms,
 | `lookup` | pub | 50 | `agent` | Active agents as id/legalName/tradeName only; deliberately separate from findAll, which returns credit terms. |
 | `findOne` | pub | 58 | `agent` | One agent with credit, cycles and documents. |
 | `create` | pub | 77 | `agent` | Creates an agent with its full legal profile. |
-| `update` | pub | 99 | `agent` | Edits agent details, including `refPattern`/`refExample` used to validate job references. |
-| `toggleStatus` | pub | 125 | `agent` | Activates/deactivates an agent. |
-| `delete` | pub | 134 | `agent` | Soft-deletes an agent. |
-| `bulkDelete` | pub | 143 | `agent` | Soft-deletes many agents. |
-| `getCreditStatus` | pub | 156 | `agentCreditTerms` `agentInvoice` | Credit limit and days versus outstanding invoices — how close the agent is to being over limit. |
-| `updateCredit` | pub | 190 | `agentCreditTerms` | Sets credit limit, credit days and currency. |
-| `updateInvoiceCycle` | pub | 207 | `agentInvoiceCycle` | Sets the agent's invoicing cadence, which drives invoice generation. |
-| `createDocument` | pub | 226 | `agentDocument` | Stores a legal document against the agent. |
-| `findDocuments` | pub | 240 | `agentDocument` | Lists an agent's legal documents. |
-| `getPriceList` | pub | 251 | `agent` `agentPriceItem` | The agent's price grid — what we CHARGE them per zone pair and vehicle type. |
-| `upsertPriceItems` | pub | 276 | `agent` `agentPriceItem` | Bulk-upserts agent price rows. |
-| `deletePriceItem` | pub | 327 | `agent` `agentPriceItem` | Removes one agent price row. |
-| `exportToExcel` | pub | 353 | `agent` | Exports agents to xlsx. |
-| `generateImportTemplate` | pub | 398 | — | Blank agent import workbook. |
-| `importFromExcel` | pub | 497 | `agent` `agentCreditTerms` | Bulk-imports agents together with their credit terms. |
+| `update` | pub | 102 | `agent` | Edits agent details, including `refPattern`/`refExample` used to validate job references. |
+| `toggleStatus` | pub | 136 | `agent` | Activates/deactivates an agent. |
+| `delete` | pub | 145 | `agent` | Soft-deletes an agent. |
+| `bulkDelete` | pub | 154 | `agent` | Soft-deletes many agents. |
+| `getCreditStatus` | pub | 167 | `agentCreditTerms` `agentInvoice` | Credit limit and days versus outstanding invoices — how close the agent is to being over limit. |
+| `updateCredit` | pub | 201 | `agentCreditTerms` | Sets credit limit, credit days and currency. |
+| `updateInvoiceCycle` | pub | 218 | `agentInvoiceCycle` | Sets the agent's invoicing cadence, which drives invoice generation. |
+| `createDocument` | pub | 237 | `agentDocument` | Stores a legal document against the agent. |
+| `findDocuments` | pub | 251 | `agentDocument` | Lists an agent's legal documents. |
+| `getPriceList` | pub | 262 | `agent` `agentPriceItem` | The agent's price grid — what we CHARGE them per zone pair and vehicle type. |
+| `upsertPriceItems` | pub | 287 | `agent` `agentPriceItem` | Bulk-upserts agent price rows. |
+| `deletePriceItem` | pub | 338 | `agent` `agentPriceItem` | Removes one agent price row. |
+| `exportToExcel` | pub | 364 | `agent` | Exports agents to xlsx. |
+| `generateImportTemplate` | pub | 409 | — | Blank agent import workbook. |
+| `importFromExcel` | pub | 508 | `agent` `agentCreditTerms` | Bulk-imports agents together with their credit terms. |
 
 ## `customers`
 

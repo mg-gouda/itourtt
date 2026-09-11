@@ -51,9 +51,25 @@ driver leg. Mixing them up is a common misreading.
 
 ## Why can't anyone report NO SHOW yet?
 
-`common/utils/no-show-window.util.ts › checkNoShowWindow` — **80 minutes after job time**, shared by
-both portals so nobody can mis-tap the button the moment a job appears. A job with no resolvable job
-time has no guard at all.
+`common/utils/no-show-window.util.ts › checkNoShowWindow`, shared by both portals so nobody can
+mis-tap the button the moment a job appears. A job with no resolvable job time has no guard at all.
+
+**The wait is not one number.** It resolves per job, in this order: **the agent's own override →
+the company default → the constants in the util** (the last only matters for a database with no
+`CompanySettings` row). Only **DEP** is split out at 15 minutes — a guest who misses a hotel pick-up
+is established far sooner than one who never comes out of an airport. Arrivals, day tours, going and
+return all share the standard 80. A job with no agent (B2B carries a customer, not an agent) falls
+to the company default, which is the whole reason `resolveNoShowWaitMinutes` takes a nullable agent.
+
+**The portals must never compute this themselves.** `getMyJobs` stamps every job with
+`noShowAvailableFrom`, and the driver and rep pages gate the button and print "available from" off
+that field. They each used to carry their own `NO_SHOW_DELAY_MS = 80`, which could only stay correct
+while there was exactly one number. Note the mobile apps have never gated this button at all — they
+call the API and surface the error.
+
+Two other 80-minute rules are **not** this one and do not move with it: the rep's IN PLACE window
+(`arrival −10 to +80`, ARR only) and the driver portal's "can't complete until 15 min after job
+time". Same numbers, unrelated policies.
 
 ## GPS is captured but never blocks
 

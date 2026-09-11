@@ -174,6 +174,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'agents.form.refPattern',  labelKey: 'permissions.agents.form.refPattern',  crudType: 'field' },
           { key: 'agents.form.creditLimit', labelKey: 'permissions.agents.form.creditLimit', crudType: 'field' },
           { key: 'agents.form.creditDays',  labelKey: 'permissions.agents.form.creditDays',  crudType: 'field' },
+          { key: 'agents.form.noShowWait',  labelKey: 'permissions.agents.form.noShowWait',  crudType: 'field' },
         ],
       },
     ],

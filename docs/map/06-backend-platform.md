@@ -670,37 +670,37 @@ Admin surface for every settings group — system, company, email, website (B2C)
 
 ### SettingsService
 
-`backend/src/settings/settings.service.ts:96` · service · 25 methods
+`backend/src/settings/settings.service.ts:99` · service · 25 methods
 
 All persisted configuration: system, company, email, website (B2C), Google Drive and the licence. Most getters strip secrets — use the explicit `...Raw` variant when the actual credentials are needed.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getSystemSettings` | pub | 106 | `systemSettings` | Global system settings singleton. |
-| `updateSystemSettings` | pub | 114 | `systemSettings` | Updates the system settings singleton. |
-| `getCompanySettings` | pub | 149 | `companySettings` | Company identity and branding used on invoices, PDFs and the dashboard. |
-| `updateCompanySettings` | pub | 157 | `companySettings` | Updates company identity/branding. |
-| `noKeyStatus` | priv | 192 | — | The licence status returned when no public key is configured at all. |
-| `evaluate` | priv | 204 | `companySettings` | Runs the licence check and normalises it into a status. Everything licence-related funnels through here. |
-| `getLicenseStatus` | pub | 244 | `companySettings` | Current licence status for the UI gate. An invalid licence hard-blocks every portal. |
-| `recheckLicense` | pub | 253 | `companySettings` | Forces a fresh licence check against the licence server. |
-| `activateLicense` | pub | 261 | `companySettings` | Stores a new licence token/key and re-evaluates. Production needs LICENSE_SERVER_URL plus LICENSE_PUBLIC_KEY. |
-| `updateLogo` | pub | 288 | `companySettings` | Replaces the company logo asset. |
-| `updateFavicon` | pub | 306 | `companySettings` | Replaces the company favicon. |
-| `getEmailSettings` | pub | 328 | `emailSettings` | SMTP settings with the password redacted — safe for the admin UI. |
-| `updateEmailSettings` | pub | 340 | `emailSettings` | Updates SMTP settings; must trigger `EmailService.reloadTransporter` or the old transport stays cached. |
-| `getEmailSettingsRaw` | pub | 390 | `emailSettings` | SMTP settings INCLUDING the password — server-side callers only, never return this to a client. |
-| `getWebsiteSettings` | pub | 399 | `websiteSettings` | B2C website settings: branding, hero content, notification recipients, feature toggles such as AI Mode. |
-| `updateWebsiteSettings` | pub | 407 | `websiteSettings` | Updates B2C website settings. |
-| `updateSiteLogo` | pub | 501 | `websiteSettings` | Replaces the B2C site logo. Must be raster — email clients do not render SVG. |
-| `updateSiteFavicon` | pub | 519 | `websiteSettings` | Replaces the B2C site favicon. |
-| `updateHeroImage` | pub | 537 | `websiteSettings` | Replaces the B2C homepage hero image. |
-| `updateInnerBgImage` | pub | 555 | `systemSettings` | Replaces the dashboard inner-page background. |
-| `updateLoginBgImage` | pub | 563 | `systemSettings` | Replaces the login screen background. |
-| `updateLoginLogoImage` | pub | 571 | `systemSettings` | Replaces the login screen logo. |
-| `getGoogleDriveSettings` | pub | 583 | `googleDriveSettings` | Drive integration status and folder configuration, without tokens. |
-| `disconnectGoogleDrive` | pub | 596 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
-| `updateGoogleDriveSettings` | pub | 605 | `googleDriveSettings` | Updates Drive folder configuration. |
+| `getSystemSettings` | pub | 109 | `systemSettings` | Global system settings singleton. |
+| `updateSystemSettings` | pub | 117 | `systemSettings` | Updates the system settings singleton. |
+| `getCompanySettings` | pub | 152 | `companySettings` | Company identity and branding used on invoices, PDFs and the dashboard. |
+| `updateCompanySettings` | pub | 160 | `companySettings` | Updates company identity/branding. |
+| `noKeyStatus` | priv | 203 | — | The licence status returned when no public key is configured at all. |
+| `evaluate` | priv | 215 | `companySettings` | Runs the licence check and normalises it into a status. Everything licence-related funnels through here. |
+| `getLicenseStatus` | pub | 255 | `companySettings` | Current licence status for the UI gate. An invalid licence hard-blocks every portal. |
+| `recheckLicense` | pub | 264 | `companySettings` | Forces a fresh licence check against the licence server. |
+| `activateLicense` | pub | 272 | `companySettings` | Stores a new licence token/key and re-evaluates. Production needs LICENSE_SERVER_URL plus LICENSE_PUBLIC_KEY. |
+| `updateLogo` | pub | 299 | `companySettings` | Replaces the company logo asset. |
+| `updateFavicon` | pub | 317 | `companySettings` | Replaces the company favicon. |
+| `getEmailSettings` | pub | 339 | `emailSettings` | SMTP settings with the password redacted — safe for the admin UI. |
+| `updateEmailSettings` | pub | 351 | `emailSettings` | Updates SMTP settings; must trigger `EmailService.reloadTransporter` or the old transport stays cached. |
+| `getEmailSettingsRaw` | pub | 401 | `emailSettings` | SMTP settings INCLUDING the password — server-side callers only, never return this to a client. |
+| `getWebsiteSettings` | pub | 410 | `websiteSettings` | B2C website settings: branding, hero content, notification recipients, feature toggles such as AI Mode. |
+| `updateWebsiteSettings` | pub | 418 | `websiteSettings` | Updates B2C website settings. |
+| `updateSiteLogo` | pub | 512 | `websiteSettings` | Replaces the B2C site logo. Must be raster — email clients do not render SVG. |
+| `updateSiteFavicon` | pub | 530 | `websiteSettings` | Replaces the B2C site favicon. |
+| `updateHeroImage` | pub | 548 | `websiteSettings` | Replaces the B2C homepage hero image. |
+| `updateInnerBgImage` | pub | 566 | `systemSettings` | Replaces the dashboard inner-page background. |
+| `updateLoginBgImage` | pub | 574 | `systemSettings` | Replaces the login screen background. |
+| `updateLoginLogoImage` | pub | 582 | `systemSettings` | Replaces the login screen logo. |
+| `getGoogleDriveSettings` | pub | 594 | `googleDriveSettings` | Drive integration status and folder configuration, without tokens. |
+| `disconnectGoogleDrive` | pub | 607 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
+| `updateGoogleDriveSettings` | pub | 616 | `googleDriveSettings` | Updates Drive folder configuration. |
 
 ## `user-preferences`
 
@@ -826,7 +826,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-107 free functions, constants and types in these modules.
+111 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -973,9 +973,13 @@ The 80-minute no-show delay, shared by both portals so drivers and reps cannot m
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NO_SHOW_DELAY_MS` | const | 8 | 80 minutes. The single place this delay is defined. |
-| `getNoShowJobTime` | function | 17 | Job time used by the guard: flight arrival for ARR, `pickUpTime` otherwise. |
-| `checkNoShowWindow` | function | 26 | Throws unless at least 80 minutes past the job time. No job time configured means no guard at all. |
+| `DEFAULT_NO_SHOW_WAIT_STANDARD_MINUTES` | const | 16 | Last-resort standard wait (80) for a database with no CompanySettings row yet. |
+| `DEFAULT_NO_SHOW_WAIT_DEP_MINUTES` | const | 17 | Last-resort departure wait (15) for a database with no CompanySettings row yet. |
+| `NoShowWaitSource` | type | 20 | Either side of the fallback chain — an Agent row or the CompanySettings row. |
+| `getNoShowJobTime` | function | 32 | Job time used by the guard: flight arrival for ARR, `pickUpTime` otherwise. |
+| `resolveNoShowWaitMinutes` | function | 46 | The wait for one job: agent override, else company default, else the constant. Only DEP gets the departure number. |
+| `getNoShowAvailableFrom` | function | 77 | The instant NO SHOW becomes reportable, or null when the job has no resolvable time and therefore no guard. |
+| `checkNoShowWindow` | function | 87 | Throws unless at least 80 minutes past the job time. No job time configured means no guard at all. |
 
 ### `backend/src/common/utils/rep-score.util.ts`
 
@@ -1122,10 +1126,10 @@ Google Drive evidence storage. Degrades to null (never throws) when unconfigured
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 718 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 734 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 742 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 754 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 719 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 735 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 743 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 755 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 

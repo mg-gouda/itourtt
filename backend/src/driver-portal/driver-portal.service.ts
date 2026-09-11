@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
-import { checkNoShowWindow } from '../common/utils/no-show-window.util.js';
+import {
+  checkNoShowWindow,
+  getNoShowAvailableFrom,
+  resolveNoShowWaitMinutes,
+  type NoShowWaitSource,
+} from '../common/utils/no-show-window.util.js';
 import { NoShowDisputeService } from './no-show-dispute.service.js';
 import { JobCompletionService } from '../common/services/job-completion.service.js';
 
@@ -47,6 +52,10 @@ export class DriverPortalService {
     fromZone: { select: { name: true } },
     toZone: { select: { name: true } },
     flight: { select: { flightNo: true, arrivalTime: true, departureTime: true } },
+    // Only the NO SHOW overrides: the summary has no other use for the agent.
+    agent: {
+      select: { noShowWaitStandardMinutes: true, noShowWaitDepMinutes: true },
+    },
     assignment: {
       include: {
         vehicle: { select: { plateNumber: true, vehicleType: { select: { name: true } } } },
@@ -66,7 +75,13 @@ export class DriverPortalService {
     fromZone: true,
     toZone: true,
     flight: true,
-    agent: { select: { legalName: true } },
+    agent: {
+      select: {
+        legalName: true,
+        noShowWaitStandardMinutes: true,
+        noShowWaitDepMinutes: true,
+      },
+    },
     customer: { select: { legalName: true } },
     assignment: {
       include: {
@@ -77,6 +92,43 @@ export class DriverPortalService {
       // externalDriverName and externalDriverPhone are scalar fields — always included
     },
   };
+
+  /**
+   * The NO SHOW wait for one job, in minutes: the agent's own override if they
+   * have one, else the company default. A B2B job carries a customer and no
+   * agent, so it simply falls through to the default.
+   */
+  private async resolveNoShowWait(job: {
+    serviceType: string;
+    agent?: NoShowWaitSource | null;
+  }): Promise<number> {
+    const settings = await this.prisma.companySettings.findFirst({
+      select: { noShowWaitStandardMinutes: true, noShowWaitDepMinutes: true },
+    });
+    return resolveNoShowWaitMinutes(job.serviceType, job.agent, settings);
+  }
+
+  /**
+   * Stamps each job with the instant NO SHOW unlocks, so the portal greys the
+   * button and counts down against the same moment the server enforces instead
+   * of its own copy of the number — which could only ever stay right while
+   * there was exactly one.
+   */
+  private async withNoShowWindow<T extends { serviceType: string; agent?: NoShowWaitSource | null }>(
+    jobs: T[],
+  ): Promise<(T & { noShowAvailableFrom: Date | null })[]> {
+    const settings = await this.prisma.companySettings.findFirst({
+      select: { noShowWaitStandardMinutes: true, noShowWaitDepMinutes: true },
+    });
+
+    return jobs.map((job) => ({
+      ...job,
+      noShowAvailableFrom: getNoShowAvailableFrom(
+        job as never,
+        resolveNoShowWaitMinutes(job.serviceType, job.agent, settings),
+      ),
+    }));
+  }
 
   async resolveDriverId(userId: string): Promise<string> {
     const driver = await this.prisma.driver.findFirst({
@@ -125,7 +177,7 @@ export class DriverPortalService {
     return {
       date: jobDate.toISOString().split('T')[0],
       driverId,
-      jobs,
+      jobs: await this.withNoShowWindow(jobs),
     };
   }
 
@@ -568,6 +620,12 @@ export class DriverPortalService {
             originAirport: true,
             originZone: true,
             originHotel: { include: { zone: true } },
+            agent: {
+              select: {
+                noShowWaitStandardMinutes: true,
+                noShowWaitDepMinutes: true,
+              },
+            },
           },
         },
       },
@@ -593,7 +651,10 @@ export class DriverPortalService {
       );
     }
 
-    checkNoShowWindow(assignment.trafficJob);
+    checkNoShowWindow(
+      assignment.trafficJob,
+      await this.resolveNoShowWait(assignment.trafficJob),
+    );
 
     const gpsMapLink =
       latitude != null && longitude != null

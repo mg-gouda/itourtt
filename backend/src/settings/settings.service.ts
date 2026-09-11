@@ -47,6 +47,9 @@ const COMPANY_DEFAULTS = {
   reportHeaderHtml: null,
   reportFooterHtml: null,
   systemNotificationEmail: null as string | null,
+  // Mirrors the column defaults, for a database with no row written yet.
+  noShowWaitStandardMinutes: 80,
+  noShowWaitDepMinutes: 15,
 };
 
 const WEBSITE_DEFAULTS = {
@@ -164,6 +167,10 @@ export class SettingsService {
     if (dto.licenseKey !== undefined) data.licenseKey = dto.licenseKey || null;
     if (dto.systemNotificationEmail !== undefined)
       data.systemNotificationEmail = dto.systemNotificationEmail?.trim() || null;
+    if (dto.noShowWaitStandardMinutes !== undefined)
+      data.noShowWaitStandardMinutes = dto.noShowWaitStandardMinutes;
+    if (dto.noShowWaitDepMinutes !== undefined)
+      data.noShowWaitDepMinutes = dto.noShowWaitDepMinutes;
 
     if (existing) {
       return this.prisma.companySettings.update({
@@ -179,6 +186,10 @@ export class SettingsService {
         reportFooterHtml: dto.reportFooterHtml ?? COMPANY_DEFAULTS.reportFooterHtml,
         licenseKey: dto.licenseKey ?? null,
         systemNotificationEmail: dto.systemNotificationEmail?.trim() || null,
+        noShowWaitStandardMinutes:
+          dto.noShowWaitStandardMinutes ?? COMPANY_DEFAULTS.noShowWaitStandardMinutes,
+        noShowWaitDepMinutes:
+          dto.noShowWaitDepMinutes ?? COMPANY_DEFAULTS.noShowWaitDepMinutes,
       },
     });
   }
