@@ -2282,6 +2282,57 @@ export class ExportService {
   // COMPLAINTS EXCEL EXPORT
   // ─────────────────────────────────────────────
 
+  /**
+   * The people a complaint blames — driver, rep and supplier off the complaint,
+   * the agent, guest and the two office roles off the job. Mirrors
+   * reports.service.ts › complaintResponsibleNames.
+   */
+  private complaintResponsibleNames(complaint: {
+    responsibleParties: string[];
+    responsibleParty: string | null;
+    responsibleDriver?: { name: string } | null;
+    responsibleRep?: { name: string } | null;
+    responsibleSupplier?: { tradeName: string | null; legalName: string } | null;
+    agent?: { tradeName: string | null; legalName: string } | null;
+    trafficJob: {
+      clientName: string | null;
+      createdBy?: { name: string } | null;
+      assignment?: { assignedBy?: { name: string } | null } | null;
+    };
+  }): string[] {
+    const parties =
+      complaint.responsibleParties.length > 0
+        ? complaint.responsibleParties
+        : [complaint.responsibleParty].filter(Boolean);
+
+    return parties
+      .flatMap((party) => {
+        switch (party) {
+          case 'DRIVER':
+            return [complaint.responsibleDriver?.name];
+          case 'REP':
+            return [complaint.responsibleRep?.name];
+          case 'SUPPLIER':
+            return [
+              complaint.responsibleSupplier?.tradeName ||
+                complaint.responsibleSupplier?.legalName,
+            ];
+          case 'AGENT':
+            return [complaint.agent?.tradeName || complaint.agent?.legalName];
+          case 'CLIENT':
+            return [complaint.trafficJob.clientName];
+          case 'OFFICE':
+            return [
+              complaint.trafficJob.createdBy?.name,
+              complaint.trafficJob.assignment?.assignedBy?.name,
+            ];
+          default:
+            return [];
+        }
+      })
+      .filter((n): n is string => Boolean(n));
+  }
+
   /** A complaint's categories, primary first, for a single spreadsheet cell. */
   private complaintCategoryNames(complaint: {
     categoryId: string;
@@ -2331,7 +2382,16 @@ export class ExportService {
         assignedTo: { select: { name: true } },
         charge: { select: { status: true, amount: true } },
         trafficJob: {
-          select: { internalRef: true, agentRef: true, jobDate: true, serviceType: true },
+          select: {
+            internalRef: true,
+            agentRef: true,
+            jobDate: true,
+            serviceType: true,
+            // CLIENT and OFFICE are named off the job, not the complaint.
+            clientName: true,
+            createdBy: { select: { name: true } },
+            assignment: { select: { assignedBy: { select: { name: true } } } },
+          },
         },
       },
       orderBy: { complaintDate: 'desc' },
@@ -2362,13 +2422,8 @@ export class ExportService {
         ? c.responsibleParties
         : [c.responsibleParty].filter(Boolean)
       ).join(', '),
-      'Responsible Name': [
-        c.responsibleDriver?.name,
-        c.responsibleRep?.name,
-        c.responsibleSupplier?.tradeName || c.responsibleSupplier?.legalName,
-      ]
-        .filter(Boolean)
-        .join(', '),
+      // Only the parties actually blamed contribute a name.
+      'Responsible Name': this.complaintResponsibleNames(c).join(', '),
       'Score Penalty': c.scorePenaltyApplied || '',
       'Charge Status': c.charge?.status ?? '',
       'Charge Amount': c.charge ? Number(c.charge.amount) : '',

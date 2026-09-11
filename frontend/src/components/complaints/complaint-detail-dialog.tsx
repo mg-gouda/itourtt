@@ -47,7 +47,7 @@ import {
   NEXT_STATUSES,
   TRANSITION_PERMISSION,
   categoryNames,
-  responsibleParties,
+  responsibleDetails,
   formatSlaCountdown,
   formatMoney,
 } from "@/lib/complaints";
@@ -232,22 +232,9 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
     !!complaint &&
     (complaint.status === "WON" || LOSS_STATUSES.includes(complaint.status));
   const nextStatuses = complaint ? NEXT_STATUSES[complaint.status] : [];
-  // Every party blamed, each with the person it named where there is one.
-  const responsible = complaint
-    ? responsibleParties(complaint).map((party) => ({
-        party,
-        name:
-          party === "DRIVER"
-            ? (complaint.responsibleDriver?.name ?? null)
-            : party === "REP"
-              ? (complaint.responsibleRep?.name ?? null)
-              : party === "SUPPLIER"
-                ? (complaint.responsibleSupplier?.tradeName ??
-                  complaint.responsibleSupplier?.legalName ??
-                  null)
-                : null,
-      }))
-    : [];
+  // Every party blamed, each with whoever it names — the driver and rep off the
+  // complaint, the agent, guest and office roles off the job.
+  const responsible = complaint ? responsibleDetails(complaint) : [];
 
   return (
     <Dialog open={!!complaintId} onOpenChange={onOpenChange}>
@@ -355,14 +342,23 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
                 )}
               </Field>
               <Field label="Responsible">
-                {responsible.length === 0
-                  ? "—"
-                  : responsible
-                      .map(
-                        ({ party, name }) =>
-                          `${PARTY_LABELS[party]}${name ? ` — ${name}` : ""}`,
-                      )
-                      .join(", ")}
+                {responsible.length === 0 ? (
+                  "—"
+                ) : (
+                  <div className="space-y-0.5">
+                    {responsible.map(({ party, names }) => (
+                      <div key={party}>
+                        {PARTY_LABELS[party]}
+                        {names.length > 0 && (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            — {names.join(", ")}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Field>
               <Field label="Score penalty">
                 {complaint.scorePenaltyApplied > 0

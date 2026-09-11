@@ -322,6 +322,57 @@ export class ReportsService {
    * guestSurveyReport, so a period lines up with the operational period it
    * describes.
    */
+  /**
+   * The people a complaint blames. Driver, rep and supplier are stored on it;
+   * the agent, the guest and the two office roles (who entered the job, who
+   * dispatched the car) are read off the job it is attached to.
+   */
+  private complaintResponsibleNames(complaint: {
+    responsibleParties: string[];
+    responsibleParty: string | null;
+    responsibleDriver?: { name: string } | null;
+    responsibleRep?: { name: string } | null;
+    responsibleSupplier?: { tradeName: string | null; legalName: string } | null;
+    agent?: { tradeName: string | null; legalName: string } | null;
+    trafficJob: {
+      clientName: string | null;
+      createdBy?: { name: string } | null;
+      assignment?: { assignedBy?: { name: string } | null } | null;
+    };
+  }): string[] {
+    const parties =
+      complaint.responsibleParties.length > 0
+        ? complaint.responsibleParties
+        : [complaint.responsibleParty].filter(Boolean);
+
+    return parties
+      .flatMap((party) => {
+        switch (party) {
+          case 'DRIVER':
+            return [complaint.responsibleDriver?.name];
+          case 'REP':
+            return [complaint.responsibleRep?.name];
+          case 'SUPPLIER':
+            return [
+              complaint.responsibleSupplier?.tradeName ||
+                complaint.responsibleSupplier?.legalName,
+            ];
+          case 'AGENT':
+            return [complaint.agent?.tradeName || complaint.agent?.legalName];
+          case 'CLIENT':
+            return [complaint.trafficJob.clientName];
+          case 'OFFICE':
+            return [
+              complaint.trafficJob.createdBy?.name,
+              complaint.trafficJob.assignment?.assignedBy?.name,
+            ];
+          default:
+            return [];
+        }
+      })
+      .filter((n): n is string => Boolean(n));
+  }
+
   async complaintsReport(
     from: string,
     to: string,
@@ -370,6 +421,10 @@ export class ReportsService {
             agentRef: true,
             jobDate: true,
             serviceType: true,
+            // CLIENT and OFFICE are named off the job, not the complaint.
+            clientName: true,
+            createdBy: { select: { name: true } },
+            assignment: { select: { assignedBy: { select: { name: true } } } },
           },
         },
       },
@@ -421,11 +476,9 @@ export class ReportsService {
         c.responsibleSupplier?.tradeName ||
         c.responsibleSupplier?.legalName ||
         null,
-      responsibleNames: [
-        c.responsibleDriver?.name,
-        c.responsibleRep?.name,
-        c.responsibleSupplier?.tradeName || c.responsibleSupplier?.legalName,
-      ].filter((n): n is string => Boolean(n)),
+      // Only the parties actually blamed contribute a name, so a complaint
+      // against the office does not also list the guest.
+      responsibleNames: this.complaintResponsibleNames(c),
       scorePenaltyApplied: c.scorePenaltyApplied,
       chargeStatus: c.charge?.status ?? null,
       chargeAmount: c.charge ? Number(c.charge.amount) : null,

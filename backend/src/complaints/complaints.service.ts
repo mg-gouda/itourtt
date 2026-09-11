@@ -85,8 +85,15 @@ export class ComplaintsService {
         agentRef: true,
         jobDate: true,
         serviceType: true,
+        // The guest, for a complaint that blames CLIENT.
         clientName: true,
         status: true,
+        // OFFICE is not one person: it is whoever entered the job and whoever
+        // dispatched the car. Both are named so the blame is traceable.
+        createdBy: { select: { id: true, name: true } },
+        assignment: {
+          select: { assignedBy: { select: { id: true, name: true } } },
+        },
       },
     },
     responsibleDriver: { select: { id: true, name: true } },

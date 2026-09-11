@@ -124,16 +124,26 @@ the set, not the primary: `categoryLinks: { some: … }` and `responsibleParties
 driver's to see on `/driver-portal/complaints`. Saving replaces a set wholesale (`deleteMany` then
 `create`), or an unticked category would survive as a stale link.
 
-**Nobody picks the responsible person any more.** Name DRIVER, REP or SUPPLIER and the backend reads
-that person off the job's own `TrafficAssignment` (`resolveResponsible`), so a complaint can only
-ever blame whoever actually worked the job; the form shows who that will be, read-only, and says so
-when the job has nobody in that seat. The three id columns may now be set together — one per party
+**Nobody picks the responsible person, for any party.** Name DRIVER, REP or SUPPLIER and the backend
+reads that person off the job's own `TrafficAssignment` (`resolveResponsible`), so a complaint can
+only ever blame whoever actually worked the job. The remaining parties are resolved for *display*
+only, off the job rather than stored, because there is nothing to store that the job does not
+already say: **AGENT** is the job's agent, **CLIENT** is its guest, and **OFFICE** is two people —
+whoever entered the job (`TrafficJob.createdBy`) and whoever dispatched the car
+(`TrafficAssignment.assignedBy`). `responsibleDetails` in `frontend/src/lib/complaints.ts` is the
+one place that mapping lives for the UI; `complaintResponsibleNames` mirrors it in
+`reports.service.ts` and `export.service.ts`. The form shows who each tick will name, read-only, and
+says so when the job has nobody in that seat. The three id columns may now be set together — one per party
 named — and the old exactly-one-FK rule is gone; what survives is that an id must belong to a party
 the complaint actually names, or the charge panel would offer to deduct from someone nobody blamed.
 Every party dropped from the set has its id cleared in the same write. An explicit id in the DTO
 still wins over the assignment, for the API callers that send one.
 
-**The 48-hour reply window flags, it never decides.** `replyDueAt = complaintDate + slaHours`
+**The reply window flags, it never decides.** The standard window is **24 hours** (`DEFAULT_SLA_HOURS`);
+it was 48 until 2026-09-11, and only the default moved — `slaHours` is stored per row precisely so a
+policy change cannot rewrite history, so every complaint logged before keeps its 48 and its original
+deadline. Nothing may quote a literal window at a user: the SLA sweep's notification reads
+`c.slaHours` off the row. `replyDueAt = complaintDate + slaHours`
 (stored per row, so a later policy change can't rewrite history). `complaint-sla.service.ts` runs
 hourly and does exactly two things: flip `slaBreached` and write notifications. It must **never**
 touch `status` — a missed deadline is a flag, not an outcome. Note `CronRunLock.runDate` is

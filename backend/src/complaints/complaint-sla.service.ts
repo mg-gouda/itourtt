@@ -75,6 +75,9 @@ export class ComplaintSlaService {
         trafficJobId: true,
         assignedToId: true,
         replyDueAt: true,
+        // The window is stored per row, so the notification quotes the one this
+        // complaint was actually logged with rather than today's policy.
+        slaHours: true,
       },
     });
 
@@ -90,7 +93,7 @@ export class ComplaintSlaService {
             data: {
               userId: c.assignedToId,
               title: `Reply deadline missed — ${c.complaintNo}`,
-              message: `The ${'48-hour'} reply window for "${c.subject}" closed on ${c.replyDueAt.toISOString()}. It is still unanswered.`,
+              message: `The ${c.slaHours}-hour reply window for "${c.subject}" closed on ${c.replyDueAt.toISOString()}. It is still unanswered.`,
               trafficJobId: c.trafficJobId,
               metadata: { complaintId: c.id, kind: 'SLA_BREACH' },
             },

@@ -2578,7 +2578,7 @@ model Complaint {
 
   // ── 48h reply SLA (flags only — never changes status) ──
   complaintDate DateTime  @map("complaint_date")
-  slaHours      Int       @default(48) @map("sla_hours")
+  slaHours      Int       @default(24) @map("sla_hours")
   replyDueAt    DateTime  @map("reply_due_at")
   repliedAt     DateTime? @map("replied_at")
   slaBreached   Boolean   @default(false) @map("sla_breached")

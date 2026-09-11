@@ -66,6 +66,9 @@ export class TrafficJobsService {
         // The supplier the job itself was given to (a supplier car), which the
         // complaint form reads to name who is responsible.
         supplier: { select: { id: true, legalName: true, tradeName: true } },
+        // The dispatcher who assigned the car — half of what OFFICE means on a
+        // complaint; the other half is the job's own createdBy.
+        assignedBy: { select: { id: true, name: true } },
       },
     },
     noShowEvidence: true,

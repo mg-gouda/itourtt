@@ -90,6 +90,10 @@ export interface Complaint {
     serviceType: string;
     clientName?: string | null;
     status: string;
+    // OFFICE resolves to both of these: who entered the job, and who
+    // dispatched the car.
+    createdBy?: { id: string; name: string } | null;
+    assignment?: { assignedBy?: { id: string; name: string } | null } | null;
   } | null;
   responsibleDriver?: { id: string; name: string } | null;
   responsibleRep?: { id: string; name: string } | null;
@@ -308,13 +312,52 @@ export function responsibleParties(
   return complaint.responsibleParty ? [complaint.responsibleParty] : [];
 }
 
-/** The named people a complaint blames — one per party at most. */
+/**
+ * Who each blamed party actually is.
+ *
+ * Driver, rep and supplier are stored on the complaint; the rest are read off
+ * the job it is attached to, because they are not things you pick — the agent
+ * is the job's agent, the client is its guest, and OFFICE is two people: whoever
+ * entered the job and whoever dispatched the car. Nothing here is selectable,
+ * which is the point: a complaint can only name people who were actually on the
+ * job.
+ */
+export function responsibleDetails(
+  complaint: Complaint,
+): { party: ComplaintParty; names: string[] }[] {
+  const job = complaint.trafficJob;
+
+  const namesFor = (party: ComplaintParty): (string | null | undefined)[] => {
+    switch (party) {
+      case "DRIVER":
+        return [complaint.responsibleDriver?.name];
+      case "REP":
+        return [complaint.responsibleRep?.name];
+      case "SUPPLIER":
+        return [
+          complaint.responsibleSupplier?.tradeName ||
+            complaint.responsibleSupplier?.legalName,
+        ];
+      case "AGENT":
+        return [complaint.agent?.tradeName || complaint.agent?.legalName];
+      case "CLIENT":
+        return [job?.clientName];
+      case "OFFICE":
+        return [job?.createdBy?.name, job?.assignment?.assignedBy?.name];
+      default:
+        return [];
+    }
+  };
+
+  return responsibleParties(complaint).map((party) => ({
+    party,
+    names: namesFor(party).filter((n): n is string => Boolean(n)),
+  }));
+}
+
+/** Every named person a complaint blames, flattened — for a single table cell. */
 export function responsibleNames(complaint: Complaint): string[] {
-  return [
-    complaint.responsibleDriver?.name,
-    complaint.responsibleRep?.name,
-    complaint.responsibleSupplier?.tradeName || complaint.responsibleSupplier?.legalName,
-  ].filter((n): n is string => Boolean(n));
+  return responsibleDetails(complaint).flatMap((d) => d.names);
 }
 
 export type SlaTone = "ok" | "warning" | "danger" | "neutral";

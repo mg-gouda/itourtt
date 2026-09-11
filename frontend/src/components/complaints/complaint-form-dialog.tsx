@@ -52,11 +52,22 @@ interface Props {
   lockedJob?: { id: string; internalRef: string } | null;
 }
 
-/** Who the selected job is actually assigned to — the responsible people. */
-interface JobAssignment {
+/**
+ * Everyone the selected job can point at. Driver, rep and supplier come off its
+ * assignment; the agent, the guest and the two office roles come off the job
+ * itself. None of it is selectable — a complaint may only blame people who were
+ * actually on the job.
+ */
+interface JobParties {
   driver?: { id: string; name: string } | null;
   rep?: { id: string; name: string } | null;
   supplier?: { id: string; legalName: string; tradeName?: string | null } | null;
+  /** The dispatcher who assigned the car. */
+  assignedBy?: { id: string; name: string } | null;
+  /** Whoever entered the job on the system. */
+  createdBy?: { id: string; name: string } | null;
+  agentName?: string | null;
+  clientName?: string | null;
 }
 
 const emptyForm = {
@@ -68,7 +79,7 @@ const emptyForm = {
   subject: "",
   description: "",
   complaintDate: "",
-  slaHours: 48,
+  slaHours: 24,
   repliedAt: "",
   outcome: "" as "" | ComplaintOutcome,
   claimedAmount: "",
@@ -104,7 +115,7 @@ export function ComplaintFormDialog({
   const [jobSearching, setJobSearching] = useState(false);
   const [agents, setAgents] = useState<ComboboxItem[]>([]);
   const [jobOptions, setJobOptions] = useState<ComboboxItem[]>([]);
-  const [assignment, setAssignment] = useState<JobAssignment | null>(null);
+  const [jobParties, setJobParties] = useState<JobParties | null>(null);
 
   // The countdown is derived from the dates in the form, so it has to re-render
   // on its own while the dialog sits open.
@@ -241,7 +252,7 @@ export function ComplaintFormDialog({
   // who blaming a party will actually name.
   useEffect(() => {
     if (!open || !form.trafficJobId) {
-      setAssignment(null);
+      setJobParties(null);
       return;
     }
 
@@ -251,11 +262,19 @@ export function ComplaintFormDialog({
       .then((res) => {
         if (cancelled) return;
         const job = res.data?.data ?? res.data;
-        setAssignment(job?.assignment ?? null);
+        setJobParties({
+          driver: job?.assignment?.driver ?? null,
+          rep: job?.assignment?.rep ?? null,
+          supplier: job?.assignment?.supplier ?? null,
+          assignedBy: job?.assignment?.assignedBy ?? null,
+          createdBy: job?.createdBy ?? null,
+          agentName: job?.agent?.tradeName || job?.agent?.legalName || null,
+          clientName: job?.clientName ?? null,
+        });
         if (!isEdit && !form.agentId && job?.agentId) set("agentId", job.agentId);
       })
       .catch(() => {
-        if (!cancelled) setAssignment(null);
+        if (!cancelled) setJobParties(null);
       });
 
     return () => {
@@ -307,7 +326,7 @@ export function ComplaintFormDialog({
       subject: form.subject.trim(),
       description: form.description.trim(),
       complaintDate: new Date(form.complaintDate).toISOString(),
-      slaHours: Number(form.slaHours) || 48,
+      slaHours: Number(form.slaHours) || 24,
       // Null clears a reply that was logged by mistake and restarts the countdown.
       repliedAt: form.repliedAt ? new Date(form.repliedAt).toISOString() : null,
       outcome: form.outcome || null,
@@ -347,7 +366,7 @@ export function ComplaintFormDialog({
   // Deadline maths mirrors computeReplyDueAt on the backend: received + window.
   const replyDueAt = form.complaintDate
     ? new Date(
-        new Date(form.complaintDate).getTime() + (Number(form.slaHours) || 48) * 3_600_000,
+        new Date(form.complaintDate).getTime() + (Number(form.slaHours) || 24) * 3_600_000,
       )
     : null;
   const replyWindow =
@@ -379,19 +398,34 @@ export function ComplaintFormDialog({
 
   /**
    * Who each blamed party resolves to on the selected job. Nothing is picked
-   * here — this only shows what the backend will record, including the case
-   * where the job has nobody in that seat yet.
+   * here — this only shows who the complaint will name, including the case where
+   * the job has nobody in that seat yet. OFFICE is deliberately two people:
+   * whoever entered the job and whoever dispatched the car.
    */
-  const assignedNames: Record<string, string | null> = {
-    DRIVER: assignment?.driver?.name ?? null,
-    REP: assignment?.rep?.name ?? null,
-    SUPPLIER:
-      assignment?.supplier?.tradeName || assignment?.supplier?.legalName || null,
+  const resolvedParties: Record<string, { label: string; name: string | null }[]> = {
+    DRIVER: [{ label: "", name: jobParties?.driver?.name ?? null }],
+    REP: [{ label: "", name: jobParties?.rep?.name ?? null }],
+    SUPPLIER: [
+      {
+        label: "",
+        name:
+          jobParties?.supplier?.tradeName || jobParties?.supplier?.legalName || null,
+      },
+    ],
+    AGENT: [{ label: "", name: jobParties?.agentName ?? null }],
+    CLIENT: [{ label: "", name: jobParties?.clientName ?? null }],
+    OFFICE: [
+      { label: "entered the job", name: jobParties?.createdBy?.name ?? null },
+      {
+        label: "dispatched the car",
+        name: jobParties?.assignedBy?.name ?? null,
+      },
+    ],
   };
 
-  const namedParties = form.responsibleParties.filter((p) =>
-    ASSIGNABLE_PARTIES.includes(p),
-  );
+  // Every blamed party that resolves to a person. NONE never does, and the
+  // panel disappears when nothing selected does.
+  const namedParties = form.responsibleParties.filter((p) => resolvedParties[p]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -531,7 +565,7 @@ export function ComplaintFormDialog({
               className="mt-1"
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Defaults to 48. Stored on the complaint, so changing the policy later
+              Defaults to 24. Stored on the complaint, so changing the policy later
               won&apos;t move old deadlines.
             </p>
           </div>
@@ -616,20 +650,28 @@ export function ComplaintFormDialog({
             <div>
               <Label>Who exactly</Label>
               <div className="mt-1 space-y-1 rounded-md border px-3 py-2 text-sm">
-                {namedParties.map((party) => (
-                  <div key={party} className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">{PARTY_LABELS[party]}</span>
-                    <span className={assignedNames[party] ? "" : "text-muted-foreground"}>
-                      {assignedNames[party] ??
-                        (form.trafficJobId
-                          ? "Nobody assigned to this job"
-                          : "Pick a job first")}
-                    </span>
-                  </div>
-                ))}
+                {namedParties.flatMap((party) =>
+                  resolvedParties[party].map((entry, i) => (
+                    <div
+                      key={`${party}-${i}`}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="text-muted-foreground">
+                        {PARTY_LABELS[party]}
+                        {entry.label ? ` · ${entry.label}` : ""}
+                      </span>
+                      <span className={entry.name ? "" : "text-muted-foreground"}>
+                        {entry.name ??
+                          (form.trafficJobId
+                            ? "Nobody on this job"
+                            : "Pick a job first")}
+                      </span>
+                    </div>
+                  )),
+                )}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Taken from the job&apos;s own assignment — there is nothing to pick.
+                Taken from the job itself — there is nothing to pick.
               </p>
             </div>
           )}

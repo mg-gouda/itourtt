@@ -39,7 +39,7 @@ export const COMPLAINT_ATTACHMENT_KINDS = ['COMPLAINT_DOC', 'REPLY_DOC', 'EVIDEN
 export const CURRENCIES = ['EGP', 'USD', 'EUR', 'GBP', 'SAR'] as const;
 
 /** Default reply window. Stored per complaint so a later policy change can't rewrite history. */
-export const DEFAULT_SLA_HOURS = 48;
+export const DEFAULT_SLA_HOURS = 24;
 
 /** Hours before the deadline at which the owner gets a "reply due soon" nudge. */
 export const SLA_WARNING_HOURS = 12;

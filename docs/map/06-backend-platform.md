@@ -402,8 +402,8 @@ The reply-window sweep: flips slaBreached and writes notifications, and never to
 |---|---|---|---|---|
 | `sweep` | pub | 25 | `cronRunLock` | Hourly cron, claimed per hour via CronRunLock so only one pod runs it. |
 | `flagBreaches` | priv | 61 | `complaint` `userNotification` | Flags unanswered complaints past their deadline and notifies the owner. |
-| `warnDueSoon` | priv | 109 | `complaint` `userNotification` | One nudge per complaint as its deadline approaches; the notification metadata stops it repeating hourly. |
-| `notifyResponsibleParty` | pub | 167 | `repNotification` `driverNotification` | Tells a rep or driver a complaint naming them was upheld — only for terminal LOST / PARTIALLY_LOST, never mid-dispute. |
+| `warnDueSoon` | priv | 112 | `complaint` `userNotification` | One nudge per complaint as its deadline approaches; the notification metadata stops it repeating hourly. |
+| `notifyResponsibleParty` | pub | 170 | `repNotification` `driverNotification` | Tells a rep or driver a complaint naming them was upheld — only for terminal LOST / PARTIALLY_LOST, never mid-dispute. |
 
 ### ComplaintsService
 
@@ -413,33 +413,33 @@ Complaint lifecycle: numbering, SLA computation, guarded status transitions and 
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 103 | `complaint` | Paginated query plus per-viewer amount redaction. |
-| `findOne` | pub | 126 | `complaint` | One complaint with attachments, charge and adjustments, redacted for the viewer. |
-| `findByJob` | pub | 145 | `complaint` | All complaints on one job, newest first. |
-| `buildWhere` | priv | 156 | — | Turns the query DTO into the Prisma where clause, always excluding soft-deleted rows. |
-| `create` | pub | 211 | `trafficJob` `complaint` | Logs a complaint: denormalises the agent off the job, computes replyDueAt in Cairo time and allocates the CMP- number. |
-| `update` | pub | 301 | `complaintCategoryLink` `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
-| `assign` | pub | 410 | `complaint` | Sets the owning user without touching status. |
-| `remove` | pub | 420 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
-| `transition` | pub | 449 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` `slaService.notifyResponsibleParty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
-| `assertOutcomeConsistent` | priv | 585 | — | Rejects a won complaint that still carries a conceded amount. |
-| `assertOutcomeMatchesStatus` | priv | 598 | — | Stops a plain edit contradicting the outcome a terminal status already settled. |
-| `assertOutcomeAmounts` | priv | 619 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
-| `computeReplyDueAt` | priv | 657 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
-| `isBreached` | priv | 662 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
-| `getEditable` | priv | 666 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
-| `normaliseCategoryIds` | priv | 681 | — | Merges categoryId and categoryIds into one deduped list whose first entry becomes the primary category; throws when empty. |
-| `loadCategories` | priv | 691 | `complaintCategory` | Checks every named category exists and is not deleted, returning the primary one. |
-| `normaliseParties` | priv | 710 | — | Merges responsibleParty and responsibleParties into one deduped list; NONE only survives alone, and an empty answer becomes ['NONE']. |
-| `storedParties` | priv | 722 | — | The party set on a stored row, falling back to its single responsibleParty for rows written before the multi-select migration. |
-| `resolveResponsible` | priv | 741 | `trafficAssignment` | Reads the driver, rep and supplier off the job's own TrafficAssignment for each party blamed, and clears the ids of every party that is not. |
-| `assertResponsibleConsistent` | priv | 783 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
-| `resolveAgentId` | priv | 812 | `agent` | Resolves the agent a complaint is with — an explicit choice wins over the job's agent, and both are validated since this is who a conceded amount is owed to. |
-| `generateComplaintNo` | priv | 828 | — | Allocates the next sequential CMP-00001 reference. |
-| `canViewAmounts` | pub | 840 | — | Whether this user holds complaints.financial.viewAmounts. |
-| `present` | priv | 849 | — | What a complaint looks like on the wire: categories flattened, money stripped when the viewer lacks financial.viewAmounts. |
-| `flattenCategories` | priv | 859 | — | Turns the categoryLinks join rows into a flat categories/categoryIds array on the payload, primary category first. |
-| `redactAmounts` | priv | 883 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
+| `findAll` | pub | 110 | `complaint` | Paginated query plus per-viewer amount redaction. |
+| `findOne` | pub | 133 | `complaint` | One complaint with attachments, charge and adjustments, redacted for the viewer. |
+| `findByJob` | pub | 152 | `complaint` | All complaints on one job, newest first. |
+| `buildWhere` | priv | 163 | — | Turns the query DTO into the Prisma where clause, always excluding soft-deleted rows. |
+| `create` | pub | 218 | `trafficJob` `complaint` | Logs a complaint: denormalises the agent off the job, computes replyDueAt in Cairo time and allocates the CMP- number. |
+| `update` | pub | 308 | `complaintCategoryLink` `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
+| `assign` | pub | 417 | `complaint` | Sets the owning user without touching status. |
+| `remove` | pub | 427 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
+| `transition` | pub | 456 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` `slaService.notifyResponsibleParty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
+| `assertOutcomeConsistent` | priv | 592 | — | Rejects a won complaint that still carries a conceded amount. |
+| `assertOutcomeMatchesStatus` | priv | 605 | — | Stops a plain edit contradicting the outcome a terminal status already settled. |
+| `assertOutcomeAmounts` | priv | 626 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
+| `computeReplyDueAt` | priv | 664 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
+| `isBreached` | priv | 669 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
+| `getEditable` | priv | 673 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
+| `normaliseCategoryIds` | priv | 688 | — | Merges categoryId and categoryIds into one deduped list whose first entry becomes the primary category; throws when empty. |
+| `loadCategories` | priv | 698 | `complaintCategory` | Checks every named category exists and is not deleted, returning the primary one. |
+| `normaliseParties` | priv | 717 | — | Merges responsibleParty and responsibleParties into one deduped list; NONE only survives alone, and an empty answer becomes ['NONE']. |
+| `storedParties` | priv | 729 | — | The party set on a stored row, falling back to its single responsibleParty for rows written before the multi-select migration. |
+| `resolveResponsible` | priv | 748 | `trafficAssignment` | Reads the driver, rep and supplier off the job's own TrafficAssignment for each party blamed, and clears the ids of every party that is not. |
+| `assertResponsibleConsistent` | priv | 790 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
+| `resolveAgentId` | priv | 819 | `agent` | Resolves the agent a complaint is with — an explicit choice wins over the job's agent, and both are validated since this is who a conceded amount is owed to. |
+| `generateComplaintNo` | priv | 835 | — | Allocates the next sequential CMP-00001 reference. |
+| `canViewAmounts` | pub | 847 | — | Whether this user holds complaints.financial.viewAmounts. |
+| `present` | priv | 856 | — | What a complaint looks like on the wire: categories flattened, money stripped when the viewer lacks financial.viewAmounts. |
+| `flattenCategories` | priv | 866 | — | Turns the categoryLinks join rows into a flat categories/categoryIds array on the payload, primary category first. |
+| `redactAmounts` | priv | 890 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
 
 ## `email`
 
