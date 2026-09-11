@@ -337,6 +337,8 @@ interface ComplaintsReportRow {
   agentName: string | null;
   categoryId: string;
   categoryName: string;
+  /** Every category the complaint carries, primary first. */
+  categoryNames: string[];
   stage: string;
   source: string;
   subject: string;
@@ -350,7 +352,9 @@ interface ComplaintsReportRow {
   lossAmount: number | null;
   currency: string;
   responsibleParty: ComplaintParty | null;
+  responsibleParties: ComplaintParty[];
   responsibleName: string | null;
+  responsibleNames: string[];
   scorePenaltyApplied: number;
   chargeStatus: string | null;
   chargeAmount: number | null;
@@ -5135,7 +5139,9 @@ export default function ReportsPage() {
                             <TableCell className="font-medium">{row.complaintNo}</TableCell>
                             <TableCell className="text-xs">{row.internalRef}</TableCell>
                             <TableCell className="text-xs">{row.agentName ?? "—"}</TableCell>
-                            <TableCell className="text-xs">{row.categoryName}</TableCell>
+                            <TableCell className="text-xs">
+                              {row.categoryNames?.join(", ") || row.categoryName}
+                            </TableCell>
                             <TableCell className="text-xs whitespace-nowrap">
                               {formatDate(row.complaintDate)}
                             </TableCell>
@@ -5149,9 +5155,19 @@ export default function ReportsPage() {
                               )}
                             </TableCell>
                             <TableCell className="text-xs">
-                              {row.responsibleParty
-                                ? `${PARTY_LABELS[row.responsibleParty]}${row.responsibleName ? ` — ${row.responsibleName}` : ""}`
-                                : "—"}
+                              {(row.responsibleParties?.length
+                                ? row.responsibleParties
+                                : ([row.responsibleParty].filter(
+                                    Boolean,
+                                  ) as ComplaintParty[])
+                              )
+                                .map((p) => PARTY_LABELS[p])
+                                .join(", ") || "—"}
+                              {row.responsibleNames?.length > 0 && (
+                                <div className="text-muted-foreground">
+                                  {row.responsibleNames.join(", ")}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="text-xs">
                               {row.lossAmount ? formatMoney(row.lossAmount, row.currency) : "—"}

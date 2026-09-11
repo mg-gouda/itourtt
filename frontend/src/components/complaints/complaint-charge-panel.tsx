@@ -23,6 +23,7 @@ import {
   type ComplaintParty,
   CURRENCIES,
   CHARGEABLE_PARTIES,
+  responsibleParties,
   CHARGE_STATUS_META,
   ADJUSTMENT_STATUS_META,
   PARTY_LABELS,
@@ -50,10 +51,11 @@ export function ComplaintChargePanel({ complaint, onChanged }: Props) {
   const adjustments = complaint.adjustments ?? [];
 
   const [working, setWorking] = useState(false);
+  // A charge lands on one party. Default to the first party the complaint
+  // blames that actually has a fee table to deduct from.
   const [party, setParty] = useState<ComplaintParty>(
-    CHARGEABLE_PARTIES.includes(complaint.responsibleParty as ComplaintParty)
-      ? (complaint.responsibleParty as ComplaintParty)
-      : "DRIVER",
+    responsibleParties(complaint).find((p) => CHARGEABLE_PARTIES.includes(p)) ??
+      "DRIVER",
   );
   const [partyId, setPartyId] = useState("");
   const [amount, setAmount] = useState(

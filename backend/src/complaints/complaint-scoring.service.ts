@@ -7,7 +7,7 @@ import {
 } from '../common/utils/driver-score.util.js';
 
 /**
- * Applies a complaint's score penalty to the rep or driver it blames.
+ * Applies a complaint's score penalty to the rep and/or driver it blames.
  *
  * The penalty is deducted from the job score total, never re-weighted into the
  * criteria, so historical scores don't move. Because the score drives the pay
@@ -27,6 +27,12 @@ export class ComplaintScoringService {
    * Called from the complaint transition when an outcome blames a rep or
    * driver. Runs inside the caller's transaction. Returns a note to store on
    * the complaint, or null when there was nothing to do.
+   *
+   * A complaint carries a set of categories and a set of parties. The penalty
+   * is the **highest** of the categories' points, not their sum — tagging one
+   * incident with three labels describes it better, it does not make it three
+   * times worse — and it is applied to every party the complaint blames, so a
+   * rep and a driver who both let the guest down both lose the points.
    */
   async applyPenalty(
     tx: Prisma.TransactionClient,
@@ -34,30 +40,47 @@ export class ComplaintScoringService {
       id: string;
       complaintNo: string;
       trafficJobId: string;
-      categoryId: string;
-      responsibleParty: string | null;
+      categoryIds: string[];
+      responsibleParties: string[];
       responsibleRepId: string | null;
       responsibleDriverId: string | null;
     },
   ): Promise<{ applied: number; note: string | null }> {
-    const party = complaint.responsibleParty;
-    if (party !== 'REP' && party !== 'DRIVER') {
+    const parties = complaint.responsibleParties.filter(
+      (p) => p === 'REP' || p === 'DRIVER',
+    );
+    if (parties.length === 0) {
       return { applied: 0, note: null };
     }
 
-    const category = await tx.complaintCategory.findUnique({
-      where: { id: complaint.categoryId },
+    const categories = await tx.complaintCategory.findMany({
+      where: { id: { in: complaint.categoryIds } },
       select: { defaultPenaltyPoints: true, nameEn: true },
     });
-    const points = category?.defaultPenaltyPoints ?? 0;
+    const points = categories.reduce(
+      (max, c) => Math.max(max, c.defaultPenaltyPoints),
+      0,
+    );
     if (points <= 0) {
       // Categories seed at 0 so nothing touches pay until someone configures it.
       return { applied: 0, note: null };
     }
 
-    return party === 'REP'
-      ? this.applyRepPenalty(tx, complaint, points)
-      : this.applyDriverPenalty(tx, complaint, points);
+    const results: { applied: number; note: string | null }[] = [];
+    if (parties.includes('REP')) {
+      results.push(await this.applyRepPenalty(tx, complaint, points));
+    }
+    if (parties.includes('DRIVER')) {
+      results.push(await this.applyDriverPenalty(tx, complaint, points));
+    }
+
+    const notes = results.map((r) => r.note).filter(Boolean);
+    return {
+      // What the complaint records is the penalty each blamed party took, which
+      // is the same number for both — never the two added together.
+      applied: Math.max(0, ...results.map((r) => r.applied)),
+      note: notes.length > 0 ? notes.join(' ') : null,
+    };
   }
 
   private async applyRepPenalty(

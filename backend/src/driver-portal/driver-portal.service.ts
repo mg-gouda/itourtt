@@ -668,7 +668,9 @@ export class DriverPortalService {
     const complaints = await this.prisma.complaint.findMany({
       where: {
         deletedAt: null,
-        responsibleParty: 'DRIVER',
+        // The set, not the primary: a complaint that blames the rep first and
+        // the driver second is still the driver's to see.
+        responsibleParties: { has: 'DRIVER' },
         responsibleDriverId: driverId,
         status: { in: ['WON', 'PARTIALLY_LOST', 'LOST'] },
       },

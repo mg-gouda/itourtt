@@ -2517,11 +2517,34 @@ model ComplaintCategory {
   updatedAt            DateTime        @updatedAt @map("updated_at")
   deletedAt            DateTime?       @map("deleted_at")
 
-  complaints Complaint[]
+  // `complaints` is where this is the primary category (`Complaint.categoryId`);
+  // `complaintLinks` is every complaint tagged with it, primary included — one
+  // incident is often several things at once.
+  complaints     Complaint[]
+  complaintLinks ComplaintCategoryLink[]
 
   @@index([isActive, sortOrder])
   @@index([deletedAt])
   @@map("complaint_categories")
+}
+
+/**
+ * A complaint's categories. `Complaint.categoryId` remains the primary one — it
+ * is what scoring, analytics and the exports read — and is mirrored here too,
+ * so a filter on this table finds every complaint carrying the category,
+ * whether it is the primary or merely one of the others.
+ */
+model ComplaintCategoryLink {
+  complaintId String   @map("complaint_id")
+  categoryId  String   @map("category_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  complaint Complaint         @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  category  ComplaintCategory @relation(fields: [categoryId], references: [id])
+
+  @@id([complaintId, categoryId])
+  @@index([categoryId])
+  @@map("complaint_category_links")
 }
 
 model Complaint {
@@ -2558,11 +2581,17 @@ model Complaint {
   currency      Currency @default(EGP)
   exchangeRate  Decimal  @default(1) @map("exchange_rate") @db.Decimal(10, 4)
 
-  // ── Accountability (exactly one responsible* id, enforced in the service) ──
-  responsibleParty      ComplaintParty? @map("responsible_party")
-  responsibleDriverId   String?         @map("responsible_driver_id")
-  responsibleRepId      String?         @map("responsible_rep_id")
-  responsibleSupplierId String?         @map("responsible_supplier_id")
+  // ── Accountability ──
+  // `responsibleParties` is the full answer; `responsibleParty` is its first
+  // entry, kept because scoring, notifications, charges, analytics and the
+  // exports are all single-party and would otherwise have to guess.
+  // Each of DRIVER / REP / SUPPLIER named in the list carries its own id,
+  // resolved from the job's assignment — so the three may now be set together.
+  responsibleParties    ComplaintParty[] @default([]) @map("responsible_parties")
+  responsibleParty      ComplaintParty?  @map("responsible_party")
+  responsibleDriverId   String?          @map("responsible_driver_id")
+  responsibleRepId      String?          @map("responsible_rep_id")
+  responsibleSupplierId String?          @map("responsible_supplier_id")
 
   // Score penalty actually applied (0 when the fee was already posted).
   scorePenaltyApplied Int     @default(0) @map("score_penalty_applied")
@@ -2583,9 +2612,11 @@ model Complaint {
   assignedTo          User?             @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
   createdBy           User              @relation("ComplaintCreatedBy", fields: [createdById], references: [id])
 
-  attachments ComplaintAttachment[]
-  charge      ComplaintCharge?
-  adjustments AgentAdjustment[]
+  attachments   ComplaintAttachment[]
+  charge        ComplaintCharge?
+  adjustments   AgentAdjustment[]
+  // Every category the complaint was logged under, `category` included.
+  categoryLinks ComplaintCategoryLink[]
 
   @@index([trafficJobId])
   @@index([agentId])

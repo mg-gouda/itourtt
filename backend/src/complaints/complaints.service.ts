@@ -14,7 +14,7 @@ import { ComplaintQueryDto } from './dto/complaint-query.dto.js';
 import { AgentAdjustmentsService } from './agent-adjustments.service.js';
 import { ComplaintScoringService } from './complaint-scoring.service.js';
 import { ComplaintSlaService } from './complaint-sla.service.js';
-import { DEFAULT_SLA_HOURS } from './dto/complaint-constants.js';
+import { DEFAULT_SLA_HOURS, ASSIGNABLE_PARTIES } from './dto/complaint-constants.js';
 import type {
   ComplaintStatus,
   ComplaintStage,
@@ -75,6 +75,8 @@ export class ComplaintsService {
 
   private readonly complaintInclude = {
     category: true,
+    // Every category the complaint carries, the primary one included.
+    categoryLinks: { include: { category: true } },
     agent: { select: { id: true, legalName: true, tradeName: true } },
     trafficJob: {
       select: {
@@ -116,7 +118,7 @@ export class ComplaintsService {
     ]);
 
     const canViewAmounts = await this.canViewAmounts(userId);
-    const rows = data.map((c) => this.redactAmounts(c, canViewAmounts));
+    const rows = data.map((c) => this.present(c, canViewAmounts));
 
     return new PaginatedResponse(rows, total, page, limit);
   }
@@ -136,7 +138,7 @@ export class ComplaintsService {
       throw new NotFoundException(`Complaint with ID "${id}" not found`);
     }
 
-    return this.redactAmounts(complaint, await this.canViewAmounts(userId));
+    return this.present(complaint, await this.canViewAmounts(userId));
   }
 
   /** Complaints attached to one job — powers the Complaints tab on the job screen. */
@@ -148,7 +150,7 @@ export class ComplaintsService {
     });
 
     const canViewAmounts = await this.canViewAmounts(userId);
-    return rows.map((c) => this.redactAmounts(c, canViewAmounts));
+    return rows.map((c) => this.present(c, canViewAmounts));
   }
 
   private buildWhere(query: ComplaintQueryDto): Record<string, unknown> {
@@ -157,11 +159,15 @@ export class ComplaintsService {
     if (query.status) where.status = query.status as ComplaintStatus;
     if (query.stage) where.stage = query.stage as ComplaintStage;
     if (query.source) where.source = query.source as ComplaintSource;
+    // Match on the set, not the primary: a complaint whose second category or
+    // second responsible party is the one being filtered for still counts.
     if (query.responsibleParty) {
-      where.responsibleParty = query.responsibleParty as ComplaintParty;
+      where.responsibleParties = { has: query.responsibleParty as ComplaintParty };
     }
     if (query.agentId) where.agentId = query.agentId;
-    if (query.categoryId) where.categoryId = query.categoryId;
+    if (query.categoryId) {
+      where.categoryLinks = { some: { categoryId: query.categoryId } };
+    }
     if (query.trafficJobId) where.trafficJobId = query.trafficJobId;
     if (query.responsibleDriverId) where.responsibleDriverId = query.responsibleDriverId;
     if (query.responsibleRepId) where.responsibleRepId = query.responsibleRepId;
@@ -211,19 +217,32 @@ export class ComplaintsService {
       throw new NotFoundException(`Traffic job with ID "${dto.trafficJobId}" not found`);
     }
 
-    const category = await this.prisma.complaintCategory.findFirst({
-      where: { id: dto.categoryId, deletedAt: null },
-    });
-    if (!category) {
-      throw new NotFoundException(`Complaint category with ID "${dto.categoryId}" not found`);
-    }
+    const categoryIds = this.normaliseCategoryIds(dto.categoryIds, dto.categoryId);
+    const primaryCategory = await this.loadCategories(categoryIds);
+
+    // The category's default party only fills in when the caller said nothing
+    // about responsibility at all. An explicit empty list means "no one" and
+    // must survive — the form pre-fills the default on the way in, so anything
+    // empty arriving here was deliberately cleared.
+    const saidNothing =
+      dto.responsibleParties === undefined && dto.responsibleParty === undefined;
+    const parties = this.normaliseParties(
+      dto.responsibleParties,
+      dto.responsibleParty,
+      saidNothing ? primaryCategory.defaultParty : null,
+    );
 
     this.assertResponsibleConsistent(
-      dto.responsibleParty,
+      parties,
       dto.responsibleDriverId,
       dto.responsibleRepId,
       dto.responsibleSupplierId,
     );
+
+    // DRIVER / REP / SUPPLIER name whoever the job is actually assigned to —
+    // nobody has to pick them off a list, and the complaint can never blame a
+    // driver who was never on the job.
+    const responsible = await this.resolveResponsible(job.id, parties, dto);
 
     const agentId = await this.resolveAgentId(dto.agentId, job.agentId);
 
@@ -236,7 +255,7 @@ export class ComplaintsService {
 
     this.assertOutcomeConsistent(outcome, dto.lossAmount);
 
-    return this.prisma.complaint.create({
+    const created = await this.prisma.complaint.create({
       data: {
         complaintNo,
         trafficJobId: job.id,
@@ -244,7 +263,9 @@ export class ComplaintsService {
         // An explicit agentId wins — a B2B job carries a customer, not an
         // agent, so without it a complaint on one could never reach an invoice.
         agentId,
-        categoryId: dto.categoryId,
+        categoryId: categoryIds[0],
+        // The whole set, primary included, so a filter finds it either way.
+        categoryLinks: { create: categoryIds.map((categoryId) => ({ categoryId })) },
         stage: dto.stage as ComplaintStage,
         source: (dto.source ?? 'AGENT') as ComplaintSource,
         subject: dto.subject,
@@ -263,28 +284,57 @@ export class ComplaintsService {
         lossAmount: outcome === 'WON' ? null : (dto.lossAmount ?? null),
         currency: (dto.currency ?? 'EGP') as Currency,
         exchangeRate: dto.exchangeRate ?? 1,
-        responsibleParty:
-          (dto.responsibleParty as ComplaintParty) ??
-          (category.defaultParty as ComplaintParty | null),
-        responsibleDriverId: dto.responsibleDriverId ?? null,
-        responsibleRepId: dto.responsibleRepId ?? null,
-        responsibleSupplierId: dto.responsibleSupplierId ?? null,
+        responsibleParties: parties,
+        // The first entry stays the single-party answer everything downstream
+        // still reads — scoring, the SLA notifications, charges and the exports.
+        responsibleParty: parties[0],
+        ...responsible,
         assignedToId: dto.assignedToId ?? null,
         createdById: userId,
       },
       include: this.complaintInclude,
     });
+
+    return this.flattenCategories(created);
   }
 
   async update(id: string, dto: UpdateComplaintDto) {
     const existing = await this.getEditable(id);
 
+    // Omitting both leaves the categories alone; sending either replaces the
+    // whole set, so unticking one actually removes it.
+    const categoryIds =
+      dto.categoryIds === undefined && dto.categoryId === undefined
+        ? null
+        : this.normaliseCategoryIds(dto.categoryIds, dto.categoryId);
+    if (categoryIds) await this.loadCategories(categoryIds);
+
+    // Same for the parties — and the ids follow whatever the set now says.
+    const parties =
+      dto.responsibleParties === undefined && dto.responsibleParty === undefined
+        ? null
+        : this.normaliseParties(dto.responsibleParties, dto.responsibleParty, null);
+
     this.assertResponsibleConsistent(
-      dto.responsibleParty ?? existing.responsibleParty ?? undefined,
+      parties ?? this.storedParties(existing),
       dto.responsibleDriverId,
       dto.responsibleRepId,
       dto.responsibleSupplierId,
     );
+
+    const responsible = parties
+      ? await this.resolveResponsible(existing.trafficJobId, parties, dto)
+      : {
+          ...(dto.responsibleDriverId !== undefined && {
+            responsibleDriverId: dto.responsibleDriverId,
+          }),
+          ...(dto.responsibleRepId !== undefined && {
+            responsibleRepId: dto.responsibleRepId,
+          }),
+          ...(dto.responsibleSupplierId !== undefined && {
+            responsibleSupplierId: dto.responsibleSupplierId,
+          }),
+        };
 
     const complaintDate = dto.complaintDate
       ? new Date(dto.complaintDate)
@@ -306,57 +356,65 @@ export class ComplaintsService {
       this.assertOutcomeConsistent(dto.outcome, dto.lossAmount);
     }
 
-    return this.prisma.complaint.update({
-      where: { id },
-      data: {
-        ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
-        ...(dto.agentId !== undefined && { agentId: dto.agentId }),
-        ...(dto.stage !== undefined && { stage: dto.stage as ComplaintStage }),
-        ...(dto.source !== undefined && { source: dto.source as ComplaintSource }),
-        ...(dto.subject !== undefined && { subject: dto.subject }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.outcome !== undefined && {
-          outcome: dto.outcome as ComplaintOutcome | null,
-        }),
-        ...(dto.claimedAmount !== undefined && { claimedAmount: dto.claimedAmount }),
-        // Recording a win clears any provisional loss, the same way the WON
-        // transition does — a won complaint must never carry one.
-        ...(dto.outcome === 'WON'
-          ? { lossAmount: null }
-          : dto.lossAmount !== undefined && { lossAmount: dto.lossAmount }),
-        ...(dto.currency !== undefined && { currency: dto.currency as Currency }),
-        ...(dto.exchangeRate !== undefined && { exchangeRate: dto.exchangeRate }),
-        ...(dto.responsibleParty !== undefined && {
-          responsibleParty: dto.responsibleParty as ComplaintParty,
-        }),
-        ...(dto.responsibleDriverId !== undefined && {
-          responsibleDriverId: dto.responsibleDriverId,
-        }),
-        ...(dto.responsibleRepId !== undefined && {
-          responsibleRepId: dto.responsibleRepId,
-        }),
-        ...(dto.responsibleSupplierId !== undefined && {
-          responsibleSupplierId: dto.responsibleSupplierId,
-        }),
-        ...(dto.assignedToId !== undefined && { assignedToId: dto.assignedToId }),
-        complaintDate,
-        slaHours,
-        replyDueAt,
-        repliedAt,
-        // Recompute against the possibly-moved deadline and reply date.
-        slaBreached: this.isBreached(replyDueAt, repliedAt),
-      },
-      include: this.complaintInclude,
+    // The category set is replaced wholesale, in the same transaction as the
+    // row itself: clear the links, then write the new ones, or a category that
+    // was unticked would survive as a stale link and keep matching filters.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (categoryIds) {
+        await tx.complaintCategoryLink.deleteMany({ where: { complaintId: id } });
+        await tx.complaintCategoryLink.createMany({
+          data: categoryIds.map((categoryId) => ({ complaintId: id, categoryId })),
+        });
+      }
+
+      return tx.complaint.update({
+        where: { id },
+        data: {
+          ...(categoryIds && { categoryId: categoryIds[0] }),
+          ...(dto.agentId !== undefined && { agentId: dto.agentId }),
+          ...(dto.stage !== undefined && { stage: dto.stage as ComplaintStage }),
+          ...(dto.source !== undefined && { source: dto.source as ComplaintSource }),
+          ...(dto.subject !== undefined && { subject: dto.subject }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.outcome !== undefined && {
+            outcome: dto.outcome as ComplaintOutcome | null,
+          }),
+          ...(dto.claimedAmount !== undefined && { claimedAmount: dto.claimedAmount }),
+          // Recording a win clears any provisional loss, the same way the WON
+          // transition does — a won complaint must never carry one.
+          ...(dto.outcome === 'WON'
+            ? { lossAmount: null }
+            : dto.lossAmount !== undefined && { lossAmount: dto.lossAmount }),
+          ...(dto.currency !== undefined && { currency: dto.currency as Currency }),
+          ...(dto.exchangeRate !== undefined && { exchangeRate: dto.exchangeRate }),
+          ...(parties && {
+            responsibleParties: parties,
+            responsibleParty: parties[0],
+          }),
+          ...responsible,
+          ...(dto.assignedToId !== undefined && { assignedToId: dto.assignedToId }),
+          complaintDate,
+          slaHours,
+          replyDueAt,
+          repliedAt,
+          // Recompute against the possibly-moved deadline and reply date.
+          slaBreached: this.isBreached(replyDueAt, repliedAt),
+        },
+        include: this.complaintInclude,
+      });
     });
+
+    return this.flattenCategories(updated);
   }
 
   async assign(id: string, assignedToId: string | null) {
     await this.getEditable(id);
-    return this.prisma.complaint.update({
+    const updated = await this.prisma.complaint.update({
       where: { id },
       data: { assignedToId },
       include: this.complaintInclude,
     });
+    return this.flattenCategories(updated);
   }
 
   async remove(id: string) {
@@ -475,13 +533,14 @@ export class ComplaintsService {
         }
 
         // A lost complaint also costs the responsible rep or driver score
-        // points — but never once their pay for the job has been posted.
+        // points — but never once their pay for the job has been posted. Both
+        // are penalised when both are blamed.
         const penalty = await this.scoringService.applyPenalty(tx, {
           id: row.id,
           complaintNo: row.complaintNo,
           trafficJobId: row.trafficJobId,
-          categoryId: row.categoryId,
-          responsibleParty: row.responsibleParty,
+          categoryIds: row.categoryLinks.map((l) => l.categoryId),
+          responsibleParties: this.storedParties(row),
           responsibleRepId: row.responsibleRepId,
           responsibleDriverId: row.responsibleDriverId,
         });
@@ -505,7 +564,7 @@ export class ComplaintsService {
           subject: row.subject,
           status: to,
           trafficJobId: row.trafficJobId,
-          responsibleParty: row.responsibleParty,
+          responsibleParties: this.storedParties(row),
           responsibleRepId: row.responsibleRepId,
           responsibleDriverId: row.responsibleDriverId,
         });
@@ -519,7 +578,7 @@ export class ComplaintsService {
         (dto.note ? ` (${dto.note})` : ''),
     );
 
-    return updated;
+    return this.flattenCategories(updated);
   }
 
   /** A won complaint cannot be saved with money conceded on it. */
@@ -615,46 +674,133 @@ export class ComplaintsService {
   }
 
   /**
-   * A complaint may name at most one responsible person, and the id must match
-   * the declared party — the same exactly-one-FK trap the B2C convert fix hit.
+   * The categories a complaint carries. `categoryIds` is the whole set and its
+   * first entry becomes the primary; a lone `categoryId` still works, for
+   * callers that only ever name one.
+   */
+  private normaliseCategoryIds(ids?: string[], primary?: string): string[] {
+    const ordered = [...(primary ? [primary] : []), ...(ids ?? [])].filter(Boolean);
+    const unique = [...new Set(ordered)];
+    if (unique.length === 0) {
+      throw new BadRequestException('A complaint needs at least one category.');
+    }
+    return unique;
+  }
+
+  /** Every named category must exist. Returns the primary one. */
+  private async loadCategories(categoryIds: string[]) {
+    const categories = await this.prisma.complaintCategory.findMany({
+      where: { id: { in: categoryIds }, deletedAt: null },
+    });
+
+    const missing = categoryIds.filter((id) => !categories.some((c) => c.id === id));
+    if (missing.length > 0) {
+      throw new NotFoundException(`Complaint category with ID "${missing[0]}" not found`);
+    }
+
+    return categories.find((c) => c.id === categoryIds[0])!;
+  }
+
+  /**
+   * Who a complaint blames, as a set. NONE only survives on its own — it means
+   * "no one", so it cannot sit beside a party that is actually at fault — and an
+   * empty answer is stored as NONE rather than nothing, so filtering for "No
+   * one" still finds it.
+   */
+  private normaliseParties(
+    parties?: string[],
+    primary?: string,
+    fallback?: string | null,
+  ): ComplaintParty[] {
+    const ordered = [...(primary ? [primary] : []), ...(parties ?? [])].filter(Boolean);
+    const source = ordered.length > 0 ? ordered : fallback ? [fallback] : [];
+    const unique = [...new Set(source)].filter((p) => p !== 'NONE');
+    return (unique.length > 0 ? unique : ['NONE']) as ComplaintParty[];
+  }
+
+  /** The set on a stored row, falling back to its primary for pre-migration rows. */
+  private storedParties(row: {
+    responsibleParties?: ComplaintParty[] | null;
+    responsibleParty: ComplaintParty | null;
+  }): ComplaintParty[] {
+    if (row.responsibleParties && row.responsibleParties.length > 0) {
+      return row.responsibleParties;
+    }
+    return row.responsibleParty ? [row.responsibleParty] : [];
+  }
+
+  /**
+   * The driver, rep and supplier a complaint blames. Each is read off the job's
+   * own assignment, so the complaint names whoever actually worked the job
+   * rather than whoever was picked from a list; an explicit id still wins, for
+   * the rare case of blaming someone the assignment no longer shows.
+   *
+   * Every party absent from the set has its id cleared — unticking REP must
+   * leave no rep behind, or the charge panel would still offer them.
+   */
+  private async resolveResponsible(
+    trafficJobId: string,
+    parties: ComplaintParty[],
+    explicit: {
+      responsibleDriverId?: string;
+      responsibleRepId?: string;
+      responsibleSupplierId?: string;
+    },
+  ): Promise<{
+    responsibleDriverId: string | null;
+    responsibleRepId: string | null;
+    responsibleSupplierId: string | null;
+  }> {
+    const needsAssignment = parties.some((p) =>
+      (ASSIGNABLE_PARTIES as readonly string[]).includes(p),
+    );
+
+    const assignment = needsAssignment
+      ? await this.prisma.trafficAssignment.findUnique({
+          where: { trafficJobId },
+          select: { driverId: true, repId: true, supplierId: true },
+        })
+      : null;
+
+    return {
+      responsibleDriverId: parties.includes('DRIVER')
+        ? (explicit.responsibleDriverId ?? assignment?.driverId ?? null)
+        : null,
+      responsibleRepId: parties.includes('REP')
+        ? (explicit.responsibleRepId ?? assignment?.repId ?? null)
+        : null,
+      responsibleSupplierId: parties.includes('SUPPLIER')
+        ? (explicit.responsibleSupplierId ?? assignment?.supplierId ?? null)
+        : null,
+    };
+  }
+
+  /**
+   * A complaint may now blame a driver, a rep and a supplier at once — one per
+   * party — but an id still has to match a party that was actually named, or the
+   * charge panel would offer to deduct from someone nobody blamed.
    */
   private assertResponsibleConsistent(
-    party?: string | null,
+    parties: ComplaintParty[] | string[],
     driverId?: string | null,
     repId?: string | null,
     supplierId?: string | null,
   ) {
-    const provided = [driverId, repId, supplierId].filter(Boolean);
-    if (provided.length > 1) {
-      throw new BadRequestException(
-        'A complaint can name only one responsible driver, rep or supplier.',
-      );
-    }
+    const named = new Set(parties as string[]);
 
-    if (party === 'DRIVER' && repId) {
-      throw new BadRequestException('Responsible party is DRIVER but a rep was supplied.');
-    }
-    if (party === 'REP' && driverId) {
-      throw new BadRequestException('Responsible party is REP but a driver was supplied.');
-    }
-    if (party === 'SUPPLIER' && (driverId || repId)) {
+    if (driverId && !named.has('DRIVER')) {
       throw new BadRequestException(
-        'Responsible party is SUPPLIER but a driver or rep was supplied.',
+        'A responsible driver cannot be set unless DRIVER is one of the responsible parties.',
       );
     }
-    if (driverId && party && party !== 'DRIVER') {
+    if (repId && !named.has('REP')) {
       throw new BadRequestException(
-        `A responsible driver cannot be set when the responsible party is ${party}.`,
+        'A responsible rep cannot be set unless REP is one of the responsible parties.',
       );
     }
-    if (repId && party && party !== 'REP') {
+    if (supplierId && !named.has('SUPPLIER')) {
       throw new BadRequestException(
-        `A responsible rep cannot be set when the responsible party is ${party}.`,
-      );
-    }
-    if (supplierId && party && party !== 'SUPPLIER') {
-      throw new BadRequestException(
-        `A responsible supplier cannot be set when the responsible party is ${party}.`,
+        'A responsible supplier cannot be set unless SUPPLIER is one of the responsible parties.',
       );
     }
   }
@@ -694,6 +840,39 @@ export class ComplaintsService {
   async canViewAmounts(userId: string): Promise<boolean> {
     const granted = await this.permissionsGuard.getUserPermissions(userId);
     return granted.has(VIEW_AMOUNTS_PERMISSION);
+  }
+
+  /**
+   * What a complaint looks like on the wire: its categories flattened out of the
+   * link rows, and the money stripped when the viewer may not see it.
+   */
+  private present<T extends Record<string, unknown>>(row: T, canView: boolean): T {
+    return this.redactAmounts(this.flattenCategories(row), canView);
+  }
+
+  /**
+   * `categoryLinks` is a join-table detail; every consumer wants the plain
+   * `categories` array. Primary first — the links are all written in the same
+   * instant, so their own order says nothing, and the form re-saves whatever it
+   * reads first as the primary, which would otherwise drift on every edit.
+   */
+  private flattenCategories<T extends Record<string, unknown>>(row: T): T {
+    const links = row.categoryLinks as
+      | { categoryId: string; category?: Record<string, unknown> }[]
+      | undefined;
+    if (!links) return row;
+
+    const primaryId = row.categoryId as string;
+    const ordered = [
+      ...links.filter((l) => l.categoryId === primaryId),
+      ...links.filter((l) => l.categoryId !== primaryId),
+    ];
+
+    return {
+      ...row,
+      categories: ordered.map((l) => l.category).filter(Boolean),
+      categoryIds: ordered.map((l) => l.categoryId),
+    } as T;
   }
 
   /**

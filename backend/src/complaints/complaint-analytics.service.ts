@@ -49,9 +49,13 @@ export class ComplaintAnalyticsService {
         deletedAt: null,
         complaintDate: { gte: from, lte: to },
         ...(query.agentId && { agentId: query.agentId }),
-        ...(query.categoryId && { categoryId: query.categoryId }),
+        // Filter across the whole set — a complaint's second category or second
+        // responsible party counts as much as its first.
+        ...(query.categoryId && {
+          categoryLinks: { some: { categoryId: query.categoryId } },
+        }),
         ...(query.responsibleParty && {
-          responsibleParty: query.responsibleParty as ComplaintParty,
+          responsibleParties: { has: query.responsibleParty as ComplaintParty },
         }),
       },
       select: {
@@ -216,6 +220,10 @@ export class ComplaintAnalyticsService {
       add(byStatus, row.status, row.status);
       add(byStage, row.stage, row.stage);
       add(bySource, row.source, row.source);
+      // Breakdowns count each complaint exactly once, against its primary
+      // party and primary category. Counting it under every party and every
+      // category it carries would make the slices add up to more than the
+      // headline total, which is the one thing this screen must never do.
       add(byParty, row.responsibleParty ?? 'NONE', row.responsibleParty ?? 'NONE');
       add(byCategory, row.categoryId, row.category?.nameEn ?? 'Uncategorised');
       add(

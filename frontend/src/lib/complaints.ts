@@ -67,6 +67,8 @@ export interface Complaint {
   currency?: string;
   exchangeRate?: number | string;
 
+  /** Everyone blamed. `responsibleParty` is its first entry. */
+  responsibleParties?: ComplaintParty[];
   responsibleParty?: ComplaintParty | null;
   responsibleDriverId?: string | null;
   responsibleRepId?: string | null;
@@ -75,7 +77,10 @@ export interface Complaint {
   scorePenaltyNote?: string | null;
   assignedToId?: string | null;
 
+  /** The primary category, and every category the complaint carries. */
   category?: ComplaintCategory;
+  categories?: ComplaintCategory[];
+  categoryIds?: string[];
   agent?: { id: string; legalName: string; tradeName?: string | null } | null;
   trafficJob?: {
     id: string;
@@ -210,6 +215,19 @@ export const STAGE_LABELS: Record<ComplaintStage, string> = {
   AFTER_JOB: "After the job",
 };
 
+/**
+ * The stages a complaint can be logged at. BEFORE_JOB is deliberately absent —
+ * it is no longer offered — but it stays in STAGE_LABELS so complaints already
+ * logged against it still read properly, here and in the filters.
+ */
+export const SELECTABLE_STAGES: ComplaintStage[] = ["DURING_JOB", "AFTER_JOB"];
+
+/**
+ * Parties whose person comes from the job's assignment rather than a picker —
+ * the complaint names whoever actually worked the job.
+ */
+export const ASSIGNABLE_PARTIES: ComplaintParty[] = ["DRIVER", "REP", "SUPPLIER"];
+
 export const SOURCE_LABELS: Record<ComplaintSource, string> = {
   AGENT: "Agent",
   GUEST: "Guest",
@@ -267,6 +285,37 @@ export const TRANSITION_PERMISSION: Record<ComplaintStatus, string> = {
   CANCELLED: "complaints.transition.cancel",
   OPEN: "complaints.editButton",
 };
+
+/** Every category a complaint carries, primary first, for display. */
+export function categoryNames(complaint: Complaint): string[] {
+  if (complaint.categories?.length) {
+    const others = complaint.categories
+      .filter((c) => c.id !== complaint.categoryId)
+      .map((c) => c.nameEn);
+    const primary = complaint.categories.find((c) => c.id === complaint.categoryId);
+    return [primary?.nameEn ?? complaint.category?.nameEn, ...others].filter(
+      (n): n is string => Boolean(n),
+    );
+  }
+  return complaint.category?.nameEn ? [complaint.category.nameEn] : [];
+}
+
+/** Every party a complaint blames. Falls back to the primary on older rows. */
+export function responsibleParties(
+  complaint: Pick<Complaint, "responsibleParties" | "responsibleParty">,
+): ComplaintParty[] {
+  if (complaint.responsibleParties?.length) return complaint.responsibleParties;
+  return complaint.responsibleParty ? [complaint.responsibleParty] : [];
+}
+
+/** The named people a complaint blames — one per party at most. */
+export function responsibleNames(complaint: Complaint): string[] {
+  return [
+    complaint.responsibleDriver?.name,
+    complaint.responsibleRep?.name,
+    complaint.responsibleSupplier?.tradeName || complaint.responsibleSupplier?.legalName,
+  ].filter((n): n is string => Boolean(n));
+}
 
 export type SlaTone = "ok" | "warning" | "danger" | "neutral";
 

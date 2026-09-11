@@ -45,6 +45,9 @@ import {
   STAGE_LABELS,
   PARTY_LABELS,
   SOURCE_LABELS,
+  categoryNames,
+  responsibleParties,
+  responsibleNames,
   formatSlaCountdown,
   formatMoney,
 } from "@/lib/complaints";
@@ -55,7 +58,7 @@ const COL_DEFS: ColumnDef[] = [
   { key: "complaintNo", label: "Complaint #" },
   { key: "job", label: "Job" },
   { key: "agent", label: "Agent" },
-  { key: "category", label: "Category" },
+  { key: "category", label: "Categories" },
   { key: "stage", label: "Stage" },
   { key: "complaintDate", label: "Received" },
   { key: "sla", label: "Reply SLA" },
@@ -413,7 +416,9 @@ export default function ComplaintsPage() {
                       </TableCell>
                     )}
                     {isVis("category") && (
-                      <TableCell className="text-sm">{row.category?.nameEn ?? "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        {categoryNames(row).join(", ") || "—"}
+                      </TableCell>
                     )}
                     {isVis("stage") && (
                       <TableCell className="text-sm">
@@ -446,12 +451,12 @@ export default function ComplaintsPage() {
                     )}
                     {isVis("responsible") && (
                       <TableCell className="text-sm">
-                        {row.responsibleParty
-                          ? PARTY_LABELS[row.responsibleParty] ?? row.responsibleParty
-                          : "—"}
-                        {(row.responsibleDriver || row.responsibleRep) && (
+                        {responsibleParties(row)
+                          .map((p) => PARTY_LABELS[p] ?? p)
+                          .join(", ") || "—"}
+                        {responsibleNames(row).length > 0 && (
                           <div className="text-xs text-muted-foreground">
-                            {row.responsibleDriver?.name ?? row.responsibleRep?.name}
+                            {responsibleNames(row).join(", ")}
                           </div>
                         )}
                       </TableCell>

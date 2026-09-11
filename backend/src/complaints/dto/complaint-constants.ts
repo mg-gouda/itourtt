@@ -2,6 +2,8 @@
 // fields with @IsIn(<local const>) rather than @IsEnum(<prisma enum>) — see
 // extras/dto/upsert-extra.dto.ts — so the lists live here, next to the DTOs.
 
+// BEFORE_JOB is still accepted and still renders on old rows; it is simply no
+// longer offered in the form — see SELECTABLE_STAGES in frontend/src/lib/complaints.ts.
 export const COMPLAINT_STAGES = ['BEFORE_JOB', 'DURING_JOB', 'AFTER_JOB'] as const;
 
 export const COMPLAINT_SOURCES = ['AGENT', 'GUEST', 'DRIVER', 'REP', 'INTERNAL'] as const;
@@ -28,6 +30,9 @@ export const COMPLAINT_PARTIES = [
   'CLIENT',
   'NONE',
 ] as const;
+
+/** Parties whose responsible person is resolved from the job's assignment. */
+export const ASSIGNABLE_PARTIES = ['DRIVER', 'REP', 'SUPPLIER'] as const;
 
 export const COMPLAINT_ATTACHMENT_KINDS = ['COMPLAINT_DOC', 'REPLY_DOC', 'EVIDENCE'] as const;
 

@@ -89,10 +89,33 @@ check entirely, since `resolveDriverGeofenceTarget` returns null.
 ## Complaints
 
 A complaint is always attached to a job (`trafficJobId` is required) and carries the stage it arose
-at — before, during or after. The lifecycle is
+at. Only **during** and **after** are offered — `SELECTABLE_STAGES` in `frontend/src/lib/complaints.ts`
+is what the form draws — while `BEFORE_JOB` stays in the enum and in `STAGE_LABELS` so the
+complaints already logged against it still read, and can still be filtered for. The lifecycle is
 `OPEN → UNDER_REVIEW → REPLIED → ESCALATED → WON / PARTIALLY_LOST / LOST / CANCELLED`, with the last
 four terminal. `VALID_TRANSITIONS` in `complaints.service.ts` is the authority; the frontend's
 `NEXT_STATUSES` only decides which buttons to draw.
+
+**A complaint is several things at once, and several people's fault.** Both the categories and the
+responsible parties are sets. The single columns did not go away: `categoryId` and `responsibleParty`
+hold the **first** entry of each set, and everything downstream still reads them — analytics and the
+reports group by them (counting each complaint once, so the slices never exceed the headline total),
+the charge panel defaults from them, the exports lead with them. The full sets live in
+`complaint_category_links` and in the `responsible_parties` enum array, and every *filter* matches
+the set, not the primary: `categoryLinks: { some: … }` and `responsibleParties: { has: … }`, in
+`complaints.service.ts`, `complaint-analytics.service.ts`, `reports.service.ts`, `export.service.ts`
+**and both portals** — a complaint that blames the rep first and the driver second is still the
+driver's to see on `/driver-portal/complaints`. Saving replaces a set wholesale (`deleteMany` then
+`create`), or an unticked category would survive as a stale link.
+
+**Nobody picks the responsible person any more.** Name DRIVER, REP or SUPPLIER and the backend reads
+that person off the job's own `TrafficAssignment` (`resolveResponsible`), so a complaint can only
+ever blame whoever actually worked the job; the form shows who that will be, read-only, and says so
+when the job has nobody in that seat. The three id columns may now be set together — one per party
+named — and the old exactly-one-FK rule is gone; what survives is that an id must belong to a party
+the complaint actually names, or the charge panel would offer to deduct from someone nobody blamed.
+Every party dropped from the set has its id cleared in the same write. An explicit id in the DTO
+still wins over the assignment, for the API callers that send one.
 
 **The 48-hour reply window flags, it never decides.** `replyDueAt = complaintDate + slaHours`
 (stored per row, so a later policy change can't rewrite history). `complaint-sla.service.ts` runs
@@ -145,7 +168,10 @@ and it is gated by the new `complaints.analytics` key.
 
 **Settled pay is never rewritten.** A category's `defaultPenaltyPoints` is deducted from the rep or
 driver job score, which moves the pay band — so it is applied *only* while that job's fee row is
-still `isPosted: false`. If the fee is posted, the penalty is skipped and the reason recorded in
+still `isPosted: false`. With a set of categories the penalty is the **highest** of them, never their
+sum: tagging one incident with three labels describes it better, it does not make it three times
+worse. It is applied to *every* party blamed, so a rep and a driver who both let the guest down both
+lose the points — and `scorePenaltyApplied` records what each of them took, not the two added up. If the fee is posted, the penalty is skipped and the reason recorded in
 `Complaint.scorePenaltyNote`. Seeded categories default to `0` so nothing touches pay until someone
 deliberately configures it. Re-scoring a job reads the penalty back off the saved row, so the
 scoring form can't wipe it.

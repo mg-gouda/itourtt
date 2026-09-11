@@ -63,6 +63,9 @@ export class TrafficJobsService {
         vehicle: { include: { vehicleType: true, supplier: { select: { id: true, legalName: true, tradeName: true } } } },
         driver: true,
         rep: true,
+        // The supplier the job itself was given to (a supplier car), which the
+        // complaint form reads to name who is responsible.
+        supplier: { select: { id: true, legalName: true, tradeName: true } },
       },
     },
     noShowEvidence: true,

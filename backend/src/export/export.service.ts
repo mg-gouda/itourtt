@@ -2282,6 +2282,18 @@ export class ExportService {
   // COMPLAINTS EXCEL EXPORT
   // ─────────────────────────────────────────────
 
+  /** A complaint's categories, primary first, for a single spreadsheet cell. */
+  private complaintCategoryNames(complaint: {
+    categoryId: string;
+    category: { nameEn: string };
+    categoryLinks: { categoryId: string; category: { nameEn: string } }[];
+  }): string {
+    const others = complaint.categoryLinks
+      .filter((l) => l.categoryId !== complaint.categoryId)
+      .map((l) => l.category.nameEn);
+    return [complaint.category.nameEn, ...others].join(', ');
+  }
+
   async exportComplaintsReport(
     from: string,
     to: string,
@@ -2300,14 +2312,18 @@ export class ExportService {
         deletedAt: null,
         ...(filters.status ? { status: filters.status as any } : {}),
         ...(filters.agentId ? { agentId: filters.agentId } : {}),
-        ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+        // Match anywhere in the sets, not only the primary entry.
+        ...(filters.categoryId
+          ? { categoryLinks: { some: { categoryId: filters.categoryId } } }
+          : {}),
         ...(filters.responsibleParty
-          ? { responsibleParty: filters.responsibleParty as any }
+          ? { responsibleParties: { has: filters.responsibleParty as any } }
           : {}),
         trafficJob: { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null },
       },
       include: {
         category: { select: { nameEn: true } },
+        categoryLinks: { include: { category: { select: { nameEn: true } } } },
         agent: { select: { legalName: true, tradeName: true } },
         responsibleDriver: { select: { name: true } },
         responsibleRep: { select: { name: true } },
@@ -2328,7 +2344,8 @@ export class ExportService {
       'Job Date': this.formatDate(c.trafficJob.jobDate),
       'Service Type': serviceTypeLabel(c.trafficJob.serviceType),
       'Agent': c.agent?.tradeName || c.agent?.legalName || '',
-      'Category': c.category.nameEn,
+      // Every category, primary first — one incident is often several things.
+      'Category': this.complaintCategoryNames(c),
       'Stage': c.stage,
       'Source': c.source,
       'Subject': c.subject,
@@ -2341,13 +2358,17 @@ export class ExportService {
       'Claimed': c.claimedAmount ? Number(c.claimedAmount) : '',
       'Loss': c.lossAmount ? Number(c.lossAmount) : '',
       'Currency': c.currency,
-      'Responsible': c.responsibleParty ?? '',
-      'Responsible Name':
-        c.responsibleDriver?.name ||
-        c.responsibleRep?.name ||
-        c.responsibleSupplier?.tradeName ||
-        c.responsibleSupplier?.legalName ||
-        '',
+      'Responsible': (c.responsibleParties.length > 0
+        ? c.responsibleParties
+        : [c.responsibleParty].filter(Boolean)
+      ).join(', '),
+      'Responsible Name': [
+        c.responsibleDriver?.name,
+        c.responsibleRep?.name,
+        c.responsibleSupplier?.tradeName || c.responsibleSupplier?.legalName,
+      ]
+        .filter(Boolean)
+        .join(', '),
       'Score Penalty': c.scorePenaltyApplied || '',
       'Charge Status': c.charge?.status ?? '',
       'Charge Amount': c.charge ? Number(c.charge.amount) : '',

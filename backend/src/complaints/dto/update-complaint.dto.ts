@@ -6,6 +6,8 @@ import {
   IsInt,
   IsNumber,
   IsDateString,
+  IsArray,
+  ArrayMaxSize,
   Min,
   Max,
   MaxLength,
@@ -24,9 +26,20 @@ import {
  * rules and date stamping can never be bypassed by a plain PATCH.
  */
 export class UpdateComplaintDto {
+  /** The primary category — see CreateComplaintDto.categoryId. */
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  /**
+   * Replaces the whole category set — see CreateComplaintDto.categoryIds.
+   * Omitted leaves it alone.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID(undefined, { each: true })
+  categoryIds?: string[];
 
   /** The agent this complaint is with — see CreateComplaintDto.agentId. */
   @IsOptional()
@@ -92,6 +105,16 @@ export class UpdateComplaintDto {
   @IsOptional()
   @IsIn(COMPLAINT_PARTIES)
   responsibleParty?: (typeof COMPLAINT_PARTIES)[number];
+
+  /**
+   * Replaces the whole set of responsible parties — see
+   * CreateComplaintDto.responsibleParties. Omitted leaves it alone.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(COMPLAINT_PARTIES.length)
+  @IsIn(COMPLAINT_PARTIES, { each: true })
+  responsibleParties?: (typeof COMPLAINT_PARTIES)[number][];
 
   @IsOptional()
   @IsUUID()

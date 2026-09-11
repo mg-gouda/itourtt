@@ -340,9 +340,12 @@ export class ReportsService {
         deletedAt: null,
         ...(filters.status ? { status: filters.status as any } : {}),
         ...(filters.agentId ? { agentId: filters.agentId } : {}),
-        ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+        // Match anywhere in the sets, not only the primary entry.
+        ...(filters.categoryId
+          ? { categoryLinks: { some: { categoryId: filters.categoryId } } }
+          : {}),
         ...(filters.responsibleParty
-          ? { responsibleParty: filters.responsibleParty as any }
+          ? { responsibleParties: { has: filters.responsibleParty as any } }
           : {}),
         trafficJob: {
           jobDate: { gte: fromDate, lte: toDate },
@@ -351,6 +354,9 @@ export class ReportsService {
       },
       include: {
         category: { select: { id: true, nameEn: true, nameAr: true } },
+        categoryLinks: {
+          include: { category: { select: { id: true, nameEn: true, nameAr: true } } },
+        },
         agent: { select: { id: true, legalName: true, tradeName: true } },
         responsibleDriver: { select: { id: true, name: true } },
         responsibleRep: { select: { id: true, name: true } },
@@ -382,6 +388,14 @@ export class ReportsService {
       agentName: c.agent?.tradeName || c.agent?.legalName || null,
       categoryId: c.categoryId,
       categoryName: c.category.nameEn,
+      // Every category, primary first — the aggregates below still count the
+      // complaint once, under the primary, so the slices match the total.
+      categoryNames: [
+        c.category.nameEn,
+        ...c.categoryLinks
+          .filter((l) => l.categoryId !== c.categoryId)
+          .map((l) => l.category.nameEn),
+      ],
       stage: c.stage,
       source: c.source,
       subject: c.subject,
@@ -395,12 +409,23 @@ export class ReportsService {
       lossAmount: c.lossAmount ? Number(c.lossAmount) : null,
       currency: c.currency,
       responsibleParty: c.responsibleParty,
+      responsibleParties:
+        c.responsibleParties.length > 0
+          ? c.responsibleParties
+          : c.responsibleParty
+            ? [c.responsibleParty]
+            : [],
       responsibleName:
         c.responsibleDriver?.name ||
         c.responsibleRep?.name ||
         c.responsibleSupplier?.tradeName ||
         c.responsibleSupplier?.legalName ||
         null,
+      responsibleNames: [
+        c.responsibleDriver?.name,
+        c.responsibleRep?.name,
+        c.responsibleSupplier?.tradeName || c.responsibleSupplier?.legalName,
+      ].filter((n): n is string => Boolean(n)),
       scorePenaltyApplied: c.scorePenaltyApplied,
       chargeStatus: c.charge?.status ?? null,
       chargeAmount: c.charge ? Number(c.charge.amount) : null,

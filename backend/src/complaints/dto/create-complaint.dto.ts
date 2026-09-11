@@ -7,6 +7,8 @@ import {
   IsInt,
   IsNumber,
   IsDateString,
+  IsArray,
+  ArrayMaxSize,
   Min,
   Max,
   MaxLength,
@@ -25,8 +27,24 @@ export class CreateComplaintDto {
   @IsUUID()
   trafficJobId!: string;
 
+  /**
+   * The primary category. Optional when `categoryIds` is sent — the first entry
+   * becomes the primary — and kept for callers that only ever name one.
+   */
+  @IsOptional()
   @IsUUID()
-  categoryId!: string;
+  categoryId?: string;
+
+  /**
+   * Every category this complaint falls under. One incident is often several
+   * things at once. The first is stored as `categoryId`; all of them are
+   * written to the link table, so a filter on any of them finds the complaint.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID(undefined, { each: true })
+  categoryIds?: string[];
 
   /**
    * The agent this complaint is with. Defaults to the job's agent when omitted.
@@ -98,10 +116,23 @@ export class CreateComplaintDto {
   @Min(0.0001)
   exchangeRate?: number;
 
+  /** The primary responsible party. Defaults to the first of `responsibleParties`. */
   @IsOptional()
   @IsIn(COMPLAINT_PARTIES)
   responsibleParty?: (typeof COMPLAINT_PARTIES)[number];
 
+  /**
+   * Everyone at fault — a late driver who was also rude is both. DRIVER, REP and
+   * SUPPLIER each resolve their person from the job's assignment, so no id has
+   * to be sent for them.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(COMPLAINT_PARTIES.length)
+  @IsIn(COMPLAINT_PARTIES, { each: true })
+  responsibleParties?: (typeof COMPLAINT_PARTIES)[number][];
+
+  /** Overrides the driver resolved from the job's assignment. */
   @IsOptional()
   @IsUUID()
   responsibleDriverId?: string;

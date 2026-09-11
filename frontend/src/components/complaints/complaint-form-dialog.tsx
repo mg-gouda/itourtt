@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableCombobox, type ComboboxItem } from "@/components/searchable-combobox";
+import { MultiSelect } from "@/components/multi-select";
 import { usePermission } from "@/hooks/use-permission";
 import {
   type Complaint,
@@ -32,8 +33,10 @@ import {
   type ComplaintParty,
   CURRENCIES,
   STAGE_LABELS,
+  SELECTABLE_STAGES,
   SOURCE_LABELS,
   PARTY_LABELS,
+  ASSIGNABLE_PARTIES,
   TERMINAL_STATUSES,
   describeReplyWindow,
 } from "@/lib/complaints";
@@ -49,14 +52,16 @@ interface Props {
   lockedJob?: { id: string; internalRef: string } | null;
 }
 
-interface PersonOption {
-  id: string;
-  name: string;
+/** Who the selected job is actually assigned to — the responsible people. */
+interface JobAssignment {
+  driver?: { id: string; name: string } | null;
+  rep?: { id: string; name: string } | null;
+  supplier?: { id: string; legalName: string; tradeName?: string | null } | null;
 }
 
 const emptyForm = {
   trafficJobId: "",
-  categoryId: "",
+  categoryIds: [] as string[],
   stage: "DURING_JOB",
   source: "AGENT",
   agentId: "",
@@ -69,10 +74,7 @@ const emptyForm = {
   claimedAmount: "",
   lossAmount: "",
   currency: "EGP",
-  responsibleParty: "NONE" as ComplaintParty,
-  responsibleDriverId: "",
-  responsibleRepId: "",
-  responsibleSupplierId: "",
+  responsibleParties: [] as ComplaintParty[],
 };
 
 /** datetime-local wants "YYYY-MM-DDTHH:mm" in local time. */
@@ -102,9 +104,7 @@ export function ComplaintFormDialog({
   const [jobSearching, setJobSearching] = useState(false);
   const [agents, setAgents] = useState<ComboboxItem[]>([]);
   const [jobOptions, setJobOptions] = useState<ComboboxItem[]>([]);
-  const [drivers, setDrivers] = useState<PersonOption[]>([]);
-  const [reps, setReps] = useState<PersonOption[]>([]);
-  const [suppliers, setSuppliers] = useState<PersonOption[]>([]);
+  const [assignment, setAssignment] = useState<JobAssignment | null>(null);
 
   // The countdown is derived from the dates in the form, so it has to re-render
   // on its own while the dialog sits open.
@@ -126,7 +126,10 @@ export function ComplaintFormDialog({
     if (complaint) {
       setForm({
         trafficJobId: complaint.trafficJobId,
-        categoryId: complaint.categoryId,
+        // The set the complaint was saved with, primary first.
+        categoryIds: complaint.categoryIds?.length
+          ? complaint.categoryIds
+          : [complaint.categoryId],
         stage: complaint.stage,
         source: complaint.source,
         agentId: complaint.agentId ?? "",
@@ -140,10 +143,11 @@ export function ComplaintFormDialog({
           complaint.claimedAmount != null ? String(complaint.claimedAmount) : "",
         lossAmount: complaint.lossAmount != null ? String(complaint.lossAmount) : "",
         currency: complaint.currency ?? "EGP",
-        responsibleParty: complaint.responsibleParty ?? "NONE",
-        responsibleDriverId: complaint.responsibleDriverId ?? "",
-        responsibleRepId: complaint.responsibleRepId ?? "",
-        responsibleSupplierId: complaint.responsibleSupplierId ?? "",
+        responsibleParties: complaint.responsibleParties?.length
+          ? complaint.responsibleParties
+          : complaint.responsibleParty && complaint.responsibleParty !== "NONE"
+            ? [complaint.responsibleParty]
+            : [],
       });
       if (complaint.trafficJob) {
         setJobOptions([
@@ -229,67 +233,72 @@ export function ComplaintFormDialog({
       .catch(() => setAgents([]));
   }, [open, form.source, agents.length]);
 
-  // Picking a job pre-fills the agent that booked it — the usual case is that
-  // the booking agent is the one complaining. Only on new complaints, and only
-  // when nothing has been chosen yet, so it never overwrites a deliberate pick.
+  // Picking a job fetches it once, for two things: the agent that booked it
+  // (the usual complainant) and who it was assigned to — the driver, rep and
+  // supplier a complaint can blame. The agent is only pre-filled on new
+  // complaints and only while nothing has been chosen, so it never overwrites
+  // a deliberate pick; the assignment is always read, because the form shows
+  // who blaming a party will actually name.
   useEffect(() => {
-    if (isEdit || !form.trafficJobId || form.agentId) return;
+    if (!open || !form.trafficJobId) {
+      setAssignment(null);
+      return;
+    }
+
+    let cancelled = false;
     api
       .get(`/traffic-jobs/${form.trafficJobId}`)
       .then((res) => {
-        const jobAgentId = (res.data?.data ?? res.data)?.agentId;
-        if (jobAgentId) set("agentId", jobAgentId);
+        if (cancelled) return;
+        const job = res.data?.data ?? res.data;
+        setAssignment(job?.assignment ?? null);
+        if (!isEdit && !form.agentId && job?.agentId) set("agentId", job.agentId);
       })
-      .catch(() => {});
-  }, [form.trafficJobId, isEdit, form.agentId]);
+      .catch(() => {
+        if (!cancelled) setAssignment(null);
+      });
 
-  // ── responsible-person lists, loaded only for the selected party ─────
-  useEffect(() => {
-    if (!open) return;
-    const party = form.responsibleParty;
-    const load = async (path: string, setter: (v: PersonOption[]) => void) => {
-      try {
-        const res = await api.get(`${path}?limit=1000`);
-        setter(res.data.data || []);
-      } catch {
-        setter([]);
-      }
+    return () => {
+      cancelled = true;
     };
-    if (party === "DRIVER" && drivers.length === 0) load("/drivers", setDrivers);
-    if (party === "REP" && reps.length === 0) load("/reps", setReps);
-    if (party === "SUPPLIER" && suppliers.length === 0) load("/suppliers", setSuppliers);
-  }, [open, form.responsibleParty, drivers.length, reps.length, suppliers.length]);
+    // form.agentId is deliberately not a dependency: it changes as a result of
+    // this effect, and re-running would refetch the job for nothing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, form.trafficJobId, isEdit]);
 
-  /** Selecting a category with a default party pre-fills it, on new complaints only. */
-  const onCategoryChange = (categoryId: string) => {
-    const category = categories.find((c) => c.id === categoryId);
-    setForm((f) => ({
-      ...f,
-      categoryId,
-      responsibleParty:
-        !isEdit && category?.defaultParty ? category.defaultParty : f.responsibleParty,
-    }));
+  /**
+   * Ticking categories pre-fills the responsible party from the first category
+   * that declares one — on new complaints only, and only while nobody has been
+   * blamed yet, so it never argues with a deliberate choice.
+   */
+  const onCategoriesChange = (categoryIds: string[]) => {
+    setForm((f) => {
+      const defaultParty = categoryIds
+        .map((id) => categories.find((c) => c.id === id)?.defaultParty)
+        .find((p): p is ComplaintParty => Boolean(p) && p !== "NONE");
+
+      return {
+        ...f,
+        categoryIds,
+        responsibleParties:
+          !isEdit && f.responsibleParties.length === 0 && defaultParty
+            ? [defaultParty]
+            : f.responsibleParties,
+      };
+    });
   };
-
-  /** Switching party clears the id that no longer applies — the API rejects a mismatch. */
-  const onPartyChange = (party: ComplaintParty) =>
-    setForm((f) => ({
-      ...f,
-      responsibleParty: party,
-      responsibleDriverId: party === "DRIVER" ? f.responsibleDriverId : "",
-      responsibleRepId: party === "REP" ? f.responsibleRepId : "",
-      responsibleSupplierId: party === "SUPPLIER" ? f.responsibleSupplierId : "",
-    }));
 
   const handleSubmit = async () => {
     if (!form.trafficJobId) return toast.error("Pick the job this complaint is about.");
-    if (!form.categoryId) return toast.error("Pick a complaint category.");
+    if (form.categoryIds.length === 0)
+      return toast.error("Pick at least one complaint category.");
     if (!form.subject.trim()) return toast.error("Enter a subject.");
     if (!form.description.trim()) return toast.error("Enter a description.");
     if (!form.complaintDate) return toast.error("Enter when the complaint was received.");
 
     const payload: Record<string, unknown> = {
-      categoryId: form.categoryId,
+      // The first tick is the primary category; the backend stores both.
+      categoryIds: form.categoryIds,
       stage: form.stage,
       source: form.source,
       // Only meaningful when an agent raised it; otherwise the backend
@@ -302,10 +311,10 @@ export function ComplaintFormDialog({
       // Null clears a reply that was logged by mistake and restarts the countdown.
       repliedAt: form.repliedAt ? new Date(form.repliedAt).toISOString() : null,
       outcome: form.outcome || null,
-      responsibleParty: form.responsibleParty,
-      responsibleDriverId: form.responsibleDriverId || undefined,
-      responsibleRepId: form.responsibleRepId || undefined,
-      responsibleSupplierId: form.responsibleSupplierId || undefined,
+      // No person ids: the backend names the driver, rep and supplier from the
+      // job's own assignment, so the complaint can only ever blame whoever
+      // actually worked it.
+      responsibleParties: form.responsibleParties,
     };
 
     // Only send money fields when the user is allowed to set them, so a
@@ -368,31 +377,21 @@ export function ComplaintFormDialog({
       lossAmount: outcome === "WON" ? "" : f.lossAmount,
     }));
 
-  const responsibleOptions: PersonOption[] =
-    form.responsibleParty === "DRIVER"
-      ? drivers
-      : form.responsibleParty === "REP"
-        ? reps
-        : form.responsibleParty === "SUPPLIER"
-          ? suppliers
-          : [];
+  /**
+   * Who each blamed party resolves to on the selected job. Nothing is picked
+   * here — this only shows what the backend will record, including the case
+   * where the job has nobody in that seat yet.
+   */
+  const assignedNames: Record<string, string | null> = {
+    DRIVER: assignment?.driver?.name ?? null,
+    REP: assignment?.rep?.name ?? null,
+    SUPPLIER:
+      assignment?.supplier?.tradeName || assignment?.supplier?.legalName || null,
+  };
 
-  const responsibleValue =
-    form.responsibleParty === "DRIVER"
-      ? form.responsibleDriverId
-      : form.responsibleParty === "REP"
-        ? form.responsibleRepId
-        : form.responsibleParty === "SUPPLIER"
-          ? form.responsibleSupplierId
-          : "";
-
-  const setResponsibleId = (id: string) =>
-    setForm((f) => ({
-      ...f,
-      responsibleDriverId: f.responsibleParty === "DRIVER" ? id : "",
-      responsibleRepId: f.responsibleParty === "REP" ? id : "",
-      responsibleSupplierId: f.responsibleParty === "SUPPLIER" ? id : "",
-    }));
+  const namedParties = form.responsibleParties.filter((p) =>
+    ASSIGNABLE_PARTIES.includes(p),
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -443,19 +442,21 @@ export function ComplaintFormDialog({
           </div>
 
           <div>
-            <Label>Category *</Label>
-            <Select value={form.categoryId} onValueChange={onCategoryChange}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nameEn}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Categories *</Label>
+            <div className="mt-1">
+              <MultiSelect
+                items={categories.map((c) => ({ value: c.id, label: c.nameEn }))}
+                value={form.categoryIds}
+                onChange={onCategoriesChange}
+                placeholder="Select one or more categories"
+                searchPlaceholder="Search categories…"
+                emptyText="No categories found."
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              One incident is often several things at once. The first pick is the
+              main one, and is what reports group by.
+            </p>
           </div>
 
           <div>
@@ -465,9 +466,9 @@ export function ComplaintFormDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(STAGE_LABELS).map(([value, label]) => (
+                {SELECTABLE_STAGES.map((value) => (
                   <SelectItem key={value} value={value}>
-                    {label}
+                    {STAGE_LABELS[value]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -593,39 +594,43 @@ export function ComplaintFormDialog({
           </div>
 
           <div>
-            <Label>Responsible party</Label>
-            <Select
-              value={form.responsibleParty}
-              onValueChange={(v) => onPartyChange(v as ComplaintParty)}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PARTY_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Responsible parties</Label>
+            <div className="mt-1">
+              <MultiSelect
+                items={Object.entries(PARTY_LABELS)
+                  .filter(([value]) => value !== "NONE")
+                  .map(([value, label]) => ({ value, label }))}
+                value={form.responsibleParties}
+                onChange={(v) => set("responsibleParties", v as ComplaintParty[])}
+                placeholder="No one"
+                searchable={false}
+                emptyText="No parties."
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Leave empty when nobody is at fault. More than one can be blamed.
+            </p>
           </div>
 
-          {responsibleOptions.length > 0 && (
+          {namedParties.length > 0 && (
             <div>
               <Label>Who exactly</Label>
-              <Select value={responsibleValue} onValueChange={setResponsibleId}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select a person" />
-                </SelectTrigger>
-                <SelectContent>
-                  {responsibleOptions.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name ?? p.tradeName ?? p.legalName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="mt-1 space-y-1 rounded-md border px-3 py-2 text-sm">
+                {namedParties.map((party) => (
+                  <div key={party} className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">{PARTY_LABELS[party]}</span>
+                    <span className={assignedNames[party] ? "" : "text-muted-foreground"}>
+                      {assignedNames[party] ??
+                        (form.trafficJobId
+                          ? "Nobody assigned to this job"
+                          : "Pick a job first")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Taken from the job&apos;s own assignment — there is nothing to pick.
+              </p>
             </div>
           )}
 

@@ -762,8 +762,12 @@ async function main() {
     // what someone is paid the first time a complaint is upheld.
     const complaintCategories = [
       { nameEn: 'Driver late', nameAr: 'تأخر السائق', defaultParty: 'DRIVER' as const },
+      { nameEn: 'Driver no-show', nameAr: 'عدم حضور السائق', defaultParty: 'DRIVER' as const },
       { nameEn: 'Vehicle condition', nameAr: 'حالة السيارة', defaultParty: 'DRIVER' as const },
       { nameEn: 'Rep no-show', nameAr: 'عدم حضور المندوب', defaultParty: 'REP' as const },
+      // Either the driver or the rep can be the rude one, so this one leaves
+      // the responsible party to whoever logs the complaint.
+      { nameEn: 'Bad behavior', nameAr: 'سوء المعاملة', defaultParty: null },
       { nameEn: 'Wrong pickup', nameAr: 'خطأ في مكان الاستلام', defaultParty: 'OFFICE' as const },
       { nameEn: 'Flight handling', nameAr: 'التعامل مع الرحلة', defaultParty: 'OFFICE' as const },
       { nameEn: 'Billing', nameAr: 'الفواتير', defaultParty: 'OFFICE' as const },

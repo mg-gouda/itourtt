@@ -174,7 +174,7 @@ export class ComplaintSlaService {
       subject: string;
       status: string;
       trafficJobId: string;
-      responsibleParty: string | null;
+      responsibleParties: string[];
       responsibleRepId: string | null;
       responsibleDriverId: string | null;
     },
@@ -186,7 +186,8 @@ export class ComplaintSlaService {
     const title = `Complaint upheld — ${complaint.complaintNo}`;
     const message = `A complaint about one of your jobs was settled against us: "${complaint.subject}".`;
 
-    if (complaint.responsibleParty === 'REP' && complaint.responsibleRepId) {
+    // A complaint can blame the rep and the driver at once; both hear about it.
+    if (complaint.responsibleParties.includes('REP') && complaint.responsibleRepId) {
       await tx.repNotification.create({
         data: {
           repId: complaint.responsibleRepId,
@@ -195,10 +196,9 @@ export class ComplaintSlaService {
           trafficJobId: complaint.trafficJobId,
         },
       });
-      return;
     }
 
-    if (complaint.responsibleParty === 'DRIVER' && complaint.responsibleDriverId) {
+    if (complaint.responsibleParties.includes('DRIVER') && complaint.responsibleDriverId) {
       await tx.driverNotification.create({
         data: {
           driverId: complaint.responsibleDriverId,

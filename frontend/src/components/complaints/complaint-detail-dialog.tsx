@@ -46,6 +46,8 @@ import {
   OUTCOME_LABELS,
   NEXT_STATUSES,
   TRANSITION_PERMISSION,
+  categoryNames,
+  responsibleParties,
   formatSlaCountdown,
   formatMoney,
 } from "@/lib/complaints";
@@ -230,12 +232,22 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
     !!complaint &&
     (complaint.status === "WON" || LOSS_STATUSES.includes(complaint.status));
   const nextStatuses = complaint ? NEXT_STATUSES[complaint.status] : [];
-  const responsibleName =
-    complaint?.responsibleDriver?.name ||
-    complaint?.responsibleRep?.name ||
-    complaint?.responsibleSupplier?.tradeName ||
-    complaint?.responsibleSupplier?.legalName ||
-    null;
+  // Every party blamed, each with the person it named where there is one.
+  const responsible = complaint
+    ? responsibleParties(complaint).map((party) => ({
+        party,
+        name:
+          party === "DRIVER"
+            ? (complaint.responsibleDriver?.name ?? null)
+            : party === "REP"
+              ? (complaint.responsibleRep?.name ?? null)
+              : party === "SUPPLIER"
+                ? (complaint.responsibleSupplier?.tradeName ??
+                  complaint.responsibleSupplier?.legalName ??
+                  null)
+                : null,
+      }))
+    : [];
 
   return (
     <Dialog open={!!complaintId} onOpenChange={onOpenChange}>
@@ -312,7 +324,9 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
                   : "—"}
               </Field>
 
-              <Field label="Category">{complaint.category?.nameEn ?? "—"}</Field>
+              <Field label="Categories">
+                {categoryNames(complaint).join(", ") || "—"}
+              </Field>
               <Field label="Stage">{STAGE_LABELS[complaint.stage] ?? complaint.stage}</Field>
               <Field label="Source">{SOURCE_LABELS[complaint.source] ?? complaint.source}</Field>
 
@@ -341,11 +355,14 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
                 )}
               </Field>
               <Field label="Responsible">
-                {complaint.responsibleParty
-                  ? `${PARTY_LABELS[complaint.responsibleParty]}${
-                      responsibleName ? ` — ${responsibleName}` : ""
-                    }`
-                  : "—"}
+                {responsible.length === 0
+                  ? "—"
+                  : responsible
+                      .map(
+                        ({ party, name }) =>
+                          `${PARTY_LABELS[party]}${name ? ` — ${name}` : ""}`,
+                      )
+                      .join(", ")}
               </Field>
               <Field label="Score penalty">
                 {complaint.scorePenaltyApplied > 0

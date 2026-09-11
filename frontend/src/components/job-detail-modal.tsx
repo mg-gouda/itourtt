@@ -16,6 +16,7 @@ import {
   type Complaint,
   COMPLAINT_STATUS_META,
   TERMINAL_STATUSES,
+  categoryNames,
 } from "@/lib/complaints";
 
 interface JobDetail {
@@ -330,7 +331,9 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
                           SLA breached
                         </Badge>
                       )}
-                      <span className="text-muted-foreground">{c.category?.nameEn}</span>
+                      <span className="text-muted-foreground">
+                        {categoryNames(c).join(", ")}
+                      </span>
                       <span className="truncate">{c.subject}</span>
                     </div>
                   ))}
