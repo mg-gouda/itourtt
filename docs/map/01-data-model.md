@@ -10,7 +10,7 @@ Jump: [Models](#models) · [Enums](#enums)
 
 ### Account
 
-`accounts` · schema.prisma:1718 · 7 fields, 1 relations
+`accounts` · schema.prisma:1721 · 7 fields, 1 relations
 
 Chart-of-accounts entry for the accounting layer.
 
@@ -28,7 +28,7 @@ Chart-of-accounts entry for the accounting layer.
 
 ### ActivityLog
 
-`activity_logs` · schema.prisma:1492 · 13 fields, 1 relations
+`activity_logs` · schema.prisma:1495 · 13 fields, 1 relations
 
 Audit trail row written by `AuditInterceptor`, holding the field-level diff.
 
@@ -83,7 +83,7 @@ ONLINE-channel counterparty with a full legal profile. `refPattern`/`refExample`
 
 ### AgentAdjustment
 
-`agent_adjustments` · schema.prisma:2711 · 15 fields, 4 relations
+`agent_adjustments` · schema.prisma:2724 · 15 fields, 4 relations
 
 A pending money adjustment owed to an agent from a lost complaint — finance puts it on an invoice, issues a credit note, or waives it.
 
@@ -145,7 +145,7 @@ Stored legal document for an agent.
 
 ### AgentInvoice
 
-`agent_invoices` · schema.prisma:1641 · 16 fields, 5 relations
+`agent_invoices` · schema.prisma:1644 · 16 fields, 5 relations
 
 Invoice header. Carries BOTH agent (ONLINE) and customer (B2B) invoices, distinguished by which FK is set and by separate numbering sequences. Immutable once posted.
 
@@ -298,7 +298,7 @@ Guest invoice for a B2C booking, numbered `INV-B2C-NNNNN`; its PDF is emailed on
 
 ### BlogCategory
 
-`blog_categories` · schema.prisma:2320 · 5 fields, 1 relations
+`blog_categories` · schema.prisma:2323 · 5 fields, 1 relations
 
 Blog category.
 
@@ -314,7 +314,7 @@ Blog category.
 
 ### BlogPost
 
-`blog_posts` · schema.prisma:2332 · 15 fields, 2 relations
+`blog_posts` · schema.prisma:2335 · 15 fields, 2 relations
 
 B2C blog post.
 
@@ -340,7 +340,7 @@ B2C blog post.
 
 ### BlogPostTranslation
 
-`blog_post_translations` · schema.prisma:2439 · 10 fields, 1 relations
+`blog_post_translations` · schema.prisma:2442 · 10 fields, 1 relations
 
 Per-locale translation of a blog post.
 
@@ -382,7 +382,7 @@ City under an airport.
 
 ### CityPage
 
-`city_pages` · schema.prisma:2290 · 16 fields, 2 relations
+`city_pages` · schema.prisma:2293 · 16 fields, 2 relations
 
 B2C destination/city landing page content.
 
@@ -409,7 +409,7 @@ B2C destination/city landing page content.
 
 ### CityPageTranslation
 
-`city_page_translations` · schema.prisma:2418 · 11 fields, 1 relations
+`city_page_translations` · schema.prisma:2421 · 11 fields, 1 relations
 
 Per-locale translation of a city page (ar/de/fr/it/nl/ru), populated by the Gemini translate pipeline.
 
@@ -431,7 +431,7 @@ Per-locale translation of a city page (ar/de/fr/it/nl/ru), populated by the Gemi
 
 ### CompanySettings
 
-`company_settings` · schema.prisma:1796 · 14 fields, 0 relations
+`company_settings` · schema.prisma:1799 · 14 fields, 0 relations
 
 Company identity and branding used on invoices, PDFs and reference-number prefixes.
 
@@ -454,7 +454,7 @@ Company identity and branding used on invoices, PDFs and reference-number prefix
 
 ### Complaint
 
-`complaints` · schema.prisma:2563 · 34 fields, 12 relations
+`complaints` · schema.prisma:2566 · 34 fields, 12 relations
 
 A client complaint raised against one traffic job — stage, category, 48h reply SLA, outcome (won/lost) and the money conceded.
 
@@ -499,7 +499,7 @@ A client complaint raised against one traffic job — stage, category, 48h reply
 
 ### ComplaintAttachment
 
-`complaint_attachments` · schema.prisma:2650 · 9 fields, 1 relations
+`complaint_attachments` · schema.prisma:2653 · 9 fields, 1 relations
 
 A file attached to a complaint (the complaint doc, our reply, or evidence); stores a Drive file id or an /uploads path.
 
@@ -519,7 +519,7 @@ A file attached to a complaint (the complaint doc, our reply, or evidence); stor
 
 ### ComplaintCategory
 
-`complaint_categories` · schema.prisma:2519 · 10 fields, 2 relations
+`complaint_categories` · schema.prisma:2522 · 10 fields, 2 relations
 
 Admin-managed catalog of complaint types, each with a default responsible party and a default score penalty.
 
@@ -540,7 +540,7 @@ Admin-managed catalog of complaint types, each with a default responsible party 
 
 ### ComplaintCategoryLink
 
-`complaint_category_links` · schema.prisma:2550 · 3 fields, 2 relations
+`complaint_category_links` · schema.prisma:2553 · 3 fields, 2 relations
 
 Join row tying a complaint to one of its categories; the primary category_id is mirrored here too, so filtering the link table finds every complaint carrying it.
 
@@ -554,14 +554,15 @@ Join row tying a complaint to one of its categories; the primary category_id is 
 
 ### ComplaintCharge
 
-`complaint_charges` · schema.prisma:2670 · 19 fields, 5 relations
+`complaint_charges` · schema.prisma:2680 · 20 fields, 6 relations
 
 A manual, approval-gated deduction against the party blamed for a complaint; posting writes a negative row in their fee table.
 
 | Field | Type | Column | Flags |
 |---|---|---|---|
 | `id` | String | — | PK |
-| `complaintId` | String | `complaint_id` | — |
+| `trafficJobId` | String | `traffic_job_id` | — |
+| `complaintId` | String? | `complaint_id` | nullable |
 | `party` | ComplaintParty | — | — |
 | `driverId` | String? | `driver_id` | nullable |
 | `repId` | String? | `rep_id` | nullable |
@@ -580,11 +581,11 @@ A manual, approval-gated deduction against the party blamed for a complaint; pos
 | `createdAt` | DateTime | `created_at` | — |
 | `updatedAt` | DateTime | `updated_at` | — |
 
-**Relations:** `complaint`→Complaint · `driver`→Driver? · `rep`→Rep? · `supplier`→Supplier? · `approvedBy`→User?
+**Relations:** `trafficJob`→TrafficJob · `complaint`→Complaint? · `driver`→Driver? · `rep`→Rep? · `supplier`→Supplier? · `approvedBy`→User?
 
 ### CompletedEvidence
 
-`completed_evidence` · schema.prisma:2039 · 9 fields, 1 relations
+`completed_evidence` · schema.prisma:2042 · 9 fields, 1 relations
 
 Photo evidence submitted when a driver or rep completes a job, with GPS and a submitter stamp.
 
@@ -604,7 +605,7 @@ Photo evidence submitted when a driver or rep completes a job, with GPS and a su
 
 ### ContactMessage
 
-`contact_messages` · schema.prisma:2497 · 10 fields, 0 relations
+`contact_messages` · schema.prisma:2500 · 10 fields, 0 relations
 
 A submission from the public contact form.
 
@@ -644,7 +645,7 @@ Root of the location tree.
 
 ### CronRunLock
 
-`cron_run_locks` · schema.prisma:1478 · 4 fields, 0 relations
+`cron_run_locks` · schema.prisma:1481 · 4 fields, 0 relations
 
 Advisory lock ensuring a scheduled job runs on only one pod.
 
@@ -732,7 +733,7 @@ One row of a customer's price grid.
 
 ### DeviceToken
 
-`device_tokens` · schema.prisma:2165 · 6 fields, 1 relations
+`device_tokens` · schema.prisma:2168 · 6 fields, 1 relations
 
 FCM token registered by a mobile app so push can reach that device.
 
@@ -772,7 +773,7 @@ Driver record, optionally linked to a `User` for portal access and to a `Supplie
 
 ### DriverJobScore
 
-`driver_job_scores` · schema.prisma:2139 · 12 fields, 3 relations
+`driver_job_scores` · schema.prisma:2142 · 12 fields, 3 relations
 
 Per-job driver scoring flags.
 
@@ -795,7 +796,7 @@ Per-job driver scoring flags.
 
 ### DriverNotification
 
-`driver_notifications` · schema.prisma:1955 · 8 fields, 2 relations
+`driver_notifications` · schema.prisma:1958 · 8 fields, 2 relations
 
 Notification feed row for a driver.
 
@@ -814,7 +815,7 @@ Notification feed row for a driver.
 
 ### DriverPriceTariff
 
-`driver_price_tariffs` · schema.prisma:1556 · 13 fields, 7 relations
+`driver_price_tariffs` · schema.prisma:1559 · 13 fields, 7 relations
 
 ★ Trip-fee tariff keyed on a from/to pair (zone OR airport each side) plus vehicle type. The unused side must be NULL so a zone rule cannot match an airport job.
 
@@ -838,7 +839,7 @@ Notification feed row for a driver.
 
 ### DriverTripFee
 
-`driver_trip_fees` · schema.prisma:1524 · 15 fields, 8 relations
+`driver_trip_fees` · schema.prisma:1527 · 15 fields, 8 relations
 
 The materialised fee a driver earned on a job, created by `resolveJobTripFee` at completion. Drivers are paid per trip, never salaried.
 
@@ -881,7 +882,7 @@ Join table linking drivers to the vehicles they may drive.
 
 ### EmailSettings
 
-`email_settings` · schema.prisma:1859 · 17 fields, 0 relations
+`email_settings` · schema.prisma:1862 · 17 fields, 0 relations
 
 SMTP credentials and sender identity. Overridden entirely when `SMTP_*` env vars are set.
 
@@ -907,7 +908,7 @@ SMTP credentials and sender identity. Overridden entirely when `SMTP_*` env vars
 
 ### GoogleDriveSettings
 
-`google_drive_settings` · schema.prisma:2269 · 8 fields, 0 relations
+`google_drive_settings` · schema.prisma:2272 · 8 fields, 0 relations
 
 Drive OAuth tokens and the evidence root folder id.
 
@@ -981,7 +982,7 @@ A B2C booking from the standalone site (46 fields). Converts into a TrafficJob v
 
 ### GuestSurvey
 
-`guest_surveys` · schema.prisma:2107 · 20 fields, 2 relations
+`guest_surveys` · schema.prisma:2110 · 20 fields, 2 relations
 
 The native arrival guest survey (1:1 with a job), which replaced the MS Forms flow. Submitting it awards the rep's 15-point survey dimension.
 
@@ -1037,7 +1038,7 @@ Hotel cascaded under a zone; it can never exist without one. Its coordinates are
 
 ### InPlaceEvidence
 
-`in_place_evidence` · schema.prisma:2018 · 9 fields, 1 relations
+`in_place_evidence` · schema.prisma:2021 · 9 fields, 1 relations
 
 Photo evidence submitted when a rep confirms arrival at the meeting point.
 
@@ -1057,7 +1058,7 @@ Photo evidence submitted when a rep confirms arrival at the meeting point.
 
 ### InProgressEvidence
 
-`in_progress_evidence` · schema.prisma:2060 · 9 fields, 1 relations
+`in_progress_evidence` · schema.prisma:2063 · 9 fields, 1 relations
 
 Photo evidence submitted when a driver starts a job.
 
@@ -1077,7 +1078,7 @@ Photo evidence submitted when a driver starts a job.
 
 ### InvoiceLine
 
-`invoice_lines` · schema.prisma:1672 · 11 fields, 3 relations
+`invoice_lines` · schema.prisma:1675 · 11 fields, 3 relations
 
 One line of an invoice, with its own tax calculation.
 
@@ -1119,7 +1120,7 @@ Record of a bulk job import run and its per-row outcomes.
 
 ### JobServiceType
 
-`job_service_types` · schema.prisma:1586 · 7 fields, 4 relations
+`job_service_types` · schema.prisma:1589 · 7 fields, 4 relations
 
 Operator-defined, zone-aware service type attached to a job — distinct from the fixed ARR/DEP/… enum.
 
@@ -1137,7 +1138,7 @@ Operator-defined, zone-aware service type attached to a job — distinct from th
 
 ### JournalEntry
 
-`journal_entries` · schema.prisma:1732 · 9 fields, 1 relations
+`journal_entries` · schema.prisma:1735 · 9 fields, 1 relations
 
 Accounting journal entry header.
 
@@ -1157,7 +1158,7 @@ Accounting journal entry header.
 
 ### JournalLine
 
-`journal_lines` · schema.prisma:1749 · 11 fields, 2 relations
+`journal_lines` · schema.prisma:1752 · 11 fields, 2 relations
 
 Debit/credit line of a journal entry.
 
@@ -1179,7 +1180,7 @@ Debit/credit line of a journal entry.
 
 ### NoShowEvidence
 
-`no_show_evidence` · schema.prisma:1997 · 9 fields, 1 relations
+`no_show_evidence` · schema.prisma:2000 · 9 fields, 1 relations
 
 Photo evidence backing a no-show claim; feeds the dispute PDF emailed to the agent.
 
@@ -1199,7 +1200,7 @@ Photo evidence backing a no-show claim; feeds the dispute PDF emailed to the age
 
 ### PageSeo
 
-`page_seo` · schema.prisma:2360 · 6 fields, 1 relations
+`page_seo` · schema.prisma:2363 · 6 fields, 1 relations
 
 Per-page SEO metadata for the B2C site.
 
@@ -1216,7 +1217,7 @@ Per-page SEO metadata for the B2C site.
 
 ### PageSeoTranslation
 
-`page_seo_translations` · schema.prisma:2459 · 7 fields, 1 relations
+`page_seo_translations` · schema.prisma:2462 · 7 fields, 1 relations
 
 Per-locale SEO metadata.
 
@@ -1234,7 +1235,7 @@ Per-locale SEO metadata.
 
 ### Payment
 
-`payments` · schema.prisma:1694 · 11 fields, 1 relations
+`payments` · schema.prisma:1697 · 11 fields, 1 relations
 
 A payment received against an invoice, storing the exchange rate used.
 
@@ -1324,7 +1325,7 @@ Rep record, optionally linked to a `User` for portal access.
 
 ### RepFee
 
-`rep_fees` · schema.prisma:1603 · 8 fields, 2 relations
+`rep_fees` · schema.prisma:1606 · 8 fields, 2 relations
 
 The fee a rep earned on a job. Created only on completion — an unfinished assignment generates nothing.
 
@@ -1343,7 +1344,7 @@ The fee a rep earned on a job. Created only on completion — an unfinished assi
 
 ### RepJobScore
 
-`rep_job_scores` · schema.prisma:2081 · 12 fields, 3 relations
+`rep_job_scores` · schema.prisma:2084 · 12 fields, 3 relations
 
 ★ Per-job rep scoring flags: attendance 20, appearance 15, work 15, survey 15, review 35. The total maps to the fee band via `scoreToFeeAndEval`.
 
@@ -1366,7 +1367,7 @@ The fee a rep earned on a job. Created only on completion — an unfinished assi
 
 ### RepNotification
 
-`rep_notifications` · schema.prisma:1935 · 8 fields, 2 relations
+`rep_notifications` · schema.prisma:1938 · 8 fields, 2 relations
 
 Notification feed row for a rep.
 
@@ -1418,7 +1419,7 @@ A role in RBAC v2, holding permission keys via `RolePermissionV2`.
 
 ### RolePermission
 
-`role_permissions` · schema.prisma:1916 · 9 fields, 0 relations
+`role_permissions` · schema.prisma:1919 · 9 fields, 0 relations
 
 LEGACY coarse role-permission mapping, superseded by RBAC v2.
 
@@ -1451,7 +1452,7 @@ Role → permission key grant. In production, adding a key for a non-admin role 
 
 ### StaticPage
 
-`static_pages` · schema.prisma:2377 · 12 fields, 1 relations
+`static_pages` · schema.prisma:2380 · 12 fields, 1 relations
 
 B2C static page content.
 
@@ -1474,7 +1475,7 @@ B2C static page content.
 
 ### StaticPageTranslation
 
-`static_page_translations` · schema.prisma:2477 · 9 fields, 1 relations
+`static_page_translations` · schema.prisma:2480 · 9 fields, 1 relations
 
 Per-locale translation of a static page.
 
@@ -1494,7 +1495,7 @@ Per-locale translation of a static page.
 
 ### StatusChangeLog
 
-`status_change_logs` · schema.prisma:1459 · 10 fields, 1 relations
+`status_change_logs` · schema.prisma:1462 · 10 fields, 1 relations
 
 GPS-stamped audit of every portal status transition — who changed what, from where.
 
@@ -1558,7 +1559,7 @@ A car type this supplier can source, offered by dispatch when no owned vehicle i
 
 ### SupplierCost
 
-`supplier_costs` · schema.prisma:1622 · 8 fields, 2 relations
+`supplier_costs` · schema.prisma:1625 · 8 fields, 2 relations
 
 The cost owed to a supplier for a specific job; the vendor-bill source for Odoo.
 
@@ -1601,7 +1602,7 @@ What we PAY a supplier for a route — distinct from agent/customer prices we ch
 
 ### SystemSettings
 
-`system_settings` · schema.prisma:1774 · 13 fields, 0 relations
+`system_settings` · schema.prisma:1777 · 13 fields, 0 relations
 
 Global system settings singleton, including login/dashboard imagery.
 
@@ -1623,7 +1624,7 @@ Global system settings singleton, including login/dashboard imagery.
 
 ### TrafficAssignment
 
-`traffic_assignments` · schema.prisma:1420 · 17 fields, 8 relations
+`traffic_assignments` · schema.prisma:1423 · 17 fields, 8 relations
 
 The single vehicle/driver/rep/supplier assignment for a job (1:1 with TrafficJob). Holds the three independent portal legs — `driverStatus`, `repStatus`, `supplierStatus` — which `JobCompletionService.reconcileJobStatus` rolls up into `TrafficJob.status`. `externalDriverName`/`Phone` cover supplier-sourced drivers with no Driver row.
 
@@ -1651,7 +1652,7 @@ The single vehicle/driver/rep/supplier assignment for a job (1:1 with TrafficJob
 
 ### TrafficFlight
 
-`traffic_flights` · schema.prisma:1404 · 9 fields, 1 relations
+`traffic_flights` · schema.prisma:1407 · 9 fields, 1 relations
 
 Flight details for a job (1:1). `arrivalTime` drives every ARR gate — the rep IN-PLACE window, the no-show delay and the driver start guard. Reps can rewrite it via the flight-delay flow.
 
@@ -1671,7 +1672,7 @@ Flight details for a job (1:1). `arrivalTime` drives every ARR gate — the rep 
 
 ### TrafficJob
 
-`traffic_jobs` · schema.prisma:1246 · 68 fields, 38 relations
+`traffic_jobs` · schema.prisma:1246 · 68 fields, 39 relations
 
 ★ The central entity — one transfer job. 68 fields, 37 relations. `status` is STORED, not derived: only `JobCompletionService.reconcileJobStatus` should roll it up. Exactly ONE origin FK and one destination FK may be set (airport, zone, or hotel); `fromZoneId`/`toZoneId` are the derived pricing zones. `internalRef` is the auto-generated `PREFIX-nnnn`; `agentRef` is optional and validated against the agent's regex. The five `*UnlockedAt` columns bypass the per-role timelocks.
 
@@ -1746,7 +1747,7 @@ Flight details for a job (1:1). `arrivalTime` drives every ARR gate — the rep 
 | `updatedAt` | DateTime | `updated_at` | — |
 | `deletedAt` | DateTime? | `deleted_at` | nullable |
 
-**Relations:** `agent`→Agent? · `customer`→Customer? · `dispatchUnlockedBy`→User? · `driverUnlockedBy`→User? · `repUnlockedBy`→User? · `supplierUnlockedBy`→User? · `editUnlockedBy`→User? · `originAirport`→Airport? · `originZone`→Zone? · `originHotel`→Hotel? · `destinationAirport`→Airport? · `destinationZone`→Zone? · `destinationHotel`→Hotel? · `fromZone`→Zone? · `toZone`→Zone? · `requestedVehicleType`→VehicleType? · `createdBy`→User · `jobServiceType`→JobServiceType? · `flight`→TrafficFlight? · `assignment`→TrafficAssignment? · `jobExtras`→TrafficJobExtra[] · `driverFees`→DriverTripFee[] · `repFees`→RepFee[] · `supplierCosts`→SupplierCost[] · `invoiceLines`→InvoiceLine[] · `repNotifications`→RepNotification[] · `driverNotifications`→DriverNotification[] · `noShowEvidence`→NoShowEvidence[] · `inPlaceEvidence`→InPlaceEvidence[] · `completedEvidence`→CompletedEvidence[] · `inProgressEvidence`→InProgressEvidence[] · `repJobScore`→RepJobScore? · `guestSurvey`→GuestSurvey? · `driverJobScore`→DriverJobScore? · `whatsappLogs`→WhatsappNotificationLog[] · `userNotifications`→UserNotification[] · `guestBooking`→GuestBooking? · `complaints`→Complaint[]
+**Relations:** `agent`→Agent? · `customer`→Customer? · `dispatchUnlockedBy`→User? · `driverUnlockedBy`→User? · `repUnlockedBy`→User? · `supplierUnlockedBy`→User? · `editUnlockedBy`→User? · `originAirport`→Airport? · `originZone`→Zone? · `originHotel`→Hotel? · `destinationAirport`→Airport? · `destinationZone`→Zone? · `destinationHotel`→Hotel? · `fromZone`→Zone? · `toZone`→Zone? · `requestedVehicleType`→VehicleType? · `createdBy`→User · `jobServiceType`→JobServiceType? · `flight`→TrafficFlight? · `assignment`→TrafficAssignment? · `jobExtras`→TrafficJobExtra[] · `driverFees`→DriverTripFee[] · `repFees`→RepFee[] · `supplierCosts`→SupplierCost[] · `invoiceLines`→InvoiceLine[] · `repNotifications`→RepNotification[] · `driverNotifications`→DriverNotification[] · `noShowEvidence`→NoShowEvidence[] · `inPlaceEvidence`→InPlaceEvidence[] · `completedEvidence`→CompletedEvidence[] · `inProgressEvidence`→InProgressEvidence[] · `repJobScore`→RepJobScore? · `guestSurvey`→GuestSurvey? · `driverJobScore`→DriverJobScore? · `whatsappLogs`→WhatsappNotificationLog[] · `userNotifications`→UserNotification[] · `guestBooking`→GuestBooking? · `complaints`→Complaint[] · `complaintCharges`→ComplaintCharge[]
 
 ### TrafficJobExtra
 
@@ -1801,7 +1802,7 @@ Staff, portal and B2C guest accounts alike (20 relations). `sessionId`/`sessionE
 
 ### UserNotification
 
-`user_notifications` · schema.prisma:1975 · 9 fields, 2 relations
+`user_notifications` · schema.prisma:1978 · 9 fields, 2 relations
 
 In-app notification for a staff user.
 
@@ -1955,7 +1956,7 @@ Vehicle class and `seatCapacity` — what enforces pax never exceeding capacity 
 
 ### WebsiteSettings
 
-`website_settings` · schema.prisma:2184 · 43 fields, 0 relations
+`website_settings` · schema.prisma:2187 · 43 fields, 0 relations
 
 B2C site configuration (43 fields): branding, hero content, notification recipients and feature toggles such as AI Mode.
 
@@ -2007,7 +2008,7 @@ B2C site configuration (43 fields): branding, hero content, notification recipie
 
 ### WhatsappNotificationLog
 
-`whatsapp_notification_logs` · schema.prisma:1891 · 9 fields, 2 relations
+`whatsapp_notification_logs` · schema.prisma:1894 · 9 fields, 2 relations
 
 Delivery log for WhatsApp sends — first place to look when a message did not arrive.
 
@@ -2027,7 +2028,7 @@ Delivery log for WhatsApp sends — first place to look when a message did not a
 
 ### WhatsappSettings
 
-`whatsapp_settings` · schema.prisma:1842 · 8 fields, 0 relations
+`whatsapp_settings` · schema.prisma:1845 · 8 fields, 0 relations
 
 WhatsApp provider credentials and global toggles.
 
@@ -2044,7 +2045,7 @@ WhatsApp provider credentials and global toggles.
 
 ### WhatsappTemplate
 
-`whatsapp_templates` · schema.prisma:1825 · 10 fields, 1 relations
+`whatsapp_templates` · schema.prisma:1828 · 10 fields, 1 relations
 
 One WhatsApp message template and whether it is enabled.
 
@@ -2113,7 +2114,7 @@ One WhatsApp message template and whether it is enabled.
 - **JobExtraSource** (schema.prisma:148) — `B2C`, `MANUAL`
 - **JobStatus** (schema.prisma:41) — `PENDING`, `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `NO_SHOW`
 - **JournalType** (schema.prisma:119) — `SALE`, `PURCHASE`, `CASH`, `BANK`, `GENERAL`
-- **Locale** (schema.prisma:2407) — `ar`, `de`, `fr`, `it`, `nl`, `ru`
+- **Locale** (schema.prisma:2410) — `ar`, `de`, `fr`, `it`, `nl`, `ru`
 - **LocationType** (schema.prisma:135) — `AIRPORT`, `ZONE`, `HOTEL`
 - **NotificationType** (schema.prisma:65) — `JOB_ASSIGNED`, `JOB_UPDATED`, `GENERAL`, `FLIGHT_DELAY`
 - **PaymentMethod** (schema.prisma:93) — `CASH`, `BANK_TRANSFER`, `CHECK`
@@ -2125,4 +2126,4 @@ One WhatsApp message template and whether it is enabled.
 - **UserRole** (schema.prisma:17) — `ADMIN`, `DISPATCHER`, `ACCOUNTANT`, `AGENT_MANAGER`, `VIEWER`, `REP`, `DRIVER`, `SUPPLIER`, `B2C_CLIENT`
 - **VehicleOwnership** (schema.prisma:72) — `OWNED`, `RENTED`, `CONTRACTED`
 - **WaTriggerType** (schema.prisma:113) — `JOB_CREATED`, `DRIVER_ASSIGNED`, `SCHEDULED`
-- **WhatsappNotificationStatus** (schema.prisma:1886) — `SENT`, `FAILED`
+- **WhatsappNotificationStatus** (schema.prisma:1889) — `SENT`, `FAILED`

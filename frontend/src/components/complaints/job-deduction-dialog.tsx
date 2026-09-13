@@ -26,37 +26,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  type Complaint,
+  type ComplaintCharge,
   type ComplaintParty,
   CURRENCIES,
   CHARGE_STATUS_META,
-  COMPLAINT_STATUS_META,
   PARTY_LABELS,
-  chargeForParty,
-  responsibleParties,
   formatMoney,
 } from "@/lib/complaints";
 
-/** What the dispatch grid already knows about a complaint on a job. */
+/** What the dispatch grid knows about a complaint already logged on a job. */
 export interface JobComplaintRef {
   id: string;
   complaintNo: string;
   subject?: string;
   status?: string;
-  responsibleParties?: ComplaintParty[];
-  responsibleParty?: ComplaintParty | null;
+}
+
+/** A deduction as the grid reads it back — it may not belong to a complaint yet. */
+interface JobCharge extends ComplaintCharge {
+  trafficJobId: string;
+  complaint?: { id: string; complaintNo: string; subject: string } | null;
 }
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Every complaint logged against the job, newest first. */
-  complaints: JobComplaintRef[];
+  jobId: string;
+  jobRef: string;
   /** Which party the grid was showing — the fleet grid means the driver. */
   defaultParty: ComplaintParty;
-  jobRef: string;
-  driverName?: string | null;
-  repName?: string | null;
+  driver?: { id: string; name: string } | null;
+  rep?: { id: string; name: string } | null;
+  /** Complaints already logged against the job, newest first. May be empty. */
+  complaints?: JobComplaintRef[];
   /** Refresh the day view, so a second open reads the saved amount back. */
   onSaved?: () => void;
 }
@@ -64,24 +66,25 @@ interface Props {
 /**
  * Deducting from the driver or the rep without leaving the dispatch grid.
  *
- * The deduction is not a new kind of record: it is the complaint's own party
- * charge, raised here instead of on the complaints screen, so it lands in the
- * same place — a PENDING charge that still has to be approved and posted before
- * it reaches anybody's pay. Re-opening the dialog reads back what was typed,
- * and the complaints screen can override it while it is still pending.
+ * The deduction belongs to the **job**, not to a complaint — it is raised the
+ * moment something goes wrong, long before anyone writes the complaint up. A
+ * complaint logged against the same job afterwards adopts it, and from then on
+ * it is that complaint's party charge, overridable there while still pending.
+ * Either way it is one PENDING charge that has to be approved and posted before
+ * it reaches anybody's pay.
  */
 export function JobDeductionDialog({
   open,
   onOpenChange,
-  complaints,
-  defaultParty,
+  jobId,
   jobRef,
-  driverName,
-  repName,
+  defaultParty,
+  driver,
+  rep,
+  complaints = [],
   onSaved,
 }: Props) {
-  const [complaintId, setComplaintId] = useState(complaints[0]?.id ?? "");
-  const [complaint, setComplaint] = useState<Complaint | null>(null);
+  const [charges, setCharges] = useState<JobCharge[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -90,73 +93,55 @@ export function JobDeductionDialog({
   const [currency, setCurrency] = useState("EGP");
   const [reason, setReason] = useState("");
 
-  useEffect(() => {
-    if (open) {
-      setComplaintId(complaints[0]?.id ?? "");
-      setParty(defaultParty);
-    }
-  }, [open, complaints, defaultParty]);
+  // Money can only be taken from someone who actually worked the job, so the
+  // options are the people on its own assignment. An external driver has no
+  // Driver row and therefore no fee to deduct from.
+  const people: { party: ComplaintParty; id: string; name: string }[] = [];
+  if (driver?.id) people.push({ party: "DRIVER", id: driver.id, name: driver.name });
+  if (rep?.id) people.push({ party: "REP", id: rep.id, name: rep.name });
 
-  // The grid is deliberately told nothing about money: the amounts live behind
-  // complaints.financial.viewAmounts, and GET /complaints/:id is the one place
-  // that redaction is applied.
-  const fetchComplaint = useCallback(async () => {
-    if (!open || !complaintId) {
-      setComplaint(null);
-      return;
-    }
+  const selected = people.find((p) => p.party === party) ?? people[0] ?? null;
+  const existing = selected
+    ? (charges.find((c) => c.party === selected.party && c.status !== "VOID") ?? null)
+    : null;
+
+  const fetchCharges = useCallback(async () => {
+    if (!open) return;
     setLoading(true);
     try {
-      const res = await api.get(`/complaints/${complaintId}`);
-      setComplaint(res.data.data);
+      const res = await api.get(`/complaint-charges?trafficJobId=${jobId}`);
+      setCharges(res.data.data ?? []);
     } catch {
-      setComplaint(null);
-      toast.error("Could not load the complaint");
+      setCharges([]);
     } finally {
       setLoading(false);
     }
-  }, [open, complaintId]);
+  }, [open, jobId]);
 
   useEffect(() => {
-    fetchComplaint();
-  }, [fetchComplaint]);
+    if (open) setParty(defaultParty);
+  }, [open, defaultParty]);
 
-  // Only the parties this complaint blames, and only those with someone in the
-  // seat — nobody can be deducted from for a job they were not on.
-  const chargeable: { party: ComplaintParty; name: string; personId: string }[] = [];
-  if (complaint) {
-    const blamed = responsibleParties(complaint);
-    if (blamed.includes("DRIVER") && complaint.responsibleDriverId) {
-      chargeable.push({
-        party: "DRIVER",
-        name: complaint.responsibleDriver?.name ?? driverName ?? "Driver",
-        personId: complaint.responsibleDriverId,
-      });
-    }
-    if (blamed.includes("REP") && complaint.responsibleRepId) {
-      chargeable.push({
-        party: "REP",
-        name: complaint.responsibleRep?.name ?? repName ?? "Rep",
-        personId: complaint.responsibleRepId,
-      });
-    }
-  }
-
-  const selected = chargeable.find((c) => c.party === party) ?? chargeable[0] ?? null;
-  const existing = complaint && selected ? chargeForParty(complaint, selected.party) : null;
+  useEffect(() => {
+    fetchCharges();
+  }, [fetchCharges]);
 
   // Whatever is already on the row is what the form opens with, so the dialog
   // shows the standing deduction rather than a blank slate.
   useEffect(() => {
     setAmount(existing ? String(existing.amount) : "");
-    setCurrency(existing?.currency ?? complaint?.currency ?? "EGP");
+    setCurrency(existing?.currency ?? "EGP");
     setReason(existing?.reason ?? "");
-  }, [existing, complaint?.currency]);
+  }, [existing]);
 
   const locked = existing != null && existing.status !== "PENDING";
 
+  // The complaint the deduction already belongs to, if one has adopted it;
+  // otherwise the newest complaint on the job, which is what it would join.
+  const linked = existing?.complaint ?? complaints[0] ?? null;
+
   const handleSave = async () => {
-    if (!complaint || !selected) return;
+    if (!selected) return;
     const value = Number(amount);
     if (!amount || Number.isNaN(value) || value <= 0) {
       toast.error("Enter the amount to deduct.");
@@ -166,24 +151,25 @@ export function JobDeductionDialog({
     setSaving(true);
     try {
       if (existing) {
-        await api.patch(`/complaints/${complaint.id}/charge/${existing.id}`, {
+        await api.patch(`/complaint-charges/${existing.id}`, {
           amount: value,
           currency,
           reason: reason.trim() || "",
         });
         toast.success("Deduction updated");
       } else {
-        await api.post(`/complaints/${complaint.id}/charge`, {
+        await api.post(`/complaint-charges`, {
+          trafficJobId: jobId,
           party: selected.party,
-          driverId: selected.party === "DRIVER" ? selected.personId : undefined,
-          repId: selected.party === "REP" ? selected.personId : undefined,
+          driverId: selected.party === "DRIVER" ? selected.id : undefined,
+          repId: selected.party === "REP" ? selected.id : undefined,
           amount: value,
           currency,
           reason: reason.trim() || undefined,
         });
         toast.success("Deduction recorded");
       }
-      await fetchComplaint();
+      await fetchCharges();
       onSaved?.();
       onOpenChange(false);
     } catch (err: any) {
@@ -193,84 +179,51 @@ export function JobDeductionDialog({
     }
   };
 
-  const active = complaints.find((c) => c.id === complaintId);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] w-[92vw] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
-            Deduction
-            {active && (
+            Deduction — <span className="font-mono">{jobRef}</span>
+            {linked && (
               <Link
-                href={`/dashboard/complaints?complaint=${active.id}`}
+                href={`/dashboard/complaints?complaint=${linked.id}`}
                 className="inline-flex items-center gap-1 font-mono text-sm text-primary underline underline-offset-4"
               >
-                {active.complaintNo}
+                {linked.complaintNo}
                 <ExternalLink className="h-3.5 w-3.5" />
               </Link>
             )}
           </DialogTitle>
           <DialogDescription>
-            Job {jobRef}
-            {active?.subject ? ` — ${active.subject}` : ""}
+            {existing?.complaint
+              ? `Part of complaint ${existing.complaint.complaintNo}.`
+              : complaints.length > 0
+                ? "The complaint on this job will pick this deduction up."
+                : "No complaint has been logged yet — the first one written up for this job will adopt this deduction."}
           </DialogDescription>
         </DialogHeader>
-
-        {complaints.length > 1 && (
-          <div>
-            <Label>Complaint</Label>
-            <Select value={complaintId} onValueChange={setComplaintId}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {complaints.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.complaintNo}
-                    {c.subject ? ` — ${c.subject}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
 
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : !complaint ? (
+        ) : people.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground">
-            This complaint could not be loaded.
-          </p>
-        ) : chargeable.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">
-            {complaint.complaintNo} does not blame a driver or a rep who worked
-            this job, so there is nobody here to deduct from.
+            Nobody with a fee is assigned to this job yet, so there is nothing to
+            deduct from.
           </p>
         ) : (
           <div className="space-y-4">
-            {complaint.status && (
+            {existing && (
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <Badge
-                  variant={
-                    COMPLAINT_STATUS_META[complaint.status]?.variant ?? "secondary"
-                  }
-                >
-                  {COMPLAINT_STATUS_META[complaint.status]?.label ?? complaint.status}
+                <Badge variant={CHARGE_STATUS_META[existing.status].variant}>
+                  {CHARGE_STATUS_META[existing.status].label}
                 </Badge>
-                {existing && (
-                  <>
-                    <Badge variant={CHARGE_STATUS_META[existing.status].variant}>
-                      {CHARGE_STATUS_META[existing.status].label}
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      {formatMoney(existing.amount, existing.currency)} already on
-                      this complaint
-                    </span>
-                  </>
-                )}
+                <span className="text-muted-foreground">
+                  {formatMoney(existing.amount, existing.currency)} already standing
+                  against this {PARTY_LABELS[existing.party].toLowerCase()}
+                </span>
               </div>
             )}
 
@@ -284,9 +237,9 @@ export function JobDeductionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {chargeable.map((c) => (
-                    <SelectItem key={c.party} value={c.party}>
-                      {PARTY_LABELS[c.party]} — {c.name}
+                  {people.map((p) => (
+                    <SelectItem key={p.party} value={p.party}>
+                      {PARTY_LABELS[p.party]} — {p.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -338,7 +291,7 @@ export function JobDeductionDialog({
             <p className="text-xs text-muted-foreground">
               {locked
                 ? "This deduction has been approved, so it can no longer be changed here. Void it on the complaint to start again."
-                : "The deduction is recorded against the complaint. It still has to be approved and posted on the complaints screen before it reaches their fees."}
+                : "Recorded as pending. It still has to be approved and posted on the complaints screen before it reaches their fees."}
             </p>
           </div>
         )}
@@ -347,7 +300,7 @@ export function JobDeductionDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          {!locked && chargeable.length > 0 && (
+          {!locked && people.length > 0 && (
             <Button disabled={saving || loading} onClick={handleSave}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {existing ? "Update deduction" : "Save deduction"}

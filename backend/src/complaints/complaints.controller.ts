@@ -18,12 +18,6 @@ import { TransitionComplaintDto } from './dto/transition-complaint.dto.js';
 import { ComplaintQueryDto } from './dto/complaint-query.dto.js';
 import { ComplaintAnalyticsQueryDto } from './dto/complaint-analytics-query.dto.js';
 import { ComplaintAnalyticsService } from './complaint-analytics.service.js';
-import { ComplaintChargesService } from './complaint-charges.service.js';
-import {
-  CreateComplaintChargeDto,
-  UpdateComplaintChargeDto,
-  VoidComplaintChargeDto,
-} from './dto/create-complaint-charge.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -47,7 +41,6 @@ const TRANSITION_PERMISSIONS: Record<string, string> = {
 export class ComplaintsController {
   constructor(
     private readonly complaintsService: ComplaintsService,
-    private readonly chargesService: ComplaintChargesService,
     private readonly analyticsService: ComplaintAnalyticsService,
     private readonly permissionsGuard: PermissionsGuard,
   ) {}
@@ -147,72 +140,6 @@ export class ComplaintsController {
   ) {
     const complaint = await this.complaintsService.assign(id, assignedToId ?? null);
     return new ApiResponse(complaint, 'Complaint assigned');
-  }
-
-  // ─────────────────────────────────────────────
-  // PARTY CHARGE — raise, override, approve, post, void
-  //
-  // Four separate keys on purpose: raising a deduction, agreeing to it and
-  // actually writing it to someone's pay are different decisions.
-  //
-  // A complaint carries one charge per party blamed, so every act after raising
-  // names the charge it acts on.
-  // ─────────────────────────────────────────────
-
-  @Post(':id/charge')
-  @Permissions('complaints.charge.create')
-  async createCharge(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: CreateComplaintChargeDto,
-    @CurrentUser('id') userId: string,
-  ) {
-    const charge = await this.chargesService.create(id, dto, userId);
-    return new ApiResponse(charge, 'Charge raised');
-  }
-
-  /** Overriding the amount a dispatcher typed, while it is still PENDING. */
-  @Patch(':id/charge/:chargeId')
-  @Permissions('complaints.charge.create')
-  async updateCharge(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('chargeId', ParseUUIDPipe) chargeId: string,
-    @Body() dto: UpdateComplaintChargeDto,
-  ) {
-    const charge = await this.chargesService.update(id, chargeId, dto);
-    return new ApiResponse(charge, 'Charge updated');
-  }
-
-  @Post(':id/charge/:chargeId/approve')
-  @Permissions('complaints.charge.approve')
-  async approveCharge(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('chargeId', ParseUUIDPipe) chargeId: string,
-    @CurrentUser('id') userId: string,
-  ) {
-    const charge = await this.chargesService.approve(id, chargeId, userId);
-    return new ApiResponse(charge, 'Charge approved');
-  }
-
-  /** The only call that writes to a fee table. */
-  @Post(':id/charge/:chargeId/post')
-  @Permissions('complaints.charge.post')
-  async postCharge(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('chargeId', ParseUUIDPipe) chargeId: string,
-  ) {
-    const charge = await this.chargesService.post(id, chargeId);
-    return new ApiResponse(charge, 'Charge posted to the party fee');
-  }
-
-  @Post(':id/charge/:chargeId/void')
-  @Permissions('complaints.charge.void')
-  async voidCharge(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('chargeId', ParseUUIDPipe) chargeId: string,
-    @Body() dto: VoidComplaintChargeDto,
-  ) {
-    const charge = await this.chargesService.void(id, chargeId, dto);
-    return new ApiResponse(charge, 'Charge voided');
   }
 
   @Delete(':id')

@@ -59,6 +59,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
           { key: 'dispatch.assignment.unlock48h',      labelKey: 'permissions.dispatch.assignment.unlock48h',      crudType: 'action' },
         ],
       },
+      { key: 'dispatch.deductionButton', labelKey: 'permissions.dispatch.deductionButton', crudType: 'action' },
       { key: 'dispatch.exportButton', labelKey: 'permissions.dispatch.exportButton', crudType: 'export' },
     ],
   },

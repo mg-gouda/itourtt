@@ -114,6 +114,7 @@ export function ComplaintChargePanel({ complaint, onChanged }: Props) {
                 // voided and raised again is a different deduction.
                 key={`${line.party}:${line.charge?.id ?? "new"}`}
                 complaintId={complaint.id}
+                trafficJobId={complaint.trafficJobId}
                 defaultCurrency={complaint.currency ?? "EGP"}
                 fallbackAmount={complaint.lossAmount}
                 line={line}
@@ -196,6 +197,7 @@ interface LinePermissions {
  */
 function ChargeLine({
   complaintId,
+  trafficJobId,
   defaultCurrency,
   fallbackAmount,
   line,
@@ -203,6 +205,7 @@ function ChargeLine({
   onChanged,
 }: {
   complaintId: string;
+  trafficJobId: string;
   defaultCurrency: string;
   fallbackAmount?: number | string | null;
   line: PartyLine;
@@ -238,7 +241,7 @@ function ChargeLine({
   ) => {
     setWorking(true);
     try {
-      await api[method](`/complaints/${complaintId}/${path}`, body);
+      await api[method](`/complaint-charges${path}`, body);
       toast.success(success);
       onChanged();
     } catch (err: any) {
@@ -262,8 +265,10 @@ function ChargeLine({
     if (value === null) return;
     call(
       "post",
-      "charge",
+      "",
       {
+        trafficJobId,
+        complaintId,
         party: line.party,
         driverId: line.party === "DRIVER" ? line.personId : undefined,
         repId: line.party === "REP" ? line.personId : undefined,
@@ -281,7 +286,7 @@ function ChargeLine({
     if (value === null || !charge) return;
     call(
       "patch",
-      `charge/${charge.id}`,
+      `/${charge.id}`,
       { amount: value, currency, reason: reason.trim() || "" },
       "Charge updated",
     );
@@ -291,7 +296,7 @@ function ChargeLine({
     if (!charge) return;
     const why = window.prompt("Why is this charge being reversed?");
     if (!why?.trim()) return;
-    call("post", `charge/${charge.id}/void`, { reason: why.trim() }, "Charge voided");
+    call("post", `/${charge.id}/void`, { reason: why.trim() }, "Charge voided");
   };
 
   // The complaint blames this party but the job has nobody in that seat, so
@@ -409,7 +414,7 @@ function ChargeLine({
             variant="outline"
             disabled={working}
             onClick={() =>
-              call("post", `charge/${charge.id}/approve`, {}, "Charge approved")
+              call("post", `/${charge.id}/approve`, {}, "Charge approved")
             }
           >
             {working && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -420,7 +425,7 @@ function ChargeLine({
           <Button
             size="sm"
             disabled={working}
-            onClick={() => call("post", `charge/${charge.id}/post`, {}, "Charge posted")}
+            onClick={() => call("post", `/${charge.id}/post`, {}, "Charge posted")}
           >
             {working && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Post to fees

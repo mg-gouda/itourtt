@@ -4,6 +4,7 @@ import { ComplaintsController } from './complaints.controller.js';
 import { ComplaintsService } from './complaints.service.js';
 import { ComplaintCategoriesController } from './complaint-categories.controller.js';
 import { ComplaintCategoriesService } from './complaint-categories.service.js';
+import { ComplaintChargesController } from './complaint-charges.controller.js';
 import { ComplaintChargesService } from './complaint-charges.service.js';
 import { AgentAdjustmentsController } from './agent-adjustments.controller.js';
 import { AgentAdjustmentsService } from './agent-adjustments.service.js';
@@ -16,6 +17,7 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
   controllers: [
     ComplaintsController,
     ComplaintCategoriesController,
+    ComplaintChargesController,
     AgentAdjustmentsController,
   ],
   // PermissionsGuard is provided here as well as globally: the service and

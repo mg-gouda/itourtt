@@ -12,6 +12,7 @@ import { UpdateComplaintDto } from './dto/update-complaint.dto.js';
 import { TransitionComplaintDto } from './dto/transition-complaint.dto.js';
 import { ComplaintQueryDto } from './dto/complaint-query.dto.js';
 import { AgentAdjustmentsService } from './agent-adjustments.service.js';
+import { ComplaintChargesService } from './complaint-charges.service.js';
 import { ComplaintScoringService } from './complaint-scoring.service.js';
 import { ComplaintSlaService } from './complaint-sla.service.js';
 import { DEFAULT_SLA_HOURS, ASSIGNABLE_PARTIES } from './dto/complaint-constants.js';
@@ -69,6 +70,7 @@ export class ComplaintsService {
     private readonly prisma: PrismaService,
     private readonly permissionsGuard: PermissionsGuard,
     private readonly adjustmentsService: AgentAdjustmentsService,
+    private readonly chargesService: ComplaintChargesService,
     private readonly scoringService: ComplaintScoringService,
     private readonly slaService: ComplaintSlaService,
   ) {}
@@ -309,6 +311,11 @@ export class ComplaintsService {
       },
       include: this.complaintInclude,
     });
+
+    // Whatever a dispatcher already docked on this job becomes this complaint's
+    // party charge — the amount is entered once, where it was noticed, and the
+    // complaint that explains it adopts it rather than asking for it again.
+    await this.chargesService.attachToComplaint(created.id, job.id, parties);
 
     return this.flattenCategories(created);
   }

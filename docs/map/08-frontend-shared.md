@@ -326,7 +326,7 @@ Admin view of a user's device sessions, with force-logout and Clear — Clear is
 
 ### `complaint-charge-panel.tsx`
 
-`frontend/src/components/complaints/complaint-charge-panel.tsx` · 439 lines
+`frontend/src/components/complaints/complaint-charge-panel.tsx` · 444 lines
 
 Charge and adjustment panel inside the complaint detail dialog.
 
@@ -366,14 +366,14 @@ The Won / Lost radio group shared by the complaint form and the complaint detail
 
 ### `job-deduction-dialog.tsx`
 
-`frontend/src/components/complaints/job-deduction-dialog.tsx` · 361 lines
+`frontend/src/components/complaints/job-deduction-dialog.tsx` · 314 lines
 
 The deduction modal behind the discount mark on the Fleet and Rep Overview trip cards.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobComplaintRef` | type | 41 | What the dispatch grid knows about a complaint on a job — id, number and who it blames. |
-| `JobDeductionDialog` | function | 73 | Deducts from the driver or rep from the dispatch grid, against the job's own complaint. |
+| `JobComplaintRef` | type | 38 | What the dispatch grid knows about a complaint on a job — id, number and who it blames. |
+| `JobDeductionDialog` | function | 76 | Deducts from the driver or rep from the dispatch grid, against the job's own complaint. |
 
 ## `frontend/src/components/public/`
 
@@ -905,21 +905,21 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3536 lines
+`frontend/src/lib/i18n.ts` · 3538 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3513 | Translates a key in the current locale. |
-| `getTranslator` | function | 3517 | Translator for a specific locale, outside React. |
-| `useT` | function | 3525 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3532 | The active locale id. |
+| `t` | function | 3515 | Translates a key in the current locale. |
+| `getTranslator` | function | 3519 | Translator for a specific locale, outside React. |
+| `useT` | function | 3527 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3534 | The active locale id. |
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 883 lines
+`frontend/src/lib/permission-registry.ts` · 884 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -928,11 +928,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 794 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 810 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 818 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 830 | Subtree, used by the master toggle. |
-| `findNode` | function | 870 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 795 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 811 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 819 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 831 | Subtree, used by the master toggle. |
+| `findNode` | function | 871 | Looks up a node by key. |
 
 ### `service-types.ts`
 

@@ -24,11 +24,16 @@ const CHARGEABLE_PARTIES: ComplaintParty[] = ['DRIVER', 'REP', 'SUPPLIER'];
  * already flow into period totals, the finance screens and every export, so no
  * downstream code needed changing to make the deduction visible.
  *
- * A complaint blames several people at once, so it carries **one charge per
- * party** — a job a rep and a driver both spoiled deducts from both, and each
- * charge is approved, posted and voided on its own. What is not allowed is two
- * live charges against the same party: void the first, or override its amount
- * while it is still PENDING.
+ * A deduction belongs to the **job**. The complaint is optional and usually
+ * later: a dispatcher docks a driver from the grid the moment it goes wrong,
+ * and the complaint written up afterwards adopts that charge
+ * ({@link attachToComplaint}), so the money is entered once, where it was
+ * noticed, and still shows on the complaint's party-charge panel.
+ *
+ * A job can be docked on several people at once — **one charge per party** —
+ * each approved, posted and voided on its own. What is not allowed is two live
+ * charges against the same party on the same job: void the first, or override
+ * its amount while it is still PENDING.
  */
 @Injectable()
 export class ComplaintChargesService {
@@ -36,59 +41,61 @@ export class ComplaintChargesService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(complaintId: string, dto: CreateComplaintChargeDto, userId: string) {
-    const complaint = await this.prisma.complaint.findFirst({
-      where: { id: complaintId, deletedAt: null },
-      include: { charges: true },
+  /**
+   * Raises a deduction on a job. `complaintId` is optional: given, the charge is
+   * the complaint's own party charge and may only fall on a party it blames;
+   * omitted, it is a standing deduction on the job that the next complaint
+   * logged against it will adopt.
+   */
+  async create(dto: CreateComplaintChargeDto, userId: string) {
+    const job = await this.prisma.trafficJob.findFirst({
+      where: { id: dto.trafficJobId, deletedAt: null },
+      select: {
+        id: true,
+        internalRef: true,
+        assignment: { select: { driverId: true, repId: true, supplierId: true } },
+      },
     });
-    if (!complaint) {
-      throw new NotFoundException(`Complaint with ID "${complaintId}" not found`);
+    if (!job) {
+      throw new NotFoundException(`Traffic job with ID "${dto.trafficJobId}" not found`);
     }
 
     const party = dto.party as ComplaintParty;
-
-    // A deduction can only fall on someone the complaint actually blames —
-    // the same rule the responsible ids obey, so the dispatch grid and the
-    // charge panel can never disagree about who is on the hook.
-    const blamed =
-      complaint.responsibleParties.length > 0
-        ? complaint.responsibleParties
-        : ([complaint.responsibleParty].filter(Boolean) as ComplaintParty[]);
-    if (!blamed.includes(party)) {
-      throw new BadRequestException(
-        `Complaint ${complaint.complaintNo} does not blame the ${party.toLowerCase()}, so nothing can be deducted from them.`,
-      );
-    }
-
-    // One live charge per party. A second one would deduct twice for the same
-    // fault; correcting the amount is what `update` is for.
-    const existing = complaint.charges.find(
-      (c) => c.party === party && c.status !== 'VOID',
-    );
-    if (existing) {
-      throw new BadRequestException(
-        `Complaint ${complaint.complaintNo} already charges the ${party.toLowerCase()} (${existing.status}). Change that charge, or void it before raising another.`,
-      );
-    }
-
     if (!CHARGEABLE_PARTIES.includes(party)) {
       throw new BadRequestException(
         `A charge can only be raised against a driver, rep or supplier — not ${party}.`,
       );
     }
 
+    const complaint = dto.complaintId
+      ? await this.getComplaintForCharge(dto.complaintId, job.id, party)
+      : null;
+
+    // One live charge per party per job. A second would deduct twice for the
+    // same fault; correcting the amount is what `update` is for.
+    const existing = await this.prisma.complaintCharge.findFirst({
+      where: { trafficJobId: job.id, party, status: { not: 'VOID' } },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        `Job ${job.internalRef} already deducts from the ${party.toLowerCase()} (${existing.status}). Change that deduction, or void it before raising another.`,
+      );
+    }
+
     const partyId = this.assertExactlyOnePartyId(party, dto);
     await this.assertPartyExists(party, partyId);
+    this.assertWorkedTheJob(job, party, partyId);
 
     const charge = await this.prisma.complaintCharge.create({
       data: {
-        complaintId,
+        trafficJobId: job.id,
+        complaintId: complaint?.id ?? null,
         party,
         driverId: party === 'DRIVER' ? partyId : null,
         repId: party === 'REP' ? partyId : null,
         supplierId: party === 'SUPPLIER' ? partyId : null,
         amount: dto.amount,
-        currency: (dto.currency as Currency) ?? complaint.currency,
+        currency: (dto.currency as Currency) ?? complaint?.currency ?? 'EGP',
         reason: dto.reason?.trim() || null,
         createdById: userId,
       },
@@ -96,10 +103,60 @@ export class ComplaintChargesService {
     });
 
     this.logger.log(
-      `Charge raised on complaint ${complaint.complaintNo}: ${dto.amount} ${charge.currency} against ${party}`,
+      `Deduction raised on job ${job.internalRef}${
+        complaint ? ` (complaint ${complaint.complaintNo})` : ' (no complaint yet)'
+      }: ${dto.amount} ${charge.currency} against ${party}`,
     );
 
     return charge;
+  }
+
+  /** Every deduction standing on a job, newest first. Powers the dispatch grid. */
+  async findByJob(trafficJobId: string) {
+    return this.prisma.complaintCharge.findMany({
+      where: { trafficJobId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        ...this.chargeInclude,
+        complaint: { select: { id: true, complaintNo: true, subject: true } },
+      },
+    });
+  }
+
+  /**
+   * A complaint adopts the deductions already standing on its job.
+   *
+   * Called straight after complaint creation: whatever the dispatcher docked
+   * earlier becomes the new complaint's party charge, so the amount is never
+   * typed twice and never lost. Only the parties the complaint
+   * actually blames are adopted — docking the driver does not make a complaint
+   * about the rep into a complaint about the driver — and only charges no other
+   * complaint has already claimed.
+   */
+  async attachToComplaint(
+    complaintId: string,
+    trafficJobId: string,
+    parties: ComplaintParty[],
+  ): Promise<number> {
+    const chargeable = parties.filter((p) => CHARGEABLE_PARTIES.includes(p));
+    if (chargeable.length === 0) return 0;
+
+    const { count } = await this.prisma.complaintCharge.updateMany({
+      where: {
+        trafficJobId,
+        complaintId: null,
+        status: { not: 'VOID' },
+        party: { in: chargeable },
+      },
+      data: { complaintId },
+    });
+
+    if (count > 0) {
+      this.logger.log(
+        `Complaint ${complaintId} adopted ${count} deduction(s) already raised on job ${trafficJobId}`,
+      );
+    }
+    return count;
   }
 
   /**
@@ -107,8 +164,8 @@ export class ComplaintChargesService {
    * dispatch grid, corrected on the complaint. An approved charge is what was
    * approved; it can only be voided and raised again.
    */
-  async update(complaintId: string, chargeId: string, dto: UpdateComplaintChargeDto) {
-    const charge = await this.getCharge(complaintId, chargeId);
+  async update(chargeId: string, dto: UpdateComplaintChargeDto) {
+    const charge = await this.getCharge(chargeId);
     if (charge.status !== 'PENDING') {
       throw new BadRequestException(
         `Only a PENDING charge can be changed; this one is ${charge.status}. Void it and raise another.`,
@@ -126,8 +183,8 @@ export class ComplaintChargesService {
     });
   }
 
-  async approve(complaintId: string, chargeId: string, userId: string) {
-    const charge = await this.getCharge(complaintId, chargeId);
+  async approve(chargeId: string, userId: string) {
+    const charge = await this.getCharge(chargeId);
     if (charge.status !== 'PENDING') {
       throw new BadRequestException(
         `Only a PENDING charge can be approved; this one is ${charge.status}.`,
@@ -146,28 +203,40 @@ export class ComplaintChargesService {
    * party's fee table for the complaint's job, left unposted so the usual
    * period-close flow still governs when it is actually paid out.
    */
-  async post(complaintId: string, chargeId: string) {
-    const charge = await this.getCharge(complaintId, chargeId);
+  async post(chargeId: string) {
+    const charge = await this.getCharge(chargeId);
     if (charge.status !== 'APPROVED') {
       throw new BadRequestException(
         `A charge must be APPROVED before it can be posted; this one is ${charge.status}.`,
       );
     }
 
-    const complaint = await this.prisma.complaint.findUniqueOrThrow({
-      where: { id: complaintId },
-      select: { trafficJobId: true, complaintNo: true },
-    });
+    // The job is on the charge itself, so a deduction raised from the grid
+    // posts exactly like one raised from a complaint.
+    const [complaint, job] = await Promise.all([
+      charge.complaintId
+        ? this.prisma.complaint.findUnique({
+            where: { id: charge.complaintId },
+            select: { complaintNo: true },
+          })
+        : null,
+      this.prisma.trafficJob.findUnique({
+        where: { id: charge.trafficJobId },
+        select: { internalRef: true },
+      }),
+    ]);
 
     const amount = Number(charge.amount);
-    const description = `Complaint ${complaint.complaintNo}`;
+    const description = complaint
+      ? `Complaint ${complaint.complaintNo}`
+      : `Deduction on job ${job?.internalRef ?? charge.trafficJobId}`;
 
     const feeId = await this.prisma.$transaction(async (tx) => {
       if (charge.party === 'DRIVER') {
         const fee = await tx.driverTripFee.create({
           data: {
             driverId: charge.driverId!,
-            trafficJobId: complaint.trafficJobId,
+            trafficJobId: charge.trafficJobId,
             amount: -amount,
             currency: charge.currency,
             isPosted: false,
@@ -180,7 +249,7 @@ export class ComplaintChargesService {
         const fee = await tx.repFee.create({
           data: {
             repId: charge.repId!,
-            trafficJobId: complaint.trafficJobId,
+            trafficJobId: charge.trafficJobId,
             amount: -amount,
             currency: charge.currency,
             isPosted: false,
@@ -192,7 +261,7 @@ export class ComplaintChargesService {
       const cost = await tx.supplierCost.create({
         data: {
           supplierId: charge.supplierId!,
-          trafficJobId: complaint.trafficJobId,
+          trafficJobId: charge.trafficJobId,
           amount: -amount,
           currency: charge.currency,
           isPosted: false,
@@ -217,8 +286,8 @@ export class ComplaintChargesService {
    * its fee row deleted while still unposted, or — once the fee has been paid
    * out — gets a compensating positive row so the party's total is made whole.
    */
-  async void(complaintId: string, chargeId: string, dto: VoidComplaintChargeDto) {
-    const charge = await this.getCharge(complaintId, chargeId);
+  async void(chargeId: string, dto: VoidComplaintChargeDto) {
+    const charge = await this.getCharge(chargeId);
     if (charge.status === 'VOID') {
       throw new BadRequestException('This charge is already void.');
     }
@@ -301,14 +370,76 @@ export class ComplaintChargesService {
     approvedBy: { select: { id: true, name: true } },
   };
 
-  private async getCharge(complaintId: string, chargeId: string) {
-    const charge = await this.prisma.complaintCharge.findFirst({
-      where: { id: chargeId, complaintId },
+  private async getCharge(chargeId: string) {
+    const charge = await this.prisma.complaintCharge.findUnique({
+      where: { id: chargeId },
     });
     if (!charge) {
-      throw new NotFoundException('This complaint has no such charge to act on.');
+      throw new NotFoundException(`Deduction with ID "${chargeId}" not found`);
     }
     return charge;
+  }
+
+  /**
+   * The complaint a charge is being raised under. It has to be the job's own
+   * complaint, and it has to blame the party being docked — the same rule the
+   * responsible ids obey, so the dispatch grid and the charge panel can never
+   * disagree about who is on the hook.
+   */
+  private async getComplaintForCharge(
+    complaintId: string,
+    trafficJobId: string,
+    party: ComplaintParty,
+  ) {
+    const complaint = await this.prisma.complaint.findFirst({
+      where: { id: complaintId, deletedAt: null },
+    });
+    if (!complaint) {
+      throw new NotFoundException(`Complaint with ID "${complaintId}" not found`);
+    }
+    if (complaint.trafficJobId !== trafficJobId) {
+      throw new BadRequestException(
+        `Complaint ${complaint.complaintNo} is not about this job.`,
+      );
+    }
+
+    const blamed =
+      complaint.responsibleParties.length > 0
+        ? complaint.responsibleParties
+        : ([complaint.responsibleParty].filter(Boolean) as ComplaintParty[]);
+    if (!blamed.includes(party)) {
+      throw new BadRequestException(
+        `Complaint ${complaint.complaintNo} does not blame the ${party.toLowerCase()}, so nothing can be deducted from them.`,
+      );
+    }
+
+    return complaint;
+  }
+
+  /**
+   * Money can only be taken from someone who actually worked the job. Without
+   * this the grid could dock a driver who was never on it.
+   */
+  private assertWorkedTheJob(
+    job: {
+      internalRef: string;
+      assignment: { driverId: string | null; repId: string | null; supplierId: string | null } | null;
+    },
+    party: ComplaintParty,
+    partyId: string,
+  ): void {
+    const onTheJob =
+      party === 'DRIVER'
+        ? job.assignment?.driverId
+        : party === 'REP'
+          ? job.assignment?.repId
+          : job.assignment?.supplierId;
+
+    if (onTheJob !== partyId) {
+      throw new BadRequestException(
+        `That ${party.toLowerCase()} did not work job ${job.internalRef}, so nothing can be deducted from them for it.`,
+      );
+    }
   }
 
   /**

@@ -13,8 +13,21 @@ import { COMPLAINT_PARTIES, CURRENCIES } from './complaint-constants.js';
 /**
  * Raising a charge records an intent to deduct. Nothing reaches the party's
  * fee table until the charge is separately approved and then posted.
+ *
+ * The job is what a deduction always has. `complaintId` is optional: omitted,
+ * the deduction stands on the job alone and the next complaint logged against
+ * it adopts it.
  */
 export class CreateComplaintChargeDto {
+  // Named exactly `trafficJobId` so AuditInterceptor.resolveJob picks it out of
+  // the body and links the deduction to the job in the Activity Log.
+  @IsUUID()
+  trafficJobId!: string;
+
+  @IsOptional()
+  @IsUUID()
+  complaintId?: string;
+
   @IsIn(COMPLAINT_PARTIES)
   party!: (typeof COMPLAINT_PARTIES)[number];
 

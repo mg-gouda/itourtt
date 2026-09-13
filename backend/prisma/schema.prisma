@@ -1383,6 +1383,9 @@ model TrafficJob {
   userNotifications   UserNotification[]
   guestBooking        GuestBooking?             @relation("GuestBookingJob")
   complaints          Complaint[]
+  // Deductions raised on this job — from the dispatch grid before a complaint
+  // exists, or through the complaint once one does.
+  complaintCharges    ComplaintCharge[]
 
   @@unique([customerJobId])
   @@index([jobDate])
@@ -2665,11 +2668,19 @@ model ComplaintAttachment {
   @@map("complaint_attachments")
 }
 
-// A deduction against the responsible party. Nothing moves until status = POSTED,
-// which writes a negative row into the party's existing fee table.
+// A deduction against the party that worked a job. Nothing moves until
+// status = POSTED, which writes a negative row into the party's existing fee
+// table.
+//
+// The **job** is what a deduction always has; the complaint is what it may
+// acquire. A dispatcher can dock a driver straight from the grid before anyone
+// has written the complaint up, and the complaint adopts that charge when it is
+// logged (`attachToComplaint`) — so the money is entered once, where it was
+// noticed, and still appears on the complaint's party-charge panel.
 model ComplaintCharge {
   id           String                @id @default(uuid())
-  complaintId  String                @map("complaint_id")
+  trafficJobId String                @map("traffic_job_id")
+  complaintId  String?               @map("complaint_id")
   party        ComplaintParty
   driverId     String?               @map("driver_id")
   repId        String?               @map("rep_id")
@@ -2692,12 +2703,14 @@ model ComplaintCharge {
   createdAt    DateTime              @default(now()) @map("created_at")
   updatedAt    DateTime              @updatedAt @map("updated_at")
 
-  complaint  Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
+  complaint  Complaint? @relation(fields: [complaintId], references: [id], onDelete: Cascade)
   driver     Driver?   @relation("ComplaintChargeDriver", fields: [driverId], references: [id])
   rep        Rep?      @relation("ComplaintChargeRep", fields: [repId], references: [id])
   supplier   Supplier? @relation("ComplaintChargeSupplier", fields: [supplierId], references: [id])
   approvedBy User?     @relation("ComplaintChargeApprovedBy", fields: [approvedById], references: [id])
 
+  @@index([trafficJobId])
   @@index([complaintId])
   @@index([status])
   @@index([driverId])

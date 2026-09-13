@@ -1529,10 +1529,13 @@ function JobGrid({
 // ────────────────────────────────────────────
 
 /**
- * The discount mark in the corner of a trip card. It exists only on jobs that
- * have actually been complained about: a deduction is always the money side of
- * a complaint, never a free-standing charge, so with no complaint there is
- * nothing to deduct against and no button to press.
+ * The discount mark in the corner of a trip card. It is always there: a
+ * deduction belongs to the job, not to a complaint, so a dispatcher can dock a
+ * driver the moment something goes wrong and let the write-up follow. The
+ * complaint logged later adopts whatever was entered here.
+ *
+ * Who may see it at all is `dispatch.deductionButton`, checked by the grid that
+ * draws it.
  */
 function JobDeductionButton({
   job,
@@ -1545,12 +1548,17 @@ function JobDeductionButton({
 }) {
   const [open, setOpen] = useState(false);
   const complaints: JobComplaintRef[] = job.complaints ?? [];
+  const assignment = job.assignment;
 
   return (
     <>
       <button
         type="button"
-        title={`Deduction — ${complaints.map((c) => c.complaintNo).join(", ")}`}
+        title={
+          complaints.length > 0
+            ? `Deduction — ${complaints.map((c) => c.complaintNo).join(", ")}`
+            : "Deduction"
+        }
         onClick={() => setOpen(true)}
         className="absolute bottom-0.5 right-1 rounded p-0.5 text-amber-500 transition-colors hover:bg-amber-500/15 hover:text-amber-400"
       >
@@ -1560,13 +1568,20 @@ function JobDeductionButton({
         <JobDeductionDialog
           open={open}
           onOpenChange={setOpen}
-          complaints={complaints}
-          defaultParty={party}
+          jobId={job.id}
           jobRef={job.internalRef}
-          driverName={
-            job.assignment?.driver?.name ?? job.assignment?.externalDriverName ?? null
+          defaultParty={party}
+          driver={
+            assignment?.driverId && assignment.driver
+              ? { id: assignment.driverId, name: assignment.driver.name }
+              : null
           }
-          repName={job.assignment?.rep?.name ?? null}
+          rep={
+            assignment?.repId && assignment.rep
+              ? { id: assignment.repId, name: assignment.rep.name }
+              : null
+          }
+          complaints={complaints}
           onSaved={onSaved}
         />
       )}
@@ -1600,7 +1615,7 @@ function VehicleFleetOverview({
 }) {
   const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
-  const canCharge = usePermission("complaints.charge.create");
+  const canDeduct = usePermission("dispatch.deductionButton");
   const [collapsed, setCollapsed] = useState(false);
 
   // Group assigned jobs by vehicleId
@@ -1686,7 +1701,7 @@ function VehicleFleetOverview({
                   const jobTime = getJobTime(job);
                   const jobDriver =
                     job.assignment?.driver?.name ?? job.assignment?.externalDriverName ?? null;
-                  const deductible = canCharge && (job.complaints?.length ?? 0) > 0;
+                  const deductible = canDeduct;
                   return (
                     <div
                       key={job.id}
@@ -1752,7 +1767,7 @@ function RepOverview({
 }) {
   const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
-  const canCharge = usePermission("complaints.charge.create");
+  const canDeduct = usePermission("dispatch.deductionButton");
   const [collapsed, setCollapsed] = useState(false);
 
   // Group jobs that have a rep assigned
@@ -1828,7 +1843,7 @@ function RepOverview({
               <div className="space-y-1 border-t border-border pt-2">
                 {rjobs.map((job) => {
                   const jobTime = getJobTime(job);
-                  const deductible = canCharge && (job.complaints?.length ?? 0) > 0;
+                  const deductible = canDeduct;
                   return (
                     <div
                       key={job.id}
