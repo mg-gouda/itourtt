@@ -101,8 +101,9 @@ export interface Complaint {
   assignedTo?: { id: string; name: string } | null;
   createdBy?: { id: string; name: string } | null;
   attachments?: ComplaintAttachment[];
-  // Stripped along with the amounts when the viewer lacks financial.viewAmounts.
-  charge?: ComplaintCharge | null;
+  // One charge per party blamed. Stripped along with the amounts when the
+  // viewer lacks financial.viewAmounts.
+  charges?: ComplaintCharge[];
   adjustments?: AgentAdjustment[];
   createdAt: string;
 }
@@ -128,6 +129,8 @@ export interface ComplaintCharge {
   supplierId?: string | null;
   amount: number | string;
   currency: string;
+  /** Why the money is being taken — typed on dispatch or on the complaint. */
+  reason?: string | null;
   status: ComplaintChargeStatus;
   approvedAt?: string | null;
   postedAt?: string | null;
@@ -195,6 +198,19 @@ export const ADJUSTMENT_STATUS_META: Record<
   ISSUED_CREDIT_NOTE: { label: "Credit note", variant: "default" },
   WAIVED: { label: "Waived", variant: "outline" },
 };
+
+/**
+ * The live charge against one party — voided ones are history, not the current
+ * state, so a party whose charge was reversed is chargeable again.
+ */
+export function chargeForParty(
+  complaint: Pick<Complaint, "charges">,
+  party: ComplaintParty,
+): ComplaintCharge | null {
+  return (
+    complaint.charges?.find((c) => c.party === party && c.status !== "VOID") ?? null
+  );
+}
 
 /** Only these parties have a fee table a deduction can be posted into. */
 export const CHARGEABLE_PARTIES: ComplaintParty[] = ["DRIVER", "REP", "SUPPLIER"];

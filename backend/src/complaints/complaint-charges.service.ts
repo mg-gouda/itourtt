@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   CreateComplaintChargeDto,
+  UpdateComplaintChargeDto,
   VoidComplaintChargeDto,
 } from './dto/create-complaint-charge.dto.js';
 import type { Currency, ComplaintParty } from '../../generated/prisma/enums.js';
@@ -22,6 +23,12 @@ const CHARGEABLE_PARTIES: ComplaintParty[] = ['DRIVER', 'REP', 'SUPPLIER'];
  * and it writes a plain negative-amount row against the same job. Those rows
  * already flow into period totals, the finance screens and every export, so no
  * downstream code needed changing to make the deduction visible.
+ *
+ * A complaint blames several people at once, so it carries **one charge per
+ * party** — a job a rep and a driver both spoiled deducts from both, and each
+ * charge is approved, posted and voided on its own. What is not allowed is two
+ * live charges against the same party: void the first, or override its amount
+ * while it is still PENDING.
  */
 @Injectable()
 export class ComplaintChargesService {
@@ -32,18 +39,38 @@ export class ComplaintChargesService {
   async create(complaintId: string, dto: CreateComplaintChargeDto, userId: string) {
     const complaint = await this.prisma.complaint.findFirst({
       where: { id: complaintId, deletedAt: null },
-      include: { charge: true },
+      include: { charges: true },
     });
     if (!complaint) {
       throw new NotFoundException(`Complaint with ID "${complaintId}" not found`);
     }
-    if (complaint.charge) {
+
+    const party = dto.party as ComplaintParty;
+
+    // A deduction can only fall on someone the complaint actually blames —
+    // the same rule the responsible ids obey, so the dispatch grid and the
+    // charge panel can never disagree about who is on the hook.
+    const blamed =
+      complaint.responsibleParties.length > 0
+        ? complaint.responsibleParties
+        : ([complaint.responsibleParty].filter(Boolean) as ComplaintParty[]);
+    if (!blamed.includes(party)) {
       throw new BadRequestException(
-        `Complaint ${complaint.complaintNo} already has a charge (${complaint.charge.status}). Void it before raising another.`,
+        `Complaint ${complaint.complaintNo} does not blame the ${party.toLowerCase()}, so nothing can be deducted from them.`,
       );
     }
 
-    const party = dto.party as ComplaintParty;
+    // One live charge per party. A second one would deduct twice for the same
+    // fault; correcting the amount is what `update` is for.
+    const existing = complaint.charges.find(
+      (c) => c.party === party && c.status !== 'VOID',
+    );
+    if (existing) {
+      throw new BadRequestException(
+        `Complaint ${complaint.complaintNo} already charges the ${party.toLowerCase()} (${existing.status}). Change that charge, or void it before raising another.`,
+      );
+    }
+
     if (!CHARGEABLE_PARTIES.includes(party)) {
       throw new BadRequestException(
         `A charge can only be raised against a driver, rep or supplier — not ${party}.`,
@@ -62,6 +89,7 @@ export class ComplaintChargesService {
         supplierId: party === 'SUPPLIER' ? partyId : null,
         amount: dto.amount,
         currency: (dto.currency as Currency) ?? complaint.currency,
+        reason: dto.reason?.trim() || null,
         createdById: userId,
       },
       include: this.chargeInclude,
@@ -74,8 +102,32 @@ export class ComplaintChargesService {
     return charge;
   }
 
-  async approve(complaintId: string, userId: string) {
-    const charge = await this.getCharge(complaintId);
+  /**
+   * Overrides a deduction still awaiting approval — the amount typed on the
+   * dispatch grid, corrected on the complaint. An approved charge is what was
+   * approved; it can only be voided and raised again.
+   */
+  async update(complaintId: string, chargeId: string, dto: UpdateComplaintChargeDto) {
+    const charge = await this.getCharge(complaintId, chargeId);
+    if (charge.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Only a PENDING charge can be changed; this one is ${charge.status}. Void it and raise another.`,
+      );
+    }
+
+    return this.prisma.complaintCharge.update({
+      where: { id: charge.id },
+      data: {
+        ...(dto.amount !== undefined ? { amount: dto.amount } : {}),
+        ...(dto.currency !== undefined ? { currency: dto.currency as Currency } : {}),
+        ...(dto.reason !== undefined ? { reason: dto.reason.trim() || null } : {}),
+      },
+      include: this.chargeInclude,
+    });
+  }
+
+  async approve(complaintId: string, chargeId: string, userId: string) {
+    const charge = await this.getCharge(complaintId, chargeId);
     if (charge.status !== 'PENDING') {
       throw new BadRequestException(
         `Only a PENDING charge can be approved; this one is ${charge.status}.`,
@@ -94,8 +146,8 @@ export class ComplaintChargesService {
    * party's fee table for the complaint's job, left unposted so the usual
    * period-close flow still governs when it is actually paid out.
    */
-  async post(complaintId: string) {
-    const charge = await this.getCharge(complaintId);
+  async post(complaintId: string, chargeId: string) {
+    const charge = await this.getCharge(complaintId, chargeId);
     if (charge.status !== 'APPROVED') {
       throw new BadRequestException(
         `A charge must be APPROVED before it can be posted; this one is ${charge.status}.`,
@@ -165,8 +217,8 @@ export class ComplaintChargesService {
    * its fee row deleted while still unposted, or — once the fee has been paid
    * out — gets a compensating positive row so the party's total is made whole.
    */
-  async void(complaintId: string, dto: VoidComplaintChargeDto) {
-    const charge = await this.getCharge(complaintId);
+  async void(complaintId: string, chargeId: string, dto: VoidComplaintChargeDto) {
+    const charge = await this.getCharge(complaintId, chargeId);
     if (charge.status === 'VOID') {
       throw new BadRequestException('This charge is already void.');
     }
@@ -249,17 +301,20 @@ export class ComplaintChargesService {
     approvedBy: { select: { id: true, name: true } },
   };
 
-  private async getCharge(complaintId: string) {
-    const charge = await this.prisma.complaintCharge.findUnique({
-      where: { complaintId },
+  private async getCharge(complaintId: string, chargeId: string) {
+    const charge = await this.prisma.complaintCharge.findFirst({
+      where: { id: chargeId, complaintId },
     });
     if (!charge) {
-      throw new NotFoundException('This complaint has no charge to act on.');
+      throw new NotFoundException('This complaint has no such charge to act on.');
     }
     return charge;
   }
 
-  /** Mirrors the exactly-one-FK rule the complaint itself enforces. */
+  /**
+   * A charge is against one person. The complaint may blame three, but each of
+   * them gets their own row, so exactly one id belongs on any single charge.
+   */
   private assertExactlyOnePartyId(
     party: ComplaintParty,
     dto: CreateComplaintChargeDto,

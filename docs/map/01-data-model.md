@@ -83,7 +83,7 @@ ONLINE-channel counterparty with a full legal profile. `refPattern`/`refExample`
 
 ### AgentAdjustment
 
-`agent_adjustments` · schema.prisma:2705 · 15 fields, 4 relations
+`agent_adjustments` · schema.prisma:2711 · 15 fields, 4 relations
 
 A pending money adjustment owed to an agent from a lost complaint — finance puts it on an invoice, issues a credit note, or waives it.
 
@@ -495,11 +495,11 @@ A client complaint raised against one traffic job — stage, category, 48h reply
 | `updatedAt` | DateTime | `updated_at` | — |
 | `deletedAt` | DateTime? | `deleted_at` | nullable |
 
-**Relations:** `trafficJob`→TrafficJob · `agent`→Agent? · `category`→ComplaintCategory · `responsibleDriver`→Driver? · `responsibleRep`→Rep? · `responsibleSupplier`→Supplier? · `assignedTo`→User? · `createdBy`→User · `attachments`→ComplaintAttachment[] · `charge`→ComplaintCharge? · `adjustments`→AgentAdjustment[] · `categoryLinks`→ComplaintCategoryLink[]
+**Relations:** `trafficJob`→TrafficJob · `agent`→Agent? · `category`→ComplaintCategory · `responsibleDriver`→Driver? · `responsibleRep`→Rep? · `responsibleSupplier`→Supplier? · `assignedTo`→User? · `createdBy`→User · `attachments`→ComplaintAttachment[] · `charges`→ComplaintCharge[] · `adjustments`→AgentAdjustment[] · `categoryLinks`→ComplaintCategoryLink[]
 
 ### ComplaintAttachment
 
-`complaint_attachments` · schema.prisma:2648 · 9 fields, 1 relations
+`complaint_attachments` · schema.prisma:2650 · 9 fields, 1 relations
 
 A file attached to a complaint (the complaint doc, our reply, or evidence); stores a Drive file id or an /uploads path.
 
@@ -554,20 +554,21 @@ Join row tying a complaint to one of its categories; the primary category_id is 
 
 ### ComplaintCharge
 
-`complaint_charges` · schema.prisma:2668 · 18 fields, 5 relations
+`complaint_charges` · schema.prisma:2670 · 19 fields, 5 relations
 
 A manual, approval-gated deduction against the party blamed for a complaint; posting writes a negative row in their fee table.
 
 | Field | Type | Column | Flags |
 |---|---|---|---|
 | `id` | String | — | PK |
-| `complaintId` | String | `complaint_id` | unique |
+| `complaintId` | String | `complaint_id` | — |
 | `party` | ComplaintParty | — | — |
 | `driverId` | String? | `driver_id` | nullable |
 | `repId` | String? | `rep_id` | nullable |
 | `supplierId` | String? | `supplier_id` | nullable |
 | `amount` | Decimal | — | — |
 | `currency` | Currency | — | — |
+| `reason` | String? | — | nullable |
 | `status` | ComplaintChargeStatus | — | — |
 | `approvedById` | String? | `approved_by_id` | nullable |
 | `approvedAt` | DateTime? | `approved_at` | nullable |

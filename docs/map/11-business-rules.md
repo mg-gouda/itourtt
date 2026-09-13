@@ -185,6 +185,23 @@ and it is gated by the new `complaints.analytics` key.
   `DriverTripFee` or `SupplierCost` against the same job, so it flows through existing totals and
   exports untouched. Voiding deletes that row while unposted, or writes a compensating positive row
   once it has been paid out.
+- **One charge per party, not one per complaint.** A complaint blames several people, so it deducts
+  from several: `Complaint.charges` is a list, and each charge is approved, posted and voided on its
+  own — every act after raising names the charge it acts on (`POST /complaints/:id/charge/:chargeId/
+  approve`). What is still forbidden is two *live* charges against the same party; a voided one is
+  history, so that party becomes chargeable again. A charge may only fall on a party the complaint
+  actually names, the same rule the responsible ids obey, so the dispatch grid and the charge panel
+  can never disagree about who is on the hook. Consumers that show one number per complaint add the
+  non-void charges up (`reports.service.ts › chargeTotalOf`); the portals show a driver or rep only
+  the posted charges raised against **them by name**, never the other leg's.
+- **The amount can be typed on the dispatch grid.** The trip cards in Fleet Overview and Rep Overview
+  carry a discount mark in the corner, and it exists *only* on a job that has actually been
+  complained about — a deduction is the money side of a complaint, never a free-standing charge.
+  `JobDeductionDialog` re-reads the complaint through `GET /complaints/:id` rather than trusting the
+  grid, because that endpoint is where the amount redaction lives; the day view itself carries
+  complaint ids and numbers and no money at all. What it saves is an ordinary PENDING charge, so the
+  complaint's own panel shows it pre-filled and can override it — `PATCH .../charge/:chargeId`, and
+  only while PENDING. What was approved is what stands; changing it after that means voiding it.
 - Toward the agent: a LOST / PARTIALLY_LOST outcome with a conceded amount creates one PENDING
   `AgentAdjustment` **inside the transition's own transaction**, so an outcome can never be recorded
   without its debt. Finance then settles it as a negative invoice line, a standalone `CREDIT_NOTE`

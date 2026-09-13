@@ -74,6 +74,21 @@ export class DispatchService {
           supplierCarType: { select: { id: true, vehicleType: { select: { id: true, name: true, seatCapacity: true } } } },
         },
       },
+      // Enough to know a job has been complained about, and which complaint to
+      // open. Nothing financial: the deduction dialog re-reads the complaint
+      // through GET /complaints/:id, which is where the amount redaction lives.
+      complaints: {
+        where: { deletedAt: null },
+        orderBy: { complaintDate: 'desc' as const },
+        select: {
+          id: true,
+          complaintNo: true,
+          subject: true,
+          status: true,
+          responsibleParties: true,
+          responsibleParty: true,
+        },
+      },
     };
 
     const baseWhere = {

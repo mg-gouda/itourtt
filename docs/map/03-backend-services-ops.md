@@ -147,22 +147,22 @@ The dispatch console backend: the day view and all assignment logic. Assignment 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `getDayView` | pub | 38 | `trafficJob` | One day's jobs with everything the Excel-like grid renders, ARR and DEP served together for the split console. |
-| `assignJob` | pub | 115 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +8 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
-| `sendStaffAssignmentEmail` | priv | 385 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
-| `reassignJob` | pub | 435 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +7 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
-| `unassignJob` | pub | 724 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
-| `getAvailableVehicles` | pub | 765 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
-| `getAvailableSuppliers` | pub | 838 | `supplier` | Suppliers that can source a car for this job. |
-| `getAvailableDrivers` | pub | 877 | `driver` | Active drivers offered for assignment. |
-| `getAvailableReps` | pub | 902 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
-| `unlockJob` | pub | 995 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
-| `lockJob` | pub | 1011 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
-| `checkDispatcherTimelock` | priv | 1032 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
-| `getJobReferenceTime` | priv | 1057 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
-| `validateVehicleAvailability` | priv | 1074 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
-| `detectAssignmentConflicts` | priv | 1088 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
-| `validateDriverAvailability` | priv | 1132 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
-| `validateRepAvailability` | priv | 1152 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
+| `assignJob` | pub | 130 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +8 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
+| `sendStaffAssignmentEmail` | priv | 400 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
+| `reassignJob` | pub | 450 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +7 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
+| `unassignJob` | pub | 739 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
+| `getAvailableVehicles` | pub | 780 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
+| `getAvailableSuppliers` | pub | 853 | `supplier` | Suppliers that can source a car for this job. |
+| `getAvailableDrivers` | pub | 892 | `driver` | Active drivers offered for assignment. |
+| `getAvailableReps` | pub | 917 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
+| `unlockJob` | pub | 1010 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
+| `lockJob` | pub | 1026 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
+| `checkDispatcherTimelock` | priv | 1047 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
+| `getJobReferenceTime` | priv | 1072 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
+| `validateVehicleAvailability` | priv | 1089 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
+| `detectAssignmentConflicts` | priv | 1103 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
+| `validateDriverAvailability` | priv | 1147 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
+| `validateRepAvailability` | priv | 1167 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
 
 ## `drivers`
 

@@ -85,7 +85,7 @@ export class ComplaintAnalyticsService {
         responsibleDriver: { select: { name: true } },
         responsibleRep: { select: { name: true } },
         responsibleSupplier: { select: { legalName: true, tradeName: true } },
-        charge: { select: { status: true, amount: true, currency: true } },
+        charges: { select: { status: true, amount: true, currency: true } },
       },
       orderBy: { complaintDate: 'asc' },
     });
@@ -178,12 +178,14 @@ export class ComplaintAnalyticsService {
       if (loss > 0) lostWithAmount++;
       penaltyPointsTotal += row.scorePenaltyApplied;
 
-      if (row.charge) {
-        const chargeAmount = Number(row.charge.amount ?? 0);
-        if (row.charge.status === 'POSTED') {
+      // A complaint deducts from every party it blames, so the counts are per
+      // charge, not per complaint — two people charged is two deductions.
+      for (const charge of row.charges) {
+        const chargeAmount = Number(charge.amount ?? 0);
+        if (charge.status === 'POSTED') {
           chargesPostedTotal += chargeAmount;
           chargesPostedCount++;
-        } else if (row.charge.status === 'PENDING' || row.charge.status === 'APPROVED') {
+        } else if (charge.status === 'PENDING' || charge.status === 'APPROVED') {
           chargesPendingCount++;
         }
       }

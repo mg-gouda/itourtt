@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   Search,
@@ -104,6 +105,14 @@ export default function ComplaintsPage() {
   const [editing, setEditing] = useState<Complaint | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // ?complaint=<id> opens straight onto the detail dialog — how the deduction
+  // mark on the dispatch grid links back to the complaint it belongs to.
+  const searchParams = useSearchParams();
+  const linkedId = searchParams.get("complaint");
+  useEffect(() => {
+    if (linkedId) setDetailId(linkedId);
+  }, [linkedId]);
 
   const fetchComplaints = useCallback(async () => {
     setLoading(true);

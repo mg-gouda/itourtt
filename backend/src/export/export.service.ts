@@ -2380,7 +2380,10 @@ export class ExportService {
         responsibleRep: { select: { name: true } },
         responsibleSupplier: { select: { legalName: true, tradeName: true } },
         assignedTo: { select: { name: true } },
-        charge: { select: { status: true, amount: true } },
+        charges: {
+          select: { status: true, amount: true, party: true },
+          orderBy: { createdAt: 'asc' },
+        },
         trafficJob: {
           select: {
             internalRef: true,
@@ -2425,8 +2428,15 @@ export class ExportService {
       // Only the parties actually blamed contribute a name.
       'Responsible Name': this.complaintResponsibleNames(c).join(', '),
       'Score Penalty': c.scorePenaltyApplied || '',
-      'Charge Status': c.charge?.status ?? '',
-      'Charge Amount': c.charge ? Number(c.charge.amount) : '',
+      // A complaint deducts from every party it blames, so both columns name
+      // them: "DRIVER POSTED, REP PENDING" against "300, 150".
+      'Charge Status': c.charges
+        .map((ch) => `${ch.party} ${ch.status}`)
+        .join(', '),
+      'Charge Amount': c.charges
+        .filter((ch) => ch.status !== 'VOID')
+        .map((ch) => Number(ch.amount))
+        .join(', '),
       'Owner': c.assignedTo?.name ?? '',
     }));
 

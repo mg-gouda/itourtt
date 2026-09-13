@@ -37,6 +37,33 @@ export class CreateComplaintChargeDto {
   @IsOptional()
   @IsIn(CURRENCIES)
   currency?: (typeof CURRENCIES)[number];
+
+  /** Why the money is being taken. Free text, kept on the charge. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reason?: string;
+}
+
+/**
+ * Overriding a deduction that is already on the row — the amount typed on the
+ * dispatch grid, corrected on the complaint. Only a PENDING charge may be
+ * changed; once approved, what was approved is what stands.
+ */
+export class UpdateComplaintChargeDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  amount?: number;
+
+  @IsOptional()
+  @IsIn(CURRENCIES)
+  currency?: (typeof CURRENCIES)[number];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reason?: string;
 }
 
 export class VoidComplaintChargeDto {

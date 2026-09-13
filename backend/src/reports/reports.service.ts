@@ -323,6 +323,28 @@ export class ReportsService {
    * describes.
    */
   /**
+   * What a complaint deducted, as one number: every charge that was not voided.
+   * A complaint that blames a rep and a driver deducts from both, and the
+   * report column has room for the pair only as their sum.
+   */
+  private chargeTotalOf(charges: { status: string; amount: unknown }[]): number | null {
+    const live = charges.filter((c) => c.status !== 'VOID');
+    if (live.length === 0) return null;
+    return live.reduce((sum, c) => sum + Number(c.amount), 0);
+  }
+
+  /**
+   * The state of those charges. One status when they agree, MIXED when they do
+   * not — saying "POSTED" while half of them still await approval would be a lie.
+   */
+  private chargeStatusOf(charges: { status: string }[]): string | null {
+    const live = charges.filter((c) => c.status !== 'VOID');
+    if (live.length === 0) return charges.length > 0 ? 'VOID' : null;
+    const distinct = new Set(live.map((c) => c.status));
+    return distinct.size === 1 ? [...distinct][0] : 'MIXED';
+  }
+
+  /**
    * The people a complaint blames. Driver, rep and supplier are stored on it;
    * the agent, the guest and the two office roles (who entered the job, who
    * dispatched the car) are read off the job it is attached to.
@@ -413,7 +435,7 @@ export class ReportsService {
         responsibleRep: { select: { id: true, name: true } },
         responsibleSupplier: { select: { id: true, legalName: true, tradeName: true } },
         assignedTo: { select: { id: true, name: true } },
-        charge: { select: { status: true, amount: true, currency: true } },
+        charges: { select: { status: true, amount: true, currency: true } },
         trafficJob: {
           select: {
             id: true,
@@ -480,8 +502,11 @@ export class ReportsService {
       // against the office does not also list the guest.
       responsibleNames: this.complaintResponsibleNames(c),
       scorePenaltyApplied: c.scorePenaltyApplied,
-      chargeStatus: c.charge?.status ?? null,
-      chargeAmount: c.charge ? Number(c.charge.amount) : null,
+      // One complaint may deduct from several people. The column reports the
+      // deduction as a whole: everything not voided, and a single status only
+      // when they all agree.
+      chargeStatus: this.chargeStatusOf(c.charges),
+      chargeAmount: this.chargeTotalOf(c.charges),
       assignedToName: c.assignedTo?.name ?? null,
     }));
 

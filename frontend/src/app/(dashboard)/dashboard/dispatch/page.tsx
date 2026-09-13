@@ -23,6 +23,7 @@ import {
   ChevronDown,
   Check,
   Eye,
+  BadgePercent,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,11 @@ import { formatDate, cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePermission } from "@/hooks/use-permission";
 import { SERVICE_TYPE_COLORS_SOLID, useServiceTypeLabel } from "@/lib/service-types";
+import {
+  JobDeductionDialog,
+  type JobComplaintRef,
+} from "@/components/complaints/job-deduction-dialog";
+import type { ComplaintParty } from "@/lib/complaints";
 
 // ────────────────────────────────────────────
 // Types
@@ -139,6 +145,12 @@ interface Job {
   jobExtras?: { name: string; qty: number }[];
   requestedVehicleTypeId: string | null;
   requestedVehicleType?: { id: string; name: string } | null;
+  /**
+   * Complaints logged against this job — enough to know one exists and which
+   * one to open. No money: the deduction dialog re-reads the complaint through
+   * GET /complaints/:id, where the amount redaction lives.
+   */
+  complaints?: JobComplaintRef[];
 }
 
 interface SupplierResource {
@@ -1513,6 +1525,56 @@ function JobGrid({
 }
 
 // ────────────────────────────────────────────
+// Deduction button — fleet & rep overview
+// ────────────────────────────────────────────
+
+/**
+ * The discount mark in the corner of a trip card. It exists only on jobs that
+ * have actually been complained about: a deduction is always the money side of
+ * a complaint, never a free-standing charge, so with no complaint there is
+ * nothing to deduct against and no button to press.
+ */
+function JobDeductionButton({
+  job,
+  party,
+  onSaved,
+}: {
+  job: Job;
+  party: ComplaintParty;
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const complaints: JobComplaintRef[] = job.complaints ?? [];
+
+  return (
+    <>
+      <button
+        type="button"
+        title={`Deduction — ${complaints.map((c) => c.complaintNo).join(", ")}`}
+        onClick={() => setOpen(true)}
+        className="absolute bottom-0.5 right-1 rounded p-0.5 text-amber-500 transition-colors hover:bg-amber-500/15 hover:text-amber-400"
+      >
+        <BadgePercent className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <JobDeductionDialog
+          open={open}
+          onOpenChange={setOpen}
+          complaints={complaints}
+          defaultParty={party}
+          jobRef={job.internalRef}
+          driverName={
+            job.assignment?.driver?.name ?? job.assignment?.externalDriverName ?? null
+          }
+          repName={job.assignment?.rep?.name ?? null}
+          onSaved={onSaved}
+        />
+      )}
+    </>
+  );
+}
+
+// ────────────────────────────────────────────
 // VehicleFleetOverview
 // ────────────────────────────────────────────
 
@@ -1527,9 +1589,18 @@ function getJobTime(job: Job): Date | null {
   return new Date(iso);
 }
 
-function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
+function VehicleFleetOverview({
+  jobs,
+  locale,
+  onChanged,
+}: {
+  jobs: Job[];
+  locale: string;
+  onChanged: () => void;
+}) {
   const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
+  const canCharge = usePermission("complaints.charge.create");
   const [collapsed, setCollapsed] = useState(false);
 
   // Group assigned jobs by vehicleId
@@ -1615,10 +1686,15 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                   const jobTime = getJobTime(job);
                   const jobDriver =
                     job.assignment?.driver?.name ?? job.assignment?.externalDriverName ?? null;
+                  const deductible = canCharge && (job.complaints?.length ?? 0) > 0;
                   return (
                     <div
                       key={job.id}
-                      className="rounded px-2 py-1 text-[11px] space-y-0.5 bg-muted/40"
+                      className={cn(
+                        "rounded px-2 py-1 text-[11px] space-y-0.5 bg-muted/40",
+                        // Room in the corner for the deduction mark.
+                        deductible && "relative pb-5",
+                      )}
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span
@@ -1642,6 +1718,13 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
                           <span className="truncate">{jobDriver}</span>
                         </div>
                       )}
+                      {deductible && (
+                        <JobDeductionButton
+                          job={job}
+                          party="DRIVER"
+                          onSaved={onChanged}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -1658,9 +1741,18 @@ function VehicleFleetOverview({ jobs, locale }: { jobs: Job[]; locale: string })
 // RepOverview
 // ────────────────────────────────────────────
 
-function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
+function RepOverview({
+  jobs,
+  locale,
+  onChanged,
+}: {
+  jobs: Job[];
+  locale: string;
+  onChanged: () => void;
+}) {
   const serviceTypeLabel = useServiceTypeLabel();
   const t = useT();
+  const canCharge = usePermission("complaints.charge.create");
   const [collapsed, setCollapsed] = useState(false);
 
   // Group jobs that have a rep assigned
@@ -1736,10 +1828,15 @@ function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
               <div className="space-y-1 border-t border-border pt-2">
                 {rjobs.map((job) => {
                   const jobTime = getJobTime(job);
+                  const deductible = canCharge && (job.complaints?.length ?? 0) > 0;
                   return (
                     <div
                       key={job.id}
-                      className="rounded px-2 py-1 text-[11px] space-y-0.5 bg-muted/40"
+                      className={cn(
+                        "rounded px-2 py-1 text-[11px] space-y-0.5 bg-muted/40",
+                        // Room in the corner for the deduction mark.
+                        deductible && "relative pb-5",
+                      )}
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span
@@ -1757,6 +1854,9 @@ function RepOverview({ jobs, locale }: { jobs: Job[]; locale: string }) {
                         <span className="text-foreground/80 truncate font-mono">{job.internalRef}</span>
                         <span className="text-muted-foreground ml-1 flex-shrink-0">{job.paxCount}p</span>
                       </div>
+                      {deductible && (
+                        <JobDeductionButton job={job} party="REP" onSaved={onChanged} />
+                      )}
                     </div>
                   );
                 })}
@@ -2591,6 +2691,7 @@ export default function DispatchPage() {
           <VehicleFleetOverview
             jobs={[...arrivals, ...departures, ...cityTransfers]}
             locale={locale}
+            onChanged={fetchDay}
           />
         )}
 
@@ -2599,6 +2700,7 @@ export default function DispatchPage() {
           <RepOverview
             jobs={[...arrivals, ...departures, ...cityTransfers]}
             locale={locale}
+            onChanged={fetchDay}
           />
         )}
 

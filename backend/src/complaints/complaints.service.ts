@@ -55,7 +55,7 @@ const MONEY_FIELDS = [
   'lossAmount',
   'currency',
   'exchangeRate',
-  'charge',
+  'charges',
   'adjustments',
 ] as const;
 
@@ -103,6 +103,14 @@ export class ComplaintsService {
     createdBy: { select: { id: true, name: true } },
   };
 
+  /** Who each charge is against — the detail dialog names them on every line. */
+  private readonly chargeInclude = {
+    driver: { select: { id: true, name: true } },
+    rep: { select: { id: true, name: true } },
+    supplier: { select: { id: true, legalName: true, tradeName: true } },
+    approvedBy: { select: { id: true, name: true } },
+  };
+
   // ─────────────────────────────────────────────
   // READ
   // ─────────────────────────────────────────────
@@ -136,7 +144,7 @@ export class ComplaintsService {
       include: {
         ...this.complaintInclude,
         attachments: { orderBy: { createdAt: 'asc' } },
-        charge: true,
+        charges: { include: this.chargeInclude, orderBy: { createdAt: 'asc' } },
         adjustments: true,
       },
     });
@@ -427,12 +435,12 @@ export class ComplaintsService {
   async remove(id: string) {
     const complaint = await this.prisma.complaint.findFirst({
       where: { id, deletedAt: null },
-      include: { charge: true },
+      include: { charges: { select: { status: true } } },
     });
     if (!complaint) {
       throw new NotFoundException(`Complaint with ID "${id}" not found`);
     }
-    if (complaint.charge && complaint.charge.status === 'POSTED') {
+    if (complaint.charges.some((c) => c.status === 'POSTED')) {
       throw new BadRequestException(
         'Cannot delete a complaint whose charge has been posted. Void the charge first.',
       );

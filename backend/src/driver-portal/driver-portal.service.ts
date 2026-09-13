@@ -748,11 +748,15 @@ export class DriverPortalService {
         trafficJob: {
           select: { internalRef: true, jobDate: true, serviceType: true },
         },
-        charge: { select: { status: true, amount: true, currency: true } },
+        charges: {
+          select: { status: true, amount: true, currency: true, driverId: true },
+        },
       },
     });
 
-    return complaints.map((c) => ({
+    return complaints.map((c) => {
+      const charged = this.postedChargeAgainst(c.charges, driverId);
+      return {
       id: c.id,
       complaintNo: c.complaintNo,
       subject: c.subject,
@@ -764,10 +768,32 @@ export class DriverPortalService {
       jobRef: c.trafficJob.internalRef,
       jobDate: c.trafficJob.jobDate,
       serviceType: c.trafficJob.serviceType,
-      // Only a charge that was actually posted is money the driver has lost.
-      chargedAmount: c.charge?.status === 'POSTED' ? Number(c.charge.amount) : null,
-      chargedCurrency: c.charge?.status === 'POSTED' ? c.charge.currency : null,
-    }));
+      // Only a charge that was actually posted is money the driver has lost —
+      // and only the charges against *them*: a complaint that also deducted from
+      // the other leg is not this driver's loss to see.
+      chargedAmount: charged.amount,
+      chargedCurrency: charged.currency,
+      };
+    });
+  }
+
+  /**
+   * What this driver actually lost to a complaint: the charges raised against
+   * them by name and then posted, added up. A complaint that also deducted from
+   * the other leg of the job is not theirs to see.
+   */
+  private postedChargeAgainst(
+    charges: { status: string; amount: unknown; currency: string; driverId: string | null }[],
+    driverId: string,
+  ): { amount: number | null; currency: string | null } {
+    const mine = charges.filter(
+      (c) => c.status === 'POSTED' && c.driverId === driverId,
+    );
+    if (mine.length === 0) return { amount: null, currency: null };
+    return {
+      amount: mine.reduce((sum, c) => sum + Number(c.amount), 0),
+      currency: mine[0].currency,
+    };
   }
 
   async getNotifications(userId: string) {

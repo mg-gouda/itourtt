@@ -2626,7 +2626,9 @@ model Complaint {
   createdBy           User              @relation("ComplaintCreatedBy", fields: [createdById], references: [id])
 
   attachments   ComplaintAttachment[]
-  charge        ComplaintCharge?
+  // One deduction per party blamed — a job that a rep and a driver both spoiled
+  // carries two, and each is approved, posted and voided on its own.
+  charges       ComplaintCharge[]
   adjustments   AgentAdjustment[]
   // Every category the complaint was logged under, `category` included.
   categoryLinks ComplaintCategoryLink[]
@@ -2667,13 +2669,16 @@ model ComplaintAttachment {
 // which writes a negative row into the party's existing fee table.
 model ComplaintCharge {
   id           String                @id @default(uuid())
-  complaintId  String                @unique @map("complaint_id")
+  complaintId  String                @map("complaint_id")
   party        ComplaintParty
   driverId     String?               @map("driver_id")
   repId        String?               @map("rep_id")
   supplierId   String?               @map("supplier_id")
   amount       Decimal               @db.Decimal(15, 2)
   currency     Currency              @default(EGP)
+  // Why the money is being taken. Typed once — on the dispatch grid or on the
+  // complaint — and read back wherever the deduction is shown.
+  reason       String?               @db.Text
   status       ComplaintChargeStatus @default(PENDING)
   approvedById String?               @map("approved_by_id")
   approvedAt   DateTime?             @map("approved_at")
@@ -2693,6 +2698,7 @@ model ComplaintCharge {
   supplier   Supplier? @relation("ComplaintChargeSupplier", fields: [supplierId], references: [id])
   approvedBy User?     @relation("ComplaintChargeApprovedBy", fields: [approvedById], references: [id])
 
+  @@index([complaintId])
   @@index([status])
   @@index([driverId])
   @@index([repId])
