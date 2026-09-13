@@ -26,6 +26,7 @@ import {
 import { SearchableCombobox, type ComboboxItem } from "@/components/searchable-combobox";
 import { MultiSelect } from "@/components/multi-select";
 import { usePermission } from "@/hooks/use-permission";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   type Complaint,
   type ComplaintCategory,
@@ -72,6 +73,7 @@ interface JobParties {
 
 const emptyForm = {
   trafficJobId: "",
+  assignedToId: "",
   categoryIds: [] as string[],
   stage: "DURING_JOB",
   source: "AGENT",
@@ -107,6 +109,8 @@ export function ComplaintFormDialog({
 }: Props) {
   const isEdit = Boolean(complaint);
   const canEditAmounts = usePermission("complaints.financial.editAmounts");
+  const canAssign = usePermission("complaints.assign");
+  const currentUser = useAuthStore((s) => s.user);
 
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
@@ -114,6 +118,7 @@ export function ComplaintFormDialog({
   const [jobQuery, setJobQuery] = useState("");
   const [jobSearching, setJobSearching] = useState(false);
   const [agents, setAgents] = useState<ComboboxItem[]>([]);
+  const [owners, setOwners] = useState<ComboboxItem[]>([]);
   const [jobOptions, setJobOptions] = useState<ComboboxItem[]>([]);
   const [jobParties, setJobParties] = useState<JobParties | null>(null);
 
@@ -137,6 +142,7 @@ export function ComplaintFormDialog({
     if (complaint) {
       setForm({
         trafficJobId: complaint.trafficJobId,
+        assignedToId: complaint.assignedToId ?? "",
         // The set the complaint was saved with, primary first.
         categoryIds: complaint.categoryIds?.length
           ? complaint.categoryIds
@@ -173,6 +179,9 @@ export function ComplaintFormDialog({
       setForm({
         ...emptyForm,
         trafficJobId: lockedJob?.id ?? "",
+        // Whoever is logging it owns it until someone says otherwise — an
+        // unowned complaint is one the SLA sweep can warn nobody about.
+        assignedToId: currentUser?.id ?? "",
         complaintDate: toLocalInput(new Date().toISOString()),
       });
       setJobOptions(
@@ -225,6 +234,20 @@ export function ComplaintFormDialog({
     const id = setTimeout(() => searchJobs(jobQuery), 300);
     return () => clearTimeout(id);
   }, [jobQuery, searchJobs]);
+
+  // ── who the complaint can be handed to ───────────────────────────────
+  // Deliberately not GET /users, which is ADMIN-only: anyone who may log a
+  // complaint has to be able to name its owner.
+  useEffect(() => {
+    if (!open || owners.length > 0) return;
+    api
+      .get("/complaints/assignable-users")
+      .then((res) => {
+        const rows = res.data?.data ?? [];
+        setOwners(rows.map((u: any) => ({ value: u.id, label: u.name })));
+      })
+      .catch(() => setOwners([]));
+  }, [open, owners.length]);
 
   // ── agents, loaded once the source says an agent raised it ──────────
   useEffect(() => {
@@ -335,6 +358,13 @@ export function ComplaintFormDialog({
       // actually worked it.
       responsibleParties: form.responsibleParties,
     };
+
+    // Whose desk it lands on. Naming it while logging is part of logging;
+    // moving one off someone else's desk later needs complaints.assign, so an
+    // edit only sends it when the user actually has that key.
+    if (!isEdit || canAssign) {
+      payload.assignedToId = form.assignedToId || null;
+    }
 
     // Only send money fields when the user is allowed to set them, so a
     // read-only user's PATCH is never rejected for touching them — and only
@@ -543,6 +573,26 @@ export function ComplaintFormDialog({
               </p>
             </div>
           )}
+
+          <div>
+            <Label>Owner</Label>
+            <div className="mt-1">
+              <SearchableCombobox
+                items={owners}
+                value={form.assignedToId}
+                onChange={(v) => set("assignedToId", v)}
+                placeholder="Unassigned…"
+                searchPlaceholder="Search staff…"
+                emptyText="No staff found."
+                disabled={isEdit && !canAssign}
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {isEdit && !canAssign
+                ? "Only a user with the assign permission can move a complaint to another owner."
+                : "Whose desk this sits on. The reply reminders go to the owner — an unassigned complaint warns nobody."}
+            </p>
+          </div>
 
           <div>
             <Label>Received *</Label>

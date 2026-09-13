@@ -42,6 +42,8 @@ interface Props {
   onSearchChange?: (term: string) => void;
   /** Shown in place of the empty text while a server search is running. */
   loading?: boolean;
+  /** Renders the trigger read-only — the current choice still shows. */
+  disabled?: boolean;
 }
 
 export function SearchableCombobox({
@@ -54,6 +56,7 @@ export function SearchableCombobox({
   triggerClassName,
   onSearchChange,
   loading = false,
+  disabled = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const serverSearch = typeof onSearchChange === "function";
@@ -66,6 +69,7 @@ export function SearchableCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className={cn("w-full justify-between font-normal", triggerClassName)}
         >
           <span className="truncate text-left">

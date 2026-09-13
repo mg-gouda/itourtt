@@ -143,12 +143,12 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
     }
   }, [complaintId, fetchComplaint, resetOutcome]);
 
-  // The users list is ADMIN-only server-side; if it 403s we simply drop the
-  // assign control rather than showing a broken dropdown.
+  // Not GET /users, which is ADMIN-only and used to make this control vanish
+  // for every other role that may legitimately reassign a complaint.
   useEffect(() => {
     if (!complaintId || !canAssign || users.length > 0) return;
     api
-      .get("/users?limit=200")
+      .get("/complaints/assignable-users")
       .then((res) => setUsers(res.data?.data ?? []))
       .catch(() => setUsers([]));
   }, [complaintId, canAssign, users.length]);

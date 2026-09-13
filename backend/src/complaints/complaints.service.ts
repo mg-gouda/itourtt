@@ -170,6 +170,26 @@ export class ComplaintsService {
     return rows.map((c) => this.present(c, canViewAmounts));
   }
 
+  /**
+   * Who a complaint can be handed to: active back-office users, by name.
+   *
+   * The portal roles are excluded — a driver or a rep is someone a complaint is
+   * *about*, never someone it is assigned to, and they have no screen to answer
+   * it on. Being the owner is what puts the SLA reminders in someone's inbox
+   * (`complaint-sla.service.ts`), so an unowned complaint notifies nobody.
+   */
+  async assignableUsers() {
+    return this.prisma.user.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        role: { notIn: ['REP', 'DRIVER', 'SUPPLIER', 'B2C_CLIENT'] },
+      },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   private buildWhere(query: ComplaintQueryDto): Record<string, unknown> {
     const where: Record<string, unknown> = { deletedAt: null };
 

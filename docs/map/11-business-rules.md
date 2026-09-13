@@ -139,6 +139,16 @@ the complaint actually names, or the charge panel would offer to deduct from som
 Every party dropped from the set has its id cleared in the same write. An explicit id in the DTO
 still wins over the assignment, for the API callers that send one.
 
+**The owner is who answers it, not who caused it.** `assignedToId` is a member of staff, and it is
+the only thing that makes the SLA sweep speak: `complaint-sla.service.ts` sends the "due in Nh" nudge
+and the "deadline missed" notice to the owner and nobody else, so an unowned complaint breaches in
+silence. The log form therefore defaults it to **whoever is logging the complaint**, and the picker
+is fed by `GET /complaints/assignable-users` — active back-office users only, portal roles excluded,
+id and name only. It exists because `GET /users` is ADMIN-only, which used to make the detail
+dialog's owner control vanish for every other role that may legitimately assign one. Naming the owner
+while *logging* is part of logging (`complaints.addButton` covers it); moving a complaint off someone
+else's desk afterwards needs `complaints.assign`, on the PATCH as well as in the UI.
+
 **The reply window flags, it never decides.** The standard window is **24 hours** (`DEFAULT_SLA_HOURS`);
 it was 48 until 2026-09-11, and only the default moved — `slaHours` is stored per row precisely so a
 policy change cannot rewrite history, so every complaint logged before keeps its 48 and its original

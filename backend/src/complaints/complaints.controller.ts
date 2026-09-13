@@ -66,6 +66,17 @@ export class ComplaintsController {
     return new ApiResponse(await this.analyticsService.summary(query, canViewAmounts));
   }
 
+  /**
+   * Who a complaint can be handed to. Deliberately *not* `GET /users`: that is
+   * ADMIN-only and returns the whole user record, while anyone allowed to log a
+   * complaint has to be able to name its owner. Id and name only.
+   */
+  @Get('assignable-users')
+  @Permissions('complaints.assign', 'complaints.addButton', 'complaints.editButton')
+  async assignableUsers() {
+    return new ApiResponse(await this.complaintsService.assignableUsers());
+  }
+
   @Get('job/:jobId')
   @Permissions('complaints.view', 'complaints')
   async findByJob(
@@ -99,6 +110,7 @@ export class ComplaintsController {
     @CurrentUser('id') userId: string,
   ) {
     await this.assertMayEditAmounts(dto, userId);
+    await this.assertMayReassign(dto, userId);
     const complaint = await this.complaintsService.update(id, dto);
     return new ApiResponse(complaint, 'Complaint updated');
   }
@@ -152,6 +164,22 @@ export class ComplaintsController {
    * complaints.editButton alone must not let someone set the money. The amount
    * fields need financial.editAmounts on top of it.
    */
+  /**
+   * Naming the owner while *logging* a complaint is part of logging it, so
+   * `complaints.addButton` covers it. Moving one off someone else's desk later
+   * is not, and needs the same key the detail dialog's picker uses.
+   */
+  private async assertMayReassign(dto: UpdateComplaintDto, userId: string) {
+    if (dto.assignedToId === undefined) return;
+
+    const granted = await this.permissionsGuard.getUserPermissions(userId);
+    if (!granted.has('complaints.assign')) {
+      throw new ForbiddenException(
+        'You do not have permission to change who owns a complaint.',
+      );
+    }
+  }
+
   private async assertMayEditAmounts(dto: UpdateComplaintDto, userId: string) {
     const touchesMoney =
       dto.claimedAmount !== undefined ||
