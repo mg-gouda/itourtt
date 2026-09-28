@@ -905,21 +905,21 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3538 lines
+`frontend/src/lib/i18n.ts` · 3542 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3515 | Translates a key in the current locale. |
-| `getTranslator` | function | 3519 | Translator for a specific locale, outside React. |
-| `useT` | function | 3527 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3534 | The active locale id. |
+| `t` | function | 3519 | Translates a key in the current locale. |
+| `getTranslator` | function | 3523 | Translator for a specific locale, outside React. |
+| `useT` | function | 3531 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3538 | The active locale id. |
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 884 lines
+`frontend/src/lib/permission-registry.ts` · 886 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -928,11 +928,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 795 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 811 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 819 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 831 | Subtree, used by the master toggle. |
-| `findNode` | function | 871 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 797 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 813 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 821 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 833 | Subtree, used by the master toggle. |
+| `findNode` | function | 873 | Looks up a node by key. |
 
 ### `service-types.ts`
 

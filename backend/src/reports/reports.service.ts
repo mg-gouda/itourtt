@@ -21,6 +21,27 @@ function resolveDriverName(assignment: {
   return null;
 }
 
+/** Splits a comma-separated multi-select value; "ALL" and blanks mean no filter. */
+function csvFilter(value?: string): string[] | null {
+  if (!value || value === 'ALL') return null;
+  const list = value.split(',').map((v) => v.trim()).filter((v) => v && v !== 'ALL');
+  return list.length > 0 ? list : null;
+}
+
+/** Agent multi-select → a Prisma `agentId` clause. */
+function buildAgentFilter(agentId?: string): Record<string, unknown> {
+  const list = csvFilter(agentId);
+  if (!list) return {};
+  return { agentId: list.length === 1 ? list[0] : { in: list } };
+}
+
+/** Job-status multi-select → a Prisma `status` clause. */
+function buildStatusFilter(status?: string): Record<string, unknown> {
+  const list = csvFilter(status);
+  if (!list) return {};
+  return { status: list.length === 1 ? (list[0] as JobStatus) : { in: list as JobStatus[] } };
+}
+
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -1656,5 +1677,156 @@ export class ReportsService {
     }));
 
     return { from, to, count: rows.length, rows };
+  }
+
+  // ─────────────────────────────────────────────
+  // ZONES ANALYTICS REPORT
+  // ─────────────────────────────────────────────
+
+  /**
+   * Which zone pairs the work actually runs between. The pricing zones
+   * (`fromZoneId` / `toZoneId`) are the analytic axis, not the raw origin /
+   * destination FKs — those may be a hotel or an airport, and only the resolved
+   * zone is comparable across jobs.
+   */
+  async zonesAnalyticsReport(
+    from: string,
+    to: string,
+    filters: { agentId?: string; status?: string } = {},
+  ) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const where: Record<string, unknown> = {
+      jobDate: { gte: fromDate, lte: toDate },
+      deletedAt: null,
+      ...buildAgentFilter(filters.agentId),
+      ...buildStatusFilter(filters.status),
+    };
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: {
+        agent: { select: { legalName: true, tradeName: true } },
+        originAirport: { select: { code: true } },
+        originZone: { select: { name: true } },
+        originHotel: { select: { name: true } },
+        destinationAirport: { select: { code: true } },
+        destinationZone: { select: { name: true } },
+        destinationHotel: { select: { name: true } },
+        fromZone: { select: { name: true } },
+        toZone: { select: { name: true } },
+      },
+      orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
+    });
+
+    const rows = jobs.map((j) => ({
+      id: j.id,
+      internalRef: j.internalRef,
+      agentRef: j.agentRef ?? '—',
+      agentName: j.agent?.tradeName ?? j.agent?.legalName ?? '—',
+      serviceDate: j.jobDate,
+      serviceType: j.serviceType,
+      status: j.status,
+      destination:
+        j.destinationHotel?.name ??
+        j.destinationZone?.name ??
+        j.destinationAirport?.code ??
+        '—',
+      zoneFrom: j.fromZone?.name ?? j.originZone?.name ?? '—',
+      zoneTo: j.toZone?.name ?? j.destinationZone?.name ?? '—',
+    }));
+
+    // Route volume, busiest first — the reason the report exists.
+    const routeCounts = new Map<string, { zoneFrom: string; zoneTo: string; jobs: number; pax: number }>();
+    jobs.forEach((j, i) => {
+      const zoneFrom = rows[i].zoneFrom;
+      const zoneTo = rows[i].zoneTo;
+      const key = `${zoneFrom}→${zoneTo}`;
+      const entry = routeCounts.get(key) ?? { zoneFrom, zoneTo, jobs: 0, pax: 0 };
+      entry.jobs += 1;
+      entry.pax += j.paxCount;
+      routeCounts.set(key, entry);
+    });
+    const byRoute = [...routeCounts.values()].sort((a, b) => b.jobs - a.jobs);
+
+    return {
+      from,
+      to,
+      count: rows.length,
+      rows,
+      summary: {
+        totalJobs: rows.length,
+        distinctRoutes: byRoute.length,
+        byRoute,
+      },
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // PRODUCTION REPORT
+  // ─────────────────────────────────────────────
+
+  /** Volume produced per agent over a period, job by job. */
+  async productionReport(
+    from: string,
+    to: string,
+    filters: { agentId?: string; status?: string } = {},
+  ) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const where: Record<string, unknown> = {
+      jobDate: { gte: fromDate, lte: toDate },
+      deletedAt: null,
+      ...buildAgentFilter(filters.agentId),
+      ...buildStatusFilter(filters.status),
+    };
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where,
+      include: { agent: { select: { legalName: true, tradeName: true } } },
+      orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
+    });
+
+    const rows = jobs.map((j) => ({
+      id: j.id,
+      internalRef: j.internalRef,
+      agentRef: j.agentRef ?? '—',
+      agentName: j.agent?.tradeName ?? j.agent?.legalName ?? '—',
+      serviceDate: j.jobDate,
+      serviceType: j.serviceType,
+      status: j.status,
+      pax: j.paxCount,
+    }));
+
+    // Production is read per agent first, then per status.
+    const agentCounts = new Map<string, { agentName: string; jobs: number; pax: number }>();
+    rows.forEach((r) => {
+      const entry = agentCounts.get(r.agentName) ?? { agentName: r.agentName, jobs: 0, pax: 0 };
+      entry.jobs += 1;
+      entry.pax += r.pax;
+      agentCounts.set(r.agentName, entry);
+    });
+
+    const statusCounts: Record<string, number> = {};
+    rows.forEach((r) => {
+      statusCounts[r.status] = (statusCounts[r.status] ?? 0) + 1;
+    });
+
+    return {
+      from,
+      to,
+      count: rows.length,
+      rows,
+      summary: {
+        totalJobs: rows.length,
+        totalPax: rows.reduce((s, r) => s + r.pax, 0),
+        byAgent: [...agentCounts.values()].sort((a, b) => b.jobs - a.jobs),
+        byStatus: statusCounts,
+      },
+    };
   }
 }

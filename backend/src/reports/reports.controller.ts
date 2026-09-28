@@ -96,6 +96,24 @@ class RepScoreQueryDto {
   repId?: string;
 }
 
+class ZonesAnalyticsQueryDto {
+  @IsString()
+  from!: string;
+
+  @IsString()
+  to!: string;
+
+  /** Comma-separated agent ids — the filter is a multi-select. */
+  @IsOptional()
+  @IsString()
+  agentId?: string;
+
+  /** Comma-separated job statuses. */
+  @IsOptional()
+  @IsString()
+  status?: string;
+}
+
 class ComplaintsReportQueryDto {
   @IsString()
   from!: string;
@@ -447,6 +465,32 @@ export class ReportsController {
       throw new BadRequestException('from and to query parameters are required');
     }
     const result = await this.reportsService.reviewReport(query.from, query.to, query.status);
+    return new ApiResponse(result);
+  }
+
+  @Get('zones-analytics')
+  @Permissions('reports.zonesAnalytics')
+  async zonesAnalyticsReport(@Query() query: ZonesAnalyticsQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.zonesAnalyticsReport(query.from, query.to, {
+      agentId: query.agentId,
+      status: query.status,
+    });
+    return new ApiResponse(result);
+  }
+
+  @Get('production')
+  @Permissions('reports.production')
+  async productionReport(@Query() query: ZonesAnalyticsQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    const result = await this.reportsService.productionReport(query.from, query.to, {
+      agentId: query.agentId,
+      status: query.status,
+    });
     return new ApiResponse(result);
   }
 }

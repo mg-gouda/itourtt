@@ -301,6 +301,8 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'reports.departure', labelKey: 'permissions.reports.departure' },
       { key: 'reports.flightDelay', labelKey: 'permissions.reports.flightDelay' },
       { key: 'reports.review', labelKey: 'permissions.reports.review' },
+      { key: 'reports.zonesAnalytics', labelKey: 'permissions.reports.zonesAnalytics' },
+      { key: 'reports.production', labelKey: 'permissions.reports.production' },
     ],
   },
 

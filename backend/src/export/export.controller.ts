@@ -526,6 +526,40 @@ export class ExportController {
     this.sendXlsx(res, buffer, `review_${from}_${to}`);
   }
 
+  @Get('zones-analytics')
+  @Permissions('reports.zonesAnalytics')
+  async exportZonesAnalytics(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('agentId') agentId: string,
+    @Query('status') status: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportZonesAnalyticsReport(from, to, {
+      agentId: agentId || undefined,
+      status: status || undefined,
+    });
+    this.sendXlsx(res, buffer, `zones_analytics_${from}_${to}`);
+  }
+
+  @Get('production')
+  @Permissions('reports.production')
+  async exportProduction(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('agentId') agentId: string,
+    @Query('status') status: string,
+    @Res() res: express.Response,
+  ) {
+    if (!from || !to) throw new BadRequestException('from and to are required');
+    const buffer = await this.exportService.exportProductionReport(from, to, {
+      agentId: agentId || undefined,
+      status: status || undefined,
+    });
+    this.sendXlsx(res, buffer, `production_${from}_${to}`);
+  }
+
   private sendXlsx(res: express.Response, buffer: Buffer, filename: string) {
     const date = new Date().toISOString().split('T')[0];
     res.set({

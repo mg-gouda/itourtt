@@ -25,6 +25,27 @@ const bidi = _require('bidi-js') as (text: string, opts: Record<string, unknown>
   getReorderedString: (text: string, levels: unknown) => string;
 };
 
+/** Splits a comma-separated multi-select value; "ALL" and blanks mean no filter. */
+function exportCsvFilter(value?: string): string[] | null {
+  if (!value || value === 'ALL') return null;
+  const list = value.split(',').map((v) => v.trim()).filter((v) => v && v !== 'ALL');
+  return list.length > 0 ? list : null;
+}
+
+/** Agent multi-select → a Prisma `agentId` clause. */
+function exportAgentFilter(agentId?: string): Record<string, unknown> {
+  const list = exportCsvFilter(agentId);
+  if (!list) return {};
+  return { agentId: list.length === 1 ? list[0] : { in: list } };
+}
+
+/** Job-status multi-select → a Prisma `status` clause. */
+function exportStatusFilter(status?: string): Record<string, unknown> {
+  const list = exportCsvFilter(status);
+  if (!list) return {};
+  return { status: list.length === 1 ? list[0] : { in: list } };
+}
+
 /** Returns true if the string contains any Arabic Unicode characters. */
 function hasArabic(text: string): boolean {
   return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
@@ -2756,5 +2777,142 @@ export class ExportService {
       filter['lte'] = end;
     }
     return { [field]: filter };
+  }
+
+  // ─────────────────────────────────────────────
+  // ZONES ANALYTICS EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportZonesAnalyticsReport(
+    from: string,
+    to: string,
+    filters: { agentId?: string; status?: string } = {},
+  ): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: {
+        jobDate: { gte: fromDate, lte: toDate },
+        deletedAt: null,
+        ...exportAgentFilter(filters.agentId),
+        ...exportStatusFilter(filters.status),
+      },
+      include: {
+        agent: { select: { legalName: true, tradeName: true } },
+        originZone: { select: { name: true } },
+        destinationAirport: { select: { code: true } },
+        destinationZone: { select: { name: true } },
+        destinationHotel: { select: { name: true } },
+        fromZone: { select: { name: true } },
+        toZone: { select: { name: true } },
+      },
+      orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
+    });
+
+    const detail = jobs.map((j) => ({
+      'Ref': j.internalRef,
+      'Agent Ref': j.agentRef ?? '',
+      'Agent': j.agent?.tradeName ?? j.agent?.legalName ?? '',
+      'Service Date': this.formatDate(j.jobDate),
+      'Service Type': serviceTypeLabel(j.serviceType),
+      'Status': j.status,
+      'Destination':
+        j.destinationHotel?.name ??
+        j.destinationZone?.name ??
+        j.destinationAirport?.code ??
+        '',
+      'Zone From': j.fromZone?.name ?? j.originZone?.name ?? '',
+      'Zone To': j.toZone?.name ?? j.destinationZone?.name ?? '',
+      'Pax': j.paxCount,
+    }));
+
+    // Route volume sheet — the same aggregate the screen shows.
+    const routes = new Map<string, { zoneFrom: string; zoneTo: string; jobs: number; pax: number }>();
+    detail.forEach((r) => {
+      const key = `${r['Zone From']}→${r['Zone To']}`;
+      const entry = routes.get(key) ?? {
+        zoneFrom: r['Zone From'],
+        zoneTo: r['Zone To'],
+        jobs: 0,
+        pax: 0,
+      };
+      entry.jobs += 1;
+      entry.pax += r['Pax'];
+      routes.set(key, entry);
+    });
+    const summary = [...routes.values()]
+      .sort((a, b) => b.jobs - a.jobs)
+      .map((r) => ({
+        'Zone From': r.zoneFrom,
+        'Zone To': r.zoneTo,
+        'Jobs': r.jobs,
+        'Pax': r.pax,
+      }));
+
+    const wb = XLSX.utils.book_new();
+    const summaryWs = XLSX.utils.json_to_sheet(summary);
+    this.autoSizeColumns(summaryWs, summary);
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Routes');
+    const detailWs = XLSX.utils.json_to_sheet(detail);
+    this.autoSizeColumns(detailWs, detail);
+    XLSX.utils.book_append_sheet(wb, detailWs, 'Jobs');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  }
+
+  // ─────────────────────────────────────────────
+  // PRODUCTION EXCEL EXPORT
+  // ─────────────────────────────────────────────
+
+  async exportProductionReport(
+    from: string,
+    to: string,
+    filters: { agentId?: string; status?: string } = {},
+  ): Promise<Buffer> {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: {
+        jobDate: { gte: fromDate, lte: toDate },
+        deletedAt: null,
+        ...exportAgentFilter(filters.agentId),
+        ...exportStatusFilter(filters.status),
+      },
+      include: { agent: { select: { legalName: true, tradeName: true } } },
+      orderBy: [{ jobDate: 'asc' }, { internalRef: 'asc' }],
+    });
+
+    const detail = jobs.map((j) => ({
+      'Internal Ref': j.internalRef,
+      'Agent Ref': j.agentRef ?? '',
+      'Agent': j.agent?.tradeName ?? j.agent?.legalName ?? '',
+      'Service Date': this.formatDate(j.jobDate),
+      'Service Type': serviceTypeLabel(j.serviceType),
+      'Status': j.status,
+      'Pax': j.paxCount,
+    }));
+
+    const perAgent = new Map<string, { agent: string; jobs: number; pax: number }>();
+    detail.forEach((r) => {
+      const entry = perAgent.get(r['Agent']) ?? { agent: r['Agent'], jobs: 0, pax: 0 };
+      entry.jobs += 1;
+      entry.pax += r['Pax'];
+      perAgent.set(r['Agent'], entry);
+    });
+    const summary = [...perAgent.values()]
+      .sort((a, b) => b.jobs - a.jobs)
+      .map((r) => ({ 'Agent': r.agent, 'Jobs': r.jobs, 'Pax': r.pax }));
+
+    const wb = XLSX.utils.book_new();
+    const summaryWs = XLSX.utils.json_to_sheet(summary);
+    this.autoSizeColumns(summaryWs, summary);
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'By Agent');
+    const detailWs = XLSX.utils.json_to_sheet(detail);
+    this.autoSizeColumns(detailWs, detail);
+    XLSX.utils.book_append_sheet(wb, detailWs, 'Jobs');
+    return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
   }
 }

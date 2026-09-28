@@ -22,10 +22,13 @@ import {
   Truck,
   Plane,
   ChevronDown,
+  MapPin,
+  BarChart3,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import JobDetailModal from "@/components/job-detail-modal";
 import { SearchableCombobox } from "@/components/searchable-combobox";
+import { MultiSelect } from "@/components/multi-select";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -508,6 +511,7 @@ interface EvidenceReport {
 interface Agent {
   id: string;
   legalName: string;
+  tradeName?: string | null;
 }
 
 interface CarJobRow {
@@ -638,6 +642,55 @@ interface ReviewReport {
   to: string;
   count: number;
   rows: ReviewReportRow[];
+}
+
+interface ZonesAnalyticsRow {
+  id: string;
+  internalRef: string;
+  agentRef: string;
+  agentName: string;
+  serviceDate: string;
+  serviceType: string;
+  status: string;
+  destination: string;
+  zoneFrom: string;
+  zoneTo: string;
+}
+
+interface ZonesAnalyticsReport {
+  from: string;
+  to: string;
+  count: number;
+  rows: ZonesAnalyticsRow[];
+  summary: {
+    totalJobs: number;
+    distinctRoutes: number;
+    byRoute: Array<{ zoneFrom: string; zoneTo: string; jobs: number; pax: number }>;
+  };
+}
+
+interface ProductionRow {
+  id: string;
+  internalRef: string;
+  agentRef: string;
+  agentName: string;
+  serviceDate: string;
+  serviceType: string;
+  status: string;
+  pax: number;
+}
+
+interface ProductionReport {
+  from: string;
+  to: string;
+  count: number;
+  rows: ProductionRow[];
+  summary: {
+    totalJobs: number;
+    totalPax: number;
+    byAgent: Array<{ agentName: string; jobs: number; pax: number }>;
+    byStatus: Record<string, number>;
+  };
 }
 
 // ────────────────────────────────────────────
@@ -881,6 +934,36 @@ const REVIEW_COLUMNS: ColumnDef[] = [
 ];
 const REVIEW_DEFAULT_KEYS = REVIEW_COLUMNS.map((c) => c.key);
 
+// Every job status, for the multi-select filters on the newer reports.
+const JOB_STATUS_OPTIONS = [
+  "PENDING",
+  "ASSIGNED",
+  "IN_PROGRESS",
+  "IN_PLACE",
+  "COMPLETED",
+  "CANCELLED",
+  "NO_SHOW",
+].map((s) => ({ value: s, label: s.replace(/_/g, " ") }));
+
+const ZONES_ANALYTICS_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Ref" },
+  { key: "agentRef", label: "Agent Ref" },
+  { key: "destination", label: "Destination" },
+  { key: "zoneFrom", label: "Zone From" },
+  { key: "zoneTo", label: "Zone To" },
+];
+const ZONES_ANALYTICS_DEFAULT_KEYS = ZONES_ANALYTICS_COLUMNS.map((c) => c.key);
+
+const PRODUCTION_COLUMNS: ColumnDef[] = [
+  { key: "internalRef", label: "Internal Ref" },
+  { key: "agentRef", label: "Agent Ref" },
+  { key: "agentName", label: "Agent" },
+  { key: "serviceDate", label: "Service Date" },
+  { key: "serviceType", label: "Service Type" },
+  { key: "status", label: "Status" },
+];
+const PRODUCTION_DEFAULT_KEYS = PRODUCTION_COLUMNS.map((c) => c.key);
+
 // ────────────────────────────────────────────
 // Stat Card
 // ────────────────────────────────────────────
@@ -935,6 +1018,8 @@ export default function ReportsPage() {
   const canDeparture = usePermission("reports.departure");
   const canFlightDelay = usePermission("reports.flightDelay");
   const canReview = usePermission("reports.review");
+  const canZonesAnalytics = usePermission("reports.zonesAnalytics");
+  const canProduction = usePermission("reports.production");
 
   // Daily Dispatch
   const [dispatchDate, setDispatchDate] = useState(today);
@@ -1116,6 +1201,31 @@ export default function ReportsPage() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const reviewPrintRef = useRef<HTMLDivElement>(null);
 
+  // Zones Analytics Report
+  const [zonesFrom, setZonesFrom] = useState(thirtyDaysAgo);
+  const [zonesTo, setZonesTo] = useState(today);
+  const [zonesAgentIds, setZonesAgentIds] = useState<string[]>([]);
+  const [zonesStatus, setZonesStatus] = useState<string[]>([]);
+  const [zonesData, setZonesData] = useState<ZonesAnalyticsReport | null>(null);
+  const [zonesLoading, setZonesLoading] = useState(false);
+  const zonesPrintRef = useRef<HTMLDivElement>(null);
+
+  // Production Report
+  const [productionFrom, setProductionFrom] = useState(thirtyDaysAgo);
+  const [productionTo, setProductionTo] = useState(today);
+  const [productionAgentIds, setProductionAgentIds] = useState<string[]>([]);
+  const [productionStatus, setProductionStatus] = useState<string[]>([]);
+  const [productionData, setProductionData] = useState<ProductionReport | null>(null);
+  const [productionLoading, setProductionLoading] = useState(false);
+  const productionPrintRef = useRef<HTMLDivElement>(null);
+
+  // Agent picker options, shared by the multi-select filters.
+  const agentOptions = agents.map((a) => ({
+    value: a.id,
+    label: a.tradeName || a.legalName,
+    sub: a.tradeName && a.legalName !== a.tradeName ? a.legalName : undefined,
+  }));
+
   // Derived: filtered compliance data and unique vehicle types
   const complianceVehicleTypes = Array.from(new Set(complianceData.map((v) => v.vehicleTypeName).filter(Boolean))).sort();
   const filteredComplianceData = complianceData.filter((v) => {
@@ -1139,6 +1249,8 @@ export default function ReportsPage() {
   const departureSort = useSortable(departureData?.rows || []);
   const flightDelaySort = useSortable(flightDelayData?.rows || []);
   const reviewSort = useSortable(reviewData?.rows || []);
+  const zonesSort = useSortable(zonesData?.rows || []);
+  const productionSort = useSortable(productionData?.rows || []);
 
   // Column order hooks for drag-and-drop reordering
   const dispatchColOrder = useColumnPreferences("dispatch", DISPATCH_DEFAULT_KEYS);
@@ -1158,6 +1270,8 @@ export default function ReportsPage() {
   const departureColOrder = useColumnPreferences("departure", DEPARTURE_DEFAULT_KEYS);
   const flightDelayColOrder = useColumnPreferences("flight_delay", FLIGHT_DELAY_DEFAULT_KEYS);
   const reviewColOrder = useColumnPreferences("review", REVIEW_DEFAULT_KEYS);
+  const zonesColOrder = useColumnPreferences("zones_analytics", ZONES_ANALYTICS_DEFAULT_KEYS);
+  const productionColOrder = useColumnPreferences("production", PRODUCTION_DEFAULT_KEYS);
 
   // Load agents list for agent statement
   useEffect(() => {
@@ -2011,6 +2125,64 @@ export default function ReportsPage() {
 
   const exportReviewPdf = () => printFromRef(reviewPrintRef, `Review Report - ${reviewFrom} to ${reviewTo}`);
 
+  // ── Zones Analytics Report ──
+  const zonesQuery = () => {
+    const p = new URLSearchParams({ from: zonesFrom, to: zonesTo });
+    if (zonesAgentIds.length > 0) p.set("agentId", zonesAgentIds.join(","));
+    if (zonesStatus.length > 0) p.set("status", zonesStatus.join(","));
+    return p.toString();
+  };
+
+  const fetchZones = async () => {
+    setZonesLoading(true);
+    try {
+      const { data } = await api.get(`/reports/zones-analytics?${zonesQuery()}`);
+      setZonesData(data.data || data);
+    } catch {
+      toast.error("Failed to load the zones analytics report");
+    } finally {
+      setZonesLoading(false);
+    }
+  };
+
+  const exportZonesExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/zones-analytics?${zonesQuery()}`, { responseType: "blob" });
+      downloadBlob(res.data, `zones_analytics_${zonesFrom}_${zonesTo}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+
+  const exportZonesPdf = () => printFromRef(zonesPrintRef, `Zones Analytics - ${zonesFrom} to ${zonesTo}`);
+
+  // ── Production Report ──
+  const productionQuery = () => {
+    const p = new URLSearchParams({ from: productionFrom, to: productionTo });
+    if (productionAgentIds.length > 0) p.set("agentId", productionAgentIds.join(","));
+    if (productionStatus.length > 0) p.set("status", productionStatus.join(","));
+    return p.toString();
+  };
+
+  const fetchProduction = async () => {
+    setProductionLoading(true);
+    try {
+      const { data } = await api.get(`/reports/production?${productionQuery()}`);
+      setProductionData(data.data || data);
+    } catch {
+      toast.error("Failed to load the production report");
+    } finally {
+      setProductionLoading(false);
+    }
+  };
+
+  const exportProductionExcel = async () => {
+    try {
+      const res = await api.get(`/export/odoo/production?${productionQuery()}`, { responseType: "blob" });
+      downloadBlob(res.data, `production_${productionFrom}_${productionTo}.xlsx`);
+    } catch { toast.error(t("reports.failedExcel")); }
+  };
+
+  const exportProductionPdf = () => printFromRef(productionPrintRef, `Production Report - ${productionFrom} to ${productionTo}`);
+
   // Compute final net total for a rep using current scoreEdits / missedJobs / deductions
   function computeRepNet(fees: RepFeeReportRep["fees"]): number {
     const gross = fees.reduce((sum, fee) => {
@@ -2069,7 +2241,9 @@ export default function ReportsPage() {
         canEvidence ? "evidence" :
         canSupplierJobs ? "supplier-jobs" :
         canCarJobs ? "car-jobs" :
-        canComplaints ? "complaints" : "dispatch"
+        canComplaints ? "complaints" :
+        canZonesAnalytics ? "zones-analytics" :
+        canProduction ? "production" : "dispatch"
       } className="space-y-4">
         <TabsList className="bg-card border border-border !h-auto flex-wrap w-full justify-start gap-y-1">
           {canDailyDispatch && (
@@ -2241,6 +2415,24 @@ export default function ReportsPage() {
             >
               <ClipboardList className="h-3.5 w-3.5" />
               Review
+            </TabsTrigger>
+          )}
+          {canZonesAnalytics && (
+            <TabsTrigger
+              value="zones-analytics"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              Zones Analytics
+            </TabsTrigger>
+          )}
+          {canProduction && (
+            <TabsTrigger
+              value="production"
+              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Production
             </TabsTrigger>
           )}
         </TabsList>
@@ -5332,6 +5524,262 @@ export default function ReportsPage() {
               </Card>
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">Select a date range and search to view guest surveys.</p>
+            )}
+          </TabsContent>
+        )}
+
+        {/* ─── ZONES ANALYTICS REPORT ─── */}
+        {canZonesAnalytics && (
+          <TabsContent value="zones-analytics" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <Label className="text-muted-foreground text-xs">From</Label>
+                  <Input type="date" value={zonesFrom} onChange={(e) => setZonesFrom(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">To</Label>
+                  <Input type="date" value={zonesTo} onChange={(e) => setZonesTo(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div className="w-64">
+                  <Label className="text-muted-foreground text-xs">Agent</Label>
+                  <MultiSelect
+                    className="mt-1 border-border bg-card text-foreground"
+                    items={agentOptions}
+                    value={zonesAgentIds}
+                    onChange={setZonesAgentIds}
+                    placeholder="All Agents"
+                    searchPlaceholder="Search agents…"
+                    emptyText="No agent found."
+                  />
+                </div>
+                <div className="w-56">
+                  <Label className="text-muted-foreground text-xs">Status</Label>
+                  <MultiSelect
+                    className="mt-1 border-border bg-card text-foreground"
+                    items={JOB_STATUS_OPTIONS}
+                    value={zonesStatus}
+                    onChange={setZonesStatus}
+                    placeholder="All Statuses"
+                    searchable={false}
+                  />
+                </div>
+                <Button onClick={fetchZones} disabled={zonesLoading} className="gap-1.5">
+                  {zonesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Generate
+                </Button>
+                {zonesData && (
+                  <>
+                    <Button variant="outline" onClick={exportZonesExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> Excel
+                    </Button>
+                    <Button variant="outline" onClick={exportZonesPdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> PDF
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            {zonesData && (
+              <div ref={zonesPrintRef} className="space-y-4">
+                <div className="grid grid-cols-4 gap-1.5">
+                  <StatCard label="Total Jobs" value={zonesData.summary.totalJobs} />
+                  <StatCard label="Distinct Routes" value={zonesData.summary.distinctRoutes} />
+                  <StatCard label="Period" value={`${zonesData.from} → ${zonesData.to}`} />
+                </div>
+
+                {/* Busiest zone pairs first — the point of the report. */}
+                {zonesData.summary.byRoute.length > 0 && (
+                  <div className="overflow-x-auto rounded-md border border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border">
+                          <TableHead className="text-xs">Zone From</TableHead>
+                          <TableHead className="text-xs">Zone To</TableHead>
+                          <TableHead className="text-xs text-right">Jobs</TableHead>
+                          <TableHead className="text-xs text-right">Pax</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {zonesData.summary.byRoute.slice(0, 20).map((r, idx) => (
+                          <TableRow key={idx} className="border-border hover:bg-muted/30">
+                            <TableCell className="text-sm">{r.zoneFrom}</TableCell>
+                            <TableCell className="text-sm">{r.zoneTo}</TableCell>
+                            <TableCell className="text-xs text-right font-semibold">{r.jobs}</TableCell>
+                            <TableCell className="text-xs text-right">{r.pax}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <Table>
+                    <DraggableTableHeader
+                      columns={ZONES_ANALYTICS_COLUMNS}
+                      columnOrder={zonesColOrder.columns}
+                      onReorder={zonesColOrder.reorder}
+                      visibility={zonesColOrder.visibility}
+                    />
+                    <TableBody>
+                      {zonesSort.sortedData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={ZONES_ANALYTICS_COLUMNS.length} className="py-8 text-center text-muted-foreground text-sm">
+                            No records found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        zonesSort.sortedData.map((row) => (
+                          <TableRow key={row.id} className="border-border hover:bg-muted/30">
+                            {zonesColOrder.columns.filter((col) => zonesColOrder.visibility[col] !== false).map((col) => {
+                              switch (col) {
+                                case "internalRef": return <TableCell key={col} className="text-xs font-mono font-semibold">{row.internalRef}</TableCell>;
+                                case "agentRef": return <TableCell key={col} className="text-xs font-mono">{row.agentRef}</TableCell>;
+                                case "destination": return <TableCell key={col} className="text-sm">{row.destination}</TableCell>;
+                                case "zoneFrom": return <TableCell key={col} className="text-sm">{row.zoneFrom}</TableCell>;
+                                case "zoneTo": return <TableCell key={col} className="text-sm">{row.zoneTo}</TableCell>;
+                                default: return null;
+                              }
+                            })}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <ColumnVisibilityControl columns={ZONES_ANALYTICS_COLUMNS} visibility={zonesColOrder.visibility} onSave={zonesColOrder.saveVisibility} />
+              </div>
+            )}
+          </TabsContent>
+        )}
+
+        {/* ─── PRODUCTION REPORT ─── */}
+        {canProduction && (
+          <TabsContent value="production" className="space-y-4">
+            <Card className="border-border bg-card p-4">
+              <div className="flex items-end gap-3 flex-wrap">
+                <div>
+                  <Label className="text-muted-foreground text-xs">From</Label>
+                  <Input type="date" value={productionFrom} onChange={(e) => setProductionFrom(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">To</Label>
+                  <Input type="date" value={productionTo} onChange={(e) => setProductionTo(e.target.value)} className="mt-1 w-44 border-border bg-card text-foreground" />
+                </div>
+                <div className="w-56">
+                  <Label className="text-muted-foreground text-xs">Job Status</Label>
+                  <MultiSelect
+                    className="mt-1 border-border bg-card text-foreground"
+                    items={JOB_STATUS_OPTIONS}
+                    value={productionStatus}
+                    onChange={setProductionStatus}
+                    placeholder="All Statuses"
+                    searchable={false}
+                  />
+                </div>
+                <div className="w-64">
+                  <Label className="text-muted-foreground text-xs">Agent</Label>
+                  <MultiSelect
+                    className="mt-1 border-border bg-card text-foreground"
+                    items={agentOptions}
+                    value={productionAgentIds}
+                    onChange={setProductionAgentIds}
+                    placeholder="All Agents"
+                    searchPlaceholder="Search agents…"
+                    emptyText="No agent found."
+                  />
+                </div>
+                <Button onClick={fetchProduction} disabled={productionLoading} className="gap-1.5">
+                  {productionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Generate
+                </Button>
+                {productionData && (
+                  <>
+                    <Button variant="outline" onClick={exportProductionExcel} className="gap-1.5 border-border text-foreground">
+                      <FileSpreadsheet className="h-4 w-4" /> Excel
+                    </Button>
+                    <Button variant="outline" onClick={exportProductionPdf} className="gap-1.5 border-border text-foreground">
+                      <Printer className="h-4 w-4" /> PDF
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            {productionData && (
+              <div ref={productionPrintRef} className="space-y-4">
+                <div className="grid grid-cols-4 gap-1.5">
+                  <StatCard label="Total Jobs" value={productionData.summary.totalJobs} />
+                  <StatCard label="Total Pax" value={productionData.summary.totalPax} />
+                  <StatCard label="Agents" value={productionData.summary.byAgent.length} />
+                  <StatCard label="Period" value={`${productionData.from} → ${productionData.to}`} />
+                </div>
+
+                {/* Production is read per agent before it is read job by job. */}
+                {productionData.summary.byAgent.length > 0 && (
+                  <div className="overflow-x-auto rounded-md border border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border">
+                          <TableHead className="text-xs">Agent</TableHead>
+                          <TableHead className="text-xs text-right">Jobs</TableHead>
+                          <TableHead className="text-xs text-right">Pax</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {productionData.summary.byAgent.map((a, idx) => (
+                          <TableRow key={idx} className="border-border hover:bg-muted/30">
+                            <TableCell className="text-sm">{a.agentName}</TableCell>
+                            <TableCell className="text-xs text-right font-semibold">{a.jobs}</TableCell>
+                            <TableCell className="text-xs text-right">{a.pax}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <Table>
+                    <DraggableTableHeader
+                      columns={PRODUCTION_COLUMNS}
+                      columnOrder={productionColOrder.columns}
+                      onReorder={productionColOrder.reorder}
+                      visibility={productionColOrder.visibility}
+                    />
+                    <TableBody>
+                      {productionSort.sortedData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={PRODUCTION_COLUMNS.length} className="py-8 text-center text-muted-foreground text-sm">
+                            No records found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        productionSort.sortedData.map((row) => (
+                          <TableRow key={row.id} className="border-border hover:bg-muted/30">
+                            {productionColOrder.columns.filter((col) => productionColOrder.visibility[col] !== false).map((col) => {
+                              switch (col) {
+                                case "internalRef": return <TableCell key={col} className="text-xs font-mono font-semibold">{row.internalRef}</TableCell>;
+                                case "agentRef": return <TableCell key={col} className="text-xs font-mono">{row.agentRef}</TableCell>;
+                                case "agentName": return <TableCell key={col} className="text-sm">{row.agentName}</TableCell>;
+                                case "serviceDate": return <TableCell key={col} className="text-xs font-mono">{row.serviceDate ? new Date(row.serviceDate).toLocaleDateString(locale) : "—"}</TableCell>;
+                                case "serviceType": return <TableCell key={col}><Badge variant="outline" className="text-xs">{serviceTypeLabel(row.serviceType)}</Badge></TableCell>;
+                                case "status": return <TableCell key={col}><StatusBadge status={row.status} /></TableCell>;
+                                default: return null;
+                              }
+                            })}
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <ColumnVisibilityControl columns={PRODUCTION_COLUMNS} visibility={productionColOrder.visibility} onSave={productionColOrder.saveVisibility} />
+              </div>
             )}
           </TabsContent>
         )}

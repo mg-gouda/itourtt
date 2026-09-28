@@ -1145,10 +1145,10 @@ Google Drive evidence storage. Degrades to null (never throws) when unconfigured
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 720 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 736 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 744 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 756 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 722 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 738 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 746 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 758 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 

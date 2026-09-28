@@ -1005,6 +1005,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.allStatuses": "All Statuses",
     "reports.allReps": "All Reps",
     "permissions.reports.review": "Review Report",
+    "permissions.reports.zonesAnalytics": "Zones Analytics Report",
+    "permissions.reports.production": "Production Report",
     "permissions.reports.guestSurveys": "Guest Surveys Report",
 
     // ── Users ──
@@ -2773,6 +2775,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "reports.allStatuses": "جميع الحالات",
     "reports.allReps": "جميع المرافقين",
     "permissions.reports.review": "تقرير المراجعة",
+    "permissions.reports.zonesAnalytics": "تقرير تحليل المناطق",
+    "permissions.reports.production": "تقرير الإنتاج",
     "permissions.reports.guestSurveys": "تقرير استبيانات الضيوف",
 
     // ── Users ──
