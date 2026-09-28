@@ -1736,17 +1736,21 @@ export class ReportsService {
         '—',
       zoneFrom: j.fromZone?.name ?? j.originZone?.name ?? '—',
       zoneTo: j.toZone?.name ?? j.destinationZone?.name ?? '—',
+      pax: j.paxCount,
     }));
 
     // Route volume, busiest first — the reason the report exists.
     const routeCounts = new Map<string, { zoneFrom: string; zoneTo: string; jobs: number; pax: number }>();
-    jobs.forEach((j, i) => {
-      const zoneFrom = rows[i].zoneFrom;
-      const zoneTo = rows[i].zoneTo;
-      const key = `${zoneFrom}→${zoneTo}`;
-      const entry = routeCounts.get(key) ?? { zoneFrom, zoneTo, jobs: 0, pax: 0 };
+    rows.forEach((r) => {
+      const key = `${r.zoneFrom}→${r.zoneTo}`;
+      const entry = routeCounts.get(key) ?? {
+        zoneFrom: r.zoneFrom,
+        zoneTo: r.zoneTo,
+        jobs: 0,
+        pax: 0,
+      };
       entry.jobs += 1;
-      entry.pax += j.paxCount;
+      entry.pax += r.pax;
       routeCounts.set(key, entry);
     });
     const byRoute = [...routeCounts.values()].sort((a, b) => b.jobs - a.jobs);

@@ -655,6 +655,7 @@ interface ZonesAnalyticsRow {
   destination: string;
   zoneFrom: string;
   zoneTo: string;
+  pax: number;
 }
 
 interface ZonesAnalyticsReport {
