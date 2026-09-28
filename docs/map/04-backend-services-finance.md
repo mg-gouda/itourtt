@@ -452,7 +452,7 @@ Every operational and financial report behind the Reports screen. Each report is
 | `flightDelayForJob` | pub | 1568 | `userNotification` | Delay history for one job. |
 | `reviewReport` | pub | 1625 | `trafficJob` | Guest reviews per job. |
 | `zonesAnalyticsReport` | pub | 1692 | `trafficJob` | Zone-pair volume over a period, filterable by agent and job status (both multi-select, comma-separated). Rows carry the resolved pricing zones (`fromZone` / `toZone`), not the raw origin/destination FKs; `summary.byRoute` ranks the pairs by job count. |
-| `productionReport` | pub | 1772 | `trafficJob` | Jobs produced per agent over a period, filterable by agent and job status (both multi-select, comma-separated). `summary.byAgent` ranks agents by volume and `summary.byStatus` counts each status. |
+| `productionReport` | pub | 1776 | `trafficJob` | Jobs produced per agent over a period, filterable by agent and job status (both multi-select, comma-separated). `summary.byAgent` ranks agents by volume and `summary.byStatus` counts each status. |
 
 ## Standalone exports
 
