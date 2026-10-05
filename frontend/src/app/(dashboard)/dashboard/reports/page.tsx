@@ -698,10 +698,9 @@ interface ProductionReport {
 // Helpers
 // ────────────────────────────────────────────
 
-const today = localDateStr(new Date());
-const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
-  .toISOString()
-  .split("T")[0];
+// Every report opens on today; users pick earlier dates themselves. A function, so a tab left
+// open past midnight still opens the next report on the new day.
+const today = () => localDateStr(new Date());
 
 const fmt = (n: number, locale = "en-US") =>
   n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1028,7 +1027,7 @@ export default function ReportsPage() {
   const [dispatchLoading, setDispatchLoading] = useState(false);
 
   // Driver Trips
-  const [driverFrom, setDriverFrom] = useState(thirtyDaysAgo);
+  const [driverFrom, setDriverFrom] = useState(today);
   const [driverTo, setDriverTo] = useState(today);
   const [driverData, setDriverData] = useState<DriverTripReport | null>(null);
   const [driverLoading, setDriverLoading] = useState(false);
@@ -1043,13 +1042,13 @@ export default function ReportsPage() {
   // Agent Statement
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState("");
-  const [agentFrom, setAgentFrom] = useState(thirtyDaysAgo);
+  const [agentFrom, setAgentFrom] = useState(today);
   const [agentTo, setAgentTo] = useState(today);
   const [agentData, setAgentData] = useState<AgentStatement | null>(null);
   const [agentLoading, setAgentLoading] = useState(false);
 
   // Revenue
-  const [revenueFrom, setRevenueFrom] = useState(thirtyDaysAgo);
+  const [revenueFrom, setRevenueFrom] = useState(today);
   const [revenueTo, setRevenueTo] = useState(today);
   const [revenueData, setRevenueData] = useState<RevenueReport | null>(null);
   const [revenueLoading, setRevenueLoading] = useState(false);
@@ -1088,7 +1087,7 @@ export default function ReportsPage() {
   const [complianceTypeFilter, setComplianceTypeFilter] = useState("ALL");
 
   // Job Status
-  const [jobStatusFrom, setJobStatusFrom] = useState(thirtyDaysAgo);
+  const [jobStatusFrom, setJobStatusFrom] = useState(today);
   const [jobStatusTo, setJobStatusTo] = useState(today);
   const [jobStatusFilter, setJobStatusFilter] = useState<string[]>([]);
   const [jobStatusRepId, setJobStatusRepId] = useState("ALL");
@@ -1102,7 +1101,7 @@ export default function ReportsPage() {
   const [evidencePdfLoading, setEvidencePdfLoading] = useState<Set<string>>(new Set());
 
   // Rep Score
-  const [repScoreFrom, setRepScoreFrom] = useState(thirtyDaysAgo);
+  const [repScoreFrom, setRepScoreFrom] = useState(today);
   const [repScoreTo, setRepScoreTo] = useState(today);
   const [repScoreRepId, setRepScoreRepId] = useState("ALL");
   const [repList, setRepList] = useState<Array<{ id: string; name: string }>>([]);
@@ -1111,14 +1110,14 @@ export default function ReportsPage() {
   const repScorePrintRef = useRef<HTMLDivElement>(null);
 
   // Guest Surveys
-  const [guestSurveyFrom, setGuestSurveyFrom] = useState(thirtyDaysAgo);
+  const [guestSurveyFrom, setGuestSurveyFrom] = useState(today);
   const [guestSurveyTo, setGuestSurveyTo] = useState(today);
   const [guestSurveyRepId, setGuestSurveyRepId] = useState("ALL");
   const [guestSurveyData, setGuestSurveyData] = useState<GuestSurveyReport | null>(null);
   const [guestSurveyLoading, setGuestSurveyLoading] = useState(false);
   const guestSurveyPrintRef = useRef<HTMLDivElement>(null);
 
-  const [complaintsFrom, setComplaintsFrom] = useState(thirtyDaysAgo);
+  const [complaintsFrom, setComplaintsFrom] = useState(today);
   const [complaintsTo, setComplaintsTo] = useState(today);
   const [complaintsStatus, setComplaintsStatus] = useState("ALL");
   const [complaintsParty, setComplaintsParty] = useState("ALL");
@@ -1127,7 +1126,7 @@ export default function ReportsPage() {
   const complaintsPrintRef = useRef<HTMLDivElement>(null);
 
   // Driver Score
-  const [driverScoreFrom, setDriverScoreFrom] = useState(thirtyDaysAgo);
+  const [driverScoreFrom, setDriverScoreFrom] = useState(today);
   const [driverScoreTo, setDriverScoreTo] = useState(today);
   const [driverScoreDriverId, setDriverScoreDriverId] = useState("ALL");
   const [driverScoreData, setDriverScoreData] = useState<DriverScoreReport | null>(null);
@@ -1135,7 +1134,7 @@ export default function ReportsPage() {
   const driverScorePrintRef = useRef<HTMLDivElement>(null);
 
   // Car Jobs Report
-  const [carJobsFrom, setCarJobsFrom] = useState(thirtyDaysAgo);
+  const [carJobsFrom, setCarJobsFrom] = useState(today);
   const [carJobsTo, setCarJobsTo] = useState(today);
   const [carJobsVehicleId, setCarJobsVehicleId] = useState("ALL");
   const [carJobsData, setCarJobsData] = useState<CarJobsReport | null>(null);
@@ -1144,7 +1143,7 @@ export default function ReportsPage() {
   const carJobsPrintRef = useRef<HTMLDivElement>(null);
 
   // Supplier Jobs Report
-  const [supplierJobsFrom, setSupplierJobsFrom] = useState(thirtyDaysAgo);
+  const [supplierJobsFrom, setSupplierJobsFrom] = useState(today);
   const [supplierJobsTo, setSupplierJobsTo] = useState(today);
   const [supplierJobsSupplierId, setSupplierJobsSupplierId] = useState("ALL");
   const [supplierJobsStatus, setSupplierJobsStatus] = useState("ALL");
@@ -1154,7 +1153,7 @@ export default function ReportsPage() {
   const supplierJobsPrintRef = useRef<HTMLDivElement>(null);
 
   // Evidence Report
-  const [evidenceFrom, setEvidenceFrom] = useState(thirtyDaysAgo);
+  const [evidenceFrom, setEvidenceFrom] = useState(today);
   const [evidenceTo, setEvidenceTo] = useState(today);
   const [evidenceStatusFilter, setEvidenceStatusFilter] = useState("ALL");
   const [evidenceAgentId, setEvidenceAgentId] = useState("ALL");
@@ -1165,21 +1164,21 @@ export default function ReportsPage() {
   const [evidenceLoading, setEvidenceLoading] = useState(false);
 
   // Visa Report
-  const [visaFrom, setVisaFrom] = useState(thirtyDaysAgo);
+  const [visaFrom, setVisaFrom] = useState(today);
   const [visaTo, setVisaTo] = useState(today);
   const [visaData, setVisaData] = useState<VisaReport | null>(null);
   const [visaLoading, setVisaLoading] = useState(false);
   const visaPrintRef = useRef<HTMLDivElement>(null);
 
   // Sales Report
-  const [salesFrom, setSalesFrom] = useState(thirtyDaysAgo);
+  const [salesFrom, setSalesFrom] = useState(today);
   const [salesTo, setSalesTo] = useState(today);
   const [salesData, setSalesData] = useState<SalesReport | null>(null);
   const [salesLoading, setSalesLoading] = useState(false);
   const salesPrintRef = useRef<HTMLDivElement>(null);
 
   // Departure Report
-  const [departureFrom, setDepartureFrom] = useState(thirtyDaysAgo);
+  const [departureFrom, setDepartureFrom] = useState(today);
   const [departureTo, setDepartureTo] = useState(today);
   const [departureServiceType, setDepartureServiceType] = useState("DEP");
   const [departureData, setDepartureData] = useState<DepartureReport | null>(null);
@@ -1187,7 +1186,7 @@ export default function ReportsPage() {
   const departurePrintRef = useRef<HTMLDivElement>(null);
 
   // Flight Delay Report
-  const [flightDelayFrom, setFlightDelayFrom] = useState(thirtyDaysAgo);
+  const [flightDelayFrom, setFlightDelayFrom] = useState(today);
   const [flightDelayTo, setFlightDelayTo] = useState(today);
   const [flightDelayRepName, setFlightDelayRepName] = useState("ALL");
   const [flightDelayData, setFlightDelayData] = useState<FlightDelayReport | null>(null);
@@ -1195,7 +1194,7 @@ export default function ReportsPage() {
   const flightDelayPrintRef = useRef<HTMLDivElement>(null);
 
   // Review Report
-  const [reviewFrom, setReviewFrom] = useState(thirtyDaysAgo);
+  const [reviewFrom, setReviewFrom] = useState(today);
   const [reviewTo, setReviewTo] = useState(today);
   const [reviewStatus, setReviewStatus] = useState<string[]>([]);
   const [reviewData, setReviewData] = useState<ReviewReport | null>(null);
@@ -1203,7 +1202,7 @@ export default function ReportsPage() {
   const reviewPrintRef = useRef<HTMLDivElement>(null);
 
   // Zones Analytics Report
-  const [zonesFrom, setZonesFrom] = useState(thirtyDaysAgo);
+  const [zonesFrom, setZonesFrom] = useState(today);
   const [zonesTo, setZonesTo] = useState(today);
   const [zonesAgentIds, setZonesAgentIds] = useState<string[]>([]);
   const [zonesStatus, setZonesStatus] = useState<string[]>([]);
@@ -1212,7 +1211,7 @@ export default function ReportsPage() {
   const zonesPrintRef = useRef<HTMLDivElement>(null);
 
   // Production Report
-  const [productionFrom, setProductionFrom] = useState(thirtyDaysAgo);
+  const [productionFrom, setProductionFrom] = useState(today);
   const [productionTo, setProductionTo] = useState(today);
   const [productionAgentIds, setProductionAgentIds] = useState<string[]>([]);
   const [productionStatus, setProductionStatus] = useState<string[]>([]);

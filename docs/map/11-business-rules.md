@@ -317,6 +317,8 @@ pay and period totals.
   browsing a past day stays allowed but creating on one is blocked with an inline notice.
 - Report ranges, activity-log filters and `complaintDate` are *not* service dates and must keep
   accepting past dates — do not apply the floor to them.
+- Every report on the Reports page opens with **From and To both set to today** (not the last 30
+  days); users go back in time themselves. `today` there is a function so it is read at mount.
 - Comparison is on the **Cairo** calendar, so a job dated today in Cairo never reads as yesterday
   because the server is elsewhere.
 
@@ -342,3 +344,13 @@ pay and period totals.
   whatever the admin UI shows.
 - An invalid licence hard-blocks every portal (`LicenseGate`). Production needs both
   `LICENSE_SERVER_URL` and `LICENSE_PUBLIC_KEY`.
+
+## Why does editing a rep or driver change their portal login?
+
+The REP/DRIVER login is keyed on the mobile number (`users.phone` is unique, email is
+`rep.<mobile>@portal.itour.local` / `driver.<mobile>@…`). `RepsService.update` and
+`DriversService.update` therefore carry name and mobile edits onto the linked login in the same
+transaction, and refuse a mobile number that another login already holds. Before this, reusing an
+old rep record for a new person left the old login holding the old number, so "Create account" for
+the next person with that number failed with "a user with this mobile number already exists".
+

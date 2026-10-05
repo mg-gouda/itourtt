@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**26 classes**, **414 methods**.
+**26 classes**, **416 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -192,7 +192,7 @@ REST surface for drivers: records, vehicle links, portal accounts, trip fees and
 
 ### DriversService
 
-`backend/src/drivers/drivers.service.ts:13` · service · 15 methods
+`backend/src/drivers/drivers.service.ts:13` · service · 16 methods
 
 Driver records, their vehicle links, portal user accounts and trip-fee history. Drivers are paid PER TRIP from the zone/route tariff table, never a salary.
 
@@ -202,17 +202,18 @@ Driver records, their vehicle links, portal user accounts and trip-fee history. 
 | `findOne` | pub | 45 | `driver` | One driver with vehicles, account and documents. |
 | `getTripFees` | pub | 64 | `driverTripFee` | A driver's trip fees over a period — the basis for what they are paid. |
 | `create` | pub | 101 | `driver` | Creates a driver record (no portal login yet). |
-| `update` | pub | 112 | `driver` | Edits driver details. |
-| `updateAttachment` | pub | 128 | `driver` | Attaches or replaces a driver document (licence, ID). |
-| `assignVehicle` | pub | 136 | `vehicle` `driverVehicle` | Links a vehicle to a driver via `DriverVehicle`. |
-| `unassignVehicle` | pub | 179 | `driverVehicle` | Removes a driver-vehicle link. |
-| `createUserAccount` | pub | 200 | `user` `driver` | Creates the driver's portal login and links it to the Driver row — `resolveDriverId` depends on this link existing. |
-| `toggleStatus` | pub | 247 | `driver` `user` | Activates/deactivates the driver and their user account together. |
-| `softDelete` | pub | 268 | `user` `driver` | Soft-deletes the driver and disables their account. |
-| `resetPassword` | pub | 285 | `user` | Admin password reset. Also clears the stored session, so a locked-out driver can sign in again immediately. |
-| `exportToExcel` | pub | 311 | `driver` | Exports drivers to xlsx. |
-| `generateImportTemplate` | pub | 351 | `supplier` | Blank driver import workbook, pre-filled with valid suppliers. |
-| `importFromExcel` | pub | 448 | `supplier` `driver` | Bulk-imports drivers, resolving supplier names to ids. |
+| `update` | pub | 112 | `driver` `user` | Edits driver details. |
+| `loginChanges` | priv | 139 | `user` | Login fields (name, phone, portal email) to sync on a driver edit; 409 if another login holds the new mobile |
+| `updateAttachment` | pub | 169 | `driver` | Attaches or replaces a driver document (licence, ID). |
+| `assignVehicle` | pub | 177 | `vehicle` `driverVehicle` | Links a vehicle to a driver via `DriverVehicle`. |
+| `unassignVehicle` | pub | 220 | `driverVehicle` | Removes a driver-vehicle link. |
+| `createUserAccount` | pub | 241 | `user` `driver` | Creates the driver's portal login and links it to the Driver row — `resolveDriverId` depends on this link existing. |
+| `toggleStatus` | pub | 291 | `driver` `user` | Activates/deactivates the driver and their user account together. |
+| `softDelete` | pub | 312 | `user` `driver` | Soft-deletes the driver and disables their account. |
+| `resetPassword` | pub | 329 | `user` | Admin password reset. Also clears the stored session, so a locked-out driver can sign in again immediately. |
+| `exportToExcel` | pub | 355 | `driver` | Exports drivers to xlsx. |
+| `generateImportTemplate` | pub | 395 | `supplier` | Blank driver import workbook, pre-filled with valid suppliers. |
+| `importFromExcel` | pub | 492 | `supplier` `driver` | Bulk-imports drivers, resolving supplier names to ids. |
 
 ## `extras`
 
@@ -458,7 +459,7 @@ REST surface for reps: records, zone coverage, portal accounts, fees and Excel p
 
 ### RepsService
 
-`backend/src/reps/reps.service.ts:13` · service · 15 methods
+`backend/src/reps/reps.service.ts:13` · service · 16 methods
 
 Rep records, zone coverage, portal accounts and fee history. A rep must have at least one zone assigned or they never appear in the dispatch assignment dropdown. Reps are paid only for completed jobs.
 
@@ -468,17 +469,18 @@ Rep records, zone coverage, portal accounts and fee history. A rep must have at 
 | `findOne` | pub | 52 | `rep` | One rep with zones, account and documents. |
 | `getFees` | pub | 77 | `repFee` | A rep's fees over a period, derived from their per-job scores. |
 | `create` | pub | 109 | `rep` | Creates a rep record. |
-| `update` | pub | 119 | `rep` | Edits rep details. |
-| `toggleStatus` | pub | 132 | `rep` `user` | Activates/deactivates the rep and their user account together. |
-| `softDelete` | pub | 153 | `rep` `user` | Soft-deletes the rep and disables their account. |
-| `updateAttachment` | pub | 173 | `rep` | Attaches or replaces a rep document. |
-| `assignZone` | pub | 181 | `zone` `repZone` | Adds a zone to a rep's coverage. Without at least one, the rep is invisible to dispatch. |
-| `unassignZone` | pub | 222 | `repZone` | Removes a zone from a rep's coverage. |
-| `createUserAccount` | pub | 243 | `user` `rep` | Creates the rep's portal login and links it to the Rep row. |
-| `resetPassword` | pub | 289 | `user` | Admin password reset that also clears the session, freeing a locked-out rep. |
-| `exportToExcel` | pub | 315 | `rep` | Exports reps to xlsx. |
-| `generateImportTemplate` | pub | 349 | — | Blank rep import workbook. |
-| `importFromExcel` | pub | 418 | `rep` | Bulk-imports reps. |
+| `update` | pub | 119 | `rep` `user` | Edits rep details. |
+| `loginChanges` | priv | 143 | `user` | Login fields (name, phone, portal email) to sync on a rep edit; 409 if another login holds the new mobile |
+| `toggleStatus` | pub | 173 | `rep` `user` | Activates/deactivates the rep and their user account together. |
+| `softDelete` | pub | 194 | `rep` `user` | Soft-deletes the rep and disables their account. |
+| `updateAttachment` | pub | 214 | `rep` | Attaches or replaces a rep document. |
+| `assignZone` | pub | 222 | `zone` `repZone` | Adds a zone to a rep's coverage. Without at least one, the rep is invisible to dispatch. |
+| `unassignZone` | pub | 263 | `repZone` | Removes a zone from a rep's coverage. |
+| `createUserAccount` | pub | 284 | `user` `rep` | Creates the rep's portal login and links it to the Rep row. |
+| `resetPassword` | pub | 333 | `user` | Admin password reset that also clears the session, freeing a locked-out rep. |
+| `exportToExcel` | pub | 359 | `rep` | Exports reps to xlsx. |
+| `generateImportTemplate` | pub | 393 | — | Blank rep import workbook. |
+| `importFromExcel` | pub | 462 | `rep` | Bulk-imports reps. |
 
 ## `suppliers`
 

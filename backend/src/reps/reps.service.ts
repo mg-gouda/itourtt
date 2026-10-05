@@ -117,16 +117,57 @@ export class RepsService {
   }
 
   async update(id: string, dto: UpdateRepDto) {
-    await this.findOne(id);
+    const rep = await this.findOne(id);
+    const loginData = await this.loginChanges(rep.userId, rep.mobileNumber, dto);
 
-    return this.prisma.rep.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.mobileNumber !== undefined && { mobileNumber: dto.mobileNumber }),
-        ...(dto.feePerFlight !== undefined && { feePerFlight: dto.feePerFlight }),
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.rep.update({
+        where: { id },
+        data: {
+          ...(dto.name !== undefined && { name: dto.name }),
+          ...(dto.mobileNumber !== undefined && { mobileNumber: dto.mobileNumber }),
+          ...(dto.feePerFlight !== undefined && { feePerFlight: dto.feePerFlight }),
+        },
+      });
+
+      // The portal login is keyed on the mobile number, so it must follow the rep's edits
+      if (rep.userId && loginData) {
+        await tx.user.update({ where: { id: rep.userId }, data: loginData });
+      }
+
+      return updated;
     });
+  }
+
+  /** Login fields to change alongside a rep edit; rejects a mobile number another login holds. */
+  private async loginChanges(
+    userId: string | null,
+    currentMobile: string | null,
+    dto: { name?: string; mobileNumber?: string },
+  ) {
+    if (!userId) return null;
+    const mobileChanged = !!dto.mobileNumber && dto.mobileNumber !== currentMobile;
+    if (mobileChanged) {
+      const holder = await this.prisma.user.findFirst({
+        where: {
+          id: { not: userId },
+          OR: [{ phone: dto.mobileNumber }, { email: `rep.${dto.mobileNumber}@portal.itour.local` }],
+        },
+      });
+      if (holder) {
+        throw new ConflictException(
+          `Mobile number ${dto.mobileNumber} is already used by the login of "${holder.name}"`,
+        );
+      }
+    }
+    const data = {
+      ...(dto.name !== undefined && { name: dto.name }),
+      ...(mobileChanged && {
+        phone: dto.mobileNumber,
+        email: `rep.${dto.mobileNumber}@portal.itour.local`,
+      }),
+    };
+    return Object.keys(data).length ? data : null;
   }
 
   async toggleStatus(id: string) {
@@ -255,7 +296,10 @@ export class RepsService {
       where: { phone: rep.mobileNumber },
     });
     if (existingPhone) {
-      throw new ConflictException('A user with this mobile number already exists');
+      throw new ConflictException(
+        `A user with this mobile number already exists: "${existingPhone.name}"` +
+          (existingPhone.isActive ? '' : ' (inactive)'),
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);

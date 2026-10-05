@@ -110,19 +110,60 @@ export class DriversService {
   }
 
   async update(id: string, dto: UpdateDriverDto) {
-    await this.findOne(id);
+    const driver = await this.findOne(id);
+    const loginData = await this.loginChanges(driver.userId, driver.mobileNumber, dto);
 
-    return this.prisma.driver.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.mobileNumber !== undefined && { mobileNumber: dto.mobileNumber }),
-        ...(dto.licenseNumber !== undefined && { licenseNumber: dto.licenseNumber }),
-        ...(dto.licenseExpiryDate !== undefined && {
-          licenseExpiryDate: dto.licenseExpiryDate ? new Date(dto.licenseExpiryDate) : null,
-        }),
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.driver.update({
+        where: { id },
+        data: {
+          ...(dto.name !== undefined && { name: dto.name }),
+          ...(dto.mobileNumber !== undefined && { mobileNumber: dto.mobileNumber }),
+          ...(dto.licenseNumber !== undefined && { licenseNumber: dto.licenseNumber }),
+          ...(dto.licenseExpiryDate !== undefined && {
+            licenseExpiryDate: dto.licenseExpiryDate ? new Date(dto.licenseExpiryDate) : null,
+          }),
+        },
+      });
+
+      // The portal login is keyed on the mobile number, so it must follow the driver's edits
+      if (driver.userId && loginData) {
+        await tx.user.update({ where: { id: driver.userId }, data: loginData });
+      }
+
+      return updated;
     });
+  }
+
+  /** Login fields to change alongside a driver edit; rejects a mobile number another login holds. */
+  private async loginChanges(
+    userId: string | null,
+    currentMobile: string | null,
+    dto: { name?: string; mobileNumber?: string },
+  ) {
+    if (!userId) return null;
+    const mobileChanged = !!dto.mobileNumber && dto.mobileNumber !== currentMobile;
+    if (mobileChanged) {
+      const holder = await this.prisma.user.findFirst({
+        where: {
+          id: { not: userId },
+          OR: [{ phone: dto.mobileNumber }, { email: `driver.${dto.mobileNumber}@portal.itour.local` }],
+        },
+      });
+      if (holder) {
+        throw new ConflictException(
+          `Mobile number ${dto.mobileNumber} is already used by the login of "${holder.name}"`,
+        );
+      }
+    }
+    const data = {
+      ...(dto.name !== undefined && { name: dto.name }),
+      ...(mobileChanged && {
+        phone: dto.mobileNumber,
+        email: `driver.${dto.mobileNumber}@portal.itour.local`,
+      }),
+    };
+    return Object.keys(data).length ? data : null;
   }
 
   async updateAttachment(id: string, url: string) {
@@ -213,7 +254,10 @@ export class DriversService {
       where: { phone: driver.mobileNumber },
     });
     if (existingPhone) {
-      throw new ConflictException('A user with this mobile number already exists');
+      throw new ConflictException(
+        `A user with this mobile number already exists: "${existingPhone.name}"` +
+          (existingPhone.isActive ? '' : ' (inactive)'),
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
