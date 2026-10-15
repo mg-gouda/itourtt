@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**85 files**, **316 exported symbols**.
+**86 files**, **318 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -20,13 +20,13 @@ Bulk job import for B2B customers, including the AI manifest parser flow.
 
 ### `completed-evidence-dialog.tsx`
 
-`frontend/src/components/completed-evidence-dialog.tsx` · 237 lines
+`frontend/src/components/completed-evidence-dialog.tsx` · 239 lines
 
 Capture-and-upload dialog for completion evidence: photos plus a mandatory GPS fix.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CompletedEvidenceDialog` | function | 34 | Completion evidence capture — photos plus a mandatory GPS fix, with retry when the fix fails. |
+| `CompletedEvidenceDialog` | function | 35 | Completion evidence capture — photos plus a mandatory GPS fix, with retry when the fix fails. |
 
 ### `google-places-autocomplete.tsx`
 
@@ -71,23 +71,23 @@ Manages a customer's stored manifest templates that teach the AI parser their la
 
 ### `in-place-evidence-dialog.tsx`
 
-`frontend/src/components/in-place-evidence-dialog.tsx` · 241 lines
+`frontend/src/components/in-place-evidence-dialog.tsx` · 243 lines
 
 Evidence dialog for a rep confirming arrival (the window-gated IN PLACE step).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `InPlaceEvidenceDialog` | function | 36 | Rep IN PLACE evidence capture; the action is gated to the ARR arrival window unless the job is unlocked. |
+| `InPlaceEvidenceDialog` | function | 37 | Rep IN PLACE evidence capture; the action is gated to the ARR arrival window unless the job is unlocked. |
 
 ### `in-progress-evidence-dialog.tsx`
 
-`frontend/src/components/in-progress-evidence-dialog.tsx` · 230 lines
+`frontend/src/components/in-progress-evidence-dialog.tsx` · 232 lines
 
 Evidence dialog for a driver starting a job.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `InProgressEvidenceDialog` | function | 33 | Job-start evidence capture for drivers. |
+| `InProgressEvidenceDialog` | function | 34 | Job-start evidence capture for drivers. |
 
 ### `job-detail-modal.tsx`
 
@@ -163,13 +163,13 @@ Shared multi-select combobox used by the complaint form for categories and respo
 
 ### `no-show-evidence-dialog.tsx`
 
-`frontend/src/components/no-show-evidence-dialog.tsx` · 251 lines
+`frontend/src/components/no-show-evidence-dialog.tsx` · 253 lines
 
 Evidence dialog backing a no-show claim; its photos feed the dispute PDF.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NoShowEvidenceDialog` | function | 36 | No-show evidence capture. Gated to 80 minutes after job time. |
+| `NoShowEvidenceDialog` | function | 37 | No-show evidence capture. Gated to 80 minutes after job time. |
 
 ### `page-header.tsx`
 
@@ -891,6 +891,17 @@ Shared complaint types, labels, transition maps and SLA/money formatting for the
 | `formatSlaCountdown` | function | 385 | Turns the reply deadline into a human label — time left, overdue by, or whether the reply landed in time. |
 | `describeReplyWindow` | function | 407 | Time left against a reply deadline computed from dates alone, so the form can show a countdown before anything is saved. |
 | `formatMoney` | function | 445 | Formats a complaint amount with its currency, or an em dash when absent. |
+
+### `compress-image.ts`
+
+`frontend/src/lib/compress-image.ts` · 48 lines
+
+Browser-side photo shrink for the evidence dialogs so phone originals do not overrun the ingress read timeout
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `compressImage` | function | 11 | Resizes one image to 1600px JPEG 0.82 with EXIF rotation applied; returns the original on any failure or if not smaller |
+| `compressImages` | function | 45 | compressImage over a list, in parallel |
 
 ### `gps.ts`
 

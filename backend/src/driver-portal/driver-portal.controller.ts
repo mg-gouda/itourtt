@@ -260,39 +260,38 @@ export class DriverPortalController {
     lng?: number | null,
     meta?: StampMeta,
   ): Promise<string[]> {
-    const urls: string[] = [];
     const uploadsBase = path.join(process.cwd(), 'uploads');
+    // Stamp and upload in parallel: run serially, a pair of photos waited on two
+    // full sharp + Drive round trips back to back before the job could complete.
+    return Promise.all(
+      files.map(async (file, i) => {
+        // Always stamp: date/time + rep/driver/status are burned in even when no
+        // GPS fix was captured (the GPS line reads "Not captured"). Skipping the
+        // stamp on null coords would drop all evidence metadata, not just GPS.
+        const buffer = await stampEvidenceImage(file.buffer, lat, lng, undefined, meta).catch(
+          () => file.buffer,
+        );
 
-    for (const file of files) {
-      // Always stamp: date/time + rep/driver/status are burned in even when no
-      // GPS fix was captured (the GPS line reads "Not captured"). Skipping the
-      // stamp on null coords would drop all evidence metadata, not just GPS.
-      const buffer = await stampEvidenceImage(file.buffer, lat, lng, undefined, meta).catch(
-        () => file.buffer,
-      );
+        // The index keeps names unique: iOS calls every camera shot "image.jpg".
+        const uniqueName =
+          Date.now() + '-' + i + '-' + file.originalname.replace(/\.[^.]+$/, '') + '.jpg';
+        const mimeType = 'image/jpeg';
 
-      const uniqueName = Date.now() + '-' + file.originalname.replace(/\.[^.]+$/, '') + '.jpg';
-      const mimeType = 'image/jpeg';
+        const driveId = await this.googleDriveService.uploadFile(
+          buffer,
+          uniqueName,
+          mimeType,
+          jobId,
+          driveType,
+        );
+        if (driveId) return driveId;
 
-      const driveId = await this.googleDriveService.uploadFile(
-        buffer,
-        uniqueName,
-        mimeType,
-        jobId,
-        driveType,
-      );
-
-      if (driveId) {
-        urls.push(driveId);
-      } else {
+        // Drive not configured or unreachable — save to local disk as fallback
         const dir = path.join(uploadsBase, localSubdir);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        const localPath = path.join(dir, uniqueName);
-        fs.writeFileSync(localPath, buffer);
-        urls.push(`/uploads/${localSubdir}/${uniqueName}`);
-      }
-    }
-
-    return urls;
+        fs.writeFileSync(path.join(dir, uniqueName), buffer);
+        return `/uploads/${localSubdir}/${uniqueName}`;
+      }),
+    );
   }
 }

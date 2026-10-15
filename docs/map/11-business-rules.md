@@ -340,6 +340,14 @@ pay and period totals.
   status instead is what made a rep's COMPLETE photo read "Rep: IN PLACE".
 - `GoogleDriveService` returns **null instead of throwing** when unconfigured or when OAuth expires,
   which is why a dead Drive grant appears as silent local-disk fallback rather than an error.
+  It also returns null after `UPLOAD_TIMEOUT_MS` (30s), so a stalled Drive degrades to disk instead of
+  holding the submit open. Folder lookups are cached as *promises* so parallel uploads for a new
+  job share one lookup — caching the resolved ID let two uploads each create a job folder.
+- The portal `uploadFiles` helpers stamp and upload photos **in parallel** and put the index in the
+  file name (iOS names every camera shot `image.jpg`). The web evidence dialogs shrink photos
+  in the browser first (`lib/compress-image.ts`, 1600px JPEG). Full-size phone originals sent over
+  mobile data overran Traefik's 60s request-read timeout and came back as a bare "Failed to submit
+  completed evidence" with no server message (FT-2669).
 - Email transport prefers env `SMTP_*` over the DB settings row — an env host silently overrides
   whatever the admin UI shows.
 - An invalid licence hard-blocks every portal (`LicenseGate`). Production needs both

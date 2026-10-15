@@ -19,8 +19,18 @@ interface DriveConfig {
 export class GoogleDriveService {
   private readonly logger = new Logger(GoogleDriveService.name);
 
-  /** In-process folder ID cache: key → Drive folder ID */
-  private folderCache = new Map<string, string>();
+  /**
+   * In-process folder ID cache: key → Drive folder ID. Holds the lookup promise,
+   * not the resolved ID, so parallel uploads for a new job share one lookup
+   * instead of racing to create duplicate job folders.
+   */
+  private folderCache = new Map<string, Promise<string>>();
+
+  /**
+   * Cap on one evidence upload. Past this the portal falls back to local disk —
+   * a stalled Drive must not hold a driver's submit open until the client gives up.
+   */
+  private readonly UPLOAD_TIMEOUT_MS = 30_000;
 
   /** Short-lived config cache to avoid repeated DB hits within a single request */
   private configCache: { value: DriveConfig | null; expiresAt: number } | null = null;
@@ -127,10 +137,19 @@ export class GoogleDriveService {
   // Folder management
   // ──────────────────────────────────────────────────────────────────────────
 
-  private async getOrCreateFolder(drive: any, name: string, parentId: string): Promise<string> {
+  private getOrCreateFolder(drive: any, name: string, parentId: string): Promise<string> {
     const cacheKey = `${parentId}::${name}`;
-    if (this.folderCache.has(cacheKey)) return this.folderCache.get(cacheKey)!;
+    const cached = this.folderCache.get(cacheKey);
+    if (cached) return cached;
 
+    const lookup = this.findOrCreateFolder(drive, name, parentId);
+    this.folderCache.set(cacheKey, lookup);
+    // A failed lookup must not poison the cache for the next upload.
+    lookup.catch(() => this.folderCache.delete(cacheKey));
+    return lookup;
+  }
+
+  private async findOrCreateFolder(drive: any, name: string, parentId: string): Promise<string> {
     const search = await drive.files.list({
       q: `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`,
       fields: 'files(id)',
@@ -139,11 +158,7 @@ export class GoogleDriveService {
       includeItemsFromAllDrives: true,
     });
 
-    if (search.data.files?.length) {
-      const id = search.data.files[0].id as string;
-      this.folderCache.set(cacheKey, id);
-      return id;
-    }
+    if (search.data.files?.length) return search.data.files[0].id as string;
 
     const created = await drive.files.create({
       supportsAllDrives: true,
@@ -155,9 +170,7 @@ export class GoogleDriveService {
       fields: 'id',
     });
 
-    const id = created.data.id as string;
-    this.folderCache.set(cacheKey, id);
-    return id;
+    return created.data.id as string;
   }
 
   async resolveEvidenceFolder(
@@ -184,6 +197,29 @@ export class GoogleDriveService {
     const config = await this.getConfig();
     if (!config) return null;
 
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => {
+        this.logger.error(`Drive upload timed out after ${this.UPLOAD_TIMEOUT_MS}ms: ${filename}`);
+        resolve(null);
+      }, this.UPLOAD_TIMEOUT_MS);
+    });
+
+    try {
+      return await Promise.race([this.uploadToDrive(config, buffer, filename, mimeType, jobId, type), timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async uploadToDrive(
+    config: DriveConfig,
+    buffer: Buffer,
+    filename: string,
+    mimeType: string,
+    jobId: string,
+    type: 'rep' | 'driver' | 'no-show',
+  ): Promise<string | null> {
     try {
       const drive = await this.getDrive(config);
 

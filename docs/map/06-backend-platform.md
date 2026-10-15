@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**50 classes**, **354 methods**.
+**50 classes**, **356 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -493,25 +493,27 @@ All outbound SMTP. The transporter is built lazily: env `SMTP_*` wins, otherwise
 
 ### GoogleDriveService
 
-`backend/src/google-drive/google-drive.service.ts:19` · service · 13 methods
+`backend/src/google-drive/google-drive.service.ts:19` · service · 15 methods
 
 Evidence photo storage in Google Drive, with a folder per job reference. Every method degrades to null rather than throwing when Drive is unconfigured or the OAuth grant has expired — which is why a broken Drive shows up as silent local-disk fallback, not as an error.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getConfig` | pub | 35 | `googleDriveSettings` | Cached Drive configuration and tokens; returns null when not connected, disabling every other method. |
-| `clearCache` | pub | 63 | — | Drops the cached config after a settings change or reconnect. |
-| `getOAuth2Client` | priv | 72 | — | Builds the OAuth2 client from stored credentials. |
-| `getDrive` | priv | 77 | — | Returns an authenticated Drive API client. |
-| `generateAuthUrl` | pub | 88 | `googleDriveSettings` | Produces the consent URL an admin visits to connect Drive. |
-| `exchangeCode` | pub | 102 | `googleDriveSettings` | Exchanges the OAuth callback code for tokens and stores them. An `invalid_grant` here means the refresh token is dead and an admin must reconnect. |
-| `getOrCreateFolder` | priv | 130 | — | Finds or creates a folder by name under a parent — the primitive behind the per-job folder layout. |
-| `resolveEvidenceFolder` | pub | 163 | — | Resolves `<root>/<job ref>/<Rep\|Driver\|No-Show Evidence>`, creating levels as needed. |
-| `uploadFile` | pub | 177 | `trafficJob` | Uploads one stamped evidence image into the job's evidence folder and returns the Drive file id — or null on any failure, which is what makes callers fall back to local disk. |
-| `getFileBuffer` | pub | 227 | — | Downloads a file as a Buffer, used for PDF embedding. |
-| `getFileStream` | pub | 244 | — | Streams a file, used by the image proxy so Drive ids never reach the browser. |
-| `testConnection` | pub | 269 | — | Admin connectivity check for the Drive settings screen. |
-| `migrateLocalFilesToDrive` | pub | 298 | — | One-off migration lifting evidence files already on the pod filesystem into Drive. |
+| `getConfig` | pub | 45 | `googleDriveSettings` | Cached Drive configuration and tokens; returns null when not connected, disabling every other method. |
+| `clearCache` | pub | 73 | — | Drops the cached config after a settings change or reconnect. |
+| `getOAuth2Client` | priv | 82 | — | Builds the OAuth2 client from stored credentials. |
+| `getDrive` | priv | 87 | — | Returns an authenticated Drive API client. |
+| `generateAuthUrl` | pub | 98 | `googleDriveSettings` | Produces the consent URL an admin visits to connect Drive. |
+| `exchangeCode` | pub | 112 | `googleDriveSettings` | Exchanges the OAuth callback code for tokens and stores them. An `invalid_grant` here means the refresh token is dead and an admin must reconnect. |
+| `getOrCreateFolder` | priv | 140 | — | Finds or creates a folder by name under a parent — the primitive behind the per-job folder layout. |
+| `findOrCreateFolder` | priv | 152 | — | Drive list-then-create for one folder; uncached — always go through getOrCreateFolder |
+| `resolveEvidenceFolder` | pub | 176 | — | Resolves `<root>/<job ref>/<Rep\|Driver\|No-Show Evidence>`, creating levels as needed. |
+| `uploadFile` | pub | 190 | — | Uploads one stamped evidence image into the job's evidence folder and returns the Drive file id — or null on any failure, which is what makes callers fall back to local disk. |
+| `uploadToDrive` | priv | 215 | `trafficJob` | Resolves the job/type evidence folder and uploads one file; null on any Drive error (uploadFile adds the 30s cap) |
+| `getFileBuffer` | pub | 263 | — | Downloads a file as a Buffer, used for PDF embedding. |
+| `getFileStream` | pub | 280 | — | Streams a file, used by the image proxy so Drive ids never reach the browser. |
+| `testConnection` | pub | 305 | — | Admin connectivity check for the Drive settings screen. |
+| `migrateLocalFilesToDrive` | pub | 334 | — | One-off migration lifting evidence files already on the pod filesystem into Drive. |
 
 ## `notifications`
 

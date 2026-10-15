@@ -15,6 +15,7 @@ import { Loader2, Camera, MapPin, AlertCircle, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { useGeoCapture } from "@/lib/use-geo-capture";
+import { compressImages } from "@/lib/compress-image";
 
 const MAX_IMAGES = 10;
 
@@ -78,7 +79,8 @@ export function NoShowEvidenceDialog({
     setSubmitting(true);
     try {
       const formData = new FormData();
-      images.forEach((img) => formData.append("images", img.file));
+      const files = await compressImages(images.map((img) => img.file));
+      files.forEach((file) => formData.append("images", file));
       if (gps) {
         formData.append("latitude", gps.lat.toString());
         formData.append("longitude", gps.lng.toString());
