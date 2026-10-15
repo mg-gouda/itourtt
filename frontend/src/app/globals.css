@@ -81,6 +81,8 @@
   --sidebar-accent-foreground: hsl(222 47% 11%);
   --sidebar-border: hsl(214 25% 84%);
   --sidebar-ring: hsl(199 89% 48%);
+  /* Table row hover: a dark wash over the light surface */
+  --row-hover-overlay: hsl(222 47% 11% / 0.09);
 }
 
 .dark {
@@ -116,6 +118,8 @@
   --sidebar-accent-foreground: hsl(210 40% 96%);
   --sidebar-border: hsl(217 33% 18%);
   --sidebar-ring: hsl(199 89% 52%);
+  /* Table row hover: a light wash over the dark surface */
+  --row-hover-overlay: hsl(210 40% 96% / 0.1);
 }
 
 @layer base {
@@ -129,6 +133,7 @@
 
 /* Force light-mode CSS variables inside the public website */
 .website-root {
+  --row-hover-overlay: hsl(222 47% 11% / 0.09);
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -162,6 +167,14 @@
 :root thead th,
 :root thead td {
   color: oklch(0.141 0.005 285.823);
+}
+
+/* Table row hover, every body row in the system. Painted as a background-image
+   so it sits on top of each cell's own background: sticky cells stay opaque and
+   status-tinted rows keep their colour, just darker (light) or lighter (dark). */
+tbody tr:hover > td,
+tbody tr:hover > th {
+  background-image: linear-gradient(var(--row-hover-overlay), var(--row-hover-overlay));
 }
 
 /* Glass body background for dark mode — optionally overlaid with an uploaded image */
