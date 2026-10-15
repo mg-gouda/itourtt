@@ -133,7 +133,6 @@
 
 /* Force light-mode CSS variables inside the public website */
 .website-root {
-  --row-hover-overlay: hsl(222 47% 11% / 0.09);
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -169,11 +168,12 @@
   color: oklch(0.141 0.005 285.823);
 }
 
-/* Table row hover, every body row in the system. Painted as a background-image
-   so it sits on top of each cell's own background: sticky cells stay opaque and
-   status-tinted rows keep their colour, just darker (light) or lighter (dark). */
-tbody tr:hover > td,
-tbody tr:hover > th {
+/* Table row hover, every body row in the admin area (the public website is left
+   alone). Painted as a background-image so it sits on top of each cell's own
+   background: sticky cells stay opaque and status-tinted rows keep their colour,
+   just darker (light) or lighter (dark). */
+tbody tr:hover > td:not(.website-root *),
+tbody tr:hover > th:not(.website-root *) {
   background-image: linear-gradient(var(--row-hover-overlay), var(--row-hover-overlay));
 }
 
