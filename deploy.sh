@@ -84,8 +84,11 @@ deploy_env "itour-production" "Production" "${VERSION}-cardispatch"
 echo ""
 echo ">> Cleaning up Docker images and build cache..."
 
-# Remove all unused Docker images (not just dangling — full prune)
-docker image prune -af -q 2>/dev/null || true
+# Remove dangling Docker images only. NEVER `prune -a`: the itourtt images run
+# under k3s, not docker, so docker sees them as "unused" and deletes them —
+# leaving nothing for itour-import-images.service to restore after a reboot
+# (outage 2026-10-18: ErrImageNeverPull → 503 "no available server").
+docker image prune -f -q 2>/dev/null || true
 
 # Remove old versioned itourtt images from Docker (keep only current VERSION)
 docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" \
@@ -99,9 +102,15 @@ docker builder prune -af -q 2>/dev/null || true
 
 # Remove unused containerd/k3s images (untagged digests not referenced by any pod)
 echo ">> Cleaning up k3s containerd images..."
-RUNNING_IMAGES=$(kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' 2>/dev/null | sort -u)
+# Pod specs say `itourtt-backend:X` while containerd lists
+# `docker.io/library/itourtt-backend:X`, so normalise before comparing —
+# otherwise the in-use image is deleted from containerd too.
+RUNNING_IMAGES=$(kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' 2>/dev/null | sed -E 's#^docker\.io/##; s#^library/##' | sort -u)
 k3s ctr images ls -q 2>/dev/null | while read img; do
-  if ! echo "$RUNNING_IMAGES" | grep -qF "$img"; then
+  short=$(echo "$img" | sed -E 's#^docker\.io/##; s#^library/##')
+  # Only ever prune our own stale tags — never k3s system images (pause etc.)
+  [[ "$short" =~ ^itourtt-(backend|frontend): ]] || continue
+  if ! echo "$RUNNING_IMAGES" | grep -qxF "$short"; then
     k3s ctr images rm "$img" 2>/dev/null || true
   fi
 done
