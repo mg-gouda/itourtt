@@ -1523,7 +1523,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `LANGUAGES` | const | `frontend/src/lib/website-i18n.tsx:23` |
 | `LEGACY_SERVICE_TYPES` | const | `backend/src/common/utils/service-type.util.ts:28` |
 | `LEGACY_SERVICE_TYPES` | const | `frontend/src/lib/service-types.ts:30` |
-| `LicenseGate` | function | `frontend/src/components/license-gate.tsx:44` |
+| `LicenseGate` | function | `frontend/src/components/license-gate.tsx:59` |
 | `LicenseHeartbeatService` | class | `backend/src/settings/license-heartbeat.service.ts:8` |
 | `LicenseHeartbeatService.beat` | method | `backend/src/settings/license-heartbeat.service.ts:14` |
 | `LicensePayload` | type | `backend/src/common/license-verify.ts:20` |
