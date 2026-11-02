@@ -283,7 +283,7 @@ behaviour.
 ## Access control
 
 - The API is **deny-by-default**: `JwtAuthGuard` is registered globally; `@Public()` is the only opt-out.
-- `/dashboard` is **staff-only** (ADMIN, DISPATCHER, ACCOUNTANT, AGENT_MANAGER, VIEWER). The `(dashboard)` layout bounces REP/DRIVER/SUPPLIER to their portal and signs out any other role, via `lib/role-home.ts`. Being logged in is not enough.
+- `/dashboard` is **staff-only** (ADMIN, DISPATCHER, ACCOUNTANT, AGENT_MANAGER, VIEWER). The `(dashboard)` layout shows REP/DRIVER/SUPPLIER a bilingual warning (`StaffOnlyWarning`) with their correct portal link instead of the dashboard, and signs out any other role, via `lib/role-home.ts`. Being logged in is not enough.
 - Job extras live in the `TrafficJobExtra` relation, so they are **not** returned unless you load them. Every query that feeds the dispatch grid or the job-detail modal (dispatch day view, rep/driver/supplier portal list and detail) must include `jobExtras`, or extras silently vanish from the screen.
 - `PermissionsGuard` caches each user's permission set **statically for 5 minutes**. Code that
   changes roles or permissions must invalidate it, or the change appears not to apply.

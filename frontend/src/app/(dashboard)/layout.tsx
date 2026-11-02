@@ -10,6 +10,7 @@ import { Header } from "@/components/header";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { LicenseGate } from "@/components/license-gate";
 import { SessionConflictModal } from "@/components/session-conflict-modal";
+import { StaffOnlyWarning } from "@/components/staff-only-warning";
 
 function DashboardFrame({ children }: { children: React.ReactNode }) {
   const { settings } = useTheme();
@@ -35,8 +36,8 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { isAuthenticated, user, hydrate, logout } = useAuthStore();
-  // Only staff may see the dashboard. Reps, drivers and suppliers are sent to
-  // their own portal; any other role is signed out.
+  // Only staff may see the dashboard. Reps, drivers and suppliers get a warning
+  // with their own portal's link; any other role is signed out.
   const isStaff = isStaffRole(user?.role);
   const { loadCompanySettings } = useCompanyStore();
   const [mounted, setMounted] = useState(false);
@@ -58,12 +59,15 @@ export default function DashboardLayout({
       router.replace("/login");
       return;
     }
-    if (!isStaff) {
-      const home = homeForRole(user?.role);
-      if (home) router.replace(home);
-      else void logout().finally(() => router.replace("/login"));
+    if (!isStaff && !homeForRole(user?.role)) {
+      void logout().finally(() => router.replace("/login"));
     }
   }, [mounted, isAuthenticated, isStaff, user, logout, router]);
+
+  const portalHome = mounted && isAuthenticated && !isStaff ? homeForRole(user?.role) : null;
+  if (portalHome && user) {
+    return <StaffOnlyWarning role={user.role} home={portalHome} />;
+  }
 
   if (!mounted || !isAuthenticated || !isStaff) {
     return (

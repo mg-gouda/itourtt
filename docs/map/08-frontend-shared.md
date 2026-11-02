@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**87 files**, **321 exported symbols**.
+**88 files**, **322 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -280,6 +280,16 @@ Clickable sortable table header cell.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `SortableHeader` | function | 16 | Sortable table header cell. |
+
+### `staff-only-warning.tsx`
+
+`frontend/src/components/staff-only-warning.tsx` · 56 lines
+
+Bilingual (EN/AR) block screen for portal users who open a /dashboard link.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `StaffOnlyWarning` | function | 18 | Warns a rep/driver/supplier that /dashboard is staff-only and shows their correct portal link + button. |
 
 ### `table-filter-bar.tsx`
 

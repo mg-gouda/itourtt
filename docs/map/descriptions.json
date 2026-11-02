@@ -1678,6 +1678,8 @@
   "frontend/src/components/sidebar.tsx#navigation": "The navigation definition — sections, items and the permission key gating each.",
   "frontend/src/components/sortable-header.tsx#SortableHeader": "Sortable table header cell.",
   "frontend/src/components/sortable-header.tsx#__file__": "Clickable sortable table header cell.",
+  "frontend/src/components/staff-only-warning.tsx#StaffOnlyWarning": "Warns a rep/driver/supplier that /dashboard is staff-only and shows their correct portal link + button.",
+  "frontend/src/components/staff-only-warning.tsx#__file__": "Bilingual (EN/AR) block screen for portal users who open a /dashboard link.",
   "frontend/src/components/table-filter-bar.tsx#TableFilterBar": "Shared filter bar for list screens.",
   "frontend/src/components/table-filter-bar.tsx#__file__": "Shared filter bar for the list screens.",
   "frontend/src/components/theme-provider.tsx#ThemeProvider": "Light/dark theme context provider.",
