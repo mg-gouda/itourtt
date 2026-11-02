@@ -11,6 +11,7 @@ import { Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { homeForRole } from "@/lib/role-home";
 import { useAuthStore } from "@/stores/auth-store";
 import { useT } from "@/lib/i18n";
 
@@ -56,13 +57,14 @@ function LoginForm() {
 
   useEffect(() => {
     if (mounted && isAuthenticated) {
-      const user = useAuthStore.getState().user;
-      router.replace(user?.role === 'REP' ? '/rep' : user?.role === 'DRIVER' ? '/driver' : user?.role === 'SUPPLIER' ? '/supplier' : '/dashboard');
+      const home = homeForRole(useAuthStore.getState().user?.role);
+      // A role with no home here (e.g. B2C_CLIENT) stays on the login page.
+      if (home) router.replace(home);
+      else void useAuthStore.getState().logout();
     }
   }, [mounted, isAuthenticated, router]);
 
-  const routeForRole = (role?: string) =>
-    role === 'REP' ? '/rep' : role === 'DRIVER' ? '/driver' : role === 'SUPPLIER' ? '/supplier' : '/dashboard';
+  const routeForRole = (role?: string) => homeForRole(role) ?? '/login';
 
   const onSubmit = async (data: LoginForm) => {
     try {

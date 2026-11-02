@@ -41,6 +41,10 @@ export class RepPortalService {
   ) {}
 
   private readonly jobInclude = {
+    jobExtras: {
+      orderBy: { createdAt: 'asc' as const },
+      select: { name: true, qty: true },
+    },
     originAirport: true,
     originZone: true,
     originHotel: { include: { zone: true } },
@@ -1131,6 +1135,10 @@ export class RepPortalService {
     const job = await this.prisma.trafficJob.findFirst({
       where: { id: jobId, assignment: { repId }, deletedAt: null },
       include: {
+        jobExtras: {
+          orderBy: { createdAt: 'asc' as const },
+          select: { name: true, qty: true },
+        },
         agent: true,
         customer: true,
         originAirport: true,

@@ -53,7 +53,7 @@
 | `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 344 | 1 | — | Driver's completed/cancelled/no-show jobs with the fee earned per job. |
 | `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | Driver's own profile. |
 | `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | Requests a password-reset email. |
-| `/login` | `frontend/src/app/login/page.tsx` | 266 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
+| `/login` | `frontend/src/app/login/page.tsx` | 268 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
 | `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 934 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
 | `/rep/history` | `frontend/src/app/(rep-portal)/rep/history/page.tsx` | 344 | 1 | — | Rep's terminal jobs with fees earned. |
 | `/rep/profile` | `frontend/src/app/(rep-portal)/rep/profile/page.tsx` | 8 | — | — | Rep's own profile. |

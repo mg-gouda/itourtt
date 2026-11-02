@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**86 files**, **318 exported symbols**.
+**87 files**, **321 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -944,6 +944,18 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `getAncestorKeys` | function | 821 | Parent chain, used to auto-check parents in the matrix. |
 | `getDescendantKeys` | function | 833 | Subtree, used by the master toggle. |
 | `findNode` | function | 873 | Looks up a node by key. |
+
+### `role-home.ts`
+
+`frontend/src/lib/role-home.ts` · 19 lines
+
+Single source for which role lands where; only staff roles may enter /dashboard.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `STAFF_ROLES` | const | 5 | Roles allowed into /dashboard (everyone else is a portal or external role). |
+| `isStaffRole` | function | 7 | True for roles allowed into the staff dashboard. |
+| `homeForRole` | function | 12 | Home route per role (/rep, /driver, /supplier, /dashboard), or null when the role has no home in this app. |
 
 ### `service-types.ts`
 

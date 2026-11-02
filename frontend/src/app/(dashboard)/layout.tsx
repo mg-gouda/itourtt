@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
+import { homeForRole, isStaffRole } from "@/lib/role-home";
 import { useCompanyStore } from "@/stores/company-store";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
@@ -33,7 +34,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, hydrate } = useAuthStore();
+  const { isAuthenticated, user, hydrate, logout } = useAuthStore();
+  // Only staff may see the dashboard. Reps, drivers and suppliers are sent to
+  // their own portal; any other role is signed out.
+  const isStaff = isStaffRole(user?.role);
   const { loadCompanySettings } = useCompanyStore();
   const [mounted, setMounted] = useState(false);
 
@@ -43,18 +47,25 @@ export default function DashboardLayout({
   }, [hydrate]);
 
   useEffect(() => {
-    if (mounted && isAuthenticated) {
+    if (mounted && isAuthenticated && isStaff) {
       loadCompanySettings();
     }
-  }, [mounted, isAuthenticated, loadCompanySettings]);
+  }, [mounted, isAuthenticated, isStaff, loadCompanySettings]);
 
   useEffect(() => {
-    if (mounted && !isAuthenticated) {
+    if (!mounted) return;
+    if (!isAuthenticated) {
       router.replace("/login");
+      return;
     }
-  }, [mounted, isAuthenticated, router]);
+    if (!isStaff) {
+      const home = homeForRole(user?.role);
+      if (home) router.replace(home);
+      else void logout().finally(() => router.replace("/login"));
+    }
+  }, [mounted, isAuthenticated, isStaff, user, logout, router]);
 
-  if (!mounted || !isAuthenticated) {
+  if (!mounted || !isAuthenticated || !isStaff) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />

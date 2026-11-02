@@ -52,6 +52,10 @@ export class DispatchService {
       requestedVehicleType: { select: { id: true, name: true, seatCapacity: true } },
       flight: { select: { id: true, flightNo: true, carrier: true, terminal: true, arrivalTime: true, departureTime: true } },
       jobServiceType: { select: { id: true, name: true } },
+      jobExtras: {
+        orderBy: { createdAt: 'asc' as const },
+        select: { name: true, qty: true, unitAmount: true, currency: true },
+      },
       assignment: {
         select: {
           id: true,

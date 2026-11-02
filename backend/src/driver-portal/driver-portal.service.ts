@@ -43,6 +43,10 @@ export class DriverPortalService {
 
   // Minimal fields for list cards — no agent/customer details
   private readonly jobSummaryInclude = {
+    jobExtras: {
+      orderBy: { createdAt: 'asc' as const },
+      select: { name: true, qty: true },
+    },
     originAirport: { select: { name: true } },
     originZone: { select: { name: true } },
     originHotel: { select: { name: true, zone: { select: { name: true } } } },
@@ -66,6 +70,10 @@ export class DriverPortalService {
 
   // Full include for detail views and mutation responses
   private readonly jobInclude = {
+    jobExtras: {
+      orderBy: { createdAt: 'asc' as const },
+      select: { name: true, qty: true },
+    },
     originAirport: true,
     originZone: true,
     originHotel: { include: { zone: true } },
@@ -903,6 +911,10 @@ export class DriverPortalService {
     const job = await this.prisma.trafficJob.findFirst({
       where: { id: jobId, assignment: { driverId }, deletedAt: null },
       include: {
+        jobExtras: {
+          orderBy: { createdAt: 'asc' as const },
+          select: { name: true, qty: true },
+        },
         agent: true,
         customer: true,
         originAirport: true,

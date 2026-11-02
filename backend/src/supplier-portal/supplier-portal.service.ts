@@ -13,6 +13,10 @@ export class SupplierPortalService {
   constructor(private readonly prisma: PrismaService) {}
 
   private readonly jobInclude = {
+    jobExtras: {
+      orderBy: { createdAt: 'asc' as const },
+      select: { name: true, qty: true },
+    },
     fromZone: true,
     toZone: true,
     originHotel: { select: { name: true } },
@@ -159,6 +163,10 @@ export class SupplierPortalService {
     const job = await this.prisma.trafficJob.findFirst({
       where: { id: jobId, assignment: { vehicle: { supplierId } }, deletedAt: null },
       include: {
+        jobExtras: {
+          orderBy: { createdAt: 'asc' as const },
+          select: { name: true, qty: true },
+        },
         agent: true,
         customer: true,
         originAirport: true,
