@@ -713,7 +713,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DriverPortalController.updateJobStatus` | method | `backend/src/driver-portal/driver-portal.controller.ts:111` |
 | `DriverPortalController.uploadFiles` | method | `backend/src/driver-portal/driver-portal.controller.ts:254` |
 | `DriverPortalJob` | type | `mobile/packages/shared/src/types/index.ts:304` |
-| `DriverPortalLayout` | function | `frontend/src/app/(driver-portal)/layout.tsx:23` |
+| `DriverPortalLayout` | function | `frontend/src/app/(driver-portal)/layout.tsx:24` |
 | `DriverPortalModule` | class | `backend/src/driver-portal/driver-portal.module.ts:15` |
 | `DriverPortalService` | class | `backend/src/driver-portal/driver-portal.service.ts:35` |
 | `DriverPortalService.checkDriverGeofence` | method | `backend/src/driver-portal/driver-portal.service.ts:890` |
@@ -1525,7 +1525,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `LANGUAGES` | const | `frontend/src/lib/website-i18n.tsx:23` |
 | `LEGACY_SERVICE_TYPES` | const | `backend/src/common/utils/service-type.util.ts:28` |
 | `LEGACY_SERVICE_TYPES` | const | `frontend/src/lib/service-types.ts:30` |
-| `LicenseGate` | function | `frontend/src/components/license-gate.tsx:59` |
+| `LicenseGate` | function | `frontend/src/components/license-gate.tsx:60` |
 | `LicenseHeartbeatService` | class | `backend/src/settings/license-heartbeat.service.ts:8` |
 | `LicenseHeartbeatService.beat` | method | `backend/src/settings/license-heartbeat.service.ts:14` |
 | `LicensePayload` | type | `backend/src/common/license-verify.ts:20` |
@@ -2202,7 +2202,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `RepPortalController.updateJobStatus` | method | `backend/src/rep-portal/rep-portal.controller.ts:146` |
 | `RepPortalController.uploadFiles` | method | `backend/src/rep-portal/rep-portal.controller.ts:324` |
 | `RepPortalJob` | type | `mobile/packages/shared/src/types/index.ts:313` |
-| `RepPortalLayout` | function | `frontend/src/app/(rep-portal)/layout.tsx:23` |
+| `RepPortalLayout` | function | `frontend/src/app/(rep-portal)/layout.tsx:24` |
 | `RepPortalModule` | class | `backend/src/rep-portal/rep-portal.module.ts:13` |
 | `RepPortalService` | class | `backend/src/rep-portal/rep-portal.service.ts:35` |
 | `RepPortalService.checkRepGeofence` | method | `backend/src/rep-portal/rep-portal.service.ts:1114` |
@@ -2486,7 +2486,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `SupplierPortalController.getMyJobs` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:37` |
 | `SupplierPortalController.getProfile` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:65` |
 | `SupplierPortalJob` | type | `mobile/packages/shared/src/types/index.ts:322` |
-| `SupplierPortalLayout` | function | `frontend/src/app/(supplier-portal)/layout.tsx:13` |
+| `SupplierPortalLayout` | function | `frontend/src/app/(supplier-portal)/layout.tsx:14` |
 | `SupplierPortalModule` | class | `backend/src/supplier-portal/supplier-portal.module.ts:9` |
 | `SupplierPortalService` | class | `backend/src/supplier-portal/supplier-portal.service.ts:12` |
 | `SupplierPortalService.checkSupplierTimelock` | method | `backend/src/supplier-portal/supplier-portal.service.ts:151` |

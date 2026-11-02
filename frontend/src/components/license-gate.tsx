@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { ShieldX, AlertTriangle, X } from 'lucide-react';
 import { useLicense } from '@/hooks/use-license';
@@ -32,7 +33,7 @@ function getWarningLevel(days: number): 90 | 60 | 30 | null {
 const LEVEL_STYLE = {
   30: {
     border: 'border-red-500/40',
-    bg: 'bg-red-950/60',
+    bg: 'bg-red-950',
     icon: 'text-red-400',
     badge: 'bg-red-500/20 text-red-300',
     title: 'text-red-300',
@@ -40,7 +41,7 @@ const LEVEL_STYLE = {
   },
   60: {
     border: 'border-orange-500/40',
-    bg: 'bg-orange-950/60',
+    bg: 'bg-orange-950',
     icon: 'text-orange-400',
     badge: 'bg-orange-500/20 text-orange-300',
     title: 'text-orange-300',
@@ -48,7 +49,7 @@ const LEVEL_STYLE = {
   },
   90: {
     border: 'border-yellow-500/40',
-    bg: 'bg-yellow-950/60',
+    bg: 'bg-yellow-950',
     icon: 'text-yellow-400',
     badge: 'bg-yellow-500/20 text-yellow-300',
     title: 'text-yellow-300',
@@ -71,6 +72,21 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
   const warningDismissed = !!warnKey && (
     dismissedKeys.includes(warnKey) || Number(readStore(warnKey)) > Date.now()
   );
+
+  // iOS Safari can drop the synthetic click on a tap, so buttons close on pointerup as well.
+  // The guard stops the following click from running it twice.
+  const handled = useRef(0);
+  function tapHandlers(fn: () => void) {
+    const run = () => {
+      if (Date.now() - handled.current < 400) return;
+      handled.current = Date.now();
+      fn();
+    };
+    return {
+      onPointerUp: (e: React.PointerEvent) => { e.stopPropagation(); run(); },
+      onClick: (e: React.MouseEvent) => { e.stopPropagation(); run(); },
+    };
+  }
 
   function dismiss() {
     if (!warnKey) return;
@@ -112,14 +128,19 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Overlays render straight into <body>: no ancestor transform/filter/stacking context can
+  // swallow their taps, and pointer-events is forced on in case a Radix dialog disabled it.
+  const portal = (node: React.ReactNode) =>
+    typeof document === 'undefined' ? null : createPortal(node, document.body);
+
   const showWarning = warningLevel !== null && !warningDismissed && !ALLOWED_PATHS.includes(pathname);
   const showInvalid = invalid && !invalidDismissed && !ALLOWED_PATHS.includes(pathname);
 
   return (
     <>
       {children}
-      {showInvalid && (
-        <div className="fixed inset-x-4 bottom-4 z-[9998] rounded-xl sm:inset-x-auto sm:right-4 sm:w-full sm:max-w-sm border border-destructive/40 bg-card p-4 shadow-2xl">
+      {showInvalid && portal(
+        <div style={{ pointerEvents: 'auto' }} className="fixed inset-x-4 bottom-4 z-[9998] rounded-xl sm:inset-x-auto sm:right-4 sm:w-full sm:max-w-sm border border-destructive/40 bg-card p-4 shadow-2xl">
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10">
               <ShieldX className="h-5 w-5 text-destructive" />
@@ -129,7 +150,7 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
                 <h2 className="text-sm font-bold text-foreground">License not active</h2>
                 <button
                   type="button"
-                  onClick={dismissInvalid}
+                  {...tapHandlers(dismissInvalid)}
                   className="-m-1.5 touch-manipulation rounded-lg p-2.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors"
                   aria-label="Dismiss"
                 >
@@ -160,27 +181,30 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       )}
-      {showWarning && (() => {
+      {showWarning && portal((() => {
         const level = warningLevel!;
         const days = status!.daysRemaining!;
         const s = LEVEL_STYLE[level];
         const months = level === 90 ? '3 months' : level === 60 ? '2 months' : '1 month';
         return (
           // Tapping the backdrop dismisses too. Bottom sheet on phones, centred dialog from sm up.
+          // No backdrop-filter anywhere: nested blur layers break tap hit-testing in iOS Safari.
+          // cursor-pointer is what makes iOS deliver taps on a plain div.
           <div
-            className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 backdrop-blur-sm p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
+            style={{ pointerEvents: 'auto' }}
+            className="fixed inset-0 z-[9999] flex cursor-pointer items-end justify-center bg-black/70 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
             onClick={dismiss}
           >
             <div
               role="dialog"
               aria-modal="true"
-              className={`relative w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-2xl border ${s.border} ${s.bg} backdrop-blur-md p-5 sm:p-6 shadow-2xl`}
+              className={`relative w-full max-w-md max-h-[calc(100dvh-1.5rem)] cursor-auto overflow-y-auto rounded-2xl border ${s.border} ${s.bg} p-5 sm:p-6 shadow-2xl`}
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
-                onClick={dismiss}
-                className="absolute right-2 top-2 flex h-10 w-10 touch-manipulation items-center justify-center rounded-lg text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors"
+                {...tapHandlers(dismiss)}
+                className="absolute right-2 top-2 z-10 flex h-10 w-10 touch-manipulation items-center justify-center rounded-lg text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -212,7 +236,7 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
                 </a>
                 <button
                   type="button"
-                  onClick={dismiss}
+                  {...tapHandlers(dismiss)}
                   className="flex-1 touch-manipulation rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors"
                 >
                   Dismiss
@@ -225,7 +249,7 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         );
-      })()}
+      })())}
     </>
   );
 }

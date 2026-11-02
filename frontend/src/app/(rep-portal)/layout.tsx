@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
+import { homeForRole } from "@/lib/role-home";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LicenseGate } from "@/components/license-gate";
 import {
@@ -39,7 +40,7 @@ export default function RepPortalLayout({
       router.replace("/login");
     }
     if (mounted && isAuthenticated && user?.role !== "REP") {
-      router.replace("/dashboard");
+      router.replace(homeForRole(user?.role) ?? "/login");
     }
   }, [mounted, isAuthenticated, user, router]);
 

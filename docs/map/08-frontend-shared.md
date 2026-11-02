@@ -112,13 +112,13 @@ Editor for a job's booked extras, sourced from the managed extras catalogue.
 
 ### `license-gate.tsx`
 
-`frontend/src/components/license-gate.tsx` · 232 lines
+`frontend/src/components/license-gate.tsx` · 256 lines
 
 Blocks the entire app when the licence is invalid or unreachable.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LicenseGate` | function | 59 | Blocks the whole app when the licence is invalid — this is what a licence misconfiguration looks like to users. |
+| `LicenseGate` | function | 60 | Blocks the whole app when the licence is invalid — this is what a licence misconfiguration looks like to users. |
 
 ### `location-combobox.tsx`
 
