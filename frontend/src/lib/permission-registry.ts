@@ -739,6 +739,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'job-locks.edit',       labelKey: 'permissions.jobLocks.edit',       crudType: 'U' },
       { key: 'job-locks.b2c',        labelKey: 'permissions.jobLocks.b2c',        crudType: 'U' },
       { key: 'job-locks.online',     labelKey: 'permissions.jobLocks.online',     crudType: 'U' },
+      { key: 'job-locks.all',        labelKey: 'permissions.jobLocks.all',        crudType: 'U' },
     ],
   },
 

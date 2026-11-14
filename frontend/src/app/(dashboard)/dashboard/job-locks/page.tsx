@@ -37,7 +37,7 @@ const JOB_LOCKS_COL_DEFS: ColumnDef[] = [
 
 const PAGE_SIZE = 50;
 
-type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit" | "b2c" | "online";
+type LockTab = "dispatcher" | "driver" | "rep" | "supplier" | "edit" | "b2c" | "online" | "all";
 
 interface JobLockItem {
   id: string;
@@ -47,6 +47,9 @@ interface JobLockItem {
   status: string;
   clientName: string | null;
   isUnlocked: boolean;
+  /** "all" tab only: how many of the job's lock parts are currently open. */
+  unlockedParts?: number;
+  totalParts?: number;
   agent?: { legalName: string } | null;
   customer?: { legalName: string } | null;
   fromZone?: { name: string } | null;
@@ -91,6 +94,7 @@ function getEntityName(job: JobLockItem, tab: LockTab): string {
     case "supplier":
       return job.assignment.vehicle?.supplier?.legalName || "-";
     case "edit":
+    case "all":
       return job.agent?.legalName || job.customer?.legalName || "-";
     case "b2c":
     case "online":
@@ -109,6 +113,7 @@ export default function JobLocksPage() {
   const canLockEdit = usePermission("job-locks.edit");
   const canLockB2C = usePermission("job-locks.b2c");
   const canLockOnline = usePermission("job-locks.online");
+  const canLockAll = usePermission("job-locks.all");
   const lockPermissions: Record<LockTab, boolean> = {
     dispatcher: canLockDispatcher,
     driver: canLockDriver,
@@ -117,6 +122,7 @@ export default function JobLocksPage() {
     edit: canLockEdit,
     b2c: canLockB2C,
     online: canLockOnline,
+    all: canLockAll,
   };
   const defaults = getDefaultDateRange();
   const [activeTab, setActiveTab] = useState<LockTab>("dispatcher");
@@ -178,11 +184,21 @@ export default function JobLocksPage() {
       const action = job.isUnlocked ? "lock" : "unlock";
       await api.post(`/job-locks/${activeTab}/${job.id}/${action}`);
       toast.success(
-        job.isUnlocked ? t("jobLocks.lockSuccess") : t("jobLocks.unlockSuccess"),
+        activeTab === "all"
+          ? job.isUnlocked ? t("jobLocks.lockAllSuccess") : t("jobLocks.unlockAllSuccess")
+          : job.isUnlocked ? t("jobLocks.lockSuccess") : t("jobLocks.unlockSuccess"),
       );
       setJobs((prev) =>
         prev.map((j) =>
-          j.id === job.id ? { ...j, isUnlocked: !j.isUnlocked } : j,
+          j.id === job.id
+            ? {
+                ...j,
+                isUnlocked: !j.isUnlocked,
+                ...(activeTab === "all"
+                  ? { unlockedParts: j.isUnlocked ? 0 : j.totalParts }
+                  : {}),
+              }
+            : j,
         ),
       );
     } catch {
@@ -226,6 +242,9 @@ export default function JobLocksPage() {
             </TabsTrigger>
             <TabsTrigger value="online">
               {t("jobLocks.tabs.online")}
+            </TabsTrigger>
+            <TabsTrigger value="all">
+              {t("jobLocks.tabs.all")}
             </TabsTrigger>
           </TabsList>
 
@@ -279,7 +298,7 @@ export default function JobLocksPage() {
           </div>
 
           {/* Table content (same for all tabs) */}
-          {(["dispatcher", "driver", "rep", "supplier", "edit", "b2c", "online"] as LockTab[]).map((tab) => (
+          {(["dispatcher", "driver", "rep", "supplier", "edit", "b2c", "online", "all"] as LockTab[]).map((tab) => (
             <TabsContent key={tab} value={tab}>
               <JobLocksTable
                 jobs={jobs}
@@ -398,7 +417,7 @@ function JobLocksTable({
                   {isVis("lock") && (
                     <TableCell>
                       {canToggle ? (
-                        <button onClick={() => onToggleLock(job)} disabled={isToggling} className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted" title={job.isUnlocked ? t("jobLocks.lock") : t("jobLocks.unlock")}>
+                        <button onClick={() => onToggleLock(job)} disabled={isToggling} className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted" title={tab === "all" ? (job.isUnlocked ? t("jobLocks.lockAll") : t("jobLocks.unlockAll")) : job.isUnlocked ? t("jobLocks.lock") : t("jobLocks.unlock")}>
                           {isToggling ? <Loader2 className="h-4 w-4 animate-spin" /> : job.isUnlocked ? <LockOpen className="h-4 w-4 text-green-500" /> : <Lock className="h-4 w-4 text-amber-500" />}
                         </button>
                       ) : (
@@ -414,9 +433,15 @@ function JobLocksTable({
                   {isVis("date") && <TableCell className="text-sm">{new Date(job.jobDate).toLocaleDateString()}</TableCell>}
                   {isVis("status") && (
                     <TableCell>
+                      {tab === "all" && !job.isUnlocked && (job.unlockedParts ?? 0) > 0 ? (
+                        <Badge variant="secondary" className="bg-sky-500/10 text-sky-500 border-sky-500/20">
+                          {t("jobLocks.partial")} {job.unlockedParts}/{job.totalParts}
+                        </Badge>
+                      ) : (
                       <Badge variant={job.isUnlocked ? "default" : "secondary"} className={job.isUnlocked ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"}>
                         {job.isUnlocked ? t("jobLocks.unlocked") : t("jobLocks.locked")}
                       </Badge>
+                      )}
                     </TableCell>
                   )}
                   {isVis("provider") && <TableCell className="text-sm">{provider}</TableCell>}

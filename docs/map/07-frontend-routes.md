@@ -32,7 +32,7 @@
 | `/dashboard/guest-bookings` | `frontend/src/app/(dashboard)/dashboard/guest-bookings/page.tsx` | 512 | 3 | 2 | B2C guest bookings and their conversion into operational jobs. |
 | `/dashboard/help` | `frontend/src/app/(dashboard)/dashboard/help/page.tsx` | 268 | — | — | In-app help and tips per module. |
 | `/dashboard/job-control` | `frontend/src/app/(dashboard)/dashboard/job-control/page.tsx` | 378 | 4 | 1 | Admin Force Control — sets job, rep and driver statuses directly, bypassing the transition rules. |
-| `/dashboard/job-locks` | `frontend/src/app/(dashboard)/dashboard/job-locks/page.tsx` | 432 | 2 | 7 | Per-role lock/unlock screen. Unlocking is how a legitimately late submission gets past a 48h timelock or the rep IN-PLACE window. |
+| `/dashboard/job-locks` | `frontend/src/app/(dashboard)/dashboard/job-locks/page.tsx` | 457 | 2 | 8 | Per-role lock/unlock screen. Unlocking is how a legitimately late submission gets past a 48h timelock or the rep IN-PLACE window. |
 | `/dashboard/locations` | `frontend/src/app/(dashboard)/dashboard/locations/page.tsx` | 1397 | 8 | 14 | The location tree editor — Country → Airport → City → Zone → Hotel, plus coordinates (which set the geofence targets) and Excel import/export. |
 | `/dashboard/profile` | `frontend/src/app/(dashboard)/dashboard/profile/page.tsx` | 210 | — | — | The signed-in user's own profile and 2FA settings. |
 | `/dashboard/reports` | `frontend/src/app/(dashboard)/dashboard/reports/page.tsx` | 6650 | 47 | 21 | ★ Every report in one screen (5,882 lines, 41 API calls, 18 permission keys) — dispatch, driver trips, rep and driver scores, guest surveys, revenue, evidence, job status, visa, sales, departures, flight delays and reviews. Each tab has a matching xlsx export. The largest file in the frontend; navigate it via the symbol index rather than reading it end to end. |
@@ -168,7 +168,7 @@
 **`/dashboard/job-locks`**
 
 - calls: `GET /job-locks/:x?:x`, `POST /job-locks/:x/:x/:x`
-- perms: `job-locks.dispatcher`, `job-locks.driver`, `job-locks.rep`, `job-locks.supplier`, `job-locks.edit`, `job-locks.b2c`, `job-locks.online`
+- perms: `job-locks.dispatcher`, `job-locks.driver`, `job-locks.rep`, `job-locks.supplier`, `job-locks.edit`, `job-locks.b2c`, `job-locks.online`, `job-locks.all`
 
 **`/dashboard/locations`**
 

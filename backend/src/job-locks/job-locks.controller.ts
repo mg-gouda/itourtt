@@ -241,4 +241,36 @@ export class JobLocksController {
     const result = await this.jobLocksService.lockJob('online', id);
     return new ApiResponse(result, 'Job locked for Online');
   }
+
+  // ─── ALL PARTS (dispatcher + driver + rep + supplier + edit at once) ───
+
+  @Get('all')
+  @Permissions('job-locks.all')
+  async getAllPartsJobs(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const result = await this.jobLocksService.findJobs('all', dateFrom, dateTo, search, Number(page) || 1, Number(limit) || 50);
+    return new ApiResponse(result);
+  }
+
+  @Post('all/:id/unlock')
+  @Permissions('job-locks.all')
+  async unlockAllParts(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    const result = await this.jobLocksService.unlockJob('all', id, userId);
+    return new ApiResponse(result, 'All job parts unlocked');
+  }
+
+  @Post('all/:id/lock')
+  @Permissions('job-locks.all')
+  async lockAllParts(@Param('id') id: string) {
+    const result = await this.jobLocksService.lockJob('all', id);
+    return new ApiResponse(result, 'All job parts locked');
+  }
 }

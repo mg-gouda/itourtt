@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**26 classes**, **416 methods**.
+**26 classes**, **419 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -281,7 +281,7 @@ Per-customer job-import templates. A stored sample workbook teaches the AI parse
 
 ### JobLocksController
 
-`backend/src/job-locks/job-locks.controller.ts:18` · controller · 21 methods
+`backend/src/job-locks/job-locks.controller.ts:18` · controller · 24 methods
 
 Per-role job lock/unlock endpoints, one pair per role plus the job listing.
 
@@ -308,21 +308,24 @@ Per-role job lock/unlock endpoints, one pair per role plus the job listing.
 | `getOnlineJobs` | pub | 217 | `jobLocksService.findJobs` | Lists jobs with their online lock state. |
 | `unlockOnline` | pub | 230 | `jobLocksService.unlockJob` | Sets `editUnlockedAt`, lifting editing of ONLINE-channel (agent) jobs for one job. |
 | `lockOnline` | pub | 240 | `jobLocksService.lockJob` | Clears `editUnlockedAt`, restoring editing of ONLINE-channel (agent) jobs. |
+| `getAllPartsJobs` | pub | 249 | `jobLocksService.findJobs` | Lists jobs with an unlockedParts/totalParts count across all five lock flags; isUnlocked only when every part is open. |
+| `unlockAllParts` | pub | 262 | `jobLocksService.unlockJob` | Sets dispatch/driver/rep/supplier/edit UnlockedAt in one go — lifts every timelock on the job (covers b2c/online too). |
+| `lockAllParts` | pub | 272 | `jobLocksService.lockJob` | Clears all five UnlockedAt flags at once, restoring every lock on the job. |
 
 ### JobLocksService
 
-`backend/src/job-locks/job-locks.service.ts:9` · service · 6 methods
+`backend/src/job-locks/job-locks.service.ts:15` · service · 6 methods
 
 Admin screen for the per-role unlock flags on a job (`dispatchUnlockedAt`, `driverUnlockedAt`, `repUnlockedAt`, `supplierUnlockedAt`, `editUnlockedAt`). Unlocking is how a legitimately late submission gets past a 48h timelock or the rep IN-PLACE window.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findJobs` | pub | 12 | `trafficJob` | Lists jobs with their current lock state per role. |
-| `unlockJob` | pub | 99 | `trafficJob` | Sets the unlock timestamp for one role on one job. |
-| `lockJob` | pub | 113 | `trafficJob` | Clears the unlock timestamp, restoring the lock. |
-| `getUnlockField` | priv | 127 | — | Maps a role name to its `*UnlockedAt` column. |
-| `getUnlockData` | priv | 140 | — | Builds the update payload that unlocks a role (timestamp plus actor). |
-| `getLockData` | priv | 154 | — | Builds the update payload that re-locks a role (nulls both fields). |
+| `findJobs` | pub | 18 | `trafficJob` | Lists jobs with their current lock state per role. |
+| `unlockJob` | pub | 122 | `trafficJob` | Sets the unlock timestamp for one role on one job. |
+| `lockJob` | pub | 136 | `trafficJob` | Clears the unlock timestamp, restoring the lock. |
+| `getUnlockField` | priv | 150 | — | Maps a role name to its `*UnlockedAt` column. |
+| `getUnlockData` | priv | 163 | — | Builds the update payload that unlocks a role (timestamp plus actor). |
+| `getLockData` | priv | 185 | — | Builds the update payload that re-locks a role (nulls both fields). |
 
 ## `job-service-types`
 

@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-type LockTab = 'dispatcher' | 'driver' | 'rep' | 'supplier' | 'edit' | 'b2c' | 'online';
+type LockTab = 'dispatcher' | 'driver' | 'rep' | 'supplier' | 'edit' | 'b2c' | 'online' | 'all';
+
+/**
+ * Every independent unlock flag on a TrafficJob. The 'all' tab flips them
+ * together; b2c/online reuse dispatch/edit so they are covered too.
+ */
+const ALL_UNLOCK_PARTS = ['dispatch', 'driver', 'rep', 'supplier', 'edit'] as const;
 
 const PAGE_SIZE = 50;
 
@@ -87,6 +93,23 @@ export class JobLocksService {
       this.prisma.trafficJob.count({ where: baseWhere }),
     ]);
 
+    if (tab === 'all') {
+      const data = jobs.map((job) => {
+        const unlockedParts = ALL_UNLOCK_PARTS.filter(
+          (p) => !!(job as any)[`${p}UnlockedAt`],
+        );
+        return {
+          ...job,
+          unlockedParts: unlockedParts.length,
+          totalParts: ALL_UNLOCK_PARTS.length,
+          // Fully unlocked only when every part is open; a partial job shows
+          // as locked so one click opens the remainder.
+          isUnlocked: unlockedParts.length === ALL_UNLOCK_PARTS.length,
+        };
+      });
+      return { data, total, page, limit };
+    }
+
     const unlockField = this.getUnlockField(tab);
     const data = jobs.map((job) => ({
       ...job,
@@ -124,8 +147,8 @@ export class JobLocksService {
     });
   }
 
-  private getUnlockField(tab: LockTab): string {
-    const map: Record<LockTab, string> = {
+  private getUnlockField(tab: Exclude<LockTab, 'all'>): string {
+    const map: Record<Exclude<LockTab, 'all'>, string> = {
       dispatcher: 'dispatchUnlockedAt',
       driver: 'driverUnlockedAt',
       rep: 'repUnlockedAt',
@@ -139,7 +162,15 @@ export class JobLocksService {
 
   private getUnlockData(tab: LockTab, userId: string): Record<string, unknown> {
     const now = new Date();
-    const map: Record<LockTab, Record<string, unknown>> = {
+    if (tab === 'all') {
+      return Object.fromEntries(
+        ALL_UNLOCK_PARTS.flatMap((p) => [
+          [`${p}UnlockedAt`, now],
+          [`${p}UnlockedById`, userId],
+        ]),
+      );
+    }
+    const map: Record<Exclude<LockTab, 'all'>, Record<string, unknown>> = {
       dispatcher: { dispatchUnlockedAt: now, dispatchUnlockedById: userId },
       driver: { driverUnlockedAt: now, driverUnlockedById: userId },
       rep: { repUnlockedAt: now, repUnlockedById: userId },
@@ -152,7 +183,15 @@ export class JobLocksService {
   }
 
   private getLockData(tab: LockTab): Record<string, unknown> {
-    const map: Record<LockTab, Record<string, unknown>> = {
+    if (tab === 'all') {
+      return Object.fromEntries(
+        ALL_UNLOCK_PARTS.flatMap((p) => [
+          [`${p}UnlockedAt`, null],
+          [`${p}UnlockedById`, null],
+        ]),
+      );
+    }
+    const map: Record<Exclude<LockTab, 'all'>, Record<string, unknown>> = {
       dispatcher: { dispatchUnlockedAt: null, dispatchUnlockedById: null },
       driver: { driverUnlockedAt: null, driverUnlockedById: null },
       rep: { repUnlockedAt: null, repUnlockedById: null },
