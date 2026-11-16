@@ -451,13 +451,13 @@ Leaflet map used by the Rep/Driver Tracking pages (client-only, loaded via next/
 
 ### `tracking-view.tsx`
 
-`frontend/src/components/tracking/tracking-view.tsx` · 372 lines
+`frontend/src/components/tracking/tracking-view.tsx` · 392 lines
 
 Rep/Driver Tracking page body.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TrackingView` | function | 79 | Shared body of Rep/Driver Tracking: name search, freshness counts, refresh/auto-refresh, searchable list beside the map. |
+| `TrackingView` | function | 89 | Shared body of Rep/Driver Tracking: name search, freshness counts, refresh/auto-refresh, searchable list beside the map. |
 
 ### `types.ts`
 

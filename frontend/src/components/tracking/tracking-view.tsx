@@ -34,6 +34,16 @@ const TrackingMap = dynamic(() => import("./tracking-map"), {
 });
 
 const AUTO_REFRESH_MS = 60_000;
+/** Per-browser memory of the auto-refresh switch. On unless the user turned it off. */
+const AUTO_REFRESH_KEY = "tracking-auto-refresh";
+
+function readAutoRefresh(): boolean {
+  try {
+    return localStorage.getItem(AUTO_REFRESH_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
 
 const esc = (v: unknown) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -86,7 +96,17 @@ export function TrackingView({ kind }: TrackingViewProps) {
   const [loadedAt, setLoadedAt] = useState<number>(() => Date.now());
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefreshState] = useState(true);
+  // Read the saved choice after mount (storage is browser-only; avoids a hydration mismatch).
+  useEffect(() => setAutoRefreshState(readAutoRefresh()), []);
+  const setAutoRefresh = useCallback((on: boolean) => {
+    setAutoRefreshState(on);
+    try {
+      localStorage.setItem(AUTO_REFRESH_KEY, on ? "on" : "off");
+    } catch {
+      /* storage unavailable — falls back to on next visit */
+    }
+  }, []);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const isAll = kind === "all";

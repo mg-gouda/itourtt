@@ -2701,7 +2701,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `TrackingService.listReps` | method | `backend/src/tracking/tracking.service.ts:106` |
 | `TrackingService.record` | method | `backend/src/tracking/tracking.service.ts:65` |
 | `TrackingService.todayDate` | method | `backend/src/tracking/tracking.service.ts:173` |
-| `TrackingView` | function | `frontend/src/components/tracking/tracking-view.tsx:79` |
+| `TrackingView` | function | `frontend/src/components/tracking/tracking-view.tsx:89` |
 | `TrafficAssignment` | model | `backend/prisma/schema.prisma:1455` |
 | `TrafficAssignment` | type | `frontend/src/types/index.ts:301` |
 | `TrafficAssignment` | type | `mobile/packages/shared/src/types/index.ts:208` |
