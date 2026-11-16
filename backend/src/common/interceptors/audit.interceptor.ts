@@ -137,6 +137,10 @@ export class AuditInterceptor implements NestInterceptor {
     if (/\/tracking\/ping\/?$/.test(path)) {
       return next.handle();
     }
+    // Chat read receipts fire whenever a thread is on screen — not an edit.
+    if (/\/chat\/conversations\/[^/]+\/read\/?$/.test(path)) {
+      return next.handle();
+    }
 
     const userId = user?.id || user?.sub;
     const userName = user?.email || 'anonymous';

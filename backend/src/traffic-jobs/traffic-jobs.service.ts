@@ -628,6 +628,10 @@ export class TrafficJobsService {
     this.notificationsService
       .notifyJobUpdate(id, userId, changedFields)
       .catch((err) => this.logger.error(`Failed to send update notifications: ${err.message}`));
+    // The assigned driver/rep hear about changes that affect their trip.
+    this.notificationsService
+      .notifyAssigneesOfJobUpdate(job, result, userId)
+      .catch((err) => this.logger.error(`Failed to notify job assignees: ${err.message}`));
 
     return result;
   }
@@ -760,6 +764,12 @@ export class TrafficJobsService {
 
       return updatedJob;
     });
+
+    if (newStatus === 'CANCELLED' && currentStatus !== 'CANCELLED') {
+      this.notificationsService
+        .notifyAssigneesOfCancellation(job, userId)
+        .catch((err) => this.logger.error(`Failed to notify job assignees: ${err.message}`));
+    }
 
     // Fire-and-forget notification
     if (userId) {

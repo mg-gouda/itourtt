@@ -15,10 +15,13 @@ import {
   LogOut,
   User,
   Settings,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api, { backgroundPoll } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useChatMe } from "@/lib/chat";
+import { PushPrompt } from "@/components/push-prompt";
 import { useT } from "@/lib/i18n";
 import { useLocationHeartbeat } from "@/lib/use-location-heartbeat";
 
@@ -74,6 +77,8 @@ function RepPortalShell({
   const t = useT();
   const [unreadCount, setUnreadCount] = useState(0);
   useLocationHeartbeat();
+  const { me: chat } = useChatMe();
+  const chatUnread = chat?.unreadTotal ?? 0;
 
   useEffect(() => {
     const fetchUnread = async () => {
@@ -93,6 +98,7 @@ function RepPortalShell({
   const tabs = [
     { href: "/rep", label: t("portal.jobs"), icon: Briefcase, exact: true },
     { href: "/rep/history", label: t("portal.history"), icon: History },
+    { href: "/rep/chat", label: t("portal.chat"), icon: MessageCircle, badge: chatUnread },
     { href: "/rep/profile", label: t("portal.settings"), icon: Settings },
   ];
 
@@ -130,6 +136,7 @@ function RepPortalShell({
 
       {/* Page content — bottom padding for tab bar */}
       <main className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+        <PushPrompt />
         {children}
       </main>
 
@@ -156,7 +163,14 @@ function RepPortalShell({
                     : "text-muted-foreground active:text-foreground"
                 )}
               >
-                <tab.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                <span className="relative">
+                  <tab.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                  {"badge" in tab && !!tab.badge && (
+                    <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+                      {tab.badge > 99 ? "99+" : tab.badge}
+                    </span>
+                  )}
+                </span>
                 {tab.label}
               </Link>
             );

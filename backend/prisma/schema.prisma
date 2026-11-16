@@ -350,6 +350,10 @@ model User {
   b2cInvoices          B2CInvoice[]        @relation("B2CClientInvoices")
   sessions             UserSession[]
   lastLocation         UserLocation?
+  chatsAsPortal        ChatConversation[]  @relation("ChatPortalUser")
+  chatsAsStaff         ChatConversation[]  @relation("ChatStaffUser")
+  chatMessagesSent     ChatMessage[]       @relation("ChatMessageSender")
+  webPushSubscriptions WebPushSubscription[]
 
   complaintsCreated        Complaint[]       @relation("ComplaintCreatedBy")
   complaintsAssigned       Complaint[]       @relation("ComplaintAssignedTo")
@@ -1852,6 +1856,10 @@ model CompanySettings {
   // the other one. Edited from System Parameters › Locations.
   geofenceAirportMeters     Int       @default(2000) @map("geofence_airport_meters")
   geofenceOtherMeters       Int       @default(600) @map("geofence_other_meters")
+  // In-app chat: which staff roles (Role.slug) appear in a driver's / rep's
+  // contact list. Edited on the Company page. See chat/chat.service.ts.
+  chatDriverContactRoles    String[]  @default(["dispatcher", "dispatch-operator", "dispatch-manager"]) @map("chat_driver_contact_roles")
+  chatRepContactRoles       String[]  @default(["online-manager", "online-operator"]) @map("chat_rep_contact_roles")
   createdAt                 DateTime  @default(now()) @map("created_at")
   updatedAt                 DateTime  @updatedAt @map("updated_at")
 
@@ -2785,4 +2793,85 @@ model AgentAdjustment {
   @@index([complaintId])
   @@index([invoiceLineId])
   @@map("agent_adjustments")
+}
+
+// ─────────────────────────────────────────────
+// IN-APP CHAT (rep/driver portal ↔ staff)
+// ─────────────────────────────────────────────
+
+enum ChatMessageKind {
+  TEXT
+  IMAGE
+  VOICE
+}
+
+/// One 1:1 thread between a REP/DRIVER portal user and a staff user. Who may
+/// open one is decided by CompanySettings.chat{Driver,Rep}ContactRoles.
+/// Read state is a per-side "read up to" timestamp, not a row per message.
+model ChatConversation {
+  id               String    @id @default(uuid())
+  portalUserId     String    @map("portal_user_id")
+  staffUserId      String    @map("staff_user_id")
+  /// REP or DRIVER — the portal side's role when the thread was opened.
+  portalRole       UserRole  @map("portal_role")
+  lastMessageAt    DateTime? @map("last_message_at")
+  portalLastReadAt DateTime? @map("portal_last_read_at")
+  staffLastReadAt  DateTime? @map("staff_last_read_at")
+  createdById      String    @map("created_by_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  portalUser User          @relation("ChatPortalUser", fields: [portalUserId], references: [id])
+  staffUser  User          @relation("ChatStaffUser", fields: [staffUserId], references: [id])
+  messages   ChatMessage[]
+
+  @@unique([portalUserId, staffUserId])
+  @@index([staffUserId, lastMessageAt])
+  @@index([portalUserId, lastMessageAt])
+  @@map("chat_conversations")
+}
+
+/// A chat message. Immutable once sent (no edit, no delete). Attachments live
+/// on the uploads volume under a dot-folder (`uploads/.chat/…`) that the public
+/// /uploads static route never serves; they are streamed by
+/// GET /chat/messages/:id/attachment after a participant check.
+model ChatMessage {
+  id             String          @id @default(uuid())
+  conversationId String          @map("conversation_id")
+  senderId       String          @map("sender_id")
+  kind           ChatMessageKind @default(TEXT)
+  body           String?
+  attachmentPath String?         @map("attachment_path")
+  attachmentMime String?         @map("attachment_mime")
+  attachmentSize Int?            @map("attachment_size")
+  /// Voice notes only: length in seconds as reported by the recorder.
+  durationSec    Int?            @map("duration_sec")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User             @relation("ChatMessageSender", fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
+}
+
+/// A browser's Web Push subscription (rep/driver web portal). One row per
+/// browser endpoint; removed on logout, when the browser revokes it (404/410
+/// from the push service) or when another user signs in on that browser.
+model WebPushSubscription {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?   @map("user_agent")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("web_push_subscriptions")
 }

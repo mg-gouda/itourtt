@@ -675,6 +675,19 @@ export class DispatchService {
       return result;
     });
 
+    // Whoever was swapped out is told they are off the job.
+    const swappedDriver =
+      dto.driverId !== undefined && existing.driverId && dto.driverId !== existing.driverId
+        ? existing.driverId
+        : null;
+    const swappedRep =
+      dto.repId !== undefined && existing.repId && dto.repId !== existing.repId ? existing.repId : null;
+    if (swappedDriver || swappedRep) {
+      this.notificationsService
+        .notifyRemovedFromJob(updated.trafficJob, { driverId: swappedDriver, repId: swappedRep }, userId)
+        .catch((err) => this.logger.error(`Failed to notify removed assignees: ${err.message}`));
+    }
+
     // Push notifications (fire-and-forget)
     if (dto.driverId && dto.driverId !== existing.driverId) {
       this.pushService.sendToDriver(
@@ -765,6 +778,15 @@ export class DispatchService {
         data: { status: 'PENDING' as JobStatus },
       });
     });
+
+    // The people taken off the job are told (portal notification + push).
+    this.notificationsService
+      .notifyRemovedFromJob(
+        assignment.trafficJob,
+        { driverId: assignment.driverId, repId: assignment.repId },
+        userId,
+      )
+      .catch((err) => this.logger.error(`Failed to notify removed assignees: ${err.message}`));
 
     // Notify online users about the unassignment (fire-and-forget)
     this.notificationsService.notifyDispatchAction(

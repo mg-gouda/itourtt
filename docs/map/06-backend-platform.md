@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**53 classes**, **374 methods**.
+**57 classes**, **425 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -149,6 +149,65 @@ passport-jwt validation. Beyond signature checks it re-reads the user and, for R
 |---|---|---|---|---|
 | `validate` | pub | 43 | `user` | Resolves the JWT payload to a live user, rejecting inactive, deleted, or superseded-session accounts. |
 
+## `chat`
+
+### ChatController
+
+`backend/src/chat/chat.controller.ts:42` · controller · 11 methods
+
+/chat routes. Open to any signed-in user; ChatService decides who may talk to whom and checks thread membership.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `me` | pub | 47 | — | GET /chat/me — chat availability, unread total and newest unread thread (background poll). |
+| `conversations` | pub | 52 | — | GET /chat/conversations — the caller's threads with last message and unread count. |
+| `contacts` | pub | 57 | — | GET /chat/contacts — people the caller may start a chat with (?search, ?role for staff). |
+| `open` | pub | 62 | — | POST /chat/conversations — get or create the thread with a user (eligibility checked). |
+| `conversation` | pub | 67 | — | GET /chat/conversations/:id — thread header: the other person and their read position. |
+| `messages` | pub | 72 | — | GET /chat/conversations/:id/messages — latest page, ?before for history, ?after for live polling. |
+| `send` | pub | 88 | — | POST /chat/conversations/:id/messages — multipart: kind, body, file, durationSec. |
+| `read` | pub | 99 | — | POST /chat/conversations/:id/read — mark the thread read for the caller (not audited). |
+| `attachment` | pub | 105 | — | GET /chat/messages/:id/attachment — streams an image/voice note to a participant (sendFile with dotfiles allowed). |
+| `settings` | pub | 125 | — | GET /chat/settings — driver/rep contact role lists + selectable roles (perm company). |
+| `updateSettings` | pub | 131 | — | PATCH /chat/settings — set the contact role lists (perm company.editSettings). |
+
+### ChatService
+
+`backend/src/chat/chat.service.ts:64` · service · 28 methods
+
+In-app chat between rep/driver portal users and staff.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `contactRoles` | pub | 75 | `companySettings` | Reads the driver/rep contact role slug lists from CompanySettings (defaults if no row). |
+| `getSettings` | pub | 85 | `role` | Contact role lists plus every active staff role to choose from. |
+| `updateSettings` | pub | 97 | `role` `companySettings` | Validates role slugs exist and saves the contact lists on the company_settings singleton. |
+| `loadPerson` | priv | 127 | `user` | User with role enum, role slug/name and active flags. |
+| `sideOf` | priv | 131 | — | Maps a legacy role enum to PORTAL, STAFF or null (no chat). |
+| `staffReach` | priv | 138 | — | Which portal roles a staff user may chat with, from their role slug and the contact lists. |
+| `isLive` | priv | 150 | — | Active and not soft-deleted. |
+| `canPair` | priv | 158 | — | True when the portal user and staff user are both active and the staff role slug is in that portal role's contact list. |
+| `me` | pub | 174 | `chatConversation` | Is chat available to the caller, which portal roles they may start chats with, unread total and newest unread thread. |
+| `unreadByConversation` | priv | 205 | — | Raw SQL: per-thread unread count and newest unread time for the caller's side. |
+| `onlineSet` | priv | 230 | `userSession` | User ids with an open session seen in the last 5 minutes. |
+| `listConversations` | pub | 246 | `chatConversation` | Caller's threads, newest first, with the other person, last message preview and unread count. |
+| `personView` | priv | 283 | — | Client shape of a chat participant (name, role name, online, active). |
+| `contacts` | pub | 299 | `user` | Portal: eligible staff. Staff: active drivers/reps with a portal account, limited to the roles they may reach. |
+| `openConversation` | pub | 349 | `chatConversation` | Get-or-create the thread between caller and another user; 403 unless canPair. |
+| `getConversation` | pub | 378 | — | Thread header for a participant: other person (online/active) and their read-up-to time. |
+| `listMessages` | pub | 393 | `chatMessage` | Messages of a thread: latest page / before cursor (history) / after cursor (live), plus the other side's read position. |
+| `messageView` | priv | 427 | — | Client shape of a message (fromMe, kind, attachment meta — never the file path). |
+| `sendMessage` | pub | 454 | `chatMessage` `chatConversation` | Validates and stores a TEXT/IMAGE/VOICE message, re-checks the pair is still allowed, bumps lastMessageAt, pushes staff→portal. |
+| `markRead` | pub | 531 | `chatConversation` | Sets the caller's side lastReadAt to now. |
+| `attachment` | pub | 540 | `chatMessage` | Absolute path + mime of a message's file after a participant check; 404 if missing. |
+| `pushToPortal` | priv | 564 | — | Staff→rep/driver: native + browser push with a preview, tagged per thread, landing on the portal chat. |
+| `requireSide` | priv | 586 | — | PORTAL or STAFF for the caller; 403 for suppliers/B2C clients. |
+| `participant` | priv | 592 | `chatConversation` | Loads a thread and 404s unless the caller is one of its two participants. |
+| `storeImage` | priv | 605 | — | Re-encodes an upload with sharp (≤1600 px JPEG, EXIF stripped); 400 if not an image. |
+| `storeVoice` | priv | 624 | — | Stores a voice note after magic-byte sniffing; 400 if not a known audio container. |
+| `writeFile` | priv | 630 | — | Writes an attachment to uploads/.chat/<conversationId>/. |
+| `removeFile` | priv | 638 | — | Deletes an orphaned attachment after a failed send. |
+
 ## `common`
 
 ### AllExceptionsFilter
@@ -176,15 +235,15 @@ Writes an `ActivityLog` row for every create/update/delete, capturing actor, ent
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `intercept` | pub | 122 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
-| `captureBefore` | priv | 172 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
-| `enqueue` | priv | 216 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
-| `flush` | priv | 263 | `activityLog` | Batch-writes queued audit rows. |
-| `buildSummary` | priv | 298 | — | Composes a log summary from action, entity and the resolved job reference. |
-| `resolveJobRefs` | priv | 307 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
-| `resolveJob` | priv | 360 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
-| `methodToAction` | priv | 455 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
-| `parseEntityFromPath` | priv | 469 | — | Derives the entity type and id from the request path. |
-| `sanitizeBody` | priv | 506 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
+| `captureBefore` | priv | 176 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
+| `enqueue` | priv | 220 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
+| `flush` | priv | 267 | `activityLog` | Batch-writes queued audit rows. |
+| `buildSummary` | priv | 302 | — | Composes a log summary from action, entity and the resolved job reference. |
+| `resolveJobRefs` | priv | 311 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
+| `resolveJob` | priv | 364 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
+| `methodToAction` | priv | 459 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
+| `parseEntityFromPath` | priv | 473 | — | Derives the entity type and id from the request path. |
+| `sanitizeBody` | priv | 510 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
 
 ### CaptchaService
 
@@ -531,17 +590,21 @@ In-app notification feed for signed-in staff.
 
 ### NotificationsService
 
-`backend/src/notifications/notifications.service.ts:8` · service · 5 methods
+`backend/src/notifications/notifications.service.ts:66` · service · 9 methods
 
 In-app `UserNotification` fan-out to staff, with email escalation for job updates.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `notifyJobUpdate` | pub | 21 | `trafficJob` `user` `userNotification` `companySettings` `emailService.sendJobUpdateNotification` | Notifies relevant staff (and emails them) that a job changed. |
-| `notifyDispatchAction` | pub | 150 | `trafficJob` `user` `userNotification` | Notifies staff of a dispatch action on a job. |
-| `getUserNotifications` | pub | 218 | `userNotification` | The signed-in user's notification feed. |
-| `markAsRead` | pub | 241 | `userNotification` | Marks one notification read. |
-| `markAllAsRead` | pub | 251 | `userNotification` | Marks all of a user's notifications read. |
+| `notifyAssigneesOfJobUpdate` | pub | 81 | — | Tells the assigned driver/rep what changed (date, time, pax, guest, places, flight, notes); silent if nothing relevant changed. |
+| `notifyAssigneesOfCancellation` | pub | 100 | — | Tells the assigned driver/rep a job was cancelled (not for past-dated jobs). |
+| `notifyRemovedFromJob` | pub | 115 | — | Tells a driver/rep they were unassigned or swapped off a job. |
+| `notifyAssignees` | priv | 130 | `driver` `rep` `driverNotification` `repNotification` | Writes Driver/RepNotification rows and sends push to the job's driver/rep (skips the person who made the change). |
+| `notifyJobUpdate` | pub | 165 | `trafficJob` `user` `userNotification` `companySettings` `emailService.sendJobUpdateNotification` | Notifies relevant staff (and emails them) that a job changed. |
+| `notifyDispatchAction` | pub | 294 | `trafficJob` `user` `userNotification` | Notifies staff of a dispatch action on a job. |
+| `getUserNotifications` | pub | 362 | `userNotification` | The signed-in user's notification feed. |
+| `markAsRead` | pub | 385 | `userNotification` | Marks one notification read. |
+| `markAllAsRead` | pub | 395 | `userNotification` | Marks all of a user's notifications read. |
 
 ## `permissions`
 
@@ -599,16 +662,42 @@ The Prisma client as an injectable, connecting on module init and disconnecting 
 
 ### PushNotificationsService
 
-`backend/src/push-notifications/push-notifications.service.ts:6` · service · 4 methods
+`backend/src/push-notifications/push-notifications.service.ts:7` · service · 5 methods
 
 Firebase Cloud Messaging push to the mobile apps, addressed via `DeviceToken` rows.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `initializeFirebase` | priv | 14 | — | Lazily initialises the Firebase Admin SDK; a missing credential degrades to no-op rather than throwing. |
-| `sendToUser` | pub | 45 | `deviceToken` | Pushes to every registered device token for a user. |
-| `sendToDriver` | pub | 100 | `driver` | Resolves a driver to their user and pushes. |
-| `sendToRep` | pub | 119 | `rep` | Resolves a rep to their user and pushes. |
+| `initializeFirebase` | priv | 18 | — | Lazily initialises the Firebase Admin SDK; a missing credential degrades to no-op rather than throwing. |
+| `sendToUser` | pub | 50 | `deviceToken` | Pushes to every registered device token for a user. |
+| `portalHome` | priv | 110 | `user` | Landing path for a web push when the caller gave none: /rep, /driver or /. |
+| `sendToDriver` | pub | 118 | `driver` | Resolves a driver to their user and pushes. |
+| `sendToRep` | pub | 137 | `rep` | Resolves a rep to their user and pushes. |
+
+### WebPushController
+
+`backend/src/push-notifications/web-push.controller.ts:62` · controller · 3 methods
+
+/push/web routes for the rep/driver portals; staff are rejected explicitly (RolesGuard yields for roleId users).
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `publicKey` | pub | 67 | — | GET /push/web/public-key — VAPID public key, null when push is not configured. |
+| `subscribe` | pub | 74 | — | POST /push/web/subscribe — save this browser's https push subscription for the caller. |
+| `unsubscribe` | pub | 85 | — | POST /push/web/unsubscribe — remove this browser's subscription (called on logout). |
+
+### WebPushService
+
+`backend/src/push-notifications/web-push.service.ts:21` · service · 4 methods
+
+Browser push for the web portals; every PushNotificationsService.sendToUser fans out here too.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `getPublicKey` | pub | 47 | — | VAPID public key when push is enabled, else null. |
+| `subscribe` | pub | 56 | `webPushSubscription` | Upserts by endpoint — moves a shared browser to the user now signed in. |
+| `unsubscribe` | pub | 74 | `webPushSubscription` | Deletes the caller's subscription for one endpoint. |
+| `sendToUser` | pub | 79 | `webPushSubscription` | Pushes to every browser the user subscribed; drops 404/410 endpoints; never throws. |
 
 ## `sessions`
 
@@ -626,23 +715,23 @@ Admin surface for viewing and killing device sessions.
 
 ### SessionsService
 
-`backend/src/sessions/sessions.service.ts:67` · service · 11 methods
+`backend/src/sessions/sessions.service.ts:69` · service · 11 methods
 
 Device-session tracking that powers the admin Active-Sessions view and the REP/DRIVER single-device lock. Idle sessions expire on their own after `SESSION_IDLE_MINUTES` (default 30) so a dead phone cannot lock a rep out permanently.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `start` | pub | 81 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
-| `findActive` | pub | 98 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
-| `touch` | pub | 113 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
-| `end` | pub | 131 | `userSession` | Marks a session ended on logout. |
-| `endReasonOf` | pub | 139 | `userSession` | Reads a session's endReason so JwtStrategy can answer SESSION_IDLE_TIMEOUT vs SESSION_DISPLACED. |
-| `expireInactive` | pub | 153 | `userSession` `user` | Ends REP/DRIVER sessions with no user activity past SESSION_INACTIVITY_MINUTES (default 180) and clears the login's sessionId + refresh token. |
-| `sweepInactive` | pub | 182 | — | 5-minute cron running expireInactive for everyone; idempotent so deliberately not behind CronRunLock. |
-| `listForUser` | pub | 192 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
-| `forceLogout` | pub | 209 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
-| `clear` | pub | 223 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
-| `notifyManagersOfConflict` | pub | 233 | `user` `userNotification` | Notifies Admin / Dispatch Manager / Online Manager when a rep or driver login is blocked by the lock. |
+| `start` | pub | 83 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
+| `findActive` | pub | 100 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
+| `touch` | pub | 115 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
+| `end` | pub | 133 | `userSession` | Marks a session ended on logout. |
+| `endReasonOf` | pub | 141 | `userSession` | Reads a session's endReason so JwtStrategy can answer SESSION_IDLE_TIMEOUT vs SESSION_DISPLACED. |
+| `expireInactive` | pub | 155 | `userSession` `user` | Ends REP/DRIVER sessions with no user activity past SESSION_INACTIVITY_MINUTES (default 180) and clears the login's sessionId + refresh token. |
+| `sweepInactive` | pub | 184 | — | 5-minute cron running expireInactive for everyone; idempotent so deliberately not behind CronRunLock. |
+| `listForUser` | pub | 194 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
+| `forceLogout` | pub | 211 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
+| `clear` | pub | 225 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
+| `notifyManagersOfConflict` | pub | 235 | `user` `userNotification` | Notifies Admin / Dispatch Manager / Online Manager when a rep or driver login is blocked by the lock. |
 
 ## `settings`
 
@@ -894,7 +983,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-127 free functions, constants and types in these modules.
+140 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -934,6 +1023,30 @@ passport-jwt strategy — also enforces the live `sessionId` for REP/DRIVER.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `JwtPayload` | type | 13 | Access-token claims: `sub`, email, role, roleId, roleSlug, sessionId. |
+
+### `backend/src/chat/chat.constants.ts`
+
+In-app chat limits, accepted file types and the audio magic-byte sniffer.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `CHAT_MAX_TEXT` | const | 3 | Maximum message length (4000 chars). |
+| `CHAT_MAX_FILE_BYTES` | const | 4 | 10 MB cap on a chat attachment (also the multer limit → 413). |
+| `CHAT_MAX_VOICE_SEC` | const | 5 | Maximum voice-note length (300 s). |
+| `CHAT_IMAGE_MAX_EDGE` | const | 7 | Longest edge (1600 px) images are scaled to before storage. |
+| `CHAT_ONLINE_WINDOW_MS` | const | 9 | A chat contact shows as online when a session touched the API in the last 5 minutes. |
+| `CHAT_PORTAL_ROLES` | const | 12 | The portal side of every chat: REP and DRIVER. |
+| `ChatPortalRole` | type | 13 | REP \| DRIVER. |
+| `CHAT_NON_STAFF_ROLES` | const | 16 | Roles that never act as the staff side of a chat (REP, DRIVER, SUPPLIER, B2C_CLIENT). |
+| `sniffAudio` | function | 19 | Identifies webm/ogg/mp4/mp3/wav from the first bytes → [mime, extension]; null for anything else. |
+
+### `backend/src/chat/chat.service.ts`
+
+In-app chat rules: contact eligibility by role slug, threads, messages, attachments, unread and staff→portal push.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatActor` | type | 29 | The caller as the JWT strategy provides it (sub + legacy role enum). |
 
 ### `backend/src/common/decorators/current-user.decorator.ts`
 
@@ -1201,6 +1314,15 @@ Google Drive evidence storage. Degrades to null (never throws) when unconfigured
 |---|---|---|---|
 | `isDriveFileId` | function | 6 | Distinguishes a Drive file id from a local `/uploads` path, so callers can serve either storage backend. |
 
+### `backend/src/notifications/notifications.service.ts`
+
+Staff job-update notifications/emails, dispatch-action notices, and driver/rep job-change notifications with push.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AssigneeJobSnapshot` | type | 10 | Job fields a driver/rep cares about, compared before vs after an edit. |
+| `assigneeRelevantChanges` | function | 35 | Before/after job diff → short labels of trip-relevant changes (ignores the coarse changedFields list). |
+
 ### `backend/src/permissions/permission-registry.ts`
 
 ★ The permission tree — the authoritative list of every permission key in the system. A key that is not here cannot be granted, and `PermissionsGuard` validates against it.
@@ -1223,6 +1345,14 @@ Seed data for the Egyptian location tree — the Country→Airport→City→Zone
 | `EGYPT_DATA` | const | 51 | The literal Egyptian location hierarchy used by the seed. |
 | `seedEgyptLocations` | function | 614 | Idempotently inserts the Egyptian location tree. |
 
+### `backend/src/push-notifications/web-push.service.ts`
+
+Web Push (VAPID) delivery to rep/driver browsers; disabled until VAPID keys are set.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `WebPushPayload` | type | 6 | What sw.js shows: title, body, click URL and replace-tag. |
+
 ### `backend/src/sessions/sessions.service.ts`
 
 Device-session tracking behind the admin Active-Sessions view and the single-device lock.
@@ -1233,8 +1363,8 @@ Device-session tracking behind the admin Active-Sessions view and the single-dev
 | `deviceNameFromUA` | function | 13 | Best-effort friendly device label (e.g. "Chrome · Android", "Mobile app") from a User-Agent string. |
 | `SINGLE_DEVICE_ROLES` | const | 33 | REP and DRIVER — the single-device roles subject to the login lock and the 3h inactivity logout. |
 | `SessionEndReason` | type | 35 | Why a session ended: LOGOUT, FORCED (admin) or IDLE_TIMEOUT (inactivity sweep). |
-| `BACKGROUND_POLL_HEADER` | const | 49 | Header (x-background-poll: 1) a client sets on timer-driven requests so they don't count as user activity. |
-| `isBackgroundRequest` | function | 52 | True for background polls (GET notification endpoints or X-Background-Poll header) — they refresh lastSeenAt but not lastActivityAt. |
+| `BACKGROUND_POLL_HEADER` | const | 51 | Header (x-background-poll: 1) a client sets on timer-driven requests so they don't count as user activity. |
+| `isBackgroundRequest` | function | 54 | True for background polls (GET notification endpoints or X-Background-Poll header) — they refresh lastSeenAt but not lastActivityAt. |
 
 ### `backend/src/tracking/tracking.service.ts`
 

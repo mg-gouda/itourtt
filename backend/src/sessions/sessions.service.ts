@@ -43,6 +43,8 @@ export type SessionEndReason = 'LOGOUT' | 'FORCED' | 'IDLE_TIMEOUT';
 const BACKGROUND_POLL_PATHS = [
   /^\/api\/notifications\/?$/,
   /^\/api\/(driver|rep)-portal\/notifications\/?$/,
+  // Chat badge / widget poll.
+  /^\/api\/chat\/me\/?$/,
 ];
 
 /** Header a client sets on its own timer-driven requests. */

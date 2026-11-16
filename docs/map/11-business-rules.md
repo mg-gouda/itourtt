@@ -140,7 +140,54 @@ as a background poll — it must never keep an idle session alive (see *Concurre
 Perms `rep-tracking` / `driver-tracking`: admin gets them automatically; other roles need a manual
 `rolePermissionV2` grant in prod (deploy skips the permission seed).
 
-## Money
+## In-app chat — who can message whom?
+
+`chat/chat.service.ts`. Every thread is **1:1 between one REP/DRIVER portal user and one staff user**
+(`ChatConversation`, unique per pair). Nobody else can read it — not admins, not other dispatchers:
+`participant()` 404s anyone who isn't one of the two.
+
+**The contact lists are a setting, not code** — `CompanySettings.chatDriverContactRoles` /
+`chatRepContactRoles` (Role **slugs**), edited on the Company page (`ChatSettingsCard`,
+`PATCH /chat/settings`, perm `company.editSettings`). Defaults: drivers →
+`dispatcher, dispatch-operator, dispatch-manager`; reps → `online-manager, online-operator`.
+- A staff user whose role slug is in a list sees the floating chat button (`ChatWidget`) and may
+  **start** chats with that portal role. One with history but no longer in a list keeps read access.
+- **Admins are not in either list by default** — eligibility is by role slug, *not* permissions (the
+  admin role holds every permission key, which would have put every admin in every driver's list).
+- Sending re-checks the pair every time: if the staff user left the role / was deactivated, the
+  portal side gets 403 *"no longer available"* and must pick someone else.
+
+**Attachments** live on the uploads PVC under `uploads/.chat/<conversationId>/` — a dot-folder, which
+`express.static` (the public `/uploads` route) refuses, and which `res.sendFile` refuses too unless
+`dotfiles: 'allow'` (that is set only in `GET /chat/messages/:id/attachment`, after the participant
+check). Images are re-encoded by sharp (≤1600 px JPEG, EXIF/GPS stripped); voice notes are sniffed by
+magic bytes (webm/ogg/mp4/mp3/wav), 1 s–5 min, 10 MB cap. Messages are immutable.
+
+**Real-time is polling** (two backend pods, no Redis/websockets): `/chat/me` every 10 s,
+an open thread every 4 s. All timer polls send `X-Background-Poll` and `/api/chat/me` is in
+`BACKGROUND_POLL_PATHS`, so chat never keeps an idle rep/driver logged in. Read receipts
+(`POST …/read`) are excluded from the audit log; sent messages are audited.
+
+## Browser push (rep/driver web portals)
+
+`push-notifications/web-push.service.ts` + `frontend/public/sw.js`. Needs `VAPID_PUBLIC_KEY` /
+`VAPID_PRIVATE_KEY` (+ optional `VAPID_SUBJECT`) in `backend-secret`; without them push is
+silently off (warning at boot). **Every** `PushNotificationsService.sendToUser` call now fans out to
+both FCM (native apps) and Web Push (browsers) — so any new native push to a rep/driver reaches the
+browser too. What sends one:
+- new job assigned (`dispatch.service › assignJob / reassignJob`)
+- job edited in a way that matters to the trip — date, pick-up time, pax, guest, places, flight,
+  notes — computed from a before/after diff (`assigneeRelevantChanges`), **not** `changedFields`,
+  which flags pick-up time / flight / route on every save
+- job cancelled; driver/rep taken off a job (unassigned or swapped)
+- a staff chat message (tag `chat-<id>`, so a burst replaces rather than stacks)
+
+Not for past-dated or finished jobs. Each also writes the portal's Driver/RepNotification row.
+Subscriptions are removed on logout (`auth-store › logout`), on 404/410 from the push service, and
+move to whoever subscribes the same browser next. **iPhone:** Web Push only reaches a site added to
+the Home Screen (iOS 16.4+) — the portal shows instructions. The ingress `Permissions-Policy` must
+allow `microphone=(self)` or voice notes fail silently.
+
 
 | Rule | Where |
 |---|---|

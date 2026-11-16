@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import api from '@/lib/api';
 import type { AuthUser, AuthResponse, LoginPayload } from '@/types';
 import { usePermissionsStore } from './permissions-store';
+import { dropPushSubscription } from '@/lib/web-push';
 
 interface AuthState {
   user: AuthUser | null;
@@ -87,6 +88,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   cancelTwoFactor: () => set({ twoFactorChallenge: null, error: null }),
 
   logout: async () => {
+    // Stop this browser receiving the user's push notifications (shared
+    // phones). Bounded so a slow push service never holds up logging out.
+    await Promise.race([dropPushSubscription(), new Promise((r) => setTimeout(r, 2000))]);
     // Notify the server to clear the session (allows clean re-login)
     try {
       await api.post('/auth/logout');

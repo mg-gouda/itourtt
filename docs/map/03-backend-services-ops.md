@@ -150,19 +150,19 @@ The dispatch console backend: the day view and all assignment logic. Assignment 
 | `assignJob` | pub | 134 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +8 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
 | `sendStaffAssignmentEmail` | priv | 404 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
 | `reassignJob` | pub | 454 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +7 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
-| `unassignJob` | pub | 743 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
-| `getAvailableVehicles` | pub | 784 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
-| `getAvailableSuppliers` | pub | 857 | `supplier` | Suppliers that can source a car for this job. |
-| `getAvailableDrivers` | pub | 896 | `driver` | Active drivers offered for assignment. |
-| `getAvailableReps` | pub | 921 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
-| `unlockJob` | pub | 1014 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
-| `lockJob` | pub | 1030 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
-| `checkDispatcherTimelock` | priv | 1051 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
-| `getJobReferenceTime` | priv | 1076 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
-| `validateVehicleAvailability` | priv | 1093 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
-| `detectAssignmentConflicts` | priv | 1107 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
-| `validateDriverAvailability` | priv | 1151 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
-| `validateRepAvailability` | priv | 1171 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
+| `unassignJob` | pub | 756 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
+| `getAvailableVehicles` | pub | 806 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
+| `getAvailableSuppliers` | pub | 879 | `supplier` | Suppliers that can source a car for this job. |
+| `getAvailableDrivers` | pub | 918 | `driver` | Active drivers offered for assignment. |
+| `getAvailableReps` | pub | 943 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
+| `unlockJob` | pub | 1036 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
+| `lockJob` | pub | 1052 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
+| `checkDispatcherTimelock` | priv | 1073 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
+| `getJobReferenceTime` | priv | 1098 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
+| `validateVehicleAvailability` | priv | 1115 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
+| `detectAssignmentConflicts` | priv | 1129 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
+| `validateDriverAvailability` | priv | 1173 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
+| `validateRepAvailability` | priv | 1193 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
 
 ## `drivers`
 
@@ -617,15 +617,15 @@ The core job entity: creation, editing, status transitions and admin Force Contr
 | `findOne` | pub | 221 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
 | `create` | pub | 234 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
 | `update` | pub | 395 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
-| `updateStatus` | pub | 635 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
-| `forceControl` | pub | 776 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
-| `remove` | pub | 808 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
-| `uploadEvidence` | pub | 821 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
-| `deriveAbbreviation` | priv | 850 | — | Builds the reference prefix from the company name's initials. |
-| `generateInternalRef` | priv | 855 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
-| `resolveZoneFromFKs` | priv | 875 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
-| `bulkCreate` | pub | 892 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
-| `recalculateDriverFees` | pub | 914 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
+| `updateStatus` | pub | 639 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
+| `forceControl` | pub | 786 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
+| `remove` | pub | 818 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
+| `uploadEvidence` | pub | 831 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
+| `deriveAbbreviation` | priv | 860 | — | Builds the reference prefix from the company name's initials. |
+| `generateInternalRef` | priv | 865 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
+| `resolveZoneFromFKs` | priv | 885 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
+| `bulkCreate` | pub | 902 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
+| `recalculateDriverFees` | pub | 924 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
 
 ## `vehicles`
 

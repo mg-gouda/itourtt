@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**95 files**, **342 exported symbols**.
+**103 files**, **371 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -234,6 +234,16 @@ The shared zone-pair × vehicle-type price grid, reused by agents, customers, su
 | `PriceListGridProps` | type | 71 | Props: rows, vehicle types, and the save handler each owner supplies. |
 | `PriceListGrid` | function | 97 | The shared price grid (zone pair × vehicle type) reused by agents, customers, suppliers and public prices. |
 
+### `push-prompt.tsx`
+
+`frontend/src/components/push-prompt.tsx` · 104 lines
+
+Rep/driver portal banner to turn on browser notifications.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PushPrompt` | function | 27 | Asks for notification permission (or shows iPhone Home-Screen steps); silently re-subscribes when already granted. |
+
 ### `rich-text-editor.tsx`
 
 `frontend/src/components/rich-text-editor.tsx` · 374 lines
@@ -351,6 +361,58 @@ Admin view of a user's device sessions, with force-logout and Clear — Clear is
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `UserSessionsDialog` | function | 33 | Admin device-session view with force-logout and Clear. |
+
+## `frontend/src/components/chat/`
+
+### `chat-inbox.tsx`
+
+`frontend/src/components/chat/chat-inbox.tsx` · 310 lines
+
+Chat conversation list and new-chat contact picker.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatInbox` | function | 27 | Polled conversation list with unread badges, search, and a picker to start a chat. |
+
+### `chat-settings-card.tsx`
+
+`frontend/src/components/chat/chat-settings-card.tsx` · 112 lines
+
+Company page card for the chat contact role lists.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatSettingsCard` | function | 23 | Checkboxes for which staff roles drivers and reps can message; read-only without company.editSettings. |
+
+### `chat-thread.tsx`
+
+`frontend/src/components/chat/chat-thread.tsx` · 509 lines
+
+One chat conversation: history, polling, receipts and composer.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatThread` | function | 51 | Message list (paging, 4 s polling, seen ticks) + composer for text, photos and voice notes with optimistic send/retry. |
+
+### `chat-widget.tsx`
+
+`frontend/src/components/chat/chat-widget.tsx` · 134 lines
+
+Floating staff chat button + panel on every dashboard page.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatWidget` | function | 42 | Bottom-right chat for eligible staff; opens itself (with a chime) on a newly arrived message unless another thread is open. |
+
+### `portal-chat.tsx`
+
+`frontend/src/components/chat/portal-chat.tsx` · 50 lines
+
+Rep/driver portal chat page body.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PortalChat` | function | 14 | Inbox ↔ thread for the portals; ?c=<id> opens a thread (push notifications land here). |
 
 ## `frontend/src/components/complaints/`
 
@@ -919,6 +981,33 @@ Per-user column visibility, persisted alongside column order.
 | `api` | const | 7 | The configured axios instance. Import this rather than calling fetch — it attaches the bearer token and handles 401 refresh with request queueing. |
 | `backgroundPoll` | const | 17 | Axios config marking a timer-driven poll as background so it never keeps a rep/driver session active. |
 
+### `chat.ts`
+
+`frontend/src/lib/chat.ts` · 258 lines
+
+Chat client: types, polling hook, attachment blob fetch, image shrink, voice recorder, time formatting.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatKind` | type | 8 | TEXT \| IMAGE \| VOICE. |
+| `ChatPerson` | type | 10 | A chat participant or contact. |
+| `ChatConversationSummary` | type | 19 | Inbox row: other person, last message, unread count. |
+| `ChatMessage` | type | 28 | A message plus client-only pending/failed/localUrl flags for optimistic sends. |
+| `ChatMe` | type | 45 | GET /chat/me result. |
+| `CHAT_ME_POLL_MS` | const | 54 | Badge / widget / inbox poll interval (10 s). |
+| `CHAT_THREAD_POLL_MS` | const | 56 | Open-thread poll interval (4 s). |
+| `CHAT_MAX_VOICE_SEC` | const | 57 | Voice notes stop recording at 300 s. |
+| `CHAT_MAX_FILE_BYTES` | const | 58 | Client-side 10 MB attachment limit (matches the server). |
+| `useChatMe` | function | 66 | Polls /chat/me as a background request every 10 s (paused while hidden); optional onUpdate callback. |
+| `attachmentUrl` | function | 106 | Fetches an auth-gated attachment as a blob → cached object URL. |
+| `useAttachmentUrl` | function | 118 | Hook wrapping attachmentUrl with loading/error state. |
+| `shrinkImage` | function | 137 | Downscales a photo to ≤1600 px JPEG in the browser before upload. |
+| `pickRecorderMime` | function | 156 | First audio type MediaRecorder supports (webm on Chrome/Android, mp4 on iOS). |
+| `RecorderState` | type | 164 | Voice recorder state: idle, recording, denied, unsupported. |
+| `useVoiceRecorder` | function | 170 | Tap-to-start/stop MediaRecorder with timer, cancel, and auto-stop at the limit. |
+| `fmtDuration` | function | 241 | Seconds → m:ss. |
+| `chatTime` | function | 247 | Cairo time for a message (date added when not today). |
+
 ### `complaints.ts`
 
 `frontend/src/lib/complaints.ts` · 457 lines
@@ -987,17 +1076,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3672 lines
+`frontend/src/lib/i18n.ts` · 3788 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3649 | Translates a key in the current locale. |
-| `getTranslator` | function | 3653 | Translator for a specific locale, outside React. |
-| `useT` | function | 3661 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3668 | The active locale id. |
+| `t` | function | 3765 | Translates a key in the current locale. |
+| `getTranslator` | function | 3769 | Translator for a specific locale, outside React. |
+| `useT` | function | 3777 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3784 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -1115,6 +1204,20 @@ Rep/driver portal location heartbeat.
 | `localDateStr` | function | 96 | YYYY-MM-DD in the device's own zone; use only for local-only concerns like a date picker's default. |
 | `formatDate` | function | 104 | General-purpose date display helper. |
 
+### `web-push.ts`
+
+`frontend/src/lib/web-push.ts` · 104 lines
+
+Browser push client for the portals: support detection, subscribe, unsubscribe.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PushSupport` | type | 10 | supported \| ios-needs-install \| unsupported. |
+| `pushSupport` | function | 16 | Detects push support; flags iPhone Safari that must be added to the Home Screen first. |
+| `pushAvailable` | function | 52 | Browser supports push and the server has VAPID configured. |
+| `ensurePushSubscription` | function | 62 | Registers /sw.js, subscribes (asking only when `ask`), replaces subscriptions for a rotated key, posts to the server. |
+| `dropPushSubscription` | function | 92 | On logout: tells the server and unsubscribes this browser; never throws. |
+
 ### `website-i18n.tsx`
 
 `frontend/src/lib/website-i18n.tsx` · 1145 lines
@@ -1133,13 +1236,13 @@ Public/B2C-facing translations, separate from the dashboard's so marketing copy 
 
 ### `auth-store.ts`
 
-`frontend/src/stores/auth-store.ts` · 120 lines
+`frontend/src/stores/auth-store.ts` · 124 lines
 
 Zustand store holding the session, tokens and the current user.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useAuthStore` | const | 26 | Session state and login/logout actions. |
+| `useAuthStore` | const | 27 | Session state and login/logout actions. |
 
 ### `booking-store.ts`
 

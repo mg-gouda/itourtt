@@ -1,13 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import * as admin from 'firebase-admin';
+import { WebPushService } from './web-push.service.js';
 
 @Injectable()
 export class PushNotificationsService {
   private readonly logger = new Logger(PushNotificationsService.name);
   private firebaseApp: admin.app.App | null = null;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly webPush: WebPushService,
+  ) {
     this.initializeFirebase();
   }
 
@@ -40,7 +44,8 @@ export class PushNotificationsService {
   }
 
   /**
-   * Send a push notification to all device tokens for a given userId.
+   * Send a push notification to all device tokens (native apps, FCM) and all
+   * browser subscriptions (web portals, Web Push) for a given userId.
    */
   async sendToUser(
     userId: string,
@@ -48,6 +53,13 @@ export class PushNotificationsService {
     body: string,
     data?: Record<string, string>,
   ): Promise<void> {
+    await this.webPush.sendToUser(userId, {
+      title,
+      body,
+      url: data?.url ?? (await this.portalHome(userId)),
+      tag: data?.tag ?? (data?.jobId ? `job-${data.jobId}` : undefined),
+    });
+
     if (!this.firebaseApp) return;
 
     const tokens = await this.prisma.deviceToken.findMany({
@@ -92,6 +104,12 @@ export class PushNotificationsService {
         }
       }),
     );
+  }
+
+  /** Where a web push should land for this user: their portal's home page. */
+  private async portalHome(userId: string): Promise<string> {
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    return u?.role === 'REP' ? '/rep' : u?.role === 'DRIVER' ? '/driver' : '/';
   }
 
   /**

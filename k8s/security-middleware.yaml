@@ -31,5 +31,5 @@ spec:
     referrerPolicy: strict-origin-when-cross-origin
     customResponseHeaders:
       X-Frame-Options: SAMEORIGIN
-      Permissions-Policy: "geolocation=(self), microphone=(), camera=()"
+      Permissions-Policy: "geolocation=(self), microphone=(self), camera=()"
       X-Permitted-Cross-Domain-Policies: none

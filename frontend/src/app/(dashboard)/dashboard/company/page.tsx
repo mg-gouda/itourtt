@@ -13,6 +13,7 @@ import { useT } from "@/lib/i18n";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/use-permission";
+import { ChatSettingsCard } from "@/components/chat/chat-settings-card";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -359,6 +360,9 @@ export default function CompanyPage() {
           </div>
         </div>
       </Card>
+
+      {/* In-app chat: who drivers / reps can message */}
+      <ChatSettingsCard />
 
       {/* Report Header */}
       <Card className="border-border bg-card p-6">

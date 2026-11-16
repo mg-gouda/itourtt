@@ -3,6 +3,64 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService, type JobUpdateEmailData } from '../email/email.service.js';
 import { serviceTypeLabel } from '../common/utils/service-type.util.js';
+import { PushNotificationsService } from '../push-notifications/push-notifications.service.js';
+import { todayCairo } from '../common/utils/service-date.util.js';
+
+/** The job fields a driver/rep cares about, before and after an edit. */
+export interface AssigneeJobSnapshot {
+  id: string;
+  internalRef: string;
+  status: string;
+  serviceType: string;
+  jobDate: Date;
+  pickUpTime: Date | null;
+  adultCount: number;
+  childCount: number;
+  clientName: string | null;
+  clientMobile: string | null;
+  notes: string | null;
+  originAirportId: string | null;
+  originZoneId: string | null;
+  originHotelId: string | null;
+  destinationAirportId: string | null;
+  destinationZoneId: string | null;
+  destinationHotelId: string | null;
+  flight: { flightNo: string; arrivalTime: Date | null; departureTime: Date | null } | null;
+  assignment: { driverId: string | null; repId: string | null } | null;
+}
+
+const t = (d: Date | null | undefined) => d?.getTime() ?? null;
+
+/** What changed for the people doing the job, as short human labels. */
+export function assigneeRelevantChanges(a: AssigneeJobSnapshot, b: AssigneeJobSnapshot): string[] {
+  const out: string[] = [];
+  if (a.serviceType !== b.serviceType) out.push('service type');
+  if (t(a.jobDate) !== t(b.jobDate)) out.push('date');
+  if (t(a.pickUpTime) !== t(b.pickUpTime)) out.push('pick-up time');
+  if (a.adultCount !== b.adultCount || a.childCount !== b.childCount) out.push('passengers');
+  if ((a.clientName ?? '') !== (b.clientName ?? '') || (a.clientMobile ?? '') !== (b.clientMobile ?? ''))
+    out.push('guest details');
+  if (
+    a.originAirportId !== b.originAirportId ||
+    a.originZoneId !== b.originZoneId ||
+    a.originHotelId !== b.originHotelId
+  )
+    out.push('pick-up place');
+  if (
+    a.destinationAirportId !== b.destinationAirportId ||
+    a.destinationZoneId !== b.destinationZoneId ||
+    a.destinationHotelId !== b.destinationHotelId
+  )
+    out.push('drop-off place');
+  if (
+    (a.flight?.flightNo ?? '') !== (b.flight?.flightNo ?? '') ||
+    t(a.flight?.arrivalTime) !== t(b.flight?.arrivalTime) ||
+    t(a.flight?.departureTime) !== t(b.flight?.departureTime)
+  )
+    out.push('flight');
+  if ((a.notes ?? '') !== (b.notes ?? '')) out.push('notes');
+  return out;
+}
 
 @Injectable()
 export class NotificationsService {
@@ -12,7 +70,93 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    private readonly push: PushNotificationsService,
   ) {}
+
+  /**
+   * Tell the job's assigned driver and rep that something they need changed
+   * (portal notification + native/browser push). Silent when nothing relevant
+   * changed, for finished jobs and for jobs dated before today.
+   */
+  async notifyAssigneesOfJobUpdate(
+    before: AssigneeJobSnapshot,
+    after: AssigneeJobSnapshot,
+    updatedByUserId?: string,
+  ): Promise<void> {
+    const changes = assigneeRelevantChanges(before, after);
+    if (!changes.length) return;
+    if (after.status === 'COMPLETED' || after.status === 'CANCELLED') return;
+    if (after.jobDate.toISOString().slice(0, 10) < todayCairo()) return;
+    await this.notifyAssignees(
+      after,
+      'Job Updated',
+      `${after.internalRef} — changed: ${changes.join(', ')}`,
+      'JOB_UPDATED',
+      updatedByUserId,
+    );
+  }
+
+  /** A job the driver/rep is assigned to was cancelled. */
+  async notifyAssigneesOfCancellation(
+    job: Pick<AssigneeJobSnapshot, 'id' | 'internalRef' | 'jobDate' | 'assignment'>,
+    updatedByUserId?: string,
+  ): Promise<void> {
+    if (job.jobDate.toISOString().slice(0, 10) < todayCairo()) return;
+    await this.notifyAssignees(
+      job,
+      'Job Cancelled',
+      `${job.internalRef} has been cancelled`,
+      'JOB_UPDATED',
+      updatedByUserId,
+    );
+  }
+
+  /** The driver/rep was taken off a job (unassigned or swapped for someone else). */
+  async notifyRemovedFromJob(
+    job: { id: string; internalRef: string; jobDate: Date },
+    removed: { driverId?: string | null; repId?: string | null },
+    updatedByUserId?: string,
+  ): Promise<void> {
+    if (job.jobDate.toISOString().slice(0, 10) < todayCairo()) return;
+    await this.notifyAssignees(
+      { id: job.id, internalRef: job.internalRef, assignment: { driverId: removed.driverId ?? null, repId: removed.repId ?? null } },
+      'Removed From Job',
+      `You are no longer assigned to ${job.internalRef}`,
+      'JOB_UPDATED',
+      updatedByUserId,
+    );
+  }
+
+  private async notifyAssignees(
+    job: Pick<AssigneeJobSnapshot, 'id' | 'internalRef' | 'assignment'>,
+    title: string,
+    message: string,
+    type: 'JOB_UPDATED',
+    updatedByUserId?: string,
+  ): Promise<void> {
+    const driverId = job.assignment?.driverId ?? null;
+    const repId = job.assignment?.repId ?? null;
+    if (!driverId && !repId) return;
+
+    const [driver, rep] = await Promise.all([
+      driverId ? this.prisma.driver.findUnique({ where: { id: driverId }, select: { userId: true } }) : null,
+      repId ? this.prisma.rep.findUnique({ where: { id: repId }, select: { userId: true } }) : null,
+    ]);
+    const data = { jobId: job.id, type };
+
+    if (driverId && driver?.userId !== updatedByUserId) {
+      await this.prisma.driverNotification.create({
+        data: { driverId, title, message, type, trafficJobId: job.id },
+      });
+      await this.push.sendToDriver(driverId, title, message, data).catch(() => {});
+    }
+    if (repId && rep?.userId !== updatedByUserId) {
+      await this.prisma.repNotification.create({
+        data: { repId, title, message, type, trafficJobId: job.id },
+      });
+      await this.push.sendToRep(repId, title, message, data).catch(() => {});
+    }
+  }
 
   /**
    * Create in-app + email notifications for all users with traffic-jobs permission.
