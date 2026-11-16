@@ -50,6 +50,22 @@ export interface ChatMe {
   latestUnread?: { conversationId: string; at: string } | null;
 }
 
+/** Fired on window after a thread is marked read, so every unread badge refreshes at once. */
+export const CHAT_READ_EVENT = "chat:read";
+
+/**
+ * After a thread is read: tell every badge on the page, and clear that
+ * thread's notifications from the phone's tray (they were tagged chat-<id>).
+ */
+export function announceChatRead(conversationId: string) {
+  window.dispatchEvent(new Event(CHAT_READ_EVENT));
+  navigator.serviceWorker
+    ?.getRegistration("/")
+    .then((reg) => reg?.getNotifications({ tag: `chat-${conversationId}` }))
+    .then((list) => list?.forEach((n) => n.close()))
+    .catch(() => {});
+}
+
 /** How often the badge / widget checks for new messages. */
 export const CHAT_ME_POLL_MS = 10_000;
 /** How often an open thread checks for new messages. */
@@ -88,10 +104,12 @@ export function useChatMe(enabled = true, onUpdate?: (me: ChatMe) => void) {
     }, CHAT_ME_POLL_MS);
     const onVis = () => document.visibilityState === "visible" && load();
     document.addEventListener("visibilitychange", onVis);
+    window.addEventListener(CHAT_READ_EVENT, load);
     return () => {
       clearTimeout(first);
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener(CHAT_READ_EVENT, load);
     };
   }, [enabled, load]);
 

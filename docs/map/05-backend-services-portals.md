@@ -101,26 +101,26 @@ Storage and read-state for contact-form messages submitted from the public site.
 
 ### DriverPortalController
 
-`backend/src/driver-portal/driver-portal.controller.ts:73` · controller · 14 methods
+`backend/src/driver-portal/driver-portal.controller.ts:77` · controller · 14 methods
 
 REST surface for the driver app and `/driver` web portal. Class-guarded to the DRIVER role; every mutation carries mandatory GPS. Photo endpoints stamp images server-side, then push to Google Drive with a local-disk fallback.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getMyJobs` | pub | 80 | `driverPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in driver. |
-| `getJobHistory` | pub | 89 | `driverPortalService.getJobHistory` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job. |
-| `getJobDetail` | pub | 104 | `driverPortalService.findJobDetail` | One job's full detail, scoped to the calling driver. |
-| `updateJobStatus` | pub | 113 | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
-| `markCollected` | pub | 129 | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
-| `submitNoShow` | pub | 140 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
-| `submitInProgress` | pub | 168 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
-| `submitCompleted` | pub | 196 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
-| `getComplaints` | pub | 223 | `driverPortalService.getComplaints` | GET /driver-portal/complaints — the driver's own settled complaints. |
-| `getNotifications` | pub | 229 | `driverPortalService.getNotifications` | Driver's notification feed. |
-| `markNotificationRead` | pub | 235 | `driverPortalService.markNotificationRead` | Marks a single notification read. |
-| `markAllRead` | pub | 244 | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
-| `getProfile` | pub | 250 | `driverPortalService.getProfile` | The driver's own profile. |
-| `uploadFiles` | priv | 259 | `googleDriveService.uploadFile` | Shared helper for the three evidence endpoints: stamps each image, uploads to Google Drive, falls back to local `uploads/` on failure. A silent fallback here is the known symptom of expired Drive OAuth. |
+| `getMyJobs` | pub | 84 | `driverPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in driver. |
+| `getJobHistory` | pub | 93 | `driverPortalService.getJobHistory` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job. |
+| `getJobDetail` | pub | 108 | `driverPortalService.findJobDetail` | One job's full detail, scoped to the calling driver. |
+| `updateJobStatus` | pub | 117 | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
+| `markCollected` | pub | 133 | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
+| `submitNoShow` | pub | 144 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
+| `submitInProgress` | pub | 172 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
+| `submitCompleted` | pub | 200 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
+| `getComplaints` | pub | 227 | `driverPortalService.getComplaints` | GET /driver-portal/complaints — the driver's own settled complaints. |
+| `getNotifications` | pub | 233 | `driverPortalService.getNotifications` | Driver's notification feed. |
+| `markNotificationRead` | pub | 239 | `driverPortalService.markNotificationRead` | Marks a single notification read. |
+| `markAllRead` | pub | 248 | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
+| `getProfile` | pub | 254 | `driverPortalService.getProfile` | The driver's own profile. |
+| `uploadFiles` | priv | 263 | `googleDriveService.uploadFile` | Shared helper for the three evidence endpoints: stamps each image, uploads to Google Drive, falls back to local `uploads/` on failure. A silent fallback here is the known symptom of expired Drive OAuth. |
 
 ### DriverPortalService
 
@@ -249,29 +249,29 @@ Machine-to-machine API consumed by the standalone B2C site (transfera.ae), which
 
 ### RepPortalController
 
-`backend/src/rep-portal/rep-portal.controller.ts:112` · controller · 17 methods
+`backend/src/rep-portal/rep-portal.controller.ts:116` · controller · 17 methods
 
 REST surface for the rep app and `/rep` web portal. REP-role guarded, GPS mandatory on mutations, photos stamped server-side then pushed to Google Drive with local fallback.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getMyJobs` | pub | 119 | `repPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in rep. |
-| `getJobHistory` | pub | 128 | `repPortalService.getJobHistory` | Completed/cancelled/no-show rep legs over a date range, with fees. |
-| `getJobDetail` | pub | 139 | `repPortalService.findJobDetail` | One job's detail, scoped to the calling rep. |
-| `updateJobStatus` | pub | 148 | `repPortalService.updateJobStatus` | GPS-stamped rep status transition without evidence upload. |
-| `submitNoShow` | pub | 165 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitNoShow` | Multipart rep no-show submission with stamped photos. |
-| `submitInPlace` | pub | 193 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitInPlace` | Multipart IN PLACE submission — the window-gated arrival confirmation. |
-| `getGuestSurvey` | pub | 220 | `repPortalService.getGuestSurvey` | Fetches the arrival guest survey for a job, if submitted. |
-| `submitGuestSurvey` | pub | 229 | `repPortalService.submitGuestSurvey` | Submits/updates the arrival guest survey; awards the survey score dimension. |
-| `submitCompleted` | pub | 240 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitCompleted` | Multipart rep completion with stamped evidence. |
-| `submitFlightDelay` | pub | 267 | `repPortalService.submitFlightDelay` | Reports a new arrival time and notifies traffic/dispatch staff. |
-| `submitUpdate` | pub | 280 | `repPortalService.submitUpdate` | Sends a free-text rep note to traffic/dispatch operators. |
-| `getComplaints` | pub | 293 | `repPortalService.getComplaints` | GET /rep-portal/complaints — the rep's own settled complaints. |
-| `getNotifications` | pub | 299 | `repPortalService.getNotifications` | Rep's notification feed. |
-| `markNotificationRead` | pub | 305 | `repPortalService.markNotificationRead` | Marks a single notification read. |
-| `markAllRead` | pub | 314 | `repPortalService.markAllRead` | Marks every notification read for this rep. |
-| `getProfile` | pub | 320 | `repPortalService.getProfile` | The rep's own profile. |
-| `uploadFiles` | priv | 329 | `googleDriveService.uploadFile` | Shared stamp-then-upload helper for the rep evidence endpoints, with local-disk fallback when Drive is unavailable. |
+| `getMyJobs` | pub | 123 | `repPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in rep. |
+| `getJobHistory` | pub | 132 | `repPortalService.getJobHistory` | Completed/cancelled/no-show rep legs over a date range, with fees. |
+| `getJobDetail` | pub | 143 | `repPortalService.findJobDetail` | One job's detail, scoped to the calling rep. |
+| `updateJobStatus` | pub | 152 | `repPortalService.updateJobStatus` | GPS-stamped rep status transition without evidence upload. |
+| `submitNoShow` | pub | 169 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitNoShow` | Multipart rep no-show submission with stamped photos. |
+| `submitInPlace` | pub | 197 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitInPlace` | Multipart IN PLACE submission — the window-gated arrival confirmation. |
+| `getGuestSurvey` | pub | 224 | `repPortalService.getGuestSurvey` | Fetches the arrival guest survey for a job, if submitted. |
+| `submitGuestSurvey` | pub | 233 | `repPortalService.submitGuestSurvey` | Submits/updates the arrival guest survey; awards the survey score dimension. |
+| `submitCompleted` | pub | 244 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitCompleted` | Multipart rep completion with stamped evidence. |
+| `submitFlightDelay` | pub | 271 | `repPortalService.submitFlightDelay` | Reports a new arrival time and notifies traffic/dispatch staff. |
+| `submitUpdate` | pub | 284 | `repPortalService.submitUpdate` | Sends a free-text rep note to traffic/dispatch operators. |
+| `getComplaints` | pub | 297 | `repPortalService.getComplaints` | GET /rep-portal/complaints — the rep's own settled complaints. |
+| `getNotifications` | pub | 303 | `repPortalService.getNotifications` | Rep's notification feed. |
+| `markNotificationRead` | pub | 309 | `repPortalService.markNotificationRead` | Marks a single notification read. |
+| `markAllRead` | pub | 318 | `repPortalService.markAllRead` | Marks every notification read for this rep. |
+| `getProfile` | pub | 324 | `repPortalService.getProfile` | The rep's own profile. |
+| `uploadFiles` | priv | 333 | `googleDriveService.uploadFile` | Shared stamp-then-upload helper for the rep evidence endpoints, with local-disk fallback when Drive is unavailable. |
 
 ### RepPortalService
 
@@ -309,16 +309,16 @@ Everything the rep-facing portal does. The rep leg runs PENDING→IN_PLACE→COM
 
 ### SupplierPortalController
 
-`backend/src/supplier-portal/supplier-portal.controller.ts:33` · controller · 4 methods
+`backend/src/supplier-portal/supplier-portal.controller.ts:37` · controller · 4 methods
 
 REST surface for the supplier portal; SUPPLIER-role guarded.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getMyJobs` | pub | 37 | `supplierPortalService.getMyJobs` | This supplier's jobs for a day. |
-| `getJobDetail` | pub | 46 | `supplierPortalService.findJobDetail` | One job's detail, scoped to the supplier. |
-| `completeJob` | pub | 55 | `supplierPortalService.completeJob` | Closes the supplier leg for a job. |
-| `getProfile` | pub | 65 | `supplierPortalService.getProfile` | The supplier's own profile. |
+| `getMyJobs` | pub | 41 | `supplierPortalService.getMyJobs` | This supplier's jobs for a day. |
+| `getJobDetail` | pub | 50 | `supplierPortalService.findJobDetail` | One job's detail, scoped to the supplier. |
+| `completeJob` | pub | 59 | `supplierPortalService.completeJob` | Closes the supplier leg for a job. |
+| `getProfile` | pub | 69 | `supplierPortalService.getProfile` | The supplier's own profile. |
 
 ### SupplierPortalService
 

@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import {
   CHAT_MAX_FILE_BYTES,
   CHAT_THREAD_POLL_MS,
+  announceChatRead,
   chatTime,
   fmtDuration,
   shrinkImage,
@@ -71,7 +72,10 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
     if (document.visibilityState !== "visible") return;
     api
       .post(`/chat/conversations/${conversationId}/read`, null, backgroundPoll)
-      .then(() => onReadRef.current?.())
+      .then(() => {
+        announceChatRead(conversationId);
+        onReadRef.current?.();
+      })
       .catch(() => {});
   }, [conversationId]);
 

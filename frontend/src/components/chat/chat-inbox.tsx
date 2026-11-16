@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import api, { backgroundPoll } from "@/lib/api";
 import { useLocaleId, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { CHAT_ME_POLL_MS, chatTime, type ChatConversationSummary, type ChatPerson } from "@/lib/chat";
+import { CHAT_ME_POLL_MS, CHAT_READ_EVENT, chatTime, type ChatConversationSummary, type ChatPerson } from "@/lib/chat";
 
 interface ChatInboxProps {
   /** Portal users always see "new chat"; staff only when they may start one. */
@@ -43,9 +43,11 @@ export function ChatInbox({ canStartWith, onOpen, refreshKey, className }: ChatI
   useEffect(() => {
     const first = setTimeout(load, 0);
     const id = setInterval(() => document.visibilityState === "visible" && load(), CHAT_ME_POLL_MS);
+    window.addEventListener(CHAT_READ_EVENT, load);
     return () => {
       clearTimeout(first);
       clearInterval(id);
+      window.removeEventListener(CHAT_READ_EVENT, load);
     };
   }, [load, refreshKey]);
 

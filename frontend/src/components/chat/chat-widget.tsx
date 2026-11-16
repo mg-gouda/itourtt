@@ -66,7 +66,7 @@ export function ChatWidget() {
       setRefreshKey((k) => k + 1);
     }
   }, []);
-  const { me, reload } = useChatMe(true, onUpdate);
+  const { me } = useChatMe(true, onUpdate);
 
   if (!me?.enabled) return null;
   const unread = me.unreadTotal ?? 0;
@@ -106,7 +106,6 @@ export function ChatWidget() {
                   setThread(null);
                   setRefreshKey((k) => k + 1);
                 }}
-                onRead={reload}
               />
             ) : (
               <ChatInbox canStartWith={me.canStartWith ?? []} onOpen={setThread} refreshKey={refreshKey} />

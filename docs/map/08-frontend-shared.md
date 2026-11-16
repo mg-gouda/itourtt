@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**103 files**, **371 exported symbols**.
+**103 files**, **373 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -366,7 +366,7 @@ Admin view of a user's device sessions, with force-logout and Clear — Clear is
 
 ### `chat-inbox.tsx`
 
-`frontend/src/components/chat/chat-inbox.tsx` · 310 lines
+`frontend/src/components/chat/chat-inbox.tsx` · 312 lines
 
 Chat conversation list and new-chat contact picker.
 
@@ -386,17 +386,17 @@ Company page card for the chat contact role lists.
 
 ### `chat-thread.tsx`
 
-`frontend/src/components/chat/chat-thread.tsx` · 509 lines
+`frontend/src/components/chat/chat-thread.tsx` · 513 lines
 
 One chat conversation: history, polling, receipts and composer.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatThread` | function | 51 | Message list (paging, 4 s polling, seen ticks) + composer for text, photos and voice notes with optimistic send/retry. |
+| `ChatThread` | function | 52 | Message list (paging, 4 s polling, seen ticks) + composer for text, photos and voice notes with optimistic send/retry. |
 
 ### `chat-widget.tsx`
 
-`frontend/src/components/chat/chat-widget.tsx` · 134 lines
+`frontend/src/components/chat/chat-widget.tsx` · 133 lines
 
 Floating staff chat button + panel on every dashboard page.
 
@@ -983,7 +983,7 @@ Per-user column visibility, persisted alongside column order.
 
 ### `chat.ts`
 
-`frontend/src/lib/chat.ts` · 258 lines
+`frontend/src/lib/chat.ts` · 276 lines
 
 Chat client: types, polling hook, attachment blob fetch, image shrink, voice recorder, time formatting.
 
@@ -994,19 +994,21 @@ Chat client: types, polling hook, attachment blob fetch, image shrink, voice rec
 | `ChatConversationSummary` | type | 19 | Inbox row: other person, last message, unread count. |
 | `ChatMessage` | type | 28 | A message plus client-only pending/failed/localUrl flags for optimistic sends. |
 | `ChatMe` | type | 45 | GET /chat/me result. |
-| `CHAT_ME_POLL_MS` | const | 54 | Badge / widget / inbox poll interval (10 s). |
-| `CHAT_THREAD_POLL_MS` | const | 56 | Open-thread poll interval (4 s). |
-| `CHAT_MAX_VOICE_SEC` | const | 57 | Voice notes stop recording at 300 s. |
-| `CHAT_MAX_FILE_BYTES` | const | 58 | Client-side 10 MB attachment limit (matches the server). |
-| `useChatMe` | function | 66 | Polls /chat/me as a background request every 10 s (paused while hidden); optional onUpdate callback. |
-| `attachmentUrl` | function | 106 | Fetches an auth-gated attachment as a blob → cached object URL. |
-| `useAttachmentUrl` | function | 118 | Hook wrapping attachmentUrl with loading/error state. |
-| `shrinkImage` | function | 137 | Downscales a photo to ≤1600 px JPEG in the browser before upload. |
-| `pickRecorderMime` | function | 156 | First audio type MediaRecorder supports (webm on Chrome/Android, mp4 on iOS). |
-| `RecorderState` | type | 164 | Voice recorder state: idle, recording, denied, unsupported. |
-| `useVoiceRecorder` | function | 170 | Tap-to-start/stop MediaRecorder with timer, cancel, and auto-stop at the limit. |
-| `fmtDuration` | function | 241 | Seconds → m:ss. |
-| `chatTime` | function | 247 | Cairo time for a message (date added when not today). |
+| `CHAT_READ_EVENT` | const | 54 | Window event fired after a thread is marked read; useChatMe and ChatInbox reload on it so badges drop at once. |
+| `announceChatRead` | function | 60 | After a thread is read: fires CHAT_READ_EVENT and closes that thread's chat-<id> notifications in the phone tray. |
+| `CHAT_ME_POLL_MS` | const | 70 | Badge / widget / inbox poll interval (10 s). |
+| `CHAT_THREAD_POLL_MS` | const | 72 | Open-thread poll interval (4 s). |
+| `CHAT_MAX_VOICE_SEC` | const | 73 | Voice notes stop recording at 300 s. |
+| `CHAT_MAX_FILE_BYTES` | const | 74 | Client-side 10 MB attachment limit (matches the server). |
+| `useChatMe` | function | 82 | Polls /chat/me as a background request every 10 s (paused while hidden); optional onUpdate callback. |
+| `attachmentUrl` | function | 124 | Fetches an auth-gated attachment as a blob → cached object URL. |
+| `useAttachmentUrl` | function | 136 | Hook wrapping attachmentUrl with loading/error state. |
+| `shrinkImage` | function | 155 | Downscales a photo to ≤1600 px JPEG in the browser before upload. |
+| `pickRecorderMime` | function | 174 | First audio type MediaRecorder supports (webm on Chrome/Android, mp4 on iOS). |
+| `RecorderState` | type | 182 | Voice recorder state: idle, recording, denied, unsupported. |
+| `useVoiceRecorder` | function | 188 | Tap-to-start/stop MediaRecorder with timer, cancel, and auto-stop at the limit. |
+| `fmtDuration` | function | 259 | Seconds → m:ss. |
+| `chatTime` | function | 265 | Cairo time for a message (date added when not today). |
 
 ### `complaints.ts`
 

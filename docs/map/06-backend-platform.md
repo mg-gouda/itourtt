@@ -676,15 +676,15 @@ Firebase Cloud Messaging push to the mobile apps, addressed via `DeviceToken` ro
 
 ### WebPushController
 
-`backend/src/push-notifications/web-push.controller.ts:62` · controller · 3 methods
+`backend/src/push-notifications/web-push.controller.ts:63` · controller · 3 methods
 
 /push/web routes for the rep/driver portals; staff are rejected explicitly (RolesGuard yields for roleId users).
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `publicKey` | pub | 67 | — | GET /push/web/public-key — VAPID public key, null when push is not configured. |
-| `subscribe` | pub | 74 | — | POST /push/web/subscribe — save this browser's https push subscription for the caller. |
-| `unsubscribe` | pub | 85 | — | POST /push/web/unsubscribe — remove this browser's subscription (called on logout). |
+| `publicKey` | pub | 68 | — | GET /push/web/public-key — VAPID public key, null when push is not configured. |
+| `subscribe` | pub | 75 | — | POST /push/web/subscribe — save this browser's https push subscription for the caller. |
+| `unsubscribe` | pub | 86 | — | POST /push/web/unsubscribe — remove this browser's subscription (called on logout). |
 
 ### WebPushService
 
