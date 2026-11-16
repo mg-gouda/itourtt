@@ -90,7 +90,9 @@ name searches.
 ## Why was this status update refused for location?
 
 Since 2026-11-16 the rep/driver geofence **blocks** (403): `common/geofence.util.ts ›
-assertWithinGeofence`, radius `GEOFENCE_RADIUS_METERS` = **600 m** (was 2 km and log-only). GPS
+assertWithinGeofence`, radius **2 km for an airport** (`AIRPORT_GEOFENCE_RADIUS_METERS`) and **600 m for everything
+else** (`GEOFENCE_RADIUS_METERS` — hotel, exact pin); was a flat 2 km and log-only before. The radius
+travels on the resolved target (`GeofenceTarget.radiusMeters`). GPS
 itself is mandatory on every status route (DTO / controller), so it cannot be skipped by withholding
 location.
 
@@ -114,7 +116,7 @@ phone with a bad fix. Every miss is logged (`Geofence BLOCKED` / `bypassed` / `n
 The evidence routes call `precheckGeofence` in the controller **before** uploading photos, so a
 refused submission leaves no orphan files in Drive; the submit method re-checks authoritatively.
 Airport coordinates must point at the terminal, not the airfield centre — a large airport's
-centroid can be well over 600 m from where reps actually stand.
+centroid can be well over 2 km from where reps actually stand.
 
 ---
 

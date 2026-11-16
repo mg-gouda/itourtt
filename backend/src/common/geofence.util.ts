@@ -2,8 +2,9 @@
  * Haversine distance + the rep/driver status geofence.
  *
  * Every rep/driver status update carries a mandatory GPS fix. Since 2026-11-16
- * it is ENFORCED: a fix more than GEOFENCE_RADIUS_METERS from where that status
- * happens is rejected (403) — but only when that place is a precise point (an
+ * it is ENFORCED: a fix more than the target's radius from where that status
+ * happens is rejected (403) — AIRPORT_GEOFENCE_RADIUS_METERS (2 km) for an
+ * airport, GEOFENCE_RADIUS_METERS (600 m) for anything else — but only when that place is a precise point (an
  * exact pickup/drop-off pin, an airport, or a hotel with coordinates). A zone
  * centroid covers a whole area, so a miss against one is logged, never blocked.
  * The per-leg admin unlock (`driverUnlockedAt` / `repUnlockedAt`) bypasses it,
@@ -20,6 +21,12 @@ const EARTH_RADIUS_METERS = 6_371_000;
  * 2026-11-16.
  */
 export const GEOFENCE_RADIUS_METERS = 600;
+
+/**
+ * Radius (metres) when the target is an airport — terminals, car parks and
+ * meeting points spread far wider than a hotel. 2 km since 2026-11-16.
+ */
+export const AIRPORT_GEOFENCE_RADIUS_METERS = 2_000;
 
 const logger = new Logger('Geofence');
 
@@ -85,6 +92,8 @@ export interface GeofenceTarget {
   label: string;
   /** A point (pin / airport / hotel) — enforceable. False for a zone centroid. */
   precise: boolean;
+  /** Allowed distance in metres: 2 km for an airport, 600 m otherwise. */
+  radiusMeters: number;
 }
 
 function toCoord(lat: unknown, lng: unknown): { lat: number; lng: number } | null {
@@ -99,11 +108,15 @@ function fromLocation(
   loc: GeofenceLocation | null | undefined,
   precise: boolean,
   fallbackLabel: string,
+  radiusMeters = GEOFENCE_RADIUS_METERS,
 ): GeofenceTarget | null {
   if (!loc) return null;
   const c = toCoord(loc.latitude, loc.longitude);
-  return c ? { ...c, label: loc.name || fallbackLabel, precise } : null;
+  return c ? { ...c, label: loc.name || fallbackLabel, precise, radiusMeters } : null;
 }
+
+const fromAirport = (loc: GeofenceLocation | null | undefined) =>
+  fromLocation(loc, true, 'the airport', AIRPORT_GEOFENCE_RADIUS_METERS);
 
 /**
  * One end of a job: exact pin → airport → hotel → zone (→ hotel's zone →
@@ -112,7 +125,13 @@ function fromLocation(
 function resolveEnd(job: GeofenceJob, end: 'origin' | 'destination'): GeofenceTarget | null {
   const o = end === 'origin';
   const pin = o ? toCoord(job.pickupLat, job.pickupLng) : toCoord(job.dropoffLat, job.dropoffLng);
-  if (pin) return { ...pin, label: o ? 'the pickup point' : 'the drop-off point', precise: true };
+  if (pin)
+    return {
+      ...pin,
+      label: o ? 'the pickup point' : 'the drop-off point',
+      precise: true,
+      radiusMeters: GEOFENCE_RADIUS_METERS,
+    };
 
   const airport = o ? job.originAirport : job.destinationAirport;
   const hotel = o ? job.originHotel : job.destinationHotel;
@@ -120,7 +139,7 @@ function resolveEnd(job: GeofenceJob, end: 'origin' | 'destination'): GeofenceTa
   const legacyZone = o ? job.fromZone : job.toZone;
 
   return (
-    fromLocation(airport, true, 'the airport') ??
+    fromAirport(airport) ??
     fromLocation(hotel, true, 'the hotel') ??
     fromLocation(zone, false, 'the zone') ??
     fromLocation(hotel?.zone, false, 'the zone') ??
@@ -135,8 +154,7 @@ function resolveEnd(job: GeofenceJob, end: 'origin' | 'destination'): GeofenceTa
  */
 export function resolveRepGeofenceTarget(job: GeofenceJob): GeofenceTarget | null {
   return (
-    fromLocation(job.originAirport, true, 'the airport') ??
-    fromLocation(job.destinationAirport, true, 'the airport')
+    fromAirport(job.originAirport) ?? fromAirport(job.destinationAirport)
   );
 }
 
@@ -210,13 +228,13 @@ export async function assertWithinGeofence(
   if (!target) return; // nowhere configured to check against
 
   const dist = haversineDistance(latitude, longitude, target.lat, target.lng);
-  if (dist <= GEOFENCE_RADIUS_METERS) return;
+  if (dist <= target.radiusMeters) return;
 
   const who = role === 'REP' ? 'Rep' : 'Driver';
   const unlocked = role === 'REP' ? job.repUnlockedAt : job.driverUnlockedAt;
   const detail =
     `${who} ${status} on ${job.internalRef}: at (${latitude},${longitude}), ` +
-    `${Math.round(dist)}m from ${target.label} (${target.lat},${target.lng})`;
+    `${Math.round(dist)}m from ${target.label} (${target.lat},${target.lng}), limit ${target.radiusMeters}m`;
 
   if (unlocked) {
     logger.warn(`Geofence bypassed (job unlocked) — ${detail}`);
@@ -230,8 +248,8 @@ export async function assertWithinGeofence(
   logger.warn(`Geofence BLOCKED — ${detail}`);
   throw new ForbiddenException(
     `You are ${formatDistance(dist)} from ${target.label}. Status updates must be made within ` +
-      `${GEOFENCE_RADIUS_METERS} m of the job location. If you are there, move into the open ` +
+      `${formatDistance(target.radiusMeters)} of the job location. If you are there, move into the open ` +
       `for a better GPS signal and try again, or ask dispatch to unlock the job. ` +
-      `(أنت على بُعد ${formatDistance(dist)} من الموقع — يجب تحديث الحالة ضمن ${GEOFENCE_RADIUS_METERS} متر، أو اطلب من التشغيل فتح المهمة.)`,
+      `(أنت على بُعد ${formatDistance(dist)} من الموقع — يجب تحديث الحالة ضمن ${formatDistance(target.radiusMeters)}، أو اطلب من التشغيل فتح المهمة.)`,
   );
 }
