@@ -55,6 +55,9 @@ export function isBackgroundRequest(
   headers?: Record<string, unknown>,
 ): boolean {
   if (headers?.[BACKGROUND_POLL_HEADER] === '1') return true;
+  // The location heartbeat (POST) is timer-driven too — it must never keep an
+  // idle rep/driver session alive.
+  if (path && /^\/api\/tracking\/ping\/?$/.test(path.split('?')[0])) return true;
   if ((method ?? '').toUpperCase() !== 'GET' || !path) return false;
   const clean = path.split('?')[0];
   return BACKGROUND_POLL_PATHS.some((re) => re.test(clean));

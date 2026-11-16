@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TrackingModule } from '../tracking/tracking.module.js';
 import { DriverPortalController } from './driver-portal.controller.js';
 import { DriverPortalService } from './driver-portal.service.js';
 import { NoShowDisputeService } from './no-show-dispute.service.js';
@@ -8,7 +9,7 @@ import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 import { JobCompletionModule } from '../common/services/job-completion.module.js';
 
 @Module({
-  imports: [EmailModule, GoogleDriveModule, JobCompletionModule],
+  imports: [TrackingModule, EmailModule, GoogleDriveModule, JobCompletionModule],
   controllers: [DriverPortalController],
   providers: [DriverPortalService, NoShowDisputeService, SupplierAutoCompleteService],
 })

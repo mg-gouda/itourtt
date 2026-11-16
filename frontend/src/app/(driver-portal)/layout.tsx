@@ -8,6 +8,7 @@ import { homeForRole } from "@/lib/role-home";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LicenseGate } from "@/components/license-gate";
 import { useT } from "@/lib/i18n";
+import { useLocationHeartbeat } from "@/lib/use-location-heartbeat";
 import {
   Truck,
   Briefcase,
@@ -72,6 +73,7 @@ function DriverPortalShell({
   const { logout } = useAuthStore();
   const t = useT();
   const [unreadCount, setUnreadCount] = useState(0);
+  useLocationHeartbeat();
 
   useEffect(() => {
     const fetchUnread = async () => {

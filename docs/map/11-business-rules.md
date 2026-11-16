@@ -118,6 +118,23 @@ centroid can be well over 600 m from where reps actually stand.
 
 ---
 
+## Why is this rep/driver not on the tracking map (or in the wrong place)?
+
+Rep Tracking / Driver Tracking (`/dashboard/rep-tracking`, `/dashboard/driver-tracking`) show the
+**last-known** fix per person from `user_locations` — one row per user, no history. Fixes arrive from:
+
+- the web portal heartbeat (`lib/use-location-heartbeat.ts`) — once a minute **only while the portal
+  is open and visible** (browsers can't track a closed tab), and
+- every GPS-stamped portal request (`tracking/record-location.interceptor.ts`, on the rep/driver
+  portal controllers) — including the native mobile apps, and including submissions the geofence
+  refused (the phone was still there).
+
+So "never reported" = no portal account, or never opened the portal since 2026-11-16. Colours are age:
+live ≤ 5 min, amber ≤ 1 h, grey older. `POST /tracking/ping` is excluded from the audit log and counts
+as a background poll — it must never keep an idle session alive (see *Concurrent login* / 3 h logout).
+Perms `rep-tracking` / `driver-tracking`: admin gets them automatically; other roles need a manual
+`rolePermissionV2` grant in prod (deploy skips the permission seed).
+
 ## Money
 
 | Rule | Where |

@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**90 files**, **329 exported symbols**.
+**94 files**, **340 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -51,13 +51,13 @@ The native arrival guest survey form. Submitting it awards the rep's 15-point su
 
 ### `header.tsx`
 
-`frontend/src/components/header.tsx` · 425 lines
+`frontend/src/components/header.tsx` · 427 lines
 
 Top bar — user menu, notifications, locale switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Header` | function | 117 | Top bar — user menu, notifications and locale switch. |
+| `Header` | function | 119 | Top bar — user menu, notifications and locale switch. |
 
 ### `import-template-manager.tsx`
 
@@ -267,19 +267,19 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 410 lines
+`frontend/src/components/sidebar.tsx` · 414 lines
 
 Main dashboard navigation, filtered by permission.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 55 | A navigation link with active-state styling. |
-| `NavSeparator` | type | 65 | Divider between sidebar sections. |
-| `NavSectionLabel` | type | 69 | Section heading in the sidebar. |
-| `NavGroup` | type | 74 | A collapsible navigation group. |
-| `NavItem` | type | 81 | One navigation entry. |
-| `navigation` | const | 88 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 131 | Main dashboard navigation, permission-filtered. |
+| `NavLink` | type | 57 | A navigation link with active-state styling. |
+| `NavSeparator` | type | 67 | Divider between sidebar sections. |
+| `NavSectionLabel` | type | 71 | Section heading in the sidebar. |
+| `NavGroup` | type | 76 | A collapsible navigation group. |
+| `NavItem` | type | 83 | One navigation entry. |
+| `navigation` | const | 90 | The navigation definition — sections, items and the permission key gating each. |
+| `Sidebar` | function | 135 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -426,6 +426,45 @@ Step progress indicator for the public booking funnel.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `StepIndicator` | function | 11 | Booking funnel step progress indicator. |
+
+## `frontend/src/components/tracking/`
+
+### `tracking-map.tsx`
+
+`frontend/src/components/tracking/tracking-map.tsx` · 142 lines
+
+Leaflet map used by the Rep/Driver Tracking pages (client-only, loaded via next/dynamic).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TrackingMap` | function | 36 | Leaflet/OpenStreetMap map of tracked people: freshness-coloured initials markers, popups, accuracy circle for the selection, fits bounds when the filter changes. |
+
+### `tracking-view.tsx`
+
+`frontend/src/components/tracking/tracking-view.tsx` · 302 lines
+
+Rep/Driver Tracking page body.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TrackingView` | function | 53 | Shared body of Rep/Driver Tracking: name search, freshness counts, refresh/auto-refresh, searchable list beside the map. |
+
+### `types.ts`
+
+`frontend/src/components/tracking/types.ts` · 81 lines
+
+Types and helpers for the tracking maps.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TrackedPerson` | type | 2 | Frontend mirror of the /tracking/reps\|drivers row. |
+| `Freshness` | type | 26 | Age bucket of a last-known position: live (≤5 min), recent (≤1 h), stale, none. |
+| `freshnessOf` | function | 32 | Buckets a person's last fix by age. |
+| `FRESHNESS_COLOR` | const | 40 | Marker/dot colour per freshness bucket. |
+| `relativeAge` | function | 48 | Translated '3 min ago' label. |
+| `cairoDateTime` | function | 58 | Date+time in Africa/Cairo regardless of device timezone. |
+| `cairoTime` | function | 68 | Time in Africa/Cairo regardless of device timezone. |
+| `initials` | function | 76 | Up to two initials for a marker label. |
 
 ## `frontend/src/components/ui/`
 
@@ -937,17 +976,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3554 lines
+`frontend/src/lib/i18n.ts` · 3626 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3531 | Translates a key in the current locale. |
-| `getTranslator` | function | 3535 | Translator for a specific locale, outside React. |
-| `useT` | function | 3543 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3550 | The active locale id. |
+| `t` | function | 3603 | Translates a key in the current locale. |
+| `getTranslator` | function | 3607 | Translator for a specific locale, outside React. |
+| `useT` | function | 3615 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3622 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -965,7 +1004,7 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 887 lines
+`frontend/src/lib/permission-registry.ts` · 892 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -974,11 +1013,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 798 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 814 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 822 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 834 | Subtree, used by the master toggle. |
-| `findNode` | function | 874 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 803 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 819 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 827 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 839 | Subtree, used by the master toggle. |
+| `findNode` | function | 879 | Looks up a node by key. |
 
 ### `role-home.ts`
 
@@ -1035,6 +1074,16 @@ React wrapper around `captureGPS` with capturing/retry state for the evidence di
 |---|---|---|---|
 | `GeoCapture` | type | 7 | Shape returned by `useGeoCapture`. |
 | `useGeoCapture` | function | 25 | Hook exposing the current fix, capture state and a retry action. |
+
+### `use-location-heartbeat.ts`
+
+`frontend/src/lib/use-location-heartbeat.ts` · 68 lines
+
+Rep/driver portal location heartbeat.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `useLocationHeartbeat` | function | 18 | While a rep/driver portal is open and visible, posts the device position to /tracking/ping every minute as a background poll; silent on failure. |
 
 ### `utils.ts`
 

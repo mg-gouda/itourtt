@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import api, { backgroundPoll } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
+import { useLocationHeartbeat } from "@/lib/use-location-heartbeat";
 
 export default function RepPortalLayout({
   children,
@@ -72,6 +73,7 @@ function RepPortalShell({
   const { logout } = useAuthStore();
   const t = useT();
   const [unreadCount, setUnreadCount] = useState(0);
+  useLocationHeartbeat();
 
   useEffect(() => {
     const fetchUnread = async () => {

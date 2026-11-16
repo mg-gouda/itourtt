@@ -133,6 +133,10 @@ export class AuditInterceptor implements NestInterceptor {
     if (path.includes('/auth/')) {
       return next.handle();
     }
+    // The portal location heartbeat fires every minute — telemetry, not an edit.
+    if (/\/tracking\/ping\/?$/.test(path)) {
+      return next.handle();
+    }
 
     const userId = user?.id || user?.sub;
     const userName = user?.email || 'anonymous';

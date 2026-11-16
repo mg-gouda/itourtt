@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   BadRequestException,
 } from '@nestjs/common';
+import { RecordLocationInterceptor } from '../tracking/record-location.interceptor.js';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { RepPortalService } from './rep-portal.service.js';
@@ -107,6 +108,7 @@ class GuestSurveyDto {
 @Controller('rep-portal')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('REP')
+@UseInterceptors(RecordLocationInterceptor)
 export class RepPortalController {
   constructor(
     private readonly repPortalService: RepPortalService,

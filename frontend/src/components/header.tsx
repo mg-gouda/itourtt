@@ -58,6 +58,8 @@ const SEGMENT_LABEL_MAP: Record<string, string> = {
   users: "Users",
   "job-control": "Job Control",
   "job-locks": "Job Locks",
+  "driver-tracking": "Driver Tracking",
+  "rep-tracking": "Rep Tracking",
   "activity-log": "Activity Log",
   website: "Website CMS",
   "public-prices": "Public Prices",

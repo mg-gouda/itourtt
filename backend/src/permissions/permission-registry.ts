@@ -655,6 +655,10 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     labelKey: 'permissions.jobControl',
   },
 
+  // ─── LIVE TRACKING MAPS ───
+  { key: 'driver-tracking', labelKey: 'permissions.driverTracking' },
+  { key: 'rep-tracking', labelKey: 'permissions.repTracking' },
+
   // ─── JOB LOCKS ───
   {
     key: 'job-locks',

@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**50 classes**, **359 methods**.
+**53 classes**, **368 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -176,15 +176,15 @@ Writes an `ActivityLog` row for every create/update/delete, capturing actor, ent
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `intercept` | pub | 122 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
-| `captureBefore` | priv | 168 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
-| `enqueue` | priv | 212 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
-| `flush` | priv | 259 | `activityLog` | Batch-writes queued audit rows. |
-| `buildSummary` | priv | 294 | — | Composes a log summary from action, entity and the resolved job reference. |
-| `resolveJobRefs` | priv | 303 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
-| `resolveJob` | priv | 356 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
-| `methodToAction` | priv | 451 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
-| `parseEntityFromPath` | priv | 465 | — | Derives the entity type and id from the request path. |
-| `sanitizeBody` | priv | 502 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
+| `captureBefore` | priv | 172 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
+| `enqueue` | priv | 216 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
+| `flush` | priv | 263 | `activityLog` | Batch-writes queued audit rows. |
+| `buildSummary` | priv | 298 | — | Composes a log summary from action, entity and the resolved job reference. |
+| `resolveJobRefs` | priv | 307 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
+| `resolveJob` | priv | 360 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
+| `methodToAction` | priv | 455 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
+| `parseEntityFromPath` | priv | 469 | — | Derives the entity type and id from the request path. |
+| `sanitizeBody` | priv | 506 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
 
 ### CaptchaService
 
@@ -626,23 +626,23 @@ Admin surface for viewing and killing device sessions.
 
 ### SessionsService
 
-`backend/src/sessions/sessions.service.ts:64` · service · 11 methods
+`backend/src/sessions/sessions.service.ts:67` · service · 11 methods
 
 Device-session tracking that powers the admin Active-Sessions view and the REP/DRIVER single-device lock. Idle sessions expire on their own after `SESSION_IDLE_MINUTES` (default 30) so a dead phone cannot lock a rep out permanently.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `start` | pub | 78 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
-| `findActive` | pub | 95 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
-| `touch` | pub | 110 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
-| `end` | pub | 128 | `userSession` | Marks a session ended on logout. |
-| `endReasonOf` | pub | 136 | `userSession` | Reads a session's endReason so JwtStrategy can answer SESSION_IDLE_TIMEOUT vs SESSION_DISPLACED. |
-| `expireInactive` | pub | 150 | `userSession` `user` | Ends REP/DRIVER sessions with no user activity past SESSION_INACTIVITY_MINUTES (default 180) and clears the login's sessionId + refresh token. |
-| `sweepInactive` | pub | 179 | — | 5-minute cron running expireInactive for everyone; idempotent so deliberately not behind CronRunLock. |
-| `listForUser` | pub | 189 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
-| `forceLogout` | pub | 206 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
-| `clear` | pub | 220 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
-| `notifyManagersOfConflict` | pub | 230 | `user` `userNotification` | Notifies Admin / Dispatch Manager / Online Manager when a rep or driver login is blocked by the lock. |
+| `start` | pub | 81 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
+| `findActive` | pub | 98 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
+| `touch` | pub | 113 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
+| `end` | pub | 131 | `userSession` | Marks a session ended on logout. |
+| `endReasonOf` | pub | 139 | `userSession` | Reads a session's endReason so JwtStrategy can answer SESSION_IDLE_TIMEOUT vs SESSION_DISPLACED. |
+| `expireInactive` | pub | 153 | `userSession` `user` | Ends REP/DRIVER sessions with no user activity past SESSION_INACTIVITY_MINUTES (default 180) and clears the login's sessionId + refresh token. |
+| `sweepInactive` | pub | 182 | — | 5-minute cron running expireInactive for everyone; idempotent so deliberately not behind CronRunLock. |
+| `listForUser` | pub | 192 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
+| `forceLogout` | pub | 209 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
+| `clear` | pub | 223 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
+| `notifyManagersOfConflict` | pub | 233 | `user` `userNotification` | Notifies Admin / Dispatch Manager / Online Manager when a rep or driver login is blocked by the lock. |
 
 ## `settings`
 
@@ -725,6 +725,44 @@ All persisted configuration: system, company, email, website (B2C), Google Drive
 | `getGoogleDriveSettings` | pub | 594 | `googleDriveSettings` | Drive integration status and folder configuration, without tokens. |
 | `disconnectGoogleDrive` | pub | 607 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
 | `updateGoogleDriveSettings` | pub | 616 | `googleDriveSettings` | Updates Drive folder configuration. |
+
+## `tracking`
+
+### RecordLocationInterceptor
+
+`backend/src/tracking/record-location.interceptor.ts:16` · middleware · 1 methods
+
+On the rep/driver portal controllers: any request carrying latitude/longitude also refreshes the sender's last-known position. Runs in finalize so multipart bodies are parsed and geofence-refused submissions still count.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `intercept` | pub | 19 | — | After the handler (success or error), records body latitude/longitude for REP/DRIVER users as a STATUS fix. |
+
+### TrackingController
+
+`backend/src/tracking/tracking.controller.ts:44` · controller · 3 methods
+
+Live tracking: portal heartbeat (POST /tracking/ping) and the Rep/Driver Tracking map feeds.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `ping` | pub | 55 | `trackingService.record` | POST /tracking/ping — REP/DRIVER portal heartbeat (~1/min). Not audited and treated as a background poll, so it never keeps an idle session alive. |
+| `reps` | pub | 65 | `trackingService.listReps` | GET /tracking/reps — every active rep with last-known position, online flag and today's jobs. Perm rep-tracking. |
+| `drivers` | pub | 72 | `trackingService.listDrivers` | GET /tracking/drivers — every active driver with last-known position, online flag and today's jobs. Perm driver-tracking. |
+
+### TrackingService
+
+`backend/src/tracking/tracking.service.ts:53` · service · 5 methods
+
+Records and serves last-known rep/driver positions for the tracking maps.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `record` | pub | 63 | `userLocation` | Upserts a user's last-known fix; validates coords, clamps skewed device clocks, never lets an older fix overwrite a newer one, never throws. |
+| `listReps` | pub | 104 | `rep` `trafficAssignment` | Active reps (optional name search) with positions and today's (Cairo) assignments. |
+| `listDrivers` | pub | 128 | `driver` `trafficAssignment` | Active drivers (optional name search) with positions and today's (Cairo) assignments. |
+| `todayDate` | priv | 163 | — | Today's Cairo date as the UTC-midnight Date a @db.Date column compares against. |
+| `assemble` | priv | 167 | `userLocation` `userSession` | Joins people with their UserLocation, open-session online flag (last 5 min) and today's jobs sorted by time. |
 
 ## `user-preferences`
 
@@ -850,7 +888,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-121 free functions, constants and types in these modules.
+125 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1163,10 +1201,10 @@ Google Drive evidence storage. Degrades to null (never throws) when unconfigured
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 723 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 739 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 747 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 759 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 727 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 743 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 751 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 763 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 
@@ -1189,3 +1227,14 @@ Device-session tracking behind the admin Active-Sessions view and the single-dev
 | `SessionEndReason` | type | 35 | Why a session ended: LOGOUT, FORCED (admin) or IDLE_TIMEOUT (inactivity sweep). |
 | `BACKGROUND_POLL_HEADER` | const | 49 | Header (x-background-poll: 1) a client sets on timer-driven requests so they don't count as user activity. |
 | `isBackgroundRequest` | function | 52 | True for background polls (GET notification endpoints or X-Background-Poll header) — they refresh lastSeenAt but not lastActivityAt. |
+
+### `backend/src/tracking/tracking.service.ts`
+
+Live rep/driver location tracking service.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TrackedRole` | type | 5 | Roles whose position is tracked: REP or DRIVER. |
+| `LocationSource` | type | 6 | Where a fix came from: HEARTBEAT (portal open) or STATUS (status/evidence submission). |
+| `isValidCoord` | function | 15 | True for a finite in-range WGS-84 coordinate that isn't the 0,0 null fix. |
+| `TrackedPerson` | type | 23 | Row shape of the tracking map feeds: person, account/online flags, last location and today's jobs. |

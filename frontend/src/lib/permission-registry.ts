@@ -727,6 +727,11 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     labelKey: 'permissions.jobControl',
     crudType: 'page',
   },
+
+  // ─── LIVE TRACKING MAPS ───
+  { key: 'driver-tracking', labelKey: 'permissions.driverTracking', crudType: 'page' },
+  { key: 'rep-tracking',    labelKey: 'permissions.repTracking',    crudType: 'page' },
+
   {
     key: 'job-locks',
     labelKey: 'permissions.jobLocks',

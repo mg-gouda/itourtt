@@ -349,12 +349,38 @@ model User {
   b2cBookings          GuestBooking[]      @relation("B2CClientBookings")
   b2cInvoices          B2CInvoice[]        @relation("B2CClientInvoices")
   sessions             UserSession[]
+  lastLocation         UserLocation?
 
   complaintsCreated        Complaint[]       @relation("ComplaintCreatedBy")
   complaintsAssigned       Complaint[]       @relation("ComplaintAssignedTo")
   complaintChargesApproved ComplaintCharge[] @relation("ComplaintChargeApprovedBy")
 
   @@map("users")
+}
+
+/// Last-known position of a REP/DRIVER portal user — one row per user, upserted
+/// by the portal heartbeat (POST /tracking/ping) and by every GPS-stamped
+/// status/evidence submission. Powers the Rep Tracking / Driver Tracking maps.
+/// Only the latest fix is kept; there is no breadcrumb history.
+model UserLocation {
+  id         String   @id @default(uuid())
+  userId     String   @unique @map("user_id")
+  role       UserRole
+  latitude   Decimal  @db.Decimal(10, 7)
+  longitude  Decimal  @db.Decimal(10, 7)
+  /// Reported horizontal accuracy in metres (null when the client didn't send it).
+  accuracy   Float?
+  /// HEARTBEAT (portal open) | STATUS (status update / evidence submission).
+  source     String
+  /// When the device took the fix.
+  recordedAt DateTime @map("recorded_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([role, recordedAt])
+  @@map("user_locations")
 }
 
 /// Per-device login session log. Powers the admin "Active sessions" view and the

@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   BadRequestException,
 } from '@nestjs/common';
+import { RecordLocationInterceptor } from '../tracking/record-location.interceptor.js';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import * as path from 'path';
@@ -68,6 +69,7 @@ class DateQueryDto {
 @Controller('driver-portal')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DRIVER')
+@UseInterceptors(RecordLocationInterceptor)
 export class DriverPortalController {
   constructor(
     private readonly driverPortalService: DriverPortalService,
