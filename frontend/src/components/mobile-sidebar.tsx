@@ -162,7 +162,12 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
                     <div className="ml-3 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
                       {item.children.map((child) => {
                         const ChildIcon = child.icon;
-                        const isActive = pathname.startsWith(child.href);
+                        // Only the most specific sibling lights up (Complaints vs Complaints › Analytics).
+                        const isActive =
+                          pathname.startsWith(child.href) &&
+                          !item.children.some(
+                            (o) => o.href.length > child.href.length && pathname.startsWith(o.href),
+                          );
                         return (
                           <Link
                             key={child.href}

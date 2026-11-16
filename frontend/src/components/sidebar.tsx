@@ -31,6 +31,7 @@ import {
   Radar,
   MapPinned,
   ClipboardList,
+  ClipboardCheck,
   Globe,
   Tag,
   SlidersHorizontal,
@@ -95,12 +96,20 @@ export const navigation: NavItem[] = [
   { type: "link", nameKey: "sidebar.dispatch", href: "/dashboard/dispatch", icon: CalendarClock, permissionKey: "dispatch" },
   { type: "link", nameKey: "sidebar.carDispatch", href: "/dashboard/car-dispatch", icon: Car, permissionKey: "dispatch", featureFlag: "NEXT_PUBLIC_ENABLE_CAR_DISPATCH" },
   { type: "link", nameKey: "sidebar.trafficJobs", href: "/dashboard/traffic-jobs", icon: Briefcase, permissionKey: "traffic-jobs" },
-  { type: "link", nameKey: "sidebar.complaints", href: "/dashboard/complaints", icon: MessageSquareWarning, permissionKey: "complaints" },
-  { type: "link", nameKey: "sidebar.complaintAnalytics", href: "/dashboard/complaints/analytics", icon: BarChart3, permissionKey: "complaints.analytics" },
+  {
+    type: "group",
+    nameKey: "sidebar.qualityControl",
+    icon: ClipboardCheck,
+    children: [
+      { type: "link", nameKey: "sidebar.complaints", href: "/dashboard/complaints", icon: MessageSquareWarning, permissionKey: "complaints" },
+      { type: "link", nameKey: "sidebar.complaintAnalytics", href: "/dashboard/complaints/analytics", icon: BarChart3, permissionKey: "complaints.analytics" },
+      { type: "link", nameKey: "sidebar.complaintCategories", href: "/dashboard/complaint-categories", icon: MessageSquareWarning, permissionKey: "complaint-categories" },
+      { type: "link", nameKey: "sidebar.agentAdjustments", href: "/dashboard/finance/agent-adjustments", icon: FileMinus, permissionKey: "finance.agentAdjustments" },
+    ],
+  },
   { type: "section-label", labelKey: "sidebar.section.finance" },
   { type: "link", nameKey: "sidebar.finance", href: "/dashboard/finance", icon: DollarSign, permissionKey: "finance" },
   { type: "link", nameKey: "sidebar.b2cInvoices", href: "/dashboard/finance/b2c-invoices", icon: FileText, permissionKey: "finance.b2cInvoices" },
-  { type: "link", nameKey: "sidebar.agentAdjustments", href: "/dashboard/finance/agent-adjustments", icon: FileMinus, permissionKey: "finance.agentAdjustments" },
   { type: "link", nameKey: "sidebar.reports", href: "/dashboard/reports", icon: BarChart3, permissionKey: "reports" },
   {
     type: "group",
@@ -135,7 +144,6 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.googleDrive", href: "/dashboard/google-drive", icon: HardDrive, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck, permissionKey: "users" },
       { type: "link", nameKey: "sidebar.jobControl", href: "/dashboard/job-control", icon: SlidersHorizontal, permissionKey: "job-control" },
-      { type: "link", nameKey: "sidebar.complaintCategories", href: "/dashboard/complaint-categories", icon: MessageSquareWarning, permissionKey: "complaint-categories" },
     ],
   },
 ];
@@ -335,7 +343,12 @@ export function Sidebar() {
                     <div className="ml-3 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
                       {item.children.map((child) => {
                         const ChildIcon = child.icon;
-                        const isActive = pathname.startsWith(child.href);
+                        // Only the most specific sibling lights up (Complaints vs Complaints › Analytics).
+                        const isActive =
+                          pathname.startsWith(child.href) &&
+                          !item.children.some(
+                            (o) => o.href.length > child.href.length && pathname.startsWith(o.href),
+                          );
                         return (
                           <Link
                             key={child.href}

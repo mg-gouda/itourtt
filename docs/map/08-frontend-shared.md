@@ -152,7 +152,7 @@ Mobile-optimised profile screen shared by the portals.
 
 ### `mobile-sidebar.tsx`
 
-`frontend/src/components/mobile-sidebar.tsx` · 215 lines
+`frontend/src/components/mobile-sidebar.tsx` · 220 lines
 
 Mobile-width navigation drawer.
 
@@ -277,19 +277,19 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 424 lines
+`frontend/src/components/sidebar.tsx` · 437 lines
 
 Main dashboard navigation, filtered by permission.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 59 | A navigation link with active-state styling. |
-| `NavSeparator` | type | 69 | Divider between sidebar sections. |
-| `NavSectionLabel` | type | 73 | Section heading in the sidebar. |
-| `NavGroup` | type | 78 | A collapsible navigation group. |
-| `NavItem` | type | 85 | One navigation entry. |
-| `navigation` | const | 92 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 145 | Main dashboard navigation, permission-filtered. |
+| `NavLink` | type | 60 | A navigation link with active-state styling. |
+| `NavSeparator` | type | 70 | Divider between sidebar sections. |
+| `NavSectionLabel` | type | 74 | Section heading in the sidebar. |
+| `NavGroup` | type | 79 | A collapsible navigation group. |
+| `NavItem` | type | 86 | One navigation entry. |
+| `navigation` | const | 93 | The navigation definition — sections, items and the permission key gating each. |
+| `Sidebar` | function | 153 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -987,17 +987,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3668 lines
+`frontend/src/lib/i18n.ts` · 3670 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3645 | Translates a key in the current locale. |
-| `getTranslator` | function | 3649 | Translator for a specific locale, outside React. |
-| `useT` | function | 3657 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3664 | The active locale id. |
+| `t` | function | 3647 | Translates a key in the current locale. |
+| `getTranslator` | function | 3651 | Translator for a specific locale, outside React. |
+| `useT` | function | 3659 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3666 | The active locale id. |
 
 ### `maps-nav.ts`
 
