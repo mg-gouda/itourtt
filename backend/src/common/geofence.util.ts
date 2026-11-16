@@ -4,6 +4,13 @@
 
 const EARTH_RADIUS_METERS = 6_371_000;
 
+/**
+ * How close (metres) a rep/driver's captured GPS must be to the job location
+ * when they stamp a status. Was 2 km; narrowed to 600 m on 2026-11-16.
+ * A miss is logged for audit — it never blocks the submission.
+ */
+export const GEOFENCE_RADIUS_METERS = 600;
+
 function toRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
@@ -30,7 +37,7 @@ export function isWithinGeofence(
   lng1: number,
   lat2: number,
   lng2: number,
-  radiusMeters = 500,
+  radiusMeters = GEOFENCE_RADIUS_METERS,
 ): boolean {
   return haversineDistance(lat1, lng1, lat2, lng2) <= radiusMeters;
 }

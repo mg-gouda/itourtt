@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { resolveRepGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
+import { resolveRepGeofenceTarget, isWithinGeofence, haversineDistance, GEOFENCE_RADIUS_METERS } from '../common/geofence.util.js';
 import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
 import {
   checkNoShowWindow,
@@ -1121,8 +1121,8 @@ export class RepPortalService {
       // No coordinates configured for this job's location — skip check
       return;
     }
-    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, 2000)) {
-      // Outside 2km — log for audit but do not block the rep
+    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, GEOFENCE_RADIUS_METERS)) {
+      // Outside GEOFENCE_RADIUS_METERS (600 m) — log for audit but do not block the rep
       const dist = Math.round(haversineDistance(latitude, longitude, target.lat, target.lng));
       this.logger.warn(
         `Rep geofence miss on job ${job.id}: rep at (${latitude},${longitude}) is ${dist}m from target (${target.lat},${target.lng})`,

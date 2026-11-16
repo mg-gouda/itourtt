@@ -850,7 +850,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-117 free functions, constants and types in these modules.
+118 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -940,10 +940,11 @@ Haversine distance and geofence target resolution. Note both portals call these 
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `haversineDistance` | function | 12 | Great-circle distance in metres between two lat/lng points. |
-| `isWithinGeofence` | function | 28 | True when two points are within `radiusMeters` (default 500). Callers pass 2000 in practice. |
-| `resolveRepGeofenceTarget` | function | 65 | Reps are always at the airport, so this is simply the job's origin airport coordinate. |
-| `resolveDriverGeofenceTarget` | function | 74 | ARR → origin airport. DEP/CITY → origin hotel, falling back to origin zone, then the hotel's parent zone. Returns null when no coordinate is configured, which makes the geofence check a no-op. |
+| `GEOFENCE_RADIUS_METERS` | const | 12 | Rep/driver status-stamp GPS radius: 600 m (was 2 km); a miss is logged, never blocks. |
+| `haversineDistance` | function | 19 | Great-circle distance in metres between two lat/lng points. |
+| `isWithinGeofence` | function | 35 | True when two points are within `radiusMeters` (default 500). Callers pass 2000 in practice. |
+| `resolveRepGeofenceTarget` | function | 72 | Reps are always at the airport, so this is simply the job's origin airport coordinate. |
+| `resolveDriverGeofenceTarget` | function | 81 | ARR → origin airport. DEP/CITY → origin hotel, falling back to origin zone, then the hotel's parent zone. Returns null when no coordinate is configured, which makes the geofence check a no-op. |
 
 ### `backend/src/common/license-verify.ts`
 

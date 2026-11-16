@@ -49,13 +49,13 @@
 | `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 693 | 8 | 8 | Edit a vehicle, its compliance documents and deposit payments. |
 | `/dashboard/vehicles/new` | `frontend/src/app/(dashboard)/dashboard/vehicles/new/page.tsx` | 300 | 2 | 8 | Add a vehicle. |
 | `/dashboard/whatsapp` | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx` | 713 | 7 | 3 | WhatsApp settings, templates, media and delivery logs. |
-| `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 803 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
-| `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 344 | 1 | — | Driver's completed/cancelled/no-show jobs with the fee earned per job. |
+| `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 805 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
+| `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 345 | 1 | — | Driver's completed/cancelled/no-show jobs with the fee earned per job. |
 | `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | Driver's own profile. |
 | `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | Requests a password-reset email. |
 | `/login` | `frontend/src/app/login/page.tsx` | 281 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
-| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 934 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
-| `/rep/history` | `frontend/src/app/(rep-portal)/rep/history/page.tsx` | 344 | 1 | — | Rep's terminal jobs with fees earned. |
+| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 936 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
+| `/rep/history` | `frontend/src/app/(rep-portal)/rep/history/page.tsx` | 345 | 1 | — | Rep's terminal jobs with fees earned. |
 | `/rep/profile` | `frontend/src/app/(rep-portal)/rep/profile/page.tsx` | 8 | — | — | Rep's own profile. |
 | `/reset-password` | `frontend/src/app/reset-password/page.tsx` | 153 | 1 | — | Consumes a reset token and sets a new password. |
 | `/supplier` | `frontend/src/app/(supplier-portal)/supplier/page.tsx` | 263 | 2 | — | Supplier portal home — jobs assigned to this supplier and closing its own leg. |

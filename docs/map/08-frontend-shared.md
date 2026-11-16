@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**88 files**, **323 exported symbols**.
+**90 files**, **329 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -91,13 +91,13 @@ Evidence dialog for a driver starting a job.
 
 ### `job-detail-modal.tsx`
 
-`frontend/src/components/job-detail-modal.tsx` · 356 lines
+`frontend/src/components/job-detail-modal.tsx` · 366 lines
 
 Full job detail modal used across dispatch and the job lists.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailModal` | function | 127 | Full job detail modal — route, flight, assignment, evidence and financials. |
+| `JobDetailModal` | function | 131 | Full job detail modal — route, flight, assignment, evidence and financials. |
 
 ### `job-extras-editor.tsx`
 
@@ -233,6 +233,16 @@ Rich text editor for CMS and notes fields.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `RichTextEditor` | function | 73 | Rich text editor for CMS and note fields. |
+
+### `route-nav-link.tsx`
+
+`frontend/src/components/route-nav-link.tsx` · 38 lines
+
+Tap-to-navigate link component for rep/driver portal route labels.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RouteNavLink` | function | 13 | Renders a job's origin/destination as a link opening Google Maps navigation; plain text when unresolvable; stops card click propagation. |
 
 ### `searchable-combobox.tsx`
 
@@ -938,6 +948,20 @@ Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app
 | `getTranslator` | function | 3535 | Translator for a specific locale, outside React. |
 | `useT` | function | 3543 | Hook returning the translator bound to the active locale. |
 | `useLocaleId` | function | 3550 | The active locale id. |
+
+### `maps-nav.ts`
+
+`frontend/src/lib/maps-nav.ts` · 94 lines
+
+Builds Google Maps navigation links for a job's origin/destination (web portals).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `NavJob` | type | 23 | Job shape the navigation resolver reads: exact pickup/dropoff coords plus airport/hotel/zone locations. |
+| `RouteEnd` | type | 38 | Which end of a job to navigate to: origin or destination. |
+| `navTarget` | function | 60 | Resolves lat,lng or search text: exact point → airport → hotel → zone → from/to zone. |
+| `googleMapsNavUrl` | function | 79 | Universal google.com/maps/dir link with driving mode and dir_action=navigate. |
+| `jobNavUrl` | function | 90 | Navigation URL for one end of a job, or null when there is nowhere to go. |
 
 ### `permission-registry.ts`
 

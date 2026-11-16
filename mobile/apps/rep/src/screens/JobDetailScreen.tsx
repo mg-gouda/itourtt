@@ -11,6 +11,8 @@ import {
   formatCurrency,
   getOriginLabel,
   getDestinationLabel,
+  openJobNavigation,
+  canNavigate,
   useT,
   callPhone,
   openWhatsApp,
@@ -21,13 +23,36 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Props = StackScreenProps<RootStackParamList, 'JobDetail'>;
 
-function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
+function InfoRow({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string | null | undefined;
+  /** Makes the value a link (used for origin / destination → Google Maps). */
+  onPress?: () => void;
+}) {
   const colors = getColors();
   if (!value) return null;
   return (
     <View style={styles.row}>
       <Text style={[typography.caption, { color: colors.mutedForeground, width: 120 }]}>{label}</Text>
-      <Text style={[typography.bodySm, { color: colors.foreground, flex: 1 }]}>{value}</Text>
+      {onPress ? (
+        <Text
+          onPress={onPress}
+          accessibilityRole="link"
+          accessibilityHint="Opens Google Maps navigation"
+          style={[
+            typography.bodySm,
+            { color: '#0EA5E9', flex: 1, textDecorationLine: 'underline', fontWeight: '600' },
+          ]}
+        >
+          {value}  ➤
+        </Text>
+      ) : (
+        <Text style={[typography.bodySm, { color: colors.foreground, flex: 1 }]}>{value}</Text>
+      )}
     </View>
   );
 }
@@ -94,8 +119,16 @@ export function JobDetailScreen({ route, navigation }: Props) {
         <Text style={[typography.label, { color: colors.foreground, marginBottom: spacing[2] }]}>
           {t('jobs.route')}
         </Text>
-        <InfoRow label={t('booking.from')} value={getOriginLabel(job)} />
-        <InfoRow label={t('booking.to')} value={getDestinationLabel(job)} />
+        <InfoRow
+          label={t('booking.from')}
+          value={getOriginLabel(job)}
+          onPress={canNavigate(job, 'origin') ? () => openJobNavigation(job, 'origin') : undefined}
+        />
+        <InfoRow
+          label={t('booking.to')}
+          value={getDestinationLabel(job)}
+          onPress={canNavigate(job, 'destination') ? () => openJobNavigation(job, 'destination') : undefined}
+        />
         <InfoRow label={t('jobs.pax')} value={`${job.paxCount}`} />
         <InfoRow label={t('booking.date')} value={formatDate(job.jobDate)} />
         <InfoRow label={t('jobs.pickupTime')} value={formatTime(job.pickUpTime)} />

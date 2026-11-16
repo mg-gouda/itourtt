@@ -66,5 +66,10 @@ export {
   onForegroundMessage,
   onNotificationOpened,
   setBackgroundMessageHandler,
+  // Google Maps navigation
+  openJobNavigation,
+  canNavigate,
+  navTarget,
+  googleMapsNavUrl,
 } from './native';
-export type { CapturedPhoto, GPSPosition } from './native';
+export type { CapturedPhoto, GPSPosition, NavJob, RouteEnd } from './native';

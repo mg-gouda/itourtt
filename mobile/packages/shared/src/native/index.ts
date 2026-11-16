@@ -8,6 +8,10 @@ export { openWhatsApp, sendJobWhatsApp } from './whatsapp';
 export { takePhoto, pickPhoto, captureOrPick } from './camera';
 export type { CapturedPhoto } from './camera';
 
+// Google Maps navigation (tap a job's origin / destination)
+export { openJobNavigation, canNavigate, navTarget, googleMapsNavUrl } from './navigation';
+export type { NavJob, RouteEnd } from './navigation';
+
 // Location
 export { getCurrentPosition, watchPosition, requestLocationPermission, getMapLink } from './location';
 export type { GPSPosition } from './location';

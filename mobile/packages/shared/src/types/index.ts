@@ -271,6 +271,13 @@ export interface TrafficJob {
 }
 
 // ─── Portal Job Types ───────────────────────────────────────────
+/** Coordinates the portal APIs return on a job's locations (Prisma Decimal → string). */
+export interface PortalLocationCoords {
+  latitude?: string | number | null;
+  longitude?: string | number | null;
+  address?: string | null;
+}
+
 export interface PortalJob {
   id: string;
   internalRef: string;
@@ -284,12 +291,17 @@ export interface PortalJob {
   clientMobile: string | null;
   pickUpTime: string | null;
   notes: string | null;
-  originAirport?: { id: string; name: string; code: string } | null;
-  originZone?: { id: string; name: string } | null;
-  originHotel?: { id: string; name: string } | null;
-  destinationAirport?: { id: string; name: string; code: string } | null;
-  destinationZone?: { id: string; name: string } | null;
-  destinationHotel?: { id: string; name: string } | null;
+  // latitude/longitude/address feed tap-to-navigate (native/navigation.ts).
+  originAirport?: ({ id: string; name: string; code: string } & PortalLocationCoords) | null;
+  originZone?: ({ id: string; name: string } & PortalLocationCoords) | null;
+  originHotel?: ({ id: string; name: string } & PortalLocationCoords) | null;
+  destinationAirport?: ({ id: string; name: string; code: string } & PortalLocationCoords) | null;
+  destinationZone?: ({ id: string; name: string } & PortalLocationCoords) | null;
+  destinationHotel?: ({ id: string; name: string } & PortalLocationCoords) | null;
+  pickupLat?: string | number | null;
+  pickupLng?: string | number | null;
+  dropoffLat?: string | number | null;
+  dropoffLng?: string | number | null;
   flight?: TrafficFlight;
   assignment?: TrafficAssignment;
   boosterSeat?: boolean;

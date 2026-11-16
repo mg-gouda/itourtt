@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RouteNavLink } from "@/components/route-nav-link";
+import type { NavJob } from "@/lib/maps-nav";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
 import {
@@ -122,9 +124,11 @@ interface Props {
   onClose: () => void;
   /** Override API base path. Defaults to /traffic-jobs. Portal pages pass their own base. */
   apiBase?: string;
+  /** Rep/driver portals: origin & destination open Google Maps navigation. */
+  navigable?: boolean;
 }
 
-export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traffic-jobs" }: Props) {
+export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traffic-jobs", navigable = false }: Props) {
   const t = useT();
   const canSeeComplaints = usePermission("complaints.view");
   const [job, setJob] = useState<JobDetail | null>(null);
@@ -229,8 +233,14 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
 
               {/* ── Route ── */}
               <Section title={t("dispatch.route")}>
-                <Row label={t("dispatch.origin")} value={originLabel} />
-                <Row label={t("dispatch.destination")} value={destLabel} />
+                <Row
+                  label={t("dispatch.origin")}
+                  value={navigable && job ? <RouteNavLink job={job as NavJob} end="origin">{originLabel}</RouteNavLink> : originLabel}
+                />
+                <Row
+                  label={t("dispatch.destination")}
+                  value={navigable && job ? <RouteNavLink job={job as NavJob} end="destination">{destLabel}</RouteNavLink> : destLabel}
+                />
               </Section>
 
               {/* ── Flight ── */}

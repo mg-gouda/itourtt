@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
 import { SERVICE_TYPE_COLORS, useServiceTypeLabel } from "@/lib/service-types";
+import { RouteNavLink } from "@/components/route-nav-link";
 
 interface HistoryJob {
   id: string;
@@ -235,8 +236,8 @@ export default function DriverHistoryPage() {
                         <TableCell className="text-sm">
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                            {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr;{" "}
-                            {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
+                            <RouteNavLink job={job} end="origin">{job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"}</RouteNavLink> &rarr;{" "}
+                            <RouteNavLink job={job} end="destination">{job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}</RouteNavLink>
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
@@ -309,7 +310,7 @@ export default function DriverHistoryPage() {
                   )}
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-3.5 w-3.5" />
-                    {job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"} &rarr; {job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}
+                    <RouteNavLink job={job} end="origin">{job.originAirport?.code || job.fromZone?.name || job.originZone?.name || job.originHotel?.name || "\u2014"}</RouteNavLink> &rarr; <RouteNavLink job={job} end="destination">{job.destinationAirport?.code || job.toZone?.name || job.destinationZone?.name || job.destinationHotel?.name || "\u2014"}</RouteNavLink>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-1 text-muted-foreground">

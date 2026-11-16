@@ -34,6 +34,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import JobDetailModal from "@/components/job-detail-modal";
+import { RouteNavLink } from "@/components/route-nav-link";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { InPlaceEvidenceDialog } from "@/components/in-place-evidence-dialog";
@@ -657,6 +658,7 @@ export default function RepDashboardPage() {
         open={jobDetailId !== null}
         onClose={() => setJobDetailId(null)}
         apiBase="/rep-portal/jobs"
+        navigable
       />
     </div>
   );
@@ -771,7 +773,7 @@ function JobCard({
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" />
-            {job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—"} &rarr; {job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—"}
+            <RouteNavLink job={job} end="origin">{job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—"}</RouteNavLink> &rarr; <RouteNavLink job={job} end="destination">{job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—"}</RouteNavLink>
           </span>
         </div>
 

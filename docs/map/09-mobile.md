@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**96 files**, **199 exported symbols**.
+**97 files**, **206 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -88,13 +88,13 @@ Driver's completed jobs and fees earned.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 268 lines
+`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 301 lines
 
 Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 38 | Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces. |
+| `JobDetailScreen` | function | 63 | Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces. |
 
 ### `JobsListScreen.tsx`
 
@@ -399,13 +399,13 @@ Rep's completed jobs and fees.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 244 lines
+`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 277 lines
 
 Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 35 | Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting. |
+| `JobDetailScreen` | function | 60 | Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting. |
 
 ### `JobsListScreen.tsx`
 
@@ -735,6 +735,21 @@ Native location permission and one-shot position helpers.
 | `watchPosition` | function | 95 | Native location permission and one-shot position helpers (`watchPosition`). |
 | `getMapLink` | function | 126 | Native location permission and one-shot position helpers (`getMapLink`). |
 
+### `navigation.ts`
+
+`mobile/packages/shared/src/native/navigation.ts` · 115 lines
+
+Opens Google Maps turn-by-turn navigation to a job's origin/destination from the rep/driver apps.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `NavJob` | type | 23 | Job shape the mobile navigation resolver reads (mirror of web maps-nav). |
+| `RouteEnd` | type | 38 | Which end of a job to navigate to: origin or destination. |
+| `navTarget` | function | 60 | Resolves lat,lng or search text: exact point → airport → hotel → zone → from/to zone. |
+| `googleMapsNavUrl` | function | 74 | Universal Google Maps directions link with navigation started. |
+| `openJobNavigation` | function | 89 | Android google.navigation: intent first, then the universal Google Maps link; alerts if neither opens. |
+| `canNavigate` | function | 112 | True when the job end resolves to a navigable target. |
+
 ### `phone.ts`
 
 `mobile/packages/shared/src/native/phone.ts` · 34 lines
@@ -847,7 +862,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 476 lines
+`mobile/packages/shared/src/types/index.ts` · 488 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -886,22 +901,23 @@ Shared TypeScript types for API payloads across the apps.
 | `TrafficFlight` | type | 198 | Shared TypeScript types for API payloads across the apps (`TrafficFlight`). |
 | `TrafficAssignment` | type | 208 | Shared TypeScript types for API payloads across the apps (`TrafficAssignment`). |
 | `TrafficJob` | type | 221 | Shared TypeScript types for API payloads across the apps (`TrafficJob`). |
-| `PortalJob` | type | 274 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
-| `DriverPortalJob` | type | 304 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
-| `RepPortalJob` | type | 313 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
-| `SupplierPortalJob` | type | 322 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
-| `PortalNotification` | type | 328 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
-| `PortalComplaint` | type | 343 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
-| `BookingExtras` | type | 361 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 367 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 379 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 385 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 410 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 436 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 441 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 449 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 458 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 467 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `PortalLocationCoords` | type | 275 | Optional latitude/longitude/address the portal APIs return on job locations. |
+| `PortalJob` | type | 281 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
+| `DriverPortalJob` | type | 316 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
+| `RepPortalJob` | type | 325 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
+| `SupplierPortalJob` | type | 334 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
+| `PortalNotification` | type | 340 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
+| `PortalComplaint` | type | 355 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
+| `BookingExtras` | type | 373 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 379 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 391 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 397 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 422 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 448 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 453 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 461 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 470 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 479 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 

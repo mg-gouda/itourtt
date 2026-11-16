@@ -71,13 +71,30 @@ Two other 80-minute rules are **not** this one and do not move with it: the rep'
 (`arrival −10 to +80`, ARR only) and the driver portal's "can't complete until 15 min after job
 time". Same numbers, unrelated policies.
 
+## Tap a stop to navigate
+
+In the rep/driver portals (job card, history, job-detail popup with `navigable`) and the rep/driver
+apps (job-detail From/To rows), origin and destination are links that open the **Google Maps app
+with navigation already started**. Web: `lib/maps-nav.ts` + `components/route-nav-link.tsx` build a
+universal `google.com/maps/dir/?api=1&…&dir_action=navigate` link. Apps:
+`mobile/packages/shared/src/native/navigation.ts` fires Android's `google.navigation:` intent first,
+falling back to the same universal link (iOS and Android without Google Maps). The two resolvers are
+deliberate copies — keep them in step.
+
+Target per end: exact `pickupLat/Lng` / `dropoffLat/Lng` → airport → hotel → zone → `fromZone`/`toZone`;
+coordinates where the location has them, otherwise a place-name search (so it works before geocoding).
+That needs coordinates in the response: the driver portal's slim `jobSummaryInclude` selects
+`latitude/longitude` (and airport `code`) via `NAV_*_SELECT` — trim them and the links degrade to
+name searches.
+
 ## GPS is captured but never blocks
 
 `common/geofence.util.ts` computes the target; both `checkDriverGeofence` and `checkRepGeofence`
-**log a warning and return** when the device is outside the 2 km radius. They never throw.
+**log a warning and return** when the device is outside the radius — `GEOFENCE_RADIUS_METERS`,
+**600 m** since 2026-11-16 (was 2 km). They never throw.
 
-The in-app help text claims "GPS proximity (500m radius) is required" — that is **not** what the code
-does. GPS is mandatory to *capture*, not to *match*. A location with no coordinates disables the
+The in-app help text now says the same (it used to claim "500m … required", which was never true).
+GPS is mandatory to *capture*, not to *match*. A location with no coordinates disables the
 check entirely, since `resolveDriverGeofenceTarget` returns null.
 
 ---

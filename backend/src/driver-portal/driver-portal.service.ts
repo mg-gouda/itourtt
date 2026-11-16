@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance } from '../common/geofence.util.js';
+import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance, GEOFENCE_RADIUS_METERS } from '../common/geofence.util.js';
 import {
   checkNoShowWindow,
   getNoShowAvailableFrom,
@@ -31,6 +31,11 @@ const DRIVER_VALID_TRANSITIONS: Record<string, string[]> = {
 
 const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
+// Location fields a list card needs: its label plus what Google Maps navigates to.
+const NAV_PLACE_SELECT = { name: true, latitude: true, longitude: true } as const;
+const NAV_AIRPORT_SELECT = { ...NAV_PLACE_SELECT, code: true } as const;
+const NAV_HOTEL_SELECT = { ...NAV_PLACE_SELECT, address: true } as const;
+
 @Injectable()
 export class DriverPortalService {
   private readonly logger = new Logger(DriverPortalService.name);
@@ -47,14 +52,16 @@ export class DriverPortalService {
       orderBy: { createdAt: 'asc' as const },
       select: { name: true, qty: true },
     },
-    originAirport: { select: { name: true } },
-    originZone: { select: { name: true } },
-    originHotel: { select: { name: true, zone: { select: { name: true } } } },
-    destinationAirport: { select: { name: true } },
-    destinationZone: { select: { name: true } },
-    destinationHotel: { select: { name: true, zone: { select: { name: true } } } },
-    fromZone: { select: { name: true } },
-    toZone: { select: { name: true } },
+    // Coordinates feed the tap-to-navigate route links (lib/maps-nav.ts); the
+    // airport code is what the card prints.
+    originAirport: { select: NAV_AIRPORT_SELECT },
+    originZone: { select: NAV_PLACE_SELECT },
+    originHotel: { select: { ...NAV_HOTEL_SELECT, zone: { select: NAV_PLACE_SELECT } } },
+    destinationAirport: { select: NAV_AIRPORT_SELECT },
+    destinationZone: { select: NAV_PLACE_SELECT },
+    destinationHotel: { select: { ...NAV_HOTEL_SELECT, zone: { select: NAV_PLACE_SELECT } } },
+    fromZone: { select: NAV_PLACE_SELECT },
+    toZone: { select: NAV_PLACE_SELECT },
     flight: { select: { flightNo: true, arrivalTime: true, departureTime: true } },
     // Only the NO SHOW overrides: the summary has no other use for the agent.
     agent: {
@@ -897,8 +904,8 @@ export class DriverPortalService {
       // No coordinates configured for this job's location — skip check
       return;
     }
-    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, 2000)) {
-      // Outside 2km — log for audit but do not block the driver
+    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, GEOFENCE_RADIUS_METERS)) {
+      // Outside GEOFENCE_RADIUS_METERS (600 m) — log for audit but do not block the driver
       const dist = Math.round(haversineDistance(latitude, longitude, target.lat, target.lng));
       this.logger.warn(
         `Driver geofence miss on job ${job.id}: driver at (${latitude},${longitude}) is ${dist}m from target (${target.lat},${target.lng})`,

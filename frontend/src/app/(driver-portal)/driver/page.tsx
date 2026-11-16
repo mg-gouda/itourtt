@@ -39,6 +39,7 @@ import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { CompletedEvidenceDialog } from "@/components/completed-evidence-dialog";
 import { InProgressEvidenceDialog } from "@/components/in-progress-evidence-dialog";
 import JobDetailModal from "@/components/job-detail-modal";
+import { RouteNavLink } from "@/components/route-nav-link";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
@@ -527,6 +528,7 @@ export default function DriverDashboardPage() {
         open={jobDetailId !== null}
         onClose={() => setJobDetailId(null)}
         apiBase="/driver-portal/jobs"
+        navigable
       />
     </div>
   );
@@ -638,7 +640,7 @@ function DriverJobCard({
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <MapPin className="h-3.5 w-3.5" />
-            {job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—"} &rarr; {job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—"}
+            <RouteNavLink job={job} end="origin">{job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—"}</RouteNavLink> &rarr; <RouteNavLink job={job} end="destination">{job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—"}</RouteNavLink>
           </span>
         </div>
 
