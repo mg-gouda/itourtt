@@ -776,21 +776,21 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DriverJobScore` | model | `backend/prisma/schema.prisma:2187` |
 | `DriverNotification` | model | `backend/prisma/schema.prisma:2003` |
 | `driverPortalApi` | const | `mobile/packages/shared/src/api/endpoints/driver-portal.ts:4` |
-| `DriverPortalController` | class | `backend/src/driver-portal/driver-portal.controller.ts:73` |
-| `DriverPortalController.getComplaints` | method | `backend/src/driver-portal/driver-portal.controller.ts:223` |
-| `DriverPortalController.getJobDetail` | method | `backend/src/driver-portal/driver-portal.controller.ts:104` |
-| `DriverPortalController.getJobHistory` | method | `backend/src/driver-portal/driver-portal.controller.ts:89` |
-| `DriverPortalController.getMyJobs` | method | `backend/src/driver-portal/driver-portal.controller.ts:80` |
-| `DriverPortalController.getNotifications` | method | `backend/src/driver-portal/driver-portal.controller.ts:229` |
-| `DriverPortalController.getProfile` | method | `backend/src/driver-portal/driver-portal.controller.ts:250` |
-| `DriverPortalController.markAllRead` | method | `backend/src/driver-portal/driver-portal.controller.ts:244` |
-| `DriverPortalController.markCollected` | method | `backend/src/driver-portal/driver-portal.controller.ts:129` |
-| `DriverPortalController.markNotificationRead` | method | `backend/src/driver-portal/driver-portal.controller.ts:235` |
-| `DriverPortalController.submitCompleted` | method | `backend/src/driver-portal/driver-portal.controller.ts:196` |
-| `DriverPortalController.submitInProgress` | method | `backend/src/driver-portal/driver-portal.controller.ts:168` |
-| `DriverPortalController.submitNoShow` | method | `backend/src/driver-portal/driver-portal.controller.ts:140` |
-| `DriverPortalController.updateJobStatus` | method | `backend/src/driver-portal/driver-portal.controller.ts:113` |
-| `DriverPortalController.uploadFiles` | method | `backend/src/driver-portal/driver-portal.controller.ts:259` |
+| `DriverPortalController` | class | `backend/src/driver-portal/driver-portal.controller.ts:77` |
+| `DriverPortalController.getComplaints` | method | `backend/src/driver-portal/driver-portal.controller.ts:227` |
+| `DriverPortalController.getJobDetail` | method | `backend/src/driver-portal/driver-portal.controller.ts:108` |
+| `DriverPortalController.getJobHistory` | method | `backend/src/driver-portal/driver-portal.controller.ts:93` |
+| `DriverPortalController.getMyJobs` | method | `backend/src/driver-portal/driver-portal.controller.ts:84` |
+| `DriverPortalController.getNotifications` | method | `backend/src/driver-portal/driver-portal.controller.ts:233` |
+| `DriverPortalController.getProfile` | method | `backend/src/driver-portal/driver-portal.controller.ts:254` |
+| `DriverPortalController.markAllRead` | method | `backend/src/driver-portal/driver-portal.controller.ts:248` |
+| `DriverPortalController.markCollected` | method | `backend/src/driver-portal/driver-portal.controller.ts:133` |
+| `DriverPortalController.markNotificationRead` | method | `backend/src/driver-portal/driver-portal.controller.ts:239` |
+| `DriverPortalController.submitCompleted` | method | `backend/src/driver-portal/driver-portal.controller.ts:200` |
+| `DriverPortalController.submitInProgress` | method | `backend/src/driver-portal/driver-portal.controller.ts:172` |
+| `DriverPortalController.submitNoShow` | method | `backend/src/driver-portal/driver-portal.controller.ts:144` |
+| `DriverPortalController.updateJobStatus` | method | `backend/src/driver-portal/driver-portal.controller.ts:117` |
+| `DriverPortalController.uploadFiles` | method | `backend/src/driver-portal/driver-portal.controller.ts:263` |
 | `DriverPortalJob` | type | `mobile/packages/shared/src/types/index.ts:316` |
 | `DriverPortalLayout` | function | `frontend/src/app/(driver-portal)/layout.tsx:28` |
 | `DriverPortalModule` | class | `backend/src/driver-portal/driver-portal.module.ts:16` |
@@ -1200,12 +1200,12 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `GET /api/dispatch/available-suppliers` | endpoint | `backend/src/dispatch/dispatch.controller.ts:75` |
 | `GET /api/dispatch/available-vehicles` | endpoint | `backend/src/dispatch/dispatch.controller.ts:81` |
 | `GET /api/dispatch/day` | endpoint | `backend/src/dispatch/dispatch.controller.ts:33` |
-| `GET /api/driver-portal/complaints` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:223` |
-| `GET /api/driver-portal/jobs` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:80` |
-| `GET /api/driver-portal/jobs/:jobId` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:104` |
-| `GET /api/driver-portal/jobs/history` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:89` |
-| `GET /api/driver-portal/notifications` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:229` |
-| `GET /api/driver-portal/profile` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:250` |
+| `GET /api/driver-portal/complaints` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:227` |
+| `GET /api/driver-portal/jobs` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:84` |
+| `GET /api/driver-portal/jobs/:jobId` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:108` |
+| `GET /api/driver-portal/jobs/history` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:93` |
+| `GET /api/driver-portal/notifications` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:233` |
+| `GET /api/driver-portal/profile` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:254` |
 | `GET /api/driver-tariffs` | endpoint | `backend/src/driver-tariffs/driver-tariffs.controller.ts:39` |
 | `GET /api/driver-tariffs/import/template` | endpoint | `backend/src/driver-tariffs/driver-tariffs.controller.ts:46` |
 | `GET /api/drivers` | endpoint | `backend/src/drivers/drivers.controller.ts:63` |
@@ -1307,14 +1307,14 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `GET /api/permissions/roles/:id` | endpoint | `backend/src/permissions/permissions.controller.ts:52` |
 | `GET /api/public-prices` | endpoint | `backend/src/public-prices/public-prices.controller.ts:39` |
 | `GET /api/public-prices/export/template` | endpoint | `backend/src/public-prices/public-prices.controller.ts:46` |
-| `GET /api/push/web/public-key` | endpoint | `backend/src/push-notifications/web-push.controller.ts:67` |
-| `GET /api/rep-portal/complaints` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:293` |
-| `GET /api/rep-portal/jobs` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:119` |
-| `GET /api/rep-portal/jobs/:jobId` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:139` |
-| `GET /api/rep-portal/jobs/:jobId/survey` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:220` |
-| `GET /api/rep-portal/jobs/history` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:128` |
-| `GET /api/rep-portal/notifications` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:299` |
-| `GET /api/rep-portal/profile` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:320` |
+| `GET /api/push/web/public-key` | endpoint | `backend/src/push-notifications/web-push.controller.ts:68` |
+| `GET /api/rep-portal/complaints` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:297` |
+| `GET /api/rep-portal/jobs` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:123` |
+| `GET /api/rep-portal/jobs/:jobId` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:143` |
+| `GET /api/rep-portal/jobs/:jobId/survey` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:224` |
+| `GET /api/rep-portal/jobs/history` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:132` |
+| `GET /api/rep-portal/notifications` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:303` |
+| `GET /api/rep-portal/profile` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:324` |
 | `GET /api/reports/agent-statement/:agentId` | endpoint | `backend/src/reports/reports.controller.ts:254` |
 | `GET /api/reports/complaints` | endpoint | `backend/src/reports/reports.controller.ts:342` |
 | `GET /api/reports/daily-dispatch` | endpoint | `backend/src/reports/reports.controller.ts:219` |
@@ -1346,9 +1346,9 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `GET /api/settings/license-status` | endpoint | `backend/src/settings/settings.controller.ts:146` |
 | `GET /api/settings/system` | endpoint | `backend/src/settings/settings.controller.ts:80` |
 | `GET /api/settings/website` | endpoint | `backend/src/settings/settings.controller.ts:271` |
-| `GET /api/supplier-portal/jobs` | endpoint | `backend/src/supplier-portal/supplier-portal.controller.ts:37` |
-| `GET /api/supplier-portal/jobs/:jobId` | endpoint | `backend/src/supplier-portal/supplier-portal.controller.ts:46` |
-| `GET /api/supplier-portal/profile` | endpoint | `backend/src/supplier-portal/supplier-portal.controller.ts:65` |
+| `GET /api/supplier-portal/jobs` | endpoint | `backend/src/supplier-portal/supplier-portal.controller.ts:41` |
+| `GET /api/supplier-portal/jobs/:jobId` | endpoint | `backend/src/supplier-portal/supplier-portal.controller.ts:50` |
+| `GET /api/supplier-portal/profile` | endpoint | `backend/src/supplier-portal/supplier-portal.controller.ts:69` |
 | `GET /api/suppliers` | endpoint | `backend/src/suppliers/suppliers.controller.ts:41` |
 | `GET /api/suppliers/:id` | endpoint | `backend/src/suppliers/suppliers.controller.ts:104` |
 | `GET /api/suppliers/:id/car-types` | endpoint | `backend/src/suppliers/suppliers.controller.ts:482` |
@@ -1901,10 +1901,10 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `PATCH /api/customers/:id` | endpoint | `backend/src/customers/customers.controller.ts:109` |
 | `PATCH /api/customers/:id/status` | endpoint | `backend/src/customers/customers.controller.ts:120` |
 | `PATCH /api/dispatch/assignments/:id` | endpoint | `backend/src/dispatch/dispatch.controller.ts:51` |
-| `PATCH /api/driver-portal/jobs/:jobId/collection` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:129` |
-| `PATCH /api/driver-portal/jobs/:jobId/status` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:113` |
-| `PATCH /api/driver-portal/notifications/:id/read` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:235` |
-| `PATCH /api/driver-portal/notifications/read-all` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:244` |
+| `PATCH /api/driver-portal/jobs/:jobId/collection` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:133` |
+| `PATCH /api/driver-portal/jobs/:jobId/status` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:117` |
+| `PATCH /api/driver-portal/notifications/:id/read` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:239` |
+| `PATCH /api/driver-portal/notifications/read-all` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:248` |
 | `PATCH /api/drivers/:id` | endpoint | `backend/src/drivers/drivers.controller.ts:128` |
 | `PATCH /api/drivers/:id/account/password` | endpoint | `backend/src/drivers/drivers.controller.ts:201` |
 | `PATCH /api/drivers/:id/status` | endpoint | `backend/src/drivers/drivers.controller.ts:161` |
@@ -1925,10 +1925,10 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `PATCH /api/notifications/read-all` | endpoint | `backend/src/notifications/notifications.controller.ts:35` |
 | `PATCH /api/permissions/roles/:id` | endpoint | `backend/src/permissions/permissions.controller.ts:66` |
 | `PATCH /api/public-prices/:id` | endpoint | `backend/src/public-prices/public-prices.controller.ts:64` |
-| `PATCH /api/rep-portal/jobs/:jobId/flight-delay` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:267` |
-| `PATCH /api/rep-portal/jobs/:jobId/status` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:148` |
-| `PATCH /api/rep-portal/notifications/:id/read` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:305` |
-| `PATCH /api/rep-portal/notifications/read-all` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:314` |
+| `PATCH /api/rep-portal/jobs/:jobId/flight-delay` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:271` |
+| `PATCH /api/rep-portal/jobs/:jobId/status` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:152` |
+| `PATCH /api/rep-portal/notifications/:id/read` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:309` |
+| `PATCH /api/rep-portal/notifications/read-all` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:318` |
 | `PATCH /api/reps/:id` | endpoint | `backend/src/reps/reps.controller.ts:128` |
 | `PATCH /api/reps/:id/account/password` | endpoint | `backend/src/reps/reps.controller.ts:201` |
 | `PATCH /api/reps/:id/status` | endpoint | `backend/src/reps/reps.controller.ts:139` |
@@ -1938,7 +1938,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `PATCH /api/settings/google-drive` | endpoint | `backend/src/settings/settings.controller.ts:352` |
 | `PATCH /api/settings/system` | endpoint | `backend/src/settings/settings.controller.ts:92` |
 | `PATCH /api/settings/website` | endpoint | `backend/src/settings/settings.controller.ts:283` |
-| `PATCH /api/supplier-portal/jobs/:jobId/complete` | endpoint | `backend/src/supplier-portal/supplier-portal.controller.ts:55` |
+| `PATCH /api/supplier-portal/jobs/:jobId/complete` | endpoint | `backend/src/supplier-portal/supplier-portal.controller.ts:59` |
 | `PATCH /api/suppliers/:id/account/password` | endpoint | `backend/src/suppliers/suppliers.controller.ts:446` |
 | `PATCH /api/suppliers/:id/drivers/:driverId/status` | endpoint | `backend/src/suppliers/suppliers.controller.ts:270` |
 | `PATCH /api/suppliers/:id/status` | endpoint | `backend/src/suppliers/suppliers.controller.ts:120` |
@@ -2076,9 +2076,9 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `POST /api/dispatch/assign` | endpoint | `backend/src/dispatch/dispatch.controller.ts:39` |
 | `POST /api/dispatch/jobs/:id/lock` | endpoint | `backend/src/dispatch/dispatch.controller.ts:123` |
 | `POST /api/dispatch/jobs/:id/unlock` | endpoint | `backend/src/dispatch/dispatch.controller.ts:113` |
-| `POST /api/driver-portal/jobs/:jobId/completed` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:196` |
-| `POST /api/driver-portal/jobs/:jobId/in-progress` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:168` |
-| `POST /api/driver-portal/jobs/:jobId/no-show` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:140` |
+| `POST /api/driver-portal/jobs/:jobId/completed` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:200` |
+| `POST /api/driver-portal/jobs/:jobId/in-progress` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:172` |
+| `POST /api/driver-portal/jobs/:jobId/no-show` | endpoint | `backend/src/driver-portal/driver-portal.controller.ts:144` |
 | `POST /api/driver-tariffs` | endpoint | `backend/src/driver-tariffs/driver-tariffs.controller.ts:74` |
 | `POST /api/driver-tariffs/import/excel` | endpoint | `backend/src/driver-tariffs/driver-tariffs.controller.ts:60` |
 | `POST /api/drivers` | endpoint | `backend/src/drivers/drivers.controller.ts:113` |
@@ -2129,13 +2129,13 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `POST /api/permissions/roles` | endpoint | `backend/src/permissions/permissions.controller.ts:59` |
 | `POST /api/permissions/seed` | endpoint | `backend/src/permissions/permissions.controller.ts:91` |
 | `POST /api/public-prices/bulk` | endpoint | `backend/src/public-prices/public-prices.controller.ts:56` |
-| `POST /api/push/web/subscribe` | endpoint | `backend/src/push-notifications/web-push.controller.ts:74` |
-| `POST /api/push/web/unsubscribe` | endpoint | `backend/src/push-notifications/web-push.controller.ts:85` |
-| `POST /api/rep-portal/jobs/:jobId/completed` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:240` |
-| `POST /api/rep-portal/jobs/:jobId/in-place` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:193` |
-| `POST /api/rep-portal/jobs/:jobId/no-show` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:165` |
-| `POST /api/rep-portal/jobs/:jobId/survey` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:229` |
-| `POST /api/rep-portal/jobs/:jobId/update` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:280` |
+| `POST /api/push/web/subscribe` | endpoint | `backend/src/push-notifications/web-push.controller.ts:75` |
+| `POST /api/push/web/unsubscribe` | endpoint | `backend/src/push-notifications/web-push.controller.ts:86` |
+| `POST /api/rep-portal/jobs/:jobId/completed` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:244` |
+| `POST /api/rep-portal/jobs/:jobId/in-place` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:197` |
+| `POST /api/rep-portal/jobs/:jobId/no-show` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:169` |
+| `POST /api/rep-portal/jobs/:jobId/survey` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:233` |
+| `POST /api/rep-portal/jobs/:jobId/update` | endpoint | `backend/src/rep-portal/rep-portal.controller.ts:284` |
 | `POST /api/reps` | endpoint | `backend/src/reps/reps.controller.ts:113` |
 | `POST /api/reps/:id/account` | endpoint | `backend/src/reps/reps.controller.ts:190` |
 | `POST /api/reps/:id/attachment` | endpoint | `backend/src/reps/reps.controller.ts:178` |
@@ -2334,24 +2334,24 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ReportsService.zonesAnalyticsReport` | method | `backend/src/reports/reports.service.ts:1692` |
 | `ReportsSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:245` |
 | `repPortalApi` | const | `mobile/packages/shared/src/api/endpoints/rep-portal.ts:4` |
-| `RepPortalController` | class | `backend/src/rep-portal/rep-portal.controller.ts:112` |
-| `RepPortalController.getComplaints` | method | `backend/src/rep-portal/rep-portal.controller.ts:293` |
-| `RepPortalController.getGuestSurvey` | method | `backend/src/rep-portal/rep-portal.controller.ts:220` |
-| `RepPortalController.getJobDetail` | method | `backend/src/rep-portal/rep-portal.controller.ts:139` |
-| `RepPortalController.getJobHistory` | method | `backend/src/rep-portal/rep-portal.controller.ts:128` |
-| `RepPortalController.getMyJobs` | method | `backend/src/rep-portal/rep-portal.controller.ts:119` |
-| `RepPortalController.getNotifications` | method | `backend/src/rep-portal/rep-portal.controller.ts:299` |
-| `RepPortalController.getProfile` | method | `backend/src/rep-portal/rep-portal.controller.ts:320` |
-| `RepPortalController.markAllRead` | method | `backend/src/rep-portal/rep-portal.controller.ts:314` |
-| `RepPortalController.markNotificationRead` | method | `backend/src/rep-portal/rep-portal.controller.ts:305` |
-| `RepPortalController.submitCompleted` | method | `backend/src/rep-portal/rep-portal.controller.ts:240` |
-| `RepPortalController.submitFlightDelay` | method | `backend/src/rep-portal/rep-portal.controller.ts:267` |
-| `RepPortalController.submitGuestSurvey` | method | `backend/src/rep-portal/rep-portal.controller.ts:229` |
-| `RepPortalController.submitInPlace` | method | `backend/src/rep-portal/rep-portal.controller.ts:193` |
-| `RepPortalController.submitNoShow` | method | `backend/src/rep-portal/rep-portal.controller.ts:165` |
-| `RepPortalController.submitUpdate` | method | `backend/src/rep-portal/rep-portal.controller.ts:280` |
-| `RepPortalController.updateJobStatus` | method | `backend/src/rep-portal/rep-portal.controller.ts:148` |
-| `RepPortalController.uploadFiles` | method | `backend/src/rep-portal/rep-portal.controller.ts:329` |
+| `RepPortalController` | class | `backend/src/rep-portal/rep-portal.controller.ts:116` |
+| `RepPortalController.getComplaints` | method | `backend/src/rep-portal/rep-portal.controller.ts:297` |
+| `RepPortalController.getGuestSurvey` | method | `backend/src/rep-portal/rep-portal.controller.ts:224` |
+| `RepPortalController.getJobDetail` | method | `backend/src/rep-portal/rep-portal.controller.ts:143` |
+| `RepPortalController.getJobHistory` | method | `backend/src/rep-portal/rep-portal.controller.ts:132` |
+| `RepPortalController.getMyJobs` | method | `backend/src/rep-portal/rep-portal.controller.ts:123` |
+| `RepPortalController.getNotifications` | method | `backend/src/rep-portal/rep-portal.controller.ts:303` |
+| `RepPortalController.getProfile` | method | `backend/src/rep-portal/rep-portal.controller.ts:324` |
+| `RepPortalController.markAllRead` | method | `backend/src/rep-portal/rep-portal.controller.ts:318` |
+| `RepPortalController.markNotificationRead` | method | `backend/src/rep-portal/rep-portal.controller.ts:309` |
+| `RepPortalController.submitCompleted` | method | `backend/src/rep-portal/rep-portal.controller.ts:244` |
+| `RepPortalController.submitFlightDelay` | method | `backend/src/rep-portal/rep-portal.controller.ts:271` |
+| `RepPortalController.submitGuestSurvey` | method | `backend/src/rep-portal/rep-portal.controller.ts:233` |
+| `RepPortalController.submitInPlace` | method | `backend/src/rep-portal/rep-portal.controller.ts:197` |
+| `RepPortalController.submitNoShow` | method | `backend/src/rep-portal/rep-portal.controller.ts:169` |
+| `RepPortalController.submitUpdate` | method | `backend/src/rep-portal/rep-portal.controller.ts:284` |
+| `RepPortalController.updateJobStatus` | method | `backend/src/rep-portal/rep-portal.controller.ts:152` |
+| `RepPortalController.uploadFiles` | method | `backend/src/rep-portal/rep-portal.controller.ts:333` |
 | `RepPortalJob` | type | `mobile/packages/shared/src/types/index.ts:325` |
 | `RepPortalLayout` | function | `frontend/src/app/(rep-portal)/layout.tsx:28` |
 | `RepPortalModule` | class | `backend/src/rep-portal/rep-portal.module.ts:14` |
@@ -2648,11 +2648,11 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `SupplierDetailPage` | function | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx:32` |
 | `SupplierJobsPage` | function | `frontend/src/app/(supplier-portal)/supplier/page.tsx:49` |
 | `supplierPortalApi` | const | `mobile/packages/shared/src/api/endpoints/supplier-portal.ts:4` |
-| `SupplierPortalController` | class | `backend/src/supplier-portal/supplier-portal.controller.ts:33` |
-| `SupplierPortalController.completeJob` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:55` |
-| `SupplierPortalController.getJobDetail` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:46` |
-| `SupplierPortalController.getMyJobs` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:37` |
-| `SupplierPortalController.getProfile` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:65` |
+| `SupplierPortalController` | class | `backend/src/supplier-portal/supplier-portal.controller.ts:37` |
+| `SupplierPortalController.completeJob` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:59` |
+| `SupplierPortalController.getJobDetail` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:50` |
+| `SupplierPortalController.getMyJobs` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:41` |
+| `SupplierPortalController.getProfile` | method | `backend/src/supplier-portal/supplier-portal.controller.ts:69` |
 | `SupplierPortalJob` | type | `mobile/packages/shared/src/types/index.ts:334` |
 | `SupplierPortalLayout` | function | `frontend/src/app/(supplier-portal)/layout.tsx:14` |
 | `SupplierPortalModule` | class | `backend/src/supplier-portal/supplier-portal.module.ts:9` |
@@ -3046,10 +3046,10 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | Symbol | Kind | Location |
 |---|---|---|
 | `watchPosition` | function | `mobile/packages/shared/src/native/location.ts:95` |
-| `WebPushController` | class | `backend/src/push-notifications/web-push.controller.ts:62` |
-| `WebPushController.publicKey` | method | `backend/src/push-notifications/web-push.controller.ts:67` |
-| `WebPushController.subscribe` | method | `backend/src/push-notifications/web-push.controller.ts:74` |
-| `WebPushController.unsubscribe` | method | `backend/src/push-notifications/web-push.controller.ts:85` |
+| `WebPushController` | class | `backend/src/push-notifications/web-push.controller.ts:63` |
+| `WebPushController.publicKey` | method | `backend/src/push-notifications/web-push.controller.ts:68` |
+| `WebPushController.subscribe` | method | `backend/src/push-notifications/web-push.controller.ts:75` |
+| `WebPushController.unsubscribe` | method | `backend/src/push-notifications/web-push.controller.ts:86` |
 | `WebPushPayload` | type | `backend/src/push-notifications/web-push.service.ts:6` |
 | `WebPushService` | class | `backend/src/push-notifications/web-push.service.ts:21` |
 | `WebPushService.getPublicKey` | method | `backend/src/push-notifications/web-push.service.ts:47` |

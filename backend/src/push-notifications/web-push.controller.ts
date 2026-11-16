@@ -12,6 +12,7 @@ import type { Request } from 'express';
 import { IsString, IsUrl, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
@@ -57,7 +58,7 @@ function portalOnly(user: Caller) {
 
 /** Browser push subscriptions for the rep/driver web portals. */
 @Controller('push/web')
-@UseGuards(RolesGuard)
+@UseGuards(RolesGuard, PermissionsGuard)
 @Roles('REP', 'DRIVER')
 export class WebPushController {
   constructor(private readonly webPush: WebPushService) {}

@@ -392,7 +392,12 @@ location's lat/lng changes who can update status from where.
 - Job extras live in the `TrafficJobExtra` relation, so they are **not** returned unless you load them. Every query that feeds the dispatch grid or the job-detail modal (dispatch day view, rep/driver/supplier portal list and detail) must include `jobExtras`, or extras silently vanish from the screen.
 - `PermissionsGuard` caches each user's permission set **statically for 5 minutes**. Code that
   changes roles or permissions must invalidate it, or the change appears not to apply.
-- `RolesGuard` is legacy and yields to `PermissionsGuard` whenever the user has a `roleId`.
+- `RolesGuard` is legacy and yields to `PermissionsGuard` whenever the user has a `roleId` — i.e.
+  for **every staff user**. So `@UseGuards(RolesGuard)` + `@Roles('DRIVER')` on its own does **not**
+  keep staff out. `PermissionsGuard` is what enforces `@Roles` (it compares against the account's
+  role enum when no `@Permissions` is set), so a role-restricted controller must use **both**. Until
+  2026-11-16 the driver, rep and supplier portal controllers used `RolesGuard` alone and any staff
+  token could call them (the services then 403'd for want of a linked profile).
 - The partner API authenticates by **shared API key**, not JWT — the only controller that does.
 - REP/DRIVER logins are **single-device**: a second device gets 409 and **only the super-admin
   (`mggouda@gmail.com`, `common/utils/super-admin.util.ts`) is notified** — the blocked-login alert is

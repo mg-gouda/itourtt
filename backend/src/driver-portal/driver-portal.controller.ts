@@ -21,6 +21,7 @@ import { DriverPortalService } from './driver-portal.service.js';
 import { GoogleDriveService } from '../google-drive/google-drive.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
@@ -66,8 +67,11 @@ class DateQueryDto {
   date?: string;
 }
 
+// RolesGuard alone yields to the permission system for any user with a
+// roleId (i.e. every staff user), so it does not keep staff out of a portal.
+// PermissionsGuard enforces @Roles against the account's role for everyone.
 @Controller('driver-portal')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles('DRIVER')
 @UseInterceptors(RecordLocationInterceptor)
 export class DriverPortalController {
