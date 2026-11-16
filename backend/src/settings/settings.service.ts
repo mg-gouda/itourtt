@@ -2,6 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
+import { UpdateGeofenceSettingsDto } from './dto/update-geofence-settings.dto.js';
+import {
+  DEFAULT_GEOFENCE_RADII,
+  getGeofenceRadii,
+  type GeofenceRadii,
+} from '../common/geofence.util.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
 import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto.js';
 import { UpdateGoogleDriveSettingsDto } from './dto/update-google-drive-settings.dto.js';
@@ -50,6 +56,8 @@ const COMPANY_DEFAULTS = {
   // Mirrors the column defaults, for a database with no row written yet.
   noShowWaitStandardMinutes: 80,
   noShowWaitDepMinutes: 15,
+  geofenceAirportMeters: DEFAULT_GEOFENCE_RADII.airportMeters,
+  geofenceOtherMeters: DEFAULT_GEOFENCE_RADII.otherMeters,
 };
 
 const WEBSITE_DEFAULTS = {
@@ -192,6 +200,28 @@ export class SettingsService {
           dto.noShowWaitDepMinutes ?? COMPANY_DEFAULTS.noShowWaitDepMinutes,
       },
     });
+  }
+
+  // ──────────────────────────────────────────────
+  // GEOFENCE RADII (System Parameters › Locations)
+  // ──────────────────────────────────────────────
+
+  async getGeofenceSettings(): Promise<GeofenceRadii> {
+    return getGeofenceRadii(this.prisma);
+  }
+
+  async updateGeofenceSettings(dto: UpdateGeofenceSettingsDto): Promise<GeofenceRadii> {
+    const data: { geofenceAirportMeters?: number; geofenceOtherMeters?: number } = {};
+    if (dto.airportMeters !== undefined) data.geofenceAirportMeters = dto.airportMeters;
+    if (dto.otherMeters !== undefined) data.geofenceOtherMeters = dto.otherMeters;
+
+    const existing = await this.prisma.companySettings.findFirst({ select: { id: true } });
+    if (existing) {
+      await this.prisma.companySettings.update({ where: { id: existing.id }, data });
+    } else {
+      await this.prisma.companySettings.create({ data });
+    }
+    return getGeofenceRadii(this.prisma);
   }
 
   // ──────────────────────────────────────────────

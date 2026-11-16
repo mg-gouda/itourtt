@@ -1,6 +1,10 @@
 /** One rep or driver as returned by GET /tracking/reps | /tracking/drivers. */
+export type TrackedRole = "REP" | "DRIVER";
+
 export interface TrackedPerson {
   id: string;
+  /** Rep or driver — on Overall Tracking reps are round markers, drivers square. */
+  role: TrackedRole;
   name: string;
   mobileNumber: string;
   hasAccount: boolean;

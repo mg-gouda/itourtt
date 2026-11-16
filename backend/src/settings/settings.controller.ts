@@ -15,6 +15,7 @@ import * as fs from 'fs';
 import { SettingsService } from './settings.service.js';
 import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto.js';
 import { UpdateCompanySettingsDto } from './dto/update-company-settings.dto.js';
+import { UpdateGeofenceSettingsDto } from './dto/update-geofence-settings.dto.js';
 import { UpdateEmailSettingsDto } from './dto/update-email-settings.dto.js';
 import { UpdateWebsiteSettingsDto } from './dto/update-website-settings.dto.js';
 import { UpdateGoogleDriveSettingsDto, GoogleDriveAuthUrlDto, GoogleDriveExchangeCodeDto } from './dto/update-google-drive-settings.dto.js';
@@ -51,6 +52,25 @@ export class SettingsController {
     private readonly emailService: EmailService,
     private readonly googleDriveService: GoogleDriveService,
   ) {}
+
+  // ──────────────────────────────────────────────
+  // GET/PATCH /settings/geofence — rep/driver status geofence radii
+  // (System Parameters › Locations)
+  // ──────────────────────────────────────────────
+
+  @Get('geofence')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Permissions('locations')
+  async getGeofenceSettings() {
+    return this.settingsService.getGeofenceSettings();
+  }
+
+  @Patch('geofence')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Permissions('locations.geofenceEdit')
+  async updateGeofenceSettings(@Body() dto: UpdateGeofenceSettingsDto) {
+    return this.settingsService.updateGeofenceSettings(dto);
+  }
 
   // ──────────────────────────────────────────────
   // GET /settings/system — retrieve system settings

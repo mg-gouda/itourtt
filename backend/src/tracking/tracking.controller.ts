@@ -72,4 +72,11 @@ export class TrackingController {
   async drivers(@Query() query: TrackingQueryDto) {
     return new ApiResponse(await this.trackingService.listDrivers(query.search));
   }
+
+  /** Overall Tracking map: reps and drivers together (each row carries its role). */
+  @Get('all')
+  @Permissions('overall-tracking')
+  async all(@Query() query: TrackingQueryDto) {
+    return new ApiResponse(await this.trackingService.listAll(query.search));
+  }
 }

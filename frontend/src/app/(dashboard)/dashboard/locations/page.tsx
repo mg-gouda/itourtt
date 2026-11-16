@@ -24,6 +24,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { GeofenceSettingsCard } from "@/components/geofence-settings-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -832,6 +833,9 @@ export default function LocationsPage() {
           </div>
         </Card>
       )}
+
+      {/* Rep/driver status geofence radii */}
+      <GeofenceSettingsCard />
 
       {/* Search filter */}
       <div className="relative">

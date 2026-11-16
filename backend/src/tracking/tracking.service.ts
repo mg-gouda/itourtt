@@ -23,6 +23,8 @@ export function isValidCoord(lat: unknown, lng: unknown): boolean {
 export interface TrackedPerson {
   /** Rep.id or Driver.id */
   id: string;
+  /** Which list this person came from (drives the marker shape on Overall Tracking). */
+  role: TrackedRole;
   name: string;
   mobileNumber: string;
   /** Portal account linked? Without one the person can never report a location. */
@@ -119,6 +121,7 @@ export class TrackingService {
         })
       : [];
     return this.assemble(
+      'REP',
       reps,
       assignments.map((a) => ({ ownerId: a.repId!, legStatus: a.repStatus, job: a.trafficJob })),
     );
@@ -143,9 +146,16 @@ export class TrackingService {
         })
       : [];
     return this.assemble(
+      'DRIVER',
       drivers,
       assignments.map((a) => ({ ownerId: a.driverId!, legStatus: a.driverStatus, job: a.trafficJob })),
     );
+  }
+
+  /** Overall Tracking: every active rep and driver on one map. */
+  async listAll(search?: string): Promise<TrackedPerson[]> {
+    const [reps, drivers] = await Promise.all([this.listReps(search), this.listDrivers(search)]);
+    return [...reps, ...drivers];
   }
 
   // ─── internals ───
@@ -165,6 +175,7 @@ export class TrackingService {
   }
 
   private async assemble(
+    role: TrackedRole,
     people: { id: string; name: string; mobileNumber: string; userId: string | null }[],
     jobs: {
       ownerId: string;
@@ -218,6 +229,7 @@ export class TrackingService {
       const loc = p.userId ? locByUser.get(p.userId) : undefined;
       return {
         id: p.id,
+        role,
         name: p.name,
         mobileNumber: p.mobileNumber,
         hasAccount: !!p.userId,

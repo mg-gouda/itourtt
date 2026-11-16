@@ -3,8 +3,10 @@
  *
  * Every rep/driver status update carries a mandatory GPS fix. Since 2026-11-16
  * it is ENFORCED: a fix more than the target's radius from where that status
- * happens is rejected (403) — AIRPORT_GEOFENCE_RADIUS_METERS (2 km) for an
- * airport, GEOFENCE_RADIUS_METERS (600 m) for anything else — but only when that place is a precise point (an
+ * happens is rejected (403). The radii are company settings, edited from
+ * System Parameters › Locations: one for an airport target
+ * (CompanySettings.geofenceAirportMeters) and one for anything else
+ * (CompanySettings.geofenceOtherMeters) — but only when that place is a precise point (an
  * exact pickup/drop-off pin, an airport, or a hotel with coordinates). A zone
  * centroid covers a whole area, so a miss against one is logged, never blocked.
  * The per-leg admin unlock (`driverUnlockedAt` / `repUnlockedAt`) bypasses it,
@@ -15,18 +17,27 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 
 const EARTH_RADIUS_METERS = 6_371_000;
 
-/**
- * How close (metres) a rep/driver's captured GPS must be to the job location
- * when they stamp a status. Was 2 km (log-only); 600 m and enforced since
- * 2026-11-16.
- */
-export const GEOFENCE_RADIUS_METERS = 600;
+/** The two geofence radii, in metres. */
+export interface GeofenceRadii {
+  airportMeters: number;
+  otherMeters: number;
+}
 
 /**
- * Radius (metres) when the target is an airport — terminals, car parks and
- * meeting points spread far wider than a hotel. 2 km since 2026-11-16.
+ * Only used when no company_settings row exists yet; mirrors the column
+ * defaults. The live values are read from CompanySettings on every check.
  */
-export const AIRPORT_GEOFENCE_RADIUS_METERS = 2_000;
+export const DEFAULT_GEOFENCE_RADII: GeofenceRadii = { airportMeters: 2000, otherMeters: 600 };
+
+/** The configured radii (System Parameters › Locations). */
+export async function getGeofenceRadii(prisma: PrismaService): Promise<GeofenceRadii> {
+  const s = await prisma.companySettings.findFirst({
+    select: { geofenceAirportMeters: true, geofenceOtherMeters: true },
+  });
+  return s
+    ? { airportMeters: s.geofenceAirportMeters, otherMeters: s.geofenceOtherMeters }
+    : DEFAULT_GEOFENCE_RADII;
+}
 
 const logger = new Logger('Geofence');
 
@@ -56,7 +67,7 @@ export function isWithinGeofence(
   lng1: number,
   lat2: number,
   lng2: number,
-  radiusMeters = GEOFENCE_RADIUS_METERS,
+  radiusMeters: number,
 ): boolean {
   return haversineDistance(lat1, lng1, lat2, lng2) <= radiusMeters;
 }
@@ -92,8 +103,8 @@ export interface GeofenceTarget {
   label: string;
   /** A point (pin / airport / hotel) — enforceable. False for a zone centroid. */
   precise: boolean;
-  /** Allowed distance in metres: 2 km for an airport, 600 m otherwise. */
-  radiusMeters: number;
+  /** Airport targets use the airport radius; everything else the other one. */
+  isAirport: boolean;
 }
 
 function toCoord(lat: unknown, lng: unknown): { lat: number; lng: number } | null {
@@ -108,15 +119,15 @@ function fromLocation(
   loc: GeofenceLocation | null | undefined,
   precise: boolean,
   fallbackLabel: string,
-  radiusMeters = GEOFENCE_RADIUS_METERS,
+  isAirport = false,
 ): GeofenceTarget | null {
   if (!loc) return null;
   const c = toCoord(loc.latitude, loc.longitude);
-  return c ? { ...c, label: loc.name || fallbackLabel, precise, radiusMeters } : null;
+  return c ? { ...c, label: loc.name || fallbackLabel, precise, isAirport } : null;
 }
 
 const fromAirport = (loc: GeofenceLocation | null | undefined) =>
-  fromLocation(loc, true, 'the airport', AIRPORT_GEOFENCE_RADIUS_METERS);
+  fromLocation(loc, true, 'the airport', true);
 
 /**
  * One end of a job: exact pin → airport → hotel → zone (→ hotel's zone →
@@ -130,7 +141,7 @@ function resolveEnd(job: GeofenceJob, end: 'origin' | 'destination'): GeofenceTa
       ...pin,
       label: o ? 'the pickup point' : 'the drop-off point',
       precise: true,
-      radiusMeters: GEOFENCE_RADIUS_METERS,
+      isAirport: false,
     };
 
   const airport = o ? job.originAirport : job.destinationAirport;
@@ -227,14 +238,16 @@ export async function assertWithinGeofence(
     role === 'REP' ? resolveRepGeofenceTarget(job) : resolveDriverGeofenceTarget(job, status);
   if (!target) return; // nowhere configured to check against
 
+  const radii = await getGeofenceRadii(prisma);
+  const radius = target.isAirport ? radii.airportMeters : radii.otherMeters;
   const dist = haversineDistance(latitude, longitude, target.lat, target.lng);
-  if (dist <= target.radiusMeters) return;
+  if (dist <= radius) return;
 
   const who = role === 'REP' ? 'Rep' : 'Driver';
   const unlocked = role === 'REP' ? job.repUnlockedAt : job.driverUnlockedAt;
   const detail =
     `${who} ${status} on ${job.internalRef}: at (${latitude},${longitude}), ` +
-    `${Math.round(dist)}m from ${target.label} (${target.lat},${target.lng}), limit ${target.radiusMeters}m`;
+    `${Math.round(dist)}m from ${target.label} (${target.lat},${target.lng}), limit ${radius}m`;
 
   if (unlocked) {
     logger.warn(`Geofence bypassed (job unlocked) — ${detail}`);
@@ -248,8 +261,8 @@ export async function assertWithinGeofence(
   logger.warn(`Geofence BLOCKED — ${detail}`);
   throw new ForbiddenException(
     `You are ${formatDistance(dist)} from ${target.label}. Status updates must be made within ` +
-      `${formatDistance(target.radiusMeters)} of the job location. If you are there, move into the open ` +
+      `${formatDistance(radius)} of the job location. If you are there, move into the open ` +
       `for a better GPS signal and try again, or ask dispatch to unlock the job. ` +
-      `(أنت على بُعد ${formatDistance(dist)} من الموقع — يجب تحديث الحالة ضمن ${formatDistance(target.radiusMeters)}، أو اطلب من التشغيل فتح المهمة.)`,
+      `(أنت على بُعد ${formatDistance(dist)} من الموقع — يجب تحديث الحالة ضمن ${formatDistance(radius)}، أو اطلب من التشغيل فتح المهمة.)`,
   );
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Loader2, MapPin, Phone, RefreshCw, Search, Wifi, X } from "lucide-react";
+import { Car, Loader2, MapPin, Phone, RefreshCw, Search, UserCheck, Wifi, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   relativeAge,
   type Freshness,
   type TrackedPerson,
+  type TrackedRole,
 } from "./types";
 
 const TrackingMap = dynamic(() => import("./tracking-map"), {
@@ -42,13 +43,38 @@ const norm = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerC
 
 const FRESHNESS_ORDER: Record<Freshness, number> = { live: 0, recent: 1, stale: 2, none: 3 };
 
+type TrackingKind = "rep" | "driver" | "all";
+
 interface TrackingViewProps {
-  kind: "rep" | "driver";
+  kind: TrackingKind;
 }
 
+const ENDPOINT: Record<TrackingKind, string> = {
+  rep: "/tracking/reps",
+  driver: "/tracking/drivers",
+  all: "/tracking/all",
+};
+const TITLE_KEY: Record<TrackingKind, string> = {
+  rep: "tracking.repTitle",
+  driver: "tracking.driverTitle",
+  all: "tracking.overallTitle",
+};
+const DESC_KEY: Record<TrackingKind, string> = {
+  rep: "tracking.repDesc",
+  driver: "tracking.driverDesc",
+  all: "tracking.overallDesc",
+};
+const SEARCH_KEY: Record<TrackingKind, string> = {
+  rep: "tracking.searchRep",
+  driver: "tracking.searchDriver",
+  all: "tracking.searchAll",
+};
+
+type RoleFilter = "ALL" | TrackedRole;
+
 /**
- * Rep Tracking / Driver Tracking: a map of every active rep (or driver) at
- * their last-known position, with a searchable list beside it.
+ * Rep Tracking / Driver Tracking / Overall Tracking: a map of every active rep
+ * and/or driver at their last-known position, with a searchable list beside it.
  */
 export function TrackingView({ kind }: TrackingViewProps) {
   const t = useT();
@@ -62,11 +88,13 @@ export function TrackingView({ kind }: TrackingViewProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
+  const isAll = kind === "all";
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(kind === "rep" ? "/tracking/reps" : "/tracking/drivers");
+      const { data } = await api.get(ENDPOINT[kind]);
       setPeople(Array.isArray(data?.data) ? data.data : []);
       setError(null);
     } catch (err: unknown) {
@@ -91,13 +119,15 @@ export function TrackingView({ kind }: TrackingViewProps) {
 
   const filtered = useMemo(() => {
     const q = norm(search);
-    const list = q ? people.filter((p) => norm(p.name).includes(q)) : people;
+    const list = people.filter(
+      (p) => (roleFilter === "ALL" || p.role === roleFilter) && (!q || norm(p.name).includes(q)),
+    );
     return [...list].sort(
       (a, b) =>
         FRESHNESS_ORDER[freshnessOf(a, loadedAt)] - FRESHNESS_ORDER[freshnessOf(b, loadedAt)] ||
         a.name.localeCompare(b.name),
     );
-  }, [people, search, loadedAt]);
+  }, [people, search, loadedAt, roleFilter]);
 
   // A single search hit is selected automatically; a selection hidden by the filter is dropped.
   useEffect(() => {
@@ -126,9 +156,14 @@ export function TrackingView({ kind }: TrackingViewProps) {
             )
             .join("")}</ul>`
         : `<div style="color:#666">${esc(t("tracking.noJobsToday"))}</div>`;
+      const roleTag = isAll
+        ? ` <span style="font-weight:500;font-size:11px;color:#666">· ${esc(
+            t(p.role === "REP" ? "tracking.roleRep" : "tracking.roleDriver"),
+          )}</span>`
+        : "";
       return (
         `<div style="font:12px/1.45 system-ui,sans-serif">` +
-        `<div style="font-weight:600;font-size:14px">${esc(p.name)}</div>` +
+        `<div style="font-weight:600;font-size:14px">${esc(p.name)}${roleTag}</div>` +
         `<div><a href="tel:${esc(p.mobileNumber)}">${esc(p.mobileNumber)}</a></div>` +
         `<div style="margin-top:6px"><b>${esc(t("tracking.lastSeen"))}:</b> ${esc(
           cairoDateTime(loc.recordedAt, localeId),
@@ -144,10 +179,11 @@ export function TrackingView({ kind }: TrackingViewProps) {
         `</div>`
       );
     },
-    [t, localeId, serviceTypeLabel],
+    [t, localeId, serviceTypeLabel, isAll],
   );
 
-  const title = kind === "rep" ? t("tracking.repTitle") : t("tracking.driverTitle");
+  const title = t(TITLE_KEY[kind]);
+  const roleCount = (r: TrackedRole) => people.filter((p) => p.role === r).length;
 
   if (error === "403") {
     return (
@@ -160,7 +196,7 @@ export function TrackingView({ kind }: TrackingViewProps) {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <PageHeader title={title} description={kind === "rep" ? t("tracking.repDesc") : t("tracking.driverDesc")} />
+      <PageHeader title={title} description={t(DESC_KEY[kind])} />
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -169,7 +205,7 @@ export function TrackingView({ kind }: TrackingViewProps) {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={kind === "rep" ? t("tracking.searchRep") : t("tracking.searchDriver")}
+            placeholder={t(SEARCH_KEY[kind])}
             className="pl-8 pr-8"
             autoFocus
           />
@@ -184,6 +220,31 @@ export function TrackingView({ kind }: TrackingViewProps) {
             </button>
           )}
         </div>
+
+        {isAll && (
+          <div className="inline-flex rounded-md border border-border p-0.5" role="group">
+            {(["ALL", "REP", "DRIVER"] as RoleFilter[]).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRoleFilter(r)}
+                aria-pressed={roleFilter === r}
+                className={cn(
+                  "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                  roleFilter === r ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {r === "REP" && <span className="inline-block h-2.5 w-2.5 rounded-full bg-current" />}
+                {r === "DRIVER" && <span className="inline-block h-2.5 w-2.5 rounded-[2px] bg-current" />}
+                {r === "ALL"
+                  ? `${t("tracking.roleAll")} (${people.length})`
+                  : r === "REP"
+                    ? `${t("tracking.roleReps")} (${roleCount("REP")})`
+                    : `${t("tracking.roleDrivers")} (${roleCount("DRIVER")})`}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <Badge variant="outline">
@@ -230,7 +291,7 @@ export function TrackingView({ kind }: TrackingViewProps) {
                   const f = freshnessOf(p, loadedAt);
                   const selected = p.id === selectedId;
                   return (
-                    <li key={p.id}>
+                    <li key={`${p.role}-${p.id}`}>
                       <button
                         type="button"
                         disabled={!p.location}
@@ -242,12 +303,21 @@ export function TrackingView({ kind }: TrackingViewProps) {
                         )}
                       >
                         <span
-                          className="mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                          className={cn(
+                            "mt-1.5 inline-block h-2.5 w-2.5 shrink-0",
+                            p.role === "DRIVER" ? "rounded-[2px]" : "rounded-full",
+                          )}
                           style={{ background: FRESHNESS_COLOR[f] }}
                         />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-1.5">
                             <span className="truncate text-sm font-medium">{p.name}</span>
+                            {isAll && (
+                              <Badge variant="outline" className="h-4 shrink-0 gap-1 px-1 text-[10px] font-normal">
+                                {p.role === "REP" ? <UserCheck className="h-2.5 w-2.5" /> : <Car className="h-2.5 w-2.5" />}
+                                {t(p.role === "REP" ? "tracking.roleRep" : "tracking.roleDriver")}
+                              </Badge>
+                            )}
                             {p.online && (
                               <Wifi className="h-3 w-3 shrink-0 text-green-600" aria-label={t("tracking.online")} />
                             )}

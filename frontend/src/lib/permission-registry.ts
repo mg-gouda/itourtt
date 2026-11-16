@@ -559,6 +559,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
       { key: 'locations.export',           labelKey: 'permissions.locations.export',           crudType: 'export' },
       { key: 'locations.downloadTemplate', labelKey: 'permissions.locations.downloadTemplate', crudType: 'export' },
       { key: 'locations.import',           labelKey: 'permissions.locations.import',           crudType: 'import' },
+      { key: 'locations.geofenceEdit',     labelKey: 'permissions.locations.geofenceEdit',     crudType: 'U' },
     ],
   },
 
@@ -731,6 +732,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
   // ─── LIVE TRACKING MAPS ───
   { key: 'driver-tracking', labelKey: 'permissions.driverTracking', crudType: 'page' },
   { key: 'rep-tracking',    labelKey: 'permissions.repTracking',    crudType: 'page' },
+  { key: 'overall-tracking', labelKey: 'permissions.overallTracking', crudType: 'page' },
 
   {
     key: 'job-locks',

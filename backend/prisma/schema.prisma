@@ -1847,6 +1847,11 @@ model CompanySettings {
   // An Agent may override either; see Agent.noShowWaitStandardMinutes.
   noShowWaitStandardMinutes Int       @default(80) @map("no_show_wait_standard_minutes")
   noShowWaitDepMinutes      Int       @default(15) @map("no_show_wait_dep_minutes")
+  // Rep/driver status geofence radius in metres (common/geofence.util.ts).
+  // Airport targets get their own (wider) radius; hotels and exact pins use
+  // the other one. Edited from System Parameters › Locations.
+  geofenceAirportMeters     Int       @default(2000) @map("geofence_airport_meters")
+  geofenceOtherMeters       Int       @default(600) @map("geofence_other_meters")
   createdAt                 DateTime  @default(now()) @map("created_at")
   updatedAt                 DateTime  @updatedAt @map("updated_at")
 

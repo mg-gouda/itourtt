@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**53 classes**, **368 methods**.
+**53 classes**, **374 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -658,73 +658,77 @@ Periodic licence re-validation against the licence server; a failure eventually 
 
 ### SettingsController
 
-`backend/src/settings/settings.controller.ts:48` · controller · 27 methods
+`backend/src/settings/settings.controller.ts:49` · controller · 29 methods
 
 Admin surface for every settings group — system, company, email, website (B2C), licence and Google Drive — plus the image upload endpoints for each branding asset.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getSystemSettings` | pub | 60 | `settingsService.getSystemSettings` | Reads system settings. |
-| `updateSystemSettings` | pub | 72 | `settingsService.updateSystemSettings` | Updates system settings. |
-| `uploadInnerBgImage` | pub | 85 | `settingsService.updateInnerBgImage` | Uploads the dashboard inner-page background. |
-| `uploadLoginBgImage` | pub | 100 | `settingsService.updateLoginBgImage` | Uploads the login screen background. |
-| `uploadLoginLogoImage` | pub | 115 | `settingsService.updateLoginLogoImage` | Uploads the login screen logo. |
-| `getLicenseStatus` | pub | 126 | `settingsService.getLicenseStatus` | Current licence status driving the portal-wide licence gate. |
-| `recheckLicense` | pub | 135 | `settingsService.recheckLicense` | Forces a licence re-check. |
-| `activateLicense` | pub | 148 | `settingsService.activateLicense` | Activates a licence key. |
-| `getCompanySettings` | pub | 157 | `settingsService.getCompanySettings` | Reads company identity/branding. |
-| `updateCompanySettings` | pub | 169 | `settingsService.updateCompanySettings` | Updates company identity/branding. |
-| `uploadLogo` | pub | 182 | `settingsService.updateLogo` | Uploads the company logo. |
-| `uploadFavicon` | pub | 197 | `settingsService.updateFavicon` | Uploads the company favicon. |
-| `getEmailSettings` | pub | 211 | `settingsService.getEmailSettings` | SMTP settings with the password redacted. |
-| `updateEmailSettings` | pub | 223 | `settingsService.updateEmailSettings` `emailService.reloadTransporter` | Updates SMTP settings and reloads the mail transport. |
-| `sendTestEmail` | pub | 238 | `emailService.sendTestEmail` | Sends a test email — the fastest way to verify SMTP. |
-| `getWebsiteSettings` | pub | 251 | `settingsService.getWebsiteSettings` | Reads B2C website settings including feature toggles. |
-| `updateWebsiteSettings` | pub | 263 | `settingsService.updateWebsiteSettings` | Updates B2C website settings. |
-| `uploadSiteLogo` | pub | 276 | `settingsService.updateSiteLogo` | Uploads the B2C site logo (raster only). |
-| `uploadSiteFavicon` | pub | 291 | `settingsService.updateSiteFavicon` | Uploads the B2C site favicon. |
-| `uploadHeroImage` | pub | 306 | `settingsService.updateHeroImage` | Uploads the B2C homepage hero image. |
-| `getGoogleDriveSettings` | pub | 320 | `settingsService.getGoogleDriveSettings` | Drive connection status and folder config. |
-| `updateGoogleDriveSettings` | pub | 332 | `settingsService.updateGoogleDriveSettings` `googleDriveService.clearCache` | Updates Drive folder configuration. |
-| `getGoogleDriveAuthUrl` | pub | 347 | `googleDriveService.generateAuthUrl` | Returns the OAuth consent URL for connecting Drive. |
-| `exchangeGoogleDriveCode` | pub | 361 | `googleDriveService.exchangeCode` | OAuth callback — exchanges the code for tokens. `invalid_grant` here means reconnect is required. |
-| `disconnectGoogleDrive` | pub | 375 | `settingsService.disconnectGoogleDrive` `googleDriveService.clearCache` | Clears Drive tokens. |
-| `testGoogleDriveConnection` | pub | 389 | `googleDriveService.testConnection` | Connectivity test for the Drive settings screen. |
-| `migrateEvidenceToDrive` | pub | 401 | `googleDriveService.migrateLocalFilesToDrive` | Runs the one-off migration of local evidence files into Drive. |
+| `getGeofenceSettings` | pub | 64 | `settingsService.getGeofenceSettings` | GET /settings/geofence — current airport/other geofence radii (perm: locations). |
+| `updateGeofenceSettings` | pub | 71 | `settingsService.updateGeofenceSettings` | PATCH /settings/geofence — set airport/other geofence radii, 50–50,000 m (perm: locations.geofenceEdit). |
+| `getSystemSettings` | pub | 80 | `settingsService.getSystemSettings` | Reads system settings. |
+| `updateSystemSettings` | pub | 92 | `settingsService.updateSystemSettings` | Updates system settings. |
+| `uploadInnerBgImage` | pub | 105 | `settingsService.updateInnerBgImage` | Uploads the dashboard inner-page background. |
+| `uploadLoginBgImage` | pub | 120 | `settingsService.updateLoginBgImage` | Uploads the login screen background. |
+| `uploadLoginLogoImage` | pub | 135 | `settingsService.updateLoginLogoImage` | Uploads the login screen logo. |
+| `getLicenseStatus` | pub | 146 | `settingsService.getLicenseStatus` | Current licence status driving the portal-wide licence gate. |
+| `recheckLicense` | pub | 155 | `settingsService.recheckLicense` | Forces a licence re-check. |
+| `activateLicense` | pub | 168 | `settingsService.activateLicense` | Activates a licence key. |
+| `getCompanySettings` | pub | 177 | `settingsService.getCompanySettings` | Reads company identity/branding. |
+| `updateCompanySettings` | pub | 189 | `settingsService.updateCompanySettings` | Updates company identity/branding. |
+| `uploadLogo` | pub | 202 | `settingsService.updateLogo` | Uploads the company logo. |
+| `uploadFavicon` | pub | 217 | `settingsService.updateFavicon` | Uploads the company favicon. |
+| `getEmailSettings` | pub | 231 | `settingsService.getEmailSettings` | SMTP settings with the password redacted. |
+| `updateEmailSettings` | pub | 243 | `settingsService.updateEmailSettings` `emailService.reloadTransporter` | Updates SMTP settings and reloads the mail transport. |
+| `sendTestEmail` | pub | 258 | `emailService.sendTestEmail` | Sends a test email — the fastest way to verify SMTP. |
+| `getWebsiteSettings` | pub | 271 | `settingsService.getWebsiteSettings` | Reads B2C website settings including feature toggles. |
+| `updateWebsiteSettings` | pub | 283 | `settingsService.updateWebsiteSettings` | Updates B2C website settings. |
+| `uploadSiteLogo` | pub | 296 | `settingsService.updateSiteLogo` | Uploads the B2C site logo (raster only). |
+| `uploadSiteFavicon` | pub | 311 | `settingsService.updateSiteFavicon` | Uploads the B2C site favicon. |
+| `uploadHeroImage` | pub | 326 | `settingsService.updateHeroImage` | Uploads the B2C homepage hero image. |
+| `getGoogleDriveSettings` | pub | 340 | `settingsService.getGoogleDriveSettings` | Drive connection status and folder config. |
+| `updateGoogleDriveSettings` | pub | 352 | `settingsService.updateGoogleDriveSettings` `googleDriveService.clearCache` | Updates Drive folder configuration. |
+| `getGoogleDriveAuthUrl` | pub | 367 | `googleDriveService.generateAuthUrl` | Returns the OAuth consent URL for connecting Drive. |
+| `exchangeGoogleDriveCode` | pub | 381 | `googleDriveService.exchangeCode` | OAuth callback — exchanges the code for tokens. `invalid_grant` here means reconnect is required. |
+| `disconnectGoogleDrive` | pub | 395 | `settingsService.disconnectGoogleDrive` `googleDriveService.clearCache` | Clears Drive tokens. |
+| `testGoogleDriveConnection` | pub | 409 | `googleDriveService.testConnection` | Connectivity test for the Drive settings screen. |
+| `migrateEvidenceToDrive` | pub | 421 | `googleDriveService.migrateLocalFilesToDrive` | Runs the one-off migration of local evidence files into Drive. |
 
 ### SettingsService
 
-`backend/src/settings/settings.service.ts:99` · service · 25 methods
+`backend/src/settings/settings.service.ts:107` · service · 27 methods
 
 All persisted configuration: system, company, email, website (B2C), Google Drive and the licence. Most getters strip secrets — use the explicit `...Raw` variant when the actual credentials are needed.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getSystemSettings` | pub | 109 | `systemSettings` | Global system settings singleton. |
-| `updateSystemSettings` | pub | 117 | `systemSettings` | Updates the system settings singleton. |
-| `getCompanySettings` | pub | 152 | `companySettings` | Company identity and branding used on invoices, PDFs and the dashboard. |
-| `updateCompanySettings` | pub | 160 | `companySettings` | Updates company identity/branding. |
-| `noKeyStatus` | priv | 203 | — | The licence status returned when no public key is configured at all. |
-| `evaluate` | priv | 215 | `companySettings` | Runs the licence check and normalises it into a status. Everything licence-related funnels through here. |
-| `getLicenseStatus` | pub | 255 | `companySettings` | Current licence status for the UI gate. An invalid licence hard-blocks every portal. |
-| `recheckLicense` | pub | 264 | `companySettings` | Forces a fresh licence check against the licence server. |
-| `activateLicense` | pub | 272 | `companySettings` | Stores a new licence token/key and re-evaluates. Production needs LICENSE_SERVER_URL plus LICENSE_PUBLIC_KEY. |
-| `updateLogo` | pub | 299 | `companySettings` | Replaces the company logo asset. |
-| `updateFavicon` | pub | 317 | `companySettings` | Replaces the company favicon. |
-| `getEmailSettings` | pub | 339 | `emailSettings` | SMTP settings with the password redacted — safe for the admin UI. |
-| `updateEmailSettings` | pub | 351 | `emailSettings` | Updates SMTP settings; must trigger `EmailService.reloadTransporter` or the old transport stays cached. |
-| `getEmailSettingsRaw` | pub | 401 | `emailSettings` | SMTP settings INCLUDING the password — server-side callers only, never return this to a client. |
-| `getWebsiteSettings` | pub | 410 | `websiteSettings` | B2C website settings: branding, hero content, notification recipients, feature toggles such as AI Mode. |
-| `updateWebsiteSettings` | pub | 418 | `websiteSettings` | Updates B2C website settings. |
-| `updateSiteLogo` | pub | 512 | `websiteSettings` | Replaces the B2C site logo. Must be raster — email clients do not render SVG. |
-| `updateSiteFavicon` | pub | 530 | `websiteSettings` | Replaces the B2C site favicon. |
-| `updateHeroImage` | pub | 548 | `websiteSettings` | Replaces the B2C homepage hero image. |
-| `updateInnerBgImage` | pub | 566 | `systemSettings` | Replaces the dashboard inner-page background. |
-| `updateLoginBgImage` | pub | 574 | `systemSettings` | Replaces the login screen background. |
-| `updateLoginLogoImage` | pub | 582 | `systemSettings` | Replaces the login screen logo. |
-| `getGoogleDriveSettings` | pub | 594 | `googleDriveSettings` | Drive integration status and folder configuration, without tokens. |
-| `disconnectGoogleDrive` | pub | 607 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
-| `updateGoogleDriveSettings` | pub | 616 | `googleDriveSettings` | Updates Drive folder configuration. |
+| `getSystemSettings` | pub | 117 | `systemSettings` | Global system settings singleton. |
+| `updateSystemSettings` | pub | 125 | `systemSettings` | Updates the system settings singleton. |
+| `getCompanySettings` | pub | 160 | `companySettings` | Company identity and branding used on invoices, PDFs and the dashboard. |
+| `updateCompanySettings` | pub | 168 | `companySettings` | Updates company identity/branding. |
+| `getGeofenceSettings` | pub | 209 | — | Returns the geofence radii via getGeofenceRadii. |
+| `updateGeofenceSettings` | pub | 213 | `companySettings` | Writes geofenceAirportMeters/geofenceOtherMeters on the company_settings singleton (creating it if missing). |
+| `noKeyStatus` | priv | 233 | — | The licence status returned when no public key is configured at all. |
+| `evaluate` | priv | 245 | `companySettings` | Runs the licence check and normalises it into a status. Everything licence-related funnels through here. |
+| `getLicenseStatus` | pub | 285 | `companySettings` | Current licence status for the UI gate. An invalid licence hard-blocks every portal. |
+| `recheckLicense` | pub | 294 | `companySettings` | Forces a fresh licence check against the licence server. |
+| `activateLicense` | pub | 302 | `companySettings` | Stores a new licence token/key and re-evaluates. Production needs LICENSE_SERVER_URL plus LICENSE_PUBLIC_KEY. |
+| `updateLogo` | pub | 329 | `companySettings` | Replaces the company logo asset. |
+| `updateFavicon` | pub | 347 | `companySettings` | Replaces the company favicon. |
+| `getEmailSettings` | pub | 369 | `emailSettings` | SMTP settings with the password redacted — safe for the admin UI. |
+| `updateEmailSettings` | pub | 381 | `emailSettings` | Updates SMTP settings; must trigger `EmailService.reloadTransporter` or the old transport stays cached. |
+| `getEmailSettingsRaw` | pub | 431 | `emailSettings` | SMTP settings INCLUDING the password — server-side callers only, never return this to a client. |
+| `getWebsiteSettings` | pub | 440 | `websiteSettings` | B2C website settings: branding, hero content, notification recipients, feature toggles such as AI Mode. |
+| `updateWebsiteSettings` | pub | 448 | `websiteSettings` | Updates B2C website settings. |
+| `updateSiteLogo` | pub | 542 | `websiteSettings` | Replaces the B2C site logo. Must be raster — email clients do not render SVG. |
+| `updateSiteFavicon` | pub | 560 | `websiteSettings` | Replaces the B2C site favicon. |
+| `updateHeroImage` | pub | 578 | `websiteSettings` | Replaces the B2C homepage hero image. |
+| `updateInnerBgImage` | pub | 596 | `systemSettings` | Replaces the dashboard inner-page background. |
+| `updateLoginBgImage` | pub | 604 | `systemSettings` | Replaces the login screen background. |
+| `updateLoginLogoImage` | pub | 612 | `systemSettings` | Replaces the login screen logo. |
+| `getGoogleDriveSettings` | pub | 624 | `googleDriveSettings` | Drive integration status and folder configuration, without tokens. |
+| `disconnectGoogleDrive` | pub | 637 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
+| `updateGoogleDriveSettings` | pub | 646 | `googleDriveSettings` | Updates Drive folder configuration. |
 
 ## `tracking`
 
@@ -740,7 +744,7 @@ On the rep/driver portal controllers: any request carrying latitude/longitude al
 
 ### TrackingController
 
-`backend/src/tracking/tracking.controller.ts:44` · controller · 3 methods
+`backend/src/tracking/tracking.controller.ts:44` · controller · 4 methods
 
 Live tracking: portal heartbeat (POST /tracking/ping) and the Rep/Driver Tracking map feeds.
 
@@ -749,20 +753,22 @@ Live tracking: portal heartbeat (POST /tracking/ping) and the Rep/Driver Trackin
 | `ping` | pub | 55 | `trackingService.record` | POST /tracking/ping — REP/DRIVER portal heartbeat (~1/min). Not audited and treated as a background poll, so it never keeps an idle session alive. |
 | `reps` | pub | 65 | `trackingService.listReps` | GET /tracking/reps — every active rep with last-known position, online flag and today's jobs. Perm rep-tracking. |
 | `drivers` | pub | 72 | `trackingService.listDrivers` | GET /tracking/drivers — every active driver with last-known position, online flag and today's jobs. Perm driver-tracking. |
+| `all` | pub | 79 | `trackingService.listAll` | GET /tracking/all — reps and drivers together for Overall Tracking (perm: overall-tracking). |
 
 ### TrackingService
 
-`backend/src/tracking/tracking.service.ts:53` · service · 5 methods
+`backend/src/tracking/tracking.service.ts:55` · service · 6 methods
 
 Records and serves last-known rep/driver positions for the tracking maps.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `record` | pub | 63 | `userLocation` | Upserts a user's last-known fix; validates coords, clamps skewed device clocks, never lets an older fix overwrite a newer one, never throws. |
-| `listReps` | pub | 104 | `rep` `trafficAssignment` | Active reps (optional name search) with positions and today's (Cairo) assignments. |
-| `listDrivers` | pub | 128 | `driver` `trafficAssignment` | Active drivers (optional name search) with positions and today's (Cairo) assignments. |
-| `todayDate` | priv | 163 | — | Today's Cairo date as the UTC-midnight Date a @db.Date column compares against. |
-| `assemble` | priv | 167 | `userLocation` `userSession` | Joins people with their UserLocation, open-session online flag (last 5 min) and today's jobs sorted by time. |
+| `record` | pub | 65 | `userLocation` | Upserts a user's last-known fix; validates coords, clamps skewed device clocks, never lets an older fix overwrite a newer one, never throws. |
+| `listReps` | pub | 106 | `rep` `trafficAssignment` | Active reps (optional name search) with positions and today's (Cairo) assignments. |
+| `listDrivers` | pub | 131 | `driver` `trafficAssignment` | Active drivers (optional name search) with positions and today's (Cairo) assignments. |
+| `listAll` | pub | 156 | — | Overall Tracking: listReps + listDrivers concatenated; each row carries its role. |
+| `todayDate` | priv | 173 | — | Today's Cairo date as the UTC-midnight Date a @db.Date column compares against. |
+| `assemble` | priv | 177 | `userLocation` `userSession` | Joins people with their UserLocation, open-session online flag (last 5 min) and today's jobs sorted by time. |
 
 ## `user-preferences`
 
@@ -888,7 +894,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-126 free functions, constants and types in these modules.
+127 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -978,15 +984,16 @@ Haversine distance, geofence target resolution and enforcement (403) for rep/dri
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `GEOFENCE_RADIUS_METERS` | const | 23 | Status-stamp GPS radius for non-airport targets (hotel, exact pin): 600 m. |
-| `AIRPORT_GEOFENCE_RADIUS_METERS` | const | 29 | Status-stamp GPS radius when the target is an airport: 2 km. |
-| `haversineDistance` | function | 38 | Great-circle distance in metres between two lat/lng points. |
-| `isWithinGeofence` | function | 54 | True when two points are within `radiusMeters` (default GEOFENCE_RADIUS_METERS, 600 m). |
-| `GeofenceJob` | type | 72 | Job location shape the geofence reads: exact pins plus origin/destination airport, hotel and zones. |
-| `GeofenceTarget` | type | 88 | Point a status must be made near: label for the error, whether it is precise (enforceable), and its radiusMeters (2 km airport / 600 m otherwise). |
-| `resolveRepGeofenceTarget` | function | 155 | The job's airport: origin for ARR, destination for DEP; null when the job has no airport. |
-| `resolveDriverGeofenceTarget` | function | 166 | Per status: IN_PROGRESS/NO_SHOW → pickup end, COMPLETED → drop-off end (pin → airport → hotel precise; zones not); other statuses → null. |
-| `assertWithinGeofence` | function | 189 | Throws 403 when a rep/driver status GPS is beyond the precise target's radius (2 km airport, 600 m otherwise); zone targets and unlocked jobs only log. |
+| `GeofenceRadii` | type | 21 | The two geofence radii in metres: airportMeters and otherMeters. |
+| `DEFAULT_GEOFENCE_RADII` | const | 30 | Fallback radii (airport 2000 m / other 600 m) used only when no company_settings row exists; mirrors the column defaults. |
+| `getGeofenceRadii` | function | 33 | Reads the configured geofence radii from CompanySettings (falls back to DEFAULT_GEOFENCE_RADII). |
+| `haversineDistance` | function | 49 | Great-circle distance in metres between two lat/lng points. |
+| `isWithinGeofence` | function | 65 | True when two points are within `radiusMeters` of each other. |
+| `GeofenceJob` | type | 83 | Job location shape the geofence reads: exact pins plus origin/destination airport, hotel and zones. |
+| `GeofenceTarget` | type | 99 | Point a status must be made near: label for the error, whether it is precise (enforceable), and whether it is an airport (picks the airport vs other radius). |
+| `resolveRepGeofenceTarget` | function | 166 | The job's airport: origin for ARR, destination for DEP; null when the job has no airport. |
+| `resolveDriverGeofenceTarget` | function | 177 | Per status: IN_PROGRESS/NO_SHOW → pickup end, COMPLETED → drop-off end (pin → airport → hotel precise; zones not); other statuses → null. |
+| `assertWithinGeofence` | function | 200 | Throws 403 when a rep/driver status GPS is beyond the configured radius (airport vs other, from CompanySettings) of a precise target; zone targets and unlocked jobs only log. |
 
 ### `backend/src/common/license-verify.ts`
 
@@ -1202,10 +1209,10 @@ Google Drive evidence storage. Degrades to null (never throws) when unconfigured
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 727 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 743 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 751 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 763 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 729 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 745 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 753 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 765 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 

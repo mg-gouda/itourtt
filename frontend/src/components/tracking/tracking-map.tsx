@@ -38,8 +38,10 @@ function markerIcon(p: TrackedPerson, now: number, selected: boolean): L.DivIcon
   const color = FRESHNESS_COLOR[freshnessOf(p, now)];
   const size = selected ? 40 : 32;
   const ring = selected ? "0 0 0 4px rgba(37,99,235,.45)," : "";
+  // Reps are round, drivers rounded squares, so both can share one map.
+  const radius = p.role === "DRIVER" ? "6px" : "9999px";
   const html =
-    `<div style="width:${size}px;height:${size}px;border-radius:9999px;background:${color};` +
+    `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${color};` +
     `color:#fff;font:600 ${selected ? 13 : 11}px/1 system-ui,sans-serif;display:flex;align-items:center;` +
     `justify-content:center;border:2px solid #fff;box-shadow:${ring}0 1px 4px rgba(0,0,0,.4);` +
     `opacity:${freshnessOf(p, now) === "stale" ? 0.75 : 1}">${initials(p.name).replace(/[<>&"]/g, "")}</div>`;
