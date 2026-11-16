@@ -575,7 +575,7 @@ Auth calls — login, refresh, logout, device-token registration.
 
 ### `driver-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 49 lines
+`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 52 lines
 
 Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController`.
 
@@ -595,7 +595,7 @@ Public B2C endpoints used by the guest app (search, pricing, booking).
 
 ### `rep-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 45 lines
+`mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 48 lines
 
 Typed wrappers over `/api/rep-portal`; mirrors `RepPortalController`.
 

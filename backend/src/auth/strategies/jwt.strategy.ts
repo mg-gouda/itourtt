@@ -3,7 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { SessionsService } from '../../sessions/sessions.service.js';
+import type { Request } from 'express';
+import {
+  SessionsService,
+  SINGLE_DEVICE_ROLES,
+  isBackgroundRequest,
+} from '../../sessions/sessions.service.js';
 
 export interface JwtPayload {
   sub: string;
@@ -31,10 +36,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: secret,
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: JwtPayload) {
+  async validate(req: Request, payload: JwtPayload) {
     // The pre-2FA challenge token is signed with the same secret but must NEVER
     // authenticate a request — it only authorizes /auth/2fa/verify.
     if (payload.twoFactorPending) {
@@ -53,15 +59,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // For REP and DRIVER roles: validate sessionId on every request.
     // If it doesn't match the DB, the session was displaced by a new login.
-    const guardedRoles = ['REP', 'DRIVER'];
+    // A session the inactivity sweep ended reports that instead, so the portal can
+    // say "logged out for inactivity" rather than "someone else signed in".
+    const guardedRoles: readonly string[] = SINGLE_DEVICE_ROLES;
     if (guardedRoles.includes(user.role) && payload.sid !== user.sessionId) {
-      throw new UnauthorizedException('SESSION_DISPLACED');
+      const reason = payload.sid ? await this.sessions.endReasonOf(payload.sid) : null;
+      throw new UnauthorizedException(
+        reason === 'IDLE_TIMEOUT' ? 'SESSION_IDLE_TIMEOUT' : 'SESSION_DISPLACED',
+      );
     }
 
-    // Heartbeat: keep this device's session fresh (throttled). Fire-and-forget so
-    // it never adds latency or fails the request.
+    // Heartbeat: keep this device's session fresh (throttled). Background polls
+    // refresh lastSeenAt only; real requests also count as user activity.
+    // Fire-and-forget so it never adds latency or fails the request.
     if (payload.sid) {
-      void this.sessions.touch(payload.sid).catch(() => undefined);
+      const activity = !isBackgroundRequest(
+        req.method,
+        req.originalUrl ?? req.url,
+        req.headers as Record<string, unknown>,
+      );
+      void this.sessions.touch(payload.sid, activity).catch(() => undefined);
     }
 
     return {

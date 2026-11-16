@@ -9,6 +9,13 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+/**
+ * Request config for timer-driven polls. The server refreshes the session's
+ * "last seen" for these but never counts them as user activity, so a portal
+ * left open still lets a rep/driver be logged out for inactivity.
+ */
+export const backgroundPoll = { headers: { 'X-Background-Poll': '1' } };
+
 // ─── Request interceptor: attach access token ───────────────────
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
@@ -53,15 +60,19 @@ api.interceptors.response.use(
 
     // Session displaced — check FIRST so it short-circuits before the refresh
     // flow (which would otherwise consume the 401 and lose the "displaced" reason).
+    // SESSION_IDLE_TIMEOUT: the server logged this rep/driver out after hours of
+    // inactivity — same handling, different message on the login page.
+    const sessionEnd = error.response?.data?.message;
     if (
       error.response?.status === 401 &&
-      error.response?.data?.message === 'SESSION_DISPLACED'
+      (sessionEnd === 'SESSION_DISPLACED' || sessionEnd === 'SESSION_IDLE_TIMEOUT')
     ) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       if (typeof window !== 'undefined') {
-        window.location.href = '/login?reason=displaced';
+        window.location.href =
+          sessionEnd === 'SESSION_IDLE_TIMEOUT' ? '/login?reason=idle' : '/login?reason=displaced';
       }
       return Promise.reject(error);
     }

@@ -292,7 +292,19 @@ behaviour.
 - REP/DRIVER logins are **single-device**: a second device gets 409 and **only the super-admin
   (`mggouda@gmail.com`, `common/utils/super-admin.util.ts`) is notified** — the blocked-login alert is
   hidden from every other admin, role and user, in the backend recipient list and the frontend popup.
-  Sessions free themselves after `SESSION_IDLE_MINUTES` (default 30); admin **Clear** is the manual fix.
+  Sessions free themselves after `SESSION_IDLE_MINUTES` (default 30) of *no requests at all*; admin
+  **Clear** is the manual fix.
+- **REP/DRIVER are logged out after 3 hours of inactivity** (`SESSION_INACTIVITY_MINUTES`, default
+  180). The catch: the portals poll their notification badge every 30s, so "any request" never goes
+  idle while the app is open. `UserSession.lastActivityAt` is therefore separate from `lastSeenAt`:
+  background polls (`GET …/notifications`, or any request with `X-Background-Poll: 1` —
+  `sessions.service.ts › isBackgroundRequest`) refresh only `lastSeenAt`. Matching the path
+  server-side is deliberate: it covers mobile builds already installed that cannot send the header.
+  `› sweepInactive` runs every 5 min, ends idle sessions with `endReason = IDLE_TIMEOUT` and clears
+  the user's `sessionId` + refresh token; `› findActive` also expires them at login, so the lock
+  never waits for the sweep. `JwtStrategy` then answers `SESSION_IDLE_TIMEOUT` (not
+  `SESSION_DISPLACED`) and the web portal shows `/login?reason=idle`. A new timer-driven poll must
+  be marked background, or it silently keeps every rep/driver logged in forever.
 - In production, deploys run with `SKIP_PERMISSION_SEED=true`. ADMIN resolves all keys dynamically,
   but granting a **new** key to a non-admin role needs a manual `rolePermissionV2` insert.
 

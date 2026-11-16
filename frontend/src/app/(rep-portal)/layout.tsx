@@ -17,7 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import api from "@/lib/api";
+import api, { backgroundPoll } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 
@@ -76,7 +76,7 @@ function RepPortalShell({
   useEffect(() => {
     const fetchUnread = async () => {
       try {
-        const { data } = await api.get("/rep-portal/notifications");
+        const { data } = await api.get("/rep-portal/notifications", backgroundPoll);
         setUnreadCount(data.data?.unreadCount ?? 0);
       } catch {
         // ignore

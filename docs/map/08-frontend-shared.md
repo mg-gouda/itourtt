@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**88 files**, **322 exported symbols**.
+**88 files**, **323 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -850,13 +850,14 @@ Per-user column visibility, persisted alongside column order.
 
 ### `api.ts`
 
-`frontend/src/lib/api.ts` · 122 lines
+`frontend/src/lib/api.ts` · 133 lines
 
 ★ The axios API client every page uses. Attaches the access token from localStorage, and on a 401 refreshes once while queueing concurrent failures so a token expiry causes one refresh, not a stampede.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `api` | const | 7 | The configured axios instance. Import this rather than calling fetch — it attaches the bearer token and handles 401 refresh with request queueing. |
+| `backgroundPoll` | const | 17 | Axios config marking a timer-driven poll as background so it never keeps a rep/driver session active. |
 
 ### `complaints.ts`
 

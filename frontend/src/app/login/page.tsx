@@ -33,6 +33,7 @@ function LoginForm() {
   const t = useT();
 
   const isDisplaced = searchParams.get("reason") === "displaced";
+  const isIdleLogout = searchParams.get("reason") === "idle";
 
   const {
     register,
@@ -119,6 +120,18 @@ function LoginForm() {
             <h1 className="text-xl font-semibold text-white">{t("sidebar.brand")}</h1>
             <p className="text-sm text-white/50">{t("login.system")}</p>
           </div>
+
+          {/* Logged out for inactivity */}
+          {isIdleLogout && !isAccountLocked && (
+            <div className="mb-4 rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 flex gap-2 items-start">
+              <ShieldCheck className="h-4 w-4 text-sky-300 mt-0.5 shrink-0" />
+              <p className="text-xs text-sky-200 leading-relaxed">
+                You were logged out after 3 hours of inactivity. Please log in again.
+                <br />
+                <span dir="rtl">تم تسجيل خروجك بعد ٣ ساعات من عدم النشاط. يرجى تسجيل الدخول مرة أخرى.</span>
+              </p>
+            </div>
+          )}
 
           {/* Session displaced warning */}
           {isDisplaced && !isAccountLocked && (

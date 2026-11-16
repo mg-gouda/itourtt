@@ -18,7 +18,7 @@ import {
   Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import api from "@/lib/api";
+import api, { backgroundPoll } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function DriverPortalLayout({
@@ -76,7 +76,7 @@ function DriverPortalShell({
   useEffect(() => {
     const fetchUnread = async () => {
       try {
-        const { data } = await api.get("/driver-portal/notifications");
+        const { data } = await api.get("/driver-portal/notifications", backgroundPoll);
         setUnreadCount(data.data?.unreadCount ?? 0);
       } catch {
         // ignore

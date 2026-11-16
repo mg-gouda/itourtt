@@ -31,7 +31,10 @@ export const driverPortalApi = {
   },
 
   getNotifications() {
-    return api.get<PortalNotification[]>('/driver-portal/notifications');
+    // Timer-driven badge poll: keeps the session seen, never counts as activity.
+    return api.get<PortalNotification[]>('/driver-portal/notifications', {
+      headers: { 'X-Background-Poll': '1' },
+    });
   },
 
   markNotificationRead(notificationId: string) {

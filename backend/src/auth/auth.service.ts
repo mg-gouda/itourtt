@@ -49,9 +49,10 @@ export class AuthService {
    *
    * REP and DRIVER are single-device: a new device is blocked (409) while another
    * device has an active session (seen within SESSION_IDLE_MINUTES). Idle/ended
-   * sessions free up automatically and an admin can force-logout a stuck device;
-   * Admin/Dispatch-Manager/Online-Manager are alerted, the user is not. Office
-   * roles are multi-device (no such restriction).
+   * sessions free up automatically (and a session with no user activity for
+   * SESSION_INACTIVITY_MINUTES, default 3h, is logged out) and an admin can
+   * force-logout a stuck device; only the super-admin is alerted, the user is
+   * not. Office roles are multi-device (no such restriction).
    */
   async login(
     identifier: string,

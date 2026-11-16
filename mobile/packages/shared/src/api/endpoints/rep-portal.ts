@@ -27,7 +27,10 @@ export const repPortalApi = {
   },
 
   getNotifications() {
-    return api.get<PortalNotification[]>('/rep-portal/notifications');
+    // Timer-driven badge poll: keeps the session seen, never counts as activity.
+    return api.get<PortalNotification[]>('/rep-portal/notifications', {
+      headers: { 'X-Background-Poll': '1' },
+    });
   },
 
   markNotificationRead(notificationId: string) {
