@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { resolveRepGeofenceTarget, isWithinGeofence, haversineDistance, GEOFENCE_RADIUS_METERS } from '../common/geofence.util.js';
+import { assertWithinGeofence } from '../common/geofence.util.js';
 import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
 import {
   checkNoShowWindow,
@@ -118,6 +118,27 @@ export class RepPortalService {
       throw new ForbiddenException('No rep profile linked to this account');
     }
     return rep.id;
+  }
+
+  /**
+   * Geofence pre-check for the evidence routes: runs BEFORE the photos are
+   * uploaded, so a submission rejected for being out of range never leaves
+   * orphan photos behind. The submit method re-checks authoritatively.
+   */
+  async precheckGeofence(
+    userId: string,
+    jobId: string,
+    status: string,
+    latitude: number,
+    longitude: number,
+  ) {
+    const repId = await this.resolveRepId(userId);
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { repId, trafficJobId: jobId },
+      select: { id: true },
+    });
+    if (!assignment) return; // the submit call reports it properly
+    await assertWithinGeofence(this.prisma, { jobId, role: 'REP', status, latitude, longitude });
   }
 
   async getMyJobs(userId: string, date?: string) {
@@ -248,7 +269,13 @@ export class RepPortalService {
     }
 
     this.checkRepTimelock(assignment.trafficJob);
-    this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
+    await assertWithinGeofence(this.prisma, {
+      jobId: assignment.trafficJob.id,
+      role: 'REP',
+      status: status,
+      latitude,
+      longitude,
+    });
 
     const currentStatus = assignment.repStatus;
     const allowed = REP_VALID_TRANSITIONS[currentStatus] || [];
@@ -346,7 +373,13 @@ export class RepPortalService {
     }
 
     this.checkRepTimelock(assignment.trafficJob);
-    this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
+    await assertWithinGeofence(this.prisma, {
+      jobId: assignment.trafficJob.id,
+      role: 'REP',
+      status: 'NO_SHOW',
+      latitude,
+      longitude,
+    });
 
     const currentStatus = assignment.repStatus;
     if (REP_TERMINAL_STATUSES.includes(currentStatus)) {
@@ -457,7 +490,13 @@ export class RepPortalService {
     }
 
     this.checkRepTimelock(assignment.trafficJob);
-    this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
+    await assertWithinGeofence(this.prisma, {
+      jobId: assignment.trafficJob.id,
+      role: 'REP',
+      status: 'IN_PLACE',
+      latitude,
+      longitude,
+    });
 
     // Enforce IN PLACE time window: arrivalTime - 10min to arrivalTime + 80min.
     // Only for ARR jobs (matches the rep portal button gate), and skip when an
@@ -723,7 +762,13 @@ export class RepPortalService {
     }
 
     this.checkRepTimelock(assignment.trafficJob);
-    this.checkRepGeofence(assignment.trafficJob, latitude, longitude);
+    await assertWithinGeofence(this.prisma, {
+      jobId: assignment.trafficJob.id,
+      role: 'REP',
+      status: 'COMPLETED',
+      latitude,
+      longitude,
+    });
 
     const currentStatus = assignment.repStatus;
     const allowed = REP_VALID_TRANSITIONS[currentStatus] || [];
@@ -1111,24 +1156,6 @@ export class RepPortalService {
     }
   }
 
-  private checkRepGeofence(job: any, latitude: number | null, longitude: number | null) {
-    if (latitude == null || longitude == null) {
-      // No GPS captured for this submission — nothing to validate.
-      return;
-    }
-    const target = resolveRepGeofenceTarget(job);
-    if (!target) {
-      // No coordinates configured for this job's location — skip check
-      return;
-    }
-    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, GEOFENCE_RADIUS_METERS)) {
-      // Outside GEOFENCE_RADIUS_METERS (600 m) — log for audit but do not block the rep
-      const dist = Math.round(haversineDistance(latitude, longitude, target.lat, target.lng));
-      this.logger.warn(
-        `Rep geofence miss on job ${job.id}: rep at (${latitude},${longitude}) is ${dist}m from target (${target.lat},${target.lng})`,
-      );
-    }
-  }
 
   async findJobDetail(userId: string, jobId: string) {
     const repId = await this.resolveRepId(userId);

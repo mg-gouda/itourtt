@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { resolveDriverGeofenceTarget, isWithinGeofence, haversineDistance, GEOFENCE_RADIUS_METERS } from '../common/geofence.util.js';
+import { assertWithinGeofence } from '../common/geofence.util.js';
 import {
   checkNoShowWindow,
   getNoShowAvailableFrom,
@@ -155,6 +155,27 @@ export class DriverPortalService {
     return driver.id;
   }
 
+  /**
+   * Geofence pre-check for the evidence routes: runs BEFORE the photos are
+   * uploaded, so a submission rejected for being out of range never leaves
+   * orphan photos behind. The submit method re-checks authoritatively.
+   */
+  async precheckGeofence(
+    userId: string,
+    jobId: string,
+    status: string,
+    latitude: number,
+    longitude: number,
+  ) {
+    const driverId = await this.resolveDriverId(userId);
+    const assignment = await this.prisma.trafficAssignment.findFirst({
+      where: { driverId, trafficJobId: jobId },
+      select: { id: true },
+    });
+    if (!assignment) return; // the submit call reports it properly
+    await assertWithinGeofence(this.prisma, { jobId, role: 'DRIVER', status, latitude, longitude });
+  }
+
   async getMyJobs(userId: string, date?: string) {
     const driverId = await this.resolveDriverId(userId);
     const jobDate = date ? new Date(date) : new Date();
@@ -275,7 +296,13 @@ export class DriverPortalService {
     }
 
     this.checkDriverTimelock(assignment.trafficJob);
-    this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
+    await assertWithinGeofence(this.prisma, {
+      jobId: assignment.trafficJob.id,
+      role: 'DRIVER',
+      status: status,
+      latitude,
+      longitude,
+    });
 
     const currentStatus = assignment.driverStatus;
     const allowed = DRIVER_VALID_TRANSITIONS[currentStatus] || [];
@@ -386,7 +413,13 @@ export class DriverPortalService {
     if (!assignment) throw new NotFoundException('Job not found or not assigned to you');
 
     this.checkDriverTimelock(assignment.trafficJob);
-    this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
+    await assertWithinGeofence(this.prisma, {
+      jobId: assignment.trafficJob.id,
+      role: 'DRIVER',
+      status: 'IN_PROGRESS',
+      latitude,
+      longitude,
+    });
 
     const currentStatus = assignment.driverStatus;
     if (currentStatus !== 'PENDING' && currentStatus !== 'IN_PROGRESS') {
@@ -492,7 +525,13 @@ export class DriverPortalService {
     if (!assignment) throw new NotFoundException('Job not found or not assigned to you');
 
     this.checkDriverTimelock(assignment.trafficJob);
-    this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
+    await assertWithinGeofence(this.prisma, {
+      jobId: assignment.trafficJob.id,
+      role: 'DRIVER',
+      status: 'COMPLETED',
+      latitude,
+      longitude,
+    });
 
     const currentStatus = assignment.driverStatus;
     if (DRIVER_TERMINAL_STATUSES.includes(currentStatus)) {
@@ -651,7 +690,13 @@ export class DriverPortalService {
     }
 
     this.checkDriverTimelock(assignment.trafficJob);
-    this.checkDriverGeofence(assignment.trafficJob, latitude, longitude);
+    await assertWithinGeofence(this.prisma, {
+      jobId: assignment.trafficJob.id,
+      role: 'DRIVER',
+      status: 'NO_SHOW',
+      latitude,
+      longitude,
+    });
 
     const currentStatus = assignment.driverStatus;
     if (DRIVER_TERMINAL_STATUSES.includes(currentStatus)) {
@@ -894,24 +939,6 @@ export class DriverPortalService {
     }
   }
 
-  private checkDriverGeofence(job: any, latitude: number | null, longitude: number | null) {
-    if (latitude == null || longitude == null) {
-      // No GPS captured for this submission — nothing to validate.
-      return;
-    }
-    const target = resolveDriverGeofenceTarget(job);
-    if (!target) {
-      // No coordinates configured for this job's location — skip check
-      return;
-    }
-    if (!isWithinGeofence(latitude, longitude, target.lat, target.lng, GEOFENCE_RADIUS_METERS)) {
-      // Outside GEOFENCE_RADIUS_METERS (600 m) — log for audit but do not block the driver
-      const dist = Math.round(haversineDistance(latitude, longitude, target.lat, target.lng));
-      this.logger.warn(
-        `Driver geofence miss on job ${job.id}: driver at (${latitude},${longitude}) is ${dist}m from target (${target.lat},${target.lng})`,
-      );
-    }
-  }
 
   async findJobDetail(userId: string, jobId: string) {
     const driverId = await this.resolveDriverId(userId);

@@ -112,15 +112,15 @@ REST surface for the driver app and `/driver` web portal. Class-guarded to the D
 | `getJobDetail` | pub | 102 | `driverPortalService.findJobDetail` | One job's full detail, scoped to the calling driver. |
 | `updateJobStatus` | pub | 111 | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
 | `markCollected` | pub | 127 | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
-| `submitNoShow` | pub | 138 | `driverPortalService.getJobStampMeta` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
-| `submitInProgress` | pub | 165 | `driverPortalService.getJobStampMeta` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
-| `submitCompleted` | pub | 192 | `driverPortalService.getJobStampMeta` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
-| `getComplaints` | pub | 218 | `driverPortalService.getComplaints` | GET /driver-portal/complaints — the driver's own settled complaints. |
-| `getNotifications` | pub | 224 | `driverPortalService.getNotifications` | Driver's notification feed. |
-| `markNotificationRead` | pub | 230 | `driverPortalService.markNotificationRead` | Marks a single notification read. |
-| `markAllRead` | pub | 239 | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
-| `getProfile` | pub | 245 | `driverPortalService.getProfile` | The driver's own profile. |
-| `uploadFiles` | priv | 254 | `googleDriveService.uploadFile` | Shared helper for the three evidence endpoints: stamps each image, uploads to Google Drive, falls back to local `uploads/` on failure. A silent fallback here is the known symptom of expired Drive OAuth. |
+| `submitNoShow` | pub | 138 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
+| `submitInProgress` | pub | 166 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
+| `submitCompleted` | pub | 194 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
+| `getComplaints` | pub | 221 | `driverPortalService.getComplaints` | GET /driver-portal/complaints — the driver's own settled complaints. |
+| `getNotifications` | pub | 227 | `driverPortalService.getNotifications` | Driver's notification feed. |
+| `markNotificationRead` | pub | 233 | `driverPortalService.markNotificationRead` | Marks a single notification read. |
+| `markAllRead` | pub | 242 | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
+| `getProfile` | pub | 248 | `driverPortalService.getProfile` | The driver's own profile. |
+| `uploadFiles` | priv | 257 | `googleDriveService.uploadFile` | Shared helper for the three evidence endpoints: stamps each image, uploads to Google Drive, falls back to local `uploads/` on failure. A silent fallback here is the known symptom of expired Drive OAuth. |
 
 ### DriverPortalService
 
@@ -133,23 +133,23 @@ Everything the driver-facing portal does. Enforces four independent gates on eve
 | `resolveNoShowWait` | priv | 116 | `companySettings` | The NO SHOW wait in minutes for one job — the agent's override or the company default. |
 | `withNoShowWindow` | priv | 132 | `companySettings` | Stamps each job with noShowAvailableFrom so the portal gates against the same instant the server enforces. |
 | `resolveDriverId` | pub | 148 | `driver` | Maps the JWT user id to a Driver row; throws Forbidden when the account has no linked driver profile. Every other method starts here. |
-| `getMyJobs` | pub | 158 | `trafficAssignment` | The driver's jobs for one day (defaults to today), sorted by effective start time — flight arrival for ARR, `pickUpTime` otherwise. Uses the trimmed `jobSummaryInclude`, so no agent or customer data reaches the driver. |
-| `getJobHistory` | pub | 199 | `trafficAssignment` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, each with the driver's own fee from `DriverTripFee`. |
-| `updateJobStatus` | pub | 241 | `trafficAssignment` `statusChangeLog` `trafficJob` | Non-evidence status transition, GPS-stamped into `StatusChangeLog`. Validates against `DRIVER_VALID_TRANSITIONS` and blocks IN_PROGRESS before the scheduled job time. |
-| `submitInProgress` | pub | 357 | `driver` `trafficAssignment` `inProgressEvidence` `statusChangeLog` | Starts the job with photo evidence. Blocked before the scheduled job time. Idempotent — re-submitting when already IN_PROGRESS attaches more evidence without a second status-change log. |
-| `submitCompleted` | pub | 463 | `driver` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | Closes the driver leg. Four gates in order: must be IN_PROGRESS, ≥15 min after job time, inside the 48h timelock, and `collectionCollected` if `collectionRequired`. Then writes evidence and calls `reconcileJobStatus` to roll up the job and materialise fees. |
-| `markCollected` | pub | 583 | `trafficAssignment` `trafficJob` | Flips `TrafficJob.collectionCollected` (and its timestamp). Rejects jobs that don't require collection. This is the gate that keeps the Complete button disabled — see [FT-1918 pattern]. |
-| `submitNoShow` | pub | 611 | `driver` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` +1 | Marks guest no-show with evidence. Allowed only from PENDING/IN_PROGRESS and only inside the no-show window (`checkNoShowWindow` — 80 min after job time). Sets BOTH the assignment leg and `TrafficJob.status` to NO_SHOW, then fires the dispute report email fire-and-forget. |
-| `getComplaints` | pub | 741 | `complaint` | Settled complaints this driver was held responsible for — terminal outcomes only, with no claimed or conceded amounts. |
-| `postedChargeAgainst` | priv | 800 | — | What this driver actually lost to a complaint: the posted charges naming them, added up. |
-| `getNotifications` | pub | 814 | `driverNotification` | Unread-first notification feed for this driver from `DriverNotification`. |
-| `markNotificationRead` | pub | 839 | `driverNotification` | Marks one notification read, scoped to the calling driver so ids cannot be probed across accounts. |
-| `markAllRead` | pub | 856 | `driverNotification` | Bulk-marks every unread notification for this driver. |
-| `getProfile` | pub | 867 | `driver` | Driver's own profile card — identity, licence and linked vehicle data. |
-| `checkDriverTimelock` | priv | 887 | — | Hard 48h cut-off after `jobDate`, skipped entirely when an admin has set `driverUnlockedAt`. Throws Forbidden — this is the usual cause of a driver being unable to touch an old job. |
-| `checkDriverGeofence` | priv | 897 | — | Compares GPS to the job's origin coordinates at a 2km radius. Deliberately NON-blocking: a miss is only logged as a warning, never thrown. Do not assume GPS enforcement for drivers (reps are stricter). |
-| `findJobDetail` | pub | 916 | `trafficJob` | Full job detail for one assigned job, including no-show evidence. Scoped by `assignment.driverId`, so a driver cannot read another's job. |
-| `getJobStampMeta` | pub | 960 | `trafficJob` | Supplies the name/status overlay burned into evidence photos by `stampEvidenceImage` before upload. |
+| `precheckGeofence` | pub | 163 | `trafficAssignment` | Ownership-checked geofence run before evidence photos upload, so a refused submission leaves no orphan files. |
+| `getMyJobs` | pub | 179 | `trafficAssignment` | The driver's jobs for one day (defaults to today), sorted by effective start time — flight arrival for ARR, `pickUpTime` otherwise. Uses the trimmed `jobSummaryInclude`, so no agent or customer data reaches the driver. |
+| `getJobHistory` | pub | 220 | `trafficAssignment` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, each with the driver's own fee from `DriverTripFee`. |
+| `updateJobStatus` | pub | 262 | `trafficAssignment` `statusChangeLog` `trafficJob` | Non-evidence status transition, GPS-stamped into `StatusChangeLog`. Validates against `DRIVER_VALID_TRANSITIONS` and blocks IN_PROGRESS before the scheduled job time. |
+| `submitInProgress` | pub | 384 | `driver` `trafficAssignment` `inProgressEvidence` `statusChangeLog` | Starts the job with photo evidence. Blocked before the scheduled job time. Idempotent — re-submitting when already IN_PROGRESS attaches more evidence without a second status-change log. |
+| `submitCompleted` | pub | 496 | `driver` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | Closes the driver leg. Four gates in order: must be IN_PROGRESS, ≥15 min after job time, inside the 48h timelock, and `collectionCollected` if `collectionRequired`. Then writes evidence and calls `reconcileJobStatus` to roll up the job and materialise fees. |
+| `markCollected` | pub | 622 | `trafficAssignment` `trafficJob` | Flips `TrafficJob.collectionCollected` (and its timestamp). Rejects jobs that don't require collection. This is the gate that keeps the Complete button disabled — see [FT-1918 pattern]. |
+| `submitNoShow` | pub | 650 | `driver` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` +1 | Marks guest no-show with evidence. Allowed only from PENDING/IN_PROGRESS and only inside the no-show window (`checkNoShowWindow` — 80 min after job time). Sets BOTH the assignment leg and `TrafficJob.status` to NO_SHOW, then fires the dispute report email fire-and-forget. |
+| `getComplaints` | pub | 786 | `complaint` | Settled complaints this driver was held responsible for — terminal outcomes only, with no claimed or conceded amounts. |
+| `postedChargeAgainst` | priv | 845 | — | What this driver actually lost to a complaint: the posted charges naming them, added up. |
+| `getNotifications` | pub | 859 | `driverNotification` | Unread-first notification feed for this driver from `DriverNotification`. |
+| `markNotificationRead` | pub | 884 | `driverNotification` | Marks one notification read, scoped to the calling driver so ids cannot be probed across accounts. |
+| `markAllRead` | pub | 901 | `driverNotification` | Bulk-marks every unread notification for this driver. |
+| `getProfile` | pub | 912 | `driver` | Driver's own profile card — identity, licence and linked vehicle data. |
+| `checkDriverTimelock` | priv | 932 | — | Hard 48h cut-off after `jobDate`, skipped entirely when an admin has set `driverUnlockedAt`. Throws Forbidden — this is the usual cause of a driver being unable to touch an old job. |
+| `findJobDetail` | pub | 943 | `trafficJob` | Full job detail for one assigned job, including no-show evidence. Scoped by `assignment.driverId`, so a driver cannot read another's job. |
+| `getJobStampMeta` | pub | 987 | `trafficJob` | Supplies the name/status overlay burned into evidence photos by `stampEvidenceImage` before upload. |
 
 ### NoShowDisputeService
 
@@ -259,19 +259,19 @@ REST surface for the rep app and `/rep` web portal. REP-role guarded, GPS mandat
 | `getJobHistory` | pub | 126 | `repPortalService.getJobHistory` | Completed/cancelled/no-show rep legs over a date range, with fees. |
 | `getJobDetail` | pub | 137 | `repPortalService.findJobDetail` | One job's detail, scoped to the calling rep. |
 | `updateJobStatus` | pub | 146 | `repPortalService.updateJobStatus` | GPS-stamped rep status transition without evidence upload. |
-| `submitNoShow` | pub | 163 | `repPortalService.getJobStampMeta` `repPortalService.submitNoShow` | Multipart rep no-show submission with stamped photos. |
-| `submitInPlace` | pub | 190 | `repPortalService.getJobStampMeta` `repPortalService.submitInPlace` | Multipart IN PLACE submission — the window-gated arrival confirmation. |
-| `getGuestSurvey` | pub | 216 | `repPortalService.getGuestSurvey` | Fetches the arrival guest survey for a job, if submitted. |
-| `submitGuestSurvey` | pub | 225 | `repPortalService.submitGuestSurvey` | Submits/updates the arrival guest survey; awards the survey score dimension. |
-| `submitCompleted` | pub | 236 | `repPortalService.getJobStampMeta` `repPortalService.submitCompleted` | Multipart rep completion with stamped evidence. |
-| `submitFlightDelay` | pub | 262 | `repPortalService.submitFlightDelay` | Reports a new arrival time and notifies traffic/dispatch staff. |
-| `submitUpdate` | pub | 275 | `repPortalService.submitUpdate` | Sends a free-text rep note to traffic/dispatch operators. |
-| `getComplaints` | pub | 288 | `repPortalService.getComplaints` | GET /rep-portal/complaints — the rep's own settled complaints. |
-| `getNotifications` | pub | 294 | `repPortalService.getNotifications` | Rep's notification feed. |
-| `markNotificationRead` | pub | 300 | `repPortalService.markNotificationRead` | Marks a single notification read. |
-| `markAllRead` | pub | 309 | `repPortalService.markAllRead` | Marks every notification read for this rep. |
-| `getProfile` | pub | 315 | `repPortalService.getProfile` | The rep's own profile. |
-| `uploadFiles` | priv | 324 | `googleDriveService.uploadFile` | Shared stamp-then-upload helper for the rep evidence endpoints, with local-disk fallback when Drive is unavailable. |
+| `submitNoShow` | pub | 163 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitNoShow` | Multipart rep no-show submission with stamped photos. |
+| `submitInPlace` | pub | 191 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitInPlace` | Multipart IN PLACE submission — the window-gated arrival confirmation. |
+| `getGuestSurvey` | pub | 218 | `repPortalService.getGuestSurvey` | Fetches the arrival guest survey for a job, if submitted. |
+| `submitGuestSurvey` | pub | 227 | `repPortalService.submitGuestSurvey` | Submits/updates the arrival guest survey; awards the survey score dimension. |
+| `submitCompleted` | pub | 238 | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitCompleted` | Multipart rep completion with stamped evidence. |
+| `submitFlightDelay` | pub | 265 | `repPortalService.submitFlightDelay` | Reports a new arrival time and notifies traffic/dispatch staff. |
+| `submitUpdate` | pub | 278 | `repPortalService.submitUpdate` | Sends a free-text rep note to traffic/dispatch operators. |
+| `getComplaints` | pub | 291 | `repPortalService.getComplaints` | GET /rep-portal/complaints — the rep's own settled complaints. |
+| `getNotifications` | pub | 297 | `repPortalService.getNotifications` | Rep's notification feed. |
+| `markNotificationRead` | pub | 303 | `repPortalService.markNotificationRead` | Marks a single notification read. |
+| `markAllRead` | pub | 312 | `repPortalService.markAllRead` | Marks every notification read for this rep. |
+| `getProfile` | pub | 318 | `repPortalService.getProfile` | The rep's own profile. |
+| `uploadFiles` | priv | 327 | `googleDriveService.uploadFile` | Shared stamp-then-upload helper for the rep evidence endpoints, with local-disk fallback when Drive is unavailable. |
 
 ### RepPortalService
 
@@ -284,26 +284,26 @@ Everything the rep-facing portal does. The rep leg runs PENDING→IN_PLACE→COM
 | `resolveNoShowWait` | priv | 81 | `companySettings` | The NO SHOW wait in minutes for one job — the agent's override or the company default. |
 | `withNoShowWindow` | priv | 97 | `companySettings` | Stamps each job with noShowAvailableFrom so the portal gates against the same instant the server enforces. |
 | `resolveRepId` | pub | 113 | `rep` | Maps the JWT user id to a Rep row; throws Forbidden when no rep profile is linked. |
-| `getMyJobs` | pub | 123 | `trafficAssignment` | The rep's jobs for one day (default today), sorted by flight arrival for ARR or `pickUpTime` otherwise. |
-| `getJobHistory` | pub | 164 | `trafficAssignment` | Terminal-status rep legs in a date range, with the fee earned per job. |
-| `updateJobStatus` | pub | 215 | `trafficAssignment` `statusChangeLog` `trafficJob` | Non-evidence rep transition against `REP_VALID_TRANSITIONS`. Can reach COMPLETED (IN_PLACE→COMPLETED), so it also triggers the job-level roll-up. |
-| `submitNoShow` | pub | 306 | `rep` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` | Rep-side no-show with evidence. Allowed from PENDING/IN_PLACE only and constrained by the shared `checkNoShowWindow` (80 min after job time). |
-| `submitInPlace` | pub | 423 | `rep` `trafficAssignment` `trafficJob` `inPlaceEvidence` `statusChangeLog` | Rep confirms arrival at the meeting point. Enforces a hard window of arrival −10 min to +80 min, but ONLY for ARR jobs, and skipped entirely when `repUnlockedAt` is set by an admin. Idempotent: re-submitting while already IN_PLACE returns current state without re-processing. |
-| `getGuestSurvey` | pub | 554 | `trafficAssignment` `guestSurvey` | Returns the arrival guest survey for a job if one has been submitted, scoped to the assigned rep. |
-| `submitGuestSurvey` | pub | 590 | `rep` `trafficAssignment` `guestSurvey` `repJobScore` `repFee` | Upserts the native arrival guest survey (ARR jobs only — replaced the old MS Forms flow). Submitting it auto-awards the 15-point survey scoring dimension and recalculates the rep fee, preserving existing score flags. |
-| `submitCompleted` | pub | 693 | `rep` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | Closes the rep leg with photo evidence. Requires IN_PLACE first, then calls `reconcileJobStatus` to roll the job up and materialise the rep fee — reps are paid only for completed jobs. |
-| `submitFlightDelay` | pub | 786 | `rep` `trafficAssignment` `trafficFlight` `user` `userNotification` | Rep reports a delayed arrival: rewrites `TrafficFlight.arrivalTime` and notifies every user holding the `traffic-jobs` or `dispatch` permission (plus all ADMINs). Rejected for non-ARR jobs or jobs with no flight row. |
-| `submitUpdate` | pub | 878 | `rep` `trafficAssignment` `user` `userNotification` | Free-text rep note pushed as a `UserNotification` to traffic/dispatch operators. Does not change any status. |
-| `getComplaints` | pub | 954 | `complaint` | Settled complaints this rep was held responsible for — terminal outcomes only, with no claimed or conceded amounts. |
-| `postedChargeAgainst` | priv | 1012 | — | What this rep actually lost to a complaint: the posted charges naming them, added up. |
-| `getNotifications` | pub | 1026 | `repNotification` | Rep's notification feed from `RepNotification`. |
-| `markNotificationRead` | pub | 1051 | `repNotification` | Marks one notification read, scoped to the calling rep. |
-| `markAllRead` | pub | 1068 | `repNotification` | Bulk-marks this rep's notifications read. |
-| `getProfile` | pub | 1079 | `rep` | The rep's own profile, including assigned zones. |
-| `checkRepTimelock` | priv | 1104 | — | 48h cut-off after `jobDate`, bypassed by `TrafficJob.repUnlockedAt`. Mirrors the driver timelock. |
-| `checkRepGeofence` | priv | 1114 | — | 2km proximity check that only WARNS — it never throws. Note the in-app help text claims GPS proximity is required at 500m; the code does not enforce that for either portal. |
-| `findJobDetail` | pub | 1133 | `trafficJob` | Full job detail for one assigned job, scoped by `assignment.repId`. |
-| `getJobStampMeta` | pub | 1177 | `trafficJob` | Name/status overlay burned into rep evidence photos before upload. |
+| `precheckGeofence` | pub | 128 | `trafficAssignment` | Ownership-checked geofence run before evidence photos upload, so a refused submission leaves no orphan files. |
+| `getMyJobs` | pub | 144 | `trafficAssignment` | The rep's jobs for one day (default today), sorted by flight arrival for ARR or `pickUpTime` otherwise. |
+| `getJobHistory` | pub | 185 | `trafficAssignment` | Terminal-status rep legs in a date range, with the fee earned per job. |
+| `updateJobStatus` | pub | 236 | `trafficAssignment` `statusChangeLog` `trafficJob` | Non-evidence rep transition against `REP_VALID_TRANSITIONS`. Can reach COMPLETED (IN_PLACE→COMPLETED), so it also triggers the job-level roll-up. |
+| `submitNoShow` | pub | 333 | `rep` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` | Rep-side no-show with evidence. Allowed from PENDING/IN_PLACE only and constrained by the shared `checkNoShowWindow` (80 min after job time). |
+| `submitInPlace` | pub | 456 | `rep` `trafficAssignment` `trafficJob` `inPlaceEvidence` `statusChangeLog` | Rep confirms arrival at the meeting point. Enforces a hard window of arrival −10 min to +80 min, but ONLY for ARR jobs, and skipped entirely when `repUnlockedAt` is set by an admin. Idempotent: re-submitting while already IN_PLACE returns current state without re-processing. |
+| `getGuestSurvey` | pub | 593 | `trafficAssignment` `guestSurvey` | Returns the arrival guest survey for a job if one has been submitted, scoped to the assigned rep. |
+| `submitGuestSurvey` | pub | 629 | `rep` `trafficAssignment` `guestSurvey` `repJobScore` `repFee` | Upserts the native arrival guest survey (ARR jobs only — replaced the old MS Forms flow). Submitting it auto-awards the 15-point survey scoring dimension and recalculates the rep fee, preserving existing score flags. |
+| `submitCompleted` | pub | 732 | `rep` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | Closes the rep leg with photo evidence. Requires IN_PLACE first, then calls `reconcileJobStatus` to roll the job up and materialise the rep fee — reps are paid only for completed jobs. |
+| `submitFlightDelay` | pub | 831 | `rep` `trafficAssignment` `trafficFlight` `user` `userNotification` | Rep reports a delayed arrival: rewrites `TrafficFlight.arrivalTime` and notifies every user holding the `traffic-jobs` or `dispatch` permission (plus all ADMINs). Rejected for non-ARR jobs or jobs with no flight row. |
+| `submitUpdate` | pub | 923 | `rep` `trafficAssignment` `user` `userNotification` | Free-text rep note pushed as a `UserNotification` to traffic/dispatch operators. Does not change any status. |
+| `getComplaints` | pub | 999 | `complaint` | Settled complaints this rep was held responsible for — terminal outcomes only, with no claimed or conceded amounts. |
+| `postedChargeAgainst` | priv | 1057 | — | What this rep actually lost to a complaint: the posted charges naming them, added up. |
+| `getNotifications` | pub | 1071 | `repNotification` | Rep's notification feed from `RepNotification`. |
+| `markNotificationRead` | pub | 1096 | `repNotification` | Marks one notification read, scoped to the calling rep. |
+| `markAllRead` | pub | 1113 | `repNotification` | Bulk-marks this rep's notifications read. |
+| `getProfile` | pub | 1124 | `rep` | The rep's own profile, including assigned zones. |
+| `checkRepTimelock` | priv | 1149 | — | 48h cut-off after `jobDate`, bypassed by `TrafficJob.repUnlockedAt`. Mirrors the driver timelock. |
+| `findJobDetail` | pub | 1160 | `trafficJob` | Full job detail for one assigned job, scoped by `assignment.repId`. |
+| `getJobStampMeta` | pub | 1204 | `trafficJob` | Name/status overlay burned into rep evidence photos before upload. |
 
 ## `supplier-portal`
 

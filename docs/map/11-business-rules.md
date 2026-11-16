@@ -87,15 +87,34 @@ That needs coordinates in the response: the driver portal's slim `jobSummaryIncl
 `latitude/longitude` (and airport `code`) via `NAV_*_SELECT` — trim them and the links degrade to
 name searches.
 
-## GPS is captured but never blocks
+## Why was this status update refused for location?
 
-`common/geofence.util.ts` computes the target; both `checkDriverGeofence` and `checkRepGeofence`
-**log a warning and return** when the device is outside the radius — `GEOFENCE_RADIUS_METERS`,
-**600 m** since 2026-11-16 (was 2 km). They never throw.
+Since 2026-11-16 the rep/driver geofence **blocks** (403): `common/geofence.util.ts ›
+assertWithinGeofence`, radius `GEOFENCE_RADIUS_METERS` = **600 m** (was 2 km and log-only). GPS
+itself is mandatory on every status route (DTO / controller), so it cannot be skipped by withholding
+location.
 
-The in-app help text now says the same (it used to claim "500m … required", which was never true).
-GPS is mandatory to *capture*, not to *match*. A location with no coordinates disables the
-check entirely, since `resolveDriverGeofenceTarget` returns null.
+Where each status is checked against:
+
+| Who | Status | Target |
+|---|---|---|
+| Driver | IN_PROGRESS, NO_SHOW | pickup end — pin → airport → hotel → zone |
+| Driver | COMPLETED | **drop-off** end (same order) — before 2026-11-16 it wrongly used the origin |
+| Driver | CANCELLED | none |
+| Rep | every status | the job's airport — origin for ARR, **destination for DEP** (was origin-only, so DEP reps were never checked) |
+
+Only a **precise** target blocks: an exact pickup/drop-off pin, an airport, or a hotel with
+coordinates. A zone centroid covers a whole area, so a miss against one is only logged. A location
+with no coordinates at all has no check.
+
+**Bypass = the leg's admin unlock** (`driverUnlockedAt` / `repUnlockedAt`, the same unlock that
+lifts the 48h timelock and the rep IN PLACE window) — it is the fix for a wrong location pin or a
+phone with a bad fix. Every miss is logged (`Geofence BLOCKED` / `bypassed` / `not enforced`).
+
+The evidence routes call `precheckGeofence` in the controller **before** uploading photos, so a
+refused submission leaves no orphan files in Drive; the submit method re-checks authoritatively.
+Airport coordinates must point at the terminal, not the airfield centre — a large airport's
+centroid can be well over 600 m from where reps actually stand.
 
 ---
 
@@ -285,8 +304,8 @@ zone; there are no flat or free-text locations. A job must have **exactly one** 
 destination FK — setting both a zone and a hotel breaks later edit/cancel validation
 (`guest-bookings.service.ts › convertToJob` documents this precisely).
 
-Zone coordinates are also the geofence targets, so editing a location's lat/lng changes portal
-behaviour.
+Airport and hotel coordinates are the enforced geofence targets (zones only log), so editing a
+location's lat/lng changes who can update status from where.
 
 ## References
 

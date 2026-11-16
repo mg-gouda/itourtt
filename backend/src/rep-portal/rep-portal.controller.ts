@@ -179,6 +179,7 @@ export class RepPortalController {
     }
 
     const stampMeta = await this.repPortalService.getJobStampMeta(jobId, 'NO_SHOW').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
+    await this.repPortalService.precheckGeofence(userId, jobId, 'NO_SHOW', latitude, longitude);
     const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
@@ -206,6 +207,7 @@ export class RepPortalController {
     }
 
     const stampMeta = await this.repPortalService.getJobStampMeta(jobId, 'IN_PLACE').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
+    await this.repPortalService.precheckGeofence(userId, jobId, 'IN_PLACE', latitude, longitude);
     const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'in-place', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitInPlace(userId, jobId, imageUrls, latitude, longitude);
@@ -252,6 +254,7 @@ export class RepPortalController {
     }
 
     const stampMeta = await this.repPortalService.getJobStampMeta(jobId, 'COMPLETED').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
+    await this.repPortalService.precheckGeofence(userId, jobId, 'COMPLETED', latitude, longitude);
     const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'completed', latitude, longitude, stampMeta);
 
     const result = await this.repPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);

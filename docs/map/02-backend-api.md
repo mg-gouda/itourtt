@@ -250,19 +250,19 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/driver-portal/complaints` | `getComplaints`:218 | `DRIVER` | `driverPortalService.getComplaints` | GET /driver-portal/complaints — the driver's own settled complaints. |
+| GET | `/api/driver-portal/complaints` | `getComplaints`:221 | `DRIVER` | `driverPortalService.getComplaints` | GET /driver-portal/complaints — the driver's own settled complaints. |
 | GET | `/api/driver-portal/jobs` | `getMyJobs`:78 | `DRIVER` | `driverPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in driver. |
 | GET | `/api/driver-portal/jobs/:jobId` | `getJobDetail`:102 | `DRIVER` | `driverPortalService.findJobDetail` | One job's full detail, scoped to the calling driver. |
 | PATCH | `/api/driver-portal/jobs/:jobId/collection` | `markCollected`:127 | `DRIVER` | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
-| POST | `/api/driver-portal/jobs/:jobId/completed` | `submitCompleted`:192 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
-| POST | `/api/driver-portal/jobs/:jobId/in-progress` | `submitInProgress`:165 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
-| POST | `/api/driver-portal/jobs/:jobId/no-show` | `submitNoShow`:138 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
+| POST | `/api/driver-portal/jobs/:jobId/completed` | `submitCompleted`:194 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
+| POST | `/api/driver-portal/jobs/:jobId/in-progress` | `submitInProgress`:166 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
+| POST | `/api/driver-portal/jobs/:jobId/no-show` | `submitNoShow`:138 | `DRIVER` | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
 | PATCH | `/api/driver-portal/jobs/:jobId/status` | `updateJobStatus`:111 | `DRIVER` | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
 | GET | `/api/driver-portal/jobs/history` | `getJobHistory`:87 | `DRIVER` | `driverPortalService.getJobHistory` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job. |
-| GET | `/api/driver-portal/notifications` | `getNotifications`:224 | `DRIVER` | `driverPortalService.getNotifications` | Driver's notification feed. |
-| PATCH | `/api/driver-portal/notifications/:id/read` | `markNotificationRead`:230 | `DRIVER` | `driverPortalService.markNotificationRead` | Marks a single notification read. |
-| PATCH | `/api/driver-portal/notifications/read-all` | `markAllRead`:239 | `DRIVER` | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
-| GET | `/api/driver-portal/profile` | `getProfile`:245 | `DRIVER` | `driverPortalService.getProfile` | The driver's own profile. |
+| GET | `/api/driver-portal/notifications` | `getNotifications`:227 | `DRIVER` | `driverPortalService.getNotifications` | Driver's notification feed. |
+| PATCH | `/api/driver-portal/notifications/:id/read` | `markNotificationRead`:233 | `DRIVER` | `driverPortalService.markNotificationRead` | Marks a single notification read. |
+| PATCH | `/api/driver-portal/notifications/read-all` | `markAllRead`:242 | `DRIVER` | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
+| GET | `/api/driver-portal/profile` | `getProfile`:248 | `DRIVER` | `driverPortalService.getProfile` | The driver's own profile. |
 
 ### DriverTariffsController
 
@@ -562,22 +562,22 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/rep-portal/complaints` | `getComplaints`:288 | `REP` | `repPortalService.getComplaints` | GET /rep-portal/complaints — the rep's own settled complaints. |
+| GET | `/api/rep-portal/complaints` | `getComplaints`:291 | `REP` | `repPortalService.getComplaints` | GET /rep-portal/complaints — the rep's own settled complaints. |
 | GET | `/api/rep-portal/jobs` | `getMyJobs`:117 | `REP` | `repPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in rep. |
 | GET | `/api/rep-portal/jobs/:jobId` | `getJobDetail`:137 | `REP` | `repPortalService.findJobDetail` | One job's detail, scoped to the calling rep. |
-| POST | `/api/rep-portal/jobs/:jobId/completed` | `submitCompleted`:236 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitCompleted` | Multipart rep completion with stamped evidence. |
-| PATCH | `/api/rep-portal/jobs/:jobId/flight-delay` | `submitFlightDelay`:262 | `REP` | `repPortalService.submitFlightDelay` | Reports a new arrival time and notifies traffic/dispatch staff. |
-| POST | `/api/rep-portal/jobs/:jobId/in-place` | `submitInPlace`:190 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitInPlace` | Multipart IN PLACE submission — the window-gated arrival confirmation. |
-| POST | `/api/rep-portal/jobs/:jobId/no-show` | `submitNoShow`:163 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.submitNoShow` | Multipart rep no-show submission with stamped photos. |
+| POST | `/api/rep-portal/jobs/:jobId/completed` | `submitCompleted`:238 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitCompleted` | Multipart rep completion with stamped evidence. |
+| PATCH | `/api/rep-portal/jobs/:jobId/flight-delay` | `submitFlightDelay`:265 | `REP` | `repPortalService.submitFlightDelay` | Reports a new arrival time and notifies traffic/dispatch staff. |
+| POST | `/api/rep-portal/jobs/:jobId/in-place` | `submitInPlace`:191 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitInPlace` | Multipart IN PLACE submission — the window-gated arrival confirmation. |
+| POST | `/api/rep-portal/jobs/:jobId/no-show` | `submitNoShow`:163 | `REP` | `repPortalService.getJobStampMeta` `repPortalService.precheckGeofence` `repPortalService.submitNoShow` | Multipart rep no-show submission with stamped photos. |
 | PATCH | `/api/rep-portal/jobs/:jobId/status` | `updateJobStatus`:146 | `REP` | `repPortalService.updateJobStatus` | GPS-stamped rep status transition without evidence upload. |
-| GET | `/api/rep-portal/jobs/:jobId/survey` | `getGuestSurvey`:216 | `REP` | `repPortalService.getGuestSurvey` | Fetches the arrival guest survey for a job, if submitted. |
-| POST | `/api/rep-portal/jobs/:jobId/survey` | `submitGuestSurvey`:225 | `REP` | `repPortalService.submitGuestSurvey` | Submits/updates the arrival guest survey; awards the survey score dimension. |
-| POST | `/api/rep-portal/jobs/:jobId/update` | `submitUpdate`:275 | `REP` | `repPortalService.submitUpdate` | Sends a free-text rep note to traffic/dispatch operators. |
+| GET | `/api/rep-portal/jobs/:jobId/survey` | `getGuestSurvey`:218 | `REP` | `repPortalService.getGuestSurvey` | Fetches the arrival guest survey for a job, if submitted. |
+| POST | `/api/rep-portal/jobs/:jobId/survey` | `submitGuestSurvey`:227 | `REP` | `repPortalService.submitGuestSurvey` | Submits/updates the arrival guest survey; awards the survey score dimension. |
+| POST | `/api/rep-portal/jobs/:jobId/update` | `submitUpdate`:278 | `REP` | `repPortalService.submitUpdate` | Sends a free-text rep note to traffic/dispatch operators. |
 | GET | `/api/rep-portal/jobs/history` | `getJobHistory`:126 | `REP` | `repPortalService.getJobHistory` | Completed/cancelled/no-show rep legs over a date range, with fees. |
-| GET | `/api/rep-portal/notifications` | `getNotifications`:294 | `REP` | `repPortalService.getNotifications` | Rep's notification feed. |
-| PATCH | `/api/rep-portal/notifications/:id/read` | `markNotificationRead`:300 | `REP` | `repPortalService.markNotificationRead` | Marks a single notification read. |
-| PATCH | `/api/rep-portal/notifications/read-all` | `markAllRead`:309 | `REP` | `repPortalService.markAllRead` | Marks every notification read for this rep. |
-| GET | `/api/rep-portal/profile` | `getProfile`:315 | `REP` | `repPortalService.getProfile` | The rep's own profile. |
+| GET | `/api/rep-portal/notifications` | `getNotifications`:297 | `REP` | `repPortalService.getNotifications` | Rep's notification feed. |
+| PATCH | `/api/rep-portal/notifications/:id/read` | `markNotificationRead`:303 | `REP` | `repPortalService.markNotificationRead` | Marks a single notification read. |
+| PATCH | `/api/rep-portal/notifications/read-all` | `markAllRead`:312 | `REP` | `repPortalService.markAllRead` | Marks every notification read for this rep. |
+| GET | `/api/rep-portal/profile` | `getProfile`:318 | `REP` | `repPortalService.getProfile` | The rep's own profile. |
 
 ### ReportsController
 

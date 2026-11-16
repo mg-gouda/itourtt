@@ -850,7 +850,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-118 free functions, constants and types in these modules.
+121 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -940,11 +940,14 @@ Haversine distance and geofence target resolution. Note both portals call these 
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `GEOFENCE_RADIUS_METERS` | const | 12 | Rep/driver status-stamp GPS radius: 600 m (was 2 km); a miss is logged, never blocks. |
-| `haversineDistance` | function | 19 | Great-circle distance in metres between two lat/lng points. |
-| `isWithinGeofence` | function | 35 | True when two points are within `radiusMeters` (default 500). Callers pass 2000 in practice. |
-| `resolveRepGeofenceTarget` | function | 72 | Reps are always at the airport, so this is simply the job's origin airport coordinate. |
-| `resolveDriverGeofenceTarget` | function | 81 | ARR → origin airport. DEP/CITY → origin hotel, falling back to origin zone, then the hotel's parent zone. Returns null when no coordinate is configured, which makes the geofence check a no-op. |
+| `GEOFENCE_RADIUS_METERS` | const | 22 | Rep/driver status-stamp GPS radius: 600 m (was 2 km); a miss is logged, never blocks. |
+| `haversineDistance` | function | 31 | Great-circle distance in metres between two lat/lng points. |
+| `isWithinGeofence` | function | 47 | True when two points are within `radiusMeters` (default 500). Callers pass 2000 in practice. |
+| `GeofenceJob` | type | 65 | Job location shape the geofence reads: exact pins plus origin/destination airport, hotel and zones. |
+| `GeofenceTarget` | type | 81 | Point a status must be made near, with a label for the error and whether it is precise (enforceable). |
+| `resolveRepGeofenceTarget` | function | 136 | The job's airport: origin for ARR, destination for DEP; null when the job has no airport. |
+| `resolveDriverGeofenceTarget` | function | 148 | Per status: IN_PROGRESS/NO_SHOW → pickup end, COMPLETED → drop-off end (pin → airport → hotel precise; zones not); other statuses → null. |
+| `assertWithinGeofence` | function | 171 | Throws 403 when a rep/driver status GPS is >600 m from a precise target; zone targets and unlocked jobs only log. |
 
 ### `backend/src/common/license-verify.ts`
 
