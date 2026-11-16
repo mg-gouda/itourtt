@@ -626,20 +626,20 @@ Admin surface for viewing and killing device sessions.
 
 ### SessionsService
 
-`backend/src/sessions/sessions.service.ts:31` · service · 8 methods
+`backend/src/sessions/sessions.service.ts:32` · service · 8 methods
 
 Device-session tracking that powers the admin Active-Sessions view and the REP/DRIVER single-device lock. Idle sessions expire on their own after `SESSION_IDLE_MINUTES` (default 30) so a dead phone cannot lock a rep out permanently.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `start` | pub | 42 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
-| `findActive` | pub | 59 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
-| `touch` | pub | 68 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
-| `end` | pub | 77 | `userSession` | Marks a session ended on logout. |
-| `listForUser` | pub | 85 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
-| `forceLogout` | pub | 102 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
-| `clear` | pub | 116 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
-| `notifyManagersOfConflict` | pub | 123 | `user` `userNotification` | Notifies Admin / Dispatch Manager / Online Manager when a rep or driver login is blocked by the lock. |
+| `start` | pub | 43 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
+| `findActive` | pub | 60 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
+| `touch` | pub | 69 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
+| `end` | pub | 78 | `userSession` | Marks a session ended on logout. |
+| `listForUser` | pub | 86 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
+| `forceLogout` | pub | 103 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
+| `clear` | pub | 117 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
+| `notifyManagersOfConflict` | pub | 127 | `user` `userNotification` | Notifies Admin / Dispatch Manager / Online Manager when a rep or driver login is blocked by the lock. |
 
 ## `settings`
 
@@ -847,7 +847,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-111 free functions, constants and types in these modules.
+113 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1046,6 +1046,15 @@ Server-side evidence photo stamping, so the overlay cannot be forged by the clie
 | `StampMeta` | type | 3 | Overlay payload for `stampEvidenceImage`, supplied by each portal's `getJobStampMeta`. |
 | `stampEvidenceImage` | function | 18 | Burns job reference, submitter name, status and timestamp into an evidence photo server-side before upload, so the stamp cannot be forged client-side. |
 
+### `backend/src/common/utils/super-admin.util.ts`
+
+The single super-admin account identity; login/session alerts go only to this user.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `SUPER_ADMIN_EMAIL` | const | 5 | Email of the one super-admin who alone receives blocked-login (REP_LOGIN_CONFLICT) alerts. |
+| `isSuperAdminEmail` | function | 8 | Case-insensitive check that an email belongs to the super-admin account. |
+
 ### `backend/src/common/utils/totp.util.ts`
 
 Hand-rolled TOTP for two-factor auth — base32, code generation/verification, otpauth URI and recovery codes.
@@ -1167,5 +1176,5 @@ Device-session tracking behind the admin Active-Sessions view and the single-dev
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SessionContext` | type | 5 | Request context captured with a session: ip and userAgent. |
-| `deviceNameFromUA` | function | 11 | Best-effort friendly device label (e.g. "Chrome · Android", "Mobile app") from a User-Agent string. |
+| `SessionContext` | type | 6 | Request context captured with a session: ip and userAgent. |
+| `deviceNameFromUA` | function | 12 | Best-effort friendly device label (e.g. "Chrome · Android", "Mobile app") from a User-Agent string. |

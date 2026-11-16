@@ -247,13 +247,13 @@ Generic searchable select, used for large lists such as the car source.
 
 ### `session-conflict-modal.tsx`
 
-`frontend/src/components/session-conflict-modal.tsx` · 116 lines
+`frontend/src/components/session-conflict-modal.tsx` · 120 lines
 
 Shown when a rep/driver login is refused because another device holds an active session.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SessionConflictModal` | function | 38 | Explains a 409 login refusal when another device holds the session. |
+| `SessionConflictModal` | function | 41 | Explains a 409 login refusal when another device holds the session. |
 
 ### `sidebar.tsx`
 

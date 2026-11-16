@@ -289,7 +289,9 @@ behaviour.
   changes roles or permissions must invalidate it, or the change appears not to apply.
 - `RolesGuard` is legacy and yields to `PermissionsGuard` whenever the user has a `roleId`.
 - The partner API authenticates by **shared API key**, not JWT — the only controller that does.
-- REP/DRIVER logins are **single-device**: a second device gets 409 and managers are notified.
+- REP/DRIVER logins are **single-device**: a second device gets 409 and **only the super-admin
+  (`mggouda@gmail.com`, `common/utils/super-admin.util.ts`) is notified** — the blocked-login alert is
+  hidden from every other admin, role and user, in the backend recipient list and the frontend popup.
   Sessions free themselves after `SESSION_IDLE_MINUTES` (default 30); admin **Clear** is the manual fix.
 - In production, deploys run with `SKIP_PERMISSION_SEED=true`. ADMIN resolves all keys dynamically,
   but granting a **new** key to a non-admin role needs a manual `rolePermissionV2` insert.

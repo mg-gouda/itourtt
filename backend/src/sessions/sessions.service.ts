@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SUPER_ADMIN_EMAIL } from '../common/utils/super-admin.util.js';
 
 export interface SessionContext {
   ip?: string | null;
@@ -119,7 +120,10 @@ export class SessionsService {
     return { success: true };
   }
 
-  /** Notify Admin + Dispatch Manager + Online Manager of a blocked rep/driver login. */
+  /**
+   * Notify the super-admin (and nobody else) of a blocked rep/driver login.
+   * Login/session alerts are deliberately hidden from every other role and user.
+   */
   async notifyManagersOfConflict(subject: {
     id: string;
     name: string;
@@ -129,10 +133,7 @@ export class SessionsService {
       where: {
         isActive: true,
         deletedAt: null,
-        OR: [
-          { role: 'ADMIN' },
-          { roleRef: { slug: { in: ['admin', 'dispatch-manager', 'online-manager'] } } },
-        ],
+        email: { equals: SUPER_ADMIN_EMAIL, mode: 'insensitive' },
       },
       select: { id: true },
     });

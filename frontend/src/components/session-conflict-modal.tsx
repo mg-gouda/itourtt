@@ -29,14 +29,18 @@ interface Notification {
   metadata?: ConflictMeta | null;
 }
 
+/** Login/session alerts are shown to this super-admin account only. */
+const SUPER_ADMIN_EMAIL = "mggouda@gmail.com";
+
 /**
- * Center-screen alert for Admin / Dispatch Manager / Online Manager: fires when a
- * rep/driver login is blocked because a session is already active on another
- * device. Only those roles ever receive the REP_LOGIN_CONFLICT notification, so
- * simply surfacing unread ones is sufficient. The rep/driver is not notified.
+ * Center-screen alert for the super-admin only: fires when a rep/driver login is
+ * blocked because a session is already active on another device. The backend
+ * sends REP_LOGIN_CONFLICT to the super-admin alone; this gate also keeps every
+ * other user from polling for it. The rep/driver is not notified.
  */
 export function SessionConflictModal() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const isSuperAdmin = user?.email?.trim().toLowerCase() === SUPER_ADMIN_EMAIL;
   const [current, setCurrent] = useState<Notification | null>(null);
   const seen = useRef<Set<string>>(new Set());
 
@@ -55,11 +59,11 @@ export function SessionConflictModal() {
   }, [current]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !isSuperAdmin) return;
     poll();
     const id = setInterval(poll, 15000);
     return () => clearInterval(id);
-  }, [isAuthenticated, poll]);
+  }, [isAuthenticated, isSuperAdmin, poll]);
 
   const dismiss = async () => {
     if (!current) return;
@@ -73,7 +77,7 @@ export function SessionConflictModal() {
     }
   };
 
-  if (!current) return null;
+  if (!current || !isSuperAdmin) return null;
   const m = current.metadata ?? {};
 
   return (
