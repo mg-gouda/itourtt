@@ -2680,7 +2680,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `TrackingController.drivers` | method | `backend/src/tracking/tracking.controller.ts:72` |
 | `TrackingController.ping` | method | `backend/src/tracking/tracking.controller.ts:55` |
 | `TrackingController.reps` | method | `backend/src/tracking/tracking.controller.ts:65` |
-| `TrackingMap` | function | `frontend/src/components/tracking/tracking-map.tsx:36` |
+| `TrackingMap` | function | `frontend/src/components/tracking/tracking-map.tsx:49` |
 | `TrackingModule` | class | `backend/src/tracking/tracking.module.ts:11` |
 | `TrackingService` | class | `backend/src/tracking/tracking.service.ts:53` |
 | `TrackingService.assemble` | method | `backend/src/tracking/tracking.service.ts:167` |

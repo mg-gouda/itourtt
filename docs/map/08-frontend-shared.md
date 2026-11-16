@@ -431,13 +431,13 @@ Step progress indicator for the public booking funnel.
 
 ### `tracking-map.tsx`
 
-`frontend/src/components/tracking/tracking-map.tsx` · 142 lines
+`frontend/src/components/tracking/tracking-map.tsx` · 173 lines
 
 Leaflet map used by the Rep/Driver Tracking pages (client-only, loaded via next/dynamic).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TrackingMap` | function | 36 | Leaflet/OpenStreetMap map of tracked people: freshness-coloured initials markers, popups, accuracy circle for the selection, fits bounds when the filter changes. |
+| `TrackingMap` | function | 49 | Leaflet/OpenStreetMap map of tracked people: freshness-coloured initials markers, popups, accuracy circle for the selection, fits bounds when the filter changes. |
 
 ### `tracking-view.tsx`
 

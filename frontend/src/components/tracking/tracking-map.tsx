@@ -9,6 +9,19 @@ import { FRESHNESS_COLOR, freshnessOf, initials, type TrackedPerson } from "./ty
 const DEFAULT_CENTER: L.LatLngTuple = [26.8, 30.8];
 const DEFAULT_ZOOM = 6;
 
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+type BaseLayer = "Street" | "Satellite";
+/** Per-browser memory of the Street/Satellite choice. */
+const BASE_LAYER_KEY = "tracking-map-base-layer";
+
+function readBaseLayer(): BaseLayer {
+  try {
+    return localStorage.getItem(BASE_LAYER_KEY) === "Satellite" ? "Satellite" : "Street";
+  } catch {
+    return "Street";
+  }
+}
+
 interface TrackingMapProps {
   /** People to plot (those without a location are skipped). */
   people: TrackedPerson[];
@@ -52,10 +65,28 @@ export default function TrackingMap({ people, selectedId, onSelect, popupHtml, f
       DEFAULT_CENTER,
       DEFAULT_ZOOM,
     );
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    // Street (OSM) / Satellite (Esri World Imagery + place-name labels) switch.
+    const street = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    });
+    const satellite = L.layerGroup([
+      L.tileLayer(`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, {
+        maxZoom: 19,
+        attribution: "Imagery &copy; Esri, Maxar, Earthstar Geographics",
+      }),
+      L.tileLayer(`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 19 }),
+    ]);
+    const bases: Record<BaseLayer, L.Layer> = { Street: street, Satellite: satellite };
+    bases[readBaseLayer()].addTo(map);
+    L.control.layers(bases, undefined, { position: "topright", collapsed: false }).addTo(map);
+    map.on("baselayerchange", (e: L.LayersControlEvent) => {
+      try {
+        localStorage.setItem(BASE_LAYER_KEY, e.name);
+      } catch {
+        /* storage unavailable — the choice just isn't remembered */
+      }
+    });
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
