@@ -32,6 +32,7 @@ import {
   MapPinned,
   ClipboardList,
   ClipboardCheck,
+  FileSearch,
   Globe,
   Tag,
   SlidersHorizontal,
@@ -121,8 +122,16 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.repTracking", href: "/dashboard/rep-tracking", icon: LocateFixed, permissionKey: "rep-tracking" },
     ],
   },
-  { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },
-  { type: "link", nameKey: "sidebar.activityLog", href: "/dashboard/activity-log", icon: ClipboardList, permissionKey: "activity-logs" },
+  {
+    type: "group",
+    nameKey: "sidebar.auditControl",
+    icon: FileSearch,
+    children: [
+      { type: "link", nameKey: "sidebar.jobControl", href: "/dashboard/job-control", icon: SlidersHorizontal, permissionKey: "job-control" },
+      { type: "link", nameKey: "sidebar.jobLocks", href: "/dashboard/job-locks", icon: Lock, permissionKey: "job-locks" },
+      { type: "link", nameKey: "sidebar.activityLog", href: "/dashboard/activity-log", icon: ClipboardList, permissionKey: "activity-logs" },
+    ],
+  },
   { type: "section-label", labelKey: "sidebar.section.system" },
   {
     type: "group",
@@ -143,7 +152,6 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.emailSettings", href: "/dashboard/email-settings", icon: Mail, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.googleDrive", href: "/dashboard/google-drive", icon: HardDrive, permissionKey: "company" },
       { type: "link", nameKey: "sidebar.users", href: "/dashboard/users", icon: ShieldCheck, permissionKey: "users" },
-      { type: "link", nameKey: "sidebar.jobControl", href: "/dashboard/job-control", icon: SlidersHorizontal, permissionKey: "job-control" },
     ],
   },
 ];

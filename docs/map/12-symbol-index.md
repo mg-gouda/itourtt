@@ -1336,7 +1336,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `GetPayInGateway.verifyPayment` | method | `backend/src/payments/gateways/getpayin.gateway.ts:209` |
 | `getRouteLabel` | function | `mobile/packages/shared/src/utils/route.ts:20` |
 | `getStatusColors` | function | `mobile/packages/shared/src/theme/index.ts:13` |
-| `getTranslator` | function | `frontend/src/lib/i18n.ts:3651` |
+| `getTranslator` | function | `frontend/src/lib/i18n.ts:3653` |
 | `GoogleDriveAuthUrlDto` | class | `backend/src/settings/dto/update-google-drive-settings.dto.ts:21` |
 | `GoogleDriveExchangeCodeDto` | class | `backend/src/settings/dto/update-google-drive-settings.dto.ts:26` |
 | `GoogleDriveModule` | class | `backend/src/google-drive/google-drive.module.ts:10` |
@@ -1702,15 +1702,15 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 
 | Symbol | Kind | Location |
 |---|---|---|
-| `NavGroup` | type | `frontend/src/components/sidebar.tsx:79` |
-| `navigation` | const | `frontend/src/components/sidebar.tsx:93` |
-| `NavItem` | type | `frontend/src/components/sidebar.tsx:86` |
+| `NavGroup` | type | `frontend/src/components/sidebar.tsx:80` |
+| `navigation` | const | `frontend/src/components/sidebar.tsx:94` |
+| `NavItem` | type | `frontend/src/components/sidebar.tsx:87` |
 | `NavJob` | type | `frontend/src/lib/maps-nav.ts:23` |
 | `NavJob` | type | `mobile/packages/shared/src/native/navigation.ts:23` |
-| `NavLink` | type | `frontend/src/components/sidebar.tsx:60` |
+| `NavLink` | type | `frontend/src/components/sidebar.tsx:61` |
 | `NavLink` | type | `frontend/src/lib/site-settings.ts:17` |
-| `NavSectionLabel` | type | `frontend/src/components/sidebar.tsx:74` |
-| `NavSeparator` | type | `frontend/src/components/sidebar.tsx:70` |
+| `NavSectionLabel` | type | `frontend/src/components/sidebar.tsx:75` |
+| `NavSeparator` | type | `frontend/src/components/sidebar.tsx:71` |
 | `navTarget` | function | `frontend/src/lib/maps-nav.ts:60` |
 | `navTarget` | function | `mobile/packages/shared/src/native/navigation.ts:60` |
 | `NEXT_STATUSES` | const | `frontend/src/lib/complaints.ts:286` |
@@ -2485,7 +2485,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `SheetHeader` | function | `frontend/src/components/ui/sheet.tsx:88` |
 | `SheetTitle` | function | `frontend/src/components/ui/sheet.tsx:108` |
 | `SheetTrigger` | function | `frontend/src/components/ui/sheet.tsx:13` |
-| `Sidebar` | function | `frontend/src/components/sidebar.tsx:153` |
+| `Sidebar` | function | `frontend/src/components/sidebar.tsx:161` |
 | `SINGLE_DEVICE_ROLES` | const | `backend/src/sessions/sessions.service.ts:33` |
 | `SiteSettings` | type | `frontend/src/lib/site-settings.ts:30` |
 | `Skeleton` | function | `frontend/src/components/ui/skeleton.tsx:3` |
@@ -2650,7 +2650,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 
 | Symbol | Kind | Location |
 |---|---|---|
-| `t` | function | `frontend/src/lib/i18n.ts:3647` |
+| `t` | function | `frontend/src/lib/i18n.ts:3649` |
 | `t` | function | `mobile/packages/shared/src/i18n/index.ts:33` |
 | `Table` | function | `frontend/src/components/ui/table.tsx:7` |
 | `TableBody` | function | `frontend/src/components/ui/table.tsx:32` |
@@ -2800,7 +2800,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `useGeoCapture` | function | `frontend/src/lib/use-geo-capture.ts:25` |
 | `useGPS` | function | `mobile/packages/shared/src/hooks/use-gps.ts:10` |
 | `useLicense` | function | `frontend/src/hooks/use-license.ts:16` |
-| `useLocaleId` | function | `frontend/src/lib/i18n.ts:3666` |
+| `useLocaleId` | function | `frontend/src/lib/i18n.ts:3668` |
 | `useLocaleStore` | const | `frontend/src/lib/website-i18n.tsx:42` |
 | `useLocationHeartbeat` | function | `frontend/src/lib/use-location-heartbeat.ts:18` |
 | `useNetwork` | function | `mobile/packages/shared/src/hooks/use-network.ts:4` |
@@ -2852,7 +2852,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `UsersService.updateRole` | method | `backend/src/users/users.service.ts:151` |
 | `useServiceTypeLabel` | function | `frontend/src/lib/service-types.ts:99` |
 | `useSortable` | function | `frontend/src/hooks/use-sortable.ts:7` |
-| `useT` | function | `frontend/src/lib/i18n.ts:3659` |
+| `useT` | function | `frontend/src/lib/i18n.ts:3661` |
 | `useT` | function | `mobile/packages/shared/src/i18n/index.ts:38` |
 | `useTheme` | function | `frontend/src/components/theme-provider.tsx:52` |
 | `useTheme` | function | `mobile/packages/shared/src/theme/index.ts:18` |
