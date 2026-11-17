@@ -16,6 +16,8 @@ import {
   onTokenRefresh,
   onForegroundMessage,
   onNotificationOpened,
+  refreshChat,
+  CHAT_ANNOUNCEMENTS_ID,
 } from '@itour/shared';
 import { OfflineBar } from '@itour/ui';
 import { RootNavigator } from './navigation/RootNavigator';
@@ -53,13 +55,26 @@ export function App() {
 
       tokenRefreshCleanup = onTokenRefresh();
 
-      foregroundCleanup = onForegroundMessage(({ title, body }) => {
+      foregroundCleanup = onForegroundMessage(({ title, body, data }) => {
+        // Chat: the tab badge / open thread pick it up — no blocking alert per message.
+        if (data?.type === 'CHAT') {
+          refreshChat();
+          return;
+        }
         if (title || body) {
           Alert.alert(title || 'Notification', body || '');
         }
       });
 
       openedCleanup = onNotificationOpened((data) => {
+        if (data.type === 'CHAT' && data.conversationId) {
+          if (data.conversationId === CHAT_ANNOUNCEMENTS_ID) {
+            navigationRef.current?.navigate('Announcements');
+          } else {
+            navigationRef.current?.navigate('ChatThread', { conversationId: data.conversationId });
+          }
+          return;
+        }
         if (data.jobId) {
           navigationRef.current?.navigate('JobDetail', { jobId: data.jobId });
         }

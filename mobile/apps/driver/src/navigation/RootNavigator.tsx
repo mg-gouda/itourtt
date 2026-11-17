@@ -5,12 +5,16 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { JobDetailScreen } from '../screens/JobDetailScreen';
 import { NoShowScreen } from '../screens/NoShowScreen';
+import { AnnouncementsRoute, ChatThreadRoute } from '../screens/ChatScreens';
+import { t } from '@itour/shared';
 
 export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
   JobDetail: { jobId: string };
   NoShow: { jobId: string };
+  ChatThread: { conversationId: string; title?: string };
+  Announcements: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -34,6 +38,16 @@ export function RootNavigator() {
             name="NoShow"
             component={NoShowScreen}
             options={{ headerShown: true, title: 'No Show Evidence' }}
+          />
+          <Stack.Screen
+            name="ChatThread"
+            component={ChatThreadRoute}
+            options={{ headerShown: true, title: t('chat.title') }}
+          />
+          <Stack.Screen
+            name="Announcements"
+            component={AnnouncementsRoute}
+            options={{ headerShown: true, title: t('chat.announcements') }}
           />
         </>
       )}

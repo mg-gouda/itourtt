@@ -194,6 +194,15 @@ REP/DRIVER/SUPPLIER/B2C_CLIENT). Reps/drivers need an active Rep/Driver profile,
 - Attachments live under `uploads/.chat/broadcasts/<id>/`, streamed only to recipients, the sender
   and `chat-broadcast` holders. `POST /chat/announcements/read` is excluded from the audit log.
 
+**Native rep/driver apps** (`mobile/apps/{rep,driver}`) have a **Chat** tab built from the shared
+screens in `packages/ui/src/chat` over `chatApi` (`packages/shared`). They support text, photos
+(camera/gallery) and location, show ✓/✓✓/seen ticks and the Announcements thread, and deep-link
+from a `type: CHAT` push (`conversationId` = thread id or `announcements`). Foreground chat pushes
+don't pop an alert; they refresh the badge. **Voice notes are view-only in the apps**: they show as
+"🎤 Voice note · m:ss — play in the web portal". Recording and playback need a native audio module
+the apps don't ship yet. Images load from the API with the bearer token in the `Image` headers.
+The tab badge polls `/chat/me` every 15 s, which is also what marks messages delivered from an app.
+
 **Real-time is polling** (two backend pods, no Redis/websockets): `/chat/me` every 10 s,
 an open thread every 4 s. All timer polls send `X-Background-Poll` and `/api/chat/me` is in
 `BACKGROUND_POLL_PATHS`, so chat never keeps an idle rep/driver logged in. Read receipts

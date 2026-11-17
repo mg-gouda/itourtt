@@ -1,7 +1,8 @@
 // API
 export { default as api } from './api/client';
 export { setApiBaseUrl, setOnAuthFailure } from './api/client';
-export { authApi, driverPortalApi, repPortalApi, supplierPortalApi, publicApi } from './api/endpoints';
+export { authApi, driverPortalApi, repPortalApi, supplierPortalApi, publicApi, chatApi, CHAT_ANNOUNCEMENTS_ID } from './api/endpoints';
+export type * from './api/endpoints/chat';
 
 // Auth
 export { useAuthStore, validateRole } from './auth/auth-store';
@@ -31,6 +32,7 @@ export type { ThemeMode } from './theme';
 export { useNetwork } from './hooks/use-network';
 export { useGPS } from './hooks/use-gps';
 export { useRefresh } from './hooks/use-refresh';
+export { useChatMe, refreshChat, onChatRefresh, CHAT_POLL_MS, CHAT_THREAD_POLL_MS } from './hooks/use-chat-unread';
 
 // Utils
 export { formatDate, toApiDate, formatTime, today, addDays } from './utils/date';

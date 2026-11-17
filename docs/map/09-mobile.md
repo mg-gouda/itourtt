@@ -4,19 +4,19 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**97 files**, **206 exported symbols**.
+**105 files**, **238 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
 ### `App.tsx`
 
-`mobile/apps/driver/src/App.tsx` · 88 lines
+`mobile/apps/driver/src/App.tsx` · 103 lines
 
 Driver app root — providers, theme and navigation.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `App` | function | 26 | Driver app root — providers, theme and navigation. |
+| `App` | function | 28 | Driver app root — providers, theme and navigation. |
 
 ## `mobile/apps/driver/src/components/`
 
@@ -44,27 +44,39 @@ Driver status action buttons, mirroring the backend transition and collection ru
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 101 lines
+`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 115 lines
 
 Driver app bottom tabs (Jobs, History, Notifications, Profile).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 10 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 20 | Driver app bottom tabs (Jobs, History, Notifications, Profile). |
+| `MainTabParamList` | type | 11 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 22 | Driver app bottom tabs (Jobs, History, Notifications, Profile). |
 
 ### `RootNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/RootNavigator.tsx` · 43 lines
+`mobile/apps/driver/src/navigation/RootNavigator.tsx` · 57 lines
 
 Driver app auth vs main navigation switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 9 | Route params for the `RootNavigator` navigator — the typed screen list. |
-| `RootNavigator` | function | 18 | Driver app auth vs main navigation switch. |
+| `RootStackParamList` | type | 11 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 22 | Driver app auth vs main navigation switch. |
 
 ## `mobile/apps/driver/src/screens/`
+
+### `ChatScreens.tsx`
+
+`mobile/apps/driver/src/screens/ChatScreens.tsx` · 41 lines
+
+Driver app chat routes wrapping the shared @itour/ui chat screens.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatTabScreen` | function | 11 | Chat tab: shared inbox; opens threads and announcements on the root stack. |
+| `ChatThreadRoute` | function | 22 | Root-stack thread screen; header shows the other person's name and role. |
+| `AnnouncementsRoute` | function | 38 | Root-stack read-only announcements screen. |
 
 ### `ComplaintsScreen.tsx`
 
@@ -321,13 +333,13 @@ Guest booking funnel state across steps.
 
 ### `App.tsx`
 
-`mobile/apps/rep/src/App.tsx` · 87 lines
+`mobile/apps/rep/src/App.tsx` · 102 lines
 
 Rep app root.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `App` | function | 25 | Rep app root. |
+| `App` | function | 27 | Rep app root. |
 
 ## `mobile/apps/rep/src/components/`
 
@@ -355,27 +367,39 @@ Rep status action buttons, mirroring the IN PLACE window and transition rules.
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 101 lines
+`mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 115 lines
 
 Rep app bottom tabs.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 10 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 20 | Rep app bottom tabs. |
+| `MainTabParamList` | type | 11 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 22 | Rep app bottom tabs. |
 
 ### `RootNavigator.tsx`
 
-`mobile/apps/rep/src/navigation/RootNavigator.tsx` · 43 lines
+`mobile/apps/rep/src/navigation/RootNavigator.tsx` · 57 lines
 
 Rep app auth vs main navigation switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 9 | Route params for the `RootNavigator` navigator — the typed screen list. |
-| `RootNavigator` | function | 18 | Rep app auth vs main navigation switch. |
+| `RootStackParamList` | type | 11 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 22 | Rep app auth vs main navigation switch. |
 
 ## `mobile/apps/rep/src/screens/`
+
+### `ChatScreens.tsx`
+
+`mobile/apps/rep/src/screens/ChatScreens.tsx` · 41 lines
+
+Rep app chat routes wrapping the shared @itour/ui chat screens.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatTabScreen` | function | 11 | Chat tab: shared inbox; opens threads and announcements on the root stack. |
+| `ChatThreadRoute` | function | 22 | Root-stack thread screen; header shows the other person's name and role. |
+| `AnnouncementsRoute` | function | 38 | Root-stack read-only announcements screen. |
 
 ### `ComplaintsScreen.tsx`
 
@@ -573,6 +597,28 @@ Auth calls — login, refresh, logout, device-token registration.
 |---|---|---|---|
 | `authApi` | const | 4 | Auth calls — login, refresh, logout, device-token registration (`authApi`). |
 
+### `chat.ts`
+
+`mobile/packages/shared/src/api/endpoints/chat.ts` · 127 lines
+
+Chat API client + types for the native apps (mirrors backend chat.service).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatKind` | type | 5 | TEXT \| IMAGE \| VOICE \| LOCATION. |
+| `ChatMessageStatus` | type | 7 | SENT \| DELIVERED \| SEEN. |
+| `ChatBroadcastAudience` | type | 8 | REPS \| DRIVERS \| REPS_AND_DRIVERS \| STAFF. |
+| `CHAT_ANNOUNCEMENTS_ID` | const | 11 | 'announcements' — inbox / push id of the announcements thread. |
+| `ChatPerson` | type | 13 | A chat participant or contact. |
+| `ChatConversationSummary` | type | 22 | Inbox row: other person, last message with ticks, unread. |
+| `ChatMessage` | type | 37 | A message plus client-only pending/failed/localUri. |
+| `ChatThreadHeader` | type | 56 | Thread header: other person and their read/delivered positions. |
+| `ChatMessagesPage` | type | 64 | Messages page plus the other side's read/delivered positions. |
+| `ChatMe` | type | 71 | GET /chat/me result. |
+| `ChatAnnouncement` | type | 79 | A received broadcast. |
+| `ChatAnnouncementsSummary` | type | 86 | Pinned announcements inbox row. |
+| `chatApi` | const | 97 | Chat endpoints (me, inbox, contacts, threads, send multipart, read, announcements) with ApiResponse unwrapping; polls send X-Background-Poll. |
+
 ### `driver-portal.ts`
 
 `mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 52 lines
@@ -638,6 +684,20 @@ Tokens and user stored in the OS keychain/keystore via react-native-encrypted-st
 
 ## `mobile/packages/shared/src/hooks/`
 
+### `use-chat-unread.ts`
+
+`mobile/packages/shared/src/hooks/use-chat-unread.ts` · 59 lines
+
+Chat badge polling and in-app refresh signal.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `CHAT_POLL_MS` | const | 6 | Badge / inbox poll interval (15 s). |
+| `CHAT_THREAD_POLL_MS` | const | 8 | Open-thread poll interval (5 s). |
+| `refreshChat` | function | 16 | Tell every chat badge / inbox to reload now (after read, or a foreground chat push). |
+| `onChatRefresh` | function | 21 | Subscribe to refreshChat() signals. |
+| `useChatMe` | function | 33 | Polls /chat/me while the app is active; also what marks messages delivered from the app. |
+
 ### `use-gps.ts`
 
 `mobile/packages/shared/src/hooks/use-gps.ts` · 111 lines
@@ -672,7 +732,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 164 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 210 lines
 
 Arabic strings for all four apps.
 
@@ -682,14 +742,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 164 lines
+`mobile/packages/shared/src/i18n/en.ts` · 210 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 163 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 209 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -1138,3 +1198,49 @@ Status badge shared across the apps.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `StatusBadge` | function | 9 | Status badge shared across the apps. |
+
+## `mobile/packages/ui/src/chat/`
+
+### `AnnouncementsScreen.tsx`
+
+`mobile/packages/ui/src/chat/AnnouncementsScreen.tsx` · 134 lines
+
+Native announcements thread.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AnnouncementsScreen` | function | 19 | Read-only received broadcasts (inverted list, polling); marks them seen. |
+
+### `ChatBubble.tsx`
+
+`mobile/packages/ui/src/chat/ChatBubble.tsx` · 241 lines
+
+Native chat bubble, ticks and helpers.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `chatTime` | function | 15 | Cairo time for a message (date added when not today). |
+| `fmtDuration` | const | 26 | Seconds → m:ss. |
+| `StatusTicks` | function | 35 | ✓ sent · ✓✓ delivered · blue ✓✓ seen (text glyphs, no icon font). |
+| `ChatBubble` | function | 111 | Bubble for text / auth-gated photo / location card / voice placeholder, time and ticks. |
+
+### `ChatInboxScreen.tsx`
+
+`mobile/packages/ui/src/chat/ChatInboxScreen.tsx` · 341 lines
+
+Native chat inbox and contact picker.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatInboxScreen` | function | 66 | Pinned announcements row + threads with unread/ticks + New chat picker. |
+
+### `ChatThreadScreen.tsx`
+
+`mobile/packages/ui/src/chat/ChatThreadScreen.tsx` · 400 lines
+
+Native 1:1 chat thread.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatImageViewer` | function | 44 | Full-screen photo modal (auth headers passed through). |
+| `ChatThreadScreen` | function | 67 | Inverted history, 5 s polling, read receipts, optimistic send of text / photo / location with retry. |

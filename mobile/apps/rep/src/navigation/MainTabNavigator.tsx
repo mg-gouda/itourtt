@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { getColors, repPortalApi, useT } from '@itour/shared';
+import { useChatMe, getColors, repPortalApi, useT } from '@itour/shared';
 import { JobsListScreen } from '../screens/JobsListScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { ComplaintsScreen } from '../screens/ComplaintsScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { ChatTabScreen } from '../screens/ChatScreens';
 
 export type MainTabParamList = {
   Jobs: undefined;
   History: undefined;
   Complaints: undefined;
+  Chat: undefined;
   Notifications: undefined;
   Profile: undefined;
 };
@@ -21,6 +23,9 @@ export function MainTabNavigator() {
   const colors = getColors();
   const t = useT();
   const [unreadCount, setUnreadCount] = useState(0);
+  // Chat unread (incl. announcements). This poll also marks waiting messages delivered.
+  const { me: chat } = useChatMe();
+  const chatUnread = chat?.unreadTotal ?? 0;
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -76,6 +81,15 @@ export function MainTabNavigator() {
         options={{
           title: 'Complaints',
           tabBarLabel: 'Complaints',
+        }}
+      />
+      <Tab.Screen
+        name="Chat"
+        component={ChatTabScreen}
+        options={{
+          title: t('chat.title'),
+          tabBarLabel: t('tabs.chat'),
+          tabBarBadge: chatUnread > 0 ? (chatUnread > 99 ? '99+' : chatUnread) : undefined,
         }}
       />
       <Tab.Screen
