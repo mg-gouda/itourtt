@@ -174,7 +174,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `AppService.getHello` | method | `backend/src/app.service.ts:5` |
 | `ar` | const | `mobile/packages/shared/src/i18n/ar.ts:3` |
 | `ar` | const | `mobile/packages/shared/src/i18n/index.ts:124` |
-| `assertWithinGeofence` | function | `backend/src/common/geofence.util.ts:200` |
+| `assertWithinGeofence` | function | `backend/src/common/geofence.util.ts:208` |
 | `ASSIGNABLE_PARTIES` | const | `backend/src/complaints/dto/complaint-constants.ts:35` |
 | `ASSIGNABLE_PARTIES` | const | `frontend/src/lib/complaints.ts:249` |
 | `AssigneeJobSnapshot` | type | `backend/src/notifications/notifications.service.ts:10` |
@@ -1691,8 +1691,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `jobDay` | function | `mobile/apps/rep/src/lib/job-rules.ts:89` |
 | `JobDeductionDialog` | function | `frontend/src/components/complaints/job-deduction-dialog.tsx:76` |
 | `JobDetailModal` | function | `frontend/src/components/job-detail-modal.tsx:131` |
-| `JobDetailScreen` | function | `mobile/apps/driver/src/screens/JobDetailScreen.tsx:87` |
-| `JobDetailScreen` | function | `mobile/apps/rep/src/screens/JobDetailScreen.tsx:80` |
+| `JobDetailScreen` | function | `mobile/apps/driver/src/screens/JobDetailScreen.tsx:85` |
+| `JobDetailScreen` | function | `mobile/apps/rep/src/screens/JobDetailScreen.tsx:79` |
 | `JobExtra` | type | `frontend/src/components/job-extras-editor.tsx:19` |
 | `JobExtraInputDto` | class | `backend/src/traffic-jobs/dto/job-extra-input.dto.ts:15` |
 | `JobExtrasEditor` | function | `frontend/src/components/job-extras-editor.tsx:44` |
@@ -1997,7 +1997,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `OdooExportService.exportPayments` | method | `backend/src/finance/odoo-export.service.ts:469` |
 | `OdooExportService.exportVendorBills` | method | `backend/src/finance/odoo-export.service.ts:386` |
 | `OfflineBar` | function | `mobile/packages/ui/src/OfflineBar.tsx:5` |
-| `OfflinePill` | function | `mobile/packages/ui/src/kit/kit.tsx:653` |
+| `OfflinePill` | function | `mobile/packages/ui/src/kit/kit.tsx:654` |
 | `onChatRefresh` | function | `mobile/packages/shared/src/hooks/use-chat-unread.ts:21` |
 | `onForegroundMessage` | function | `mobile/packages/shared/src/native/push-notifications.ts:102` |
 | `OnlineJobPage` | function | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx:202` |
@@ -2591,9 +2591,9 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `requestNotificationPermission` | function | `mobile/packages/shared/src/native/push-notifications.ts:32` |
 | `requiredHint` | const | `mobile/packages/ui/src/kit/form.tsx:127` |
 | `ResetPasswordPage` | function | `frontend/src/app/reset-password/page.tsx:140` |
-| `resolveDriverGeofenceTarget` | function | `backend/src/common/geofence.util.ts:177` |
+| `resolveDriverGeofenceTarget` | function | `backend/src/common/geofence.util.ts:185` |
 | `resolveNoShowWaitMinutes` | function | `backend/src/common/utils/no-show-window.util.ts:46` |
-| `resolveRepGeofenceTarget` | function | `backend/src/common/geofence.util.ts:166` |
+| `resolveRepGeofenceTarget` | function | `backend/src/common/geofence.util.ts:168` |
 | `responsibleDetails` | function | `frontend/src/lib/complaints.ts:341` |
 | `responsibleNames` | function | `frontend/src/lib/complaints.ts:375` |
 | `responsibleParties` | function | `frontend/src/lib/complaints.ts:324` |

@@ -12,9 +12,7 @@ import {
   formatCurrency,
   formatDayLabel,
   formatTimeCairo,
-  getCurrentPosition,
   openJobNavigation,
-  openWhatsApp,
   t,
   tf,
   unwrapData,
@@ -91,7 +89,6 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const [job, setJob] = useState<DriverPortalJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [collecting, setCollecting] = useState(false);
 
   const fetchJob = useCallback(async () => {
@@ -132,30 +129,6 @@ export function JobDetailScreen({ route, navigation }: Props) {
     ]);
   };
 
-  const cancelJob = () => {
-    if (!job) return;
-    Alert.alert(t('repApp.confirmCancelTitle'), t('repApp.confirmCancelBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('repApp.cancelJob'),
-        style: 'destructive',
-        onPress: async () => {
-          setCancelling(true);
-          try {
-            // GPS is mandatory for every driver status change.
-            const gps = await getCurrentPosition(30000);
-            await driverPortalApi.updateJobStatus(job.id, 'CANCELLED', gps.lat, gps.lng);
-            Alert.alert(t('repApp.cancelled'));
-            fetchJob();
-          } catch (err) {
-            Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
-          } finally {
-            setCancelling(false);
-          }
-        },
-      },
-    ]);
-  };
 
   if (loading) return <LoadingSpinner fullScreen />;
   if (!job) {
@@ -298,21 +271,6 @@ export function JobDetailScreen({ route, navigation }: Props) {
                 hint={noShow.hint || undefined}
                 onPress={() => evidence('NO_SHOW')}
               />
-              {job.clientMobile ? (
-                <TileAction
-                  label={t('repApp.call')}
-                  icon="call-outline"
-                  tone="info"
-                  onPress={() => callPhone(job.clientMobile!, job.clientName ?? undefined)}
-                />
-              ) : null}
-              <TileAction
-                label={cancelling ? t('repApp.gpsLocating') : t('repApp.cancelJob')}
-                icon="close-circle-outline"
-                tone="neutral"
-                disabled={cancelling}
-                onPress={cancelJob}
-              />
             </View>
           ) : null}
 
@@ -359,32 +317,10 @@ export function JobDetailScreen({ route, navigation }: Props) {
           ) : null}
 
           {/* Guest */}
-          {job.clientName || job.clientMobile ? (
+          {job.clientName ? (
             <Surface>
               <SectionTitle title={t('repApp.guest')} icon="person" />
               <InfoLine icon="person-outline" label={t('jobs.clientName')} value={job.clientName} />
-              <InfoLine icon="call-outline" label={t('jobs.clientMobile')} value={job.clientMobile} />
-              {job.clientMobile ? (
-                <View style={styles.contactRow}>
-                  <ActionButton
-                    label={t('repApp.call')}
-                    icon="call"
-                    variant="soft"
-                    size="sm"
-                    style={styles.flex}
-                    onPress={() => callPhone(job.clientMobile!, job.clientName ?? undefined)}
-                  />
-                  <ActionButton
-                    label={t('repApp.whatsapp')}
-                    icon="logo-whatsapp"
-                    tone="success"
-                    variant="soft"
-                    size="sm"
-                    style={styles.flex}
-                    onPress={() => openWhatsApp(job.clientMobile!)}
-                  />
-                </View>
-              ) : null}
             </Surface>
           ) : null}
 
@@ -511,7 +447,6 @@ const styles = StyleSheet.create({
   flightNo: { fontSize: 17, fontWeight: '800' },
   flightMeta: { fontSize: 12, marginTop: 2 },
   flightTime: { fontSize: 20, fontWeight: '800' },
-  contactRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
   extras: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   extra: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   extraText: { fontSize: 12, fontWeight: '700' },

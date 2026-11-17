@@ -1150,9 +1150,9 @@ Haversine distance, geofence target resolution and enforcement (403) for rep/dri
 | `isWithinGeofence` | function | 65 | True when two points are within `radiusMeters` of each other. |
 | `GeofenceJob` | type | 83 | Job location shape the geofence reads: exact pins plus origin/destination airport, hotel and zones. |
 | `GeofenceTarget` | type | 99 | Point a status must be made near: label for the error, whether it is precise (enforceable), and whether it is an airport (picks the airport vs other radius). |
-| `resolveRepGeofenceTarget` | function | 166 | The job's airport: origin for ARR, destination for DEP; null when the job has no airport. |
-| `resolveDriverGeofenceTarget` | function | 177 | Per status: IN_PROGRESS/NO_SHOW → pickup end, COMPLETED → drop-off end (pin → airport → hotel precise; zones not); other statuses → null. |
-| `assertWithinGeofence` | function | 200 | Throws 403 when a rep/driver status GPS is beyond the configured radius (airport vs other, from CompanySettings) of a precise target; zone targets and unlocked jobs only log. |
+| `resolveRepGeofenceTarget` | function | 168 | The job's airport: origin for ARR, destination for DEP; null when the job has no airport. |
+| `resolveDriverGeofenceTarget` | function | 185 | Per status: IN_PROGRESS/NO_SHOW → pickup end, COMPLETED → drop-off end (pin → airport → hotel precise; zones not); other statuses → null. |
+| `assertWithinGeofence` | function | 208 | Throws 403 when a rep/driver status GPS is beyond the configured radius (airport vs other, from CompanySettings) of a precise target; zone targets and unlocked jobs only log. |
 
 ### `backend/src/common/license-verify.ts`
 

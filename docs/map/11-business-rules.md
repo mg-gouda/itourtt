@@ -106,7 +106,8 @@ Where each status is checked against:
 | Driver | IN_PROGRESS, NO_SHOW | pickup end — pin → airport → hotel → zone |
 | Driver | COMPLETED | **drop-off** end (same order) — before 2026-11-16 it wrongly used the origin |
 | Driver | CANCELLED | none |
-| Rep | every status | the job's airport — origin for ARR, **destination for DEP** (was origin-only, so DEP reps were never checked) |
+| Rep | every other status | the job's airport — origin for ARR, **destination for DEP** (was origin-only, so DEP reps were never checked) |
+| Rep | COMPLETED on **ARR** | the **drop-off** end (pin → hotel → zone), like a driver's completion — the rep rides to the hotel and closes there (since 2026-11-17; FT-3143 was blocked 22 km from the airport) |
 
 Only a **precise** target blocks: an exact pickup/drop-off pin, an airport, or a hotel with
 coordinates. A zone centroid covers a whole area, so a miss against one is only logged. A location

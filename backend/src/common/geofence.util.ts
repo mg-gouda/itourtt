@@ -160,10 +160,18 @@ function resolveEnd(job: GeofenceJob, end: 'origin' | 'destination'): GeofenceTa
 
 /**
  * Where a REP must be: the job's airport — arrival airport for ARR, departure
- * airport for DEP. A job with no airport (day tour, city transfer) has no rep
- * geofence.
+ * airport for DEP. Exception: an ARR rep rides with the guests and COMPLETES
+ * at the drop-off (hotel / pin), so that one status is checked against the
+ * destination end like a driver's completion. A job with no airport (day tour,
+ * city transfer) has no rep geofence.
  */
-export function resolveRepGeofenceTarget(job: GeofenceJob): GeofenceTarget | null {
+export function resolveRepGeofenceTarget(
+  job: GeofenceJob,
+  status: string,
+): GeofenceTarget | null {
+  if (job.serviceType === 'ARR' && status === 'COMPLETED') {
+    return resolveEnd(job, 'destination');
+  }
   return (
     fromAirport(job.originAirport) ?? fromAirport(job.destinationAirport)
   );
@@ -235,7 +243,7 @@ export async function assertWithinGeofence(
   if (!job) return; // the caller reports the missing job
 
   const target =
-    role === 'REP' ? resolveRepGeofenceTarget(job) : resolveDriverGeofenceTarget(job, status);
+    role === 'REP' ? resolveRepGeofenceTarget(job, status) : resolveDriverGeofenceTarget(job, status);
   if (!target) return; // nowhere configured to check against
 
   const radii = await getGeofenceRadii(prisma);

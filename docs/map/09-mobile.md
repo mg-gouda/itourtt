@@ -156,13 +156,13 @@ Driver's completed jobs and fees earned.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 521 lines
+`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 456 lines
 
 Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 87 | Driver job detail: progress stepper, collection card, Start/Complete CTA with gates, No Show / Call / Cancel tiles, route with navigation, guest, rep & vehicle. |
+| `JobDetailScreen` | function | 85 | Driver job detail: progress stepper, collection card, Start/Complete CTA with gates, No Show / Call / Cancel tiles, route with navigation, guest, rep & vehicle. |
 
 ### `JobsListScreen.tsx`
 
@@ -515,13 +515,13 @@ Rep History tab.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 528 lines
+`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 493 lines
 
 Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 80 | Rep job detail: progress stepper, next-step CTA (In Place / Complete), No Show / Flight Delay / Survey / Update / Cancel tiles, route with navigation, guest, customer rep, driver. |
+| `JobDetailScreen` | function | 79 | Rep job detail: progress stepper, next-step CTA (In Place / Complete), No Show / Flight Delay / Survey / Update / Cancel tiles, route with navigation, guest, customer rep, driver. |
 
 ### `JobFormsScreens.tsx`
 
@@ -1468,7 +1468,7 @@ Barrel for the shared rep/driver app design kit.
 
 ### `kit.tsx`
 
-`mobile/packages/ui/src/kit/kit.tsx` · 680 lines
+`mobile/packages/ui/src/kit/kit.tsx` · 681 lines
 
 Shared app design kit (rep + driver): gradient headers, surfaces, pills, buttons, tiles, segmented control.
 
@@ -1491,4 +1491,4 @@ Shared app design kit (rep + driver): gradient headers, surfaces, pills, buttons
 | `InfoLine` | function | 373 | Icon + label + value row, optionally tappable (call, navigate). |
 | `Segmented` | function | 410 | Segmented control; `onDark` styles it for the gradient header. |
 | `HeaderStat` | function | 462 | Translucent counter tile on the gradient header. |
-| `OfflinePill` | function | 653 | Floating offline indicator under the translucent status bar. |
+| `OfflinePill` | function | 654 | Floating offline indicator under the translucent status bar. |

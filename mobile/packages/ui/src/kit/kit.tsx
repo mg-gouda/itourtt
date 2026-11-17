@@ -588,7 +588,8 @@ const styles = StyleSheet.create({
   btnHint: { fontSize: 11, opacity: 0.85, marginTop: 1 },
   tile: {
     flex: 1,
-    minWidth: '30%',
+    // Two per row: 40% + gap leaves no room for a third.
+    minWidth: '40%',
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 6,

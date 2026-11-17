@@ -10,7 +10,6 @@ import {
   canNavigate,
   formatDayLabel,
   formatTimeCairo,
-  getCurrentPosition,
   openJobNavigation,
   openWhatsApp,
   repPortalApi,
@@ -84,7 +83,6 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const [job, setJob] = useState<RepPortalJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
 
   const fetchJob = useCallback(async () => {
     try {
@@ -102,30 +100,6 @@ export function JobDetailScreen({ route, navigation }: Props) {
     }, [fetchJob]),
   );
 
-  const cancelJob = () => {
-    if (!job) return;
-    Alert.alert(t('repApp.confirmCancelTitle'), t('repApp.confirmCancelBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('repApp.cancelJob'),
-        style: 'destructive',
-        onPress: async () => {
-          setCancelling(true);
-          try {
-            // GPS is mandatory for every rep status change.
-            const gps = await getCurrentPosition(30000);
-            await repPortalApi.updateJobStatus(job.id, 'CANCELLED', gps.lat, gps.lng);
-            Alert.alert(t('repApp.cancelled'));
-            fetchJob();
-          } catch (err) {
-            Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
-          } finally {
-            setCancelling(false);
-          }
-        },
-      },
-    ]);
-  };
 
   if (loading) return <LoadingSpinner fullScreen />;
   if (!job) {
@@ -285,15 +259,6 @@ export function JobDetailScreen({ route, navigation }: Props) {
               tone="primary"
               onPress={() => navigation.navigate('JobUpdate', { jobId: job.id, jobRef: job.internalRef })}
             />
-            {!closed ? (
-              <TileAction
-                label={cancelling ? t('repApp.gpsLocating') : t('repApp.cancelJob')}
-                icon="close-circle-outline"
-                tone="neutral"
-                disabled={cancelling}
-                onPress={cancelJob}
-              />
-            ) : null}
           </View>
 
           {/* Route */}
