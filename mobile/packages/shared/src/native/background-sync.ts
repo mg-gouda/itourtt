@@ -1,4 +1,5 @@
 import { AppState, PermissionsAndroid, Platform } from 'react-native';
+import { unwrapList } from '../utils/response';
 import notifee, {
   AndroidForegroundServiceType,
   AndroidImportance,
@@ -119,7 +120,8 @@ interface PortalNotificationRow {
 async function pollNotifications() {
   if (!portal) return;
   const { data } = await api.get(`/${portal}-portal/notifications`, bg);
-  const rows: PortalNotificationRow[] = Array.isArray(data) ? data : (data?.data ?? []);
+  // `{ success, data: { notifications, unreadCount } }` — see utils/response.
+  const rows = unwrapList<PortalNotificationRow>(data, 'notifications');
   const fresh = rows
     .filter((n) => !n.isRead && !shownNotificationIds.has(n.id))
     .filter((n) => lastNotificationAt === null || n.createdAt > lastNotificationAt)

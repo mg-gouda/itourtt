@@ -19,6 +19,7 @@ import {
   getCurrentPosition,
   type DriverPortalJob,
   type Currency,
+  unwrapList,
 } from '@itour/shared';
 import { Card, StatusBadge, ServiceTypeBadge, Button, LoadingSpinner } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -70,7 +71,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const fetchJob = useCallback(async () => {
     try {
       const { data } = await driverPortalApi.getJobs(new Date().toISOString().split('T')[0]);
-      const list = Array.isArray(data) ? data : (data as any)?.data ?? [];
+      const list = unwrapList<any>(data);
       const found = list.find((j: DriverPortalJob) => j.id === jobId);
       setJob(found || null);
     } catch {

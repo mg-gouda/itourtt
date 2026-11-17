@@ -11,6 +11,7 @@ import {
   useT,
   getCurrentPosition,
   type DriverPortalJob,
+  unwrapList,
 } from '@itour/shared';
 import { DateNavigator, JobCard, EmptyState, LoadingSpinner, ErrorBanner, SkeletonList } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -32,7 +33,7 @@ export function JobsListScreen() {
     setError(null);
     try {
       const { data } = await driverPortalApi.getJobs(date);
-      const list = Array.isArray(data) ? data : (data as any)?.data ?? [];
+      const list = unwrapList<any>(data);
       setJobs(list);
     } catch (err: any) {
       setError(err?.message || t('common.error'));

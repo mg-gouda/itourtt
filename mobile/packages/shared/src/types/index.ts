@@ -3,7 +3,7 @@ export type UserRole = 'ADMIN' | 'DISPATCHER' | 'ACCOUNTANT' | 'AGENT_MANAGER' |
 // TWO_WAY_TRANSFER / CITY_TO_CITY are legacy: not selectable, still present on old rows.
 export type ServiceType = 'ARR' | 'DEP' | 'DAY_TOUR' | 'ONE_WAY_TRANSFER' | 'RETURN' | 'TWO_WAY_TRANSFER' | 'CITY_TO_CITY';
 export type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
-export type PortalJobStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+export type PortalJobStatus = 'PENDING' | 'IN_PROGRESS' | 'IN_PLACE' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 export type VehicleOwnership = 'OWNED' | 'RENTED' | 'CONTRACTED';
 export type Currency = 'EGP' | 'USD' | 'EUR' | 'GBP' | 'SAR';
 export type InvoiceStatus = 'DRAFT' | 'POSTED' | 'PAID' | 'CANCELLED';
@@ -324,7 +324,19 @@ export interface DriverPortalJob extends PortalJob {
 
 export interface RepPortalJob extends PortalJob {
   repStatus: PortalJobStatus;
-  feeEarned?: number;
+  feeEarned?: number | null;
+  agentRef?: string | null;
+  bookingChannel?: string | null;
+  /** Server-computed NO SHOW unlock (agent override → company default). Never derive it locally. */
+  noShowAvailableFrom?: string | null;
+  /** Admin unlock: lifts the 48h timelock and the ARR IN PLACE window. */
+  repUnlockedAt?: string | null;
+  guestSurvey?: { id: string } | null;
+  fromZone?: { id: string; name: string } | null;
+  toZone?: { id: string; name: string } | null;
+  jobExtras?: { name: string; qty: number }[];
+  agent?: { legalName: string } | null;
+  customer?: { legalName: string } | null;
   custRepName?: string | null;
   custRepMobile?: string | null;
   custRepMeetingPoint?: string | null;
@@ -344,6 +356,30 @@ export interface PortalNotification {
   type: NotificationType;
   isRead: boolean;
   createdAt: string;
+  trafficJobId?: string | null;
+  trafficJob?: { internalRef: string; serviceType: string; jobDate: string } | null;
+}
+
+/** The arrival guest survey (rep app). Mirrors the backend GuestSurveyDto. */
+export interface GuestSurveyInput {
+  ageRange: '20-30' | '30-45' | '45-60';
+  noOfAdults: number;
+  noOfChildren: number;
+  noOfInfants: number;
+  flightNo: string;
+  stayLength?: string;
+  repeaterGuest: 'YES' | 'NO';
+  guestNationality: string;
+  localTravelAgent?: string;
+  hotelName: string;
+  email?: string;
+  generalComment: string;
+  contactNumber: string;
+}
+
+export interface GuestSurveyPayload {
+  survey: (GuestSurveyInput & { id: string }) | null;
+  prefill?: { flightNo?: string | null; hotelName?: string | null; paxCount?: number | null } | null;
 }
 
 // ─── Complaints ─────────────────────────────────────────────────
@@ -471,8 +507,13 @@ export interface RepProfile {
   id: string;
   name: string;
   mobileNumber: string;
-  feePerFlight: number;
-  zones: { id: string; zone: Zone }[];
+  /** Prisma Decimal — arrives as a string. */
+  feePerFlight: number | string;
+  isActive?: boolean;
+  createdAt?: string;
+  /** The API sends `repZones`; `zones` is kept for older builds. */
+  repZones?: { id: string; zone: Zone }[];
+  zones?: { id: string; zone: Zone }[];
 }
 
 // ─── Supplier Profile ───────────────────────────────────────────

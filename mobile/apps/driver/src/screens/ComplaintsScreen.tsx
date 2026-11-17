@@ -10,6 +10,7 @@ import {
   useT,
   type PortalComplaint,
   type Currency,
+  unwrapList,
 } from '@itour/shared';
 import { Badge, Card, EmptyState, SkeletonList } from '@itour/ui';
 
@@ -28,7 +29,7 @@ export function ComplaintsScreen() {
     setLoading(true);
     try {
       const { data } = await driverPortalApi.getComplaints();
-      const list = Array.isArray(data) ? data : (data as any)?.data ?? [];
+      const list = unwrapList<any>(data);
       setComplaints(list);
     } catch {
       // handled silently, matching the other portal screens

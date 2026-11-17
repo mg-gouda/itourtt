@@ -140,6 +140,28 @@ as a background poll — it must never keep an idle session alive (see *Concurre
 Perms `rep-tracking` / `driver-tracking`: admin gets them automatically; other roles need a manual
 `rolePermissionV2` grant in prod (deploy skips the permission seed).
 
+## Native rep/driver apps — reading API responses and the rep flow
+
+**Every portal response is wrapped `{ success, data }`, and the list endpoints nest again:**
+`GET /rep-portal/jobs` and `/jobs/history` → `data.jobs`, `GET /*-portal/notifications` →
+`data.notifications` (+ `unreadCount`). The apps used to read `data.data` as an array: Jobs showed
+"No jobs" for days that had jobs, and History / Notifications crashed (`.filter` on an object). Always
+go through `mobile/packages/shared/src/utils/response.ts › unwrapList / unwrapData` — the background
+sync poller too.
+
+**The rep app mirrors the web rep portal's flow, it does not invent one.** `PATCH …/status` only
+accepts COMPLETED / CANCELLED and the server's transitions are `PENDING → IN_PLACE → COMPLETED`, so
+the old "Complete Job" button (PENDING → COMPLETED, no photos, no GPS) could never succeed. Now:
+IN PLACE = `POST …/in-place` (exactly 2 photos + GPS, ARR window), Complete = `POST …/completed`
+(1–10 photos + GPS), No Show = `POST …/no-show` (1–10 photos + GPS, after `noShowAvailableFrom`),
+Cancel = `PATCH …/status` CANCELLED with GPS, plus flight delay, free-text update and the arrival
+survey. Gating lives in `mobile/apps/rep/src/lib/job-rules.ts`; keep it in step with
+`frontend/src/app/(rep-portal)/rep/page.tsx`.
+
+**Icons need the fonts.** `react-native-vector-icons` glyphs render as empty rectangles unless the
+app's `android/app/build.gradle` applies `fonts.gradle` (monorepo path `../../../../node_modules`).
+A tab with no `tabBarIcon` also renders a placeholder box.
+
 ## In-app chat — who can message whom?
 
 `chat/chat.service.ts`. Every thread is **1:1 between one REP/DRIVER portal user and one staff user**

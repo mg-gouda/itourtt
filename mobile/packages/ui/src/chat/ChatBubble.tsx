@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Icon } from '../Icon';
 import {
   api,
   borderRadius,
@@ -37,17 +38,15 @@ export function StatusTicks({ status, onPrimary }: { status: ChatMessageStatus; 
   const colors = getColors();
   const t = useT();
   const base = onPrimary ? colors.primaryForeground : colors.mutedForeground;
+  const color = status === 'SEEN' ? (onPrimary ? SEEN_ON_DARK : SEEN_ON_LIGHT) : base;
   return (
-    <Text
+    <View
+      accessible
       accessibilityLabel={t(status === 'SEEN' ? 'chat.seen' : status === 'DELIVERED' ? 'chat.delivered' : 'chat.sent')}
-      style={[
-        styles.ticks,
-        { color: status === 'SEEN' ? (onPrimary ? SEEN_ON_DARK : SEEN_ON_LIGHT) : base },
-        status === 'SEEN' && styles.ticksSeen,
-      ]}
+      style={styles.ticks}
     >
-      {status === 'SENT' ? '✓' : '✓✓'}
-    </Text>
+      <Icon name={status === 'SENT' ? 'checkmark' : 'checkmark-done'} size={15} color={color} />
+    </View>
   );
 }
 
@@ -159,9 +158,7 @@ function VoiceNote({
         {busy && !playing ? (
           <ActivityIndicator size="small" color={mine ? colors.primary : colors.primaryForeground} />
         ) : (
-          <Text style={[styles.playIcon, { color: mine ? colors.primary : colors.primaryForeground }]}>
-            {playing ? '❚❚' : '▶'}
-          </Text>
+          <Icon name={playing ? 'pause' : 'play'} size={18} color={mine ? colors.primary : colors.primaryForeground} />
         )}
       </Pressable>
       <View style={styles.voiceBody}>
@@ -207,8 +204,9 @@ export function ChatBubble({
       style={[
         styles.bubble,
         mine
-          ? { backgroundColor: colors.primary, borderBottomRightRadius: 4 }
-          : { backgroundColor: colors.card, borderBottomLeftRadius: 4, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth },
+          ? { backgroundColor: colors.primary, borderBottomRightRadius: 6 }
+          : { backgroundColor: colors.card, borderBottomLeftRadius: 6, shadowColor: '#0B1530' },
+        !mine && styles.theirs,
         m.pending && styles.pending,
         m.failed && { borderColor: colors.destructive, borderWidth: 2 },
       ]}
@@ -247,7 +245,9 @@ function LocationCard({ lat, lng, accuracyM }: { lat: number; lng: number; accur
         onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`)}
         style={styles.locationTop}
       >
-        <Text style={styles.pin}>📍</Text>
+        <View style={[styles.pinCircle, { backgroundColor: '#E5484D' }]}>
+          <Icon name="location" size={18} color="#fff" />
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.foreground, fontWeight: '600', fontSize: 13 }}>{t('chat.location')}</Text>
           <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
@@ -261,13 +261,13 @@ function LocationCard({ lat, lng, accuracyM }: { lat: number; lng: number; accur
           style={styles.locationBtn}
           onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`)}
         >
-          <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '500' }}>{t('chat.openInMaps')}</Text>
+          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>{t('chat.openInMaps')}</Text>
         </Pressable>
         <Pressable
           style={[styles.locationBtn, { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.border }]}
           onPress={() => Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${q}`)}
         >
-          <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: '500' }}>{t('chat.directions')}</Text>
+          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>{t('chat.directions')}</Text>
         </Pressable>
       </View>
     </View>
@@ -275,36 +275,41 @@ function LocationCard({ lat, lng, accuracyM }: { lat: number; lng: number; accur
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', marginVertical: 3 },
+  row: { flexDirection: 'row', marginVertical: 2 },
   rowMine: { justifyContent: 'flex-end' },
   rowTheirs: { justifyContent: 'flex-start' },
   bubble: {
     maxWidth: '82%',
-    borderRadius: borderRadius['2xl'],
+    borderRadius: 18,
     paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
+    paddingTop: spacing[2],
+    paddingBottom: spacing[1.5],
+  },
+  theirs: {
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
   },
   pending: { opacity: 0.7 },
   heading: { fontSize: 11, fontWeight: '700', marginBottom: 2, opacity: 0.9 },
-  text: { fontSize: 15, lineHeight: 20 },
+  text: { fontSize: 15, lineHeight: 21 },
   meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 2 },
   time: { fontSize: 10, opacity: 0.8 },
   spinner: { marginLeft: 4, transform: [{ scale: 0.6 }] },
-  ticks: { fontSize: 11, marginLeft: 4, letterSpacing: -3, paddingRight: 3 },
-  ticksSeen: { fontWeight: '800' },
+  ticks: { marginLeft: 4 },
   failed: { fontSize: 11, marginTop: 2, textAlign: 'right' },
   image: { width: 220, height: 220, borderRadius: borderRadius.xl, marginBottom: 4 },
   imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
   voice: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4, width: 220 },
-  playBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  playIcon: { fontSize: 14, fontWeight: '700' },
+  playBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   voiceBody: { flex: 1, justifyContent: 'center', paddingTop: 6 },
   track: { position: 'absolute', top: 6, left: 0, right: 0, height: 3, borderRadius: 2 },
   trackFill: { right: undefined },
   voiceTime: { fontSize: 11, marginTop: 10 },
   location: { width: 230, borderRadius: borderRadius.xl, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 4 },
   locationTop: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: spacing[2] },
-  pin: { fontSize: 22 },
+  pinCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   locationActions: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth },
   locationBtn: { flex: 1, alignItems: 'center', paddingVertical: spacing[2] },
 });

@@ -10,7 +10,10 @@ import {
   type ChatAnnouncement,
 } from '@itour/shared';
 import { ChatBubble } from './ChatBubble';
-import { ChatImageViewer } from './ChatThreadScreen';
+import { ChatImageViewer, DaySeparator } from './ChatThreadScreen';
+import { Icon } from '../Icon';
+
+const cairoDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
 
 /**
  * Read-only thread of the broadcasts the rep/driver received. Opening it
@@ -86,7 +89,7 @@ export function AnnouncementsScreen() {
   if (items === null) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.mutedForeground} />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
@@ -98,15 +101,22 @@ export function AnnouncementsScreen() {
         data={items}
         keyExtractor={(a) => a.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item: a }) => (
-          <ChatBubble
-            m={{ ...a, fromMe: false }}
-            status={null}
-            attachmentPath={chatApi.broadcastAttachmentPath(a.id)}
-            heading={`${a.senderName} · ${t(`chat.audience${a.audience}`)}`}
-            onOpenImage={(uri, headers) => setViewer({ uri, headers })}
-          />
-        )}
+        renderItem={({ item: a, index }) => {
+          const older = items[index + 1];
+          const newDay = !older || cairoDay(older.createdAt) !== cairoDay(a.createdAt);
+          return (
+            <View>
+              {newDay ? <DaySeparator iso={a.createdAt} /> : null}
+              <ChatBubble
+                m={{ ...a, fromMe: false }}
+                status={null}
+                attachmentPath={chatApi.broadcastAttachmentPath(a.id)}
+                heading={`${a.senderName} · ${t(`chat.audience${a.audience}`)}`}
+                onOpenImage={(uri, headers) => setViewer({ uri, headers })}
+              />
+            </View>
+          );
+        }}
         onEndReached={loadOlder}
         onEndReachedThreshold={0.2}
         ListFooterComponent={loadingOlder ? <ActivityIndicator style={styles.older} color={colors.mutedForeground} /> : null}
@@ -115,6 +125,7 @@ export function AnnouncementsScreen() {
         }
       />
       <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
+        <Icon name="lock-closed-outline" size={13} color={colors.mutedForeground} />
         <Text style={[styles.footerText, { color: colors.mutedForeground }]}>{t('chat.announcementsReadOnly')}</Text>
       </View>
       <ChatImageViewer image={viewer} onClose={() => setViewer(null)} />
@@ -128,6 +139,14 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: spacing[3], paddingVertical: spacing[3], flexGrow: 1 },
   older: { marginVertical: spacing[3] },
   empty: { textAlign: 'center', fontSize: 13, paddingVertical: spacing[10], transform: [{ scaleY: -1 }] },
-  footer: { borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: spacing[2], paddingHorizontal: spacing[3] },
-  footerText: { fontSize: 11, textAlign: 'center' },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[3],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  footerText: { fontSize: 12, textAlign: 'center' },
 });

@@ -1,3 +1,4 @@
+export { Icon } from './Icon';
 export { Button } from './Button';
 export { Card } from './Card';
 export { Badge } from './Badge';
@@ -18,7 +19,7 @@ export { SkeletonProfile } from './SkeletonProfile';
 export { SkeletonList } from './SkeletonList';
 
 // Chat (rep / driver apps)
-export { ChatInboxScreen } from './chat/ChatInboxScreen';
-export { ChatThreadScreen, ChatImageViewer } from './chat/ChatThreadScreen';
+export { ChatInboxScreen, ChatAvatar, avatarTint } from './chat/ChatInboxScreen';
+export { ChatThreadScreen, ChatImageViewer, DaySeparator } from './chat/ChatThreadScreen';
 export { AnnouncementsScreen } from './chat/AnnouncementsScreen';
 export { ChatBubble, StatusTicks } from './chat/ChatBubble';

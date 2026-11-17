@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useAuthStore,
   useThemeStore,
   useTheme,
   setOnAuthFailure,
-  getColors,
+  useColors,
   requestLocationPermission,
   setupNotifications,
   startBackgroundSync,
@@ -17,8 +17,9 @@ import {
   t,
   CHAT_ANNOUNCEMENTS_ID,
 } from '@itour/shared';
-import { OfflineBar } from '@itour/ui';
 import { RootNavigator } from './navigation/RootNavigator';
+import { Splash } from './ui/Splash';
+import { OfflinePill } from './ui/kit';
 
 /**
  * Rep app root. No Firebase: while signed in, a background sync service
@@ -29,8 +30,10 @@ export function App() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [ready, setReady] = useState(false);
+  const [splashGone, setSplashGone] = useState(false);
+  const hideSplash = useCallback(() => setSplashGone(true), []);
   const { isDark } = useTheme();
-  const colors = getColors();
+  const colors = useColors();
   const navigationRef = React.useRef<any>(null);
 
   useEffect(() => {
@@ -75,20 +78,35 @@ export function App() {
       } else if (target.kind === 'job') {
         nav.navigate('JobDetail', { jobId: target.jobId });
       } else {
-        nav.navigate('Main', { screen: 'Notifications' });
+        nav.navigate('Notifications');
       }
     });
   }, [isAuthenticated]);
 
-  if (!ready) return null;
-
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <NavigationContainer ref={navigationRef}>
-        <OfflineBar />
-        <RootNavigator />
-      </NavigationContainer>
+      {/* Every screen starts with a navy gradient header, so the status bar is translucent + light. */}
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      {ready ? (
+        <NavigationContainer
+          ref={navigationRef}
+          theme={{
+            ...(isDark ? DarkTheme : DefaultTheme),
+            colors: {
+              ...(isDark ? DarkTheme : DefaultTheme).colors,
+              background: colors.background,
+              card: colors.card,
+              primary: colors.primary,
+              text: colors.foreground,
+              border: colors.border,
+            },
+          }}
+        >
+          <RootNavigator />
+        </NavigationContainer>
+      ) : null}
+      {ready ? <OfflinePill /> : null}
+      {!splashGone ? <Splash done={ready} onHidden={hideSplash} /> : null}
     </SafeAreaProvider>
   );
 }

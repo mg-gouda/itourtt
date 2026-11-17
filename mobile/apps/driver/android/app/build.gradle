@@ -134,3 +134,11 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// Icon fonts for react-native-vector-icons (monorepo: node_modules is hoisted to
+// mobile/). Without this every tab/button icon renders as an empty rectangle.
+project.ext.vectoricons = [
+    iconFontsDir: "../../../../node_modules/react-native-vector-icons/Fonts",
+    iconFontNames: ["Ionicons.ttf", "MaterialCommunityIcons.ttf"]
+]
+apply from: file("../../../../node_modules/react-native-vector-icons/fonts.gradle")

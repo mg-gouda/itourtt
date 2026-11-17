@@ -15,6 +15,7 @@ export * from './types';
 // Theme
 export {
   getColors,
+  useColors,
   getStatusColors,
   lightColors,
   darkColors,
@@ -27,7 +28,7 @@ export {
   useThemeStore,
   useTheme,
 } from './theme';
-export type { ThemeMode } from './theme';
+export type { ThemeMode, ThemeColors } from './theme';
 
 // Hooks
 export { useNetwork } from './hooks/use-network';
@@ -36,12 +37,13 @@ export { useRefresh } from './hooks/use-refresh';
 export { useChatMe, refreshChat, onChatRefresh, CHAT_POLL_MS, CHAT_THREAD_POLL_MS } from './hooks/use-chat-unread';
 
 // Utils
-export { formatDate, toApiDate, formatTime, today, addDays } from './utils/date';
+export { formatDate, toApiDate, formatTime, today, addDays, formatTimeCairo, formatDayLabel, todayCairo, timeAgo } from './utils/date';
+export { unwrapData, unwrapList, apiErrorMessage } from './utils/response';
 export { formatCurrency } from './utils/currency';
 export { getOriginLabel, getDestinationLabel, getRouteLabel } from './utils/route';
 
 // i18n
-export { t, useT, setLocale, getLocale } from './i18n';
+export { t, tf, useT, setLocale, getLocale } from './i18n';
 
 // Native features
 export {

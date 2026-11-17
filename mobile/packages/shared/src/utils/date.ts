@@ -34,3 +34,37 @@ export function addDays(dateStr: string, days: number): string {
   d.setDate(d.getDate() + days);
   return toApiDate(d);
 }
+
+const CAIRO = 'Africa/Cairo';
+
+/** HH:mm in Cairo time, whatever the phone's timezone ("—" when missing). */
+export function formatTimeCairo(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('en-GB', { timeZone: CAIRO, hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+/** "Tue, 17 Nov" in Cairo time. */
+export function formatDayLabel(value: string | Date): string {
+  const d = typeof value === 'string' ? new Date(value.length === 10 ? `${value}T12:00:00Z` : value) : value;
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { timeZone: CAIRO, weekday: 'short', day: '2-digit', month: 'short' });
+}
+
+/** Today in Cairo as YYYY-MM-DD (the service-date calendar the server uses). */
+export function todayCairo(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: CAIRO });
+}
+
+/** "5 min ago" / "3 h ago" / "17 Nov" — short relative time for feeds. */
+export function timeAgo(iso: string): string {
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (isNaN(diff)) return '';
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
+  if (diff < 7 * 86400) return `${Math.floor(diff / 86400)} d ago`;
+  return d.toLocaleDateString('en-GB', { timeZone: CAIRO, day: '2-digit', month: 'short' });
+}

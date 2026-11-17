@@ -7,6 +7,7 @@ import {
   useRefresh,
   useT,
   type PortalNotification,
+  unwrapList,
 } from '@itour/shared';
 import { NotificationItem, EmptyState, LoadingSpinner, Button } from '@itour/ui';
 
@@ -19,7 +20,7 @@ export function NotificationsScreen() {
   const fetchNotifications = useCallback(async () => {
     try {
       const { data } = await driverPortalApi.getNotifications();
-      const list = Array.isArray(data) ? data : (data as any)?.data ?? [];
+      const list = unwrapList<any>(data);
       setNotifications(list);
     } catch {
       // handled silently

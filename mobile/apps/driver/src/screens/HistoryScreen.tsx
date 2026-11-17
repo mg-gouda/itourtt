@@ -9,6 +9,7 @@ import {
   useRefresh,
   useT,
   type DriverPortalJob,
+  unwrapList,
 } from '@itour/shared';
 import { JobCard, EmptyState, LoadingSpinner, Button, SkeletonList } from '@itour/ui';
 
@@ -31,7 +32,7 @@ export function HistoryScreen() {
     setLoading(true);
     try {
       const { data } = await driverPortalApi.getJobHistory(dateRange.from, dateRange.to);
-      const list = Array.isArray(data) ? data : (data as any)?.data ?? [];
+      const list = unwrapList<any>(data);
       setJobs(list);
     } catch {
       // handled silently

@@ -31,6 +31,30 @@ import {
   type ChatThreadHeader,
 } from '@itour/shared';
 import { ChatBubble } from './ChatBubble';
+import { Icon } from '../Icon';
+
+const cairoDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
+
+/** "Today" / "Yesterday" / "Mon, 16 Nov" chip between days. */
+export function DaySeparator({ iso }: { iso: string }) {
+  const colors = getColors();
+  const day = cairoDay(iso);
+  const today = cairoDay(new Date().toISOString());
+  const yesterday = cairoDay(new Date(Date.now() - 86400000).toISOString());
+  const label =
+    day === today
+      ? 'Today'
+      : day === yesterday
+        ? 'Yesterday'
+        : new Date(iso).toLocaleDateString('en-GB', { timeZone: 'Africa/Cairo', weekday: 'short', day: '2-digit', month: 'short' });
+  return (
+    <View style={styles.dayWrap}>
+      <View style={[styles.dayChip, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.dayText, { color: colors.mutedForeground }]}>{label}</Text>
+      </View>
+    </View>
+  );
+}
 
 const errMessage = (e: unknown) =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -300,7 +324,7 @@ export function ChatThreadScreen({
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.mutedForeground} />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
@@ -316,26 +340,40 @@ export function ChatThreadScreen({
         data={messages}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <ChatBubble
-            m={item}
-            status={statusFor(item, header)}
-            attachmentPath={item.id.startsWith('local-') ? null : chatApi.messageAttachmentPath(item.id)}
-            onRetry={() => retry(item)}
-            onOpenImage={(uri, headers) => setViewer({ uri, headers })}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          // Inverted: the next item is the older one. A day chip sits above the first message of each day.
+          const older = messages[index + 1];
+          const newDay = !older || cairoDay(older.createdAt) !== cairoDay(item.createdAt);
+          return (
+            <View>
+              {newDay ? <DaySeparator iso={item.createdAt} /> : null}
+              <ChatBubble
+                m={item}
+                status={statusFor(item, header)}
+                attachmentPath={item.id.startsWith('local-') ? null : chatApi.messageAttachmentPath(item.id)}
+                onRetry={() => retry(item)}
+                onOpenImage={(uri, headers) => setViewer({ uri, headers })}
+              />
+            </View>
+          );
+        }}
         onEndReached={loadOlder}
         onEndReachedThreshold={0.2}
         ListFooterComponent={loadingOlder ? <ActivityIndicator style={styles.older} color={colors.mutedForeground} /> : null}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.mutedForeground }]}>{t('chat.emptyThread')}</Text>
+          <View style={styles.emptyWrap}>
+            <View style={[styles.emptyHalo, { backgroundColor: `${colors.brandAccent}18` }]}>
+              <Icon name="hand-left-outline" size={34} color={colors.brandAccent} />
+            </View>
+            <Text style={[styles.empty, { color: colors.mutedForeground }]}>{t('chat.emptyThread')}</Text>
+          </View>
         }
       />
 
       {blocked ? (
-        <View style={[styles.blocked, { backgroundColor: colors.destructive }]}>
-          <Text style={styles.blockedText}>{blocked}</Text>
+        <View style={[styles.blocked, { backgroundColor: colors.destructiveSoft }]}>
+          <Icon name="alert-circle" size={16} color={colors.destructive} />
+          <Text style={[styles.blockedText, { color: colors.destructive }]}>{blocked}</Text>
         </View>
       ) : null}
 
@@ -348,9 +386,9 @@ export function ChatThreadScreen({
               accessibilityRole="button"
               accessibilityLabel={t('chat.cancelRecording')}
             >
-              <Text style={styles.icon}>🗑</Text>
+              <Icon name="trash-outline" size={22} color={colors.destructive} />
             </Pressable>
-            <View style={[styles.recordingBox, { borderColor: colors.destructive }]}>
+            <View style={[styles.recordingBox, { backgroundColor: colors.destructiveSoft }]}>
               <View style={[styles.recDot, { backgroundColor: colors.destructive }]} />
               <Text style={[styles.recTime, { color: colors.foreground }]}>
                 {Math.floor(recorder.seconds / 60)}:{String(recorder.seconds % 60).padStart(2, '0')}
@@ -361,41 +399,49 @@ export function ChatThreadScreen({
             </View>
             <Pressable
               onPress={() => recorder.stop()}
-              style={[styles.sendBtn, { backgroundColor: colors.destructive }]}
+              style={[styles.sendBtn, { backgroundColor: colors.primary }]}
               accessibilityRole="button"
               accessibilityLabel={t('chat.sendVoice')}
             >
-              <Text style={[styles.sendText, { color: '#fff' }]}>■</Text>
+              <Icon name="send" size={18} color={colors.primaryForeground} />
             </Pressable>
           </>
         ) : (
           <>
-            <Pressable
-              onPress={sendPhoto}
-              style={styles.iconBtn}
-              accessibilityRole="button"
-              accessibilityLabel={t('chat.attachPhoto')}
-            >
-              <Text style={styles.icon}>📷</Text>
-            </Pressable>
-            <Pressable
-              onPress={sendLocation}
-              disabled={locating}
-              style={styles.iconBtn}
-              accessibilityRole="button"
-              accessibilityLabel={t('chat.shareLocation')}
-            >
-              {locating ? <ActivityIndicator size="small" color={colors.mutedForeground} /> : <Text style={styles.icon}>📍</Text>}
-            </Pressable>
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              placeholder={t('chat.placeholder')}
-              placeholderTextColor={colors.mutedForeground}
-              multiline
-              maxLength={4000}
-              style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.input }]}
-            />
+            <View style={[styles.inputPill, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Pressable
+                onPress={sendPhoto}
+                style={styles.pillBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t('chat.attachPhoto')}
+                hitSlop={6}
+              >
+                <Icon name="camera-outline" size={22} color={colors.mutedForeground} />
+              </Pressable>
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                placeholder={t('chat.placeholder')}
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                maxLength={4000}
+                style={[styles.input, { color: colors.foreground }]}
+              />
+              <Pressable
+                onPress={sendLocation}
+                disabled={locating}
+                style={styles.pillBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t('chat.shareLocation')}
+                hitSlop={6}
+              >
+                {locating ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Icon name="location-outline" size={22} color={colors.mutedForeground} />
+                )}
+              </Pressable>
+            </View>
             {text.trim() ? (
               <Pressable
                 onPress={sendText}
@@ -403,16 +449,16 @@ export function ChatThreadScreen({
                 accessibilityRole="button"
                 accessibilityLabel={t('chat.send')}
               >
-                <Text style={[styles.sendText, { color: colors.primaryForeground }]}>➤</Text>
+                <Icon name="send" size={18} color={colors.primaryForeground} />
               </Pressable>
             ) : (
               <Pressable
                 onPress={recorder.start}
-                style={[styles.sendBtn, { backgroundColor: colors.secondary }]}
+                style={[styles.sendBtn, { backgroundColor: colors.primary }]}
                 accessibilityRole="button"
                 accessibilityLabel={t('chat.recordVoice')}
               >
-                <Text style={styles.icon}>🎤</Text>
+                <Icon name="mic" size={20} color={colors.primaryForeground} />
               </Pressable>
             )}
           </>
@@ -429,44 +475,54 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: spacing[3], paddingVertical: spacing[3], flexGrow: 1 },
   older: { marginVertical: spacing[3] },
-  empty: { textAlign: 'center', fontSize: 13, paddingVertical: spacing[10], transform: [{ scaleY: -1 }] },
-  blocked: { paddingHorizontal: spacing[3], paddingVertical: spacing[2] },
-  blockedText: { color: '#fff', fontSize: 12 },
+  emptyWrap: { alignItems: 'center', paddingVertical: spacing[10], transform: [{ scaleY: -1 }] },
+  emptyHalo: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: spacing[3] },
+  empty: { textAlign: 'center', fontSize: 14 },
+  dayWrap: { alignItems: 'center', marginVertical: spacing[3] },
+  dayChip: { paddingHorizontal: spacing[3], paddingVertical: 4, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
+  dayText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.3 },
+  blocked: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing[3], paddingVertical: spacing[2] },
+  blockedText: { fontSize: 12, fontWeight: '500', flex: 1 },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[2],
     borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 4,
+    gap: spacing[2],
   },
-  iconBtn: { width: 40, height: 42, alignItems: 'center', justifyContent: 'center' },
-  icon: { fontSize: 22 },
+  inputPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    minHeight: 46,
+    borderRadius: 23,
+    borderWidth: 1,
+    paddingHorizontal: 4,
+  },
+  pillBtn: { width: 38, height: 44, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 42, height: 46, alignItems: 'center', justifyContent: 'center' },
   input: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 44,
     maxHeight: 120,
-    borderWidth: 1,
-    borderRadius: 21,
-    paddingHorizontal: spacing[3],
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingHorizontal: 4,
+    paddingTop: 12,
+    paddingBottom: 12,
     fontSize: 15,
   },
-  sendBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  sendText: { fontSize: 18 },
+  sendBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   recordingBox: {
     flex: 1,
-    height: 42,
-    borderWidth: 1,
-    borderRadius: 21,
+    height: 46,
+    borderRadius: 23,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[3],
+    paddingHorizontal: spacing[4],
     gap: 8,
   },
   recDot: { width: 10, height: 10, borderRadius: 5 },
-  recTime: { fontSize: 15, fontVariant: ['tabular-nums'] },
+  recTime: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
   recHint: { flex: 1, fontSize: 12 },
   viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   viewerImage: { width: '100%', height: '100%' },

@@ -1,12 +1,23 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useChatMe, getColors, driverPortalApi, useT } from '@itour/shared';
+import { useChatMe, getColors, driverPortalApi, useT, unwrapList } from '@itour/shared';
 import { JobsListScreen } from '../screens/JobsListScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { ComplaintsScreen } from '../screens/ComplaintsScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ChatTabScreen } from '../screens/ChatScreens';
+import { Icon } from '@itour/ui';
+
+// Without an icon per tab React Navigation draws an empty placeholder box.
+const TAB_ICONS: Record<string, [string, string]> = {
+  Jobs: ['car-outline', 'car'],
+  History: ['time-outline', 'time'],
+  Complaints: ['shield-outline', 'shield'],
+  Chat: ['chatbubbles-outline', 'chatbubbles'],
+  Notifications: ['notifications-outline', 'notifications'],
+  Profile: ['person-circle-outline', 'person-circle'],
+};
 
 export type MainTabParamList = {
   Jobs: undefined;
@@ -30,7 +41,7 @@ export function MainTabNavigator() {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const { data } = await driverPortalApi.getNotifications();
-      const notifications = Array.isArray(data) ? data : (data as any)?.data ?? [];
+      const notifications = unwrapList<any>(data);
       setUnreadCount(notifications.filter((n: any) => !n.isRead).length);
     } catch {
       // Ignore errors for badge count
@@ -45,7 +56,10 @@ export function MainTabNavigator() {
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => (
+          <Icon name={TAB_ICONS[route.name]?.[focused ? 1 : 0] ?? 'ellipse-outline'} size={size} color={color} />
+        ),
         headerShown: true,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
@@ -57,7 +71,7 @@ export function MainTabNavigator() {
           backgroundColor: colors.card,
         },
         headerTintColor: colors.foreground,
-      }}
+      })}
     >
       <Tab.Screen
         name="Jobs"

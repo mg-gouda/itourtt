@@ -1,34 +1,33 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { getColors, typography, spacing } from '@itour/shared';
+import { useColors, spacing } from '@itour/shared';
+import { Icon } from './Icon';
 
 interface EmptyStateProps {
-  icon?: React.ReactNode;
+  /** An icon name (see Icon) or any node. Defaults to a calendar. */
+  icon?: React.ReactNode | string;
   title: string;
   message?: string;
   action?: React.ReactNode;
+  /** Tint of the icon halo; defaults to the brand accent. */
+  tint?: string;
 }
 
-export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
-  const colors = getColors();
+/** Friendly empty state: haloed icon, title, one line of help and an optional action. */
+export function EmptyState({ icon = 'calendar-clear-outline', title, message, action, tint }: EmptyStateProps) {
+  const colors = useColors();
+  const c = tint ?? colors.brandAccent;
 
   return (
     <View style={styles.container}>
-      {icon && <View style={styles.icon}>{icon}</View>}
-      <Text style={[typography.h4, { color: colors.foreground, textAlign: 'center' }]}>
-        {title}
-      </Text>
-      {message && (
-        <Text
-          style={[
-            typography.bodySm,
-            { color: colors.mutedForeground, textAlign: 'center', marginTop: spacing[1] },
-          ]}
-        >
-          {message}
-        </Text>
-      )}
-      {action && <View style={styles.action}>{action}</View>}
+      <View style={[styles.haloOuter, { backgroundColor: `${c}12` }]}>
+        <View style={[styles.haloInner, { backgroundColor: `${c}22` }]}>
+          {typeof icon === 'string' ? <Icon name={icon} size={36} color={c} /> : icon}
+        </View>
+      </View>
+      <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+      {message ? <Text style={[styles.message, { color: colors.mutedForeground }]}>{message}</Text> : null}
+      {action ? <View style={styles.action}>{action}</View> : null}
     </View>
   );
 }
@@ -38,12 +37,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing[8],
+    paddingHorizontal: spacing[8],
+    paddingVertical: spacing[12],
   },
-  icon: {
-    marginBottom: spacing[4],
+  haloOuter: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[5],
   },
-  action: {
-    marginTop: spacing[4],
+  haloInner: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  title: { fontSize: 18, fontWeight: '700', textAlign: 'center', letterSpacing: -0.2 },
+  message: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: spacing[2], maxWidth: 300 },
+  action: { marginTop: spacing[5] },
 });

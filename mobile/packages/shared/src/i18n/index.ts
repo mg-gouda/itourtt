@@ -34,6 +34,11 @@ export function t(key: string): string {
   return getNestedValue(translations[currentLocale] as unknown as Record<string, unknown>, key);
 }
 
+/** Translate and fill `{name}` placeholders. */
+export function tf(key: string, vars: Record<string, string | number>): string {
+  return t(key).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
+
 /** React hook that returns the translation function */
 export function useT() {
   return useCallback((key: string) => t(key), []);
