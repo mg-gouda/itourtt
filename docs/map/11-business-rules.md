@@ -165,6 +165,22 @@ No Show after `noShowAvailableFrom`, Cancel via `PATCH …/status`. Completing t
 endpoint (not the generic PATCH) is what runs `JobCompletionService.reconcileJobStatus`.
 Both apps share one design kit in `mobile/packages/ui/src/kit/`.
 
+**History → Deductions shows only POSTED charges** (`GET /*-portal/deductions`, ComplaintCharge rows
+naming that rep/driver, filtered by the *job's* date). A PENDING or APPROVED charge can still be
+changed or voided, so like the complaints list it never reaches the portal.
+
+**Display language is app-local.** `useLocaleStore` (EncryptedStorage `app_locale`) drives `t()`;
+since `t()` is not reactive, the app root keys `NavigationContainer` on the locale and restores the
+saved nav state. Layout stays LTR — flipping `I18nManager` needs an app restart and the kit was not
+built mirrored.
+
+**Rep coverage zones (`RepZone`) are display-only** — nothing in dispatch, fees or assignment reads
+them — so the app no longer shows them on Profile.
+
+**The chat composer pads itself by the bottom safe-area inset** (threads are root-stack screens with
+no tab bar under them); the inset is dropped while the keyboard is open (`adjustResize` already lifts
+the window).
+
 **Icons need the fonts.** `react-native-vector-icons` glyphs render as empty rectangles unless the
 app's `android/app/build.gradle` applies `fonts.gradle` (monorepo path `../../../../node_modules`).
 A tab with no `tabBarIcon` also renders a placeholder box.

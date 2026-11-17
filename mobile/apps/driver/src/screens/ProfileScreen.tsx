@@ -11,8 +11,10 @@ import {
   unwrapData,
   useAuthStore,
   useColors,
+  useLocaleStore,
   useTheme,
   type DriverProfile,
+  type Locale,
   type ThemeMode,
 } from '@itour/shared';
 import { Icon } from '@itour/ui';
@@ -29,6 +31,8 @@ export function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { mode, setMode } = useTheme();
+  const locale = useLocaleStore((s) => s.locale);
+  const setAppLocale = useLocaleStore((s) => s.setLocale);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const unread = useNotificationsStore((s) => s.unread);
@@ -138,6 +142,18 @@ export function ProfileScreen() {
               { value: 'light', label: t('repApp.light'), icon: 'sunny-outline' },
               { value: 'dark', label: t('repApp.dark'), icon: 'moon-outline' },
               { value: 'system', label: t('repApp.system'), icon: 'phone-portrait-outline' },
+            ]}
+          />
+        </Surface>
+
+        <Surface>
+          <SectionTitle title={t('repApp.language')} icon="language" />
+          <Segmented<Locale>
+            value={locale}
+            onChange={setAppLocale}
+            options={[
+              { value: 'en', label: t('repApp.english') },
+              { value: 'ar', label: t('repApp.arabic') },
             ]}
           />
         </Surface>

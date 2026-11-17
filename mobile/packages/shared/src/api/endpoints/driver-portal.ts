@@ -1,5 +1,5 @@
 import api from '../client';
-import type { DriverPortalJob, DriverProfile, PortalNotification, PortalComplaint } from '../../types';
+import type { DriverPortalJob, DriverProfile, PortalNotification, PortalComplaint, PortalDeduction } from '../../types';
 
 /**
  * Driver portal API. Bodies are wrapped `{ success, data }`; job and
@@ -59,6 +59,11 @@ export const driverPortalApi = {
 
   getComplaints() {
     return api.get<{ data: PortalComplaint[] }>('/driver-portal/complaints');
+  },
+
+  /** Posted deductions against me on jobs dated in [dateFrom, dateTo], with the reason. */
+  getDeductions(dateFrom?: string, dateTo?: string) {
+    return api.get<{ data: PortalDeduction[] }>('/driver-portal/deductions', { params: { dateFrom, dateTo } });
   },
 
   getNotifications() {

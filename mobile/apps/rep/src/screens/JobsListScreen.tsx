@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -7,6 +7,7 @@ import {
   formatDayLabel,
   repPortalApi,
   t,
+  tf,
   todayCairo,
   unwrapList,
   useAuthStore,
@@ -22,6 +23,16 @@ import { useNotificationsStore } from '../lib/notifications-store';
 import { jobDay } from '../lib/job-rules';
 
 type Nav = StackNavigationProp<RootStackParamList>;
+/** Which header counter is filtering the list ('all' = Total, no filter). */
+type Filter = 'all' | 'pending' | 'inPlace' | 'done';
+const DONE = ['COMPLETED', 'NO_SHOW', 'CANCELLED'];
+
+function matches(job: RepPortalJob, filter: Filter): boolean {
+  if (filter === 'pending') return job.repStatus === 'PENDING';
+  if (filter === 'inPlace') return job.repStatus === 'IN_PLACE';
+  if (filter === 'done') return DONE.includes(job.repStatus);
+  return true;
+}
 
 function greeting(): string {
   const h = Number(new Date().toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', hour12: false }));
@@ -41,16 +52,22 @@ export function JobsListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
 
+  // Swiping through days fires overlapping requests; only the latest day's answer may land.
+  const latestDate = useRef(date);
+  latestDate.current = date;
   const fetchJobs = useCallback(async () => {
     try {
       const { data } = await repPortalApi.getJobs(date);
+      if (latestDate.current !== date) return;
       setJobs(unwrapList<RepPortalJob>(data, 'jobs'));
       setError(null);
     } catch (err) {
+      if (latestDate.current !== date) return;
       setError(apiErrorMessage(err, t('repApp.loadFailed')));
     } finally {
-      setLoading(false);
+      if (latestDate.current === date) setLoading(false);
     }
   }, [date]);
 
@@ -78,12 +95,21 @@ export function JobsListScreen() {
   const stats = useMemo(
     () => ({
       total: jobs.length,
-      todo: jobs.filter((j) => j.repStatus === 'PENDING').length,
-      inPlace: jobs.filter((j) => j.repStatus === 'IN_PLACE').length,
-      done: jobs.filter((j) => ['COMPLETED', 'NO_SHOW', 'CANCELLED'].includes(j.repStatus)).length,
+      pending: jobs.filter((j) => matches(j, 'pending')).length,
+      inPlace: jobs.filter((j) => matches(j, 'inPlace')).length,
+      done: jobs.filter((j) => matches(j, 'done')).length,
     }),
     [jobs],
   );
+  const shown = useMemo(() => jobs.filter((j) => matches(j, filter)), [jobs, filter]);
+  // Tapping the active counter again (or Total) clears the filter.
+  const toggle = (f: Filter) => setFilter((cur) => (cur === f || f === 'all' ? 'all' : f));
+  const filterLabel: Record<Filter, string> = {
+    all: t('repApp.statTotal'),
+    pending: t('repApp.statPending'),
+    inPlace: t('repApp.statInPlace'),
+    done: t('repApp.statDone'),
+  };
 
   const firstName = (user?.name ?? '').split(' ')[0];
   const open = (job: RepPortalJob) => navigation.navigate('JobDetail', { jobId: job.id, date: jobDay(job) });
@@ -91,7 +117,7 @@ export function JobsListScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <FlatList
-        data={loading ? [] : jobs}
+        data={loading ? [] : shown}
         keyExtractor={(j) => j.id}
         contentContainerStyle={styles.content}
         refreshControl={
@@ -114,10 +140,37 @@ export function JobsListScreen() {
             >
               <WeekStrip date={date} onChange={setDate} />
               <View style={styles.stats}>
-                <HeaderStat value={stats.total} label={t('repApp.statTotal')} />
-                <HeaderStat value={stats.todo} label={t('repApp.statPending')} accent="#FBBF5B" />
-                <HeaderStat value={stats.inPlace} label={t('repApp.statInPlace')} accent="#7CC4F2" />
-                <HeaderStat value={stats.done} label={t('repApp.statDone')} accent="#86EFAC" />
+                <HeaderStat
+                  value={stats.total}
+                  label={filterLabel.all}
+                  loading={loading}
+                  active={filter === 'all'}
+                  onPress={() => toggle('all')}
+                />
+                <HeaderStat
+                  value={stats.pending}
+                  label={filterLabel.pending}
+                  accent="#FBBF5B"
+                  loading={loading}
+                  active={filter === 'pending'}
+                  onPress={() => toggle('pending')}
+                />
+                <HeaderStat
+                  value={stats.inPlace}
+                  label={filterLabel.inPlace}
+                  accent="#7CC4F2"
+                  loading={loading}
+                  active={filter === 'inPlace'}
+                  onPress={() => toggle('inPlace')}
+                />
+                <HeaderStat
+                  value={stats.done}
+                  label={filterLabel.done}
+                  accent="#86EFAC"
+                  loading={loading}
+                  active={filter === 'done'}
+                  onPress={() => toggle('done')}
+                />
               </View>
             </GradientHeader>
             {error ? (
@@ -132,9 +185,18 @@ export function JobsListScreen() {
               </View>
             ) : null}
             {!loading && jobs.length > 0 ? (
-              <Text style={[styles.count, { color: colors.mutedForeground }]}>
-                {jobs.length} {t('repApp.jobsToday')}
-              </Text>
+              <View style={styles.countRow}>
+                <Text style={[styles.count, { color: colors.mutedForeground }]}>
+                  {filter === 'all'
+                    ? `${jobs.length} ${t('repApp.jobsToday')}`
+                    : `${shown.length} · ${tf('repApp.filterShowing', { label: filterLabel[filter] })}`}
+                </Text>
+                {filter !== 'all' ? (
+                  <Text onPress={() => setFilter('all')} style={[styles.clear, { color: colors.primary }]}>
+                    {t('repApp.clearFilter')}
+                  </Text>
+                ) : null}
+              </View>
             ) : null}
             {loading ? (
               <View style={styles.skeleton}>
@@ -152,7 +214,7 @@ export function JobsListScreen() {
           />
         )}
         ListEmptyComponent={
-          loading || error ? null : (
+          loading || error || jobs.length > 0 ? null : (
             <EmptyState
               icon="sunny-outline"
               tint={colors.brandAccent}
@@ -180,7 +242,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingBottom: 24, flexGrow: 1 },
   stats: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  count: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginHorizontal: 20, marginTop: 18, marginBottom: 10 },
+  countRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 18, marginBottom: 10 },
+  count: { flex: 1, fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  clear: { fontSize: 12, fontWeight: '800' },
   skeleton: { marginTop: 16 },
   error: {
     flexDirection: 'row',

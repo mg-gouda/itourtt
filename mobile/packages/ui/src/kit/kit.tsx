@@ -412,11 +412,14 @@ export function Segmented<T extends string>({
   value,
   onChange,
   onDark,
+  compact,
 }: {
   options: { value: T; label: string; icon?: string }[];
   value: T;
   onChange: (v: T) => void;
   onDark?: boolean;
+  /** Smaller text and padding, for four or more options on a phone. */
+  compact?: boolean;
 }) {
   const colors = useColors();
   return (
@@ -435,11 +438,17 @@ export function Segmented<T extends string>({
             onPress={() => onChange(o.value)}
             style={[
               styles.segmentItem,
+              compact && styles.segmentItemCompact,
               active && [styles.segmentActive, { backgroundColor: onDark ? '#fff' : colors.card }],
             ]}
           >
             {o.icon ? <Icon name={o.icon} size={14} color={fg} /> : null}
-            <Text style={[styles.segmentText, { color: fg }]} numberOfLines={1}>
+            <Text
+              style={[styles.segmentText, compact && styles.segmentTextCompact, { color: fg }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               {o.label}
             </Text>
           </Pressable>
@@ -450,14 +459,41 @@ export function Segmented<T extends string>({
 }
 
 /** Small translucent stat on the gradient header. */
-export function HeaderStat({ value, label, accent }: { value: string | number; label: string; accent?: string }) {
+export function HeaderStat({
+  value,
+  label,
+  accent,
+  onPress,
+  active,
+  loading,
+}: {
+  value: string | number;
+  label: string;
+  accent?: string;
+  /** Makes the tile a button (e.g. filter the list below to this status). */
+  onPress?: () => void;
+  /** Highlights the tile as the current filter. */
+  active?: boolean;
+  /** Shows a shimmer bar in place of the number. */
+  loading?: boolean;
+}) {
   return (
-    <View style={styles.hStat}>
-      <Text style={[styles.hStatValue, accent ? { color: accent } : null]}>{value}</Text>
-      <Text style={styles.hStatLabel} numberOfLines={1}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityState={onPress ? { selected: !!active } : undefined}
+      style={({ pressed }) => [styles.hStat, active && styles.hStatActive, pressed && { opacity: 0.75 }]}
+    >
+      {loading ? (
+        <View style={styles.hStatSkel} />
+      ) : (
+        <Text style={[styles.hStatValue, accent ? { color: accent } : null]}>{value}</Text>
+      )}
+      <Text style={styles.hStatLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
         {label}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -596,13 +632,19 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   segmentText: { fontSize: 13, fontWeight: '700' },
+  segmentItemCompact: { paddingVertical: 7, paddingHorizontal: 2, gap: 3 },
+  segmentTextCompact: { fontSize: 11, fontWeight: '700' },
   hStat: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'transparent',
     borderRadius: 14,
     paddingVertical: 10,
     alignItems: 'center',
   },
+  hStatActive: { backgroundColor: 'rgba(255,255,255,0.26)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)' },
+  hStatSkel: { width: 26, height: 20, marginVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.22)' },
   hStatValue: { color: '#fff', fontSize: 20, fontWeight: '800' },
   hStatLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '600', marginTop: 1 },
 });

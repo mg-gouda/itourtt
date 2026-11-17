@@ -43,7 +43,7 @@ export { formatCurrency } from './utils/currency';
 export { getOriginLabel, getDestinationLabel, getRouteLabel } from './utils/route';
 
 // i18n
-export { t, tf, useT, setLocale, getLocale } from './i18n';
+export { t, tf, useT, setLocale, getLocale, useLocaleStore, type Locale } from './i18n';
 
 // Native features
 export {

@@ -1050,6 +1050,59 @@ export class RepPortalService {
   }
 
   /**
+   * The rep's posted deductions (ComplaintCharge rows against them by name),
+   * optionally limited to jobs dated in [dateFrom, dateTo]. Like the complaints
+   * list, only money actually taken (POSTED) reaches the portal — a PENDING or
+   * APPROVED charge can still be changed or voided.
+   */
+  async getDeductions(userId: string, dateFrom?: string, dateTo?: string) {
+    const repId = await this.resolveRepId(userId);
+    const jobDate =
+      dateFrom || dateTo
+        ? { ...(dateFrom ? { gte: new Date(dateFrom) } : {}), ...(dateTo ? { lte: new Date(dateTo) } : {}) }
+        : undefined;
+    const charges = await this.prisma.complaintCharge.findMany({
+      where: {
+        repId,
+        party: 'REP',
+        status: 'POSTED',
+        ...(jobDate ? { trafficJob: { jobDate } } : {}),
+      },
+      orderBy: { postedAt: 'desc' },
+      take: 200,
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        reason: true,
+        postedAt: true,
+        createdAt: true,
+        trafficJob: { select: { id: true, internalRef: true, jobDate: true, serviceType: true } },
+        complaint: {
+          select: {
+            complaintNo: true,
+            subject: true,
+            category: { select: { nameEn: true, nameAr: true } },
+          },
+        },
+      },
+    });
+    return charges.map((c) => ({
+      id: c.id,
+      amount: Number(c.amount),
+      currency: c.currency,
+      reason: c.reason,
+      postedAt: c.postedAt,
+      createdAt: c.createdAt,
+      job: c.trafficJob,
+      complaintNo: c.complaint?.complaintNo ?? null,
+      complaintSubject: c.complaint?.subject ?? null,
+      categoryEn: c.complaint?.category?.nameEn ?? null,
+      categoryAr: c.complaint?.category?.nameAr ?? null,
+    }));
+  }
+
+  /**
    * What this rep actually lost to a complaint: the charges raised against
    * them by name and then posted, added up. A complaint that also deducted from
    * the other leg of the job is not theirs to see.

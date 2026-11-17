@@ -11,8 +11,10 @@ import {
   unwrapData,
   useAuthStore,
   useColors,
+  useLocaleStore,
   useTheme,
   type RepProfile,
+  type Locale,
   type ThemeMode,
 } from '@itour/shared';
 import { Icon } from '@itour/ui';
@@ -28,6 +30,8 @@ export function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { mode, setMode } = useTheme();
+  const locale = useLocaleStore((s) => s.locale);
+  const setAppLocale = useLocaleStore((s) => s.setLocale);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const unread = useNotificationsStore((s) => s.unread);
@@ -47,7 +51,6 @@ export function ProfileScreen() {
     .map((p) => p[0])
     .join('')
     .toUpperCase();
-  const zones = profile?.repZones ?? profile?.zones ?? [];
 
   const signOut = () =>
     Alert.alert(t('repApp.signOut'), t('repApp.signOutConfirm'), [
@@ -95,32 +98,7 @@ export function ProfileScreen() {
             </Text>
             <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{t('repApp.feePerFlight')}</Text>
           </Surface>
-          <Surface style={styles.stat}>
-            <View style={[styles.statIcon, { backgroundColor: colors.infoSoft }]}>
-              <Icon name="map-outline" size={18} color={colors.info} />
-            </View>
-            <Text style={[styles.statValue, { color: colors.foreground }]}>{zones.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{t('repApp.zones')}</Text>
-          </Surface>
         </View>
-
-        <Surface>
-          <SectionTitle title={t('repApp.zones')} icon="location" />
-          {zones.length ? (
-            <View style={styles.zones}>
-              {zones.map((rz) => (
-                <View key={rz.id} style={[styles.zone, { backgroundColor: colors.primarySoft }]}>
-                  <Text style={[styles.zoneName, { color: colors.primary }]}>{rz.zone.name}</Text>
-                  {rz.zone.city?.name ? (
-                    <Text style={[styles.zoneCity, { color: colors.mutedForeground }]}>{rz.zone.city.name}</Text>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={{ color: colors.mutedForeground }}>{t('repApp.noZones')}</Text>
-          )}
-        </Surface>
 
         <Surface>
           <SectionTitle title={t('repApp.appearance')} icon="color-palette" />
@@ -131,6 +109,18 @@ export function ProfileScreen() {
               { value: 'light', label: t('repApp.light'), icon: 'sunny-outline' },
               { value: 'dark', label: t('repApp.dark'), icon: 'moon-outline' },
               { value: 'system', label: t('repApp.system'), icon: 'phone-portrait-outline' },
+            ]}
+          />
+        </Surface>
+
+        <Surface>
+          <SectionTitle title={t('repApp.language')} icon="language" />
+          <Segmented<Locale>
+            value={locale}
+            onChange={setAppLocale}
+            options={[
+              { value: 'en', label: t('repApp.english') },
+              { value: 'ar', label: t('repApp.arabic') },
             ]}
           />
         </Surface>
@@ -226,10 +216,6 @@ const styles = StyleSheet.create({
   statIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   statValue: { fontSize: 18, fontWeight: '800', marginTop: 10 },
   statLabel: { fontSize: 12, fontWeight: '600', marginTop: 2 },
-  zones: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  zone: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
-  zoneName: { fontSize: 13, fontWeight: '700' },
-  zoneCity: { fontSize: 11, marginTop: 1 },
   menuHead: { paddingHorizontal: 16, paddingTop: 16 },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
   menuIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

@@ -4,6 +4,7 @@ import type {
   RepProfile,
   PortalNotification,
   PortalComplaint,
+  PortalDeduction,
   GuestSurveyInput,
 } from '../../types';
 
@@ -75,6 +76,11 @@ export const repPortalApi = {
 
   getComplaints() {
     return api.get<{ data: PortalComplaint[] }>('/rep-portal/complaints');
+  },
+
+  /** Posted deductions against me on jobs dated in [dateFrom, dateTo], with the reason. */
+  getDeductions(dateFrom?: string, dateTo?: string) {
+    return api.get<{ data: PortalDeduction[] }>('/rep-portal/deductions', { params: { dateFrom, dateTo } });
   },
 
   getNotifications() {

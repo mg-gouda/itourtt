@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useAuthStore,
   useThemeStore,
+  useLocaleStore,
   useTheme,
   setOnAuthFailure,
   useColors,
@@ -35,6 +36,10 @@ export function App() {
   const { isDark } = useTheme();
   const colors = useColors();
   const navigationRef = React.useRef<any>(null);
+  // `t()` is not reactive: a language change remounts the navigator (keyed on
+  // locale) and hands it back the state it had, so the user stays on Profile.
+  const locale = useLocaleStore((s) => s.locale);
+  const navState = React.useRef<any>(undefined);
 
   useEffect(() => {
     setOnAuthFailure(() => {
@@ -42,7 +47,7 @@ export function App() {
       navigationRef.current?.reset({ index: 0, routes: [{ name: 'Login' }] });
     });
 
-    Promise.all([hydrate(), useThemeStore.getState().hydrate()]).then(() => setReady(true));
+    Promise.all([hydrate(), useThemeStore.getState().hydrate(), useLocaleStore.getState().hydrate()]).then(() => setReady(true));
   }, [hydrate]);
 
   // Signed in: permissions, then the sync service. Signed out: stop it.
@@ -89,7 +94,12 @@ export function App() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       {ready ? (
         <NavigationContainer
+          key={locale}
           ref={navigationRef}
+          initialState={navState.current}
+          onStateChange={(st) => {
+            navState.current = st;
+          }}
           theme={{
             ...(isDark ? DarkTheme : DefaultTheme),
             colors: {

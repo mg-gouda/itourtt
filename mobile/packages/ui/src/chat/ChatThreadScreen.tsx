@@ -5,6 +5,7 @@ import {
   AppState,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -30,6 +31,7 @@ import {
   type ChatMessageStatus,
   type ChatThreadHeader,
 } from '@itour/shared';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from './ChatBubble';
 import { Icon } from '../Icon';
 
@@ -99,6 +101,19 @@ export function ChatThreadScreen({
 }) {
   const colors = getColors();
   const t = useT();
+  // The thread sits on the root stack (no tab bar), so without this the composer
+  // lands under Android's gesture/3-button nav. While the keyboard is up the
+  // window is resized above it and the inset would only leave a gap.
+  const insets = useSafeAreaInsets();
+  const [keyboardUp, setKeyboardUp] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardUp(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const [header, setHeader] = useState<ChatThreadHeader | null>(null);
   // Newest first: the FlatList is inverted so it starts at the bottom.
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -377,7 +392,13 @@ export function ChatThreadScreen({
         </View>
       ) : null}
 
-      <View style={[styles.composer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+      <View
+        style={[
+          styles.composer,
+          { backgroundColor: colors.card, borderTopColor: colors.border },
+          !keyboardUp && insets.bottom > 0 && { paddingBottom: spacing[2] + insets.bottom },
+        ]}
+      >
         {recording ? (
           <>
             <Pressable

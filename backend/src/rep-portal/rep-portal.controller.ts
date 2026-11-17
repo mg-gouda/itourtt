@@ -299,6 +299,17 @@ export class RepPortalController {
     return new ApiResponse(result);
   }
 
+  /** GET /rep-portal/deductions?dateFrom=&dateTo= — posted deductions against this rep, with the reason. */
+  @Get('deductions')
+  async getDeductions(
+    @CurrentUser('id') userId: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const result = await this.repPortalService.getDeductions(userId, dateFrom, dateTo);
+    return new ApiResponse(result);
+  }
+
   @Get('notifications')
   async getNotifications(@CurrentUser('id') userId: string) {
     const result = await this.repPortalService.getNotifications(userId);

@@ -414,6 +414,22 @@ export interface PortalComplaint {
   chargedCurrency: string | null;
 }
 
+/** A posted deduction (ComplaintCharge) against the signed-in rep or driver. */
+export interface PortalDeduction {
+  id: string;
+  amount: number;
+  currency: Currency;
+  /** Why the money was taken, as entered by the office. */
+  reason: string | null;
+  postedAt: string | null;
+  createdAt: string;
+  job: { id: string; internalRef: string; jobDate: string; serviceType: string };
+  complaintNo: string | null;
+  complaintSubject: string | null;
+  categoryEn: string | null;
+  categoryAr: string | null;
+}
+
 // ─── Guest Booking ──────────────────────────────────────────────
 export interface BookingExtras {
   boosterSeatQty: number;

@@ -229,6 +229,17 @@ export class DriverPortalController {
     return new ApiResponse(result);
   }
 
+  /** GET /driver-portal/deductions?dateFrom=&dateTo= — posted deductions against this driver, with the reason. */
+  @Get('deductions')
+  async getDeductions(
+    @CurrentUser('id') userId: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const result = await this.driverPortalService.getDeductions(userId, dateFrom, dateTo);
+    return new ApiResponse(result);
+  }
+
   @Get('notifications')
   async getNotifications(@CurrentUser('id') userId: string) {
     const result = await this.driverPortalService.getNotifications(userId);
