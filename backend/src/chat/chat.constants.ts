@@ -15,6 +15,20 @@ export type ChatPortalRole = (typeof CHAT_PORTAL_ROLES)[number];
 /** Roles that never take part in chat on the staff side. */
 export const CHAT_NON_STAFF_ROLES = ['REP', 'DRIVER', 'SUPPLIER', 'B2C_CLIENT'];
 
+/** Who a broadcast can go to (mirrors the ChatBroadcastAudience enum). */
+export const CHAT_BROADCAST_AUDIENCES = ['REPS', 'DRIVERS', 'REPS_AND_DRIVERS', 'STAFF'] as const;
+export type ChatBroadcastAudienceKey = (typeof CHAT_BROADCAST_AUDIENCES)[number];
+
+/** Permission key that lets a staff user send broadcasts and see their receipts. */
+export const CHAT_BROADCAST_PERMISSION = 'chat-broadcast';
+
+/**
+ * Inbox id of the read-only announcements thread. Used in `?c=` links, push
+ * tags (`chat-announcements`) and `latestUnread.conversationId`; never a UUID,
+ * so it cannot collide with a real conversation.
+ */
+export const CHAT_ANNOUNCEMENTS_ID = 'announcements';
+
 /** Sniff an audio container from its first bytes → [mime, extension]. */
 export function sniffAudio(buf: Buffer): [string, string] | null {
   if (buf.length < 12) return null;

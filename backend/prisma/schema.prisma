@@ -353,6 +353,8 @@ model User {
   chatsAsPortal        ChatConversation[]  @relation("ChatPortalUser")
   chatsAsStaff         ChatConversation[]  @relation("ChatStaffUser")
   chatMessagesSent     ChatMessage[]       @relation("ChatMessageSender")
+  chatBroadcastsSent   ChatBroadcast[]     @relation("ChatBroadcastSender")
+  chatBroadcastsRecv   ChatBroadcastRecipient[]
   webPushSubscriptions WebPushSubscription[]
 
   complaintsCreated        Complaint[]       @relation("ComplaintCreatedBy")
@@ -2803,6 +2805,15 @@ enum ChatMessageKind {
   TEXT
   IMAGE
   VOICE
+  LOCATION
+}
+
+/// Who a chat broadcast (announcement) goes to.
+enum ChatBroadcastAudience {
+  REPS
+  DRIVERS
+  REPS_AND_DRIVERS
+  STAFF
 }
 
 /// One 1:1 thread between a REP/DRIVER portal user and a staff user. Who may
@@ -2817,6 +2828,10 @@ model ChatConversation {
   lastMessageAt    DateTime? @map("last_message_at")
   portalLastReadAt DateTime? @map("portal_last_read_at")
   staffLastReadAt  DateTime? @map("staff_last_read_at")
+  /// "Delivered up to": bumped whenever that side's app fetches chat state
+  /// (the /chat/me poll, opening the inbox or the thread).
+  portalLastDeliveredAt DateTime? @map("portal_last_delivered_at")
+  staffLastDeliveredAt  DateTime? @map("staff_last_delivered_at")
   createdById      String    @map("created_by_id")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
@@ -2846,6 +2861,10 @@ model ChatMessage {
   attachmentSize Int?            @map("attachment_size")
   /// Voice notes only: length in seconds as reported by the recorder.
   durationSec    Int?            @map("duration_sec")
+  /// LOCATION only: the shared position (WGS84) and its GPS accuracy in metres.
+  latitude       Decimal?        @db.Decimal(10, 7)
+  longitude      Decimal?        @db.Decimal(10, 7)
+  accuracyM      Int?            @map("accuracy_m")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
@@ -2854,6 +2873,52 @@ model ChatMessage {
 
   @@index([conversationId, createdAt])
   @@map("chat_messages")
+}
+
+/// A one-way announcement from staff (perm chat-broadcast) to a whole audience.
+/// Recipients are snapshotted at send time, one ChatBroadcastRecipient row
+/// each, which carries that person's delivered / seen state. Immutable.
+model ChatBroadcast {
+  id             String                @id @default(uuid())
+  senderId       String                @map("sender_id")
+  audience       ChatBroadcastAudience
+  kind           ChatMessageKind       @default(TEXT)
+  body           String?
+  attachmentPath String?               @map("attachment_path")
+  attachmentMime String?               @map("attachment_mime")
+  attachmentSize Int?                  @map("attachment_size")
+  durationSec    Int?                  @map("duration_sec")
+  latitude       Decimal?              @db.Decimal(10, 7)
+  longitude      Decimal?              @db.Decimal(10, 7)
+  accuracyM      Int?                  @map("accuracy_m")
+  recipientCount Int                   @default(0) @map("recipient_count")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  sender     User                     @relation("ChatBroadcastSender", fields: [senderId], references: [id])
+  recipients ChatBroadcastRecipient[]
+
+  @@index([createdAt])
+  @@map("chat_broadcasts")
+}
+
+/// One recipient of a ChatBroadcast and how far it got to them.
+model ChatBroadcastRecipient {
+  id          String    @id @default(uuid())
+  broadcastId String    @map("broadcast_id")
+  userId      String    @map("user_id")
+  deliveredAt DateTime? @map("delivered_at")
+  readAt      DateTime? @map("read_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  broadcast ChatBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([broadcastId, userId])
+  @@index([userId, readAt])
+  @@index([userId, deliveredAt])
+  @@map("chat_broadcast_recipients")
 }
 
 /// A browser's Web Push subscription (rep/driver web portal). One row per

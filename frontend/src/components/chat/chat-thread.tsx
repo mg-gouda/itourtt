@@ -1,40 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import {
-  AlertCircle,
-  ArrowLeft,
-  Check,
-  CheckCheck,
-  ImagePlus,
-  Loader2,
-  Mic,
-  RotateCw,
-  Send,
-  Square,
-  Trash2,
-} from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api, { backgroundPoll } from "@/lib/api";
 import { useLocaleId, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
-  CHAT_MAX_FILE_BYTES,
   CHAT_THREAD_POLL_MS,
   announceChatRead,
-  chatTime,
-  fmtDuration,
-  shrinkImage,
-  useAttachmentUrl,
-  useVoiceRecorder,
+  messageAttachmentPath,
+  type ChatKind,
   type ChatMessage,
+  type ChatMessageStatus,
   type ChatPerson,
 } from "@/lib/chat";
+import { ChatBubble } from "./chat-message";
+import { ChatComposer } from "./chat-composer";
 
 interface ThreadHeader {
   id: string;
   other: ChatPerson;
   otherLastReadAt: string | null;
+  otherLastDeliveredAt: string | null;
+}
+
+/** Ticks for one of my messages from the other side's delivered / read positions. */
+function statusFor(m: ChatMessage, header: ThreadHeader | null): ChatMessageStatus | null {
+  if (!m.fromMe || m.pending || m.failed) return null;
+  if (header?.otherLastReadAt && header.otherLastReadAt >= m.createdAt) return "SEEN";
+  if (header?.otherLastDeliveredAt && header.otherLastDeliveredAt >= m.createdAt) return "DELIVERED";
+  return "SENT";
 }
 
 interface ChatThreadProps {
@@ -57,12 +53,10 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const [text, setText] = useState("");
   const [blocked, setBlocked] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const lastServerAt = useRef<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const onReadRef = useRef(onRead);
   useEffect(() => {
     onReadRef.current = onRead;
@@ -119,7 +113,15 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
           params: lastServerAt.current ? { after: lastServerAt.current } : { limit: 40 },
         });
         const incoming: ChatMessage[] = data.data.messages;
-        setHeader((h) => (h ? { ...h, otherLastReadAt: data.data.otherLastReadAt } : h));
+        setHeader((h) =>
+          h
+            ? {
+                ...h,
+                otherLastReadAt: data.data.otherLastReadAt,
+                otherLastDeliveredAt: data.data.otherLastDeliveredAt,
+              }
+            : h,
+        );
         if (incoming.length) {
           lastServerAt.current = incoming.at(-1)!.createdAt;
           setMessages((prev) => {
@@ -213,53 +215,23 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
     [conversationId, t],
   );
 
-  const localMessage = (kind: ChatMessage["kind"], extra: Partial<ChatMessage> = {}): ChatMessage => ({
-    id: `local-${crypto.randomUUID()}`,
-    fromMe: true,
-    kind,
-    body: null,
-    hasAttachment: kind !== "TEXT",
-    attachmentMime: null,
-    attachmentSize: null,
-    durationSec: null,
-    createdAt: new Date().toISOString(),
-    ...extra,
-  });
-
-  const sendText = () => {
-    const body = text.trim();
-    if (!body) return;
-    const form = new FormData();
-    form.append("kind", "TEXT");
-    form.append("body", body);
-    setText("");
-    send(localMessage("TEXT", { body }), form);
+  const onComposerSend = (kind: ChatKind, form: FormData, preview: Partial<ChatMessage>) => {
+    send(
+      {
+        id: `local-${crypto.randomUUID()}`,
+        fromMe: true,
+        kind,
+        body: null,
+        hasAttachment: false,
+        attachmentMime: null,
+        attachmentSize: null,
+        durationSec: null,
+        createdAt: new Date().toISOString(),
+        ...preview,
+      },
+      form,
+    );
   };
-
-  const sendImage = async (file: File) => {
-    if (!file.type.startsWith("image/")) return;
-    const blob = await shrinkImage(file);
-    if (blob.size > CHAT_MAX_FILE_BYTES) {
-      setBlocked(t("chat.tooLarge"));
-      return;
-    }
-    const form = new FormData();
-    form.append("kind", "IMAGE");
-    form.append("file", blob, "photo.jpg");
-    const caption = text.trim();
-    if (caption) form.append("body", caption);
-    setText("");
-    send(localMessage("IMAGE", { body: caption || null, localUrl: URL.createObjectURL(blob) }), form);
-  };
-
-  const recorder = useVoiceRecorder((blob, secs) => {
-    const form = new FormData();
-    const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
-    form.append("kind", "VOICE");
-    form.append("durationSec", String(secs));
-    form.append("file", blob, `voice.${ext}`);
-    send(localMessage("VOICE", { durationSec: secs, localUrl: URL.createObjectURL(blob) }), form);
-  });
 
   const retry = (m: ChatMessage) => {
     const form = retryForms.current.get(m.id);
@@ -271,8 +243,6 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
   };
 
   const other = header?.other;
-  const seenUpTo = header?.otherLastReadAt ?? null;
-  const recording = recorder.state === "recording";
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
@@ -316,11 +286,12 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
               <p className="py-10 text-center text-xs text-muted-foreground">{t("chat.emptyThread")}</p>
             )}
             {messages.map((m) => (
-              <Bubble
+              <ChatBubble
                 key={m.id}
                 m={m}
                 localeId={localeId}
-                seen={!!(m.fromMe && !m.pending && seenUpTo && seenUpTo >= m.createdAt)}
+                status={statusFor(m, header)}
+                attachmentPath={m.id.startsWith("local-") ? null : messageAttachmentPath(m.id)}
                 onRetry={() => retry(m)}
                 onDiscard={() => discardFailed(m)}
               />
@@ -335,178 +306,8 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
           <span>{blocked}</span>
         </div>
       )}
-      {(recorder.state === "denied" || recorder.state === "unsupported") && (
-        <div className="flex shrink-0 items-start gap-2 border-t border-border bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span className="flex-1">{t(recorder.state === "denied" ? "chat.micDenied" : "chat.micUnsupported")}</span>
-          <button type="button" className="underline" onClick={recorder.reset}>
-            {t("chat.dismiss")}
-          </button>
-        </div>
-      )}
 
-      {/* Composer */}
-      <div className="flex shrink-0 items-end gap-1.5 border-t border-border bg-card p-2">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = "";
-            if (f) sendImage(f);
-          }}
-        />
-        {recording ? (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 shrink-0 text-destructive"
-              onClick={() => recorder.stop(true)}
-              aria-label={t("chat.cancelRecording")}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <div className="flex h-10 flex-1 items-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 text-sm">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-destructive" />
-              <span className="tabular-nums">{fmtDuration(recorder.seconds)}</span>
-              <span className="truncate text-xs text-muted-foreground">{t("chat.recording")}</span>
-            </div>
-            <Button size="icon" className="h-10 w-10 shrink-0" onClick={() => recorder.stop()} aria-label={t("chat.sendVoice")}>
-              <Square className="h-4 w-4 fill-current" />
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 shrink-0"
-              onClick={() => fileRef.current?.click()}
-              disabled={loading}
-              aria-label={t("chat.attachImage")}
-            >
-              <ImagePlus className="h-5 w-5" />
-            </Button>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  sendText();
-                }
-              }}
-              rows={1}
-              maxLength={4000}
-              placeholder={t("chat.placeholder")}
-              disabled={loading}
-              className="max-h-28 min-h-10 flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              dir="auto"
-            />
-            {text.trim() ? (
-              <Button size="icon" className="h-10 w-10 shrink-0" onClick={sendText} aria-label={t("chat.send")}>
-                <Send className="h-4 w-4 rtl:rotate-180" />
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-10 w-10 shrink-0"
-                onClick={recorder.start}
-                disabled={loading}
-                aria-label={t("chat.recordVoice")}
-              >
-                <Mic className="h-5 w-5" />
-              </Button>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Bubble({
-  m,
-  localeId,
-  seen,
-  onRetry,
-  onDiscard,
-}: {
-  m: ChatMessage;
-  localeId: string;
-  seen: boolean;
-  onRetry: () => void;
-  onDiscard: () => void;
-}) {
-  const t = useT();
-  const remote = useAttachmentUrl(m.id, m.hasAttachment && !m.localUrl && !m.pending && !m.failed);
-  const src = m.localUrl ?? remote.url;
-
-  return (
-    <div className={cn("flex", m.fromMe ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[82%] rounded-2xl px-3 py-1.5 text-sm shadow-sm",
-          m.fromMe ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-card text-foreground",
-          m.pending && "opacity-70",
-          m.failed && "ring-2 ring-destructive",
-        )}
-      >
-        {m.kind === "IMAGE" &&
-          (src ? (
-            <a href={src} target="_blank" rel="noopener noreferrer" className="-mx-1.5 -mt-0.5 mb-1 block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={t("chat.photo")} className="max-h-64 w-full rounded-xl object-cover" />
-            </a>
-          ) : (
-            <div className="mb-1 flex h-32 w-48 items-center justify-center rounded-xl bg-muted/40 text-xs text-muted-foreground">
-              {remote.error ? t("chat.attachmentFailed") : <Loader2 className="h-4 w-4 animate-spin" />}
-            </div>
-          ))}
-        {m.kind === "VOICE" &&
-          (src ? (
-            <audio controls preload="metadata" src={src} className="h-10 w-60 max-w-full" />
-          ) : (
-            <div className="flex h-10 w-56 items-center gap-2 text-xs opacity-80">
-              {remote.error ? t("chat.attachmentFailed") : <Loader2 className="h-4 w-4 animate-spin" />}
-              {m.durationSec ? fmtDuration(m.durationSec) : null}
-            </div>
-          ))}
-        {m.body && <p className="whitespace-pre-wrap break-words" dir="auto">{m.body}</p>}
-        <div
-          className={cn(
-            "mt-0.5 flex items-center justify-end gap-1 text-[10px]",
-            m.fromMe ? "text-primary-foreground/75" : "text-muted-foreground",
-          )}
-        >
-          {m.kind === "VOICE" && m.durationSec ? <span>{fmtDuration(m.durationSec)} ·</span> : null}
-          <span>{chatTime(m.createdAt, localeId)}</span>
-          {m.fromMe &&
-            (m.pending ? (
-              <Loader2 className="h-3 w-3 animate-spin" aria-label={t("chat.sending")} />
-            ) : m.failed ? null : seen ? (
-              <CheckCheck className="h-3.5 w-3.5" aria-label={t("chat.seen")} />
-            ) : (
-              <Check className="h-3.5 w-3.5" aria-label={t("chat.sent")} />
-            ))}
-        </div>
-        {m.failed && (
-          <div className="mt-1 flex items-center justify-end gap-2 text-[11px]">
-            <span>{t("chat.notSent")}</span>
-            <button type="button" onClick={onRetry} className="inline-flex items-center gap-0.5 underline">
-              <RotateCw className="h-3 w-3" />
-              {t("chat.retry")}
-            </button>
-            <button type="button" onClick={onDiscard} className="underline">
-              {t("chat.discard")}
-            </button>
-          </div>
-        )}
-      </div>
+      <ChatComposer disabled={loading} onSend={onComposerSend} />
     </div>
   );
 }

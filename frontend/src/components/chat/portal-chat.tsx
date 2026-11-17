@@ -6,6 +6,8 @@ import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ChatInbox } from "./chat-inbox";
 import { ChatThread } from "./chat-thread";
+import { AnnouncementsThread } from "./announcements-thread";
+import { ANNOUNCEMENTS_ID } from "@/lib/chat";
 
 /**
  * Rep/driver portal chat page. `?c=<conversationId>` opens a thread — that is
@@ -39,7 +41,9 @@ function PortalChatInner() {
   return (
     // Fills the space between the portal top bar and the bottom tab bar.
     <Card className="-mx-2 -my-2 flex h-[calc(100dvh-10.5rem)] min-h-[360px] flex-col overflow-hidden p-0">
-      {open ? (
+      {open === ANNOUNCEMENTS_ID ? (
+        <AnnouncementsThread onBack={() => go(null)} />
+      ) : open ? (
         <ChatThread key={open} conversationId={open} onBack={() => go(null)} />
       ) : (
         <ChatInbox canStartWith="STAFF" onOpen={(id) => go(id)} />

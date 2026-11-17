@@ -138,7 +138,7 @@ export class AuditInterceptor implements NestInterceptor {
       return next.handle();
     }
     // Chat read receipts fire whenever a thread is on screen — not an edit.
-    if (/\/chat\/conversations\/[^/]+\/read\/?$/.test(path)) {
+    if (/\/chat\/(conversations\/[^/]+|announcements)\/read\/?$/.test(path)) {
       return next.handle();
     }
 

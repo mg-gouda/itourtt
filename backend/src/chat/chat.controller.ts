@@ -22,9 +22,11 @@ import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { ChatService, type ChatActor } from './chat.service.js';
-import { CHAT_MAX_FILE_BYTES } from './chat.constants.js';
+import { CHAT_BROADCAST_PERMISSION, CHAT_MAX_FILE_BYTES } from './chat.constants.js';
 import {
+  BroadcastListQueryDto,
   ContactsQueryDto,
+  SendBroadcastDto,
   MessagesQueryDto,
   OpenConversationDto,
   SendMessageDto,
@@ -107,7 +109,10 @@ export class ChatController {
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,
   ) {
-    const file = await this.chat.attachment(user, id);
+    this.stream(res, await this.chat.attachment(user, id));
+  }
+
+  private stream(res: Response, file: { path: string; mime: string }) {
     res.setHeader('Content-Type', file.mime);
     res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -116,6 +121,71 @@ export class ChatController {
     res.sendFile(file.path, { dotfiles: 'allow' }, (err) => {
       if (err && !res.headersSent) res.status(404).json({ statusCode: 404, message: 'Attachment not found' });
     });
+  }
+
+  // ─── Announcements (received broadcasts) ───
+
+  @Get('announcements/summary')
+  async announcementsSummary(@CurrentUser() user: ChatActor) {
+    return new ApiResponse(await this.chat.announcementsSummary(user));
+  }
+
+  @Get('announcements')
+  async announcements(@CurrentUser() user: ChatActor, @Query() q: BroadcastListQueryDto) {
+    return new ApiResponse(await this.chat.listAnnouncements(user, q));
+  }
+
+  @Post('announcements/read')
+  @HttpCode(204)
+  async announcementsRead(@CurrentUser() user: ChatActor) {
+    await this.chat.markAnnouncementsRead(user);
+  }
+
+  // ─── Broadcasts (sending; perm chat-broadcast) ───
+
+  @Get('broadcasts/audiences')
+  @Permissions(CHAT_BROADCAST_PERMISSION)
+  async broadcastAudiences(@CurrentUser() user: ChatActor) {
+    return new ApiResponse(await this.chat.broadcastAudiences(user));
+  }
+
+  @Get('broadcasts')
+  @Permissions(CHAT_BROADCAST_PERMISSION)
+  async broadcasts(@Query() q: BroadcastListQueryDto) {
+    return new ApiResponse(await this.chat.listSentBroadcasts(q));
+  }
+
+  /** Send to an audience: TEXT, IMAGE, VOICE or LOCATION, same fields as a 1:1 message. */
+  @Post('broadcasts')
+  @Permissions(CHAT_BROADCAST_PERMISSION)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: CHAT_MAX_FILE_BYTES, files: 1 },
+    }),
+  )
+  async sendBroadcast(
+    @CurrentUser() user: ChatActor,
+    @Body() dto: SendBroadcastDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return new ApiResponse(await this.chat.sendBroadcast(user, dto, file));
+  }
+
+  @Get('broadcasts/:id/recipients')
+  @Permissions(CHAT_BROADCAST_PERMISSION)
+  async broadcastRecipients(@Param('id', ParseUUIDPipe) id: string) {
+    return new ApiResponse(await this.chat.broadcastRecipients(id));
+  }
+
+  /** A broadcast's photo / voice note — recipients and broadcast managers only. */
+  @Get('broadcasts/:id/attachment')
+  async broadcastAttachment(
+    @CurrentUser() user: ChatActor,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ) {
+    this.stream(res, await this.chat.broadcastAttachment(user, id));
   }
 
   // ─── Settings (Company page) ───

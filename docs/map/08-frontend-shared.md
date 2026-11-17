@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**103 files**, **373 exported symbols**.
+**108 files**, **394 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -364,15 +364,68 @@ Admin view of a user's device sessions, with force-logout and Clear — Clear is
 
 ## `frontend/src/components/chat/`
 
+### `announcements-thread.tsx`
+
+`frontend/src/components/chat/announcements-thread.tsx` · 164 lines
+
+Announcements (received broadcasts) thread.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AnnouncementsThread` | function | 23 | Read-only thread of received broadcasts; polls and marks them seen. |
+
+### `broadcast-panel.tsx`
+
+`frontend/src/components/chat/broadcast-panel.tsx` · 354 lines
+
+Staff broadcast console (perm chat-broadcast).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `BroadcastPanel` | function | 47 | Audience chips, composer with confirm step, sent history with live delivered/seen counts and per-person receipts. |
+
+### `chat-composer.tsx`
+
+`frontend/src/components/chat/chat-composer.tsx` · 319 lines
+
+Shared chat composer.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatComposerProps` | type | 19 | onSend(kind, form, preview) plus disabled/placeholder. |
+| `ChatComposer` | function | 47 | Text / photo (pick, paste screenshot, drop) / voice / location composer; pasted images are staged for a caption. |
+
 ### `chat-inbox.tsx`
 
-`frontend/src/components/chat/chat-inbox.tsx` · 312 lines
+`frontend/src/components/chat/chat-inbox.tsx` · 394 lines
 
 Chat conversation list and new-chat contact picker.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatInbox` | function | 27 | Polled conversation list with unread badges, search, and a picker to start a chat. |
+| `ChatInbox` | function | 62 | Polled conversation list with unread badges, search, and a picker to start a chat. |
+
+### `chat-location-map.tsx`
+
+`frontend/src/components/chat/chat-location-map.tsx` · 59 lines
+
+Location message map preview (dynamic import).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ChatLocationMap` | function | 11 | Non-interactive Leaflet/OSM mini-map with one pin and accuracy circle. |
+
+### `chat-message.tsx`
+
+`frontend/src/components/chat/chat-message.tsx` · 212 lines
+
+Chat bubble, location card and status ticks.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `StatusTicks` | function | 26 | ✓ sent / ✓✓ delivered / highlighted ✓✓ seen. |
+| `LocationCard` | function | 55 | Map preview + coordinates + Open in Maps / Directions links. |
+| `ChatBubble` | function | 114 | One chat bubble (photo/voice/location/text, time, ticks, retry); used by threads, announcements and broadcasts. |
 
 ### `chat-settings-card.tsx`
 
@@ -386,33 +439,33 @@ Company page card for the chat contact role lists.
 
 ### `chat-thread.tsx`
 
-`frontend/src/components/chat/chat-thread.tsx` · 513 lines
+`frontend/src/components/chat/chat-thread.tsx` · 314 lines
 
 One chat conversation: history, polling, receipts and composer.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatThread` | function | 52 | Message list (paging, 4 s polling, seen ticks) + composer for text, photos and voice notes with optimistic send/retry. |
+| `ChatThread` | function | 48 | Message list (paging, 4 s polling, seen ticks) + composer for text, photos and voice notes with optimistic send/retry. |
 
 ### `chat-widget.tsx`
 
-`frontend/src/components/chat/chat-widget.tsx` · 133 lines
+`frontend/src/components/chat/chat-widget.tsx` · 152 lines
 
 Floating staff chat button + panel on every dashboard page.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatWidget` | function | 42 | Bottom-right chat for eligible staff; opens itself (with a chime) on a newly arrived message unless another thread is open. |
+| `ChatWidget` | function | 47 | Bottom-right chat for eligible staff; opens itself (with a chime) on a newly arrived message unless another thread is open. |
 
 ### `portal-chat.tsx`
 
-`frontend/src/components/chat/portal-chat.tsx` · 50 lines
+`frontend/src/components/chat/portal-chat.tsx` · 54 lines
 
 Rep/driver portal chat page body.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PortalChat` | function | 14 | Inbox ↔ thread for the portals; ?c=<id> opens a thread (push notifications land here). |
+| `PortalChat` | function | 16 | Inbox ↔ thread for the portals; ?c=<id> opens a thread (push notifications land here). |
 
 ## `frontend/src/components/complaints/`
 
@@ -983,32 +1036,45 @@ Per-user column visibility, persisted alongside column order.
 
 ### `chat.ts`
 
-`frontend/src/lib/chat.ts` · 276 lines
+`frontend/src/lib/chat.ts` · 360 lines
 
 Chat client: types, polling hook, attachment blob fetch, image shrink, voice recorder, time formatting.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `ChatKind` | type | 8 | TEXT \| IMAGE \| VOICE. |
-| `ChatPerson` | type | 10 | A chat participant or contact. |
-| `ChatConversationSummary` | type | 19 | Inbox row: other person, last message, unread count. |
-| `ChatMessage` | type | 28 | A message plus client-only pending/failed/localUrl flags for optimistic sends. |
-| `ChatMe` | type | 45 | GET /chat/me result. |
-| `CHAT_READ_EVENT` | const | 54 | Window event fired after a thread is marked read; useChatMe and ChatInbox reload on it so badges drop at once. |
-| `announceChatRead` | function | 60 | After a thread is read: fires CHAT_READ_EVENT and closes that thread's chat-<id> notifications in the phone tray. |
-| `CHAT_ME_POLL_MS` | const | 70 | Badge / widget / inbox poll interval (10 s). |
-| `CHAT_THREAD_POLL_MS` | const | 72 | Open-thread poll interval (4 s). |
-| `CHAT_MAX_VOICE_SEC` | const | 73 | Voice notes stop recording at 300 s. |
-| `CHAT_MAX_FILE_BYTES` | const | 74 | Client-side 10 MB attachment limit (matches the server). |
-| `useChatMe` | function | 82 | Polls /chat/me as a background request every 10 s (paused while hidden); optional onUpdate callback. |
-| `attachmentUrl` | function | 124 | Fetches an auth-gated attachment as a blob → cached object URL. |
-| `useAttachmentUrl` | function | 136 | Hook wrapping attachmentUrl with loading/error state. |
-| `shrinkImage` | function | 155 | Downscales a photo to ≤1600 px JPEG in the browser before upload. |
-| `pickRecorderMime` | function | 174 | First audio type MediaRecorder supports (webm on Chrome/Android, mp4 on iOS). |
-| `RecorderState` | type | 182 | Voice recorder state: idle, recording, denied, unsupported. |
-| `useVoiceRecorder` | function | 188 | Tap-to-start/stop MediaRecorder with timer, cancel, and auto-stop at the limit. |
-| `fmtDuration` | function | 259 | Seconds → m:ss. |
-| `chatTime` | function | 265 | Cairo time for a message (date added when not today). |
+| `ChatMessageStatus` | type | 11 | SENT \| DELIVERED \| SEEN. |
+| `ChatBroadcastAudience` | type | 13 | REPS \| DRIVERS \| REPS_AND_DRIVERS \| STAFF. |
+| `ANNOUNCEMENTS_ID` | const | 16 | Inbox id of the announcements thread ('announcements'). |
+| `ChatPerson` | type | 18 | A chat participant or contact. |
+| `ChatConversationSummary` | type | 27 | Inbox row: other person, last message, unread count. |
+| `ChatMessage` | type | 42 | A message plus client-only pending/failed/localUrl flags for optimistic sends. |
+| `ChatMe` | type | 63 | GET /chat/me result. |
+| `CHAT_READ_EVENT` | const | 76 | Window event fired after a thread is marked read; useChatMe and ChatInbox reload on it so badges drop at once. |
+| `announceChatRead` | function | 82 | After a thread is read: fires CHAT_READ_EVENT and closes that thread's chat-<id> notifications in the phone tray. |
+| `CHAT_ME_POLL_MS` | const | 92 | Badge / widget / inbox poll interval (10 s). |
+| `CHAT_THREAD_POLL_MS` | const | 94 | Open-thread poll interval (4 s). |
+| `CHAT_MAX_VOICE_SEC` | const | 95 | Voice notes stop recording at 300 s. |
+| `CHAT_MAX_FILE_BYTES` | const | 96 | Client-side 10 MB attachment limit (matches the server). |
+| `ChatAnnouncement` | type | 99 | A received broadcast. |
+| `ChatAnnouncementsSummary` | type | 107 | Pinned announcements inbox row. |
+| `ChatSentBroadcast` | type | 113 | A sent broadcast with recipient / delivered / seen counts. |
+| `AUDIENCE_LABEL_KEY` | const | 121 | i18n key per broadcast audience. |
+| `useChatMe` | function | 134 | Polls /chat/me as a background request every 10 s (paused while hidden); optional onUpdate callback. |
+| `messageAttachmentPath` | const | 176 | API path of a 1:1 message's attachment. |
+| `broadcastAttachmentPath` | const | 178 | API path of a broadcast's attachment. |
+| `attachmentUrl` | function | 181 | Fetches an auth-gated attachment as a blob → cached object URL. |
+| `useAttachmentUrl` | function | 193 | Hook wrapping attachmentUrl with loading/error state. |
+| `LocationError` | type | 211 | denied \| unavailable \| unsupported. |
+| `getCurrentPosition` | function | 214 | One high-accuracy browser GPS fix (15 s timeout) → lat/lng/accuracy. |
+| `mapsUrl` | const | 231 | Google Maps link to a point. |
+| `directionsUrl` | const | 233 | Google Maps navigation link to a point. |
+| `shrinkImage` | function | 239 | Downscales a photo to ≤1600 px JPEG in the browser before upload. |
+| `pickRecorderMime` | function | 258 | First audio type MediaRecorder supports (webm on Chrome/Android, mp4 on iOS). |
+| `RecorderState` | type | 266 | Voice recorder state: idle, recording, denied, unsupported. |
+| `useVoiceRecorder` | function | 272 | Tap-to-start/stop MediaRecorder with timer, cancel, and auto-stop at the limit. |
+| `fmtDuration` | function | 343 | Seconds → m:ss. |
+| `chatTime` | function | 349 | Cairo time for a message (date added when not today). |
 
 ### `complaints.ts`
 
@@ -1078,17 +1144,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3788 lines
+`frontend/src/lib/i18n.ts` · 3860 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3765 | Translates a key in the current locale. |
-| `getTranslator` | function | 3769 | Translator for a specific locale, outside React. |
-| `useT` | function | 3777 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3784 | The active locale id. |
+| `t` | function | 3837 | Translates a key in the current locale. |
+| `getTranslator` | function | 3841 | Translator for a specific locale, outside React. |
+| `useT` | function | 3849 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3856 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -1106,7 +1172,7 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 894 lines
+`frontend/src/lib/permission-registry.ts` · 897 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -1115,11 +1181,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 805 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 821 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 829 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 841 | Subtree, used by the master toggle. |
-| `findNode` | function | 881 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 808 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 824 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 832 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 844 | Subtree, used by the master toggle. |
+| `findNode` | function | 884 | Looks up a node by key. |
 
 ### `role-home.ts`
 

@@ -5,9 +5,14 @@ import { MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { useChatMe, type ChatMe } from "@/lib/chat";
+import { ANNOUNCEMENTS_ID, useChatMe, type ChatMe } from "@/lib/chat";
 import { ChatInbox } from "./chat-inbox";
 import { ChatThread } from "./chat-thread";
+import { AnnouncementsThread } from "./announcements-thread";
+import { BroadcastPanel } from "./broadcast-panel";
+
+/** Widget-only view id for the broadcast console (never a conversation id). */
+const BROADCAST_VIEW = "__broadcast";
 
 /** Short two-note chime via WebAudio (no asset). Silently skipped if the browser blocks audio. */
 function chime() {
@@ -98,7 +103,16 @@ export function ChatWidget() {
             </Button>
           </div>
           <div className="min-h-0 flex-1">
-            {thread ? (
+            {thread === BROADCAST_VIEW ? (
+              <BroadcastPanel onBack={() => setThread(null)} />
+            ) : thread === ANNOUNCEMENTS_ID ? (
+              <AnnouncementsThread
+                onBack={() => {
+                  setThread(null);
+                  setRefreshKey((k) => k + 1);
+                }}
+              />
+            ) : thread ? (
               <ChatThread
                 key={thread}
                 conversationId={thread}
@@ -108,7 +122,12 @@ export function ChatWidget() {
                 }}
               />
             ) : (
-              <ChatInbox canStartWith={me.canStartWith ?? []} onOpen={setThread} refreshKey={refreshKey} />
+              <ChatInbox
+                canStartWith={me.canStartWith ?? []}
+                onOpen={setThread}
+                onBroadcast={me.canBroadcast ? () => setThread(BROADCAST_VIEW) : undefined}
+                refreshKey={refreshKey}
+              />
             )}
           </div>
         </div>

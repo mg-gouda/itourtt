@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**57 classes**, **425 methods**.
+**57 classes**, **453 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -153,60 +153,88 @@ passport-jwt validation. Beyond signature checks it re-reads the user and, for R
 
 ### ChatController
 
-`backend/src/chat/chat.controller.ts:42` · controller · 11 methods
+`backend/src/chat/chat.controller.ts:44` · controller · 20 methods
 
 /chat routes. Open to any signed-in user; ChatService decides who may talk to whom and checks thread membership.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `me` | pub | 47 | — | GET /chat/me — chat availability, unread total and newest unread thread (background poll). |
-| `conversations` | pub | 52 | — | GET /chat/conversations — the caller's threads with last message and unread count. |
-| `contacts` | pub | 57 | — | GET /chat/contacts — people the caller may start a chat with (?search, ?role for staff). |
-| `open` | pub | 62 | — | POST /chat/conversations — get or create the thread with a user (eligibility checked). |
-| `conversation` | pub | 67 | — | GET /chat/conversations/:id — thread header: the other person and their read position. |
-| `messages` | pub | 72 | — | GET /chat/conversations/:id/messages — latest page, ?before for history, ?after for live polling. |
-| `send` | pub | 88 | — | POST /chat/conversations/:id/messages — multipart: kind, body, file, durationSec. |
-| `read` | pub | 99 | — | POST /chat/conversations/:id/read — mark the thread read for the caller (not audited). |
-| `attachment` | pub | 105 | — | GET /chat/messages/:id/attachment — streams an image/voice note to a participant (sendFile with dotfiles allowed). |
-| `settings` | pub | 125 | — | GET /chat/settings — driver/rep contact role lists + selectable roles (perm company). |
-| `updateSettings` | pub | 131 | — | PATCH /chat/settings — set the contact role lists (perm company.editSettings). |
+| `me` | pub | 49 | — | GET /chat/me — chat availability, unread total and newest unread thread (background poll). |
+| `conversations` | pub | 54 | — | GET /chat/conversations — the caller's threads with last message and unread count. |
+| `contacts` | pub | 59 | — | GET /chat/contacts — people the caller may start a chat with (?search, ?role for staff). |
+| `open` | pub | 64 | — | POST /chat/conversations — get or create the thread with a user (eligibility checked). |
+| `conversation` | pub | 69 | — | GET /chat/conversations/:id — thread header: the other person and their read position. |
+| `messages` | pub | 74 | — | GET /chat/conversations/:id/messages — latest page, ?before for history, ?after for live polling. |
+| `send` | pub | 90 | — | POST /chat/conversations/:id/messages — multipart: kind, body, file, durationSec. |
+| `read` | pub | 101 | — | POST /chat/conversations/:id/read — mark the thread read for the caller (not audited). |
+| `attachment` | pub | 107 | — | GET /chat/messages/:id/attachment — streams an image/voice note to a participant (sendFile with dotfiles allowed). |
+| `stream` | priv | 115 | — | Sends a chat attachment file with private caching and dotfiles allowed. |
+| `announcementsSummary` | pub | 129 | — | GET /chat/announcements/summary — pinned inbox row: unread count + newest announcement, or null. |
+| `announcements` | pub | 134 | — | GET /chat/announcements — broadcasts the caller received (?before paging); marks them delivered. |
+| `announcementsRead` | pub | 140 | — | POST /chat/announcements/read — mark every received broadcast seen (not audited). |
+| `broadcastAudiences` | pub | 148 | — | GET /chat/broadcasts/audiences — recipient count per audience (perm chat-broadcast). |
+| `broadcasts` | pub | 154 | — | GET /chat/broadcasts — every broadcast sent, with delivered/seen counts (perm chat-broadcast). |
+| `sendBroadcast` | pub | 167 | — | POST /chat/broadcasts — multipart: audience + kind/body/file/durationSec/latitude/longitude (perm chat-broadcast). |
+| `broadcastRecipients` | pub | 177 | — | GET /chat/broadcasts/:id/recipients — per-person delivered/seen receipts (perm chat-broadcast). |
+| `broadcastAttachment` | pub | 183 | — | GET /chat/broadcasts/:id/attachment — streams a broadcast's photo/voice to recipients, sender and broadcast managers. |
+| `settings` | pub | 195 | — | GET /chat/settings — driver/rep contact role lists + selectable roles (perm company). |
+| `updateSettings` | pub | 201 | — | PATCH /chat/settings — set the contact role lists (perm company.editSettings). |
 
 ### ChatService
 
-`backend/src/chat/chat.service.ts:64` · service · 28 methods
+`backend/src/chat/chat.service.ts:100` · service · 47 methods
 
 In-app chat between rep/driver portal users and staff.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `contactRoles` | pub | 75 | `companySettings` | Reads the driver/rep contact role slug lists from CompanySettings (defaults if no row). |
-| `getSettings` | pub | 85 | `role` | Contact role lists plus every active staff role to choose from. |
-| `updateSettings` | pub | 97 | `role` `companySettings` | Validates role slugs exist and saves the contact lists on the company_settings singleton. |
-| `loadPerson` | priv | 127 | `user` | User with role enum, role slug/name and active flags. |
-| `sideOf` | priv | 131 | — | Maps a legacy role enum to PORTAL, STAFF or null (no chat). |
-| `staffReach` | priv | 138 | — | Which portal roles a staff user may chat with, from their role slug and the contact lists. |
-| `isLive` | priv | 150 | — | Active and not soft-deleted. |
-| `canPair` | priv | 158 | — | True when the portal user and staff user are both active and the staff role slug is in that portal role's contact list. |
-| `me` | pub | 174 | `chatConversation` | Is chat available to the caller, which portal roles they may start chats with, unread total and newest unread thread. |
-| `unreadByConversation` | priv | 205 | — | Raw SQL: per-thread unread count and newest unread time for the caller's side. |
-| `onlineSet` | priv | 230 | `userSession` | User ids with an open session seen in the last 5 minutes. |
-| `listConversations` | pub | 246 | `chatConversation` | Caller's threads, newest first, with the other person, last message preview and unread count. |
-| `personView` | priv | 283 | — | Client shape of a chat participant (name, role name, online, active). |
-| `contacts` | pub | 299 | `user` | Portal: eligible staff. Staff: active drivers/reps with a portal account, limited to the roles they may reach. |
-| `openConversation` | pub | 349 | `chatConversation` | Get-or-create the thread between caller and another user; 403 unless canPair. |
-| `getConversation` | pub | 378 | — | Thread header for a participant: other person (online/active) and their read-up-to time. |
-| `listMessages` | pub | 393 | `chatMessage` | Messages of a thread: latest page / before cursor (history) / after cursor (live), plus the other side's read position. |
-| `messageView` | priv | 427 | — | Client shape of a message (fromMe, kind, attachment meta — never the file path). |
-| `sendMessage` | pub | 454 | `chatMessage` `chatConversation` | Validates and stores a TEXT/IMAGE/VOICE message, re-checks the pair is still allowed, bumps lastMessageAt, pushes staff→portal. |
-| `markRead` | pub | 531 | `chatConversation` | Sets the caller's side lastReadAt to now. |
-| `attachment` | pub | 540 | `chatMessage` | Absolute path + mime of a message's file after a participant check; 404 if missing. |
-| `pushToPortal` | priv | 564 | — | Staff→rep/driver: native + browser push with a preview, tagged per thread, landing on the portal chat. |
-| `requireSide` | priv | 586 | — | PORTAL or STAFF for the caller; 403 for suppliers/B2C clients. |
-| `participant` | priv | 592 | `chatConversation` | Loads a thread and 404s unless the caller is one of its two participants. |
-| `storeImage` | priv | 605 | — | Re-encodes an upload with sharp (≤1600 px JPEG, EXIF stripped); 400 if not an image. |
-| `storeVoice` | priv | 624 | — | Stores a voice note after magic-byte sniffing; 400 if not a known audio container. |
-| `writeFile` | priv | 630 | — | Writes an attachment to uploads/.chat/<conversationId>/. |
-| `removeFile` | priv | 638 | — | Deletes an orphaned attachment after a failed send. |
+| `contactRoles` | pub | 112 | `companySettings` | Reads the driver/rep contact role slug lists from CompanySettings (defaults if no row). |
+| `getSettings` | pub | 122 | `role` | Contact role lists plus every active staff role to choose from. |
+| `updateSettings` | pub | 134 | `role` `companySettings` | Validates role slugs exist and saves the contact lists on the company_settings singleton. |
+| `loadPerson` | priv | 164 | `user` | User with role enum, role slug/name and active flags. |
+| `sideOf` | priv | 168 | — | Maps a legacy role enum to PORTAL, STAFF or null (no chat). |
+| `staffReach` | priv | 175 | — | Which portal roles a staff user may chat with, from their role slug and the contact lists. |
+| `isLive` | priv | 187 | — | Active and not soft-deleted. |
+| `canPair` | priv | 195 | — | True when the portal user and staff user are both active and the staff role slug is in that portal role's contact list. |
+| `me` | pub | 211 | `chatConversation` `chatBroadcastRecipient` | Is chat available to the caller, which portal roles they may start chats with, unread total and newest unread thread. |
+| `unreadByConversation` | priv | 254 | — | Raw SQL: per-thread unread count and newest unread time for the caller's side. |
+| `markDelivered` | priv | 284 | `chatConversation` `chatBroadcastRecipient` | Bumps the caller's side *LastDeliveredAt on threads with newer messages + broadcast deliveredAt; run on every chat poll. |
+| `canBroadcast` | priv | 318 | — | True when the user holds the chat-broadcast permission (PermissionsGuard cache). |
+| `onlineSet` | priv | 322 | `userSession` | User ids with an open session seen in the last 5 minutes. |
+| `listConversations` | pub | 338 | `chatConversation` | Caller's threads, newest first, with the other person, last message preview and unread count. |
+| `personView` | priv | 384 | — | Client shape of a chat participant (name, role name, online, active). |
+| `contacts` | pub | 400 | `user` | Portal: eligible staff. Staff: active drivers/reps with a portal account, limited to the roles they may reach. |
+| `openConversation` | pub | 450 | `chatConversation` | Get-or-create the thread between caller and another user; 403 unless canPair. |
+| `getConversation` | pub | 479 | — | Thread header for a participant: other person (online/active) and their read-up-to time. |
+| `otherReceipts` | priv | 492 | — | Other side's read and delivered positions for a thread (read implies delivered). |
+| `listMessages` | pub | 514 | `chatMessage` | Messages of a thread: latest page / before cursor (history) / after cursor (live), plus the other side's read position. |
+| `messageView` | priv | 547 | — | Client shape of a message (fromMe, kind, attachment meta — never the file path). |
+| `contentView` | priv | 559 | — | API shape of message/broadcast content incl. location numbers. |
+| `prepareContent` | priv | 578 | — | Validates TEXT/IMAGE/VOICE/LOCATION content and stores the attachment; shared by messages and broadcasts. |
+| `sendMessage` | pub | 633 | `chatMessage` `chatConversation` | Validates and stores a TEXT/IMAGE/VOICE message, re-checks the pair is still allowed, bumps lastMessageAt, pushes staff→portal. |
+| `markRead` | pub | 680 | `chatConversation` | Sets the caller's side lastReadAt to now. |
+| `attachment` | pub | 693 | `chatMessage` | Absolute path + mime of a message's file after a participant check; 404 if missing. |
+| `resolveFile` | priv | 703 | — | Absolute path of a stored chat file, confined to uploads/.chat. |
+| `audienceWhere` | priv | 717 | — | User filter for a broadcast audience: live users, reps/drivers need an active profile, sender excluded. |
+| `broadcastAudiences` | pub | 737 | `user` | Recipient count for each of the four audiences (composer chips). |
+| `sendBroadcast` | pub | 746 | `user` `chatBroadcast` `chatBroadcastRecipient` | Snapshots the audience, stores the broadcast + recipient rows in one transaction, pushes. |
+| `listSentBroadcasts` | pub | 793 | `chatBroadcast` `chatBroadcastRecipient` | All broadcasts newest-first with groupBy delivered / seen counts. |
+| `sentBroadcastView` | priv | 826 | — | API shape of a sent broadcast with receipt counts. |
+| `broadcastRecipients` | pub | 850 | `chatBroadcast` `chatBroadcastRecipient` | Per-recipient status rows for one broadcast, seen first. |
+| `announcementUnread` | priv | 871 | `chatBroadcastRecipient` | Unread announcement count + newest unread instant for one user. |
+| `announcementsSummary` | pub | 881 | `chatBroadcastRecipient` | Pinned announcements inbox row for the caller (null when they never received one). |
+| `listAnnouncements` | pub | 904 | `chatBroadcastRecipient` | Received broadcasts page for the caller; marks pending ones delivered first. |
+| `markAnnouncementsRead` | pub | 933 | `chatBroadcastRecipient` | Sets readAt (and deliveredAt) on all the caller's unread broadcast rows. |
+| `broadcastAttachment` | pub | 947 | `chatBroadcast` `chatBroadcastRecipient` | Resolves a broadcast attachment after a recipient / sender / chat-broadcast check. |
+| `pushBroadcast` | priv | 965 | — | Fire-and-forget push to every broadcast recipient, 20 at a time, tag chat-announcements. |
+| `pushToPortal` | priv | 1002 | — | Staff→rep/driver: native + browser push with a preview, tagged per thread, landing on the portal chat. |
+| `previewText` | priv | 1019 | — | Push / preview text for a message kind (📷 / 🎤 / 📍). |
+| `requireSide` | priv | 1026 | — | PORTAL or STAFF for the caller; 403 for suppliers/B2C clients. |
+| `participant` | priv | 1032 | `chatConversation` | Loads a thread and 404s unless the caller is one of its two participants. |
+| `storeImage` | priv | 1045 | — | Re-encodes an upload with sharp (≤1600 px JPEG, EXIF stripped); 400 if not an image. |
+| `storeVoice` | priv | 1064 | — | Stores a voice note after magic-byte sniffing; 400 if not a known audio container. |
+| `writeFile` | priv | 1070 | — | Writes an attachment to uploads/.chat/<conversationId>/. |
+| `removeFile` | priv | 1078 | — | Deletes an orphaned attachment after a failed send. |
 
 ## `common`
 
@@ -983,7 +1011,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-140 free functions, constants and types in these modules.
+145 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1038,7 +1066,11 @@ In-app chat limits, accepted file types and the audio magic-byte sniffer.
 | `CHAT_PORTAL_ROLES` | const | 12 | The portal side of every chat: REP and DRIVER. |
 | `ChatPortalRole` | type | 13 | REP \| DRIVER. |
 | `CHAT_NON_STAFF_ROLES` | const | 16 | Roles that never act as the staff side of a chat (REP, DRIVER, SUPPLIER, B2C_CLIENT). |
-| `sniffAudio` | function | 19 | Identifies webm/ogg/mp4/mp3/wav from the first bytes → [mime, extension]; null for anything else. |
+| `CHAT_BROADCAST_AUDIENCES` | const | 19 | REPS \| DRIVERS \| REPS_AND_DRIVERS \| STAFF. |
+| `ChatBroadcastAudienceKey` | type | 20 | One of CHAT_BROADCAST_AUDIENCES. |
+| `CHAT_BROADCAST_PERMISSION` | const | 23 | Permission key 'chat-broadcast' for sending broadcasts and viewing receipts. |
+| `CHAT_ANNOUNCEMENTS_ID` | const | 30 | Inbox id 'announcements' for the read-only announcements thread (?c=, push tag, latestUnread). |
+| `sniffAudio` | function | 33 | Identifies webm/ogg/mp4/mp3/wav from the first bytes → [mime, extension]; null for anything else. |
 
 ### `backend/src/chat/chat.service.ts`
 
@@ -1046,7 +1078,8 @@ In-app chat rules: contact eligibility by role slug, threads, messages, attachme
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatActor` | type | 29 | The caller as the JWT strategy provides it (sub + legacy role enum). |
+| `ChatActor` | type | 40 | The caller as the JWT strategy provides it (sub + legacy role enum). |
+| `ChatMessageStatus` | type | 75 | SENT \| DELIVERED \| SEEN — the ticks on a message the caller sent. |
 
 ### `backend/src/common/decorators/current-user.decorator.ts`
 
@@ -1331,10 +1364,10 @@ Staff job-update notifications/emails, dispatch-action notices, and driver/rep j
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 729 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 745 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 753 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 765 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 732 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 748 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 756 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 768 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 

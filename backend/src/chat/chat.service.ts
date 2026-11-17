@@ -5,14 +5,21 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, type ChatMessageKind } from '../../generated/prisma/client.js';
+import {
+  Prisma,
+  type ChatBroadcastAudience,
+  type ChatMessageKind,
+} from '../../generated/prisma/client.js';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service.js';
+import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import {
+  CHAT_ANNOUNCEMENTS_ID,
+  CHAT_BROADCAST_PERMISSION,
   CHAT_IMAGE_MAX_EDGE,
   CHAT_MAX_FILE_BYTES,
   CHAT_MAX_TEXT,
@@ -23,7 +30,11 @@ import {
   type ChatPortalRole,
   sniffAudio,
 } from './chat.constants.js';
-import type { SendMessageDto, UpdateChatSettingsDto } from './dto/chat.dto.js';
+import type {
+  SendBroadcastDto,
+  SendMessageDto,
+  UpdateChatSettingsDto,
+} from './dto/chat.dto.js';
 
 /** The caller as the JWT strategy hands it over. */
 export interface ChatActor {
@@ -60,6 +71,31 @@ type Person = Prisma.UserGetPayload<{ select: typeof PERSON_SELECT }>;
 const isPortalRole = (role: string): role is ChatPortalRole =>
   (CHAT_PORTAL_ROLES as readonly string[]).includes(role);
 
+/** Delivery state of a message the caller sent, as shown by its ticks. */
+export type ChatMessageStatus = 'SENT' | 'DELIVERED' | 'SEEN';
+
+/** The content fields a message and a broadcast share. */
+interface MessageContent {
+  kind: ChatMessageKind;
+  body: string | null;
+  attachmentPath: string | null;
+  attachmentMime: string | null;
+  attachmentSize: number | null;
+  durationSec: number | null;
+  latitude: Prisma.Decimal | number | null;
+  longitude: Prisma.Decimal | number | null;
+  accuracyM: number | null;
+}
+
+const num = (d: Prisma.Decimal | number | null) => (d === null ? null : Number(d));
+
+/** SENT → DELIVERED → SEEN from the other side's "up to" timestamps. */
+function statusOf(createdAt: Date, deliveredAt: Date | null, readAt: Date | null): ChatMessageStatus {
+  if (readAt && readAt >= createdAt) return 'SEEN';
+  if (deliveredAt && deliveredAt >= createdAt) return 'DELIVERED';
+  return 'SENT';
+}
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -67,6 +103,7 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushNotificationsService,
+    private readonly permissions: PermissionsGuard,
   ) {}
 
   // ─── Settings ──────────────────────────────────────────────────────────────
@@ -178,22 +215,34 @@ export class ChatService {
     if (!person) return { enabled: false as const };
 
     const reach = side === 'STAFF' ? this.staffReach(person, roles) : [];
-    const unread = await this.unreadByConversation(actor.sub, side);
-    let unreadTotal = 0;
-    let latest: { conversationId: string; at: Date } | null = null;
+    // This poll is the proof that the caller's app is up: everything waiting
+    // for them now counts as delivered.
+    await this.markDelivered(actor.sub, side);
+    const [unread, ann, canBroadcast] = await Promise.all([
+      this.unreadByConversation(actor.sub, side),
+      this.announcementUnread(actor.sub),
+      side === 'STAFF' ? this.canBroadcast(actor.sub) : Promise.resolve(false),
+    ]);
+    let unreadTotal = ann.count;
+    let latest: { conversationId: string; at: Date } | null = ann.latestAt
+      ? { conversationId: CHAT_ANNOUNCEMENTS_ID, at: ann.latestAt }
+      : null;
     for (const [conversationId, u] of unread) {
       unreadTotal += u.count;
       if (!latest || u.latestAt > latest.at) latest = { conversationId, at: u.latestAt };
     }
     const hasHistory =
-      side === 'STAFF' && reach.length === 0
-        ? (await this.prisma.chatConversation.count({ where: { staffUserId: actor.sub } })) > 0
+      side === 'STAFF' && reach.length === 0 && !canBroadcast
+        ? (await this.prisma.chatConversation.count({ where: { staffUserId: actor.sub } })) > 0 ||
+          (await this.prisma.chatBroadcastRecipient.count({ where: { userId: actor.sub } })) > 0
         : false;
 
     return {
-      enabled: side === 'PORTAL' || reach.length > 0 || hasHistory,
+      enabled: side === 'PORTAL' || reach.length > 0 || canBroadcast || hasHistory,
       side,
       canStartWith: side === 'STAFF' ? reach : [],
+      canBroadcast,
+      announcementsUnread: ann.count,
       unreadTotal,
       latestUnread: latest
         ? { conversationId: latest.conversationId, at: latest.at.toISOString() }
@@ -227,6 +276,49 @@ export class ChatService {
     return new Map(rows.map((r) => [r.id, { count: Number(r.n), latestAt: r.latest }]));
   }
 
+  /**
+   * Mark everything waiting for this user as delivered: their side of every
+   * thread with a newer message, and every broadcast not yet delivered.
+   * Field-reference compare so only stale rows are written.
+   */
+  private async markDelivered(userId: string, side: Side) {
+    const now = new Date();
+    const c = this.prisma.chatConversation.fields;
+    await Promise.all([
+      side === 'STAFF'
+        ? this.prisma.chatConversation.updateMany({
+            where: {
+              staffUserId: userId,
+              lastMessageAt: { not: null },
+              OR: [
+                { staffLastDeliveredAt: null },
+                { lastMessageAt: { gt: c.staffLastDeliveredAt } },
+              ],
+            },
+            data: { staffLastDeliveredAt: now },
+          })
+        : this.prisma.chatConversation.updateMany({
+            where: {
+              portalUserId: userId,
+              lastMessageAt: { not: null },
+              OR: [
+                { portalLastDeliveredAt: null },
+                { lastMessageAt: { gt: c.portalLastDeliveredAt } },
+              ],
+            },
+            data: { portalLastDeliveredAt: now },
+          }),
+      this.prisma.chatBroadcastRecipient.updateMany({
+        where: { userId, deliveredAt: null },
+        data: { deliveredAt: now },
+      }),
+    ]);
+  }
+
+  private async canBroadcast(userId: string): Promise<boolean> {
+    return (await this.permissions.getUserPermissions(userId)).has(CHAT_BROADCAST_PERMISSION);
+  }
+
   private async onlineSet(userIds: string[]): Promise<Set<string>> {
     if (!userIds.length) return new Set();
     const sessions = await this.prisma.userSession.findMany({
@@ -245,6 +337,7 @@ export class ChatService {
   /** Every thread the caller is in, newest activity first. */
   async listConversations(actor: ChatActor) {
     const side = this.requireSide(actor);
+    await this.markDelivered(actor.sub, side);
     const convs = await this.prisma.chatConversation.findMany({
       where: side === 'STAFF' ? { staffUserId: actor.sub } : { portalUserId: actor.sub },
       orderBy: [{ lastMessageAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
@@ -262,6 +355,7 @@ export class ChatService {
     return convs.map((c, i) => {
       const other = others[i];
       const last = c.messages[0];
+      const fromMe = last?.senderId === actor.sub;
       return {
         id: c.id,
         portalRole: c.portalRole,
@@ -270,7 +364,14 @@ export class ChatService {
           ? {
               kind: last.kind,
               body: last.body ? last.body.slice(0, 120) : null,
-              fromMe: last.senderId === actor.sub,
+              fromMe,
+              status: fromMe
+                ? statusOf(
+                    last.createdAt,
+                    side === 'STAFF' ? c.portalLastDeliveredAt : c.staffLastDeliveredAt,
+                    side === 'STAFF' ? c.portalLastReadAt : c.staffLastReadAt,
+                  )
+                : null,
               createdAt: last.createdAt.toISOString(),
             }
           : null,
@@ -383,8 +484,28 @@ export class ChatService {
       id: conv.id,
       portalRole: conv.portalRole,
       other: this.personView(other, online),
-      otherLastReadAt:
-        (side === 'STAFF' ? conv.portalLastReadAt : conv.staffLastReadAt)?.toISOString() ?? null,
+      ...this.otherReceipts(conv, side),
+    };
+  }
+
+  /** How far the other participant has received / read the thread. */
+  private otherReceipts(
+    conv: {
+      portalLastReadAt: Date | null;
+      staffLastReadAt: Date | null;
+      portalLastDeliveredAt: Date | null;
+      staffLastDeliveredAt: Date | null;
+    },
+    side: Side,
+  ) {
+    const read = side === 'STAFF' ? conv.portalLastReadAt : conv.staffLastReadAt;
+    const delivered = side === 'STAFF' ? conv.portalLastDeliveredAt : conv.staffLastDeliveredAt;
+    return {
+      otherLastReadAt: read?.toISOString() ?? null,
+      // Reading implies delivery, whichever was recorded later.
+      otherLastDeliveredAt:
+        (delivered && read ? (delivered > read ? delivered : read) : (delivered ?? read))?.toISOString() ??
+        null,
     };
   }
 
@@ -418,37 +539,95 @@ export class ChatService {
     }
     return {
       messages: rows.map((m) => this.messageView(m, actor.sub)),
-      otherLastReadAt:
-        (side === 'STAFF' ? conv.portalLastReadAt : conv.staffLastReadAt)?.toISOString() ?? null,
+      ...this.otherReceipts(conv, side),
       hasMore: !opts.after && rows.length === limit,
     };
   }
 
   private messageView(
-    m: {
-      id: string;
-      senderId: string;
-      kind: ChatMessageKind;
-      body: string | null;
-      attachmentPath: string | null;
-      attachmentMime: string | null;
-      attachmentSize: number | null;
-      durationSec: number | null;
-      createdAt: Date;
-    },
+    m: MessageContent & { id: string; senderId: string; createdAt: Date },
     me: string,
   ) {
     return {
       id: m.id,
       fromMe: m.senderId === me,
+      ...this.contentView(m),
+      createdAt: m.createdAt.toISOString(),
+    };
+  }
+
+  private contentView(m: MessageContent) {
+    return {
       kind: m.kind,
       body: m.body,
       hasAttachment: !!m.attachmentPath,
       attachmentMime: m.attachmentMime,
       attachmentSize: m.attachmentSize,
       durationSec: m.durationSec,
-      createdAt: m.createdAt.toISOString(),
+      latitude: num(m.latitude),
+      longitude: num(m.longitude),
+      accuracyM: m.accuracyM,
     };
+  }
+
+  /**
+   * Validate a message's content (text / photo / voice / location) and store
+   * its attachment under `uploads/.chat/<folder>/`. Shared by 1:1 messages and
+   * broadcasts. The caller must remove `content.attachmentPath` if it then fails.
+   */
+  private async prepareContent(
+    dto: SendMessageDto,
+    file: { buffer: Buffer; size: number; mimetype: string } | undefined,
+    folder: string,
+    id: string,
+  ): Promise<MessageContent> {
+    const body = dto.body?.trim() || null;
+    if (body && body.length > CHAT_MAX_TEXT) throw new BadRequestException('Message is too long');
+    const content: MessageContent = {
+      kind: dto.kind,
+      body,
+      attachmentPath: null,
+      attachmentMime: null,
+      attachmentSize: null,
+      durationSec: null,
+      latitude: null,
+      longitude: null,
+      accuracyM: null,
+    };
+
+    if (dto.kind === 'TEXT' || dto.kind === 'LOCATION') {
+      if (file) throw new BadRequestException('This message cannot carry a file');
+      if (dto.kind === 'TEXT') {
+        if (!body) throw new BadRequestException('Message is empty');
+        return content;
+      }
+      if (dto.latitude === undefined || dto.longitude === undefined) {
+        throw new BadRequestException('Location is missing');
+      }
+      content.latitude = Math.round(dto.latitude * 1e7) / 1e7;
+      content.longitude = Math.round(dto.longitude * 1e7) / 1e7;
+      content.accuracyM = dto.accuracyM !== undefined ? Math.round(dto.accuracyM) : null;
+      return content;
+    }
+
+    if (!file?.buffer?.length) throw new BadRequestException('Attachment is missing');
+    if (file.size > CHAT_MAX_FILE_BYTES) throw new BadRequestException('File is larger than 10 MB');
+    const stored =
+      dto.kind === 'IMAGE'
+        ? await this.storeImage(folder, id, file.buffer)
+        : await this.storeVoice(folder, id, file.buffer);
+    if (dto.kind === 'VOICE') {
+      const d = dto.durationSec ?? 0;
+      if (d < 1 || d > CHAT_MAX_VOICE_SEC) {
+        await this.removeFile(stored.rel);
+        throw new BadRequestException('Voice note must be 1 s to 5 min long');
+      }
+      content.durationSec = d;
+    }
+    content.attachmentPath = stored.rel;
+    content.attachmentMime = stored.mime;
+    content.attachmentSize = stored.size;
+    return content;
   }
 
   async sendMessage(
@@ -470,59 +649,29 @@ export class ChatService {
       );
     }
 
-    const body = dto.body?.trim() || null;
-    if (body && body.length > CHAT_MAX_TEXT) throw new BadRequestException('Message is too long');
-
-    let stored: { rel: string; mime: string; size: number } | null = null;
     const id = randomUUID();
-    if (dto.kind === 'TEXT') {
-      if (!body) throw new BadRequestException('Message is empty');
-      if (file) throw new BadRequestException('A text message cannot carry a file');
-    } else {
-      if (!file?.buffer?.length) throw new BadRequestException('Attachment is missing');
-      if (file.size > CHAT_MAX_FILE_BYTES) throw new BadRequestException('File is larger than 10 MB');
-      stored =
-        dto.kind === 'IMAGE'
-          ? await this.storeImage(conversationId, id, file.buffer)
-          : await this.storeVoice(conversationId, id, file.buffer);
-      if (dto.kind === 'VOICE') {
-        const d = dto.durationSec ?? 0;
-        if (d < 1 || d > CHAT_MAX_VOICE_SEC) {
-          await this.removeFile(stored.rel);
-          throw new BadRequestException('Voice note must be 1 s to 5 min long');
-        }
-      }
-    }
+    const content = await this.prepareContent(dto, file, conversationId, id);
 
     try {
       const now = new Date();
       const [msg] = await this.prisma.$transaction([
         this.prisma.chatMessage.create({
-          data: {
-            id,
-            conversationId,
-            senderId: actor.sub,
-            kind: dto.kind,
-            body,
-            attachmentPath: stored?.rel ?? null,
-            attachmentMime: stored?.mime ?? null,
-            attachmentSize: stored?.size ?? null,
-            durationSec: dto.kind === 'VOICE' ? (dto.durationSec ?? null) : null,
-            createdAt: now,
-          },
+          data: { id, conversationId, senderId: actor.sub, ...content, createdAt: now },
         }),
         this.prisma.chatConversation.update({
           where: { id: conversationId },
           data: {
             lastMessageAt: now,
-            ...(side === 'STAFF' ? { staffLastReadAt: now } : { portalLastReadAt: now }),
+            ...(side === 'STAFF'
+              ? { staffLastReadAt: now, staffLastDeliveredAt: now }
+              : { portalLastReadAt: now, portalLastDeliveredAt: now }),
           },
         }),
       ]);
-      if (side === 'STAFF') this.pushToPortal(conv, msg.kind, body);
-      return this.messageView(msg, actor.sub);
+      if (side === 'STAFF') this.pushToPortal(conv, msg.kind, content.body);
+      return { ...this.messageView(msg, actor.sub), status: 'SENT' as ChatMessageStatus };
     } catch (err) {
-      if (stored) await this.removeFile(stored.rel);
+      if (content.attachmentPath) await this.removeFile(content.attachmentPath);
       throw err;
     }
   }
@@ -530,9 +679,13 @@ export class ChatService {
   /** Mark everything in the thread read for the caller. */
   async markRead(actor: ChatActor, conversationId: string) {
     const { side } = await this.participant(actor, conversationId);
+    const now = new Date();
     await this.prisma.chatConversation.update({
       where: { id: conversationId },
-      data: side === 'STAFF' ? { staffLastReadAt: new Date() } : { portalLastReadAt: new Date() },
+      data:
+        side === 'STAFF'
+          ? { staffLastReadAt: now, staffLastDeliveredAt: now }
+          : { portalLastReadAt: now, portalLastDeliveredAt: now },
     });
   }
 
@@ -544,14 +697,299 @@ export class ChatService {
     });
     if (!msg?.attachmentPath) throw new NotFoundException('Attachment not found');
     await this.participant(actor, msg.conversationId);
-    const abs = path.join(CHAT_DIR, msg.attachmentPath);
+    return this.resolveFile(msg.attachmentPath, msg.attachmentMime);
+  }
+
+  private async resolveFile(rel: string, mime: string | null) {
+    const abs = path.join(CHAT_DIR, rel);
     if (!abs.startsWith(CHAT_DIR + path.sep)) throw new NotFoundException('Attachment not found');
     try {
       await fs.access(abs);
     } catch {
       throw new NotFoundException('Attachment file is missing');
     }
-    return { path: abs, mime: msg.attachmentMime ?? 'application/octet-stream' };
+    return { path: abs, mime: mime ?? 'application/octet-stream' };
+  }
+
+  // ─── Broadcasts (announcements) ────────────────────────────────────────────
+
+  /** Live users an audience covers right now (the sender is always left out). */
+  private audienceWhere(audience: ChatBroadcastAudience, senderId: string): Prisma.UserWhereInput {
+    const live = { isActive: true, deletedAt: null, id: { not: senderId } };
+    const withRep = { role: 'REP' as const, rep: { is: { isActive: true, deletedAt: null } } };
+    const withDriver = {
+      role: 'DRIVER' as const,
+      driver: { is: { isActive: true, deletedAt: null } },
+    };
+    switch (audience) {
+      case 'REPS':
+        return { ...live, ...withRep };
+      case 'DRIVERS':
+        return { ...live, ...withDriver };
+      case 'REPS_AND_DRIVERS':
+        return { ...live, OR: [withRep, withDriver] };
+      case 'STAFF':
+        return { ...live, role: { notIn: CHAT_NON_STAFF_ROLES as never[] } };
+    }
+  }
+
+  /** Composer: how many people each audience reaches. */
+  async broadcastAudiences(actor: ChatActor) {
+    const audiences: ChatBroadcastAudience[] = ['REPS', 'DRIVERS', 'REPS_AND_DRIVERS', 'STAFF'];
+    const counts = await Promise.all(
+      audiences.map((a) => this.prisma.user.count({ where: this.audienceWhere(a, actor.sub) })),
+    );
+    return audiences.map((audience, i) => ({ audience, recipients: counts[i] }));
+  }
+
+  /** Send one announcement to a whole audience; recipients are snapshotted now. */
+  async sendBroadcast(
+    actor: ChatActor,
+    dto: SendBroadcastDto,
+    file?: { buffer: Buffer; size: number; mimetype: string },
+  ) {
+    const sender = await this.loadPerson(actor.sub);
+    if (!sender || this.sideOf(sender.role) !== 'STAFF') {
+      throw new ForbiddenException('Only office staff can send broadcasts');
+    }
+    const recipients = await this.prisma.user.findMany({
+      where: this.audienceWhere(dto.audience, actor.sub),
+      select: { id: true, role: true },
+    });
+    if (!recipients.length) throw new BadRequestException('Nobody is in this audience');
+
+    const id = randomUUID();
+    const content = await this.prepareContent(dto, file, path.join('broadcasts', id), id);
+    try {
+      const now = new Date();
+      const b = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.chatBroadcast.create({
+          data: {
+            id,
+            senderId: actor.sub,
+            audience: dto.audience,
+            ...content,
+            recipientCount: recipients.length,
+            createdAt: now,
+          },
+        });
+        await tx.chatBroadcastRecipient.createMany({
+          data: recipients.map((r) => ({ broadcastId: id, userId: r.id, createdAt: now })),
+        });
+        return created;
+      });
+      this.pushBroadcast(sender.name, recipients, b.kind, content.body);
+      return this.sentBroadcastView(
+        { ...b, sender: { name: sender.name } },
+        { delivered: 0, seen: 0 },
+      );
+    } catch (err) {
+      if (content.attachmentPath) await this.removeFile(content.attachmentPath);
+      throw err;
+    }
+  }
+
+  /** Every broadcast sent (newest first) with delivered / seen counts. */
+  async listSentBroadcasts(opts: { before?: string; limit?: number }) {
+    const limit = opts.limit ?? 30;
+    const rows = await this.prisma.chatBroadcast.findMany({
+      where: opts.before ? { createdAt: { lt: new Date(opts.before) } } : {},
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { sender: { select: { name: true } } },
+    });
+    const ids = rows.map((r) => r.id);
+    const [delivered, seen] = ids.length
+      ? await Promise.all([
+          this.prisma.chatBroadcastRecipient.groupBy({
+            by: ['broadcastId'],
+            where: { broadcastId: { in: ids }, OR: [{ deliveredAt: { not: null } }, { readAt: { not: null } }] },
+            _count: { _all: true },
+          }),
+          this.prisma.chatBroadcastRecipient.groupBy({
+            by: ['broadcastId'],
+            where: { broadcastId: { in: ids }, readAt: { not: null } },
+            _count: { _all: true },
+          }),
+        ])
+      : [[], []];
+    const d = new Map(delivered.map((g) => [g.broadcastId, g._count._all]));
+    const r = new Map(seen.map((g) => [g.broadcastId, g._count._all]));
+    return {
+      broadcasts: rows.map((b) =>
+        this.sentBroadcastView(b, { delivered: d.get(b.id) ?? 0, seen: r.get(b.id) ?? 0 }),
+      ),
+      hasMore: rows.length === limit,
+    };
+  }
+
+  private sentBroadcastView(
+    b: MessageContent & {
+      id: string;
+      senderId: string;
+      audience: ChatBroadcastAudience;
+      recipientCount: number;
+      createdAt: Date;
+      sender: { name: string };
+    },
+    counts: { delivered: number; seen: number },
+  ) {
+    return {
+      id: b.id,
+      senderName: b.sender.name,
+      audience: b.audience,
+      ...this.contentView(b),
+      recipientCount: b.recipientCount,
+      deliveredCount: counts.delivered,
+      seenCount: counts.seen,
+      createdAt: b.createdAt.toISOString(),
+    };
+  }
+
+  /** Who a broadcast went to and how far it got with each of them. */
+  async broadcastRecipients(broadcastId: string) {
+    const exists = await this.prisma.chatBroadcast.count({ where: { id: broadcastId } });
+    if (!exists) throw new NotFoundException('Broadcast not found');
+    const rows = await this.prisma.chatBroadcastRecipient.findMany({
+      where: { broadcastId },
+      include: { user: { select: PERSON_SELECT } },
+    });
+    const view = rows.map((r) => ({
+      userId: r.userId,
+      name: r.user.name,
+      role: r.user.role,
+      roleName: r.user.roleRef?.name ?? r.user.role,
+      status: statusOf(new Date(0), r.deliveredAt ?? r.readAt, r.readAt),
+      deliveredAt: (r.deliveredAt ?? r.readAt)?.toISOString() ?? null,
+      readAt: r.readAt?.toISOString() ?? null,
+    }));
+    const rank = { SEEN: 0, DELIVERED: 1, SENT: 2 } as const;
+    return view.sort((a, b) => rank[a.status] - rank[b.status] || a.name.localeCompare(b.name));
+  }
+
+  /** Unread announcements for a user: count + newest. */
+  private async announcementUnread(userId: string) {
+    const agg = await this.prisma.chatBroadcastRecipient.aggregate({
+      where: { userId, readAt: null },
+      _count: { _all: true },
+      _max: { createdAt: true },
+    });
+    return { count: agg._count._all, latestAt: agg._max.createdAt };
+  }
+
+  /** Inbox row for the pinned announcements thread (null when there are none). */
+  async announcementsSummary(actor: ChatActor) {
+    this.requireSide(actor);
+    const [last, unread] = await Promise.all([
+      this.prisma.chatBroadcastRecipient.findFirst({
+        where: { userId: actor.sub },
+        orderBy: { createdAt: 'desc' },
+        include: { broadcast: { include: { sender: { select: { name: true } } } } },
+      }),
+      this.announcementUnread(actor.sub),
+    ]);
+    if (!last) return null;
+    return {
+      unread: unread.count,
+      last: {
+        kind: last.broadcast.kind,
+        body: last.broadcast.body ? last.broadcast.body.slice(0, 120) : null,
+        senderName: last.broadcast.sender.name,
+        createdAt: last.broadcast.createdAt.toISOString(),
+      },
+    };
+  }
+
+  /** The announcements the caller received, newest page (oldest first in the page). */
+  async listAnnouncements(actor: ChatActor, opts: { before?: string; limit?: number }) {
+    const side = this.requireSide(actor);
+    await this.markDelivered(actor.sub, side);
+    const limit = opts.limit ?? 40;
+    const rows = await this.prisma.chatBroadcastRecipient.findMany({
+      where: {
+        userId: actor.sub,
+        ...(opts.before && { createdAt: { lt: new Date(opts.before) } }),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        broadcast: { include: { sender: { select: { name: true, roleRef: { select: { name: true } } } } } },
+      },
+    });
+    return {
+      announcements: rows.reverse().map((r) => ({
+        id: r.broadcast.id,
+        senderName: r.broadcast.sender.name,
+        senderRoleName: r.broadcast.sender.roleRef?.name ?? null,
+        audience: r.broadcast.audience,
+        ...this.contentView(r.broadcast),
+        read: !!r.readAt,
+        createdAt: r.broadcast.createdAt.toISOString(),
+      })),
+      hasMore: rows.length === limit,
+    };
+  }
+
+  async markAnnouncementsRead(actor: ChatActor) {
+    this.requireSide(actor);
+    const now = new Date();
+    await this.prisma.chatBroadcastRecipient.updateMany({
+      where: { userId: actor.sub, readAt: null },
+      data: { readAt: now },
+    });
+    await this.prisma.chatBroadcastRecipient.updateMany({
+      where: { userId: actor.sub, deliveredAt: null },
+      data: { deliveredAt: now },
+    });
+  }
+
+  /** A broadcast's photo / voice note: for its recipients and broadcast managers. */
+  async broadcastAttachment(actor: ChatActor, broadcastId: string) {
+    this.requireSide(actor);
+    const b = await this.prisma.chatBroadcast.findUnique({
+      where: { id: broadcastId },
+      select: { attachmentPath: true, attachmentMime: true, senderId: true },
+    });
+    if (!b?.attachmentPath) throw new NotFoundException('Attachment not found');
+    const allowed =
+      b.senderId === actor.sub ||
+      (await this.prisma.chatBroadcastRecipient.count({
+        where: { broadcastId, userId: actor.sub },
+      })) > 0 ||
+      (await this.canBroadcast(actor.sub));
+    if (!allowed) throw new NotFoundException('Attachment not found');
+    return this.resolveFile(b.attachmentPath, b.attachmentMime);
+  }
+
+  /** Phone / browser push to every recipient, a few at a time. Fire-and-forget. */
+  private pushBroadcast(
+    senderName: string,
+    recipients: { id: string; role: string }[],
+    kind: ChatMessageKind,
+    body: string | null,
+  ) {
+    const preview = this.previewText(kind, body).slice(0, 180);
+    const run = async () => {
+      for (let i = 0; i < recipients.length; i += 20) {
+        await Promise.allSettled(
+          recipients.slice(i, i + 20).map((r) => {
+            const url =
+              r.role === 'REP'
+                ? `/rep/chat?c=${CHAT_ANNOUNCEMENTS_ID}`
+                : r.role === 'DRIVER'
+                  ? `/driver/chat?c=${CHAT_ANNOUNCEMENTS_ID}`
+                  : '/dashboard';
+            return this.push.sendToUser(r.id, `📢 ${senderName}`, preview, {
+              type: 'CHAT',
+              conversationId: CHAT_ANNOUNCEMENTS_ID,
+              url,
+              tag: `chat-${CHAT_ANNOUNCEMENTS_ID}`,
+            });
+          }),
+        );
+      }
+    };
+    run().catch((err) => this.logger.warn(`Broadcast push failed: ${String(err)}`));
   }
 
   // ─── internals ─────────────────────────────────────────────────────────────
@@ -566,12 +1004,7 @@ export class ChatService {
     kind: ChatMessageKind,
     body: string | null,
   ) {
-    const preview =
-      kind === 'IMAGE'
-        ? `📷 Photo${body ? ` — ${body}` : ''}`
-        : kind === 'VOICE'
-          ? '🎤 Voice note'
-          : (body ?? '');
+    const preview = this.previewText(kind, body);
     const base = conv.portalRole === 'REP' ? '/rep' : '/driver';
     this.push
       .sendToUser(conv.portalUserId, `💬 ${conv.staffUser.name}`, preview.slice(0, 180), {
@@ -581,6 +1014,13 @@ export class ChatService {
         tag: `chat-${conv.id}`,
       })
       .catch((err) => this.logger.warn(`Chat push failed: ${String(err)}`));
+  }
+
+  private previewText(kind: ChatMessageKind, body: string | null): string {
+    if (kind === 'IMAGE') return `📷 Photo${body ? ` — ${body}` : ''}`;
+    if (kind === 'VOICE') return '🎤 Voice note';
+    if (kind === 'LOCATION') return `📍 Location${body ? ` — ${body}` : ''}`;
+    return body ?? '';
   }
 
   private requireSide(actor: ChatActor): Side {

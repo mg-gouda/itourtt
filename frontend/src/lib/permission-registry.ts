@@ -734,6 +734,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
   { key: 'rep-tracking',    labelKey: 'permissions.repTracking',    crudType: 'page' },
   { key: 'overall-tracking', labelKey: 'permissions.overallTracking', crudType: 'page' },
 
+  // ─── CHAT BROADCASTS ───
+  { key: 'chat-broadcast', labelKey: 'permissions.chatBroadcast', crudType: 'page' },
+
   {
     key: 'job-locks',
     labelKey: 'permissions.jobLocks',

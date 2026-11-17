@@ -1,21 +1,56 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Car, Image as ImageIcon, Loader2, Mic, Plus, Search, UserCheck } from "lucide-react";
+import { ArrowLeft, Car, Image as ImageIcon, Loader2, MapPin, Megaphone, Mic, Plus, Search, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api, { backgroundPoll } from "@/lib/api";
 import { useLocaleId, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { CHAT_ME_POLL_MS, CHAT_READ_EVENT, chatTime, type ChatConversationSummary, type ChatPerson } from "@/lib/chat";
+import {
+  ANNOUNCEMENTS_ID,
+  CHAT_ME_POLL_MS,
+  CHAT_READ_EVENT,
+  chatTime,
+  type ChatAnnouncementsSummary,
+  type ChatConversationSummary,
+  type ChatKind,
+  type ChatPerson,
+} from "@/lib/chat";
+import { StatusTicks } from "./chat-message";
 
 interface ChatInboxProps {
   /** Portal users always see "new chat"; staff only when they may start one. */
   canStartWith: ("REP" | "DRIVER")[] | "STAFF";
+  /** Opens a conversation, or the announcements thread (ANNOUNCEMENTS_ID). */
   onOpen: (conversationId: string) => void;
+  /** Staff with chat-broadcast: shows the Broadcast button. */
+  onBroadcast?: () => void;
   /** Bump to force a reload (e.g. after a thread was read). */
   refreshKey?: number;
   className?: string;
+}
+
+/** Icon + fallback text for a non-text last message. */
+function KindPreview({ kind, body }: { kind: ChatKind; body: string | null }) {
+  const t = useT();
+  return (
+    <>
+      {kind === "IMAGE" && <ImageIcon className="h-3 w-3 shrink-0" />}
+      {kind === "VOICE" && <Mic className="h-3 w-3 shrink-0" />}
+      {kind === "LOCATION" && <MapPin className="h-3 w-3 shrink-0" />}
+      <span className="truncate">
+        {body ||
+          (kind === "IMAGE"
+            ? t("chat.photo")
+            : kind === "VOICE"
+              ? t("chat.voiceNote")
+              : kind === "LOCATION"
+                ? t("chat.location")
+                : "")}
+      </span>
+    </>
+  );
 }
 
 const norm = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -24,20 +59,22 @@ const norm = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerC
  * Conversation list + "new chat" picker. Portal users pick from the staff in
  * their contact list; staff pick drivers / reps.
  */
-export function ChatInbox({ canStartWith, onOpen, refreshKey, className }: ChatInboxProps) {
+export function ChatInbox({ canStartWith, onOpen, onBroadcast, refreshKey, className }: ChatInboxProps) {
   const t = useT();
   const localeId = useLocaleId();
   const [convs, setConvs] = useState<ChatConversationSummary[] | null>(null);
+  const [ann, setAnn] = useState<ChatAnnouncementsSummary | null>(null);
   const [picking, setPicking] = useState(false);
   const [filter, setFilter] = useState("");
 
   const load = useCallback(async () => {
-    try {
-      const { data } = await api.get("/chat/conversations", backgroundPoll);
-      setConvs(data.data);
-    } catch {
-      setConvs((c) => c ?? []);
-    }
+    const [c, a] = await Promise.allSettled([
+      api.get("/chat/conversations", backgroundPoll),
+      api.get("/chat/announcements/summary", backgroundPoll),
+    ]);
+    if (c.status === "fulfilled") setConvs(c.value.data.data);
+    else setConvs((prev) => prev ?? []);
+    if (a.status === "fulfilled") setAnn(a.value.data.data ?? null);
   }, []);
 
   useEffect(() => {
@@ -84,6 +121,18 @@ export function ChatInbox({ canStartWith, onOpen, refreshKey, className }: ChatI
             className="h-9 pl-8 text-sm"
           />
         </div>
+        {onBroadcast && (
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-9 w-9 shrink-0"
+            onClick={onBroadcast}
+            aria-label={t("chat.broadcast")}
+            title={t("chat.broadcast")}
+          >
+            <Megaphone className="h-4 w-4" />
+          </Button>
+        )}
         {canStart && (
           <Button size="sm" className="h-9 gap-1" onClick={() => setPicking(true)}>
             <Plus className="h-4 w-4" />
@@ -97,7 +146,7 @@ export function ChatInbox({ canStartWith, onOpen, refreshKey, className }: ChatI
           <div className="flex justify-center p-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : shown.length === 0 ? (
+        ) : shown.length === 0 && !(ann && !filter) ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             <p>{filter ? t("chat.noMatches") : t("chat.noChats")}</p>
             {!filter && canStart && (
@@ -108,6 +157,45 @@ export function ChatInbox({ canStartWith, onOpen, refreshKey, className }: ChatI
           </div>
         ) : (
           <ul className="divide-y divide-border">
+            {ann && !filter && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpen(ANNOUNCEMENTS_ID)}
+                  className="flex w-full items-center gap-3 bg-primary/5 px-3 py-2.5 text-start transition-colors hover:bg-muted/60"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Megaphone className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className={cn("truncate text-sm", ann.unread ? "font-semibold" : "font-medium")}>
+                        {t("chat.announcements")}
+                      </span>
+                      <span className="ms-auto shrink-0 text-[10px] text-muted-foreground">
+                        {chatTime(ann.last.createdAt, localeId)}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-1 truncate text-xs",
+                          ann.unread ? "text-foreground" : "text-muted-foreground",
+                        )}
+                      >
+                        <span className="shrink-0">{ann.last.senderName}:</span>
+                        <KindPreview kind={ann.last.kind} body={ann.last.body} />
+                      </span>
+                      {ann.unread > 0 && (
+                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                          {ann.unread > 99 ? "99+" : ann.unread}
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            )}
             {shown.map((c) => (
               <li key={c.id}>
                 <button
@@ -136,17 +224,11 @@ export function ChatInbox({ canStartWith, onOpen, refreshKey, className }: ChatI
                       >
                         {c.lastMessage ? (
                           <>
+                            {c.lastMessage.fromMe && c.lastMessage.status && (
+                              <StatusTicks status={c.lastMessage.status} />
+                            )}
                             {c.lastMessage.fromMe && <span className="shrink-0">{t("chat.you")}:</span>}
-                            {c.lastMessage.kind === "IMAGE" && <ImageIcon className="h-3 w-3 shrink-0" />}
-                            {c.lastMessage.kind === "VOICE" && <Mic className="h-3 w-3 shrink-0" />}
-                            <span className="truncate">
-                              {c.lastMessage.body ||
-                                (c.lastMessage.kind === "IMAGE"
-                                  ? t("chat.photo")
-                                  : c.lastMessage.kind === "VOICE"
-                                    ? t("chat.voiceNote")
-                                    : "")}
-                            </span>
+                            <KindPreview kind={c.lastMessage.kind} body={c.lastMessage.body} />
                           </>
                         ) : (
                           <span className="italic">{c.other.roleName}</span>

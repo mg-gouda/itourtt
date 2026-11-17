@@ -4,6 +4,7 @@ import {
   IsArray,
   IsDateString,
   IsIn,
+  IsNumber,
   IsInt,
   IsOptional,
   IsString,
@@ -12,7 +13,12 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { CHAT_MAX_TEXT, CHAT_MAX_VOICE_SEC } from '../chat.constants.js';
+import {
+  CHAT_BROADCAST_AUDIENCES,
+  CHAT_MAX_TEXT,
+  CHAT_MAX_VOICE_SEC,
+  type ChatBroadcastAudienceKey,
+} from '../chat.constants.js';
 
 export class OpenConversationDto {
   /** The other participant's User.id. */
@@ -53,8 +59,8 @@ export class MessagesQueryDto {
 
 /** Multipart fields of POST /chat/conversations/:id/messages (the file is `file`). */
 export class SendMessageDto {
-  @IsIn(['TEXT', 'IMAGE', 'VOICE'])
-  kind!: 'TEXT' | 'IMAGE' | 'VOICE';
+  @IsIn(['TEXT', 'IMAGE', 'VOICE', 'LOCATION'])
+  kind!: 'TEXT' | 'IMAGE' | 'VOICE' | 'LOCATION';
 
   @IsOptional()
   @IsString()
@@ -67,6 +73,49 @@ export class SendMessageDto {
   @Min(0)
   @Max(CHAT_MAX_VOICE_SEC)
   durationSec?: number;
+
+  /** LOCATION only. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-90)
+  @Max(90)
+  latitude?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-180)
+  @Max(180)
+  longitude?: number;
+
+  /** GPS accuracy in metres, as the browser reported it. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  @Max(100000)
+  accuracyM?: number;
+}
+
+/** Multipart fields of POST /chat/broadcasts — a message plus who receives it. */
+export class SendBroadcastDto extends SendMessageDto {
+  @IsIn(CHAT_BROADCAST_AUDIENCES)
+  audience!: ChatBroadcastAudienceKey;
+}
+
+export class BroadcastListQueryDto {
+  /** Only items created before this instant (paging back). */
+  @IsOptional()
+  @IsDateString()
+  before?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }
 
 export class UpdateChatSettingsDto {

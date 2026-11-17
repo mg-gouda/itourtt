@@ -5,7 +5,15 @@ import api, { backgroundPoll } from "@/lib/api";
 
 // ─── Types (mirror backend/src/chat/chat.service.ts) ─────────────────────────
 
-export type ChatKind = "TEXT" | "IMAGE" | "VOICE";
+export type ChatKind = "TEXT" | "IMAGE" | "VOICE" | "LOCATION";
+
+/** Ticks on a message the caller sent: ✓ sent, ✓✓ delivered, blue ✓✓ seen. */
+export type ChatMessageStatus = "SENT" | "DELIVERED" | "SEEN";
+
+export type ChatBroadcastAudience = "REPS" | "DRIVERS" | "REPS_AND_DRIVERS" | "STAFF";
+
+/** Inbox id of the read-only announcements thread (`?c=announcements`, push tag chat-announcements). */
+export const ANNOUNCEMENTS_ID = "announcements";
 
 export interface ChatPerson {
   userId: string;
@@ -20,7 +28,13 @@ export interface ChatConversationSummary {
   id: string;
   portalRole: "REP" | "DRIVER";
   other: ChatPerson;
-  lastMessage: { kind: ChatKind; body: string | null; fromMe: boolean; createdAt: string } | null;
+  lastMessage: {
+    kind: ChatKind;
+    body: string | null;
+    fromMe: boolean;
+    status: ChatMessageStatus | null;
+    createdAt: string;
+  } | null;
   unread: number;
   lastMessageAt: string | null;
 }
@@ -34,6 +48,10 @@ export interface ChatMessage {
   attachmentMime: string | null;
   attachmentSize: number | null;
   durationSec: number | null;
+  /** LOCATION only. */
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracyM?: number | null;
   createdAt: string;
   /** Client-only: still uploading / failed to send. */
   pending?: boolean;
@@ -46,6 +64,10 @@ export interface ChatMe {
   enabled: boolean;
   side?: "PORTAL" | "STAFF";
   canStartWith?: ("REP" | "DRIVER")[];
+  /** Staff with the chat-broadcast permission. */
+  canBroadcast?: boolean;
+  announcementsUnread?: number;
+  /** Includes unread announcements. */
   unreadTotal?: number;
   latestUnread?: { conversationId: string; at: string } | null;
 }
@@ -72,6 +94,36 @@ export const CHAT_ME_POLL_MS = 10_000;
 export const CHAT_THREAD_POLL_MS = 4_000;
 export const CHAT_MAX_VOICE_SEC = 300;
 export const CHAT_MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+/** A received announcement (GET /chat/announcements). */
+export interface ChatAnnouncement extends Omit<ChatMessage, "fromMe"> {
+  senderName: string;
+  senderRoleName: string | null;
+  audience: ChatBroadcastAudience;
+  read: boolean;
+}
+
+/** Pinned inbox row for the announcements thread. */
+export interface ChatAnnouncementsSummary {
+  unread: number;
+  last: { kind: ChatKind; body: string | null; senderName: string; createdAt: string };
+}
+
+/** A sent broadcast with its receipt counts (GET /chat/broadcasts). */
+export interface ChatSentBroadcast extends Omit<ChatMessage, "fromMe"> {
+  senderName: string;
+  audience: ChatBroadcastAudience;
+  recipientCount: number;
+  deliveredCount: number;
+  seenCount: number;
+}
+
+export const AUDIENCE_LABEL_KEY: Record<ChatBroadcastAudience, string> = {
+  REPS: "chat.audience.reps",
+  DRIVERS: "chat.audience.drivers",
+  REPS_AND_DRIVERS: "chat.audience.repsDrivers",
+  STAFF: "chat.audience.staff",
+};
 
 // ─── Polling the caller's chat status ────────────────────────────────────────
 
@@ -120,34 +172,66 @@ export function useChatMe(enabled = true, onUpdate?: (me: ChatMe) => void) {
 
 const blobCache = new Map<string, Promise<string>>();
 
-/** Object URL for a message attachment; cached for the page's lifetime. */
-export function attachmentUrl(messageId: string): Promise<string> {
-  let p = blobCache.get(messageId);
+/** API path of a 1:1 message's attachment. */
+export const messageAttachmentPath = (id: string) => `/chat/messages/${id}/attachment`;
+/** API path of a broadcast's attachment. */
+export const broadcastAttachmentPath = (id: string) => `/chat/broadcasts/${id}/attachment`;
+
+/** Object URL for an attachment (by its API path); cached for the page's lifetime. */
+export function attachmentUrl(apiPath: string): Promise<string> {
+  let p = blobCache.get(apiPath);
   if (!p) {
     p = api
-      .get(`/chat/messages/${messageId}/attachment`, { responseType: "blob" })
+      .get(apiPath, { responseType: "blob" })
       .then(({ data }) => URL.createObjectURL(data as Blob));
-    p.catch(() => blobCache.delete(messageId));
-    blobCache.set(messageId, p);
+    p.catch(() => blobCache.delete(apiPath));
+    blobCache.set(apiPath, p);
   }
   return p;
 }
 
-export function useAttachmentUrl(messageId: string | null, enabled: boolean) {
+export function useAttachmentUrl(apiPath: string | null, enabled: boolean) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
   useEffect(() => {
-    if (!messageId || !enabled) return;
+    if (!apiPath || !enabled) return;
     let alive = true;
-    attachmentUrl(messageId)
+    attachmentUrl(apiPath)
       .then((u) => alive && setUrl(u))
       .catch(() => alive && setError(true));
     return () => {
       alive = false;
     };
-  }, [messageId, enabled]);
+  }, [apiPath, enabled]);
   return { url, error };
 }
+
+// ─── Location ────────────────────────────────────────────────────────────────
+
+export type LocationError = "denied" | "unavailable" | "unsupported";
+
+/** One high-accuracy GPS fix from the browser (15 s timeout). */
+export function getCurrentPosition(): Promise<{ latitude: number; longitude: number; accuracyM: number | null }> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject("unsupported" satisfies LocationError);
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracyM: Number.isFinite(pos.coords.accuracy) ? Math.round(pos.coords.accuracy) : null,
+        }),
+      (err) => reject((err.code === err.PERMISSION_DENIED ? "denied" : "unavailable") satisfies LocationError),
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 10_000 },
+    );
+  });
+}
+
+/** Google Maps link that opens the pin (or navigation on phones). */
+export const mapsUrl = (lat: number, lng: number) =>
+  `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(7)},${lng.toFixed(7)}`;
+export const directionsUrl = (lat: number, lng: number) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${lat.toFixed(7)},${lng.toFixed(7)}`;
 
 // ─── Images: shrink before upload (mobile data) ──────────────────────────────
 

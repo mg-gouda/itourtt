@@ -661,6 +661,9 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
   { key: 'rep-tracking', labelKey: 'permissions.repTracking' },
   { key: 'overall-tracking', labelKey: 'permissions.overallTracking' },
 
+  // ─── CHAT BROADCASTS ───
+  { key: 'chat-broadcast', labelKey: 'permissions.chatBroadcast' },
+
   // ─── JOB LOCKS ───
   {
     key: 'job-locks',

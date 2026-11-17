@@ -163,6 +163,37 @@ Perms `rep-tracking` / `driver-tracking`: admin gets them automatically; other r
 check). Images are re-encoded by sharp (≤1600 px JPEG, EXIF/GPS stripped); voice notes are sniffed by
 magic bytes (webm/ogg/mp4/mp3/wav), 1 s–5 min, 10 MB cap. Messages are immutable.
 
+**Message status (ticks)** — ✓ sent · ✓✓ delivered · highlighted ✓✓ seen. Both are per-side
+"up to" timestamps on `ChatConversation`, not a row per message: `*LastReadAt` (set by
+`POST …/read` and by sending) and `*LastDeliveredAt`. **Delivered = the recipient's app fetched chat
+state** — `ChatService.markDelivered` runs on every `/chat/me` poll, inbox load and announcements load.
+A rep with the portal closed who only got the phone push stays at ✓ until the portal is opened (a
+service worker can't call the API: auth is a bearer token). Reading implies delivered.
+
+**Location messages** (`kind LOCATION`): lat/lng (Decimal 10,7) + `accuracyM` on the message, no file.
+Browser GPS fix (high accuracy, 15 s timeout) — needs `geolocation=(self)` in the ingress
+Permissions-Policy (already there for tracking). Shown as a Leaflet/OSM mini-map + Google Maps
+open/directions links.
+
+**Screenshots**: pasting an image (Ctrl+V) or dropping one on the composer stages it with a preview
+so a caption can be typed; the file-picker path still sends at once (phone behaviour).
+
+**Broadcasts / announcements** (`ChatBroadcast` + `ChatBroadcastRecipient`). Perm **`chat-broadcast`**
+(admin gets it dynamically; any other role needs a manual prod `rolePermissionV2` grant). Audiences:
+all reps, all drivers, all reps & drivers, all office staff (every live user whose role is not
+REP/DRIVER/SUPPLIER/B2C_CLIENT). Reps/drivers need an active Rep/Driver profile, as for contacts.
+- Recipients are **snapshotted at send time**, one row each carrying `deliveredAt` / `readAt`; the
+  sender is never a recipient. Someone hired later does not see old announcements.
+- Recipients see a pinned read-only **Announcements** row at the top of their inbox
+  (`?c=announcements`, push tag `chat-announcements`); opening it marks all read. Unread announcements
+  count toward `/chat/me` `unreadTotal`, and receiving one turns the staff chat button on for staff
+  who otherwise have no chat.
+- The broadcast console (megaphone in the staff chat widget) asks for confirmation with the
+  recipient count, then shows each broadcast with live Delivered x/y · Seen x/y and per-person receipts.
+  Every holder of `chat-broadcast` sees every broadcast, not just their own.
+- Attachments live under `uploads/.chat/broadcasts/<id>/`, streamed only to recipients, the sender
+  and `chat-broadcast` holders. `POST /chat/announcements/read` is excluded from the audit log.
+
 **Real-time is polling** (two backend pods, no Redis/websockets): `/chat/me` every 10 s,
 an open thread every 4 s. All timer polls send `X-Background-Poll` and `/api/chat/me` is in
 `BACKGROUND_POLL_PATHS`, so chat never keeps an idle rep/driver logged in. Read receipts
