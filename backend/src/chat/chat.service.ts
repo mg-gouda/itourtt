@@ -29,6 +29,7 @@ import {
   CHAT_PORTAL_ROLES,
   type ChatPortalRole,
   sniffAudio,
+  transcodeToAac,
 } from './chat.constants.js';
 import type {
   SendBroadcastDto,
@@ -1064,6 +1065,15 @@ export class ChatService {
   private async storeVoice(conversationId: string, id: string, buf: Buffer) {
     const kind = sniffAudio(buf);
     if (!kind) throw new BadRequestException('That file is not a supported voice recording');
+    // iOS cannot play WebM / Ogg Opus (what Chrome and Firefox record): store
+    // those as AAC .m4a, which every browser and both phone platforms play.
+    if (kind[1] === 'webm' || kind[1] === 'ogg') {
+      const aac = await transcodeToAac(buf).catch((err) => {
+        this.logger.warn(`Voice note kept as ${kind[1]} (transcode failed): ${String(err)}`);
+        return null;
+      });
+      if (aac) return this.writeFile(conversationId, `${id}.m4a`, aac, 'audio/mp4');
+    }
     return this.writeFile(conversationId, `${id}.${kind[1]}`, buf, kind[0]);
   }
 

@@ -7,6 +7,7 @@ import {
   secureStorage,
   spacing,
   useT,
+  useVoicePlayer,
   type ChatMessage,
   type ChatMessageStatus,
 } from '@itour/shared';
@@ -105,6 +106,78 @@ function AuthImage({ path, localUri, onPress }: { path: string | null; localUri?
 }
 
 /**
+ * Play / pause a voice note with a progress bar. Remote notes stream from
+ * the API with the bearer token; an unsent note plays its local file.
+ */
+function VoiceNote({
+  m,
+  path,
+  fg,
+  sub,
+  mine,
+}: {
+  m: ChatMessage;
+  path: string | null;
+  fg: string;
+  sub: string;
+  mine: boolean;
+}) {
+  const t = useT();
+  const colors = getColors();
+  const { playing, positionMs, durationMs, toggle } = useVoicePlayer(m.id);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const total = durationMs > 0 ? durationMs / 1000 : (m.durationSec ?? 0);
+  const progress = durationMs > 0 ? Math.min(1, positionMs / durationMs) : 0;
+
+  const onPress = async () => {
+    setFailed(false);
+    setBusy(true);
+    try {
+      if (m.localUri) {
+        await toggle(m.localUri);
+      } else if (path) {
+        const token = await secureStorage.getAccessToken();
+        await toggle(`${api.defaults.baseURL}${path}`, token ? { Authorization: `Bearer ${token}` } : undefined);
+      }
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={styles.voice}>
+      <Pressable
+        onPress={onPress}
+        disabled={m.pending}
+        accessibilityRole="button"
+        accessibilityLabel={t(playing ? 'chat.pause' : 'chat.play')}
+        style={[styles.playBtn, { backgroundColor: mine ? colors.primaryForeground : colors.primary }]}
+      >
+        {busy && !playing ? (
+          <ActivityIndicator size="small" color={mine ? colors.primary : colors.primaryForeground} />
+        ) : (
+          <Text style={[styles.playIcon, { color: mine ? colors.primary : colors.primaryForeground }]}>
+            {playing ? '❚❚' : '▶'}
+          </Text>
+        )}
+      </Pressable>
+      <View style={styles.voiceBody}>
+        <View style={[styles.track, { backgroundColor: sub, opacity: 0.35 }]} />
+        <View style={[styles.track, styles.trackFill, { backgroundColor: fg, width: `${progress * 100}%` }]} />
+        <Text style={[styles.voiceTime, { color: sub }]}>
+          {failed
+            ? t('chat.attachmentFailed')
+            : `${positionMs > 0 ? `${fmtDuration(positionMs / 1000)} / ` : ''}${fmtDuration(total)}`}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/**
  * One chat bubble: photo / voice note / location / text, time and — on the
  * caller's own messages — the delivery ticks.
  */
@@ -142,15 +215,7 @@ export function ChatBubble({
     >
       {heading ? <Text style={[styles.heading, { color: sub }]}>{heading}</Text> : null}
       {m.kind === 'IMAGE' && <AuthImage path={attachmentPath} localUri={m.localUri} onPress={onOpenImage} />}
-      {m.kind === 'VOICE' && (
-        <View style={styles.voice}>
-          <Text style={{ color: fg, fontSize: 14 }}>
-            🎤 {t('chat.voiceNote')}
-            {m.durationSec ? ` · ${fmtDuration(m.durationSec)}` : ''}
-          </Text>
-          <Text style={[styles.voiceHint, { color: sub }]}>{t('chat.voiceWebOnly')}</Text>
-        </View>
-      )}
+      {m.kind === 'VOICE' && <VoiceNote m={m} path={attachmentPath} fg={fg} sub={sub} mine={mine} />}
       {m.kind === 'LOCATION' && m.latitude != null && m.longitude != null && (
         <LocationCard lat={m.latitude} lng={m.longitude} accuracyM={m.accuracyM ?? null} />
       )}
@@ -230,8 +295,13 @@ const styles = StyleSheet.create({
   failed: { fontSize: 11, marginTop: 2, textAlign: 'right' },
   image: { width: 220, height: 220, borderRadius: borderRadius.xl, marginBottom: 4 },
   imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  voice: { paddingVertical: 4 },
-  voiceHint: { fontSize: 11, marginTop: 2, opacity: 0.8 },
+  voice: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4, width: 220 },
+  playBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  playIcon: { fontSize: 14, fontWeight: '700' },
+  voiceBody: { flex: 1, justifyContent: 'center', paddingTop: 6 },
+  track: { position: 'absolute', top: 6, left: 0, right: 0, height: 3, borderRadius: 2 },
+  trackFill: { right: undefined },
+  voiceTime: { fontSize: 11, marginTop: 10 },
   location: { width: 230, borderRadius: borderRadius.xl, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 4 },
   locationTop: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: spacing[2] },
   pin: { fontSize: 22 },

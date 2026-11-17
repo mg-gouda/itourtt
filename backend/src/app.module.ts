@@ -24,6 +24,7 @@ import { SettingsModule } from './settings/settings.module.js';
 import { RepPortalModule } from './rep-portal/rep-portal.module.js';
 import { TrackingModule } from './tracking/tracking.module.js';
 import { ChatModule } from './chat/chat.module.js';
+import { MobileAppsModule } from './mobile-apps/mobile-apps.module.js';
 import { DriverPortalModule } from './driver-portal/driver-portal.module.js';
 import { WhatsappNotificationsModule } from './whatsapp-notifications/whatsapp-notifications.module.js';
 import { PermissionsModule } from './permissions/permissions.module.js';
@@ -77,6 +78,7 @@ import { PartnerModule } from './partner/partner.module.js';
     RepPortalModule,
     TrackingModule,
     ChatModule,
+    MobileAppsModule,
     DriverPortalModule,
     WhatsappNotificationsModule,
     JobLocksModule,

@@ -18,7 +18,7 @@
     "guest:android": "cd apps/guest && npx react-native run-android",
     "guest:ios": "cd apps/guest && npx react-native run-ios",
     "lint": "eslint packages apps --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit -p tsconfig.base.json",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json",
     "test": "jest --config jest.config.js",
     "test:shared": "jest --config packages/shared/jest.config.js",
     "test:ui": "jest --config packages/ui/jest.config.js",
@@ -35,15 +35,34 @@
   },
   "devDependencies": {
     "typescript": "~5.7.0",
-    "@types/react": "^19.0.0",
-    "@types/react-native": "^0.73.0",
+    "@types/react": "^18.3.0",
     "eslint": "^9.0.0",
-    "@react-native/eslint-config": "^0.76.0",
+    "@react-native/eslint-config": "0.76.9",
     "prettier": "^3.0.0",
     "jest": "^29.7.0",
     "@types/jest": "^29.5.0",
     "@testing-library/react-native": "^12.4.0",
     "@testing-library/jest-native": "^5.4.0",
-    "react-test-renderer": "^19.0.0"
+    "react-test-renderer": "18.3.1",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/runtime": "^7.25.0",
+    "@react-native-community/cli": "15.0.1",
+    "@react-native-community/cli-platform-android": "15.0.1",
+    "@react-native-community/cli-platform-ios": "15.0.1",
+    "@react-native/babel-preset": "0.76.9",
+    "@react-native/metro-config": "0.76.9",
+    "@react-native/typescript-config": "0.76.9"
+  },
+  "resolutions": {
+    "react": "18.3.1",
+    "react-native": "0.76.9",
+    "@types/react": "^18.3.0",
+    "react-native-screens": "4.4.0",
+    "react-native-safe-area-context": "4.14.1",
+    "react-native-gesture-handler": "2.21.2",
+    "@react-navigation/elements": "2.2.5",
+    "@react-navigation/core": "7.3.1",
+    "@react-navigation/routers": "7.1.2"
   }
 }

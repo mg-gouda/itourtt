@@ -55,7 +55,7 @@ jobs:
     needs: [lint-and-typecheck, test]
     strategy:
       matrix:
-        app: [driver, rep, supplier, guest]
+        app: [driver, rep]
     defaults:
       run:
         working-directory: mobile
@@ -85,16 +85,13 @@ jobs:
     needs: [lint-and-typecheck, test]
     strategy:
       matrix:
-        app: [driver, rep, supplier, guest]
+        # Only the rep and driver apps have complete native projects.
+        app: [driver, rep]
         include:
           - app: driver
             scheme: iTourDriver
           - app: rep
             scheme: iTourRep
-          - app: supplier
-            scheme: iTourSupplier
-          - app: guest
-            scheme: iTourBooking
     defaults:
       run:
         working-directory: mobile
@@ -117,5 +114,5 @@ jobs:
             -scheme ${{ matrix.scheme }} \
             -configuration Release \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO

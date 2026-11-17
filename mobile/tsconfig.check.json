@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "lib": ["ES2022"],
+    "types": ["react-native"],
+    "baseUrl": ".",
+    "paths": { "@itour/shared": ["packages/shared/src"], "@itour/ui": ["packages/ui/src"] }
+  },
+  "include": ["apps/driver/src", "apps/rep/src", "packages/shared/src", "packages/ui/src"]
+}

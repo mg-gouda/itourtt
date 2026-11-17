@@ -4,13 +4,13 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**105 files**, **238 exported symbols**.
+**108 files**, **252 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
 ### `App.tsx`
 
-`mobile/apps/driver/src/App.tsx` · 103 lines
+`mobile/apps/driver/src/App.tsx` · 95 lines
 
 Driver app root — providers, theme and navigation.
 
@@ -80,13 +80,13 @@ Driver app chat routes wrapping the shared @itour/ui chat screens.
 
 ### `ComplaintsScreen.tsx`
 
-`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 148 lines
+`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 149 lines
 
 Driver app Complaints tab.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintsScreen` | function | 20 | Read-only list of the driver's settled complaints and what each one cost them. |
+| `ComplaintsScreen` | function | 21 | Read-only list of the driver's settled complaints and what each one cost them. |
 
 ### `HistoryScreen.tsx`
 
@@ -333,13 +333,13 @@ Guest booking funnel state across steps.
 
 ### `App.tsx`
 
-`mobile/apps/rep/src/App.tsx` · 102 lines
+`mobile/apps/rep/src/App.tsx` · 95 lines
 
 Rep app root.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `App` | function | 27 | Rep app root. |
+| `App` | function | 28 | Rep app root. |
 
 ## `mobile/apps/rep/src/components/`
 
@@ -403,13 +403,13 @@ Rep app chat routes wrapping the shared @itour/ui chat screens.
 
 ### `ComplaintsScreen.tsx`
 
-`mobile/apps/rep/src/screens/ComplaintsScreen.tsx` · 148 lines
+`mobile/apps/rep/src/screens/ComplaintsScreen.tsx` · 149 lines
 
 Rep app Complaints tab.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintsScreen` | function | 20 | Read-only list of the rep's settled complaints and what each one cost them. |
+| `ComplaintsScreen` | function | 21 | Read-only list of the rep's settled complaints and what each one cost them. |
 
 ### `HistoryScreen.tsx`
 
@@ -570,6 +570,19 @@ Supplier's company profile.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `ProfileScreen` | function | 22 | Supplier's company profile. |
+
+## `mobile/packages/shared/src/`
+
+### `config.ts`
+
+`mobile/packages/shared/src/config.ts` · 13 lines
+
+Native app server configuration.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PRODUCTION_API_URL` | const | 4 | https://fulvago.itourtt.cloud — the server the native apps use. |
+| `configureApi` | function | 10 | Points the API client at production (or a dev URL in __DEV__ builds). |
 
 ## `mobile/packages/shared/src/api/`
 
@@ -732,7 +745,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 210 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 218 lines
 
 Arabic strings for all four apps.
 
@@ -742,14 +755,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 210 lines
+`mobile/packages/shared/src/i18n/en.ts` · 218 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 209 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 217 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -767,6 +780,22 @@ Translator and locale selection for the mobile apps.
 | `ar` | const | 42 | Translator and locale selection for the mobile apps (`ar`). |
 
 ## `mobile/packages/shared/src/native/`
+
+### `background-sync.ts`
+
+`mobile/packages/shared/src/native/background-sync.ts` · 283 lines
+
+Firebase-free sync: Android foreground service polling jobs/chat + tracking heartbeat, local notifications.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Portal` | type | 24 | driver \| rep. |
+| `NotificationTarget` | type | 34 | What a tapped local notification opens: job, chat thread or notifications. |
+| `setupNotifications` | function | 64 | Requests notification permission and creates the Android channels. |
+| `registerBackgroundSync` | function | 194 | Registers notifee's foreground-service task; call once from index.js. |
+| `startBackgroundSync` | function | 208 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
+| `stopBackgroundSync` | function | 244 | Stops polling and the foreground service (sign-out). |
+| `onNotificationOpen` | function | 269 | Routes taps on local notifications (incl. cold start). |
 
 ### `camera.ts`
 
@@ -837,6 +866,20 @@ Firebase push registration and foreground handling; the token is registered agai
 | `onForegroundMessage` | function | 102 | Firebase push registration and foreground handling; the token is registered against the user server-side (`onForegroundMessage`). |
 | `onNotificationOpened` | function | 121 | Firebase push registration and foreground handling; the token is registered against the user server-side (`onNotificationOpened`). |
 | `setBackgroundMessageHandler` | function | 149 | Firebase push registration and foreground handling; the token is registered against the user server-side (`setBackgroundMessageHandler`). |
+
+### `voice.ts`
+
+`mobile/packages/shared/src/native/voice.ts` · 170 lines
+
+Native voice notes: AAC recorder and single shared player.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `VOICE_MAX_SEC` | const | 12 | Voice note recording limit (300 s). |
+| `VoiceRecorderState` | type | 30 | idle \| recording \| denied. |
+| `useVoiceRecorder` | function | 37 | Tap-to-record AAC voice note with mic permission, 5-min cap, cancel. |
+| `useVoicePlayer` | function | 112 | Play/pause/progress for one voice note (auth headers supported); one plays at a time. |
+| `stopVoicePlayback` | function | 165 | Stops any playing voice note. |
 
 ### `whatsapp.ts`
 
@@ -1213,16 +1256,16 @@ Native announcements thread.
 
 ### `ChatBubble.tsx`
 
-`mobile/packages/ui/src/chat/ChatBubble.tsx` · 241 lines
+`mobile/packages/ui/src/chat/ChatBubble.tsx` · 311 lines
 
 Native chat bubble, ticks and helpers.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `chatTime` | function | 15 | Cairo time for a message (date added when not today). |
-| `fmtDuration` | const | 26 | Seconds → m:ss. |
-| `StatusTicks` | function | 35 | ✓ sent · ✓✓ delivered · blue ✓✓ seen (text glyphs, no icon font). |
-| `ChatBubble` | function | 111 | Bubble for text / auth-gated photo / location card / voice placeholder, time and ticks. |
+| `chatTime` | function | 16 | Cairo time for a message (date added when not today). |
+| `fmtDuration` | const | 27 | Seconds → m:ss. |
+| `StatusTicks` | function | 36 | ✓ sent · ✓✓ delivered · blue ✓✓ seen (text glyphs, no icon font). |
+| `ChatBubble` | function | 184 | Bubble for text / auth-gated photo / location card / voice placeholder, time and ticks. |
 
 ### `ChatInboxScreen.tsx`
 
@@ -1236,11 +1279,11 @@ Native chat inbox and contact picker.
 
 ### `ChatThreadScreen.tsx`
 
-`mobile/packages/ui/src/chat/ChatThreadScreen.tsx` · 400 lines
+`mobile/packages/ui/src/chat/ChatThreadScreen.tsx` · 474 lines
 
 Native 1:1 chat thread.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatImageViewer` | function | 44 | Full-screen photo modal (auth headers passed through). |
-| `ChatThreadScreen` | function | 67 | Inverted history, 5 s polling, read receipts, optimistic send of text / photo / location with retry. |
+| `ChatImageViewer` | function | 46 | Full-screen photo modal (auth headers passed through). |
+| `ChatThreadScreen` | function | 69 | Inverted history, 5 s polling, read receipts, optimistic send of text / photo / location with retry. |

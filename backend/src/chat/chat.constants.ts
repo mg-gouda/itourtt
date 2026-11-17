@@ -1,3 +1,9 @@
+import { execFile } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+
 /** In-app chat limits and the file types it accepts. */
 
 export const CHAT_MAX_TEXT = 4000;
@@ -40,4 +46,29 @@ export function sniffAudio(buf: Buffer): [string, string] | null {
   if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WAVE')
     return ['audio/wav', 'wav'];
   return null;
+}
+
+/**
+ * Re-encode a voice note to AAC in an .m4a (MP4) container with ffmpeg
+ * (installed in the backend image). Rejects if ffmpeg is missing or fails;
+ * the caller then keeps the original.
+ */
+export async function transcodeToAac(buf: Buffer): Promise<Buffer> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'chat-voice-'));
+  const src = path.join(dir, `${randomUUID()}.in`);
+  const dst = path.join(dir, `${randomUUID()}.m4a`);
+  try {
+    await fs.writeFile(src, buf);
+    await new Promise<void>((resolve, reject) => {
+      execFile(
+        'ffmpeg',
+        ['-hide_banner', '-loglevel', 'error', '-y', '-i', src, '-vn', '-ac', '1', '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', dst],
+        { timeout: 60_000 },
+        (err) => (err ? reject(err) : resolve()),
+      );
+    });
+    return await fs.readFile(dst);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
 }

@@ -10,8 +10,6 @@ on:
         options:
           - driver
           - rep
-          - supplier
-          - guest
       platform:
         description: 'Platform'
         required: true
@@ -49,14 +47,17 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - run: yarn install --frozen-lockfile
-      - name: Decode keystore
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > apps/${{ inputs.app }}/android/app/release.keystore
+      - name: Release signing key
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/itour-release.keystore"
+          cat > apps/${{ inputs.app }}/android/keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/itour-release.keystore
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
       - name: Build Android AAB
         working-directory: mobile/apps/${{ inputs.app }}/android
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew bundleRelease
       - name: Upload to Play Store
         uses: r0adkll/upload-google-play@v1
@@ -81,14 +82,21 @@ jobs:
           cache: 'yarn'
           cache-dependency-path: mobile/yarn.lock
       - run: yarn install --frozen-lockfile
+      - name: Xcode project name
+        run: |
+          case "${{ inputs.app }}" in
+            driver) echo "IOS_NAME=iTourDriver" >> "$GITHUB_ENV" ;;
+            rep) echo "IOS_NAME=iTourRep" >> "$GITHUB_ENV" ;;
+            *) echo "Only the driver and rep apps have native projects" && exit 1 ;;
+          esac
       - name: Install CocoaPods
         working-directory: mobile/apps/${{ inputs.app }}/ios
         run: pod install
       - name: Build & Archive
         uses: yukiarrr/ios-build-action@v1.12.0
         with:
-          project-path: mobile/apps/${{ inputs.app }}/ios/${{ inputs.app }}.xcodeproj
-          workspace-path: mobile/apps/${{ inputs.app }}/ios/${{ inputs.app }}.xcworkspace
+          project-path: mobile/apps/${{ inputs.app }}/ios/${{ env.IOS_NAME }}.xcodeproj
+          workspace-path: mobile/apps/${{ inputs.app }}/ios/${{ env.IOS_NAME }}.xcworkspace
           p12-base64: ${{ secrets.IOS_P12_BASE64 }}
           mobileprovision-base64: ${{ secrets.IOS_MOBILEPROVISION_BASE64 }}
           certificate-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}

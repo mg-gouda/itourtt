@@ -195,13 +195,30 @@ REP/DRIVER/SUPPLIER/B2C_CLIENT). Reps/drivers need an active Rep/Driver profile,
   and `chat-broadcast` holders. `POST /chat/announcements/read` is excluded from the audit log.
 
 **Native rep/driver apps** (`mobile/apps/{rep,driver}`) have a **Chat** tab built from the shared
-screens in `packages/ui/src/chat` over `chatApi` (`packages/shared`). They support text, photos
-(camera/gallery) and location, show ✓/✓✓/seen ticks and the Announcements thread, and deep-link
-from a `type: CHAT` push (`conversationId` = thread id or `announcements`). Foreground chat pushes
-don't pop an alert; they refresh the badge. **Voice notes are view-only in the apps**: they show as
-"🎤 Voice note · m:ss — play in the web portal". Recording and playback need a native audio module
-the apps don't ship yet. Images load from the API with the bearer token in the `Image` headers.
-The tab badge polls `/chat/me` every 15 s, which is also what marks messages delivered from an app.
+screens in `packages/ui/src/chat` over `chatApi` (`packages/shared`): text, photos (camera/gallery),
+location, **voice notes** (record AAC/M4A, play with the bearer token via
+`react-native-audio-recorder-player`), ✓/✓✓/seen ticks, Announcements.
+
+**The apps use no Firebase** (the owner's decision): they talk only to the iTour API and database.
+`@itour/shared › background-sync` runs an Android **foreground service** (notifee, persistent
+"Connected to iTour" notification) that polls every 30 s: `/{portal}-portal/notifications` and
+`/chat/me`, and shows **local** notifications. It also sends `POST /tracking/ping` every 60 s,
+which is what puts native users on the tracking maps. The service type is `location` when location
+permission is granted, otherwise `dataSync` (Android 14 throws if `location` is used without the
+permission). On iOS, background polling isn't allowed, so it only runs while the app is open; real
+background alerts on iPhone would need APNs, which is Apple's service, not Firebase. The backend's
+FCM path (`PushNotificationsService`) is unused: `device_tokens` stays empty.
+
+**Voice-note format.** Server side, `ChatService.storeVoice` converts WebM/Ogg Opus (what Chrome and
+Firefox record) to **AAC .m4a** with ffmpeg (installed in the backend image), because iOS can't play
+Opus. M4A/MP3/WAV are stored as uploaded. If ffmpeg fails, the original is kept.
+
+**Building.** React Native 0.76.9 / React 18.3.1, old architecture, Yarn workspaces with hoisted
+`node_modules`. The Gradle and Podfile paths point at `mobile/node_modules`. Release signing reads
+`android/keystore.properties` (git-ignored); on the server it is a symlink to
+`/root/itour-mobile-keys/`. **Back that key up: losing it means a Play Store app can never be
+updated.** Android SDK is at `/opt/android-sdk`. iOS needs macOS (the `mobile-release` workflow on a
+macOS runner) plus an Apple Developer account.
 
 **Real-time is polling** (two backend pods, no Redis/websockets): `/chat/me` every 10 s,
 an open thread every 4 s. All timer polls send `X-Background-Poll` and `/api/chat/me` is in

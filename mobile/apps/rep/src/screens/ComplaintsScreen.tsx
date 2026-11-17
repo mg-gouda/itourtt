@@ -9,6 +9,7 @@ import {
   useRefresh,
   useT,
   type PortalComplaint,
+  type Currency,
 } from '@itour/shared';
 import { Badge, Card, EmptyState, SkeletonList } from '@itour/ui';
 
@@ -86,7 +87,7 @@ export function ComplaintsScreen() {
               )}
               {item.chargedAmount ? (
                 <Text style={[typography.caption, { color: colors.destructive }]}>
-                  {formatCurrency(item.chargedAmount, item.chargedCurrency || 'EGP')} deducted
+                  {formatCurrency(item.chargedAmount, (item.chargedCurrency || 'EGP') as Currency)} deducted
                 </Text>
               ) : null}
             </View>

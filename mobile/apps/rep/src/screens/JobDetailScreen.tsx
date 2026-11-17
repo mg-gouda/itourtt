@@ -160,7 +160,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
                 title="Call"
                 variant="outline"
                 size="sm"
-                onPress={() => callPhone(job.clientMobile!, job.clientName)}
+                onPress={() => callPhone(job.clientMobile!, job.clientName ?? undefined)}
                 style={{ flex: 1 }}
               />
               <Button
@@ -190,7 +190,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
                 title="Call Rep"
                 variant="outline"
                 size="sm"
-                onPress={() => callPhone(job.custRepMobile!, job.custRepName)}
+                onPress={() => callPhone(job.custRepMobile!, job.custRepName ?? undefined)}
                 style={{ flex: 1 }}
               />
               <Button

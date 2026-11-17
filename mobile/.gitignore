@@ -37,3 +37,16 @@ GoogleService-Info.plist
 # OS
 .DS_Store
 Thumbs.db
+
+# Release signing (kept outside git — see /root/itour-mobile-keys on the server)
+**/android/keystore.properties
+*.keystore
+!**/android/app/debug.keystore
+# Gradle / Android build output
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/android/.cxx/
+**/android/app/.cxx/
+**/ios/Pods/
+**/ios/build/

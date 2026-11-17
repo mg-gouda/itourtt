@@ -22,7 +22,9 @@ import {
   getCurrentPosition,
   refreshChat,
   spacing,
+  stopVoicePlayback,
   useT,
+  useVoiceRecorder,
   type ChatKind,
   type ChatMessage,
   type ChatMessageStatus,
@@ -258,6 +260,23 @@ export function ChatThreadScreen({
     }
   };
 
+  const recorder = useVoiceRecorder((uri, secs) => {
+    const form = new FormData();
+    form.append('kind', 'VOICE');
+    form.append('durationSec', String(secs));
+    form.append('file', { uri, name: 'voice.m4a', type: 'audio/mp4' } as unknown as Blob);
+    send(local('VOICE', { durationSec: secs, localUri: uri, hasAttachment: true }), form);
+  });
+  const recording = recorder.state === 'recording';
+  useEffect(() => {
+    if (recorder.state === 'denied') {
+      Alert.alert(t('chat.voiceNote'), t('chat.micDenied'));
+      recorder.reset();
+    }
+  }, [recorder, recorder.state, t]);
+  // Leaving the thread stops whatever is playing.
+  useEffect(() => () => stopVoicePlayback(), []);
+
   const retry = (m: ChatMessage) => {
     Alert.alert(t('chat.notSent'), undefined, [
       {
@@ -321,41 +340,83 @@ export function ChatThreadScreen({
       ) : null}
 
       <View style={[styles.composer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-        <Pressable
-          onPress={sendPhoto}
-          style={styles.iconBtn}
-          accessibilityRole="button"
-          accessibilityLabel={t('chat.attachPhoto')}
-        >
-          <Text style={styles.icon}>📷</Text>
-        </Pressable>
-        <Pressable
-          onPress={sendLocation}
-          disabled={locating}
-          style={styles.iconBtn}
-          accessibilityRole="button"
-          accessibilityLabel={t('chat.shareLocation')}
-        >
-          {locating ? <ActivityIndicator size="small" color={colors.mutedForeground} /> : <Text style={styles.icon}>📍</Text>}
-        </Pressable>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder={t('chat.placeholder')}
-          placeholderTextColor={colors.mutedForeground}
-          multiline
-          maxLength={4000}
-          style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.input }]}
-        />
-        <Pressable
-          onPress={sendText}
-          disabled={!text.trim()}
-          style={[styles.sendBtn, { backgroundColor: colors.primary, opacity: text.trim() ? 1 : 0.4 }]}
-          accessibilityRole="button"
-          accessibilityLabel={t('chat.send')}
-        >
-          <Text style={[styles.sendText, { color: colors.primaryForeground }]}>➤</Text>
-        </Pressable>
+        {recording ? (
+          <>
+            <Pressable
+              onPress={() => recorder.stop(true)}
+              style={styles.iconBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.cancelRecording')}
+            >
+              <Text style={styles.icon}>🗑</Text>
+            </Pressable>
+            <View style={[styles.recordingBox, { borderColor: colors.destructive }]}>
+              <View style={[styles.recDot, { backgroundColor: colors.destructive }]} />
+              <Text style={[styles.recTime, { color: colors.foreground }]}>
+                {Math.floor(recorder.seconds / 60)}:{String(recorder.seconds % 60).padStart(2, '0')}
+              </Text>
+              <Text style={[styles.recHint, { color: colors.mutedForeground }]} numberOfLines={1}>
+                {t('chat.recording')}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => recorder.stop()}
+              style={[styles.sendBtn, { backgroundColor: colors.destructive }]}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.sendVoice')}
+            >
+              <Text style={[styles.sendText, { color: '#fff' }]}>■</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable
+              onPress={sendPhoto}
+              style={styles.iconBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.attachPhoto')}
+            >
+              <Text style={styles.icon}>📷</Text>
+            </Pressable>
+            <Pressable
+              onPress={sendLocation}
+              disabled={locating}
+              style={styles.iconBtn}
+              accessibilityRole="button"
+              accessibilityLabel={t('chat.shareLocation')}
+            >
+              {locating ? <ActivityIndicator size="small" color={colors.mutedForeground} /> : <Text style={styles.icon}>📍</Text>}
+            </Pressable>
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              placeholder={t('chat.placeholder')}
+              placeholderTextColor={colors.mutedForeground}
+              multiline
+              maxLength={4000}
+              style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.input }]}
+            />
+            {text.trim() ? (
+              <Pressable
+                onPress={sendText}
+                style={[styles.sendBtn, { backgroundColor: colors.primary }]}
+                accessibilityRole="button"
+                accessibilityLabel={t('chat.send')}
+              >
+                <Text style={[styles.sendText, { color: colors.primaryForeground }]}>➤</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={recorder.start}
+                style={[styles.sendBtn, { backgroundColor: colors.secondary }]}
+                accessibilityRole="button"
+                accessibilityLabel={t('chat.recordVoice')}
+              >
+                <Text style={styles.icon}>🎤</Text>
+              </Pressable>
+            )}
+          </>
+        )}
       </View>
 
       <ChatImageViewer image={viewer} onClose={() => setViewer(null)} />
@@ -394,6 +455,19 @@ const styles = StyleSheet.create({
   },
   sendBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   sendText: { fontSize: 18 },
+  recordingBox: {
+    flex: 1,
+    height: 42,
+    borderWidth: 1,
+    borderRadius: 21,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    gap: 8,
+  },
+  recDot: { width: 10, height: 10, borderRadius: 5 },
+  recTime: { fontSize: 15, fontVariant: ['tabular-nums'] },
+  recHint: { flex: 1, fontSize: 12 },
   viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   viewerImage: { width: '100%', height: '100%' },
 });

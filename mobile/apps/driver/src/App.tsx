@@ -1,30 +1,30 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { StatusBar, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import messaging from '@react-native-firebase/messaging';
 import {
   useAuthStore,
   useThemeStore,
   useTheme,
   setOnAuthFailure,
   getColors,
-  setFirebaseMessaging,
-  requestNotificationPermission,
-  registerDeviceToken,
-  unregisterDeviceToken,
-  onTokenRefresh,
-  onForegroundMessage,
-  onNotificationOpened,
+  requestLocationPermission,
+  setupNotifications,
+  startBackgroundSync,
+  stopBackgroundSync,
+  onNotificationOpen,
   refreshChat,
+  t,
   CHAT_ANNOUNCEMENTS_ID,
 } from '@itour/shared';
 import { OfflineBar } from '@itour/ui';
 import { RootNavigator } from './navigation/RootNavigator';
 
-// Initialize Firebase messaging for push notifications
-setFirebaseMessaging(messaging);
-
+/**
+ * Driver app root. No Firebase: while signed in, a background sync service
+ * talks to the iTour server directly for new jobs, chat messages and the
+ * tracking heartbeat (see @itour/shared › background-sync).
+ */
 export function App() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -35,57 +35,49 @@ export function App() {
 
   useEffect(() => {
     setOnAuthFailure(() => {
+      stopBackgroundSync();
       navigationRef.current?.reset({ index: 0, routes: [{ name: 'Login' }] });
     });
 
     Promise.all([hydrate(), useThemeStore.getState().hydrate()]).then(() => setReady(true));
   }, [hydrate]);
 
-  // Push notification setup after authentication
+  // Signed in: permissions, then the sync service. Signed out: stop it.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      stopBackgroundSync();
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      await setupNotifications();
+      // Location first: it lets the service run as a location service, which
+      // keeps the tracking-map heartbeat alive with the app in the background.
+      await requestLocationPermission().catch(() => false);
+      if (cancelled) return;
+      await startBackgroundSync('driver', { title: t('chat.serviceTitle'), body: t('chat.serviceBody') });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  // Taps on our notifications.
   useEffect(() => {
     if (!isAuthenticated) return;
-
-    let tokenRefreshCleanup: () => void;
-    let foregroundCleanup: () => void;
-    let openedCleanup: () => void;
-
-    (async () => {
-      await requestNotificationPermission();
-      await registerDeviceToken();
-
-      tokenRefreshCleanup = onTokenRefresh();
-
-      foregroundCleanup = onForegroundMessage(({ title, body, data }) => {
-        // Chat: the tab badge / open thread pick it up — no blocking alert per message.
-        if (data?.type === 'CHAT') {
-          refreshChat();
-          return;
-        }
-        if (title || body) {
-          Alert.alert(title || 'Notification', body || '');
-        }
-      });
-
-      openedCleanup = onNotificationOpened((data) => {
-        if (data.type === 'CHAT' && data.conversationId) {
-          if (data.conversationId === CHAT_ANNOUNCEMENTS_ID) {
-            navigationRef.current?.navigate('Announcements');
-          } else {
-            navigationRef.current?.navigate('ChatThread', { conversationId: data.conversationId });
-          }
-          return;
-        }
-        if (data.jobId) {
-          navigationRef.current?.navigate('JobDetail', { jobId: data.jobId });
-        }
-      });
-    })();
-
-    return () => {
-      tokenRefreshCleanup?.();
-      foregroundCleanup?.();
-      openedCleanup?.();
-    };
+    return onNotificationOpen((target) => {
+      const nav = navigationRef.current;
+      if (!nav) return;
+      if (target.kind === 'chat') {
+        refreshChat();
+        if (target.conversationId === CHAT_ANNOUNCEMENTS_ID) nav.navigate('Announcements');
+        else nav.navigate('ChatThread', { conversationId: target.conversationId });
+      } else if (target.kind === 'job') {
+        nav.navigate('JobDetail', { jobId: target.jobId });
+      } else {
+        nav.navigate('Main', { screen: 'Notifications' });
+      }
+    });
   }, [isAuthenticated]);
 
   if (!ready) return null;

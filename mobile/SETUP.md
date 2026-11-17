@@ -4,6 +4,15 @@ This document covers local development setup, Firebase and Stripe configuration,
 build procedures, CI/CD pipelines, and troubleshooting for the iTour React Native
 monorepo.
 
+> **Current state (Nov 2026) — read first.** Only the **driver** and **rep** apps have complete
+> native projects (React Native 0.76.9, React 18.3.1, old architecture). They use **no Firebase**:
+> notifications come from a foreground-service poller against the iTour API (see
+> `docs/map/11-business-rules.md` › In-app chat). Ignore the Firebase sections below for these apps.
+> Build Android on the server with
+> `cd apps/<app>/android && ANDROID_HOME=/opt/android-sdk ./gradlew assembleRelease`; the release key
+> lives in `/root/itour-mobile-keys/` (symlinked as `android/keystore.properties`). iOS: macOS + Xcode,
+> `cd apps/<app>/ios && pod install`, open `iTourDriver.xcworkspace` / `iTourRep.xcworkspace`.
+
 ---
 
 ## Table of Contents

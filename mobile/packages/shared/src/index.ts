@@ -1,4 +1,5 @@
 // API
+export { configureApi, PRODUCTION_API_URL } from './config';
 export { default as api } from './api/client';
 export { setApiBaseUrl, setOnAuthFailure } from './api/client';
 export { authApi, driverPortalApi, repPortalApi, supplierPortalApi, publicApi, chatApi, CHAT_ANNOUNCEMENTS_ID } from './api/endpoints';
@@ -75,3 +76,15 @@ export {
   googleMapsNavUrl,
 } from './native';
 export type { CapturedPhoto, GPSPosition, NavJob, RouteEnd } from './native';
+
+// Voice notes + background sync (rep / driver apps; no Firebase)
+export { useVoiceRecorder, useVoicePlayer, stopVoicePlayback, VOICE_MAX_SEC } from './native/voice';
+export type { VoiceRecorderState } from './native/voice';
+export {
+  setupNotifications,
+  registerBackgroundSync,
+  startBackgroundSync,
+  stopBackgroundSync,
+  onNotificationOpen,
+} from './native/background-sync';
+export type { NotificationTarget, Portal } from './native/background-sync';

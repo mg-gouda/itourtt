@@ -1,11 +1,12 @@
+import 'react-native-gesture-handler';
 import { AppRegistry } from 'react-native';
-import messaging from '@react-native-firebase/messaging';
-import { setFirebaseMessaging, setBackgroundMessageHandler } from '@itour/shared';
+import { configureApi, registerBackgroundSync } from '@itour/shared';
 import { App } from './src/App';
 import { name as appName } from './app.json';
 
-// Register background message handler (must be outside React components)
-setFirebaseMessaging(messaging);
-setBackgroundMessageHandler();
+// Same server + database as the web portals (no Firebase).
+configureApi();
+// The background sync service task must be registered outside React.
+registerBackgroundSync();
 
 AppRegistry.registerComponent(appName, () => App);
