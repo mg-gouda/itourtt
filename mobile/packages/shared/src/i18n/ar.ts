@@ -378,6 +378,7 @@ export const ar: TranslationKeys = {
   },
   driverApp: {
     repAndVehicle: "المندوب والمركبة",
+    callRep: "اتصل بالمندوب",
     appTagline: "التوصيلات ورحلات المطار",
     startTrip: "بدء الرحلة",
     completeTrip: "إنهاء الرحلة",

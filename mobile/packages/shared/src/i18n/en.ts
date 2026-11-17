@@ -376,6 +376,7 @@ export const en = {
   },
   driverApp: {
     repAndVehicle: "Rep & vehicle",
+    callRep: "Call Rep",
     appTagline: "Transfers & airport runs",
     startTrip: "Start Trip",
     completeTrip: "Complete Trip",

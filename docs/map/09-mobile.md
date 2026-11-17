@@ -156,7 +156,7 @@ Driver's completed jobs and fees earned.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 456 lines
+`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 472 lines
 
 Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces.
 
@@ -840,7 +840,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 417 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 418 lines
 
 Arabic strings for all four apps.
 
@@ -850,14 +850,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 417 lines
+`mobile/packages/shared/src/i18n/en.ts` · 418 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 416 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 417 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 

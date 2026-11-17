@@ -3044,7 +3044,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `transcodeToAac` | function | `backend/src/chat/chat.constants.ts:56` |
 | `TRANSITION_PERMISSION` | const | `frontend/src/lib/complaints.ts:298` |
 | `TransitionComplaintDto` | class | `backend/src/complaints/dto/transition-complaint.dto.ts:15` |
-| `TranslationKeys` | type | `mobile/packages/shared/src/i18n/en.ts:416` |
+| `TranslationKeys` | type | `mobile/packages/shared/src/i18n/en.ts:417` |
 | `TwoFactorChallenge` | type | `backend/src/auth/auth.service.ts:26` |
 | `TwoFactorSettings` | function | `frontend/src/components/two-factor-settings.tsx:20` |
 | `typography` | const | `mobile/packages/shared/src/theme/index.ts:35` |

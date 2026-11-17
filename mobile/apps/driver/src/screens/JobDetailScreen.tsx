@@ -145,6 +145,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const complete = completeGate(job);
   const noShow = noShowGate(job);
   const rep = repLine(job);
+  const navEnd = job.driverStatus === 'IN_PROGRESS' ? 'destination' : 'origin';
   const stepIndex = job.driverStatus === 'COMPLETED' ? 2 : job.driverStatus === 'IN_PROGRESS' ? 1 : 0;
   const extras = job.jobExtras?.filter((e) => e.qty > 0) ?? [];
   const evidence = (kind: 'IN_PROGRESS' | 'COMPLETED' | 'NO_SHOW') =>
@@ -270,6 +271,21 @@ export function JobDetailScreen({ route, navigation }: Props) {
                 disabled={!noShow.open}
                 hint={noShow.hint || undefined}
                 onPress={() => evidence('NO_SHOW')}
+              />
+              {/* Before the trip starts: to the pickup; on the trip: to the drop-off. */}
+              <TileAction
+                label={t('repApp.navigate')}
+                icon="navigate-outline"
+                tone="info"
+                disabled={!canNavigate(job, navEnd)}
+                onPress={() => openJobNavigation(job, navEnd)}
+              />
+              <TileAction
+                label={t('driverApp.callRep')}
+                icon="call-outline"
+                tone="success"
+                disabled={!rep?.phone}
+                onPress={() => rep?.phone && callPhone(rep.phone, rep.name)}
               />
             </View>
           ) : null}
