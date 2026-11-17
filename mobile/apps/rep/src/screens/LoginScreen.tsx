@@ -15,8 +15,8 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t, useAuthStore, useColors, validateRole } from '@itour/shared';
-import { Icon } from '@itour/ui';
-import { ActionButton } from '../ui/kit';
+import { Icon, logoBadge } from '@itour/ui';
+import { ActionButton } from '@itour/ui';
 import { APP_VERSION } from '../lib/version';
 
 /** Rep sign-in. A 409 from the server means another device holds the session. */
@@ -61,7 +61,7 @@ export function LoginScreen() {
           >
             <View pointerEvents="none" style={styles.ringA} />
             <View pointerEvents="none" style={styles.ringB} />
-            <Image source={require('../assets/logo-badge.png')} style={styles.logo} />
+            <Image source={logoBadge} style={styles.logo} />
             <Text style={styles.brand}>
               iTour <Text style={styles.brandAccent}>Rep</Text>
             </Text>

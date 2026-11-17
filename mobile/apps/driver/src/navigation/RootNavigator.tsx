@@ -4,21 +4,24 @@ import { useAuthStore } from '@itour/shared';
 import { LoginScreen } from '../screens/LoginScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { JobDetailScreen } from '../screens/JobDetailScreen';
-import { NoShowScreen } from '../screens/NoShowScreen';
+import { EvidenceScreen, type EvidenceKind } from '../screens/EvidenceScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { AnnouncementsRoute, ChatThreadRoute } from '../screens/ChatScreens';
-import { t } from '@itour/shared';
 
 export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
-  JobDetail: { jobId: string };
-  NoShow: { jobId: string };
+  /** `date` (YYYY-MM-DD) lets the screen read the job from that day's list. */
+  JobDetail: { jobId: string; date?: string };
+  Evidence: { jobId: string; jobRef: string; kind: EvidenceKind };
+  Notifications: undefined;
   ChatThread: { conversationId: string; title?: string };
   Announcements: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+/** Every screen draws its own gradient header (@itour/ui kit). */
 export function RootNavigator() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -29,26 +32,11 @@ export function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="Main" component={MainTabNavigator} />
-          <Stack.Screen
-            name="JobDetail"
-            component={JobDetailScreen}
-            options={{ headerShown: true, title: 'Job Details' }}
-          />
-          <Stack.Screen
-            name="NoShow"
-            component={NoShowScreen}
-            options={{ headerShown: true, title: 'No Show Evidence' }}
-          />
-          <Stack.Screen
-            name="ChatThread"
-            component={ChatThreadRoute}
-            options={{ headerShown: true, title: t('chat.title') }}
-          />
-          <Stack.Screen
-            name="Announcements"
-            component={AnnouncementsRoute}
-            options={{ headerShown: true, title: t('chat.announcements') }}
-          />
+          <Stack.Screen name="JobDetail" component={JobDetailScreen} />
+          <Stack.Screen name="Evidence" component={EvidenceScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="ChatThread" component={ChatThreadRoute} />
+          <Stack.Screen name="Announcements" component={AnnouncementsRoute} />
         </>
       )}
     </Stack.Navigator>

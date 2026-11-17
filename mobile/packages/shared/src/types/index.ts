@@ -316,10 +316,19 @@ export interface PortalJob {
 export interface DriverPortalJob extends PortalJob {
   driverStatus: PortalJobStatus;
   collectionRequired: boolean;
-  collectionAmount: number | null;
+  /** Prisma Decimal — may arrive as a string. */
+  collectionAmount: number | string | null;
   collectionCurrency: Currency | null;
   collectionCollected: boolean;
-  feeEarned?: number;
+  feeEarned?: number | null;
+  agentRef?: string | null;
+  /** Server-computed NO SHOW unlock — never derive it locally. */
+  noShowAvailableFrom?: string | null;
+  /** Admin unlock: lifts the 48h timelock. */
+  driverUnlockedAt?: string | null;
+  fromZone?: { id?: string; name: string } | null;
+  toZone?: { id?: string; name: string } | null;
+  jobExtras?: { name: string; qty: number }[];
 }
 
 export interface RepPortalJob extends PortalJob {
@@ -498,8 +507,12 @@ export interface DriverProfile {
   id: string;
   name: string;
   mobileNumber: string;
-  licenseNumber: string;
-  vehicles: (DriverVehicle & { vehicle: Vehicle })[];
+  licenseNumber: string | null;
+  licenseExpiryDate?: string | null;
+  isActive?: boolean;
+  /** The API sends `driverVehicles` (current assignments); `vehicles` kept for older builds. */
+  driverVehicles?: { id: string; vehicle: Vehicle }[];
+  vehicles?: (DriverVehicle & { vehicle: Vehicle })[];
 }
 
 // ─── Rep Profile ────────────────────────────────────────────────

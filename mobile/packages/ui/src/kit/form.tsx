@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { t, useColors } from '@itour/shared';
-import { Icon } from '@itour/ui';
+import { Icon } from '../Icon';
 
 /** Labeled text input with an optional leading icon and a required marker. */
 export function Field({

@@ -16,8 +16,8 @@ import {
 import { EmptyState, Icon, SkeletonList } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { RepJobCard } from '../components/RepJobCard';
-import { ActionButton, GradientHeader, HeaderIconButton, HeaderStat } from '../ui/kit';
-import { WeekStrip } from '../ui/WeekStrip';
+import { ActionButton, GradientHeader, HeaderIconButton, HeaderStat } from '@itour/ui';
+import { WeekStrip } from '@itour/ui';
 import { useNotificationsStore } from '../lib/notifications-store';
 import { jobDay } from '../lib/job-rules';
 

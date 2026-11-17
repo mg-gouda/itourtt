@@ -32,7 +32,7 @@ import {
   Surface,
   TileAction,
   brandGradient,
-} from '../ui/kit';
+} from '@itour/ui';
 import {
   canComplete,
   canOfferInPlace,

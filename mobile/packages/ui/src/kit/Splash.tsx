@@ -1,15 +1,25 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, StatusBar, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { t } from '@itour/shared';
 
 /**
  * The JS half of the launch screen. The native window already shows the same
- * navy gradient + badge (res/drawable/splash_background.xml), so this picks up
+ * navy gradient + badge (each app's res/drawable/splash_background.xml), so this picks up
  * seamlessly, adds the wordmark and a loader, and fades out once the app has
  * restored its session (`done`).
  */
-export function Splash({ done, onHidden }: { done: boolean; onHidden: () => void }) {
+export function Splash({
+  done,
+  onHidden,
+  appName,
+  tagline,
+}: {
+  done: boolean;
+  onHidden: () => void;
+  /** Word after "iTour" (Rep / Driver). */
+  appName: string;
+  tagline: string;
+}) {
   const intro = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
   const out = useRef(new Animated.Value(1)).current;
@@ -48,13 +58,13 @@ export function Splash({ done, onHidden }: { done: boolean; onHidden: () => void
         <View style={styles.center}>
           <View style={styles.logoWrap}>
             <Animated.View style={[styles.halo, { opacity: haloOpacity, transform: [{ scale: halo }] }]} />
-            <Image source={require('../assets/logo-badge.png')} style={styles.logo} />
+            <Image source={require('../../assets/logo-badge.png')} style={styles.logo} />
           </View>
           <Animated.View style={{ opacity: intro, transform: [{ translateY: textY }], alignItems: 'center' }}>
             <Text style={styles.title}>
-              iTour <Text style={styles.titleAccent}>Rep</Text>
+              iTour <Text style={styles.titleAccent}>{appName}</Text>
             </Text>
-            <Text style={styles.tagline}>{t('repApp.appTagline')}</Text>
+            <Text style={styles.tagline}>{tagline}</Text>
           </Animated.View>
         </View>
         <Animated.View style={[styles.footer, { opacity: intro }]}>

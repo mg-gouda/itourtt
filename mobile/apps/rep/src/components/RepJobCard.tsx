@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { t, useColors, type RepPortalJob } from '@itour/shared';
 import { Icon } from '@itour/ui';
-import { ActionButton, ServicePill, StatusPill, Surface, serviceTone, statusTone } from '../ui/kit';
+import { ActionButton, ServicePill, StatusPill, Surface, serviceTone, statusTone } from '@itour/ui';
 import {
   canComplete,
   canOfferInPlace,

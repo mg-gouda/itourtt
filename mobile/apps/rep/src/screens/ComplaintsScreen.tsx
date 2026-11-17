@@ -13,7 +13,7 @@ import {
   type PortalComplaint,
 } from '@itour/shared';
 import { EmptyState, Icon, SkeletonList } from '@itour/ui';
-import { GradientHeader, HeaderStat, Pill, ServicePill, Surface } from '../ui/kit';
+import { GradientHeader, HeaderStat, Pill, ServicePill, Surface } from '@itour/ui';
 
 /**
  * Read-only. Only complaints that have been settled against — or in favour of —

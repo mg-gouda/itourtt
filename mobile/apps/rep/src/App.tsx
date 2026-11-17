@@ -18,8 +18,8 @@ import {
   CHAT_ANNOUNCEMENTS_ID,
 } from '@itour/shared';
 import { RootNavigator } from './navigation/RootNavigator';
-import { Splash } from './ui/Splash';
-import { OfflinePill } from './ui/kit';
+import { Splash } from '@itour/ui';
+import { OfflinePill } from '@itour/ui';
 
 /**
  * Rep app root. No Firebase: while signed in, a background sync service
@@ -106,7 +106,7 @@ export function App() {
         </NavigationContainer>
       ) : null}
       {ready ? <OfflinePill /> : null}
-      {!splashGone ? <Splash done={ready} onHidden={hideSplash} /> : null}
+      {!splashGone ? <Splash done={ready} onHidden={hideSplash} appName="Rep" tagline={t('repApp.appTagline')} /> : null}
     </SafeAreaProvider>
   );
 }

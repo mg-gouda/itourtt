@@ -17,7 +17,7 @@ import {
 } from '@itour/shared';
 import { Icon } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { Segmented, SectionTitle, Surface, brandGradient } from '../ui/kit';
+import { Segmented, SectionTitle, Surface, brandGradient } from '@itour/ui';
 import { useNotificationsStore } from '../lib/notifications-store';
 import { APP_VERSION } from '../lib/version';
 

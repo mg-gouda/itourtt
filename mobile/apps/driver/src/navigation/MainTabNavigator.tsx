@@ -1,128 +1,140 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useChatMe, getColors, driverPortalApi, useT, unwrapList } from '@itour/shared';
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { createBottomTabNavigator, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { t, useChatMe, useColors } from '@itour/shared';
+import { Icon } from '@itour/ui';
 import { JobsListScreen } from '../screens/JobsListScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { ComplaintsScreen } from '../screens/ComplaintsScreen';
-import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ChatTabScreen } from '../screens/ChatScreens';
-import { Icon } from '@itour/ui';
+import { useNotificationsStore } from '../lib/notifications-store';
 
-// Without an icon per tab React Navigation draws an empty placeholder box.
-const TAB_ICONS: Record<string, [string, string]> = {
-  Jobs: ['car-outline', 'car'],
-  History: ['time-outline', 'time'],
-  Complaints: ['shield-outline', 'shield'],
-  Chat: ['chatbubbles-outline', 'chatbubbles'],
-  Notifications: ['notifications-outline', 'notifications'],
-  Profile: ['person-circle-outline', 'person-circle'],
-};
-
+/**
+ * Driver app tabs — same layout as the rep app. Five tabs (Material guidance tops out at five). Notifications moved from a
+ * tab to the bell on the Jobs header — and a row on Profile — so Complaints
+ * keeps its own tab.
+ */
 export type MainTabParamList = {
   Jobs: undefined;
   History: undefined;
-  Complaints: undefined;
   Chat: undefined;
-  Notifications: undefined;
+  Complaints: undefined;
   Profile: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+const TABS: Record<keyof MainTabParamList, { icon: string; active: string; label: string }> = {
+  Jobs: { icon: 'car-outline', active: 'car', label: 'repApp.tabJobs' },
+  History: { icon: 'time-outline', active: 'time', label: 'repApp.tabHistory' },
+  Chat: { icon: 'chatbubbles-outline', active: 'chatbubbles', label: 'repApp.tabChat' },
+  Complaints: { icon: 'shield-outline', active: 'shield', label: 'repApp.tabComplaints' },
+  Profile: { icon: 'person-circle-outline', active: 'person-circle', label: 'repApp.tabProfile' },
+};
+
+function DriverTabBar({ state, navigation, badges }: BottomTabBarProps & { badges: Partial<Record<string, number>> }) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={[
+        styles.bar,
+        {
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.border,
+          paddingBottom: Math.max(insets.bottom, 8),
+          shadowColor: colors.shadow,
+        },
+      ]}
+    >
+      {state.routes.map((route, index) => {
+        const focused = state.index === index;
+        const cfg = TABS[route.name as keyof MainTabParamList];
+        const badge = badges[route.name] ?? 0;
+        const color = focused ? colors.primary : colors.mutedForeground;
+        return (
+          <Pressable
+            key={route.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: focused }}
+            accessibilityLabel={t(cfg.label)}
+            onPress={() => {
+              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+              if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+            }}
+            style={styles.item}
+          >
+            <View style={[styles.iconPill, focused && { backgroundColor: colors.primarySoft }]}>
+              <Icon name={focused ? cfg.active : cfg.icon} size={22} color={color} />
+              {badge > 0 ? (
+                <View style={[styles.badge, { backgroundColor: colors.destructive, borderColor: colors.tabBar }]}>
+                  <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={[styles.label, { color }, focused && styles.labelActive]} numberOfLines={1}>
+              {t(cfg.label)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function MainTabNavigator() {
-  const colors = getColors();
-  const t = useT();
-  const [unreadCount, setUnreadCount] = useState(0);
   // Chat unread (incl. announcements). This poll also marks waiting messages delivered.
   const { me: chat } = useChatMe();
   const chatUnread = chat?.unreadTotal ?? 0;
-
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const { data } = await driverPortalApi.getNotifications();
-      const notifications = unwrapList<any>(data);
-      setUnreadCount(notifications.filter((n: any) => !n.isRead).length);
-    } catch {
-      // Ignore errors for badge count
-    }
-  }, []);
+  const refreshNotifications = useNotificationsStore((s) => s.refresh);
 
   useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+    refreshNotifications();
+    const id = setInterval(refreshNotifications, 30000);
+    return () => clearInterval(id);
+  }, [refreshNotifications]);
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => (
-          <Icon name={TAB_ICONS[route.name]?.[focused ? 1 : 0] ?? 'ellipse-outline'} size={size} color={color} />
-        ),
-        headerShown: true,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-        },
-        headerStyle: {
-          backgroundColor: colors.card,
-        },
-        headerTintColor: colors.foreground,
-      })}
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <DriverTabBar {...props} badges={{ Chat: chatUnread }} />}
     >
-      <Tab.Screen
-        name="Jobs"
-        component={JobsListScreen}
-        options={{
-          title: t('jobs.todayJobs'),
-          tabBarLabel: t('tabs.jobs'),
-        }}
-      />
-      <Tab.Screen
-        name="History"
-        component={HistoryScreen}
-        options={{
-          title: t('jobs.history'),
-          tabBarLabel: t('tabs.history'),
-        }}
-      />
-      <Tab.Screen
-        name="Complaints"
-        component={ComplaintsScreen}
-        options={{
-          title: 'Complaints',
-          tabBarLabel: 'Complaints',
-        }}
-      />
-      <Tab.Screen
-        name="Chat"
-        component={ChatTabScreen}
-        options={{
-          title: t('chat.title'),
-          tabBarLabel: t('tabs.chat'),
-          tabBarBadge: chatUnread > 0 ? (chatUnread > 99 ? '99+' : chatUnread) : undefined,
-        }}
-      />
-      <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{
-          title: t('notifications.title'),
-          tabBarLabel: t('tabs.notifications'),
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          title: t('profile.title'),
-          tabBarLabel: t('tabs.profile'),
-        }}
-      />
+      <Tab.Screen name="Jobs" component={JobsListScreen} />
+      <Tab.Screen name="History" component={HistoryScreen} />
+      <Tab.Screen name="Chat" component={ChatTabScreen} />
+      <Tab.Screen name="Complaints" component={ComplaintsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 8,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  item: { flex: 1, alignItems: 'center', gap: 3 },
+  iconPill: { width: 56, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  badge: {
+    position: 'absolute',
+    top: -3,
+    right: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: '#fff', fontSize: 9.5, fontWeight: '800' },
+  label: { fontSize: 11, fontWeight: '600' },
+  labelActive: { fontWeight: '800' },
+});

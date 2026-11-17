@@ -12,7 +12,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors, useNetwork, t, type ThemeColors } from '@itour/shared';
-import { Icon } from '@itour/ui';
+import { Icon } from '../Icon';
 
 /**
  * The rep app's design kit. Everything visual that repeats across screens

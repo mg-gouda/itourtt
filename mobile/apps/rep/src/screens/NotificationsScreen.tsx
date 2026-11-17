@@ -15,7 +15,7 @@ import {
 } from '@itour/shared';
 import { EmptyState, Icon, SkeletonList } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { GradientHeader } from '../ui/kit';
+import { GradientHeader } from '@itour/ui';
 import { useNotificationsStore } from '../lib/notifications-store';
 
 type Props = StackScreenProps<RootStackParamList, 'Notifications'>;

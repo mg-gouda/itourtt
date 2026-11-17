@@ -23,3 +23,6 @@ export { ChatInboxScreen, ChatAvatar, avatarTint } from './chat/ChatInboxScreen'
 export { ChatThreadScreen, ChatImageViewer, DaySeparator } from './chat/ChatThreadScreen';
 export { AnnouncementsScreen } from './chat/AnnouncementsScreen';
 export { ChatBubble, StatusTicks } from './chat/ChatBubble';
+
+// App design kit (rep / driver apps)
+export * from './kit';

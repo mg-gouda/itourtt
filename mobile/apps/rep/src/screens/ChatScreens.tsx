@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t, useColors } from '@itour/shared';
 import { AnnouncementsScreen as SharedAnnouncements, ChatAvatar, ChatInboxScreen, ChatThreadScreen } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { GradientHeader, HeaderIconButton, brandGradient } from '../ui/kit';
+import { GradientHeader, HeaderIconButton, brandGradient } from '@itour/ui';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 

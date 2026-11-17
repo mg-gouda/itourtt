@@ -16,8 +16,8 @@ import {
 } from '@itour/shared';
 import { Icon, LoadingSpinner } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { ActionButton, GradientHeader, Segmented, Surface } from '../ui/kit';
-import { Choice, Counter, Field } from '../ui/form';
+import { ActionButton, GradientHeader, Segmented, Surface } from '@itour/ui';
+import { Choice, Counter, Field } from '@itour/ui';
 
 /**
  * Cairo wall-clock date + time → UTC ISO, DST-aware without a tz library:

@@ -17,7 +17,7 @@ import {
 import { ActivityIndicator } from 'react-native';
 import { Icon } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { ActionButton, GradientHeader, Surface } from '../ui/kit';
+import { ActionButton, GradientHeader, Surface } from '@itour/ui';
 
 type Props = StackScreenProps<RootStackParamList, 'Evidence'>;
 export type EvidenceKind = 'IN_PLACE' | 'COMPLETED' | 'NO_SHOW';

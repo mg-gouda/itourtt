@@ -16,7 +16,7 @@ import {
 } from '@itour/shared';
 import { EmptyState, Icon, SkeletonList } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { GradientHeader, Segmented, ServicePill, StatusPill, Surface } from '../ui/kit';
+import { GradientHeader, Segmented, ServicePill, StatusPill, Surface } from '@itour/ui';
 import { destinationLabel, jobDay, jobTimeLabel, originLabel } from '../lib/job-rules';
 
 type Nav = StackNavigationProp<RootStackParamList>;

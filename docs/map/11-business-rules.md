@@ -158,6 +158,13 @@ Cancel = `PATCH …/status` CANCELLED with GPS, plus flight delay, free-text upd
 survey. Gating lives in `mobile/apps/rep/src/lib/job-rules.ts`; keep it in step with
 `frontend/src/app/(rep-portal)/rep/page.tsx`.
 
+**The driver app likewise mirrors the web driver portal** (`mobile/apps/driver/src/lib/job-rules.ts`):
+Start Trip = `POST …/in-progress` (1–10 photos + GPS, from job time), Complete Trip = `POST …/completed`
+(1–10 photos + GPS, job time +15 min, cash collected — the CollectionCard sits above the button),
+No Show after `noShowAvailableFrom`, Cancel via `PATCH …/status`. Completing through the evidence
+endpoint (not the generic PATCH) is what runs `JobCompletionService.reconcileJobStatus`.
+Both apps share one design kit in `mobile/packages/ui/src/kit/`.
+
 **Icons need the fonts.** `react-native-vector-icons` glyphs render as empty rectangles unless the
 app's `android/app/build.gradle` applies `fonts.gradle` (monorepo path `../../../../node_modules`).
 A tab with no `tabBarIcon` also renders a placeholder box.

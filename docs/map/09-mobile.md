@@ -4,159 +4,205 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**117 files**, **312 exported symbols**.
+**121 files**, **330 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
 ### `App.tsx`
 
-`mobile/apps/driver/src/App.tsx` · 95 lines
+`mobile/apps/driver/src/App.tsx` · 113 lines
 
 Driver app root — providers, theme and navigation.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `App` | function | 28 | Driver app root — providers, theme and navigation. |
+| `App` | function | 29 | Driver app root: session restore behind the animated Splash, background sync, notification taps, themed navigation. |
 
 ## `mobile/apps/driver/src/components/`
 
 ### `CollectionCard.tsx`
 
-`mobile/apps/driver/src/components/CollectionCard.tsx` · 65 lines
+`mobile/apps/driver/src/components/CollectionCard.tsx` · 68 lines
 
 Cash collection card with the Mark Collected action — the gate that unblocks Complete.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CollectionCard` | function | 20 | Cash collection card with the Mark Collected action — the gate that unblocks Complete. |
+| `CollectionCard` | function | 10 | Cash to collect with Mark as collected — the gate that unblocks Complete Trip. |
 
-### `DriverJobActions.tsx`
+### `DriverJobCard.tsx`
 
-`mobile/apps/driver/src/components/DriverJobActions.tsx` · 89 lines
+`mobile/apps/driver/src/components/DriverJobCard.tsx` · 202 lines
 
-Driver status action buttons, mirroring the backend transition and collection rules.
+Driver day-list job card (same design as the rep card) with cash-collection strip.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `DriverJobActions` | function | 13 | Driver status action buttons, mirroring the backend transition and collection rules. |
+| `DriverJobCard` | function | 21 | Driver job card; CTA is Start Trip (from job time) or Complete Trip (+15 min, collected), mirroring the web driver portal. |
+
+## `mobile/apps/driver/src/lib/`
+
+### `job-rules.ts`
+
+`mobile/apps/driver/src/lib/job-rules.ts` · 100 lines
+
+Driver leg gating mirrored from the web driver portal: start from job time, complete +15 min and collected, server NO SHOW unlock.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TERMINAL` | const | 14 | Driver statuses after which no action is offered. |
+| `isTerminal` | function | 16 | True when the driver leg is closed. |
+| `jobTimeIso` | function | 21 | Job time: flight arrival for ARR, pickUpTime otherwise. |
+| `jobTimeLabel` | function | 26 | Job time as HH:mm Cairo. |
+| `startGate` | function | 31 | Start Trip is live from the job time onwards. |
+| `completeGate` | function | 40 | Complete gate: IN_PROGRESS, cash collected when required, ≥15 min after job time; returns hint text. |
+| `noShowGate` | function | 53 | NO SHOW gate from the server's noShowAvailableFrom. |
+| `originLabel` | function | 59 | Origin display name: airport (code) → hotel → zone → fromZone. |
+| `destinationLabel` | function | 69 | Destination display name: airport (code) → hotel → zone → toZone. |
+| `originSub` | function | 79 | The origin hotel's zone. |
+| `destinationSub` | function | 82 | The destination hotel's zone. |
+| `jobDay` | function | 87 | Service date as YYYY-MM-DD. |
+| `repLine` | function | 92 | The rep assigned on the same job (name, phone). |
+| `collectionAmount` | function | 97 | Collection amount as a number (Decimal arrives as a string). |
+
+### `notifications-store.ts`
+
+`mobile/apps/driver/src/lib/notifications-store.ts` · 31 lines
+
+Zustand store for the driver app's unread-notification badge.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `useNotificationsStore` | const | 14 | Unread count + refresh(); polled every 30 s by MainTabNavigator. |
+
+### `version.ts`
+
+`mobile/apps/driver/src/lib/version.ts` · 3 lines
+
+Driver app version shown on Login/Profile.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `APP_VERSION` | const | 2 | Must match versionName in apps/driver/android/app/build.gradle. |
 
 ## `mobile/apps/driver/src/navigation/`
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 129 lines
+`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 141 lines
 
 Driver app bottom tabs (Jobs, History, Notifications, Profile).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 22 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 33 | Driver app bottom tabs (Jobs, History, Notifications, Profile). |
+| `MainTabParamList` | type | 19 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 87 | Driver app bottom tabs (Jobs, History, Chat, Complaints, Profile) with the custom icon tab bar; polls the notification badge. |
 
 ### `RootNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/RootNavigator.tsx` · 57 lines
+`mobile/apps/driver/src/navigation/RootNavigator.tsx` · 45 lines
 
 Driver app auth vs main navigation switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `RootStackParamList` | type | 11 | Route params for the `RootNavigator` navigator — the typed screen list. |
-| `RootNavigator` | function | 22 | Driver app auth vs main navigation switch. |
+| `RootNavigator` | function | 25 | Driver app auth vs main switch plus stack routes (job detail, evidence, notifications, chat). |
 
 ## `mobile/apps/driver/src/screens/`
 
 ### `ChatScreens.tsx`
 
-`mobile/apps/driver/src/screens/ChatScreens.tsx` · 41 lines
+`mobile/apps/driver/src/screens/ChatScreens.tsx` · 83 lines
 
 Driver app chat routes wrapping the shared @itour/ui chat screens.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatTabScreen` | function | 11 | Chat tab: shared inbox; opens threads and announcements on the root stack. |
-| `ChatThreadRoute` | function | 22 | Root-stack thread screen; header shows the other person's name and role. |
-| `AnnouncementsRoute` | function | 38 | Root-stack read-only announcements screen. |
+| `ChatTabScreen` | function | 15 | Chat tab: shared inbox; opens threads and announcements on the root stack. |
+| `ChatThreadRoute` | function | 53 | Root-stack thread screen with a gradient bar showing the other person's name and role. |
+| `AnnouncementsRoute` | function | 68 | Root-stack read-only announcements screen. |
 
 ### `ComplaintsScreen.tsx`
 
-`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 150 lines
+`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 194 lines
 
 Driver app Complaints tab.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintsScreen` | function | 22 | Read-only list of the driver's settled complaints and what each one cost them. |
+| `ComplaintsScreen` | function | 23 | Read-only list of the driver's settled complaints with a summary header. |
+
+### `EvidenceScreen.tsx`
+
+`mobile/apps/driver/src/screens/EvidenceScreen.tsx` · 274 lines
+
+Driver evidence capture for Start (IN_PROGRESS) / COMPLETED / NO SHOW: 1–10 photos + GPS, one multipart upload.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `EvidenceKind` | type | 23 | Which driver submission the evidence screen is making. |
+| `EvidenceScreen` | function | 37 | Photo grid + GPS card; posts to /in-progress, /completed or /no-show. |
 
 ### `HistoryScreen.tsx`
 
-`mobile/apps/driver/src/screens/HistoryScreen.tsx` · 119 lines
+`mobile/apps/driver/src/screens/HistoryScreen.tsx` · 216 lines
 
 Driver's completed jobs and fees earned.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `HistoryScreen` | function | 16 | Driver's completed jobs and fees earned. |
+| `HistoryScreen` | function | 38 | Closed driver legs for a period: trip-fee earnings + counts, jobs grouped by day. |
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 302 lines
+`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 521 lines
 
 Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 64 | Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces. |
+| `JobDetailScreen` | function | 87 | Driver job detail: progress stepper, collection card, Start/Complete CTA with gates, No Show / Call / Cancel tiles, route with navigation, guest, rep & vehicle. |
 
 ### `JobsListScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobsListScreen.tsx` · 148 lines
+`mobile/apps/driver/src/screens/JobsListScreen.tsx` · 197 lines
 
 Driver's jobs for a day, sorted by effective start time.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobsListScreen` | function | 23 | Driver's jobs for a day, sorted by effective start time. |
+| `JobsListScreen` | function | 34 | Home tab: greeting, week strip, day counters and DriverJobCards; bell opens Notifications. |
 
 ### `LoginScreen.tsx`
 
-`mobile/apps/driver/src/screens/LoginScreen.tsx` · 104 lines
+`mobile/apps/driver/src/screens/LoginScreen.tsx` · 208 lines
 
 Driver login. A 409 here means another device holds the session.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoginScreen` | function | 13 | Driver login. A 409 here means another device holds the session. |
-
-### `NoShowScreen.tsx`
-
-`mobile/apps/driver/src/screens/NoShowScreen.tsx` · 173 lines
-
-Driver no-show submission with photos and GPS.
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `NoShowScreen` | function | 19 | Driver no-show submission with photos and GPS. |
+| `LoginScreen` | function | 23 | Driver login. A 409 here means another device holds the session. |
 
 ### `NotificationsScreen.tsx`
 
-`mobile/apps/driver/src/screens/NotificationsScreen.tsx` · 108 lines
+`mobile/apps/driver/src/screens/NotificationsScreen.tsx` · 232 lines
 
 Driver's notification feed.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NotificationsScreen` | function | 14 | Driver's notification feed. |
+| `NotificationsScreen` | function | 36 | Driver notification feed (stack screen from the bell): grouped by day, mark all read, tap opens the job. |
 
 ### `ProfileScreen.tsx`
 
-`mobile/apps/driver/src/screens/ProfileScreen.tsx` · 180 lines
+`mobile/apps/driver/src/screens/ProfileScreen.tsx` · 248 lines
 
 Driver's own profile.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ProfileScreen` | function | 22 | Driver's own profile. |
+| `ProfileScreen` | function | 27 | Driver profile: avatar hero, license + expiry, assigned vehicles, theme, notifications, sign out. |
 
 ## `mobile/apps/guest/src/`
 
@@ -530,68 +576,6 @@ Rep's own profile.
 |---|---|---|---|
 | `ProfileScreen` | function | 26 | Rep profile: avatar hero, fee per flight, coverage zones, theme, notifications, sign out. |
 
-## `mobile/apps/rep/src/ui/`
-
-### `Splash.tsx`
-
-`mobile/apps/rep/src/ui/Splash.tsx` · 98 lines
-
-JS half of the rep app launch screen; continues the native navy splash and fades out after session restore.
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `Splash` | function | 12 | Animated brand splash (badge, wordmark, loader); stays ≥1.1 s, then fades when `done`. |
-
-### `WeekStrip.tsx`
-
-`mobile/apps/rep/src/ui/WeekStrip.tsx` · 113 lines
-
-Week day-picker on the Jobs header.
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `WeekStrip` | function | 20 | Seven tappable days centred on the selected date, week chevrons and a Today chip; YYYY-MM-DD in/out. |
-
-### `form.tsx`
-
-`mobile/apps/rep/src/ui/form.tsx` · 160 lines
-
-Rep app form controls (field, choice chips, counter).
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `Field` | function | 7 | Labeled input with optional icon, required marker and error border. |
-| `Choice` | function | 44 | Single-choice chip group. |
-| `Counter` | function | 90 | − n + counter for head counts. |
-| `requiredHint` | const | 127 | Translated 'Required' label. |
-
-### `kit.tsx`
-
-`mobile/apps/rep/src/ui/kit.tsx` · 638 lines
-
-Rep app design kit: gradient headers, surfaces, pills, buttons, tiles, segmented control.
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `radius` | const | 22 | Corner radius scale for the rep app. |
-| `brandGradient` | function | 24 | The three-stop navy → blue brand gradient. |
-| `GradientHeader` | function | 31 | Navy brand gradient page header with eyebrow/title/subtitle, right actions, optional back and children. |
-| `HeaderIconButton` | function | 82 | Round translucent header button with an optional count badge. |
-| `Surface` | function | 113 | Card surface with soft shadow; pressable when given onPress. |
-| `SectionTitle` | function | 139 | Uppercase section heading with icon for cards. |
-| `Pill` | function | 153 | Small rounded label with optional icon. |
-| `statusTone` | function | 176 | Icon + colours per rep status. |
-| `StatusPill` | function | 192 | Rep-status pill (Pending / In Place / Completed / No Show / Cancelled). |
-| `serviceTone` | function | 208 | Icon + colours per service type. |
-| `ServicePill` | function | 224 | Service-type pill with its icon and tint. |
-| `Tone` | type | 232 | Semantic button/tile tone. |
-| `ActionButton` | function | 251 | Primary button with icon, tone (primary/success/warning/danger/info/neutral), solid/soft/outline and a hint line. |
-| `TileAction` | function | 322 | Square secondary action tile (icon over label) with done tick and hint. |
-| `InfoLine` | function | 373 | Icon + label + value row, optionally tappable (call, navigate). |
-| `Segmented` | function | 410 | Segmented control; `onDark` styles it for the gradient header. |
-| `HeaderStat` | function | 453 | Translucent counter tile on the gradient header. |
-| `OfflinePill` | function | 611 | Floating offline indicator under the translucent status bar. |
-
 ## `mobile/apps/supplier/src/`
 
 ### `App.tsx`
@@ -745,13 +729,13 @@ Chat API client + types for the native apps (mirrors backend chat.service).
 
 ### `driver-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 52 lines
+`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 84 lines
 
 Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController`.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `driverPortalApi` | const | 4 | Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController` (`driverPortalApi`). |
+| `driverPortalApi` | const | 15 | Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController` (`driverPortalApi`). |
 
 ### `public-api.ts`
 
@@ -856,7 +840,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 376 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 405 lines
 
 Arabic strings for all four apps.
 
@@ -866,14 +850,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 376 lines
+`mobile/packages/shared/src/i18n/en.ts` · 405 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 375 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 404 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -1079,7 +1063,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 529 lines
+`mobile/packages/shared/src/types/index.ts` · 542 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -1121,22 +1105,22 @@ Shared TypeScript types for API payloads across the apps.
 | `PortalLocationCoords` | type | 275 | Optional latitude/longitude/address the portal APIs return on job locations. |
 | `PortalJob` | type | 281 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
 | `DriverPortalJob` | type | 316 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
-| `RepPortalJob` | type | 325 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
-| `SupplierPortalJob` | type | 346 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
-| `PortalNotification` | type | 352 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
-| `GuestSurveyInput` | type | 364 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
-| `GuestSurveyPayload` | type | 380 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
-| `PortalComplaint` | type | 391 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
-| `BookingExtras` | type | 409 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 415 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 427 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 433 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 458 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 484 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 489 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 497 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 506 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 520 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `RepPortalJob` | type | 334 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
+| `SupplierPortalJob` | type | 355 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
+| `PortalNotification` | type | 361 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
+| `GuestSurveyInput` | type | 373 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
+| `GuestSurveyPayload` | type | 389 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
+| `PortalComplaint` | type | 400 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
+| `BookingExtras` | type | 418 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 424 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 436 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 442 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 467 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 493 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 498 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 506 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 519 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 533 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 
@@ -1432,3 +1416,75 @@ Native 1:1 chat thread.
 | `DaySeparator` | function | 39 | Today / Yesterday / date chip between chat days (Cairo). |
 | `ChatImageViewer` | function | 70 | Full-screen photo modal (auth headers passed through). |
 | `ChatThreadScreen` | function | 93 | Inverted history, 5 s polling, read receipts, optimistic send of text / photo / location with retry. |
+
+## `mobile/packages/ui/src/kit/`
+
+### `Splash.tsx`
+
+`mobile/packages/ui/src/kit/Splash.tsx` · 108 lines
+
+JS half of the rep/driver launch screen; continues the native navy splash and fades out after session restore.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Splash` | function | 11 | Animated brand splash (badge, wordmark, loader); stays ≥1.1 s, then fades when `done`. |
+
+### `WeekStrip.tsx`
+
+`mobile/packages/ui/src/kit/WeekStrip.tsx` · 113 lines
+
+Week day-picker on the Jobs header.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `WeekStrip` | function | 20 | Seven tappable days centred on the selected date, week chevrons and a Today chip; YYYY-MM-DD in/out. |
+
+### `form.tsx`
+
+`mobile/packages/ui/src/kit/form.tsx` · 160 lines
+
+Shared app form controls (field, choice chips, counter).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `Field` | function | 7 | Labeled input with optional icon, required marker and error border. |
+| `Choice` | function | 44 | Single-choice chip group. |
+| `Counter` | function | 90 | − n + counter for head counts. |
+| `requiredHint` | const | 127 | Translated 'Required' label. |
+
+### `index.ts`
+
+`mobile/packages/ui/src/kit/index.ts` · 11 lines
+
+Barrel for the shared rep/driver app design kit.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `logoBadge` | const | 10 | The iTour badge PNG (packages/ui/assets) for splash and login. |
+
+### `kit.tsx`
+
+`mobile/packages/ui/src/kit/kit.tsx` · 638 lines
+
+Shared app design kit (rep + driver): gradient headers, surfaces, pills, buttons, tiles, segmented control.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `radius` | const | 22 | Corner radius scale for the rep/driver apps. |
+| `brandGradient` | function | 24 | The three-stop navy → blue brand gradient. |
+| `GradientHeader` | function | 31 | Navy brand gradient page header with eyebrow/title/subtitle, right actions, optional back and children. |
+| `HeaderIconButton` | function | 82 | Round translucent header button with an optional count badge. |
+| `Surface` | function | 113 | Card surface with soft shadow; pressable when given onPress. |
+| `SectionTitle` | function | 139 | Uppercase section heading with icon for cards. |
+| `Pill` | function | 153 | Small rounded label with optional icon. |
+| `statusTone` | function | 176 | Icon + colours per rep status. |
+| `StatusPill` | function | 192 | Rep-status pill (Pending / In Place / Completed / No Show / Cancelled). |
+| `serviceTone` | function | 208 | Icon + colours per service type. |
+| `ServicePill` | function | 224 | Service-type pill with its icon and tint. |
+| `Tone` | type | 232 | Semantic button/tile tone. |
+| `ActionButton` | function | 251 | Primary button with icon, tone (primary/success/warning/danger/info/neutral), solid/soft/outline and a hint line. |
+| `TileAction` | function | 322 | Square secondary action tile (icon over label) with done tick and hint. |
+| `InfoLine` | function | 373 | Icon + label + value row, optionally tappable (call, navigate). |
+| `Segmented` | function | 410 | Segmented control; `onDark` styles it for the gradient header. |
+| `HeaderStat` | function | 453 | Translucent counter tile on the gradient header. |
+| `OfflinePill` | function | 611 | Floating offline indicator under the translucent status bar. |

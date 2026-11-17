@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch screen shown by the window before React Native draws (pre-Android 12,
+     and behind the system splash on 12+). Matches the JS splash in src/ui/Splash.tsx. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" android:opacity="opaque">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:startColor="#000F45"
+                android:centerColor="#001E72"
+                android:endColor="#1B5FA8"
+                android:type="linear" />
+        </shape>
+    </item>
+    <item
+        android:width="144dp"
+        android:height="144dp"
+        android:gravity="center">
+        <bitmap android:src="@drawable/splash_logo" android:filter="true" />
+    </item>
+</layer-list>
