@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**121 files**, **333 exported symbols**.
+**121 files**, **334 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -861,7 +861,7 @@ English strings for all four apps.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/i18n/index.ts` · 83 lines
+`mobile/packages/shared/src/i18n/index.ts` · 126 lines
 
 Translator and locale selection for the mobile apps.
 
@@ -869,13 +869,14 @@ Translator and locale selection for the mobile apps.
 |---|---|---|---|
 | `Locale` | type | 6 | Supported app display languages: 'en' \| 'ar'. |
 | `setLocale` | function | 12 | Translator and locale selection for the mobile apps (`setLocale`). |
-| `useLocaleStore` | const | 23 | Zustand store for the user-picked display language; persisted in EncryptedStorage, hydrated at app start; app root remounts the navigator on change. |
-| `getLocale` | function | 49 | Translator and locale selection for the mobile apps (`getLocale`). |
-| `t` | function | 67 | Translator and locale selection for the mobile apps (`t`). |
-| `tf` | function | 72 | Translate and fill {name} placeholders. |
-| `useT` | function | 77 | Translator and locale selection for the mobile apps (`useT`). |
-| `en` | const | 81 | Translator and locale selection for the mobile apps (`en`). |
-| `ar` | const | 81 | Translator and locale selection for the mobile apps (`ar`). |
+| `isRTL` | function | 52 | True when the app layout currently runs right-to-left (Arabic); read by RTL-aware components like WeekStrip. |
+| `useLocaleStore` | const | 66 | Zustand store for the user-picked display language; persisted in EncryptedStorage, hydrated at app start; app root remounts the navigator on change. |
+| `getLocale` | function | 92 | Translator and locale selection for the mobile apps (`getLocale`). |
+| `t` | function | 110 | Translator and locale selection for the mobile apps (`t`). |
+| `tf` | function | 115 | Translate and fill {name} placeholders. |
+| `useT` | function | 120 | Translator and locale selection for the mobile apps (`useT`). |
+| `en` | const | 124 | Translator and locale selection for the mobile apps (`en`). |
+| `ar` | const | 124 | Translator and locale selection for the mobile apps (`ar`). |
 
 ## `mobile/packages/shared/src/native/`
 
@@ -1253,13 +1254,13 @@ Inline error banner.
 
 ### `Icon.tsx`
 
-`mobile/packages/ui/src/Icon.tsx` · 28 lines
+`mobile/packages/ui/src/Icon.tsx` · 36 lines
 
 Shared icon component (Ionicons; `mc:` prefix for MaterialCommunityIcons).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Icon` | function | 12 | Vector icon; fonts are bundled by fonts.gradle in each app's build.gradle or they render as boxes. |
+| `Icon` | function | 19 | Vector icon; fonts are bundled by fonts.gradle in each app's build.gradle or they render as boxes. |
 
 ### `Input.tsx`
 
@@ -1434,7 +1435,7 @@ JS half of the rep/driver launch screen; continues the native navy splash and fa
 
 ### `WeekStrip.tsx`
 
-`mobile/packages/ui/src/kit/WeekStrip.tsx` · 192 lines
+`mobile/packages/ui/src/kit/WeekStrip.tsx` · 200 lines
 
 Week day-picker on the Jobs header.
 

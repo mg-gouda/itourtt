@@ -14,11 +14,54 @@ export function setLocale(locale: Locale) {
 }
 
 const LOCALE_KEY = 'app_locale';
+const RTL_RELOAD_KEY = 'app_rtl_reload';
+
+function storage() {
+  return require('react-native-encrypted-storage').default as {
+    getItem: (k: string) => Promise<string | null>;
+    setItem: (k: string, v: string) => Promise<void>;
+  };
+}
+
+/**
+ * Make the layout direction match the language: Arabic is right-to-left.
+ * React Native only applies a direction change to a freshly built root view,
+ * so when it has to change we ask the native AppRestart module to reload the
+ * bundle. A reload marker stops a loop if the change somehow doesn't stick.
+ * Also corrects phones whose system language is Arabic running the app in English.
+ */
+async function applyDirection(locale: Locale): Promise<void> {
+  try {
+    const { I18nManager, NativeModules } = require('react-native');
+    const wantRtl = locale === 'ar';
+    I18nManager.allowRTL(wantRtl);
+    I18nManager.swapLeftAndRightInRTL(true);
+    if (I18nManager.isRTL === wantRtl) {
+      await storage().setItem(RTL_RELOAD_KEY, '');
+      return;
+    }
+    I18nManager.forceRTL(wantRtl);
+    const tried = await storage().getItem(RTL_RELOAD_KEY);
+    if (tried === locale) return; // already reloaded once for this language
+    await storage().setItem(RTL_RELOAD_KEY, locale);
+    NativeModules.AppRestart?.restart?.();
+  } catch {}
+}
+
+/** True when the current layout runs right-to-left (Arabic). */
+export function isRTL(): boolean {
+  try {
+    return !!require('react-native').I18nManager.isRTL;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * The display language the user picked in Profile, persisted like the theme.
  * `t()` reads the module-level locale, so the app root keys its navigator on
- * `locale` to re-render every screen after a change.
+ * `locale` to re-render every screen after a change; a direction change
+ * (English <-> Arabic) reloads the app so the layout mirrors.
  */
 export const useLocaleStore = create<{
   locale: Locale;
@@ -30,19 +73,19 @@ export const useLocaleStore = create<{
     setLocale(locale);
     set({ locale });
     try {
-      const EncryptedStorage = require('react-native-encrypted-storage').default;
-      await EncryptedStorage.setItem(LOCALE_KEY, locale);
+      await storage().setItem(LOCALE_KEY, locale);
     } catch {}
+    await applyDirection(locale);
   },
   hydrate: async () => {
+    let locale: Locale = 'en';
     try {
-      const EncryptedStorage = require('react-native-encrypted-storage').default;
-      const stored = await EncryptedStorage.getItem(LOCALE_KEY);
-      if (stored === 'en' || stored === 'ar') {
-        setLocale(stored);
-        set({ locale: stored });
-      }
+      const stored = await storage().getItem(LOCALE_KEY);
+      if (stored === 'en' || stored === 'ar') locale = stored;
     } catch {}
+    setLocale(locale);
+    set({ locale });
+    await applyDirection(locale);
   },
 }));
 

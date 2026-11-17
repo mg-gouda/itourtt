@@ -2479,6 +2479,7 @@
   "mobile/packages/shared/src/i18n/index.ts#ar": "Translator and locale selection for the mobile apps (`ar`).",
   "mobile/packages/shared/src/i18n/index.ts#en": "Translator and locale selection for the mobile apps (`en`).",
   "mobile/packages/shared/src/i18n/index.ts#getLocale": "Translator and locale selection for the mobile apps (`getLocale`).",
+  "mobile/packages/shared/src/i18n/index.ts#isRTL": "True when the app layout currently runs right-to-left (Arabic); read by RTL-aware components like WeekStrip.",
   "mobile/packages/shared/src/i18n/index.ts#setLocale": "Translator and locale selection for the mobile apps (`setLocale`).",
   "mobile/packages/shared/src/i18n/index.ts#t": "Translator and locale selection for the mobile apps (`t`).",
   "mobile/packages/shared/src/i18n/index.ts#tf": "Translate and fill {name} placeholders.",

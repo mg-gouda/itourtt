@@ -171,8 +171,12 @@ changed or voided, so like the complaints list it never reaches the portal.
 
 **Display language is app-local.** `useLocaleStore` (EncryptedStorage `app_locale`) drives `t()`;
 since `t()` is not reactive, the app root keys `NavigationContainer` on the locale and restores the
-saved nav state. Layout stays LTR — flipping `I18nManager` needs an app restart and the kit was not
-built mirrored.
+saved nav state. **Arabic is right-to-left:** `applyDirection` calls `I18nManager.forceRTL` and, when
+the direction actually changes, reloads the bundle through the native `AppRestart` module
+(`android/app/src/main/java/com/itour/<app>/AppRestartModule.kt`, registered in `MainApplication`).
+It runs at startup too, so an Arabic-language phone using the app in English is forced back to LTR.
+Directional icons (chevrons, arrows, send, log-out) mirror inside `Icon`; the day strip is pinned
+`direction: 'ltr'` and holds its days reversed, because horizontal-list offsets misbehave under RTL.
 
 **Rep coverage zones (`RepZone`) are display-only** — nothing in dispatch, fees or assignment reads
 them — so the app no longer shows them on Profile.

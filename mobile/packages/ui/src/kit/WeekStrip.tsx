@@ -9,7 +9,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import { addDays, getLocale, t, todayCairo, useColors } from '@itour/shared';
+import { addDays, getLocale, isRTL, t, todayCairo, useColors } from '@itour/shared';
 import { Icon } from '../Icon';
 
 const DOW = {
@@ -36,7 +36,7 @@ function parts(date: string) {
 }
 
 /**
- * A horizontally scrolling strip of days on the gradient header: swipe left or
+ * A horizontally scrolling strip of days (mirrored in Arabic) on the gradient header: swipe left or
  * right through as many days as you like, tap one to select it. The chevrons
  * jump a week and a "Today" chip appears once you've wandered off. The month
  * label follows whatever is in the middle of the strip. Dates are YYYY-MM-DD.
@@ -48,7 +48,14 @@ export function WeekStrip({ date, onChange }: { date: string; onChange: (d: stri
   const [width, setWidth] = useState(0);
   // The list is built around an anchor; re-anchor only if the date leaves the range.
   const [anchor, setAnchor] = useState(date);
-  const days = useMemo(() => Array.from({ length: SPAN * 2 + 1 }, (_, i) => addDays(anchor, i - SPAN)), [anchor]);
+  // In Arabic (RTL) time runs right-to-left: earlier days sit on the right. The
+  // list itself is pinned LTR (horizontal-list offsets are unreliable under RTL
+  // on Android) and simply holds the days in reverse.
+  const rtl = isRTL();
+  const days = useMemo(() => {
+    const list = Array.from({ length: SPAN * 2 + 1 }, (_, i) => addDays(anchor, i - SPAN));
+    return rtl ? list.reverse() : list;
+  }, [anchor, rtl]);
   const indexOf = useCallback((d: string) => days.indexOf(d), [days]);
   const [visible, setVisible] = useState(date);
 
@@ -100,7 +107,7 @@ export function WeekStrip({ date, onChange }: { date: string; onChange: (d: stri
           </Pressable>
         ) : null}
       </View>
-      <View onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
+      <View style={styles.ltr} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
         {width ? (
           <FlatList
             ref={listRef}
@@ -188,4 +195,5 @@ const styles = StyleSheet.create({
   num: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 1 },
   dot: { width: 4, height: 4, borderRadius: 2, marginTop: 3, backgroundColor: 'transparent' },
   placeholder: { height: 54 },
+  ltr: { direction: 'ltr' },
 });
