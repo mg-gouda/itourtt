@@ -247,7 +247,7 @@ export function B2BExcelImportDialog({
             <FileSpreadsheet className="h-5 w-5 text-green-600" /> Import B2B jobs from Excel
           </DialogTitle>
           <DialogDescription>
-            Upload the traffic sheet. Each row becomes one job; rows that can&apos;t be matched are skipped and reported.
+            Upload the traffic sheet. Each row becomes one COMPLETED job (own or supplier car); rows that can&apos;t be matched are skipped and reported.
           </DialogDescription>
         </DialogHeader>
 

@@ -575,12 +575,17 @@ traffic team's daily sheet: one sheet row = one B2B job. Rules agreed with the o
   import. Changing the normaliser orphans saved aliases.
 - **Past service dates are allowed here, and only here** — the import writes jobs directly, so the
   `isPastServiceDate` guard in `traffic-jobs.service.ts › create` and the dispatcher 48h lock do not
-  apply. New jobs are created `ASSIGNED` with their `TrafficAssignment`; no driver push / WhatsApp is
-  sent for them.
+  apply. No driver push / WhatsApp is sent for imported jobs.
+- **Every imported job is COMPLETED** (owner's rule, 2026-11-18 — the sheet records trips that ran,
+  own or supplier car). `b2b-excel-import.service.ts › completeJob` closes every assigned leg and calls
+  `JobCompletionService.reconcileJobStatus`, so the driver trip fee / rep fee are created exactly as
+  for a portal completion; a supplier-only job (no own driver or rep leg) has its status set directly.
+  This is what makes imported jobs invoiceable — customer invoicing only fetches COMPLETED,
+  uninvoiced jobs.
 - **Re-uploading a day.** A row matches an existing B2B job on **date + customer + order no**, paired
   in sheet order with the oldest job first (one order can have several jobs). A blank order no is
   always a new job. A match may change the **route** (with its service type and locations), the car
-  source, the car / supplier car type and the driver/supplier — and **never the job status**. Changed
+  source, the car / supplier car type and the driver/supplier and completes the job if it is still open (CANCELLED / NO_SHOW are never touched). Changed
   rows are shown old → new and only the ticked ones are written. Jobs that are not in the sheet are
   left alone. `customerJobId` is therefore **not unique** any more (migration
   `20261118_b2b_excel_import`).

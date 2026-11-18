@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TrafficJobsService } from '../traffic-jobs/traffic-jobs.service.js';
 import { JobPricingService } from '../job-pricing/job-pricing.service.js';
+import { JobCompletionService } from '../common/services/job-completion.service.js';
 import { normalizeImportName, plateDigits } from '../common/utils/import-name.util.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,10 +22,14 @@ import { normalizeImportName, plateDigits } from '../common/utils/import-name.ut
 //  - Anything that does not resolve to exactly one system record skips the
 //    ROW (never the file) and is reported. Nothing is created on the fly —
 //    except remembered name aliases, which a user maps explicitly.
-//  - Past service dates are allowed here (only here). Re-uploads match existing
-//    jobs on date + customer + order no, in sheet order; a match may change the
-//    route, car source, car / car type and driver — never the job status.
-//    Jobs missing from the sheet are left alone.
+//  - Past service dates are allowed here (only here). Every imported job is
+//    COMPLETED (owner's rule, 2026-11-18): the sheet is the record of trips that
+//    ran. Completion goes through JobCompletionService, so driver/rep fees are
+//    created exactly as for a portal completion. Re-uploads match existing jobs
+//    on date + customer + order no, in sheet order; a match may change the route,
+//    car source, car / car type and driver, and completes the job if it is still
+//    open (CANCELLED / NO_SHOW are left alone). Jobs missing from the sheet are
+//    left alone.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const SUPPLIER_CAR_NUMBERS = new Set(['2000', '2001', '2002', '2003', '2004']);
@@ -121,6 +126,7 @@ export class B2bExcelImportService {
     private readonly prisma: PrismaService,
     private readonly trafficJobs: TrafficJobsService,
     private readonly jobPricing: JobPricingService,
+    private readonly jobCompletion: JobCompletionService,
   ) {}
 
   // ── Parsing ────────────────────────────────────────────────────────────────
@@ -489,6 +495,7 @@ export class B2bExcelImportService {
         customerId: true,
         customerJobId: true,
         jobServiceTypeId: true,
+        status: true,
         assignment: { select: { vehicleId: true, driverId: true, supplierId: true, supplierCarTypeId: true } },
       },
     });
@@ -537,6 +544,9 @@ export class B2bExcelImportService {
     }
     if ((a.driverId ?? null) !== to.driverId || (a.supplierId ?? null) !== to.supplierId) {
       out.push({ field: to.source === 'OWN' ? 'Driver' : 'Supplier', from: carrier(a.driverId ?? null, a.supplierId ?? null), to: carrier(to.driverId, to.supplierId) });
+    }
+    if (!['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(job.status)) {
+      out.push({ field: 'Status', from: job.status, to: 'COMPLETED' });
     }
     return out;
   }
@@ -653,6 +663,7 @@ export class B2bExcelImportService {
           assignedById: userId,
         },
       });
+      await this.completeJob(tx, job.id);
       return job;
     });
   }
@@ -698,8 +709,39 @@ export class B2bExcelImportService {
       } else {
         await tx.trafficAssignment.create({ data: { trafficJobId: r.jobId!, assignedById: userId, ...assignment } });
       }
+      await this.completeJob(tx, r.jobId!);
       return job;
     });
+  }
+
+  /**
+   * Imported jobs are completed (the sheet records trips that ran). Every assigned leg is closed
+   * and the job goes through JobCompletionService.reconcileJobStatus, which sets COMPLETED and
+   * creates the driver trip fee / rep fee like a portal completion. A supplier-only job has no
+   * own driver or rep leg, so the roll-up cannot close it — its status is set directly.
+   * CANCELLED / NO_SHOW jobs are never touched.
+   */
+  private async completeJob(tx: any, jobId: string) {
+    const job = await tx.trafficJob.findUnique({
+      where: { id: jobId },
+      select: { status: true, assignment: { select: { id: true, driverId: true, repId: true, supplierId: true } } },
+    });
+    if (!job || ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(job.status)) return;
+    const a = job.assignment;
+    if (a) {
+      await tx.trafficAssignment.update({
+        where: { id: a.id },
+        data: {
+          ...(a.driverId && { driverStatus: 'COMPLETED' }),
+          ...(a.repId && { repStatus: 'COMPLETED' }),
+          ...(a.supplierId && { supplierStatus: 'COMPLETED' }),
+        },
+      });
+    }
+    const r = await this.jobCompletion.reconcileJobStatus(tx, jobId);
+    if (!r.completed) {
+      await tx.trafficJob.update({ where: { id: jobId }, data: { status: 'COMPLETED' } });
+    }
   }
 
   // ── Aliases + pickers ──────────────────────────────────────────────────────

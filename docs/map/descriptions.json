@@ -225,6 +225,7 @@
   "backend/src/b2b-excel-import/b2b-excel-import.service.ts#AliasKind": "CUSTOMER | SUPPLIER | DRIVER — what an import alias points at.",
   "backend/src/b2b-excel-import/b2b-excel-import.service.ts#B2bExcelImportService": "Parses the traffic sheet, resolves each row to route/customer/car/carrier, diffs against existing jobs and writes them.",
   "backend/src/b2b-excel-import/b2b-excel-import.service.ts#B2bExcelImportService.commit": "Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows.",
+  "backend/src/b2b-excel-import/b2b-excel-import.service.ts#B2bExcelImportService.completeJob": "Completes an imported job: closes every assigned leg, runs reconcileJobStatus (fees), sets COMPLETED directly for supplier-only jobs; never touches CANCELLED/NO_SHOW.",
   "backend/src/b2b-excel-import/b2b-excel-import.service.ts#B2bExcelImportService.createJob": "Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed).",
   "backend/src/b2b-excel-import/b2b-excel-import.service.ts#B2bExcelImportService.diff": "Route / car source / car / driver-or-supplier differences between a job and a row, as display labels.",
   "backend/src/b2b-excel-import/b2b-excel-import.service.ts#B2bExcelImportService.evaluate": "Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order.",

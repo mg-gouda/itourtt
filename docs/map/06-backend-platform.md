@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**68 classes**, **517 methods**.
+**68 classes**, **518 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -166,27 +166,28 @@ B2B Import-from-Excel endpoints; every call uploads the sheet itself. Excluded f
 
 ### B2bExcelImportService
 
-`backend/src/b2b-excel-import/b2b-excel-import.service.ts:117` · service · 15 methods
+`backend/src/b2b-excel-import/b2b-excel-import.service.ts:122` · service · 16 methods
 
 Parses the traffic sheet, resolves each row to route/customer/car/carrier, diffs against existing jobs and writes them.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `parseWorkbook` | pub | 129 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
-| `toIsoDate` | priv | 189 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
-| `loadContext` | priv | 206 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
-| `lookup` | priv | 288 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
-| `resolveRow` | priv | 301 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
-| `summarizeDates` | pub | 441 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
-| `preview` | pub | 454 | — | Date summary of the file, plus evaluated rows for the requested dates. |
-| `evaluate` | priv | 463 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
-| `diff` | priv | 521 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
-| `commit` | pub | 546 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
-| `rowSnapshot` | priv | 613 | — | The sheet values of a row as stored in the Activity Log. |
-| `createJob` | priv | 617 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
-| `updateJob` | priv | 661 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
-| `saveAlias` | pub | 707 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
-| `lookups` | pub | 723 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
+| `parseWorkbook` | pub | 135 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
+| `toIsoDate` | priv | 195 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
+| `loadContext` | priv | 212 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
+| `lookup` | priv | 294 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
+| `resolveRow` | priv | 307 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
+| `summarizeDates` | pub | 447 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
+| `preview` | pub | 460 | — | Date summary of the file, plus evaluated rows for the requested dates. |
+| `evaluate` | priv | 469 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
+| `diff` | priv | 528 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
+| `commit` | pub | 556 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
+| `rowSnapshot` | priv | 623 | — | The sheet values of a row as stored in the Activity Log. |
+| `createJob` | priv | 627 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
+| `updateJob` | priv | 672 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
+| `completeJob` | priv | 724 | `trafficJob` `trafficAssignment` | Completes an imported job: closes every assigned leg, runs reconcileJobStatus (fees), sets COMPLETED directly for supplier-only jobs; never touches CANCELLED/NO_SHOW. |
+| `saveAlias` | pub | 749 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
+| `lookups` | pub | 765 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
 
 ## `chat`
 
@@ -1229,12 +1230,12 @@ Traffic sheet → B2B jobs: parsing, matching, re-upload diff and commit. Rules 
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SUPPLIER_CAR_NUMBERS` | const | 30 | Sheet car numbers 2000–2004 — supplier cars, not own vehicles. |
-| `AliasKind` | type | 44 | CUSTOMER \| SUPPLIER \| DRIVER — what an import alias points at. |
-| `RowStatus` | type | 45 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
-| `SheetRow` | type | 47 | One parsed traffic-sheet row (Excel row number + column values). |
-| `FieldChange` | type | 75 | One old → new difference shown in the preview. |
-| `RowResult` | type | 81 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
+| `SUPPLIER_CAR_NUMBERS` | const | 35 | Sheet car numbers 2000–2004 — supplier cars, not own vehicles. |
+| `AliasKind` | type | 49 | CUSTOMER \| SUPPLIER \| DRIVER — what an import alias points at. |
+| `RowStatus` | type | 50 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
+| `SheetRow` | type | 52 | One parsed traffic-sheet row (Excel row number + column values). |
+| `FieldChange` | type | 80 | One old → new difference shown in the preview. |
+| `RowResult` | type | 86 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
 
 ### `backend/src/chat/chat.constants.ts`
 
