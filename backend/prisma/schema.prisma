@@ -473,6 +473,8 @@ model Airport {
   guestBookingsDest   GuestBooking[]      @relation("GuestBookingDestAirport")
   fromTariffs         DriverPriceTariff[] @relation("TariffFromAirport")
   toTariffs           DriverPriceTariff[] @relation("TariffToAirport")
+  serviceTypesFrom    JobServiceType[]    @relation("ServiceTypeFromAirport")
+  serviceTypesTo      JobServiceType[]    @relation("ServiceTypeToAirport")
   fromFees            DriverTripFee[]     @relation("FeeFromAirport")
   toFees              DriverTripFee[]     @relation("FeeToAirport")
 
@@ -1426,7 +1428,7 @@ model TrafficJob {
   // exists, or through the complaint once one does.
   complaintCharges    ComplaintCharge[]
 
-  @@unique([customerJobId])
+  @@index([customerJobId])
   @@index([jobDate])
   @@index([agentId])
   @@index([customerId])
@@ -1635,12 +1637,19 @@ model JobServiceType {
   name       String   @unique
   fromZoneId String?  @map("from_zone_id")
   toZoneId   String?  @map("to_zone_id")
+  /// Route defaults copied onto jobs created by the B2B Excel import:
+  /// service type + exactly one origin (airport or zone) + one destination.
+  defaultServiceType ServiceType? @map("default_service_type")
+  fromAirportId      String?      @map("from_airport_id")
+  toAirportId        String?      @map("to_airport_id")
   isActive   Boolean  @default(true) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   fromZone    Zone?               @relation("ServiceTypeFromZone", fields: [fromZoneId], references: [id])
   toZone      Zone?               @relation("ServiceTypeToZone", fields: [toZoneId], references: [id])
+  fromAirport Airport?            @relation("ServiceTypeFromAirport", fields: [fromAirportId], references: [id])
+  toAirport   Airport?            @relation("ServiceTypeToAirport", fields: [toAirportId], references: [id])
   tariffs     DriverPriceTariff[]
   trafficJobs TrafficJob[]
 
@@ -2972,4 +2981,21 @@ model JobAlertAck {
   @@unique([trafficJobId, userId, kind])
   @@index([userId])
   @@map("job_alert_acks")
+}
+
+/// A name as it appears in an imported sheet, remembered against the system
+/// record a user mapped it to (B2B Excel import). `normalizedName` is the
+/// output of normalizeImportName() — case, spaces and Arabic letter variants folded.
+model ImportNameAlias {
+  id             String   @id @default(uuid())
+  kind           String // CUSTOMER | SUPPLIER | DRIVER
+  normalizedName String   @map("normalized_name")
+  rawName        String   @map("raw_name")
+  targetId       String   @map("target_id")
+  createdById    String   @map("created_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([kind, normalizedName])
+  @@map("import_name_aliases")
 }

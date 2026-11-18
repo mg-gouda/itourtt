@@ -46,6 +46,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { DriverTariffsModule } from './driver-tariffs/driver-tariffs.module.js';
 import { JobServiceTypesModule } from './job-service-types/job-service-types.module.js';
+import { B2bExcelImportModule } from './b2b-excel-import/b2b-excel-import.module.js';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
 import { ContactMessagesModule } from './contact-messages/contact-messages.module.js';
 import { PartnerModule } from './partner/partner.module.js';
@@ -88,6 +89,7 @@ import { PartnerModule } from './partner/partner.module.js';
     ExtrasModule,
     DriverTariffsModule,
     JobServiceTypesModule,
+    B2bExcelImportModule,
     PaymentsModule,
     GuestBookingsModule,
     ComplaintsModule,

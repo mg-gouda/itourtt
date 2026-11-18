@@ -145,6 +145,11 @@ export class AuditInterceptor implements NestInterceptor {
     if (/\/tracking\/ping\/?$/.test(path)) {
       return next.handle();
     }
+    // B2B Excel import: preview is a read, and the commit writes its own
+    // Activity Log rows (import summary + one per job) — see b2b-excel-import.
+    if (/\/traffic-jobs\/b2b-excel-import\//.test(path)) {
+      return next.handle();
+    }
     // Chat read receipts fire whenever a thread is on screen — not an edit.
     if (/\/chat\/(conversations\/[^/]+|announcements)\/read\/?$/.test(path)) {
       return next.handle();

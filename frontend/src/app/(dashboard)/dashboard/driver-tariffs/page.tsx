@@ -56,6 +56,7 @@ import { cn } from "@/lib/utils";
 import { SearchableCombobox } from "@/components/searchable-combobox";
 import api from "@/lib/api";
 import { usePermission } from "@/hooks/use-permission";
+import { SERVICE_TYPE_DROPDOWN_OPTIONS, serviceTypeDropdownLabel } from "@/lib/service-types";
 
 interface Zone {
   id: string;
@@ -80,6 +81,18 @@ interface JobServiceType {
   name: string;
   fromZone?: { id: string; name: string } | null;
   toZone?: { id: string; name: string } | null;
+  // Route defaults, copied onto jobs by the B2B Excel import.
+  defaultServiceType?: string | null;
+  fromAirport?: { id: string; code: string; name: string } | null;
+  toAirport?: { id: string; code: string; name: string } | null;
+}
+
+/** "airport:<id>" / "zone:<id>" for a route end, or "" when unset. */
+function routeEndValue(airport?: { id: string } | null, zone?: { id: string } | null) {
+  return airport ? `airport:${airport.id}` : zone ? `zone:${zone.id}` : "";
+}
+function routeEndLabel(airport?: { code: string } | null, zone?: { name: string } | null) {
+  return airport ? `${airport.code} airport` : zone?.name ?? "—";
 }
 
 interface Tariff {
@@ -242,11 +255,13 @@ function ServiceTypesManager({
   open,
   onClose,
   zones,
+  airports,
   onChanged,
 }: {
   open: boolean;
   onClose: () => void;
   zones: Zone[];
+  airports: Airport[];
   onChanged: () => void;
 }) {
   const canUpsert = usePermission("driver-tariffs.upsert");
@@ -259,8 +274,9 @@ function ServiceTypesManager({
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [fromZoneId, setFromZoneId] = useState("");
-  const [toZoneId, setToZoneId] = useState("");
+  const [fromLoc, setFromLoc] = useState(""); // "zone:<id>" | "airport:<id>"
+  const [toLoc, setToLoc] = useState("");
+  const [defaultServiceType, setDefaultServiceType] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Delete
@@ -275,9 +291,12 @@ function ServiceTypesManager({
     open: false, imported: 0, errors: [],
   });
 
-  const zoneItems = useMemo(
-    () => zones.map((z) => ({ value: z.id, label: z.name, sub: z.city?.name })),
-    [zones]
+  const routeEndItems = useMemo(
+    () => [
+      ...airports.map((a) => ({ value: `airport:${a.id}`, label: `${a.code} – ${a.name}`, sub: "Airport" })),
+      ...zones.map((z) => ({ value: `zone:${z.id}`, label: z.name, sub: z.city?.name })),
+    ],
+    [airports, zones]
   );
 
   const load = useCallback(async () => {
@@ -297,34 +316,42 @@ function ServiceTypesManager({
   }, [open, load]);
 
   const openAdd = () => {
-    setEditingId(null); setName(""); setFromZoneId(""); setToZoneId("");
+    setEditingId(null); setName(""); setFromLoc(""); setToLoc(""); setDefaultServiceType("");
     setFormOpen(true);
   };
 
   const openEdit = (st: JobServiceType) => {
     setEditingId(st.id);
     setName(st.name);
-    setFromZoneId(st.fromZone?.id ?? "");
-    setToZoneId(st.toZone?.id ?? "");
+    setFromLoc(routeEndValue(st.fromAirport, st.fromZone));
+    setToLoc(routeEndValue(st.toAirport, st.toZone));
+    setDefaultServiceType(st.defaultServiceType ?? "");
     setFormOpen(true);
   };
 
   const handleSave = async () => {
     if (!name.trim()) { toast.error("Name is required"); return; }
     setSaving(true);
+    const [fromType, fromId] = fromLoc ? fromLoc.split(":") : ["", ""];
+    const [toType, toId] = toLoc ? toLoc.split(":") : ["", ""];
+    const ends = {
+      fromZoneId: fromType === "zone" ? fromId : null,
+      fromAirportId: fromType === "airport" ? fromId : null,
+      toZoneId: toType === "zone" ? toId : null,
+      toAirportId: toType === "airport" ? toId : null,
+      defaultServiceType: defaultServiceType || null,
+    };
     try {
       if (editingId) {
         await api.patch(`/job-service-types/${editingId}`, {
           name: name.trim(),
-          fromZoneId: fromZoneId || null,
-          toZoneId: toZoneId || null,
+          ...ends,
         });
         toast.success("Service type updated");
       } else {
         await api.post("/job-service-types", {
           name: name.trim(),
-          fromZoneId: fromZoneId || undefined,
-          toZoneId: toZoneId || undefined,
+          ...ends,
         });
         toast.success("Service type created");
       }
@@ -442,8 +469,9 @@ function ServiceTypesManager({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>From Zone</TableHead>
-                    <TableHead>To Zone</TableHead>
+                    <TableHead>Default Type</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>To</TableHead>
                     {(canUpsert || canDelete) && <TableHead className="text-right w-24">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -451,8 +479,9 @@ function ServiceTypesManager({
                   {items.map((st) => (
                     <TableRow key={st.id}>
                       <TableCell className="font-medium">{st.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{st.fromZone?.name ?? "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{st.toZone?.name ?? "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{st.defaultServiceType ? serviceTypeDropdownLabel(st.defaultServiceType) : "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{routeEndLabel(st.fromAirport, st.fromZone)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{routeEndLabel(st.toAirport, st.toZone)}</TableCell>
                       {(canUpsert || canDelete) && (
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
@@ -498,24 +527,38 @@ function ServiceTypesManager({
                 autoFocus
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Default service type, From and To are copied onto jobs created by the B2B Excel import.
+              A route without all three is skipped by the import.
+            </p>
             <div className="space-y-1.5">
-              <Label>From Zone <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Default Service Type <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <SearchableCombobox
-                items={zoneItems}
-                value={fromZoneId}
-                onChange={setFromZoneId}
-                placeholder="Select zone…"
-                searchPlaceholder="Search zones…"
+                items={SERVICE_TYPE_DROPDOWN_OPTIONS}
+                value={defaultServiceType}
+                onChange={setDefaultServiceType}
+                placeholder="Select service type…"
+                searchPlaceholder="Search…"
               />
             </div>
             <div className="space-y-1.5">
-              <Label>To Zone <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>From <span className="text-muted-foreground text-xs">(airport or zone, optional)</span></Label>
               <SearchableCombobox
-                items={zoneItems}
-                value={toZoneId}
-                onChange={setToZoneId}
-                placeholder="Select zone…"
-                searchPlaceholder="Search zones…"
+                items={routeEndItems}
+                value={fromLoc}
+                onChange={setFromLoc}
+                placeholder="Select airport or zone…"
+                searchPlaceholder="Search airports and zones…"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>To <span className="text-muted-foreground text-xs">(airport or zone, optional)</span></Label>
+              <SearchableCombobox
+                items={routeEndItems}
+                value={toLoc}
+                onChange={setToLoc}
+                placeholder="Select airport or zone…"
+                searchPlaceholder="Search airports and zones…"
               />
             </div>
           </div>
@@ -1054,6 +1097,7 @@ export default function DriverTariffsPage() {
         open={stManagerOpen}
         onClose={() => setStManagerOpen(false)}
         zones={zones}
+        airports={airports}
         onChanged={fetchData}
       />
 

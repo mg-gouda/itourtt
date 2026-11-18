@@ -21,7 +21,7 @@
 | `/dashboard/customers` | `frontend/src/app/(dashboard)/dashboard/customers/page.tsx` | 1183 | 9 | 12 | B2B customer management with price grids and import templates. |
 | `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 322 | 7 | — | One customer's detail, price list and stored import templates. |
 | `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3149 | 10 | 5 | ★ The dispatch console. One window per day, ARR left and DEP right, Excel-like grid with inline editing, keyboard navigation and live conflict warnings. Assignment order is Vehicle → Driver → Rep. |
-| `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 1113 | 14 | 2 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
+| `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 1157 | 14 | 2 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
 | `/dashboard/driver-tracking` | `frontend/src/app/(dashboard)/dashboard/driver-tracking/page.tsx` | 9 | — | — | Driver Tracking page — map of every active driver's last-known position with name search. |
 | `/dashboard/drivers` | `frontend/src/app/(dashboard)/dashboard/drivers/page.tsx` | 1089 | 11 | 14 | Driver management: records, vehicle links, portal accounts, trip fees and Excel pipelines. |
 | `/dashboard/drivers/[id]` | `frontend/src/app/(dashboard)/dashboard/drivers/[id]/page.tsx` | 859 | 9 | — | One driver's detail, vehicles and fee history. |
@@ -45,7 +45,7 @@
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1340 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
 | `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 195 | 1 | — | One supplier's detail. |
 | `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | Traffic jobs landing page with the shared filters. |
-| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1359 | 15 | 14 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
+| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1377 | 15 | 15 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
 | `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1276 | 8 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
 | `/dashboard/users` | `frontend/src/app/(dashboard)/dashboard/users/page.tsx` | 818 | 14 | 8 | Staff user administration and role assignment. |
 | `/dashboard/vehicles` | `frontend/src/app/(dashboard)/dashboard/vehicles/page.tsx` | 1095 | 10 | 9 | Fleet list with compliance status. |
@@ -211,7 +211,7 @@
 **`/dashboard/traffic-jobs/b2b`**
 
 - calls: `GET /customers`, `GET /dispatch/available-suppliers`, `GET /dispatch/available-vehicles`, `GET /dispatch/available-drivers`, `GET /dispatch/available-reps`, `GET /vehicles/types`, `GET /job-service-types`, `GET /traffic-jobs`, `GET /traffic-jobs/:x`, `PATCH /traffic-jobs/:x`, `PATCH /traffic-jobs/:x/status`, `PATCH /dispatch/assignments/:x`, `POST /dispatch/assign`, `POST /traffic-jobs`, `DELETE /dispatch/assignments/:x`
-- perms: `dispatch.assignment.assignVehicle`, `dispatch.assignment.assignDriver`, `dispatch.assignment.assignRep`, `traffic-jobs.b2b.createJob`, `traffic-jobs.b2b.form.customer`, `traffic-jobs.b2b.form.serviceType`, `traffic-jobs.b2b.form.dateTime`, `traffic-jobs.b2b.form.paxCount`, `traffic-jobs.b2b.form.route`, `traffic-jobs.b2b.form.flightInfo`, `traffic-jobs.b2b.form.meetingInfo`, `traffic-jobs.b2b.form.notes`, `traffic-jobs.b2b.table.statusFilter`, `traffic-jobs.b2b.importJobs`
+- perms: `dispatch.assignment.assignVehicle`, `dispatch.assignment.assignDriver`, `dispatch.assignment.assignRep`, `traffic-jobs.b2b.createJob`, `traffic-jobs.b2b.form.customer`, `traffic-jobs.b2b.form.serviceType`, `traffic-jobs.b2b.form.dateTime`, `traffic-jobs.b2b.form.paxCount`, `traffic-jobs.b2b.form.route`, `traffic-jobs.b2b.form.flightInfo`, `traffic-jobs.b2b.form.meetingInfo`, `traffic-jobs.b2b.form.notes`, `traffic-jobs.b2b.table.statusFilter`, `traffic-jobs.b2b.importJobs`, `traffic-jobs.b2b.importExcel`
 
 **`/dashboard/traffic-jobs/online`**
 

@@ -1956,6 +1956,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "permissions.customers.detail.importTemplates.upload": "Upload Templates",
     "permissions.customers.detail.importTemplates.delete": "Delete Templates",
     "permissions.trafficJobs.b2b.importJobs": "Import Jobs from File",
+    "permissions.trafficJobs.b2b.importExcel": "Import Traffic Sheet (Excel)",
     "permissions.trafficJobs.online.form.requestedVehicleType": "Requested Vehicle Type",
   },
 
@@ -3878,6 +3879,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "permissions.customers.detail.importTemplates.upload": "رفع القوالب",
     "permissions.customers.detail.importTemplates.delete": "حذف القوالب",
     "permissions.trafficJobs.b2b.importJobs": "استيراد الرحلات من ملف",
+    "permissions.trafficJobs.b2b.importExcel": "استيراد شيت الترافيك (Excel)",
     "permissions.trafficJobs.online.form.requestedVehicleType": "نوع المركبة المطلوبة",
   },
 };

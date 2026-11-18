@@ -544,6 +544,52 @@ destination FK — setting both a zone and a hotel breaks later edit/cancel vali
 Airport and hotel coordinates are the enforced geofence targets (zones only log), so editing a
 location's lat/lng changes who can update status from where.
 
+## B2B Excel import — why was this row skipped / why didn't the job update?
+
+`b2b-excel-import/b2b-excel-import.service.ts` (UI: `components/b2b-excel-import-dialog.tsx`, the
+**Import from Excel** button on the B2B page, key `traffic-jobs.b2b.importExcel`). It loads the
+traffic team's daily sheet: one sheet row = one B2B job. Rules agreed with the operator 2026-11-18:
+
+- **The server parses the file on every step.** Preview and commit both upload the same `.xlsx`;
+  the commit re-evaluates everything and never trusts client-side matching. A file may hold many
+  days; the dialog lists the dates and the user picks which to import.
+- **Columns:** B date · C Arabic route · D car no · E car category · F customer · G order no ·
+  H carrier · I carrier type · K notes (A and J ignored). Pax is always **1 adult**.
+- **The route carries the locations.** The job takes the route's *defaults* —
+  `JobServiceType.defaultServiceType` + one of `fromAirportId/fromZoneId` + one of
+  `toAirportId/toZoneId` (zones, never hotels), edited in Driver Tariffs › Manage Service Types.
+  A route without all three is skipped. Routes are matched on the **Arabic half** of their
+  `"EN | AR"` name, so two routes sharing an Arabic name make that name ambiguous (skipped).
+- **Car numbers 2000–2004 are supplier cars**; any other number is an own car matched to a
+  vehicle by the plate's digits (`plateDigits`). The car number wins over column I — a disagreement
+  is only a warning. Supplier rows need the supplier (col H, legal or trade name) *and* one of its
+  `SupplierCarType`s, chosen by column E (`Limo→Sedan`, `Hi Ace 15→Hi Ace`, `Hi Ace 7→Minivan 7`,
+  `Coaster`, `Bus`). Own rows need the driver (col H).
+- **Skip the row, never the file.** Anything that resolves to zero or several records (customer,
+  route, car, driver, supplier, supplier car type) skips that row with a reason; the rest import and
+  the result screen lists every skipped row so it can be fixed and the day re-imported. **Nothing is
+  created on the fly** — customers, cars, drivers and suppliers are added by people.
+- **Remembered aliases.** Names are compared through `common/utils/import-name.util.ts ›
+  normalizeImportName` (case, spaces, أ/إ/آ, ى, ة, tatweel). An unmatched name can be mapped in the
+  preview; that writes an `ImportNameAlias` (kind + normalised name → record id) used by every later
+  import. Changing the normaliser orphans saved aliases.
+- **Past service dates are allowed here, and only here** — the import writes jobs directly, so the
+  `isPastServiceDate` guard in `traffic-jobs.service.ts › create` and the dispatcher 48h lock do not
+  apply. New jobs are created `ASSIGNED` with their `TrafficAssignment`; no driver push / WhatsApp is
+  sent for them.
+- **Re-uploading a day.** A row matches an existing B2B job on **date + customer + order no**, paired
+  in sheet order with the oldest job first (one order can have several jobs). A blank order no is
+  always a new job. A match may change the **route** (with its service type and locations), the car
+  source, the car / supplier car type and the driver/supplier — and **never the job status**. Changed
+  rows are shown old → new and only the ticked ones are written. Jobs that are not in the sheet are
+  left alone. `customerJobId` is therefore **not unique** any more (migration
+  `20261118_b2b_excel_import`).
+- **Activity Log:** the endpoints are excluded from `AuditInterceptor`; the commit writes one
+  `B2BExcelImport` summary row (file, dates, counts, every skipped row and why) plus one
+  `TrafficJob` CREATE/UPDATE row per job, the update carrying the before-snapshot.
+- `GET /job-service-types` is readable with the B2B/Online route-field keys too, so non-admin
+  roles get a populated Route dropdown (it used to need `driver-tariffs`).
+
 ## References
 
 - `traffic-jobs.service.ts › generateInternalRef` — `PREFIX-nnnn`, prefix from the company initials.

@@ -17,7 +17,9 @@ export class JobServiceTypesController {
   constructor(private readonly service: JobServiceTypesService) {}
 
   @Get()
-  @Permissions('driver-tariffs')
+  // The B2B/Online job forms draw their Route dropdown from this list, so their
+  // route-field holders must be able to read it (not only driver-tariff admins).
+  @Permissions('driver-tariffs', 'traffic-jobs.b2b.form.route', 'traffic-jobs.online.form.route', 'traffic-jobs.b2b.importExcel')
   async findAll() {
     return new ApiResponse(await this.service.findAll());
   }

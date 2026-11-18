@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**59 classes**, **458 methods**.
+**61 classes**, **477 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -149,6 +149,45 @@ passport-jwt validation. Beyond signature checks it re-reads the user and, for R
 |---|---|---|---|---|
 | `validate` | pub | 43 | `user` | Resolves the JWT payload to a live user, rejecting inactive, deleted, or superseded-session accounts. |
 
+## `b2b-excel-import`
+
+### B2bExcelImportController
+
+`backend/src/b2b-excel-import/b2b-excel-import.controller.ts:47` · controller · 4 methods
+
+B2B Import-from-Excel endpoints; every call uploads the sheet itself. Excluded from AuditInterceptor (the commit writes its own Activity Log rows).
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `preview` | pub | 53 | — | Dates in the file (no dates sent) or the evaluated rows for the picked dates. |
+| `commit` | pub | 60 | — | Imports the picked day(s): creates new jobs, updates the ticked changed ones, returns the report. |
+| `lookups` | pub | 85 | — | Id + name lists for the preview's 'map to…' pickers. |
+| `saveAlias` | pub | 90 | — | Remembers a sheet name → customer/supplier/driver mapping. |
+
+### B2bExcelImportService
+
+`backend/src/b2b-excel-import/b2b-excel-import.service.ts:116` · service · 15 methods
+
+Parses the traffic sheet, resolves each row to route/customer/car/carrier, diffs against existing jobs and writes them.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `parseWorkbook` | pub | 127 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
+| `toIsoDate` | priv | 187 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
+| `loadContext` | priv | 204 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
+| `lookup` | priv | 286 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
+| `resolveRow` | priv | 299 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
+| `summarizeDates` | pub | 439 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
+| `preview` | pub | 452 | — | Date summary of the file, plus evaluated rows for the requested dates. |
+| `evaluate` | priv | 461 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
+| `diff` | priv | 519 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
+| `commit` | pub | 544 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
+| `rowSnapshot` | priv | 609 | — | The sheet values of a row as stored in the Activity Log. |
+| `createJob` | priv | 613 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
+| `updateJob` | priv | 657 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
+| `saveAlias` | pub | 703 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
+| `lookups` | pub | 719 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
+
 ## `chat`
 
 ### ChatController
@@ -263,15 +302,15 @@ Writes an `ActivityLog` row for every create/update/delete, capturing actor, ent
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `intercept` | pub | 130 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
-| `captureBefore` | priv | 184 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
-| `enqueue` | priv | 228 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
-| `flush` | priv | 275 | `activityLog` | Batch-writes queued audit rows. |
-| `buildSummary` | priv | 310 | — | Composes a log summary from action, entity and the resolved job reference. |
-| `resolveJobRefs` | priv | 330 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
-| `resolveJob` | priv | 383 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
-| `methodToAction` | priv | 478 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
-| `parseEntityFromPath` | priv | 492 | — | Derives the entity type and id from the request path. |
-| `sanitizeBody` | priv | 529 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
+| `captureBefore` | priv | 189 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
+| `enqueue` | priv | 233 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
+| `flush` | priv | 280 | `activityLog` | Batch-writes queued audit rows. |
+| `buildSummary` | priv | 315 | — | Composes a log summary from action, entity and the resolved job reference. |
+| `resolveJobRefs` | priv | 335 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
+| `resolveJob` | priv | 388 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
+| `methodToAction` | priv | 483 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
+| `parseEntityFromPath` | priv | 497 | — | Derives the entity type and id from the request path. |
+| `sanitizeBody` | priv | 534 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
 
 ### CaptchaService
 
@@ -1036,7 +1075,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-153 free functions, constants and types in these modules.
+161 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1076,6 +1115,19 @@ passport-jwt strategy — also enforces the live `sessionId` for REP/DRIVER.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `JwtPayload` | type | 13 | Access-token claims: `sub`, email, role, roleId, roleSlug, sessionId. |
+
+### `backend/src/b2b-excel-import/b2b-excel-import.service.ts`
+
+Traffic sheet → B2B jobs: parsing, matching, re-upload diff and commit. Rules in 11-business-rules.md › B2B Excel import.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `SUPPLIER_CAR_NUMBERS` | const | 29 | Sheet car numbers 2000–2004 — supplier cars, not own vehicles. |
+| `AliasKind` | type | 43 | CUSTOMER \| SUPPLIER \| DRIVER — what an import alias points at. |
+| `RowStatus` | type | 44 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
+| `SheetRow` | type | 46 | One parsed traffic-sheet row (Excel row number + column values). |
+| `FieldChange` | type | 74 | One old → new difference shown in the preview. |
+| `RowResult` | type | 80 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
 
 ### `backend/src/chat/chat.constants.ts`
 
@@ -1225,6 +1277,15 @@ Single source of truth for driver job scoring; replaces two drifted copies whose
 | `calcDriverScore` | function | 39 | The job score out of 100 less any complaint penalty, floored at 0. |
 | `driverScoreToEval` | function | 50 | Excellent / Good / Average / Poor for a score total. |
 | `driverScoreToMultiplier` | function | 58 | Fraction of the tariff a driver is paid for this score — the table that actually writes DriverTripFee.amount. |
+
+### `backend/src/common/utils/import-name.util.ts`
+
+Name folding and plate-digit helpers for imports.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `normalizeImportName` | function | 8 | Folds case, whitespace, tatweel and Arabic letter variants — the alias key; changing it orphans saved aliases. |
+| `plateDigits` | function | 20 | Digits of a plate or sheet car number, for matching 1389 to 'ط ق ب - 1389'. |
 
 ### `backend/src/common/utils/no-show-window.util.ts`
 
@@ -1404,10 +1465,10 @@ Staff job-update notifications/emails, dispatch-action notices, and driver/rep j
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 732 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 748 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 756 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 768 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 733 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 749 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 757 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 769 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 

@@ -4,9 +4,19 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**110 files**, **397 exported symbols**.
+**111 files**, **398 exported symbols**.
 
 ## `frontend/src/components/`
+
+### `b2b-excel-import-dialog.tsx`
+
+`frontend/src/components/b2b-excel-import-dialog.tsx` · 494 lines
+
+B2B Import-from-Excel dialog: upload, pick day(s), preview with mapping, commit, report.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `B2BExcelImportDialog` | function | 77 | Drives the traffic-sheet import steps; the server does all parsing and matching. |
 
 ### `b2b-job-import-modal.tsx`
 
@@ -1165,17 +1175,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3908 lines
+`frontend/src/lib/i18n.ts` · 3910 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3885 | Translates a key in the current locale. |
-| `getTranslator` | function | 3889 | Translator for a specific locale, outside React. |
-| `useT` | function | 3897 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3904 | The active locale id. |
+| `t` | function | 3887 | Translates a key in the current locale. |
+| `getTranslator` | function | 3891 | Translator for a specific locale, outside React. |
+| `useT` | function | 3899 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3906 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -1193,7 +1203,7 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 897 lines
+`frontend/src/lib/permission-registry.ts` · 898 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -1202,11 +1212,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 808 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 824 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 832 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 844 | Subtree, used by the master toggle. |
-| `findNode` | function | 884 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 809 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 825 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 833 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 845 | Subtree, used by the master toggle. |
+| `findNode` | function | 885 | Looks up a node by key. |
 
 ### `role-home.ts`
 

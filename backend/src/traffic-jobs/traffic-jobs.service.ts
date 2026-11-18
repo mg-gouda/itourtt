@@ -289,16 +289,8 @@ export class TrafficJobsService {
       throw new BadRequestException('Exactly one destination (airport, zone, or hotel) must be provided');
     }
 
-    // Validate customerJobId uniqueness
-    if (dto.customerJobId) {
-      const existing = await this.prisma.trafficJob.findFirst({
-        where: { customerJobId: dto.customerJobId, deletedAt: null },
-        select: { id: true },
-      });
-      if (existing) {
-        throw new BadRequestException(`Customer Job ID "${dto.customerJobId}" is already in use`);
-      }
-    }
+    // customerJobId (the B2B customer's order number) is deliberately NOT unique:
+    // one order can carry an arrival and a departure, and shuttles reuse it.
 
     const childCount = dto.childCount ?? 0;
     const paxCount = dto.adultCount + childCount;
@@ -448,16 +440,8 @@ export class TrafficJobsService {
       ? await this.resolveZoneFromFKs(destAirportId, destZoneId, destHotelId)
       : undefined;
 
-    // Validate customerJobId uniqueness on update
-    if (dto.customerJobId && dto.customerJobId !== job.customerJobId) {
-      const existing = await this.prisma.trafficJob.findFirst({
-        where: { customerJobId: dto.customerJobId, deletedAt: null, id: { not: id } },
-        select: { id: true },
-      });
-      if (existing) {
-        throw new BadRequestException(`Customer Job ID "${dto.customerJobId}" is already in use`);
-      }
-    }
+
+    // customerJobId may repeat (B2B order numbers) — no uniqueness check.
 
     // Recalculate pax if counts changed
     const adultCount = dto.adultCount ?? job.adultCount;
@@ -862,7 +846,8 @@ export class TrafficJobsService {
     return words.map((w) => w.charAt(0).toUpperCase()).join('');
   }
 
-  private async generateInternalRef(): Promise<string> {
+  /** Also used by the B2B Excel import (b2b-excel-import.service.ts). */
+  async generateInternalRef(): Promise<string> {
     const company = await this.settingsService.getCompanySettings();
     const prefix = this.deriveAbbreviation(company.companyName);
 

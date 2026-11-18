@@ -12,8 +12,7 @@ import {
   Save,
   Lock,
   X,
-  Upload,
-} from "lucide-react";
+  Upload, FileSpreadsheet } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +36,7 @@ import {
 import { LocationCombobox } from "@/components/location-combobox";
 import { SearchableCombobox } from "@/components/searchable-combobox";
 import { B2BJobImportModal } from "@/components/b2b-job-import-modal";
+import { B2BExcelImportDialog } from "@/components/b2b-excel-import-dialog";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { cn, formatDate , localDateStr, serviceDateMin } from "@/lib/utils";
@@ -248,6 +248,8 @@ export default function B2BJobPage() {
   const canB2BNotes = usePermission("traffic-jobs.b2b.form.notes");
   const canB2BStatusFilter = usePermission("traffic-jobs.b2b.table.statusFilter");
   const canB2BImport = usePermission("traffic-jobs.b2b.importJobs");
+  const canB2BExcelImport = usePermission("traffic-jobs.b2b.importExcel");
+  const [excelImportOpen, setExcelImportOpen] = useState(false);
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
@@ -1281,10 +1283,20 @@ export default function B2BJobPage() {
               </SelectContent>
             </Select>
           </div>
-          {canB2BImport && (
+          {canB2BExcelImport && (
           <Button
             variant="outline"
             className="gap-1.5 border-border ml-auto"
+            onClick={() => setExcelImportOpen(true)}
+          >
+            <FileSpreadsheet className="h-4 w-4 text-green-600" />
+            Import from Excel
+          </Button>
+          )}
+          {canB2BImport && (
+          <Button
+            variant="outline"
+            className={`gap-1.5 border-border ${canB2BExcelImport ? "" : "ml-auto"}`}
             onClick={() => setImportModalOpen(true)}
           >
             <Upload className="h-4 w-4" />
@@ -1346,6 +1358,12 @@ export default function B2BJobPage() {
           )}
         </div>
       </div>
+
+      <B2BExcelImportDialog
+        open={excelImportOpen}
+        onOpenChange={setExcelImportOpen}
+        onImported={fetchJobs}
+      />
 
       <B2BJobImportModal
         open={importModalOpen}

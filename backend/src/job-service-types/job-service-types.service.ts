@@ -13,6 +13,8 @@ export class JobServiceTypesService {
       include: {
         fromZone: { select: { id: true, name: true } },
         toZone: { select: { id: true, name: true } },
+        fromAirport: { select: { id: true, code: true, name: true } },
+        toAirport: { select: { id: true, code: true, name: true } },
       },
       orderBy: { name: 'asc' },
     });
@@ -31,10 +33,15 @@ export class JobServiceTypesService {
         fromZoneId: dto.fromZoneId ?? null,
         toZoneId: dto.toZoneId ?? null,
         isActive: dto.isActive ?? true,
+        defaultServiceType: (dto.defaultServiceType as any) ?? null,
+        fromAirportId: dto.fromAirportId ?? null,
+        toAirportId: dto.toAirportId ?? null,
       },
       include: {
         fromZone: { select: { id: true, name: true } },
         toZone: { select: { id: true, name: true } },
+        fromAirport: { select: { id: true, code: true, name: true } },
+        toAirport: { select: { id: true, code: true, name: true } },
       },
     });
   }
@@ -49,10 +56,15 @@ export class JobServiceTypesService {
         ...(dto.fromZoneId !== undefined && { fromZoneId: dto.fromZoneId }),
         ...(dto.toZoneId !== undefined && { toZoneId: dto.toZoneId }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.defaultServiceType !== undefined && { defaultServiceType: dto.defaultServiceType as any }),
+        ...(dto.fromAirportId !== undefined && { fromAirportId: dto.fromAirportId }),
+        ...(dto.toAirportId !== undefined && { toAirportId: dto.toAirportId }),
       },
       include: {
         fromZone: { select: { id: true, name: true } },
         toZone: { select: { id: true, name: true } },
+        fromAirport: { select: { id: true, code: true, name: true } },
+        toAirport: { select: { id: true, code: true, name: true } },
       },
     });
   }

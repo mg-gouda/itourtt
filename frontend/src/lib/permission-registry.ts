@@ -137,6 +137,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
             ],
           },
           { key: 'traffic-jobs.b2b.importJobs', labelKey: 'permissions.trafficJobs.b2b.importJobs', crudType: 'import' },
+          { key: 'traffic-jobs.b2b.importExcel', labelKey: 'permissions.trafficJobs.b2b.importExcel', crudType: 'import' },
         ],
       },
     ],
