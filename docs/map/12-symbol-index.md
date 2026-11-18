@@ -262,23 +262,23 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `B2bExcelImportController.saveAlias` | method | `backend/src/b2b-excel-import/b2b-excel-import.controller.ts:90` |
 | `B2BExcelImportDialog` | function | `frontend/src/components/b2b-excel-import-dialog.tsx:77` |
 | `B2bExcelImportModule` | class | `backend/src/b2b-excel-import/b2b-excel-import.module.ts:13` |
-| `B2bExcelImportService` | class | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:122` |
-| `B2bExcelImportService.commit` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:556` |
-| `B2bExcelImportService.completeJob` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:724` |
-| `B2bExcelImportService.createJob` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:627` |
-| `B2bExcelImportService.diff` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:528` |
-| `B2bExcelImportService.evaluate` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:469` |
-| `B2bExcelImportService.loadContext` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:212` |
-| `B2bExcelImportService.lookup` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:294` |
-| `B2bExcelImportService.lookups` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:765` |
-| `B2bExcelImportService.parseWorkbook` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:135` |
-| `B2bExcelImportService.preview` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:460` |
-| `B2bExcelImportService.resolveRow` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:307` |
-| `B2bExcelImportService.rowSnapshot` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:623` |
-| `B2bExcelImportService.saveAlias` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:749` |
-| `B2bExcelImportService.summarizeDates` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:447` |
-| `B2bExcelImportService.toIsoDate` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:195` |
-| `B2bExcelImportService.updateJob` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:672` |
+| `B2bExcelImportService` | class | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:123` |
+| `B2bExcelImportService.commit` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:560` |
+| `B2bExcelImportService.completeJob` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:728` |
+| `B2bExcelImportService.createJob` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:631` |
+| `B2bExcelImportService.diff` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:532` |
+| `B2bExcelImportService.evaluate` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:473` |
+| `B2bExcelImportService.loadContext` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:213` |
+| `B2bExcelImportService.lookup` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:295` |
+| `B2bExcelImportService.lookups` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:769` |
+| `B2bExcelImportService.parseWorkbook` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:136` |
+| `B2bExcelImportService.preview` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:464` |
+| `B2bExcelImportService.resolveRow` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:308` |
+| `B2bExcelImportService.rowSnapshot` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:627` |
+| `B2bExcelImportService.saveAlias` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:753` |
+| `B2bExcelImportService.summarizeDates` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:451` |
+| `B2bExcelImportService.toIsoDate` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:196` |
+| `B2bExcelImportService.updateJob` | method | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:676` |
 | `B2BJobImportModal` | function | `frontend/src/components/b2b-job-import-modal.tsx:94` |
 | `B2BJobPage` | function | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx:226` |
 | `B2CAmendBookingDto` | class | `backend/src/b2c/dto/b2c.dto.ts:40` |
@@ -1201,7 +1201,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `FeatureItem` | type | `frontend/src/lib/site-settings.ts:23` |
 | `fetchSiteSettings` | function | `frontend/src/lib/site-settings.ts:128` |
 | `Field` | function | `mobile/packages/ui/src/kit/form.tsx:7` |
-| `FieldChange` | type | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:80` |
+| `FieldChange` | type | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:81` |
 | `fieldModel` | function | `backend/src/activity-logs/activity-log-format.ts:186` |
 | `FilterBarSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:50` |
 | `FinanceController` | class | `backend/src/finance/finance.controller.ts:87` |
@@ -2742,8 +2742,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `RoutePricesService.saveCustomerCells` | method | `backend/src/job-pricing/route-prices.service.ts:46` |
 | `RoutePricesService.saveTipCells` | method | `backend/src/job-pricing/route-prices.service.ts:162` |
 | `RoutePricesService.tipGrid` | method | `backend/src/job-pricing/route-prices.service.ts:153` |
-| `RowResult` | type | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:86` |
-| `RowStatus` | type | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:50` |
+| `RowResult` | type | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:87` |
+| `RowStatus` | type | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:51` |
 
 ## S
 
@@ -2884,7 +2884,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `SheetDescription` | function | `frontend/src/components/ui/sheet.tsx:121` |
 | `SheetFooter` | function | `frontend/src/components/ui/sheet.tsx:98` |
 | `SheetHeader` | function | `frontend/src/components/ui/sheet.tsx:88` |
-| `SheetRow` | type | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:52` |
+| `SheetRow` | type | `backend/src/b2b-excel-import/b2b-excel-import.service.ts:53` |
 | `SheetTitle` | function | `frontend/src/components/ui/sheet.tsx:108` |
 | `SheetTrigger` | function | `frontend/src/components/ui/sheet.tsx:13` |
 | `showDialog` | function | `mobile/packages/shared/src/utils/dialog.ts:40` |

@@ -166,28 +166,28 @@ B2B Import-from-Excel endpoints; every call uploads the sheet itself. Excluded f
 
 ### B2bExcelImportService
 
-`backend/src/b2b-excel-import/b2b-excel-import.service.ts:122` · service · 16 methods
+`backend/src/b2b-excel-import/b2b-excel-import.service.ts:123` · service · 16 methods
 
 Parses the traffic sheet, resolves each row to route/customer/car/carrier, diffs against existing jobs and writes them.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `parseWorkbook` | pub | 135 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
-| `toIsoDate` | priv | 195 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
-| `loadContext` | priv | 212 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
-| `lookup` | priv | 294 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
-| `resolveRow` | priv | 307 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
-| `summarizeDates` | pub | 447 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
-| `preview` | pub | 460 | — | Date summary of the file, plus evaluated rows for the requested dates. |
-| `evaluate` | priv | 469 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
-| `diff` | priv | 528 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
-| `commit` | pub | 556 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
-| `rowSnapshot` | priv | 623 | — | The sheet values of a row as stored in the Activity Log. |
-| `createJob` | priv | 627 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
-| `updateJob` | priv | 672 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
-| `completeJob` | priv | 724 | `trafficJob` `trafficAssignment` | Completes an imported job: closes every assigned leg, runs reconcileJobStatus (fees), sets COMPLETED directly for supplier-only jobs; never touches CANCELLED/NO_SHOW. |
-| `saveAlias` | pub | 749 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
-| `lookups` | pub | 765 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
+| `parseWorkbook` | pub | 136 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
+| `toIsoDate` | priv | 196 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
+| `loadContext` | priv | 213 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
+| `lookup` | priv | 295 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
+| `resolveRow` | priv | 308 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
+| `summarizeDates` | pub | 451 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
+| `preview` | pub | 464 | — | Date summary of the file, plus evaluated rows for the requested dates. |
+| `evaluate` | priv | 473 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
+| `diff` | priv | 532 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
+| `commit` | pub | 560 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
+| `rowSnapshot` | priv | 627 | — | The sheet values of a row as stored in the Activity Log. |
+| `createJob` | priv | 631 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
+| `updateJob` | priv | 676 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
+| `completeJob` | priv | 728 | `trafficJob` `trafficAssignment` | Completes an imported job: closes every assigned leg, runs reconcileJobStatus (fees), sets COMPLETED directly for supplier-only jobs; never touches CANCELLED/NO_SHOW. |
+| `saveAlias` | pub | 753 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
+| `lookups` | pub | 769 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
 
 ## `chat`
 
@@ -1232,10 +1232,10 @@ Traffic sheet → B2B jobs: parsing, matching, re-upload diff and commit. Rules 
 |---|---|---|---|
 | `SUPPLIER_CAR_NUMBERS` | const | 35 | Sheet car numbers 2000–2004 — supplier cars, not own vehicles. |
 | `AliasKind` | type | 49 | CUSTOMER \| SUPPLIER \| DRIVER — what an import alias points at. |
-| `RowStatus` | type | 50 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
-| `SheetRow` | type | 52 | One parsed traffic-sheet row (Excel row number + column values). |
-| `FieldChange` | type | 80 | One old → new difference shown in the preview. |
-| `RowResult` | type | 86 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
+| `RowStatus` | type | 51 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
+| `SheetRow` | type | 53 | One parsed traffic-sheet row (Excel row number + column values). |
+| `FieldChange` | type | 81 | One old → new difference shown in the preview. |
+| `RowResult` | type | 87 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
 
 ### `backend/src/chat/chat.constants.ts`
 

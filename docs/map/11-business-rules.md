@@ -572,7 +572,9 @@ traffic team's daily sheet: one sheet row = one B2B job. Rules agreed with the o
 - **Remembered aliases.** Names are compared through `common/utils/import-name.util.ts ›
   normalizeImportName` (case, spaces, أ/إ/آ, ى, ة, tatweel). An unmatched name can be mapped in the
   preview; that writes an `ImportNameAlias` (kind + normalised name → record id) used by every later
-  import. Changing the normaliser orphans saved aliases.
+  import. Changing the normaliser orphans saved aliases. A car number that matches several plates
+  is settled by a **VEHICLE** alias (normalised car number → vehicle id; e.g. 9863 → "9863-ه ن ط",
+  set 2026-11-19).
 - **Past service dates are allowed here, and only here** — the import writes jobs directly, so the
   `isPastServiceDate` guard in `traffic-jobs.service.ts › create` and the dispatcher 48h lock do not
   apply. No driver push / WhatsApp is sent for imported jobs.

@@ -47,6 +47,7 @@ const CAR_CATEGORY_TO_VEHICLE_TYPE: Record<string, string> = {
 };
 
 export type AliasKind = 'CUSTOMER' | 'SUPPLIER' | 'DRIVER';
+// Also stored in import_name_aliases: VEHICLE (sheet car number → vehicle id) and ROUTE (sheet spelling → route code).
 export type RowStatus = 'NEW' | 'CHANGED' | 'UNCHANGED' | 'SKIPPED';
 
 export interface SheetRow {
@@ -370,7 +371,10 @@ export class B2bExcelImportService {
 
     if (!carNo) skip('Car number is empty');
     else if (source === 'OWN') {
-      const all = ctx.vehiclesByDigits.get(carNo) || [];
+      // A remembered VEHICLE alias (sheet car number → one vehicle) settles a number that
+      // matches several plates, e.g. 9863 → "9863-ه ن ط" rather than "ه ن ج - 9863".
+      const aliased = ctx.aliases.get(`VEHICLE|${carNo}`);
+      const all = aliased && ctx.vehicleById.has(aliased) ? [ctx.vehicleById.get(aliased)] : ctx.vehiclesByDigits.get(carNo) || [];
       const active = all.filter((v) => v.isActive);
       const pool = active.length > 0 ? active : all;
       if (pool.length === 0) skip(`Car ${row.carNo} not found in vehicles`);
