@@ -1,4 +1,4 @@
-import { SupplierCostingService } from '../supplier-price-lists/supplier-costing.service.js';
+import { JobPricingService } from '../job-pricing/job-pricing.service.js';
 import {
   Injectable,
   NotFoundException,
@@ -30,7 +30,7 @@ export class DispatchService {
     private readonly notificationsService: NotificationsService,
     private readonly whatsappService: WhatsappNotificationsService,
     private readonly b2cService: B2CService,
-    private readonly supplierCosting: SupplierCostingService,
+    private readonly jobPricing: JobPricingService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -340,8 +340,8 @@ export class DispatchService {
       return created;
     });
 
-    // Supplier cars are costed from the supplier's price list (route × car type).
-    await this.supplierCosting.syncJobCost(dto.trafficJobId);
+    // Supplier cost + customer price from the price lists (route × car type).
+    await this.jobPricing.syncJob(dto.trafficJobId);
 
     // Push notifications (fire-and-forget)
     if (assignment.driverId) {
@@ -680,8 +680,8 @@ export class DispatchService {
       return result;
     });
 
-    // Supplier cars are costed from the supplier's price list (route × car type).
-    await this.supplierCosting.syncJobCost(updated.trafficJobId);
+    // Supplier cost + customer price from the price lists (route × car type).
+    await this.jobPricing.syncJob(updated.trafficJobId);
 
     // Whoever was swapped out is told they are off the job.
     const swappedDriver =
@@ -787,8 +787,8 @@ export class DispatchService {
       });
     });
 
-    // No assignment → no supplier car → the unposted price-list cost goes.
-    await this.supplierCosting.syncJobCost(assignment.trafficJobId);
+    // No assignment → the unposted supplier cost goes; the customer price falls back to the requested car type.
+    await this.jobPricing.syncJob(assignment.trafficJobId);
 
     // The people taken off the job are told (portal notification + push).
     this.notificationsService

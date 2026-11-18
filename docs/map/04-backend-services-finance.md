@@ -190,37 +190,37 @@ Finance surface: fees, invoices (agent, customer and B2C), payments, collections
 
 ### FinanceService
 
-`backend/src/finance/finance.service.ts:23` · service · 25 methods
+`backend/src/finance/finance.service.ts:24` · service · 25 methods
 
 Fees, invoices, payments and collections. Two invoice families share the `AgentInvoice` table: agent invoices (ONLINE channel) and customer invoices (B2B), each with its own numbering. Tax follows Egyptian law; there is no commission logic anywhere.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `createDriverFee` | pub | 35 | `trafficJob` `driver` `driverTripFee` | Manually records a driver trip fee (the automatic path is `resolveJobTripFee` via the completion roll-up). |
-| `createRepFee` | pub | 87 | `trafficJob` `rep` `repFee` | Manually records a rep fee. Reps are paid only for completed jobs. |
-| `getRepDailyFees` | pub | 136 | `rep` `repFee` | A rep's fees per day, for the accounting screen. |
-| `createSupplierCost` | pub | 187 | `trafficJob` `supplier` `supplierCost` | Records what we owe a supplier for a job — the vendor-bill side. |
-| `checkAgentCreditLimit` | priv | 230 | `agentCreditTerms` `agentInvoice` | Blocks or warns when a new invoice would push an agent past their credit limit or credit days. |
-| `calculateLineTax` | priv | 265 | — | Per-line tax under Egyptian tax rules. |
-| `calculateInvoiceTotals` | priv | 279 | — | Rolls lines into net, tax and gross totals. |
-| `generateInvoiceNumber` | priv | 301 | — | Allocates the next agent invoice number. |
-| `createInvoice` | pub | 310 | `agent` `trafficJob` `agentInvoice` | Builds an agent invoice from selected jobs, applying the agent price list and credit check. |
-| `getInvoice` | pub | 428 | `agentInvoice` | One invoice with its lines and payments. |
-| `updateInvoiceLines` | pub | 459 | `agentInvoice` `invoiceLine` `adjustmentsService.releaseFromInvoice` | Edits invoice lines — only valid while the invoice is unposted; posted financial records are immutable. |
-| `updateInvoiceStatus` | pub | 534 | `agentInvoice` | Moves an invoice through its lifecycle (draft → posted → paid). Posting is the point after which it must not change. |
-| `listInvoices` | pub | 577 | `agentInvoice` | Filterable invoice list. |
-| `createPayment` | pub | 631 | `agentInvoice` `payment` | Records a payment against an invoice, with its exchange rate stored on the transaction. |
-| `getJobFinancials` | pub | 707 | `trafficJob` `driverTripFee` `repFee` `supplierCost` `invoiceLine` | Everything financial attached to one job: driver fee, rep fee, supplier cost and invoice lines — the per-job P&L view. |
-| `generateCustomerInvoiceNumber` | priv | 762 | — | Allocates the next customer (B2B) invoice number, a separate sequence from agent invoices. |
-| `generateCustomerInvoices` | pub | 772 | `customer` `trafficJob` `customerPriceItem` `agentInvoice` | Batch-generates B2B invoices from completed jobs priced off each customer's price list. |
-| `getCustomerInvoice` | pub | 976 | `agentInvoice` | One customer invoice. |
-| `listCustomerInvoices` | pub | 994 | `agentInvoice` | Filterable customer invoice list. |
-| `getAgentOptions` | pub | 1036 | `agent` | Agents available for invoicing, for the picker. |
-| `getCustomerOptions` | pub | 1052 | `customer` | Customers available for invoicing. |
-| `getCustomerJobsForInvoice` | pub | 1066 | `customer` `trafficJob` `customerPriceItem` | Uninvoiced customer jobs with their resolved prices, ready to select. |
-| `getAgentJobsForInvoice` | pub | 1134 | `agent` `trafficJob` `agentPriceItem` | Uninvoiced agent jobs with their resolved prices. |
-| `getCollections` | pub | 1213 | `trafficJob` | Cash collections drivers have taken on jobs, and their liquidation state. |
-| `liquidateCollection` | pub | 1251 | `trafficJob` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
+| `createDriverFee` | pub | 37 | `trafficJob` `driver` `driverTripFee` | Manually records a driver trip fee (the automatic path is `resolveJobTripFee` via the completion roll-up). |
+| `createRepFee` | pub | 89 | `trafficJob` `rep` `repFee` | Manually records a rep fee. Reps are paid only for completed jobs. |
+| `getRepDailyFees` | pub | 138 | `rep` `repFee` | A rep's fees per day, for the accounting screen. |
+| `createSupplierCost` | pub | 189 | `trafficJob` `supplier` `supplierCost` | Records what we owe a supplier for a job — the vendor-bill side. |
+| `checkAgentCreditLimit` | priv | 232 | `agentCreditTerms` `agentInvoice` | Blocks or warns when a new invoice would push an agent past their credit limit or credit days. |
+| `calculateLineTax` | priv | 267 | — | Per-line tax under Egyptian tax rules. |
+| `calculateInvoiceTotals` | priv | 281 | — | Rolls lines into net, tax and gross totals. |
+| `generateInvoiceNumber` | priv | 303 | — | Allocates the next agent invoice number. |
+| `createInvoice` | pub | 312 | `agent` `trafficJob` `agentInvoice` | Builds an agent invoice from selected jobs, applying the agent price list and credit check. |
+| `getInvoice` | pub | 430 | `agentInvoice` | One invoice with its lines and payments. |
+| `updateInvoiceLines` | pub | 461 | `agentInvoice` `invoiceLine` `adjustmentsService.releaseFromInvoice` | Edits invoice lines — only valid while the invoice is unposted; posted financial records are immutable. |
+| `updateInvoiceStatus` | pub | 536 | `agentInvoice` | Moves an invoice through its lifecycle (draft → posted → paid). Posting is the point after which it must not change. |
+| `listInvoices` | pub | 579 | `agentInvoice` | Filterable invoice list. |
+| `createPayment` | pub | 633 | `agentInvoice` `payment` | Records a payment against an invoice, with its exchange rate stored on the transaction. |
+| `getJobFinancials` | pub | 709 | `trafficJob` `driverTripFee` `repFee` `supplierCost` `invoiceLine` | Everything financial attached to one job: driver fee, rep fee, supplier cost and invoice lines — the per-job P&L view. |
+| `generateCustomerInvoiceNumber` | priv | 764 | — | Allocates the next customer (B2B) invoice number, a separate sequence from agent invoices. |
+| `generateCustomerInvoices` | pub | 774 | `customer` `trafficJob` `agentInvoice` | Batch-generates B2B invoices from completed jobs priced off each customer's price list. |
+| `getCustomerInvoice` | pub | 965 | `agentInvoice` | One customer invoice. |
+| `listCustomerInvoices` | pub | 983 | `agentInvoice` | Filterable customer invoice list. |
+| `getAgentOptions` | pub | 1025 | `agent` | Agents available for invoicing, for the picker. |
+| `getCustomerOptions` | pub | 1041 | `customer` | Customers available for invoicing. |
+| `getCustomerJobsForInvoice` | pub | 1055 | `customer` `trafficJob` | Uninvoiced customer jobs with their resolved prices, ready to select. |
+| `getAgentJobsForInvoice` | pub | 1103 | `agent` `trafficJob` `agentPriceItem` | Uninvoiced agent jobs with their resolved prices. |
+| `getCollections` | pub | 1182 | `trafficJob` | Cash collections drivers have taken on jobs, and their liquidation state. |
+| `liquidateCollection` | pub | 1220 | `trafficJob` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
 
 ### InvoiceExportService
 

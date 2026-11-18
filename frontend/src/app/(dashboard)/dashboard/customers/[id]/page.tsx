@@ -11,7 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PriceListGrid, PriceGridItem, PriceGridVehicleType } from "@/components/price-list-grid";
+import { RoutePriceGrid, RoutePriceGridData, RoutePriceCellEdit, downloadXlsx } from "@/components/route-price-grid";
+import { usePermission } from "@/hooks/use-permission";
+import { Download, Upload } from "lucide-react";
 import { ImportTemplateManager } from "@/components/import-template-manager";
 import api from "@/lib/api";
 import { toast } from "sonner";
@@ -34,12 +36,6 @@ interface Customer {
   isActive: boolean;
 }
 
-interface VehicleType {
-  id: string;
-  name: string;
-  seatCapacity: number;
-}
-
 export default function CustomerDetailPage({
   params,
 }: {
@@ -49,9 +45,11 @@ export default function CustomerDetailPage({
   const router = useRouter();
   const locale = useLocaleId();
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [priceItems, setPriceItems] = useState<PriceGridItem[]>([]);
+  const [priceGrid, setPriceGrid] = useState<RoutePriceGridData | null>(null);
+  const [tipGrid, setTipGrid] = useState<RoutePriceGridData | null>(null);
+  const canEditPrices = usePermission("customers.detail.priceList.editPrice");
+  const canImportPrices = usePermission("customers.detail.priceList.import");
 
   const fetchCustomer = useCallback(async () => {
     try {
@@ -65,105 +63,61 @@ export default function CustomerDetailPage({
     }
   }, [resolvedParams.id, router]);
 
-  const fetchVehicleTypes = useCallback(async () => {
-    try {
-      const res = await api.get<VehicleType[]>("/vehicles/types");
-      const types = Array.isArray(res.data) ? res.data : [];
-      types.sort((a, b) => a.seatCapacity - b.seatCapacity);
-      setVehicleTypes(types);
-    } catch {
-      toast.error("Failed to load vehicle types");
-    }
-  }, []);
-
   const fetchPriceList = useCallback(async () => {
     try {
-      const res = await api.get<{ data: PriceGridItem[] }>(
-        `/customers/${resolvedParams.id}/price-list`
-      );
-      setPriceItems(res.data.data || []);
+      const [p, t] = await Promise.all([
+        api.get(`/route-prices/customers/${resolvedParams.id}`),
+        api.get("/route-prices/driver-tips"),
+      ]);
+      setPriceGrid(p.data.data);
+      setTipGrid(t.data.data);
     } catch {
-      toast.error("Failed to load price list");
+      toast.error("Failed to load prices");
     }
   }, [resolvedParams.id]);
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      await Promise.all([fetchCustomer(), fetchVehicleTypes(), fetchPriceList()]);
+      await Promise.all([fetchCustomer(), fetchPriceList()]);
       setLoading(false);
     }
     loadData();
-  }, [fetchCustomer, fetchVehicleTypes, fetchPriceList]);
+  }, [fetchCustomer, fetchPriceList]);
 
-  async function handleSavePriceList(
-    items: {
-      serviceType: string;
-      fromZoneId: string;
-      toZoneId: string;
-      vehicleTypeId: string;
-      price: number;
-      driverTip: number;
-    }[]
-  ) {
-    // Map price → transferPrice for the customer API
-    const mapped = items.map((item) => ({
-      serviceType: item.serviceType,
-      fromZoneId: item.fromZoneId,
-      toZoneId: item.toZoneId,
-      vehicleTypeId: item.vehicleTypeId,
-      transferPrice: item.price,
-      driverTip: item.driverTip,
-    }));
-    await api.post(`/customers/${resolvedParams.id}/price-list`, { items: mapped });
-  }
-
-  async function handleDeletePriceRoute(itemIds: string[]) {
-    await Promise.all(
-      itemIds.map((id) =>
-        api.delete(`/customers/${resolvedParams.id}/price-list/${id}`)
-      )
-    );
-  }
-
-  async function handleDownloadTemplate() {
+  async function savePrices(cells: RoutePriceCellEdit[]) {
     try {
-      const response = await api.get("/customers/price-list/template", {
-        responseType: "blob",
-      });
-      const blob = new Blob([response.data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "price-list-template.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast.success("Template downloaded");
-    } catch {
-      toast.error("Failed to download template");
+      const { data } = await api.put(`/route-prices/customers/${resolvedParams.id}`, { cells });
+      toast.success(`Saved ${data.data.saved} price(s)${data.data.cleared ? `, cleared ${data.data.cleared}` : ""}`);
+      await fetchPriceList();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || "Failed to save prices");
     }
   }
 
-  async function handleImport(file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
+  async function saveTips(cells: RoutePriceCellEdit[]) {
+    try {
+      const { data } = await api.put("/route-prices/driver-tips", { cells });
+      toast.success(`Saved ${data.data.saved} tip(s)${data.data.cleared ? `, cleared ${data.data.cleared}` : ""}`);
+      await fetchPriceList();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || "Failed to save tips");
+    }
+  }
 
-    const res = await api.post<{ data: { imported: number; errors: string[] }; message: string }>(
-      `/customers/${resolvedParams.id}/price-list/import`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
-
-    const { imported, errors } = res.data.data;
-    if (errors.length > 0) {
-      toast.warning(`Imported ${imported} items with ${errors.length} errors`);
-      errors.slice(0, 5).forEach((err) => toast.error(err));
-    } else {
-      toast.success(`Successfully imported ${imported} price items`);
+  async function importSheet(kind: "customers" | "driver-tips", file?: File) {
+    if (!file) return;
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const { data } = await api.post(`/route-prices/${kind}/import`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const r = data.data;
+      toast.success(`Imported: ${r.pricesSaved} prices set, ${r.pricesCleared} cleared`);
+      const missing = [...(r.unmatchedCustomers ?? []).map((u: any) => `customer "${u.name}"`), ...(r.unmatchedOperations ?? []).map((u: any) => u.operation)];
+      if (missing.length) toast.warning(`Not matched: ${missing.join(", ")}`, { duration: 20000 });
+      await fetchPriceList();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || "Import failed");
     }
   }
 
@@ -299,17 +253,42 @@ export default function CustomerDetailPage({
           </Card>
         </TabsContent>
 
-        <TabsContent value="prices" className="space-y-4">
-          <PriceListGrid
-            items={priceItems}
-            vehicleTypes={vehicleTypes as PriceGridVehicleType[]}
-            priceFieldName="transferPrice"
-            onSave={handleSavePriceList}
-            onDeleteRoute={handleDeletePriceRoute}
-            onDownloadTemplate={handleDownloadTemplate}
-            onImport={handleImport}
-            onRefresh={fetchPriceList}
-          />
+        <TabsContent value="prices" className="space-y-6">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-semibold">Transfer prices (route × car type)</h3>
+              <span className="text-xs text-muted-foreground">B2B jobs for this customer are priced from this grid automatically.</span>
+              <div className="ml-auto flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => downloadXlsx(() => api.get("/route-prices/customers/export", { responseType: "blob" }), "customer-prices.xlsx")}>
+                  <Download className="h-4 w-4 mr-1.5" />Export all customers
+                </Button>
+                {canImportPrices && (
+                  <label className="inline-flex">
+                    <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => importSheet("customers", e.target.files?.[0])} />
+                    <span className="inline-flex h-8 cursor-pointer items-center rounded-md border px-3 text-sm"><Upload className="h-4 w-4 mr-1.5" />Import Customer Price List</span>
+                  </label>
+                )}
+              </div>
+            </div>
+            {priceGrid && <RoutePriceGrid data={priceGrid} canEdit={canEditPrices} onSave={savePrices} />}
+          </div>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-semibold">Driver tips (same for all customers)</h3>
+              <div className="ml-auto flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => downloadXlsx(() => api.get("/route-prices/driver-tips/export", { responseType: "blob" }), "driver-tips.xlsx")}>
+                  <Download className="h-4 w-4 mr-1.5" />Export
+                </Button>
+                {canImportPrices && (
+                  <label className="inline-flex">
+                    <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => importSheet("driver-tips", e.target.files?.[0])} />
+                    <span className="inline-flex h-8 cursor-pointer items-center rounded-md border px-3 text-sm"><Upload className="h-4 w-4 mr-1.5" />Import Driver Tips</span>
+                  </label>
+                )}
+              </div>
+            </div>
+            {tipGrid && <RoutePriceGrid data={tipGrid} canEdit={canEditPrices} onSave={saveTips} emptyHint="empty cell = no tip" />}
+          </div>
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4">

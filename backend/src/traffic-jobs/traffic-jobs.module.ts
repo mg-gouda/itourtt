@@ -7,10 +7,10 @@ import { SettingsModule } from '../settings/settings.module.js';
 import { DriverTariffsModule } from '../driver-tariffs/driver-tariffs.module.js';
 import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 import { JobCompletionModule } from '../common/services/job-completion.module.js';
-import { SupplierPriceListsModule } from '../supplier-price-lists/supplier-price-lists.module.js';
+import { JobPricingModule } from '../job-pricing/job-pricing.module.js';
 
 @Module({
-  imports: [NotificationsModule, WhatsappNotificationsModule, SettingsModule, DriverTariffsModule, GoogleDriveModule, JobCompletionModule, SupplierPriceListsModule],
+  imports: [NotificationsModule, WhatsappNotificationsModule, SettingsModule, DriverTariffsModule, GoogleDriveModule, JobCompletionModule, JobPricingModule],
   controllers: [TrafficJobsController],
   providers: [TrafficJobsService],
   exports: [TrafficJobsService],

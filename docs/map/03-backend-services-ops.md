@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**26 classes**, **401 methods**.
+**26 classes**, **390 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -70,52 +70,41 @@ Agents (the ONLINE booking channel counterparties): legal profile, credit terms,
 
 ### CustomersController
 
-`backend/src/customers/customers.controller.ts:39` · controller · 15 methods
+`backend/src/customers/customers.controller.ts:38` · controller · 10 methods
 
 REST surface for B2B customers: profile CRUD, price lists, import templates and Excel pipelines.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 44 | `customersService.findAll` | Customer list (Active/Inactive tabs). |
-| `exportExcel` | pub | 52 | `customersService.exportToExcel` | Downloads customers as xlsx. |
-| `downloadTemplate` | pub | 66 | `customersService.generateImportTemplate` | Blank customer import workbook. |
-| `importExcel` | pub | 80 | `customersService.importFromExcel` | Multipart bulk customer import. |
-| `findOne` | pub | 93 | `customersService.findOne` | One customer's detail. |
-| `create` | pub | 101 | `customersService.create` | Creates a customer. |
-| `update` | pub | 109 | `customersService.update` | Edits a customer. |
-| `toggleStatus` | pub | 120 | `customersService.toggleStatus` | Activates/deactivates a customer. |
-| `bulkDelete` | pub | 128 | `customersService.bulkDelete` | Soft-deletes several customers. |
-| `remove` | pub | 136 | `customersService.remove` | Soft-deletes a customer. |
-| `getPriceList` | pub | 145 | `customersService.getPriceList` | The customer's price grid. |
-| `upsertPriceItems` | pub | 153 | `customersService.upsertPriceItems` | Bulk-saves the customer price grid. |
-| `deletePriceItem` | pub | 164 | `customersService.deletePriceItem` | Removes one price row. |
-| `downloadPriceListTemplate` | pub | 174 | `customersService.generatePriceListTemplate` | Blank price workbook pre-filled with real zones and vehicle types. |
-| `importPriceList` | pub | 188 | `customersService.importPriceListFromExcel` | Multipart price-grid import. |
+| `findAll` | pub | 43 | `customersService.findAll` | Customer list (Active/Inactive tabs). |
+| `exportExcel` | pub | 51 | `customersService.exportToExcel` | Downloads customers as xlsx. |
+| `downloadTemplate` | pub | 65 | `customersService.generateImportTemplate` | Blank customer import workbook. |
+| `importExcel` | pub | 79 | `customersService.importFromExcel` | Multipart bulk customer import. |
+| `findOne` | pub | 92 | `customersService.findOne` | One customer's detail. |
+| `create` | pub | 100 | `customersService.create` | Creates a customer. |
+| `update` | pub | 108 | `customersService.update` | Edits a customer. |
+| `toggleStatus` | pub | 119 | `customersService.toggleStatus` | Activates/deactivates a customer. |
+| `bulkDelete` | pub | 127 | `customersService.bulkDelete` | Soft-deletes several customers. |
+| `remove` | pub | 135 | `customersService.remove` | Soft-deletes a customer. |
 
 ### CustomersService
 
-`backend/src/customers/customers.service.ts:18` · service · 16 methods
+`backend/src/customers/customers.service.ts:17` · service · 10 methods
 
 Customers (the B2B booking channel counterparties) and their price lists. Also owns `getPriceForJob`, which resolves what a specific job should cost that customer.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 21 | `customer` | Customer list, split Active/Inactive. |
-| `findOne` | pub | 47 | `customer` | One customer with prices and import templates. |
-| `create` | pub | 59 | `customer` | Creates a customer. |
-| `update` | pub | 78 | `customer` | Edits customer details. |
-| `toggleStatus` | pub | 100 | `customer` | Activates/deactivates a customer. |
-| `remove` | pub | 109 | `customer` | Soft-deletes a customer. |
-| `bulkDelete` | pub | 118 | `customer` | Soft-deletes many customers. |
-| `getPriceList` | pub | 133 | `customerPriceItem` | The customer's price grid. |
-| `upsertPriceItems` | pub | 154 | `customerPriceItem` | Bulk-upserts customer price rows. |
-| `deletePriceItem` | pub | 193 | `customerPriceItem` | Removes one customer price row. |
-| `getPriceForJob` | pub | 209 | `customerPriceItem` | Resolves the price for a specific job by matching its zone pair and vehicle type against the customer's grid — the pricing lookup used when a B2B job is created. |
-| `generatePriceListTemplate` | pub | 243 | `zone` `vehicleType` | Blank price workbook pre-filled with real zones and vehicle types. |
-| `exportToExcel` | pub | 352 | `customer` | Exports customers to xlsx. |
-| `generateImportTemplate` | pub | 387 | — | Blank customer import workbook. |
-| `importFromExcel` | pub | 451 | `customer` | Bulk-imports customers. |
-| `importPriceListFromExcel` | pub | 564 | `zone` `vehicleType` | Bulk-imports a customer's price grid, resolving zone and vehicle-type names to ids. |
+| `findAll` | pub | 20 | `customer` | Customer list, split Active/Inactive. |
+| `findOne` | pub | 46 | `customer` | One customer with prices and import templates. |
+| `create` | pub | 58 | `customer` | Creates a customer. |
+| `update` | pub | 77 | `customer` | Edits customer details. |
+| `toggleStatus` | pub | 99 | `customer` | Activates/deactivates a customer. |
+| `remove` | pub | 108 | `customer` | Soft-deletes a customer. |
+| `bulkDelete` | pub | 117 | `customer` | Soft-deletes many customers. |
+| `exportToExcel` | pub | 138 | `customer` | Exports customers to xlsx. |
+| `generateImportTemplate` | pub | 173 | — | Blank customer import workbook. |
+| `importFromExcel` | pub | 237 | `customer` | Bulk-imports customers. |
 
 ## `dispatch`
 
@@ -598,16 +587,16 @@ The core job entity: creation, editing, status transitions and admin Force Contr
 | `findAll` | pub | 175 | `trafficJob` | Filterable, paginated job list backing the traffic-jobs screens. |
 | `findOne` | pub | 223 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
 | `create` | pub | 236 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
-| `update` | pub | 389 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
-| `updateStatus` | pub | 630 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
-| `forceControl` | pub | 777 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
-| `remove` | pub | 809 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
-| `uploadEvidence` | pub | 822 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
-| `deriveAbbreviation` | priv | 851 | — | Builds the reference prefix from the company name's initials. |
-| `generateInternalRef` | pub | 857 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
-| `resolveZoneFromFKs` | priv | 877 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
-| `bulkCreate` | pub | 894 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
-| `recalculateDriverFees` | pub | 916 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
+| `update` | pub | 393 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
+| `updateStatus` | pub | 640 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
+| `forceControl` | pub | 787 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
+| `remove` | pub | 819 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
+| `uploadEvidence` | pub | 832 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
+| `deriveAbbreviation` | priv | 861 | — | Builds the reference prefix from the company name's initials. |
+| `generateInternalRef` | pub | 867 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
+| `resolveZoneFromFKs` | priv | 887 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
+| `bulkCreate` | pub | 904 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
+| `recalculateDriverFees` | pub | 926 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
 
 ## `vehicles`
 
@@ -671,7 +660,7 @@ Vehicle types, the owned fleet, and per-vehicle compliance records (licences, in
 
 ## Standalone exports
 
-3 free functions, constants and types in these modules.
+2 free functions, constants and types in these modules.
 
 ### `backend/src/agents/dto/agent-price-list.dto.ts`
 
@@ -680,14 +669,6 @@ DTOs for the agent price-grid bulk save.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `ServiceTypeEnum` | type | 13 | Service types accepted on an agent price row. |
-
-### `backend/src/customers/dto/price-list.dto.ts`
-
-DTOs for the customer price-grid bulk save.
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `ServiceTypeEnum` | type | 13 | Service types accepted on a customer price row. |
 
 ### `backend/src/suppliers/dto/create-vehicle.dto.ts`
 

@@ -18,7 +18,6 @@ import type { Response } from 'express';
 import { CustomersService } from './customers.service.js';
 import { CreateCustomerDto } from './dto/create-customer.dto.js';
 import { UpdateCustomerDto } from './dto/update-customer.dto.js';
-import { BulkPriceListDto } from './dto/price-list.dto.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -140,62 +139,4 @@ export class CustomersController {
 
   // Price List Endpoints
 
-  @Get(':id/price-list')
-  @Permissions('customers.detail.priceList')
-  async getPriceList(@Param('id', ParseUUIDPipe) id: string) {
-    const priceItems = await this.customersService.getPriceList(id);
-    return new ApiResponse(priceItems);
-  }
-
-  @Post(':id/price-list')
-  @Roles('ADMIN', 'AGENT_MANAGER')
-  @Permissions('customers.detail.priceList.editPrice')
-  async upsertPriceItems(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: BulkPriceListDto,
-  ) {
-    const result = await this.customersService.upsertPriceItems(id, dto);
-    return new ApiResponse(result, 'Price list updated successfully');
-  }
-
-  @Delete(':id/price-list/:priceItemId')
-  @Roles('ADMIN', 'AGENT_MANAGER')
-  @Permissions('customers.detail.priceList.deleteRoute')
-  async deletePriceItem(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('priceItemId', ParseUUIDPipe) priceItemId: string,
-  ) {
-    const result = await this.customersService.deletePriceItem(id, priceItemId);
-    return new ApiResponse(result, 'Price item deleted successfully');
-  }
-
-  @Get('price-list/template')
-  @Permissions('customers.detail.priceList.downloadTemplate')
-  async downloadPriceListTemplate(@Res() res: Response) {
-    const buffer = await this.customersService.generatePriceListTemplate();
-    res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': 'attachment; filename="price-list-template.xlsx"',
-      'Content-Length': buffer.length,
-    });
-    res.send(buffer);
-  }
-
-  @Post(':id/price-list/import')
-  @Roles('ADMIN', 'AGENT_MANAGER')
-  @Permissions('customers.detail.priceList.import')
-  @UseInterceptors(FileInterceptor('file'))
-  async importPriceList(
-    @Param('id', ParseUUIDPipe) id: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    if (!file) {
-      return new ApiResponse({ imported: 0, errors: ['No file uploaded'] }, 'No file uploaded');
-    }
-    const result = await this.customersService.importPriceListFromExcel(id, file.buffer);
-    const message = result.errors.length > 0
-      ? `Imported ${result.imported} items with ${result.errors.length} errors`
-      : `Successfully imported ${result.imported} price items`;
-    return new ApiResponse(result, message);
-  }
 }

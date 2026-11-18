@@ -19,7 +19,7 @@
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 580 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
 | `/dashboard/complaints/analytics` | `frontend/src/app/(dashboard)/dashboard/complaints/analytics/page.tsx` | 800 | 1 | 1 | Complaint Analytics screen: filters, headline KPIs, reply-window split, monthly trend, breakdowns and the money panel. |
 | `/dashboard/customers` | `frontend/src/app/(dashboard)/dashboard/customers/page.tsx` | 1183 | 9 | 12 | B2B customer management with price grids and import templates. |
-| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 322 | 7 | — | One customer's detail, price list and stored import templates. |
+| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 301 | 8 | 2 | One customer's detail, price list and stored import templates. |
 | `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3149 | 10 | 5 | ★ The dispatch console. One window per day, ARR left and DEP right, Excel-like grid with inline editing, keyboard navigation and live conflict warnings. Assignment order is Vehicle → Driver → Rep. |
 | `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 1157 | 14 | 2 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
 | `/dashboard/driver-tracking` | `frontend/src/app/(dashboard)/dashboard/driver-tracking/page.tsx` | 9 | — | — | Driver Tracking page — map of every active driver's last-known position with name search. |
@@ -42,7 +42,7 @@
 | `/dashboard/reps` | `frontend/src/app/(dashboard)/dashboard/reps/page.tsx` | 954 | 11 | 13 | Rep management: records, zone coverage, portal accounts and fees. A rep with no zone never appears in dispatch. |
 | `/dashboard/reps/[id]` | `frontend/src/app/(dashboard)/dashboard/reps/[id]/page.tsx` | 771 | 9 | — | One rep's detail, zones and fee history. |
 | `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 578 | — | — | Theme and appearance settings. |
-| `/dashboard/supplier-price-lists` | `frontend/src/app/(dashboard)/dashboard/supplier-price-lists/page.tsx` | 278 | 8 | 1 | Supplier Price Lists page: list tabs, flags, route × car-type price grid, Excel import/export. |
+| `/dashboard/supplier-price-lists` | `frontend/src/app/(dashboard)/dashboard/supplier-price-lists/page.tsx` | 199 | 8 | 1 | Supplier Price Lists page: list tabs, flags, route × car-type price grid, Excel import/export. |
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1340 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
 | `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 244 | 3 | 1 | One supplier's detail. |
 | `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | Traffic jobs landing page with the shared filters. |
@@ -118,7 +118,8 @@
 
 **`/dashboard/customers/[id]`**
 
-- calls: `GET /customers/:x`, `GET /vehicles/types`, `GET /customers/:x/price-list`, `POST /customers/:x/price-list`, `DELETE /customers/:x/price-list/:x`, `GET /customers/price-list/template`, `POST /customers/:x/price-list/import`
+- calls: `GET /customers/:x`, `GET /route-prices/customers/:x`, `GET /route-prices/driver-tips`, `PUT /route-prices/customers/:x`, `PUT /route-prices/driver-tips`, `POST /route-prices/:x/import`, `GET /route-prices/customers/export`, `GET /route-prices/driver-tips/export`
+- perms: `customers.detail.priceList.editPrice`, `customers.detail.priceList.import`
 
 **`/dashboard/dispatch`**
 

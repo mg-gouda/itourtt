@@ -6,9 +6,10 @@ import { OdooExportService } from './odoo-export.service.js';
 import { InvoiceSchedulerService } from './invoice-scheduler.service.js';
 import { B2CModule } from '../b2c/b2c.module.js';
 import { ComplaintsModule } from '../complaints/complaints.module.js';
+import { JobPricingModule } from '../job-pricing/job-pricing.module.js';
 
 @Module({
-  imports: [B2CModule, ComplaintsModule],
+  imports: [B2CModule, ComplaintsModule, JobPricingModule],
   controllers: [FinanceController],
   providers: [FinanceService, InvoiceExportService, OdooExportService, InvoiceSchedulerService],
   exports: [FinanceService],

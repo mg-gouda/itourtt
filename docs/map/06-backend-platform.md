@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**64 classes**, **496 methods**.
+**68 classes**, **517 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -654,6 +654,65 @@ Evidence photo storage in Google Drive, with a folder per job reference. Every m
 | `testConnection` | pub | 305 | — | Admin connectivity check for the Drive settings screen. |
 | `migrateLocalFilesToDrive` | pub | 334 | — | One-off migration lifting evidence files already on the pod filesystem into Drive. |
 
+## `job-pricing`
+
+### CustomerPricingService
+
+`backend/src/job-pricing/customer-pricing.service.ts:36` · service · 2 methods
+
+Prices B2B jobs from the customer's route prices; quotes invoice transfer + tip amounts.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `syncJobPrice` | pub | 42 | `trafficJob` `customerRoutePrice` | Re-prices a B2B job unless its price is manual or it is invoiced; never throws. |
+| `quote` | pub | 81 | `trafficJob` `customerRoutePrice` `driverTipRate` | Per job: transfer = own price or route price, tip = global rate (missing → 0). |
+
+### JobPricingService
+
+`backend/src/job-pricing/job-pricing.service.ts:12` · service · 1 methods
+
+One call after every job write: supplier cost + customer price.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `syncJob` | pub | 18 | — | Runs SupplierCostingService.syncJobCost and CustomerPricingService.syncJobPrice for a job. |
+
+### RoutePricesController
+
+`backend/src/job-pricing/route-prices.controller.ts:37` · controller · 8 methods
+
+Customer route prices and the global driver-tip table: grids, save, Excel import/export.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `exportCustomers` | pub | 42 | — | All customer prices in the Customer Price List layout. |
+| `importCustomers` | pub | 49 | — | Imports a Customer Price List sheet. |
+| `customerGrid` | pub | 56 | — | A customer's route × car-type price grid. |
+| `saveCustomer` | pub | 62 | — | Saves edited customer price cells. |
+| `exportTips` | pub | 68 | — | Driver tips in the Driver Tips layout. |
+| `importTips` | pub | 75 | — | Imports a Driver Tips sheet. |
+| `tipGrid` | pub | 82 | — | The global driver-tip grid. |
+| `saveTips` | pub | 88 | — | Saves edited driver-tip cells. |
+
+### RoutePricesService
+
+`backend/src/job-pricing/route-prices.service.ts:20` · service · 10 methods
+
+Grid, save, import and export for customer route prices and driver tips.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `columns` | priv | 23 | `vehicleType` | PRICE_COLUMNS with vehicle type ids (types that exist only). |
+| `routes` | priv | 29 | `jobServiceType` | Active routes ordered by name. |
+| `customerGrid` | pub | 35 | `customer` `customerRoutePrice` | Active routes, car columns and the customer's prices. |
+| `saveCustomerCells` | pub | 46 | `customerRoutePrice` | Upserts/clears a customer's price cells in one transaction. |
+| `exportCustomerPrices` | pub | 67 | `customer` | Every customer with prices, one Customer Price List sheet. |
+| `importCustomerPrices` | pub | 97 | `vehicleType` `customer` `importNameAlias` | Imports CUST × OPERATION rows; unknown customers/operations reported; empty cell clears. |
+| `tipGrid` | pub | 153 | `driverTipRate` | Active routes, car columns and the tip amounts. |
+| `saveTipCells` | pub | 162 | `driverTipRate` | Upserts/clears driver-tip cells in one transaction. |
+| `exportTips` | pub | 182 | — | The driver-tip table as a Driver Tips sheet. |
+| `importTips` | pub | 194 | `vehicleType` | Imports OPERATION rows into the driver-tip table; H-1 ignored; empty cell clears. |
+
 ## `mobile-apps`
 
 ### MobileAppsController
@@ -941,23 +1000,23 @@ Supplier price lists CRUD, grid, prices save, Excel export/import in the Supplie
 
 ### SupplierPriceListsService
 
-`backend/src/supplier-price-lists/supplier-price-lists.service.ts:30` · service · 11 methods
+`backend/src/supplier-price-lists/supplier-price-lists.service.ts:14` · service · 11 methods
 
 CRUD, grid and Excel import/export for supplier price lists.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 33 | `supplierPriceList` | Lists with item counts and assigned suppliers. |
-| `create` | pub | 44 | `supplierPriceList` | Creates a list (name unique). |
-| `update` | pub | 57 | `supplierPriceList` | Updates name/notes/flags. |
-| `clearExclusiveFlags` | priv | 74 | `supplierPriceList` | Keeps default-for-new and own-car flags on at most one list each. |
-| `remove` | pub | 80 | `supplierPriceList` | Deletes a list with no suppliers on it. |
-| `get` | priv | 93 | `supplierPriceList` | Loads a list or 404s. |
-| `columns` | priv | 99 | `vehicleType` | PRICE_COLUMNS resolved to vehicle type ids. |
-| `grid` | pub | 105 | `jobServiceType` `supplierPriceListItem` | Active routes, car columns and the list's prices. |
-| `saveCells` | pub | 121 | `supplierPriceListItem` | Upserts / clears price cells in one transaction. |
-| `exportWorkbook` | pub | 145 | `supplierPriceList` `jobServiceType` | All lists as one Supplier R-T sheet (plus the Arabic route name). |
-| `importWorkbook` | pub | 175 | `jobServiceType` `supplierPriceList` | Imports a Supplier R-T sheet: lists by name (created if new), OPERATION by route English code, empty cell clears. |
+| `findAll` | pub | 17 | `supplierPriceList` | Lists with item counts and assigned suppliers. |
+| `create` | pub | 28 | `supplierPriceList` | Creates a list (name unique). |
+| `update` | pub | 41 | `supplierPriceList` | Updates name/notes/flags. |
+| `clearExclusiveFlags` | priv | 58 | `supplierPriceList` | Keeps default-for-new and own-car flags on at most one list each. |
+| `remove` | pub | 64 | `supplierPriceList` | Deletes a list with no suppliers on it. |
+| `get` | priv | 77 | `supplierPriceList` | Loads a list or 404s. |
+| `columns` | priv | 83 | `vehicleType` | PRICE_COLUMNS resolved to vehicle type ids. |
+| `grid` | pub | 89 | `jobServiceType` `supplierPriceListItem` | Active routes, car columns and the list's prices. |
+| `saveCells` | pub | 105 | `supplierPriceListItem` | Upserts / clears price cells in one transaction. |
+| `exportWorkbook` | pub | 129 | `supplierPriceList` `jobServiceType` | All lists as one Supplier R-T sheet (plus the Arabic route name). |
+| `importWorkbook` | pub | 156 | `vehicleType` `supplierPriceList` | Imports a Supplier R-T sheet: lists by name (created if new), OPERATION by route English code, empty cell clears. |
 
 ## `tracking`
 
@@ -1123,7 +1182,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-165 free functions, constants and types in these modules.
+173 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1360,6 +1419,20 @@ The 80-minute no-show delay, shared by both portals so drivers and reps cannot m
 | `calcRepScore` | function | 32 | Sums the weights of the flags that are set. |
 | `scoreToFeeAndEval` | function | 43 | Score → fee band: ≥90 Excellent 50 · ≥75 Good 40 · ≥61 Average 30 · else Poor 20 (EGP). |
 
+### `backend/src/common/utils/route-price-sheet.util.ts`
+
+Shared helpers for the traffic team's route × car-type price sheets (supplier lists, customer prices, driver tips).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PRICE_COLUMNS` | const | 10 | Sheet car columns → system vehicle types (Limo→Sedan, Hi Ace 7→Minivan 7, Hi Ace 15→Hi Ace, Coaster, Bus). |
+| `routeCode` | function | 19 | English half of an 'EN \| AR' route name — the sheets' OPERATION. |
+| `parsePrice` | function | 24 | Price cell → number, or null for empty/zero/text. |
+| `loadRouteIndex` | function | 35 | OPERATION → route ids by English code, with ROUTE aliases for sheet spellings. |
+| `findSheet` | function | 53 | First workbook sheet whose header row has all required headers. |
+| `priceColumnsIn` | function | 73 | PRICE_COLUMNS found in a header row, with column index and vehicle type id. |
+| `sheetBuffer` | function | 82 | One-sheet xlsx buffer from rows. |
+
 ### `backend/src/common/utils/service-date.util.ts`
 
 Cairo-calendar helpers behind the rule that a job's service date can never be in the past.
@@ -1496,6 +1569,22 @@ Google Drive evidence storage. Degrades to null (never throws) when unconfigured
 |---|---|---|---|
 | `isDriveFileId` | function | 6 | Distinguishes a Drive file id from a local `/uploads` path, so callers can serve either storage backend. |
 
+### `backend/src/job-pricing/customer-pricing.service.ts`
+
+B2B customer job prices from route × car-type prices, and invoice quotes.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PriceSyncResult` | type | 4 | Outcome of a job price sync: PRICED / NO_PRICE / MANUAL / INVOICED / NOT_B2B. |
+
+### `backend/src/job-pricing/route-prices.service.ts`
+
+Customer route prices and driver tips: grids, saves and the traffic sheets' Excel round-trip.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RoutePriceCell` | type | 8 | One route × vehicle-type price edit (null clears). |
+
 ### `backend/src/notifications/notifications.service.ts`
 
 Staff job-update notifications/emails, dispatch-action notices, and driver/rep job-change notifications with push.
@@ -1563,8 +1652,7 @@ Supplier price list management and the Supplier R-T Excel round-trip.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PRICE_COLUMNS` | const | 10 | Sheet car columns → system vehicle types (Limo→Sedan, Hi Ace 7→Minivan 7, Hi Ace 15→Hi Ace, Coaster, Bus). |
-| `PriceCell` | type | 23 | One route × vehicle-type price edit (null clears). |
+| `PriceCell` | type | 7 | One route × vehicle-type price edit (null clears). |
 
 ### `backend/src/tracking/tracking.service.ts`
 

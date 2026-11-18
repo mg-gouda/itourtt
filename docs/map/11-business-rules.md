@@ -622,6 +622,39 @@ per-route prices: ten route groups collapse onto the same zone pair with differe
   the file, a number sets the price and an empty cell clears it. Unknown lists are created; unknown
   operations are reported, not guessed.
 
+## Customer prices — what does a B2B job charge?
+
+`job-pricing/` (`customer-pricing.service.ts`, `route-prices.service.ts`; UI: the customer page's
+**Prices** tab). Replaced the zone-based `CustomerPriceItem` on 2026-11-18 (1 row in production).
+Agents (online channel) keep their own zone price lists — untouched.
+
+- **Per customer, per route × car type** — `CustomerRoutePrice`. The car type a job is priced at is
+  its own vehicle's type → else its supplier car type → else the requested vehicle type
+  (`pricedVehicleTypeId`).
+- **Automatic job price** — `CustomerPricingService.syncJobPrice` writes `TrafficJob.priceAmount`
+  (B2B only) on create, on the B2B Excel import, on dispatch assign/reassign/unassign and when the
+  route or requested car type changes. It **stops** once `priceManual` is true (someone typed a
+  price — set by `traffic-jobs.service.ts` create/update; clearing the price hands the job back) or
+  the job has any invoice line. No price for that cell → `priceAmount` is cleared, not guessed.
+  Prices that existed before 2026-11-18 were marked manual by the migration.
+- **One call per job write.** Every hook calls `JobPricingService.syncJob`, which runs the supplier
+  cost ([Supplier price lists](#supplier-price-lists--where-does-a-supplier-jobs-cost-come-from))
+  and the customer price together. Both halves guard themselves and never throw.
+- **Driver tips billed to customers are one global table** — `DriverTipRate`, same route × car-type
+  key, used by the driver-tip invoices.
+- **Invoicing** (`finance.service.ts › generateCustomerInvoices` and the invoice suggestions) reads
+  `CustomerPricingService.quote`: transfer = the job's own `priceAmount` if set, else the customer's
+  route price; tip = the global rate; missing → 0.
+- **Excel in the traffic team's layouts.** Customer prices: `CUST | OPERATION | Limo | Hi Ace 7 |
+  Hi Ace 15 | Coaster | Bus` (all customers in one file; CUST matched like the B2B import, incl.
+  remembered CUSTOMER aliases). Driver tips: `No. | OPERATION | Limo | Hi Ace 7 | Hi Ace 15 | H-1 |
+  Bus` (H-1 has no vehicle type and is ignored). For a row in the file, a number sets the price and
+  an empty cell clears it.
+- **Sheet spellings of a route** that differ from the route's English code ("ARR-QUSEIR",
+  "… 2 WAYS", "ROUND CITY TRIP…") are `ImportNameAlias` rows of kind **ROUTE** whose `targetId` is
+  the canonical route *code* (not an id — the ذهاب / عوده pair shares one code). All three sheet
+  importers resolve OPERATION through `common/utils/route-price-sheet.util.ts › loadRouteIndex`.
+
 ## References
 
 - `traffic-jobs.service.ts › generateInternalRef` — `PREFIX-nnnn`, prefix from the company initials.

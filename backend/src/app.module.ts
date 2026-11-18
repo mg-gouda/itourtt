@@ -47,6 +47,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { DriverTariffsModule } from './driver-tariffs/driver-tariffs.module.js';
 import { JobServiceTypesModule } from './job-service-types/job-service-types.module.js';
 import { B2bExcelImportModule } from './b2b-excel-import/b2b-excel-import.module.js';
+import { JobPricingModule } from './job-pricing/job-pricing.module.js';
+import { SupplierPriceListsModule } from './supplier-price-lists/supplier-price-lists.module.js';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
 import { ContactMessagesModule } from './contact-messages/contact-messages.module.js';
 import { PartnerModule } from './partner/partner.module.js';
@@ -90,6 +92,8 @@ import { PartnerModule } from './partner/partner.module.js';
     DriverTariffsModule,
     JobServiceTypesModule,
     B2bExcelImportModule,
+    SupplierPriceListsModule,
+    JobPricingModule,
     PaymentsModule,
     GuestBookingsModule,
     ComplaintsModule,

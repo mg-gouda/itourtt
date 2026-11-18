@@ -529,8 +529,6 @@ model Zone {
   driverFeesTo       DriverTripFee[]     @relation("FeeToZone")
   driverTariffsFrom  DriverPriceTariff[] @relation("TariffFromZone")
   driverTariffsTo    DriverPriceTariff[] @relation("TariffToZone")
-  customerPricesFrom CustomerPriceItem[] @relation("CustomerPriceFromZone")
-  customerPricesTo   CustomerPriceItem[] @relation("CustomerPriceToZone")
   agentPricesFrom    AgentPriceItem[]    @relation("AgentPriceFromZone")
   agentPricesTo      AgentPriceItem[]    @relation("AgentPriceToZone")
   publicPricesFrom   PublicPriceItem[]   @relation("PublicPriceFromZone")
@@ -593,7 +591,8 @@ model VehicleType {
 
   vehicles         Vehicle[]
   supplierPriceListItems SupplierPriceListItem[]
-  customerPrices   CustomerPriceItem[]
+  customerRoutePrices    CustomerRoutePrice[]
+  driverTipRates         DriverTipRate[]
   agentPrices      AgentPriceItem[]
   publicPrices     PublicPriceItem[]
   guestBookings    GuestBooking[]
@@ -905,35 +904,10 @@ model Customer {
 
   trafficJobs     TrafficJob[]
   invoices        AgentInvoice[]
-  priceItems      CustomerPriceItem[]
+  routePrices     CustomerRoutePrice[]
   importTemplates CustomerImportTemplate[]
 
   @@map("customers")
-}
-
-model CustomerPriceItem {
-  id            String      @id @default(uuid())
-  customerId    String      @map("customer_id")
-  serviceType   ServiceType @default(ARR) @map("service_type")
-  fromZoneId    String      @map("from_zone_id")
-  toZoneId      String      @map("to_zone_id")
-  vehicleTypeId String      @map("vehicle_type_id")
-  transferPrice Decimal     @map("transfer_price") @db.Decimal(15, 2)
-  driverTip     Decimal     @default(0) @map("driver_tip") @db.Decimal(15, 2)
-  currency      Currency    @default(EGP)
-  effectiveFrom DateTime?   @map("effective_from") @db.Date
-  effectiveTo   DateTime?   @map("effective_to") @db.Date
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
-
-  customer    Customer    @relation(fields: [customerId], references: [id])
-  fromZone    Zone        @relation("CustomerPriceFromZone", fields: [fromZoneId], references: [id])
-  toZone      Zone        @relation("CustomerPriceToZone", fields: [toZoneId], references: [id])
-  vehicleType VehicleType @relation(fields: [vehicleTypeId], references: [id])
-
-  @@unique([customerId, serviceType, fromZoneId, toZoneId, vehicleTypeId])
-  @@index([customerId])
-  @@map("customer_price_items")
 }
 
 // ─────────────────────────────────────────────
@@ -1327,6 +1301,9 @@ model TrafficJob {
   // Job price (final price for invoicing)
   priceAmount   Decimal?  @map("price_amount") @db.Decimal(15, 2)
   priceCurrency Currency? @default(EGP) @map("price_currency")
+  /// true once someone typed the price by hand — the customer price list then
+  /// stops re-pricing this job (CustomerPricingService.syncJobPrice).
+  priceManual   Boolean   @default(false) @map("price_manual")
 
   // Customer rep meeting fields (B2B)
   custRepName         String?   @map("cust_rep_name")
@@ -1627,6 +1604,8 @@ model JobServiceType {
   tariffs     DriverPriceTariff[]
   trafficJobs TrafficJob[]
   supplierPriceListItems SupplierPriceListItem[]
+  customerRoutePrices    CustomerRoutePrice[]
+  driverTipRates         DriverTipRate[]
 
   @@map("job_service_types")
 }
@@ -3015,4 +2994,43 @@ model SupplierPriceListItem {
   @@unique([priceListId, jobServiceTypeId, vehicleTypeId])
   @@index([jobServiceTypeId])
   @@map("supplier_price_list_items")
+}
+
+/// A B2B customer's price per route (JobServiceType) × vehicle type. Auto-fills
+/// TrafficJob.priceAmount and prices customer transfer invoices.
+model CustomerRoutePrice {
+  id               String   @id @default(uuid())
+  customerId       String   @map("customer_id")
+  jobServiceTypeId String   @map("job_service_type_id")
+  vehicleTypeId    String   @map("vehicle_type_id")
+  price            Decimal  @db.Decimal(15, 2)
+  currency         Currency @default(EGP)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  customer       Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  jobServiceType JobServiceType @relation(fields: [jobServiceTypeId], references: [id], onDelete: Cascade)
+  vehicleType    VehicleType    @relation(fields: [vehicleTypeId], references: [id])
+
+  @@unique([customerId, jobServiceTypeId, vehicleTypeId])
+  @@index([jobServiceTypeId])
+  @@map("customer_route_prices")
+}
+
+/// Driver tip billed to B2B customers (driver-tip invoices), one table for all
+/// customers, per route × vehicle type.
+model DriverTipRate {
+  id               String   @id @default(uuid())
+  jobServiceTypeId String   @map("job_service_type_id")
+  vehicleTypeId    String   @map("vehicle_type_id")
+  amount           Decimal  @db.Decimal(15, 2)
+  currency         Currency @default(EGP)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  jobServiceType JobServiceType @relation(fields: [jobServiceTypeId], references: [id], onDelete: Cascade)
+  vehicleType    VehicleType    @relation(fields: [vehicleTypeId], references: [id])
+
+  @@unique([jobServiceTypeId, vehicleTypeId])
+  @@map("driver_tip_rates")
 }

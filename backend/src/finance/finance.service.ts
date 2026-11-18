@@ -1,3 +1,4 @@
+import { CustomerPricingService } from '../job-pricing/customer-pricing.service.js';
 import {
   Injectable,
   Logger,
@@ -26,6 +27,7 @@ export class FinanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly adjustmentsService: AgentAdjustmentsService,
+    private readonly customerPricing: CustomerPricingService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -802,28 +804,15 @@ export class FinanceService {
       throw new NotFoundException('No valid traffic jobs found');
     }
 
-    const priceItems = await this.prisma.customerPriceItem.findMany({
-      where: { customerId: dto.customerId },
-    });
-
-    const priceMap = new Map<string, { transferPrice: number; driverTip: number }>();
-    for (const item of priceItems) {
-      const key = `${item.serviceType}-${item.fromZoneId}-${item.toZoneId}-${item.vehicleTypeId}`;
-      priceMap.set(key, { transferPrice: Number(item.transferPrice), driverTip: Number(item.driverTip) });
-    }
+    // Route × car-type prices (the job's own price wins) and the global driver-tip table.
+    const quotes = await this.customerPricing.quote(dto.customerId, jobs.map((j) => j.id));
 
     const transferLines: Array<{ trafficJobId: string; description: string; amount: number }> = [];
     const driverTipLines: Array<{ trafficJobId: string; description: string; amount: number }> = [];
     const pendingPriceUpdates: Array<{ id: string; price: number }> = [];
 
     for (const job of jobs) {
-      const vehicleTypeId = job.assignment?.vehicle?.vehicleTypeId;
-
-      // Try price list lookup when zone and vehicle data is available
-      let prices: { transferPrice: number; driverTip: number } | undefined;
-      if (job.fromZoneId && job.toZoneId && vehicleTypeId) {
-        prices = priceMap.get(`${job.serviceType}-${job.fromZoneId}-${job.toZoneId}-${vehicleTypeId}`);
-      }
+      const prices = quotes.get(job.id);
 
       const override = overrideMap.get(job.id);
 
@@ -1071,7 +1060,7 @@ export class FinanceService {
       throw new NotFoundException(`Customer with ID "${customerId}" not found`);
     }
 
-    const [jobs, priceItems] = await Promise.all([
+    const [jobs] = await Promise.all([
       this.prisma.trafficJob.findMany({
         where: {
           customerId,
@@ -1101,34 +1090,14 @@ export class FinanceService {
         },
         orderBy: { jobDate: 'asc' },
       }),
-      this.prisma.customerPriceItem.findMany({
-        where: { customerId },
-      }),
     ]);
 
-    // Build price map: serviceType-fromZoneId-toZoneId-vehicleTypeId → priceItem
-    const priceMap = new Map<string, typeof priceItems[0]>();
-    for (const item of priceItems) {
-      const key = `${item.serviceType}-${item.fromZoneId}-${item.toZoneId}-${item.vehicleTypeId}`;
-      priceMap.set(key, item);
-    }
-
-    return jobs.map((job: any) => {
-      const vehicleTypeId = job.assignment?.vehicle?.vehicleType?.id;
-      let suggestedTransferPrice = 0;
-      let suggestedDriverTip = 0;
-
-      if (job.fromZoneId && job.toZoneId && vehicleTypeId) {
-        const key = `${job.serviceType}-${job.fromZoneId}-${job.toZoneId}-${vehicleTypeId}`;
-        const priceItem = priceMap.get(key);
-        if (priceItem) {
-          suggestedTransferPrice = Number(priceItem.transferPrice);
-          suggestedDriverTip = Number(priceItem.driverTip);
-        }
-      }
-
-      return { ...job, suggestedTransferPrice, suggestedDriverTip };
-    });
+    const quotes = await this.customerPricing.quote(customerId, jobs.map((j: any) => j.id));
+    return jobs.map((job: any) => ({
+      ...job,
+      suggestedTransferPrice: quotes.get(job.id)?.transferPrice ?? 0,
+      suggestedDriverTip: quotes.get(job.id)?.driverTip ?? 0,
+    }));
   }
 
   async getAgentJobsForInvoice(agentId: string, dateFrom: string, dateTo: string) {

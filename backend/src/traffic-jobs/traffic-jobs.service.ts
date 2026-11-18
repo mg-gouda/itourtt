@@ -1,4 +1,4 @@
-import { SupplierCostingService } from '../supplier-price-lists/supplier-costing.service.js';
+import { JobPricingService } from '../job-pricing/job-pricing.service.js';
 import {
   Injectable,
   Logger,
@@ -41,7 +41,7 @@ export class TrafficJobsService {
     private readonly settingsService: SettingsService,
     private readonly driverTariffsService: DriverTariffsService,
     private readonly jobCompletion: JobCompletionService,
-    private readonly supplierCosting: SupplierCostingService,
+    private readonly jobPricing: JobPricingService,
   ) {}
 
   // Full include — used for findOne() detail view only
@@ -351,6 +351,7 @@ export class TrafficJobsService {
           requestedVehicleTypeId: dto.requestedVehicleTypeId ?? null,
           priceAmount: dto.priceAmount ?? null,
           priceCurrency: dto.priceCurrency as any ?? 'EGP',
+          priceManual: dto.priceAmount != null,
           custRepName: dto.custRepName ?? null,
           custRepMobile: dto.custRepMobile ?? null,
           custRepMeetingPoint: dto.custRepMeetingPoint ?? null,
@@ -379,6 +380,9 @@ export class TrafficJobsService {
 
       return job;
     });
+
+    // B2B jobs are priced from the customer's price list unless a price was typed.
+    if (result.bookingChannel === 'B2B') await this.jobPricing.syncJob(result.id);
 
     // WhatsApp booking confirmation (fire-and-forget, after transaction commits)
     this.whatsappService.triggerJobCreated(result.id).catch(() => {});
@@ -556,6 +560,8 @@ export class TrafficJobsService {
       if (dto.transferPriceCurrency !== undefined) data.transferPriceCurrency = dto.transferPriceCurrency;
       if (dto.requestedVehicleTypeId !== undefined) data.requestedVehicleTypeId = dto.requestedVehicleTypeId || null;
       if (dto.priceAmount !== undefined) data.priceAmount = dto.priceAmount ?? null;
+      // A typed price is manual; clearing it hands the job back to the price list.
+      if (dto.priceAmount !== undefined) data.priceManual = dto.priceAmount != null;
       if (dto.priceCurrency !== undefined) data.priceCurrency = dto.priceCurrency;
       if (dto.custRepName !== undefined) data.custRepName = dto.custRepName;
       if (dto.custRepMobile !== undefined) data.custRepMobile = dto.custRepMobile;
@@ -619,9 +625,13 @@ export class TrafficJobsService {
       .notifyAssigneesOfJobUpdate(job, result, userId)
       .catch((err) => this.logger.error(`Failed to notify job assignees: ${err.message}`));
 
-    // A different route can mean a different supplier price.
-    if (dto.jobServiceTypeId !== undefined && (dto.jobServiceTypeId || null) !== job.jobServiceTypeId) {
-      await this.supplierCosting.syncJobCost(id);
+    // A different route or car type can mean a different supplier cost and customer price.
+    if (
+      (dto.jobServiceTypeId !== undefined && (dto.jobServiceTypeId || null) !== job.jobServiceTypeId) ||
+      (dto.requestedVehicleTypeId !== undefined && (dto.requestedVehicleTypeId || null) !== job.requestedVehicleTypeId) ||
+      (dto.priceAmount !== undefined && dto.priceAmount === null)
+    ) {
+      await this.jobPricing.syncJob(id);
     }
 
     return result;

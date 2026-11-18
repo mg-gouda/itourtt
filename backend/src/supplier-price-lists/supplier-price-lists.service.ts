@@ -1,24 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { normalizeImportName } from '../common/utils/import-name.util.js';
-
-/**
- * Car-type columns of the traffic team's "Supplier R-T" sheet, in sheet order,
- * and the system vehicle type each one prices.
- */
-export const PRICE_COLUMNS = [
-  { header: 'Limo', vehicleType: 'Sedan' },
-  { header: 'Hi Ace 7', vehicleType: 'Minivan 7' },
-  { header: 'Hi Ace 15', vehicleType: 'Hi Ace' },
-  { header: 'Coaster', vehicleType: 'Coaster' },
-  { header: 'Bus', vehicleType: 'Bus' },
-] as const;
-
-/** English half of a route name ("ARR-HRG | وصول داخلي" → "ARR-HRG"), the sheet's OPERATION. */
-function routeCode(name: string) {
-  return name.split(' | ')[0].trim();
-}
+import {
+  PRICE_COLUMNS, findSheet, loadRouteIndex, parsePrice, priceColumnsIn, routeCode, sheetBuffer,
+} from '../common/utils/route-price-sheet.util.js';
 
 export interface PriceCell {
   jobServiceTypeId: string;
@@ -160,10 +144,7 @@ export class SupplierPriceListsService {
         rows.push(row);
       }
     }
-    const ws = XLSX.utils.json_to_sheet(rows, { header: ['Price List', 'OPERATION', ...cols.map((c) => c.header), 'Route (AR)'] });
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Supplier R-T');
-    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    return sheetBuffer(rows, ['Price List', 'OPERATION', ...cols.map((c) => c.header), 'Route (AR)'], 'Supplier R-T');
   }
 
   /**
@@ -173,35 +154,11 @@ export class SupplierPriceListsService {
    * car-type cells are authoritative: a number sets the price, an empty cell clears it.
    */
   async importWorkbook(buffer: Buffer) {
-    let wb: XLSX.WorkBook;
-    try {
-      wb = XLSX.read(buffer, { type: 'buffer' });
-    } catch {
-      throw new BadRequestException('Could not read the file');
-    }
-    let grid: any[][] | null = null;
-    let headerIdx = -1;
-    for (const n of wb.SheetNames) {
-      const g = XLSX.utils.sheet_to_json<any[]>(wb.Sheets[n], { header: 1, raw: true, defval: null });
-      const i = g.findIndex((r) => (r || []).map((c) => normalizeImportName(c)).includes('operation'));
-      if (i !== -1 && (g[i] || []).some((c) => normalizeImportName(c) === 'pricelist')) {
-        grid = g;
-        headerIdx = i;
-        break;
-      }
-    }
-    if (!grid) throw new BadRequestException('No sheet with "Price List" and "OPERATION" columns found');
-    const header = grid[headerIdx].map((c) => normalizeImportName(c));
+    const { grid, headerIdx, header } = findSheet(buffer, ['Price List', 'OPERATION']);
     const listCol = header.indexOf('pricelist');
     const opCol = header.indexOf('operation');
-    const cols = (await this.columns()).map((c) => ({ ...c, idx: header.indexOf(normalizeImportName(c.header)) })).filter((c) => c.idx !== -1 && c.vehicleTypeId);
-
-    const routes = await this.prisma.jobServiceType.findMany({ where: { isActive: true }, select: { id: true, name: true } });
-    const byCode = new Map<string, string[]>();
-    for (const r of routes) {
-      const k = normalizeImportName(routeCode(r.name));
-      byCode.set(k, [...(byCode.get(k) || []), r.id]);
-    }
+    const cols = priceColumnsIn(header, await this.prisma.vehicleType.findMany({ select: { id: true, name: true } }));
+    const routesFor = await loadRouteIndex(this.prisma);
 
     const listIds = new Map<string, string>();
     const unmatched = new Map<string, number>();
@@ -213,8 +170,8 @@ export class SupplierPriceListsService {
       const listName = String(row[listCol] ?? '').trim();
       const op = String(row[opCol] ?? '').trim();
       if (!listName || !op) continue;
-      const routeIds = byCode.get(normalizeImportName(op));
-      if (!routeIds) {
+      const routeIds = routesFor(op);
+      if (routeIds.length === 0) {
         unmatched.set(op, (unmatched.get(op) || 0) + 1);
         continue;
       }
@@ -228,9 +185,8 @@ export class SupplierPriceListsService {
       }
       const cells: PriceCell[] = [];
       for (const c of cols) {
-        const v = row[c.idx];
-        const price = typeof v === 'number' ? v : Number(String(v ?? '').replace(/[^\d.]/g, '')) || null;
-        for (const rid of routeIds) cells.push({ jobServiceTypeId: rid, vehicleTypeId: c.vehicleTypeId!, price });
+        const price = parsePrice(row[c.idx]);
+        for (const rid of routeIds) cells.push({ jobServiceTypeId: rid, vehicleTypeId: c.vehicleTypeId, price });
       }
       const r = await this.saveCells(listIds.get(listName)!, cells);
       saved += r.saved;

@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**111 files**, **397 exported symbols**.
+**112 files**, **401 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -294,6 +294,19 @@ Tap-to-navigate link component for rep/driver portal route labels.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `RouteNavLink` | function | 13 | Renders a job's origin/destination as a link opening Google Maps navigation; plain text when unresolvable; stops card click propagation. |
+
+### `route-price-grid.tsx`
+
+`frontend/src/components/route-price-grid.tsx` · 133 lines
+
+Shared editable route × car-type price grid (supplier lists, customer prices, driver tips).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RoutePriceGridData` | type | 13 | Columns, routes and prices the grid renders. |
+| `RoutePriceCellEdit` | type | 18 | An edited grid cell sent to the API (null clears). |
+| `RoutePriceGrid` | function | 26 | Searchable route rows × car-type inputs with dirty tracking and Save. |
+| `downloadXlsx` | function | 124 | Saves a blob xlsx response under a file name. |
 
 ### `searchable-combobox.tsx`
 
