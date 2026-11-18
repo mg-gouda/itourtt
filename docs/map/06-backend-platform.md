@@ -1023,7 +1023,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-146 free functions, constants and types in these modules.
+147 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1256,7 +1256,8 @@ Server-side evidence photo stamping, so the overlay cannot be forged by the clie
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `StampMeta` | type | 3 | Overlay payload for `stampEvidenceImage`, supplied by each portal's `getJobStampMeta`. |
-| `stampEvidenceImage` | function | 18 | Burns job reference, submitter name, status and timestamp into an evidence photo server-side before upload, so the stamp cannot be forged client-side. |
+| `formatStampDate` | function | 14 | Evidence stamp date line in Cairo time, e.g. "November, 18-2026  14:05:33" (built from Intl parts). |
+| `stampEvidenceImage` | function | 40 | Burns job reference, submitter name, status and timestamp into an evidence photo server-side before upload, so the stamp cannot be forged client-side. |
 
 ### `backend/src/common/utils/super-admin.util.ts`
 

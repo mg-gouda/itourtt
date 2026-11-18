@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, FlatList, StyleSheet, Text, View } from 'react-native';
 import {
+  CHAT_ANNOUNCEMENTS_ID,
   CHAT_THREAD_POLL_MS,
   chatApi,
+  clearChatNotifications,
   getColors,
   refreshChat,
   spacing,
@@ -33,7 +35,10 @@ export function AnnouncementsScreen() {
     if (AppState.currentState !== 'active') return;
     chatApi
       .markAnnouncementsRead()
-      .then(() => refreshChat())
+      .then(() => {
+        clearChatNotifications(CHAT_ANNOUNCEMENTS_ID);
+        refreshChat();
+      })
       .catch(() => {});
   }, []);
 

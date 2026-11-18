@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { t, useAuthStore, useColors, validateRole } from '@itour/shared';
+import { t, useAuthStore, useColors, validateRole, appAlert } from '@itour/shared';
 import { Icon, logoBadge } from '@itour/ui';
 import { ActionButton } from '@itour/ui';
 import { APP_VERSION } from '../lib/version';
@@ -35,7 +34,7 @@ export function LoginScreen() {
     try {
       const user = await login({ identifier: identifier.trim(), password });
       if (!validateRole(user, ['REP'])) {
-        Alert.alert(t('common.error'), t('auth.invalidRole'));
+        appAlert(t('common.error'), t('auth.invalidRole'), undefined, { tone: 'danger' });
         useAuthStore.getState().logout();
       }
     } catch {
@@ -131,7 +130,7 @@ export function LoginScreen() {
           </View>
 
           <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-            <Icon name="shield-checkmark-outline" size={14} color={colors.mutedForeground} />
+            <Icon name="code-slash-outline" size={14} color={colors.mutedForeground} />
             <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
               {t('repApp.secure')} · v{APP_VERSION}
             </Text>

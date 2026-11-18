@@ -173,8 +173,13 @@ changed or voided, so like the complaints list it never reaches the portal.
 **Display language is app-local.** `useLocaleStore` (EncryptedStorage `app_locale`) drives `t()`;
 since `t()` is not reactive, the app root keys `NavigationContainer` on the locale and restores the
 saved nav state. **Arabic is right-to-left:** `applyDirection` calls `I18nManager.forceRTL` and, when
-the direction actually changes, reloads the bundle through the native `AppRestart` module
+the direction actually changes, restarts the app through the native `AppRestart` module
 (`android/app/src/main/java/com/itour/<app>/AppRestartModule.kt`, registered in `MainApplication`).
+**It is a full process restart** (`RestartActivity` in a `:restart` process kills the main process and
+relaunches) — never `recreateReactContextInBackground()`: that in-place JS reload left the foreground
+sync service and native modules tied to the dead context, and after switching to Arabic the apps
+stopped loading data (v1.2.5 fix). `shared/utils/date.ts › addDays` is pure UTC calendar maths —
+the old local-midnight + `toISOString()` version slipped a day on Cairo-timezone phones.
 It runs at startup too, so an Arabic-language phone using the app in English is forced back to LTR.
 Directional icons (chevrons, arrows, send, log-out) mirror inside `Icon`; the day strip is pinned
 `direction: 'ltr'` and holds its days reversed, because horizontal-list offsets misbehave under RTL.
@@ -183,8 +188,37 @@ Directional icons (chevrons, arrows, send, log-out) mirror inside `Icon`; the da
 them — so the app no longer shows them on Profile.
 
 **The chat composer pads itself by the bottom safe-area inset** (threads are root-stack screens with
-no tab bar under them); the inset is dropped while the keyboard is open (`adjustResize` already lifts
-the window).
+no tab bar under them); the inset is dropped while the keyboard is open. **`adjustResize` cannot be
+trusted:** targetSdk 35 on Android 15 is forced edge-to-edge and the translucent status bar has the
+same effect on older phones, so the window does not shrink for the keyboard. `ChatThreadScreen`
+measures how far the keyboard overlaps it (`keyboardDidShow` `screenY` vs `measureInWindow`) and pads
+by exactly that (0 where the window did resize). Other screens with inputs may need the same.
+
+**Chat notifications are cleared once read.** Reading a thread / the announcements cancels its
+`chat-<id>` notification, and a `/chat/me` poll with `unreadTotal` 0 clears them all — otherwise the
+tray and launcher badge kept "unread" after the messages were read in the app.
+
+**Popups use the app's dialog, not `Alert.alert`.** Call `appAlert` / `showDialog`
+(`shared/utils/dialog.ts`); `DialogHost` (kit `AppDialog.tsx`, mounted in each `App.tsx`) renders it as
+a branded card and queues overlaps. Without a host it falls back to the native Alert (supplier/guest).
+
+**Evidence photos are camera-only** (no gallery — a picked photo could be old or not taken on site).
+`takePhoto` shrinks to the same rule as the web (`lib/compress-image.ts`): ≤1600 px, JPEG 0.82. The
+server stamp's date line reads `November, 18-2026  14:05:33` (Cairo; `stamp-image.ts › formatStampDate`).
+
+**WhatsApp needs the country code.** `openWhatsApp` runs `toWhatsAppNumber`: local Egyptian mobiles
+(`010…`, `10…`, `0020…`, `+20 010…`) become `2010…`; numbers already carrying a code are kept.
+
+**Permissions are asked together at launch** (`requestStartupPermissions`: camera, location,
+microphone, notifications), memoised per launch so the signed-in sync start awaits it instead of
+overlapping. Once, it also offers the battery-optimisation exemption — without it Doze pauses the
+foreground poller and job/chat notifications arrive late. Alerts use a HIGH-importance channel with
+sound (heads-up banners). There is still **no FCM**: notifications come from the app's own
+foreground-service poller (every 30 s), so a phone that force-stops the app or reboots gets nothing
+until the app is opened again.
+
+**The jobs header month label opens `DatePickerModal`** (kit) to jump to any date; the day strip
+and its week chevrons are unchanged.
 
 **Icons need the fonts.** `react-native-vector-icons` glyphs render as empty rectangles unless the
 app's `android/app/build.gradle` applies `fonts.gradle` (monorepo path `../../../../node_modules`).

@@ -4,13 +4,13 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**121 files**, **334 exported symbols**.
+**124 files**, **348 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
 ### `App.tsx`
 
-`mobile/apps/driver/src/App.tsx` · 123 lines
+`mobile/apps/driver/src/App.tsx` · 132 lines
 
 Driver app root — providers, theme and navigation.
 
@@ -135,7 +135,7 @@ Driver app Complaints tab.
 
 ### `EvidenceScreen.tsx`
 
-`mobile/apps/driver/src/screens/EvidenceScreen.tsx` · 274 lines
+`mobile/apps/driver/src/screens/EvidenceScreen.tsx` · 254 lines
 
 Driver evidence capture for Start (IN_PROGRESS) / COMPLETED / NO SHOW: 1–10 photos + GPS, one multipart upload.
 
@@ -156,13 +156,13 @@ Driver's completed jobs and fees earned.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 472 lines
+`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 473 lines
 
 Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 85 | Driver job detail: progress stepper, collection card, Start/Complete CTA with gates, No Show / Call / Cancel tiles, route with navigation, guest, rep & vehicle. |
+| `JobDetailScreen` | function | 86 | Driver job detail: progress stepper, collection card, Start/Complete CTA with gates, No Show / Call / Cancel tiles, route with navigation, guest, rep & vehicle. |
 
 ### `JobsListScreen.tsx`
 
@@ -176,13 +176,13 @@ Driver's jobs for a day, sorted by effective start time.
 
 ### `LoginScreen.tsx`
 
-`mobile/apps/driver/src/screens/LoginScreen.tsx` · 208 lines
+`mobile/apps/driver/src/screens/LoginScreen.tsx` · 207 lines
 
 Driver login. A 409 here means another device holds the session.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoginScreen` | function | 23 | Driver login. A 409 here means another device holds the session. |
+| `LoginScreen` | function | 22 | Driver login. A 409 here means another device holds the session. |
 
 ### `NotificationsScreen.tsx`
 
@@ -196,13 +196,13 @@ Driver's notification feed.
 
 ### `ProfileScreen.tsx`
 
-`mobile/apps/driver/src/screens/ProfileScreen.tsx` · 264 lines
+`mobile/apps/driver/src/screens/ProfileScreen.tsx` · 265 lines
 
 Driver's own profile.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ProfileScreen` | function | 29 | Driver profile: avatar hero, license + expiry, assigned vehicles, theme, notifications, sign out. |
+| `ProfileScreen` | function | 30 | Driver profile: avatar hero, license + expiry, assigned vehicles, theme, notifications, sign out. |
 
 ## `mobile/apps/guest/src/`
 
@@ -379,7 +379,7 @@ Guest booking funnel state across steps.
 
 ### `App.tsx`
 
-`mobile/apps/rep/src/App.tsx` · 123 lines
+`mobile/apps/rep/src/App.tsx` · 132 lines
 
 Rep app root.
 
@@ -494,7 +494,7 @@ Rep app Complaints tab.
 
 ### `EvidenceScreen.tsx`
 
-`mobile/apps/rep/src/screens/EvidenceScreen.tsx` · 274 lines
+`mobile/apps/rep/src/screens/EvidenceScreen.tsx` · 254 lines
 
 Rep evidence capture for IN PLACE / COMPLETED / NO SHOW: photos + up-front GPS fix, one multipart upload.
 
@@ -515,26 +515,26 @@ Rep History tab.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 493 lines
+`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 494 lines
 
 Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 79 | Rep job detail: progress stepper, next-step CTA (In Place / Complete), No Show / Flight Delay / Survey / Update / Cancel tiles, route with navigation, guest, customer rep, driver. |
+| `JobDetailScreen` | function | 80 | Rep job detail: progress stepper, next-step CTA (In Place / Complete), No Show / Flight Delay / Survey / Update / Cancel tiles, route with navigation, guest, customer rep, driver. |
 
 ### `JobFormsScreens.tsx`
 
-`mobile/apps/rep/src/screens/JobFormsScreens.tsx` · 378 lines
+`mobile/apps/rep/src/screens/JobFormsScreens.tsx` · 379 lines
 
 Rep job side-forms: flight delay, free-text update to ops, and the arrival guest survey.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `cairoWallclockToISO` | function | 26 | Cairo wall-clock date+time → UTC ISO, DST-aware without a tz library. |
-| `FlightDelayScreen` | function | 54 | Reports a new arrival time (job date or next day, HH:mm Cairo) via PATCH /rep-portal/jobs/:id/flight-delay. |
-| `JobUpdateScreen` | function | 134 | Sends a free-text note to traffic/dispatch via POST /rep-portal/jobs/:id/update. |
-| `SurveyScreen` | function | 216 | Native arrival guest survey — same fields and required set as the web GuestSurveyDialog; loads prefill or the existing survey. |
+| `cairoWallclockToISO` | function | 27 | Cairo wall-clock date+time → UTC ISO, DST-aware without a tz library. |
+| `FlightDelayScreen` | function | 55 | Reports a new arrival time (job date or next day, HH:mm Cairo) via PATCH /rep-portal/jobs/:id/flight-delay. |
+| `JobUpdateScreen` | function | 135 | Sends a free-text note to traffic/dispatch via POST /rep-portal/jobs/:id/update. |
+| `SurveyScreen` | function | 217 | Native arrival guest survey — same fields and required set as the web GuestSurveyDialog; loads prefill or the existing survey. |
 
 ### `JobsListScreen.tsx`
 
@@ -548,13 +548,13 @@ Rep Jobs tab (day list).
 
 ### `LoginScreen.tsx`
 
-`mobile/apps/rep/src/screens/LoginScreen.tsx` · 208 lines
+`mobile/apps/rep/src/screens/LoginScreen.tsx` · 207 lines
 
 Rep login. A 409 here means another device holds the session.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoginScreen` | function | 23 | Rep login. A 409 here means another device holds the session. |
+| `LoginScreen` | function | 22 | Rep login. A 409 here means another device holds the session. |
 
 ### `NotificationsScreen.tsx`
 
@@ -568,13 +568,13 @@ Rep's notification feed.
 
 ### `ProfileScreen.tsx`
 
-`mobile/apps/rep/src/screens/ProfileScreen.tsx` · 227 lines
+`mobile/apps/rep/src/screens/ProfileScreen.tsx` · 228 lines
 
 Rep's own profile.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ProfileScreen` | function | 28 | Rep profile: avatar hero, fee per flight, coverage zones, theme, notifications, sign out. |
+| `ProfileScreen` | function | 29 | Rep profile: avatar hero, fee per flight, coverage zones, theme, notifications, sign out. |
 
 ## `mobile/apps/supplier/src/`
 
@@ -794,17 +794,17 @@ Tokens and user stored in the OS keychain/keystore via react-native-encrypted-st
 
 ### `use-chat-unread.ts`
 
-`mobile/packages/shared/src/hooks/use-chat-unread.ts` · 59 lines
+`mobile/packages/shared/src/hooks/use-chat-unread.ts` · 63 lines
 
 Chat badge polling and in-app refresh signal.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CHAT_POLL_MS` | const | 6 | Badge / inbox poll interval (15 s). |
-| `CHAT_THREAD_POLL_MS` | const | 8 | Open-thread poll interval (5 s). |
-| `refreshChat` | function | 16 | Tell every chat badge / inbox to reload now (after read, or a foreground chat push). |
-| `onChatRefresh` | function | 21 | Subscribe to refreshChat() signals. |
-| `useChatMe` | function | 33 | Polls /chat/me while the app is active; also what marks messages delivered from the app. |
+| `CHAT_POLL_MS` | const | 7 | Badge / inbox poll interval (15 s). |
+| `CHAT_THREAD_POLL_MS` | const | 9 | Open-thread poll interval (5 s). |
+| `refreshChat` | function | 17 | Tell every chat badge / inbox to reload now (after read, or a foreground chat push). |
+| `onChatRefresh` | function | 22 | Subscribe to refreshChat() signals. |
+| `useChatMe` | function | 34 | Polls /chat/me while the app is active; also what marks messages delivered from the app. |
 
 ### `use-gps.ts`
 
@@ -840,7 +840,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 418 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 429 lines
 
 Arabic strings for all four apps.
 
@@ -850,14 +850,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 418 lines
+`mobile/packages/shared/src/i18n/en.ts` · 429 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 417 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 428 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -882,32 +882,36 @@ Translator and locale selection for the mobile apps.
 
 ### `background-sync.ts`
 
-`mobile/packages/shared/src/native/background-sync.ts` · 285 lines
+`mobile/packages/shared/src/native/background-sync.ts` · 385 lines
 
 Firebase-free sync: Android foreground service polling jobs/chat + tracking heartbeat, local notifications.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Portal` | type | 25 | driver \| rep. |
-| `NotificationTarget` | type | 35 | What a tapped local notification opens: job, chat thread or notifications. |
-| `setupNotifications` | function | 65 | Requests notification permission and creates the Android channels. |
-| `registerBackgroundSync` | function | 196 | Registers notifee's foreground-service task; call once from index.js. |
-| `startBackgroundSync` | function | 210 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
-| `stopBackgroundSync` | function | 246 | Stops polling and the foreground service (sign-out). |
-| `onNotificationOpen` | function | 271 | Routes taps on local notifications (incl. cold start). |
+| `Portal` | type | 28 | driver \| rep. |
+| `NotificationTarget` | type | 38 | What a tapped local notification opens: job, chat thread or notifications. |
+| `requestStartupPermissions` | function | 87 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
+| `setupNotifications` | function | 129 | Requests notification permission and creates the Android channels. |
+| `clearChatNotifications` | function | 224 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
+| `registerBackgroundSync` | function | 296 | Registers notifee's foreground-service task; call once from index.js. |
+| `startBackgroundSync` | function | 310 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
+| `stopBackgroundSync` | function | 346 | Stops polling and the foreground service (sign-out). |
+| `onNotificationOpen` | function | 371 | Routes taps on local notifications (incl. cold start). |
 
 ### `camera.ts`
 
-`mobile/packages/shared/src/native/camera.ts` · 125 lines
+`mobile/packages/shared/src/native/camera.ts` · 135 lines
 
 Camera and gallery access for evidence photos.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CapturedPhoto` | type | 4 | Camera and gallery access for evidence photos (`CapturedPhoto`). |
-| `takePhoto` | function | 36 | Camera and gallery access for evidence photos (`takePhoto`). |
-| `pickPhoto` | function | 80 | Camera and gallery access for evidence photos (`pickPhoto`). |
-| `captureOrPick` | function | 116 | Camera and gallery access for evidence photos (`captureOrPick`). |
+| `CapturedPhoto` | type | 6 | Camera and gallery access for evidence photos (`CapturedPhoto`). |
+| `PHOTO_MAX_EDGE` | const | 43 | Evidence photo longest edge (1600 px) — same rule as the web compress-image. |
+| `PHOTO_QUALITY` | const | 44 | Evidence photo JPEG quality (0.82) — same rule as the web compress-image. |
+| `takePhoto` | function | 46 | Camera and gallery access for evidence photos (`takePhoto`). |
+| `pickPhoto` | function | 90 | Camera and gallery access for evidence photos (`pickPhoto`). |
+| `captureOrPick` | function | 126 | Camera and gallery access for evidence photos (`captureOrPick`). |
 
 ### `location.ts`
 
@@ -925,29 +929,29 @@ Native location permission and one-shot position helpers.
 
 ### `navigation.ts`
 
-`mobile/packages/shared/src/native/navigation.ts` · 115 lines
+`mobile/packages/shared/src/native/navigation.ts` · 116 lines
 
 Opens Google Maps turn-by-turn navigation to a job's origin/destination from the rep/driver apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavJob` | type | 23 | Job shape the mobile navigation resolver reads (mirror of web maps-nav). |
-| `RouteEnd` | type | 38 | Which end of a job to navigate to: origin or destination. |
-| `navTarget` | function | 60 | Resolves lat,lng or search text: exact point → airport → hotel → zone → from/to zone. |
-| `googleMapsNavUrl` | function | 74 | Universal Google Maps directions link with navigation started. |
-| `openJobNavigation` | function | 89 | Android google.navigation: intent first, then the universal Google Maps link; alerts if neither opens. |
-| `canNavigate` | function | 112 | True when the job end resolves to a navigable target. |
+| `NavJob` | type | 24 | Job shape the mobile navigation resolver reads (mirror of web maps-nav). |
+| `RouteEnd` | type | 39 | Which end of a job to navigate to: origin or destination. |
+| `navTarget` | function | 61 | Resolves lat,lng or search text: exact point → airport → hotel → zone → from/to zone. |
+| `googleMapsNavUrl` | function | 75 | Universal Google Maps directions link with navigation started. |
+| `openJobNavigation` | function | 90 | Android google.navigation: intent first, then the universal Google Maps link; alerts if neither opens. |
+| `canNavigate` | function | 113 | True when the job end resolves to a navigable target. |
 
 ### `phone.ts`
 
-`mobile/packages/shared/src/native/phone.ts` · 34 lines
+`mobile/packages/shared/src/native/phone.ts` · 35 lines
 
 Opens the dialler to call a guest, driver or rep.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `callPhone` | function | 7 | Opens the dialler to call a guest, driver or rep (`callPhone`). |
-| `openDialer` | function | 28 | Opens the dialler to call a guest, driver or rep (`openDialer`). |
+| `callPhone` | function | 8 | Opens the dialler to call a guest, driver or rep (`callPhone`). |
+| `openDialer` | function | 29 | Opens the dialler to call a guest, driver or rep (`openDialer`). |
 
 ### `push-notifications.ts`
 
@@ -982,14 +986,15 @@ Native voice notes: AAC recorder and single shared player.
 
 ### `whatsapp.ts`
 
-`mobile/packages/shared/src/native/whatsapp.ts` · 41 lines
+`mobile/packages/shared/src/native/whatsapp.ts` · 71 lines
 
 Opens WhatsApp to a phone number.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `openWhatsApp` | function | 8 | Opens WhatsApp to a phone number (`openWhatsApp`). |
-| `sendJobWhatsApp` | function | 29 | Opens WhatsApp to a phone number (`sendJobWhatsApp`). |
+| `toWhatsAppNumber` | function | 11 | Normalise a phone to international digits for WhatsApp; local Egyptian mobiles get the 20 country code. |
+| `openWhatsApp` | function | 38 | Opens WhatsApp to a phone number (`openWhatsApp`). |
+| `sendJobWhatsApp` | function | 59 | Opens WhatsApp to a phone number (`sendJobWhatsApp`). |
 
 ## `mobile/packages/shared/src/theme/`
 
@@ -1140,7 +1145,7 @@ Currency formatting.
 
 ### `date.ts`
 
-`mobile/packages/shared/src/utils/date.ts` · 71 lines
+`mobile/packages/shared/src/utils/date.ts` · 74 lines
 
 Date/time helpers, formatted in Africa/Cairo to match the web app.
 
@@ -1150,11 +1155,26 @@ Date/time helpers, formatted in Africa/Cairo to match the web app.
 | `toApiDate` | function | 14 | Converts a Date to the YYYY-MM-DD the API expects. |
 | `formatTime` | function | 19 | Formats a time for display (Africa/Cairo). |
 | `today` | function | 27 | Today's date in the app's timezone. |
-| `addDays` | function | 32 | Adds days to a date. |
-| `formatTimeCairo` | function | 41 | HH:mm in Cairo time regardless of the phone's timezone. |
-| `formatDayLabel` | function | 49 | 'Tue, 17 Nov' in Cairo time. |
-| `todayCairo` | function | 56 | Today's Cairo service date as YYYY-MM-DD. |
-| `timeAgo` | function | 61 | Short relative time for feeds ('5 min ago'). |
+| `addDays` | function | 36 | Adds days to a date. |
+| `formatTimeCairo` | function | 44 | HH:mm in Cairo time regardless of the phone's timezone. |
+| `formatDayLabel` | function | 52 | 'Tue, 17 Nov' in Cairo time. |
+| `todayCairo` | function | 59 | Today's Cairo service date as YYYY-MM-DD. |
+| `timeAgo` | function | 64 | Short relative time for feeds ('5 min ago'). |
+
+### `dialog.ts`
+
+`mobile/packages/shared/src/utils/dialog.ts` · 57 lines
+
+App-styled replacement for Alert.alert: a host-registered dialog queue with native-Alert fallback.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `DialogTone` | type | 10 | Colour tone of a dialog card (primary/success/warning/danger/info/neutral). |
+| `DialogButton` | type | 12 | A dialog button: text, cancel/destructive style and onPress (Alert.alert-compatible). |
+| `DialogOptions` | type | 18 | Dialog content: title, message, buttons, tone, icon and cancelable. |
+| `registerDialogHost` | function | 33 | Called by DialogHost on mount to receive dialog requests; returns the unregister function. |
+| `showDialog` | function | 40 | Show a dialog through the mounted DialogHost, or the native Alert when none is mounted. |
+| `appAlert` | function | 49 | Drop-in for Alert.alert(title, message, buttons) plus optional tone/icon; renders via DialogHost. |
 
 ### `response.ts`
 
@@ -1376,13 +1396,13 @@ Status badge shared across the apps.
 
 ### `AnnouncementsScreen.tsx`
 
-`mobile/packages/ui/src/chat/AnnouncementsScreen.tsx` · 153 lines
+`mobile/packages/ui/src/chat/AnnouncementsScreen.tsx` · 158 lines
 
 Native announcements thread.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AnnouncementsScreen` | function | 22 | Read-only received broadcasts (inverted list, polling); marks them seen. |
+| `AnnouncementsScreen` | function | 24 | Read-only received broadcasts (inverted list, polling); marks them seen. |
 
 ### `ChatBubble.tsx`
 
@@ -1411,17 +1431,38 @@ Native chat inbox and contact picker.
 
 ### `ChatThreadScreen.tsx`
 
-`mobile/packages/ui/src/chat/ChatThreadScreen.tsx` · 551 lines
+`mobile/packages/ui/src/chat/ChatThreadScreen.tsx` · 581 lines
 
 Native 1:1 chat thread.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `DaySeparator` | function | 41 | Today / Yesterday / date chip between chat days (Cairo). |
-| `ChatImageViewer` | function | 72 | Full-screen photo modal (auth headers passed through). |
-| `ChatThreadScreen` | function | 95 | Inverted history, 5 s polling, read receipts, optimistic send of text / photo / location with retry. |
+| `DaySeparator` | function | 42 | Today / Yesterday / date chip between chat days (Cairo). |
+| `ChatImageViewer` | function | 73 | Full-screen photo modal (auth headers passed through). |
+| `ChatThreadScreen` | function | 96 | Inverted history, 5 s polling, read receipts, optimistic send of text / photo / location with retry. |
 
 ## `mobile/packages/ui/src/kit/`
+
+### `AppDialog.tsx`
+
+`mobile/packages/ui/src/kit/AppDialog.tsx` · 185 lines
+
+Branded modal card (AppModal) and the DialogHost that replaces Alert.alert popups.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AppModal` | function | 36 | The app's popup card: navy backdrop, rounded surface, springy entrance; used by dialogs and pickers. |
+| `DialogHost` | function | 97 | Mounted once in App.tsx; renders appAlert/showDialog calls as branded cards and queues overlaps. |
+
+### `DatePickerModal.tsx`
+
+`mobile/packages/ui/src/kit/DatePickerModal.tsx` · 153 lines
+
+Calendar date picker modal for the rep/driver jobs header.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `DatePickerModal` | function | 24 | Month calendar in the app popup card; tap a day to pick it (opened from the jobs header month label). |
 
 ### `Splash.tsx`
 
@@ -1435,13 +1476,13 @@ JS half of the rep/driver launch screen; continues the native navy splash and fa
 
 ### `WeekStrip.tsx`
 
-`mobile/packages/ui/src/kit/WeekStrip.tsx` · 200 lines
+`mobile/packages/ui/src/kit/WeekStrip.tsx` · 223 lines
 
 Week day-picker on the Jobs header.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `WeekStrip` | function | 44 | Seven tappable days centred on the selected date, week chevrons and a Today chip; YYYY-MM-DD in/out. |
+| `WeekStrip` | function | 45 | Seven tappable days centred on the selected date, week chevrons and a Today chip; YYYY-MM-DD in/out. |
 
 ### `form.tsx`
 
@@ -1458,13 +1499,13 @@ Shared app form controls (field, choice chips, counter).
 
 ### `index.ts`
 
-`mobile/packages/ui/src/kit/index.ts` · 11 lines
+`mobile/packages/ui/src/kit/index.ts` · 13 lines
 
 Barrel for the shared rep/driver app design kit.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `logoBadge` | const | 10 | The iTour badge PNG (packages/ui/assets) for splash and login. |
+| `logoBadge` | const | 12 | The iTour badge PNG (packages/ui/assets) for splash and login. |
 
 ### `kit.tsx`
 

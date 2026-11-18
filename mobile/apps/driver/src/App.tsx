@@ -9,7 +9,7 @@ import {
   useTheme,
   setOnAuthFailure,
   useColors,
-  requestLocationPermission,
+  requestStartupPermissions,
   setupNotifications,
   startBackgroundSync,
   stopBackgroundSync,
@@ -20,7 +20,7 @@ import {
 } from '@itour/shared';
 import { RootNavigator } from './navigation/RootNavigator';
 import { Splash } from '@itour/ui';
-import { OfflinePill } from '@itour/ui';
+import { DialogHost, OfflinePill } from '@itour/ui';
 
 /**
  * Driver app root. No Firebase: while signed in, a background sync service
@@ -50,6 +50,12 @@ export function App() {
     Promise.all([hydrate(), useThemeStore.getState().hydrate(), useLocaleStore.getState().hydrate()]).then(() => setReady(true));
   }, [hydrate]);
 
+  // First thing on launch (signed in or not): ask for every permission the
+  // app needs at once, rather than feature by feature.
+  useEffect(() => {
+    if (ready) requestStartupPermissions();
+  }, [ready]);
+
   // Signed in: permissions, then the sync service. Signed out: stop it.
   useEffect(() => {
     if (!isAuthenticated) {
@@ -58,10 +64,11 @@ export function App() {
     }
     let cancelled = false;
     (async () => {
+      // All permissions were asked up front at launch; wait for that to finish.
+      // Location matters here: it lets the service run as a location service,
+      // which keeps the tracking-map heartbeat alive in the background.
+      await requestStartupPermissions();
       await setupNotifications();
-      // Location first: it lets the service run as a location service, which
-      // keeps the tracking-map heartbeat alive with the app in the background.
-      await requestLocationPermission().catch(() => false);
       if (cancelled) return;
       await startBackgroundSync('driver', { title: t('chat.serviceTitle'), body: t('chat.serviceBody') });
     })();
@@ -116,6 +123,8 @@ export function App() {
         </NavigationContainer>
       ) : null}
       {ready ? <OfflinePill /> : null}
+      {/* Every popup (appAlert) renders here in the app's own style. */}
+      <DialogHost />
       {!splashGone ? <Splash done={ready} onHidden={hideSplash} appName="Driver" tagline={t('driverApp.appTagline')} /> : null}
     </SafeAreaProvider>
   );

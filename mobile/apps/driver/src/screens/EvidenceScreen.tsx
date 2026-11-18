@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   apiErrorMessage,
   getCurrentPosition,
-  pickPhoto,
   driverPortalApi,
   t,
   takePhoto,
@@ -13,6 +12,7 @@ import {
   useColors,
   type CapturedPhoto,
   type GPSPosition,
+  appAlert,
 } from '@itour/shared';
 import { ActivityIndicator } from 'react-native';
 import { Icon } from '@itour/ui';
@@ -31,7 +31,7 @@ const RULES: Record<EvidenceKind, { min: number; max: number; title: string; hin
 
 /**
  * Driver evidence capture for START (IN_PROGRESS), COMPLETED and NO SHOW: photos from the
- * camera (or gallery), a GPS fix taken up front and refreshed on demand, then
+ * camera only (no gallery — evidence must be taken on the spot), a GPS fix taken up front and refreshed on demand, then
  * one multipart upload.  The server stamps the photos, runs the geofence and (on COMPLETED) the collection + 15-min gates.
  */
 export function EvidenceScreen({ route, navigation }: Props) {
@@ -59,18 +59,12 @@ export function EvidenceScreen({ route, navigation }: Props) {
     locate();
   }, [locate]);
 
-  const add = async (source: 'camera' | 'gallery') => {
+  // Camera only: a gallery pick could be an old or someone else's photo.
+  // takePhoto() already shrinks to the evidence size rule (1600 px, JPEG 0.82).
+  const add = async () => {
     if (photos.length >= rules.max) return;
-    const p = source === 'camera' ? await takePhoto() : await pickPhoto();
+    const p = await takePhoto();
     if (p) setPhotos((prev) => (prev.length >= rules.max ? prev : [...prev, p]));
-  };
-
-  const chooseSource = () => {
-    Alert.alert(t('repApp.addPhoto'), undefined, [
-      { text: t('repApp.camera'), onPress: () => add('camera') },
-      { text: t('repApp.gallery'), onPress: () => add('gallery') },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
   };
 
   const missing = Math.max(0, rules.min - photos.length);
@@ -89,9 +83,9 @@ export function EvidenceScreen({ route, navigation }: Props) {
       if (kind === 'IN_PROGRESS') await driverPortalApi.submitInProgress(jobId, form);
       else if (kind === 'COMPLETED') await driverPortalApi.submitCompleted(jobId, form);
       else await driverPortalApi.submitNoShow(jobId, form);
-      Alert.alert(t('repApp.submitted'), `${jobRef} · ${t(`status.${kind}`)}`, [{ text: 'OK', onPress: () => navigation.goBack() }]);
+      appAlert(t('repApp.submitted'), `${jobRef} · ${t(`status.${kind}`)}`, [{ text: t('common.ok'), onPress: () => navigation.goBack() }], { tone: 'success' });
     } catch (err) {
-      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+      appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
     } finally {
       setSubmitting(false);
     }
@@ -175,8 +169,7 @@ export function EvidenceScreen({ route, navigation }: Props) {
           ))}
           {photos.length < rules.max ? (
             <Pressable
-              onPress={() => add('camera')}
-              onLongPress={chooseSource}
+              onPress={add}
               style={({ pressed }) => [
                 styles.addTile,
                 { width: tileSize, borderColor: colors.brandAccent, backgroundColor: colors.accent },
@@ -184,20 +177,7 @@ export function EvidenceScreen({ route, navigation }: Props) {
               ]}
             >
               <Icon name="camera" size={28} color={colors.brandAccent} />
-              <Text style={[styles.addText, { color: colors.brandAccent }]}>{t('repApp.camera')}</Text>
-            </Pressable>
-          ) : null}
-          {photos.length < rules.max ? (
-            <Pressable
-              onPress={() => add('gallery')}
-              style={({ pressed }) => [
-                styles.addTile,
-                { width: tileSize, borderColor: colors.border, backgroundColor: colors.card },
-                pressed && { opacity: 0.7 },
-              ]}
-            >
-              <Icon name="images-outline" size={26} color={colors.mutedForeground} />
-              <Text style={[styles.addText, { color: colors.mutedForeground }]}>{t('repApp.gallery')}</Text>
+              <Text style={[styles.addText, { color: colors.brandAccent }]}>{t('repApp.takePhoto')}</Text>
             </Pressable>
           ) : null}
         </View>

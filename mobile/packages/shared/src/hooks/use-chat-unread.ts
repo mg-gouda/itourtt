@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { chatApi, type ChatMe } from '../api/endpoints/chat';
+import { clearChatNotifications } from '../native/background-sync';
 
 /** How often the chat badge checks for new messages. */
 export const CHAT_POLL_MS = 15_000;
@@ -34,7 +35,10 @@ export function useChatMe() {
   const [me, setMe] = useState<ChatMe | null>(null);
   const load = useCallback(async () => {
     try {
-      setMe(await chatApi.me());
+      const next = await chatApi.me();
+      setMe(next);
+      // All read → no chat notification should still be sitting in the tray.
+      if (next.enabled && !next.unreadTotal) clearChatNotifications();
     } catch {
       /* keep last known */
     }

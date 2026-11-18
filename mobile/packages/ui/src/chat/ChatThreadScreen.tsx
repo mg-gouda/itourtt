@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   AppState,
   FlatList,
   Image,
@@ -19,6 +18,7 @@ import {
   CHAT_THREAD_POLL_MS,
   captureOrPick,
   chatApi,
+  clearChatNotifications,
   getColors,
   getCurrentPosition,
   refreshChat,
@@ -30,6 +30,7 @@ import {
   type ChatMessage,
   type ChatMessageStatus,
   type ChatThreadHeader,
+  appAlert,
 } from '@itour/shared';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from './ChatBubble';
@@ -106,9 +107,29 @@ export function ChatThreadScreen({
   // window is resized above it and the inset would only leave a gap.
   const insets = useSafeAreaInsets();
   const [keyboardUp, setKeyboardUp] = useState(false);
+  // Android 15 runs every targetSdk-35 app edge-to-edge, and the translucent
+  // status bar does the same on older phones: `adjustResize` then no longer
+  // shrinks the window, so the keyboard covered the composer. Measure how far
+  // the keyboard overlaps this screen and lift the content by exactly that much
+  // (0 on phones where the window did resize).
+  const rootRef = useRef<View>(null);
+  const [keyboardLift, setKeyboardLift] = useState(0);
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardUp(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardUp(false));
+    const show = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardUp(true);
+      if (Platform.OS !== 'android') return;
+      const keyboardTop = e.endCoordinates.screenY;
+      requestAnimationFrame(() =>
+        rootRef.current?.measureInWindow((_x, y, _w, h) => {
+          const overlap = y + h - keyboardTop;
+          setKeyboardLift(overlap > 1 ? Math.round(overlap) : 0);
+        }),
+      );
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardUp(false);
+      setKeyboardLift(0);
+    });
     return () => {
       show.remove();
       hide.remove();
@@ -133,7 +154,10 @@ export function ChatThreadScreen({
     if (AppState.currentState !== 'active') return;
     chatApi
       .markRead(conversationId)
-      .then(() => refreshChat())
+      .then(() => {
+        clearChatNotifications(conversationId);
+        refreshChat();
+      })
       .catch(() => {});
   }, [conversationId]);
 
@@ -293,7 +317,7 @@ export function ChatThreadScreen({
       setText('');
       send(local('LOCATION', { body: caption || null, latitude: pos.lat, longitude: pos.lng, accuracyM }), form);
     } catch (e) {
-      Alert.alert(t('chat.location'), (e as Error)?.message || t('chat.locationFailed'));
+      appAlert(t('chat.location'), (e as Error)?.message || t('chat.locationFailed'));
     } finally {
       setLocating(false);
     }
@@ -309,7 +333,7 @@ export function ChatThreadScreen({
   const recording = recorder.state === 'recording';
   useEffect(() => {
     if (recorder.state === 'denied') {
-      Alert.alert(t('chat.voiceNote'), t('chat.micDenied'));
+      appAlert(t('chat.voiceNote'), t('chat.micDenied'));
       recorder.reset();
     }
   }, [recorder, recorder.state, t]);
@@ -317,7 +341,7 @@ export function ChatThreadScreen({
   useEffect(() => () => stopVoicePlayback(), []);
 
   const retry = (m: ChatMessage) => {
-    Alert.alert(t('chat.notSent'), undefined, [
+    appAlert(t('chat.notSent'), undefined, [
       {
         text: t('chat.retry'),
         onPress: () => {
@@ -345,6 +369,11 @@ export function ChatThreadScreen({
   }
 
   return (
+    <View
+      ref={rootRef}
+      collapsable={false}
+      style={[styles.flex, { backgroundColor: colors.background }, keyboardLift > 0 && { paddingBottom: keyboardLift }]}
+    >
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -488,6 +517,7 @@ export function ChatThreadScreen({
 
       <ChatImageViewer image={viewer} onClose={() => setViewer(null)} />
     </KeyboardAvoidingView>
+    </View>
   );
 }
 

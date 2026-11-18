@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -13,6 +13,7 @@ import {
   useColors,
   type GuestSurveyInput,
   type GuestSurveyPayload,
+  appAlert,
 } from '@itour/shared';
 import { Icon, LoadingSpinner } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -69,16 +70,16 @@ export function FlightDelayScreen({ route, navigation }: DelayProps) {
 
   const submit = async () => {
     if (!valid) {
-      Alert.alert(t('repApp.invalidTime'));
+      appAlert(t('repApp.invalidTime'));
       return;
     }
     const [h, m] = time.split(':');
     setSending(true);
     try {
       await repPortalApi.submitFlightDelay(jobId, cairoWallclockToISO(newDate, `${h.padStart(2, '0')}:${m}`));
-      Alert.alert(t('repApp.delaySent'), jobRef, [{ text: 'OK', onPress: () => navigation.goBack() }]);
+      appAlert(t('repApp.delaySent'), jobRef, [{ text: t('common.ok'), onPress: () => navigation.goBack() }], { tone: 'success' });
     } catch (err) {
-      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+      appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
     } finally {
       setSending(false);
     }
@@ -142,9 +143,9 @@ export function JobUpdateScreen({ route, navigation }: UpdateProps) {
     setSending(true);
     try {
       await repPortalApi.submitUpdate(jobId, message.trim());
-      Alert.alert(t('repApp.updateSent'), jobRef, [{ text: 'OK', onPress: () => navigation.goBack() }]);
+      appAlert(t('repApp.updateSent'), jobRef, [{ text: t('common.ok'), onPress: () => navigation.goBack() }], { tone: 'success' });
     } catch (err) {
-      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+      appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
     } finally {
       setSending(false);
     }
@@ -274,7 +275,7 @@ export function SurveyScreen({ route, navigation }: SurveyProps) {
   const submit = async () => {
     setTried(true);
     if (!valid) {
-      Alert.alert(t('repApp.fillRequired'));
+      appAlert(t('repApp.fillRequired'));
       return;
     }
     setSaving(true);
@@ -294,9 +295,9 @@ export function SurveyScreen({ route, navigation }: SurveyProps) {
         generalComment: form.generalComment.trim(),
         contactNumber: form.contactNumber.trim(),
       });
-      Alert.alert(t('repApp.surveySent'), jobRef, [{ text: 'OK', onPress: () => navigation.goBack() }]);
+      appAlert(t('repApp.surveySent'), jobRef, [{ text: t('common.ok'), onPress: () => navigation.goBack() }], { tone: 'success' });
     } catch (err) {
-      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+      appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
     } finally {
       setSaving(false);
     }

@@ -40,6 +40,7 @@ export { useChatMe, refreshChat, onChatRefresh, CHAT_POLL_MS, CHAT_THREAD_POLL_M
 export { formatDate, toApiDate, formatTime, today, addDays, formatTimeCairo, formatDayLabel, todayCairo, timeAgo } from './utils/date';
 export { unwrapData, unwrapList, apiErrorMessage } from './utils/response';
 export { formatCurrency } from './utils/currency';
+export { appAlert, showDialog, registerDialogHost, type DialogButton, type DialogOptions, type DialogTone } from './utils/dialog';
 export { getOriginLabel, getDestinationLabel, getRouteLabel } from './utils/route';
 
 // i18n
@@ -88,5 +89,7 @@ export {
   startBackgroundSync,
   stopBackgroundSync,
   onNotificationOpen,
+  clearChatNotifications,
+  requestStartupPermissions,
 } from './native/background-sync';
 export type { NotificationTarget, Portal } from './native/background-sync';

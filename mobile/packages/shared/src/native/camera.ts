@@ -1,4 +1,6 @@
-import { Alert, Platform, PermissionsAndroid } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
+import { appAlert } from '../utils/dialog';
+import { t } from '../i18n';
 import { launchCamera, launchImageLibrary, type ImagePickerResponse, type CameraOptions, type ImageLibraryOptions } from 'react-native-image-picker';
 
 export interface CapturedPhoto {
@@ -33,10 +35,18 @@ async function requestCameraPermission(): Promise<boolean> {
  * Capture a photo using the device camera.
  * Returns the photo data or null if cancelled/failed.
  */
+/**
+ * Evidence photo size rule — the same the web portals apply before upload
+ * (frontend lib/compress-image.ts): longest edge ≤ 1600 px, JPEG quality 0.82.
+ * The server then stamps the photo (date, GPS, people, status).
+ */
+export const PHOTO_MAX_EDGE = 1600;
+export const PHOTO_QUALITY = 0.82;
+
 export async function takePhoto(options?: Partial<CameraOptions>): Promise<CapturedPhoto | null> {
   const hasPermission = await requestCameraPermission();
   if (!hasPermission) {
-    Alert.alert('Permission Required', 'Camera permission is needed to take photos.');
+    appAlert(t('repApp.cameraPermissionTitle'), t('repApp.cameraPermissionBody'), undefined, { tone: 'warning', icon: 'camera' });
     return null;
   }
 
@@ -45,9 +55,9 @@ export async function takePhoto(options?: Partial<CameraOptions>): Promise<Captu
       {
         mediaType: 'photo',
         cameraType: 'back',
-        quality: 0.8,
-        maxWidth: 1280,
-        maxHeight: 1280,
+        quality: PHOTO_QUALITY as CameraOptions['quality'],
+        maxWidth: PHOTO_MAX_EDGE,
+        maxHeight: PHOTO_MAX_EDGE,
         saveToPhotos: false,
         ...options,
       },
@@ -115,7 +125,7 @@ export async function pickPhoto(options?: Partial<ImageLibraryOptions>): Promise
  */
 export function captureOrPick(): Promise<CapturedPhoto | null> {
   return new Promise((resolve) => {
-    Alert.alert('Add Photo', 'Choose an option', [
+    appAlert('Add Photo', 'Choose an option', [
       { text: 'Camera', onPress: () => takePhoto().then(resolve) },
       { text: 'Gallery', onPress: () => pickPhoto().then(resolve) },
       { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },

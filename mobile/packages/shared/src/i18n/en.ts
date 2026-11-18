@@ -1,5 +1,6 @@
 export const en = {
   common: {
+    ok: 'OK',
     save: 'Save',
     cancel: 'Cancel',
     delete: 'Delete',
@@ -206,6 +207,16 @@ export const en = {
     audienceSTAFF: "All office staff",
   },
   repApp: {
+    batteryTitle: "Get notifications instantly",
+    batteryBody: "To receive new jobs and chat messages the moment they arrive, allow iTour to run without battery restrictions. On the next screen choose \"Allow\" / \"Don't optimise\".",
+    later: "Later",
+    allow: "Allow",
+    pickDate: 'Choose a date',
+    whatsappMissing: 'WhatsApp is not installed on this device',
+    cameraPermissionTitle: 'Camera permission needed',
+    cameraPermissionBody: 'Allow camera access to take evidence photos.',
+    takePhoto: 'Take photo',
+    cameraOnlyHint: 'Photos must be taken with the camera now.',
     goodMorning: "Good morning",
     goodAfternoon: "Good afternoon",
     goodEvening: "Good evening",
@@ -367,7 +378,7 @@ export const en = {
     appTagline: "Airport & hotel representatives",
     showPassword: "Show",
     hidePassword: "Hide",
-    secure: "Secured by iTour",
+    secure: "Developed by Mohamed Gouda",
     tabJobs: "Jobs",
     tabHistory: "History",
     tabChat: "Chat",

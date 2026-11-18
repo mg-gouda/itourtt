@@ -2,6 +2,7 @@ import type { TranslationKeys } from './en';
 
 export const ar: TranslationKeys = {
   common: {
+    ok: 'حسناً',
     save: '\u062D\u0641\u0638',
     cancel: '\u0625\u0644\u063A\u0627\u0621',
     delete: '\u062D\u0630\u0641',
@@ -208,6 +209,16 @@ export const ar: TranslationKeys = {
     audienceSTAFF: "\u062c\u0645\u064a\u0639 \u0645\u0648\u0638\u0641\u064a \u0627\u0644\u0645\u0643\u062a\u0628",
   },
   repApp: {
+    batteryTitle: "استلم الإشعارات فوراً",
+    batteryBody: "لاستلام المهام الجديدة ورسائل الدردشة فور وصولها، اسمح للتطبيق بالعمل بدون قيود البطارية. في الشاشة التالية اختر «سماح» / «عدم التحسين».",
+    later: "لاحقاً",
+    allow: "سماح",
+    pickDate: 'اختر تاريخاً',
+    whatsappMissing: 'واتساب غير مثبت على هذا الجهاز',
+    cameraPermissionTitle: 'مطلوب إذن الكاميرا',
+    cameraPermissionBody: 'اسمح بالوصول إلى الكاميرا لالتقاط صور الإثبات.',
+    takePhoto: 'التقاط صورة',
+    cameraOnlyHint: 'يجب التقاط الصور بالكاميرا الآن.',
     goodMorning: "صباح الخير",
     goodAfternoon: "مساء الخير",
     goodEvening: "مساء الخير",
@@ -369,7 +380,7 @@ export const ar: TranslationKeys = {
     appTagline: "مندوبو المطار والفنادق",
     showPassword: "إظهار",
     hidePassword: "إخفاء",
-    secure: "محمي بواسطة iTour",
+    secure: "تطوير محمد جودة",
     tabJobs: "المهام",
     tabHistory: "السجل",
     tabChat: "المحادثة",

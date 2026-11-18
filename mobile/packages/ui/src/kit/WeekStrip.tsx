@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { addDays, getLocale, isRTL, t, todayCairo, useColors } from '@itour/shared';
 import { Icon } from '../Icon';
+import { DatePickerModal } from './DatePickerModal';
 
 const DOW = {
   en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
@@ -58,6 +59,7 @@ export function WeekStrip({ date, onChange }: { date: string; onChange: (d: stri
   }, [anchor, rtl]);
   const indexOf = useCallback((d: string) => days.indexOf(d), [days]);
   const [visible, setVisible] = useState(date);
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     if (indexOf(date) < 0) setAnchor(date);
@@ -93,9 +95,20 @@ export function WeekStrip({ date, onChange }: { date: string; onChange: (d: stri
         <Pressable onPress={() => onChange(addDays(date, -7))} hitSlop={10} style={styles.chev}>
           <Icon name="chevron-back" size={16} color="#fff" />
         </Pressable>
-        <Text style={styles.month}>
-          {shown.month} {shown.year}
-        </Text>
+        {/* Tap the month to jump straight to any date. */}
+        <Pressable
+          onPress={() => setPicking(true)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('repApp.pickDate')}
+          style={({ pressed }) => [styles.monthBtn, pressed && { opacity: 0.7 }]}
+        >
+          <Icon name="calendar-outline" size={14} color="#fff" />
+          <Text style={styles.month}>
+            {shown.month} {shown.year}
+          </Text>
+          <Icon name="chevron-down" size={13} color="rgba(255,255,255,0.8)" />
+        </Pressable>
         <Pressable onPress={() => onChange(addDays(date, 7))} hitSlop={10} style={styles.chev}>
           <Icon name="chevron-forward" size={16} color="#fff" />
         </Pressable>
@@ -107,6 +120,7 @@ export function WeekStrip({ date, onChange }: { date: string; onChange: (d: stri
           </Pressable>
         ) : null}
       </View>
+      <DatePickerModal visible={picking} value={date} onSelect={onChange} onClose={() => setPicking(false)} />
       <View style={styles.ltr} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
         {width ? (
           <FlatList
@@ -164,7 +178,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  month: { color: '#fff', fontSize: 14, fontWeight: '700', marginHorizontal: 4 },
+  monthBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  month: { color: '#fff', fontSize: 14, fontWeight: '700' },
   todayChip: {
     flexDirection: 'row',
     alignItems: 'center',

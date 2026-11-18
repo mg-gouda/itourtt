@@ -1,4 +1,5 @@
-import { Linking, Platform, Alert } from 'react-native';
+import { Linking, Platform } from 'react-native';
+import { appAlert } from '../utils/dialog';
 
 /**
  * Tap-to-navigate for the rep / driver apps: opens the Google Maps app on a
@@ -89,7 +90,7 @@ export function googleMapsNavUrl(target: string): string {
 export async function openJobNavigation(job: NavJob, end: RouteEnd): Promise<void> {
   const target = navTarget(job, end);
   if (!target) {
-    Alert.alert('Navigation', 'No location is set for this stop.');
+    appAlert('Navigation', 'No location is set for this stop.');
     return;
   }
   const universal = googleMapsNavUrl(target);
@@ -104,7 +105,7 @@ export async function openJobNavigation(job: NavJob, end: RouteEnd): Promise<voi
   try {
     await Linking.openURL(universal);
   } catch {
-    Alert.alert('Navigation', 'Unable to open Google Maps.');
+    appAlert('Navigation', 'Unable to open Google Maps.');
   }
 }
 

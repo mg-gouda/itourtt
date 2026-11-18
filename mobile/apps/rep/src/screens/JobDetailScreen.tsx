@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import LinearGradient from 'react-native-linear-gradient';
@@ -18,6 +18,7 @@ import {
   unwrapList,
   useColors,
   type RepPortalJob,
+  appAlert,
 } from '@itour/shared';
 import { Icon, LoadingSpinner, EmptyState } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -88,7 +89,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
     try {
       setJob(await loadJob(jobId, date));
     } catch (err) {
-      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+      appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
     } finally {
       setLoading(false);
     }

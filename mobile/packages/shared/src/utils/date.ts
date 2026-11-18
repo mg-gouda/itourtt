@@ -28,11 +28,14 @@ export function today(): string {
   return toApiDate(new Date());
 }
 
-/** Add/subtract days from a date string (YYYY-MM-DD) */
+/**
+ * Add/subtract days from a date string (YYYY-MM-DD). Pure calendar maths in
+ * UTC: parsing as local midnight and printing with toISOString() shifted the
+ * result a day back on phones east of UTC (Cairo is UTC+2).
+ */
 export function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  return toApiDate(d);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
 const CAIRO = 'Africa/Cairo';

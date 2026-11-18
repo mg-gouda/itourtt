@@ -1,23 +1,53 @@
-import { Linking, Alert } from 'react-native';
+import { Linking } from 'react-native';
+import { appAlert } from '../utils/dialog';
+import { t } from '../i18n';
 
 /**
- * Open WhatsApp chat with the given phone number.
- * Phone number should include country code (e.g. +201234567890).
- * Optionally pre-fills a message.
+ * Turn a phone number into the international digits WhatsApp needs (no "+").
+ * Guest numbers are often saved the local Egyptian way (010…, 1…, 0020…);
+ * without the country code WhatsApp cannot find the chat. Numbers that already
+ * carry a country code (+44…, 0044…, 971…) are kept as they are.
+ */
+export function toWhatsAppNumber(phoneNumber: string, defaultCountry = '20'): string {
+  const raw = phoneNumber.trim();
+  let digits = raw.replace(/[^\d]/g, '');
+  if (!digits) return '';
+  if (raw.startsWith('+')) {
+    // "+20 010…" — drop the trunk 0 written after the country code.
+    if (digits.startsWith(`${defaultCountry}0`) && digits.length === defaultCountry.length + 11) {
+      digits = defaultCountry + digits.slice(defaultCountry.length + 1);
+    }
+    return digits;
+  }
+  if (digits.startsWith('00')) return toWhatsAppNumber(`+${digits.slice(2)}`, defaultCountry);
+  // Egyptian mobile: 01X XXXX XXXX (11 digits) or 1X XXXX XXXX (10 digits).
+  if (defaultCountry === '20') {
+    if (/^01[0125]\d{8}$/.test(digits)) return `20${digits.slice(1)}`;
+    if (/^1[0125]\d{8}$/.test(digits)) return `20${digits}`;
+    if (/^2001[0125]\d{8}$/.test(digits)) return `20${digits.slice(3)}`;
+  } else if (digits.startsWith('0')) {
+    return defaultCountry + digits.slice(1);
+  }
+  return digits;
+}
+
+/**
+ * Open WhatsApp chat with the given phone number (local Egyptian numbers get
+ * +20 added). Optionally pre-fills a message.
  */
 export async function openWhatsApp(phoneNumber: string, message?: string) {
-  const cleaned = phoneNumber.replace(/[^\d]/g, '');
+  const number = toWhatsAppNumber(phoneNumber);
   const encoded = message ? encodeURIComponent(message) : '';
-  const url = `whatsapp://send?phone=${cleaned}${encoded ? `&text=${encoded}` : ''}`;
+  const url = `whatsapp://send?phone=${number}${encoded ? `&text=${encoded}` : ''}`;
 
-  const supported = await Linking.canOpenURL(url);
+  const supported = await Linking.canOpenURL(url).catch(() => false);
   if (supported) {
     await Linking.openURL(url);
   } else {
-    // Fallback to web WhatsApp
-    const webUrl = `https://wa.me/${cleaned}${encoded ? `?text=${encoded}` : ''}`;
+    // wa.me opens the app when installed, or the web page otherwise.
+    const webUrl = `https://wa.me/${number}${encoded ? `?text=${encoded}` : ''}`;
     Linking.openURL(webUrl).catch(() => {
-      Alert.alert('Error', 'WhatsApp is not installed on this device');
+      appAlert('WhatsApp', t('repApp.whatsappMissing'), undefined, { tone: 'warning', icon: 'logo-whatsapp' });
     });
   }
 }

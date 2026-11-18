@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import LinearGradient from 'react-native-linear-gradient';
@@ -16,6 +16,7 @@ import {
   type DriverProfile,
   type Locale,
   type ThemeMode,
+  appAlert,
 } from '@itour/shared';
 import { Icon } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -56,7 +57,7 @@ export function ProfileScreen() {
   const expiry = profile?.licenseExpiryDate ? formatDayLabel(profile.licenseExpiryDate.slice(0, 10)) : null;
 
   const signOut = () =>
-    Alert.alert(t('repApp.signOut'), t('driverApp.signOutConfirm'), [
+    appAlert(t('repApp.signOut'), t('driverApp.signOutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('repApp.signOut'), style: 'destructive', onPress: () => logout() },
     ]);

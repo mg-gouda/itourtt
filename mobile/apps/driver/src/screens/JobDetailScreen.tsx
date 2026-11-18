@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import LinearGradient from 'react-native-linear-gradient';
@@ -19,6 +19,7 @@ import {
   unwrapList,
   useColors,
   type DriverPortalJob,
+  appAlert,
 } from '@itour/shared';
 import {
   ActionButton,
@@ -95,7 +96,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
     try {
       setJob(await loadJob(jobId, date));
     } catch (err) {
-      Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+      appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
     } finally {
       setLoading(false);
     }
@@ -110,7 +111,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const markCollected = () => {
     if (!job) return;
     const amount = formatCurrency(collectionAmount(job), job.collectionCurrency || 'EGP');
-    Alert.alert(t('driverApp.markCollected'), tf('driverApp.confirmCollected', { amount }), [
+    appAlert(t('driverApp.markCollected'), tf('driverApp.confirmCollected', { amount }), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.confirm'),
@@ -120,7 +121,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
             await driverPortalApi.markCollection(job.id);
             await fetchJob();
           } catch (err) {
-            Alert.alert(t('common.error'), apiErrorMessage(err, t('common.error')));
+            appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
           } finally {
             setCollecting(false);
           }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import LinearGradient from 'react-native-linear-gradient';
@@ -16,6 +16,7 @@ import {
   type RepProfile,
   type Locale,
   type ThemeMode,
+  appAlert,
 } from '@itour/shared';
 import { Icon } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -53,7 +54,7 @@ export function ProfileScreen() {
     .toUpperCase();
 
   const signOut = () =>
-    Alert.alert(t('repApp.signOut'), t('repApp.signOutConfirm'), [
+    appAlert(t('repApp.signOut'), t('repApp.signOutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('repApp.signOut'), style: 'destructive', onPress: () => logout() },
     ]);

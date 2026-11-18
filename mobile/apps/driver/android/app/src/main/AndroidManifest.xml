@@ -41,6 +41,14 @@
         </intent-filter>
       </activity>
 
+      <!-- Language switch (English <-> Arabic) restarts the app process from here -->
+      <activity
+        android:name=".RestartActivity"
+        android:process=":restart"
+        android:theme="@android:style/Theme.Translucent.NoTitleBar"
+        android:excludeFromRecents="true"
+        android:exported="false" />
+
       <!-- notifee's foreground service: location (tracking heartbeat) or data sync -->
       <service
         android:name="app.notifee.core.ForegroundService"

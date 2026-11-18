@@ -1,6 +1,7 @@
 import { AppState, PermissionsAndroid, Platform } from 'react-native';
 import { unwrapList } from '../utils/response';
 import notifee, {
+  AndroidVisibility,
   AndroidForegroundServiceType,
   AndroidImportance,
   EventType,
@@ -10,6 +11,8 @@ import Geolocation from '@react-native-community/geolocation';
 import api from '../api/client';
 import { CHAT_ANNOUNCEMENTS_ID, chatApi } from '../api/endpoints/chat';
 import { secureStorage } from '../auth/secure-storage';
+import { appAlert } from '../utils/dialog';
+import { t } from '../i18n';
 
 /**
  * Keeps a rep / driver app in touch with the iTour server without Firebase:
@@ -48,17 +51,78 @@ const shownNotificationIds = new Set<string>();
 const bg = { headers: { 'X-Background-Poll': '1' } };
 
 async function ensureChannels() {
+  // HIGH importance + sound = heads-up banner, like a push notification.
+  // (Android keeps a channel's first settings; only the user can lower them.)
   await notifee.createChannel({
     id: CHANNEL_ALERTS,
     name: 'Jobs & messages',
     importance: AndroidImportance.HIGH,
+    visibility: AndroidVisibility.PUBLIC,
+    sound: 'default',
     vibration: true,
+    lights: true,
+    badge: true,
   });
   await notifee.createChannel({
     id: CHANNEL_SERVICE,
     name: 'Connection status',
     importance: AndroidImportance.MIN,
   });
+}
+
+const BATTERY_ASKED_KEY = 'battery_opt_asked';
+
+/**
+ * Ask for everything the app needs in one go at launch, instead of one
+ * feature at a time: camera (evidence), location (evidence GPS + tracking),
+ * microphone (voice notes) and notifications (Android 13+). Android only
+ * shows the system prompt for permissions not yet granted (and never again for
+ * ones the user blocked), so calling this on every launch is safe.
+ *
+ * Then, once, explain and open the battery-optimisation exemption: without it
+ * Android's Doze pauses the background service and job / chat notifications
+ * arrive late instead of instantly like push notifications.
+ */
+let startupPermissions: Promise<void> | null = null;
+export function requestStartupPermissions(): Promise<void> {
+  // One run per app launch, shared by everyone who awaits it (two overlapping
+  // Android permission requests make the second one fail).
+  startupPermissions ??= askStartupPermissions();
+  return startupPermissions;
+}
+
+async function askStartupPermissions(): Promise<void> {
+  if (Platform.OS !== 'android') {
+    await notifee.requestPermission().catch(() => {});
+    return;
+  }
+  const P = PermissionsAndroid.PERMISSIONS;
+  const wanted = [P.CAMERA, P.ACCESS_FINE_LOCATION, P.ACCESS_COARSE_LOCATION, P.RECORD_AUDIO];
+  if (Number(Platform.Version) >= 33 && P.POST_NOTIFICATIONS) wanted.push(P.POST_NOTIFICATIONS);
+  try {
+    await PermissionsAndroid.requestMultiple(wanted);
+  } catch {
+    /* activity not ready — features still ask on use */
+  }
+  await ensureChannels().catch(() => {});
+
+  try {
+    const storage = require('react-native-encrypted-storage').default;
+    if (await storage.getItem(BATTERY_ASKED_KEY)) return;
+    if (!(await notifee.isBatteryOptimizationEnabled())) return;
+    await storage.setItem(BATTERY_ASKED_KEY, '1');
+    appAlert(
+      t('repApp.batteryTitle'),
+      t('repApp.batteryBody'),
+      [
+        { text: t('repApp.later'), style: 'cancel' },
+        { text: t('repApp.allow'), onPress: () => notifee.openBatteryOptimizationSettings().catch(() => {}) },
+      ],
+      { tone: 'info', icon: 'notifications' },
+    );
+  } catch {
+    /* not supported on this phone */
+  }
 }
 
 /** Ask for notification permission (Android 13+ / iOS) and create channels. */
@@ -73,7 +137,16 @@ async function showAlert(id: string, title: string, body: string, data: Record<s
     title,
     body,
     data,
-    android: { channelId: CHANNEL_ALERTS, pressAction: { id: 'default' }, smallIcon: 'ic_notification' },
+    android: {
+      channelId: CHANNEL_ALERTS,
+      importance: AndroidImportance.HIGH,
+      visibility: AndroidVisibility.PUBLIC,
+      sound: 'default',
+      pressAction: { id: 'default' },
+      smallIcon: 'ic_notification',
+      showTimestamp: true,
+      timestamp: Date.now(),
+    },
     ios: { sound: 'default' },
   });
 }
@@ -143,11 +216,38 @@ async function pollNotifications() {
   if (newest) lastNotificationAt = newest;
 }
 
+/**
+ * Remove chat notifications once their messages are read, so the tray and the
+ * launcher-icon badge stop saying there is something new. With no id, clears
+ * every chat / announcement notification.
+ */
+export async function clearChatNotifications(conversationId?: string) {
+  try {
+    if (conversationId) {
+      await notifee.cancelNotification(`chat-${conversationId}`);
+      return;
+    }
+    const shown = await notifee.getDisplayedNotifications();
+    await Promise.all(
+      shown
+        .map((n) => n.id ?? n.notification?.id)
+        .filter((id): id is string => !!id && id.startsWith('chat-'))
+        .map((id) => notifee.cancelNotification(id)),
+    );
+  } catch {
+    /* nothing to clear */
+  }
+}
+
 /** New chat messages / announcements → one notification per thread (replaced, not stacked). */
 async function pollChat() {
   const me = await chatApi.me();
   const latest = me.latestUnread;
-  if (!latest) return;
+  if (!latest) {
+    // Everything was read (here or on the web portal): drop stale chat notifications.
+    if (lastChatAt !== null) await clearChatNotifications();
+    return;
+  }
   if (lastChatAt === null) {
     lastChatAt = latest.at;
     return;

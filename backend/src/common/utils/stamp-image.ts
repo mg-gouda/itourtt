@@ -8,6 +8,28 @@ export interface StampMeta {
 }
 
 /**
+ * Stamp date line in Cairo time, e.g. "November, 18-2026  14:05:33".
+ * Built from parts so it never depends on the server's ICU locale data.
+ */
+export function formatStampDate(date: Date): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Africa/Cairo',
+      year: 'numeric',
+      month: 'long',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${parts.month}, ${parts.day}-${parts.year}  ${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
+/**
  * Burn date/time (Cairo timezone) + GPS coordinates + optional rep/driver/status
  * onto an image buffer. Auto-rotates based on EXIF before compositing.
  * Returns a JPEG buffer.
@@ -28,16 +50,7 @@ export async function stampEvidenceImage(
   const h = m.height ?? 960;
 
   const now = date ?? new Date();
-  const dateLine = now.toLocaleString('en-GB', {
-    timeZone: 'Africa/Cairo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
+  const dateLine = formatStampDate(now);
   const gpsLine =
     lat != null && lng != null
       ? `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`
