@@ -34,7 +34,7 @@ Zones are the pricing and routing unit.
 
 ## Suppliers
 - suppliers (full legal & tax profile)
-- supplier_trip_prices (route, vehicle_type)
+- supplier_price_lists + supplier_price_list_items (route × vehicle_type); suppliers.price_list_id
 
 ## Traffic Jobs
 - traffic_jobs (internal_ref, agent_ref, service_type)

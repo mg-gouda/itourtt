@@ -1,3 +1,4 @@
+import { SupplierCostingService } from '../supplier-price-lists/supplier-costing.service.js';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { JobStatus, ServiceType } from '../../generated/prisma/client.js';
@@ -44,7 +45,10 @@ function buildStatusFilter(status?: string): Record<string, unknown> {
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly supplierCosting: SupplierCostingService,
+  ) {}
 
   // ─────────────────────────────────────────────
   // DAILY DISPATCH SUMMARY
@@ -968,7 +972,10 @@ export class ReportsService {
     const totalDriverFees = Number(driverFees._sum.amount || 0);
     const totalRepFees = Number(repFees._sum.amount || 0);
     const totalSupplierCosts = Number(supplierCosts._sum.amount || 0);
-    const totalCosts = totalDriverFees + totalRepFees + totalSupplierCosts;
+    // Own cars cost what the own-car price list (List A) says for their route
+    // and car type — reported here only, never written as a SupplierCost.
+    const totalOwnCarCosts = await this.supplierCosting.ownCarCostTotal(fromDate, toDate);
+    const totalCosts = totalDriverFees + totalRepFees + totalSupplierCosts + totalOwnCarCosts;
 
     const agents = Array.from(byAgent.entries())
       .map(([id, data]) => ({ agentId: id, ...data }))
@@ -987,6 +994,7 @@ export class ReportsService {
         driverFees: totalDriverFees,
         repFees: totalRepFees,
         supplierCosts: totalSupplierCosts,
+        ownCarCosts: totalOwnCarCosts,
       },
       byServiceType,
       byAgent: agents,

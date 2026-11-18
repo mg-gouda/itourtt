@@ -521,8 +521,6 @@ model Zone {
   hotels   Hotel[]
   repZones RepZone[]
 
-  supplierPricesFrom SupplierTripPrice[] @relation("FromZone")
-  supplierPricesTo   SupplierTripPrice[] @relation("ToZone")
   jobsFrom           TrafficJob[]        @relation("JobFromZone")
   jobsTo             TrafficJob[]        @relation("JobToZone")
   jobsOrigin         TrafficJob[]        @relation("JobOriginZone")
@@ -594,7 +592,7 @@ model VehicleType {
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
   vehicles         Vehicle[]
-  supplierPrices   SupplierTripPrice[]
+  supplierPriceListItems SupplierPriceListItem[]
   customerPrices   CustomerPriceItem[]
   agentPrices      AgentPriceItem[]
   publicPrices     PublicPriceItem[]
@@ -1229,7 +1227,8 @@ model Supplier {
   user          User?               @relation(fields: [userId], references: [id])
   vehicles      Vehicle[]
   drivers       Driver[]
-  tripPrices    SupplierTripPrice[]
+  priceListId   String?             @map("price_list_id")
+  priceList     SupplierPriceList?  @relation(fields: [priceListId], references: [id])
   supplierCosts SupplierCost[]
   carTypes      SupplierCarType[]
   assignments   TrafficAssignment[] @relation("AssignmentSupplier")
@@ -1252,31 +1251,6 @@ model SupplierCarType {
 
   @@unique([supplierId, vehicleTypeId])
   @@map("supplier_car_types")
-}
-
-model SupplierTripPrice {
-  id            String      @id @default(uuid())
-  supplierId    String      @map("supplier_id")
-  serviceType   ServiceType @default(ARR) @map("service_type")
-  fromZoneId    String      @map("from_zone_id")
-  toZoneId      String      @map("to_zone_id")
-  vehicleTypeId String      @map("vehicle_type_id")
-  price         Decimal     @db.Decimal(15, 2)
-  driverTip     Decimal     @default(0) @map("driver_tip") @db.Decimal(15, 2)
-  currency      Currency    @default(EGP)
-  effectiveFrom DateTime?   @map("effective_from") @db.Date
-  effectiveTo   DateTime?   @map("effective_to") @db.Date
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
-
-  supplier    Supplier    @relation(fields: [supplierId], references: [id])
-  fromZone    Zone        @relation("FromZone", fields: [fromZoneId], references: [id])
-  toZone      Zone        @relation("ToZone", fields: [toZoneId], references: [id])
-  vehicleType VehicleType @relation(fields: [vehicleTypeId], references: [id])
-
-  @@unique([supplierId, serviceType, fromZoneId, toZoneId, vehicleTypeId])
-  @@index([supplierId])
-  @@map("supplier_trip_prices")
 }
 
 // ─────────────────────────────────────────────
@@ -1652,6 +1626,7 @@ model JobServiceType {
   toAirport   Airport?            @relation("ServiceTypeToAirport", fields: [toAirportId], references: [id])
   tariffs     DriverPriceTariff[]
   trafficJobs TrafficJob[]
+  supplierPriceListItems SupplierPriceListItem[]
 
   @@map("job_service_types")
 }
@@ -1682,6 +1657,10 @@ model SupplierCost {
   amount       Decimal  @db.Decimal(15, 2)
   currency     Currency @default(EGP)
   isPosted     Boolean  @default(false) @map("is_posted")
+  /// PRICE_LIST = written by SupplierCostingService from the supplier's price
+  /// list (recomputed on route/car changes while unposted). null = manual or a
+  /// complaint charge — never touched by the recompute.
+  source       String?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -2998,4 +2977,42 @@ model ImportNameAlias {
 
   @@unique([kind, normalizedName])
   @@map("import_name_aliases")
+}
+
+/// A named supplier price list (List A, B, C, D…). Suppliers are assigned to
+/// one list; prices are per route (JobServiceType) × car type.
+/// isDefaultForNew: new suppliers start on it. isOwnCarList: own-car jobs are
+/// costed from it in profit reports (never as a SupplierCost/vendor bill).
+model SupplierPriceList {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  isDefaultForNew Boolean  @default(false) @map("is_default_for_new")
+  isOwnCarList    Boolean  @default(false) @map("is_own_car_list")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  items     SupplierPriceListItem[]
+  suppliers Supplier[]
+
+  @@map("supplier_price_lists")
+}
+
+model SupplierPriceListItem {
+  id               String   @id @default(uuid())
+  priceListId      String   @map("price_list_id")
+  jobServiceTypeId String   @map("job_service_type_id")
+  vehicleTypeId    String   @map("vehicle_type_id")
+  price            Decimal  @db.Decimal(15, 2)
+  currency         Currency @default(EGP)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  priceList      SupplierPriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  jobServiceType JobServiceType    @relation(fields: [jobServiceTypeId], references: [id], onDelete: Cascade)
+  vehicleType    VehicleType       @relation(fields: [vehicleTypeId], references: [id])
+
+  @@unique([priceListId, jobServiceTypeId, vehicleTypeId])
+  @@index([jobServiceTypeId])
+  @@map("supplier_price_list_items")
 }

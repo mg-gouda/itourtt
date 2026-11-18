@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
+import { usePermission } from "@/hooks/use-permission";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Supplier {
   id: string;
@@ -27,6 +29,7 @@ interface Supplier {
   userId?: string | null;
   user?: { id: string; email: string; name: string; role: string; isActive: boolean } | null;
   isActive: boolean;
+  priceList?: { id: string; name: string } | null;
 }
 
 export default function SupplierDetailPage({
@@ -39,6 +42,25 @@ export default function SupplierDetailPage({
   const t = useT();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [loading, setLoading] = useState(true);
+  const [priceLists, setPriceLists] = useState<{ id: string; name: string }[]>([]);
+  const canEditSupplier = usePermission("suppliers.table.editButton");
+
+  useEffect(() => {
+    api.get("/supplier-price-lists")
+      .then((res) => setPriceLists((res.data?.data || []).map((l: any) => ({ id: l.id, name: l.name }))))
+      .catch(() => {});
+  }, []);
+
+  const changePriceList = async (value: string) => {
+    if (!supplier) return;
+    try {
+      await api.put(`/suppliers/${supplier.id}`, { priceListId: value === "none" ? null : value });
+      toast.success("Price list updated — new and changed supplier jobs are costed from it");
+      fetchSupplier();
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || "Failed to update price list");
+    }
+  };
 
   const fetchSupplier = useCallback(async () => {
     try {
@@ -187,6 +209,33 @@ export default function SupplierDetailPage({
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-foreground">Price list</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <Select
+            value={supplier.priceList?.id ?? "none"}
+            onValueChange={changePriceList}
+            disabled={!canEditSupplier}
+          >
+            <SelectTrigger className="w-64 border-border bg-card text-foreground">
+              <SelectValue placeholder="No price list" />
+            </SelectTrigger>
+            <SelectContent className="border-border bg-popover text-foreground">
+              <SelectItem value="none">No price list (no automatic cost)</SelectItem>
+              {priceLists.map((l) => (
+                <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-muted-foreground">
+            Jobs on this supplier&apos;s cars get their supplier cost from this list (route × car type). Prices are
+            managed on the Supplier Price Lists page.
+          </p>
         </CardContent>
       </Card>
     </div>

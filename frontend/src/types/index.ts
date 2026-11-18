@@ -217,23 +217,6 @@ export interface Supplier {
   updatedAt: string;
 }
 
-export interface SupplierTripPrice {
-  id: string;
-  supplierId: string;
-  serviceType: ServiceType;
-  fromZoneId: string;
-  toZoneId: string;
-  vehicleTypeId: string;
-  price: number;
-  driverTip: number;
-  currency: Currency;
-  effectiveFrom: string | null;
-  effectiveTo: string | null;
-  fromZone?: Zone;
-  toZone?: Zone;
-  vehicleType?: VehicleType;
-}
-
 export interface SupplierWithVehicles extends Supplier {
   vehicles?: Vehicle[];
 }

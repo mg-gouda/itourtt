@@ -1,4 +1,5 @@
 import {
+  ValidateIf,
   IsNotEmpty,
   IsString,
   IsOptional,
@@ -51,4 +52,11 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsString()
   nationalIdImage?: string;
+
+  /** Supplier price list (SupplierPriceList). Omitted on create → the list
+   *  flagged isDefaultForNew; null on update → no list (no automatic cost). */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  priceListId?: string | null;
 }

@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**111 files**, **398 exported symbols**.
+**111 files**, **397 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -318,7 +318,7 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 445 lines
+`frontend/src/components/sidebar.tsx` · 446 lines
 
 Main dashboard navigation, filtered by permission.
 
@@ -330,7 +330,7 @@ Main dashboard navigation, filtered by permission.
 | `NavGroup` | type | 80 | A collapsible navigation group. |
 | `NavItem` | type | 87 | One navigation entry. |
 | `navigation` | const | 94 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 161 | Main dashboard navigation, permission-filtered. |
+| `Sidebar` | function | 162 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -1175,17 +1175,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3910 lines
+`frontend/src/lib/i18n.ts` · 3916 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3887 | Translates a key in the current locale. |
-| `getTranslator` | function | 3891 | Translator for a specific locale, outside React. |
-| `useT` | function | 3899 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3906 | The active locale id. |
+| `t` | function | 3893 | Translates a key in the current locale. |
+| `getTranslator` | function | 3897 | Translator for a specific locale, outside React. |
+| `useT` | function | 3905 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3912 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -1203,7 +1203,7 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 898 lines
+`frontend/src/lib/permission-registry.ts` · 908 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -1212,11 +1212,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 809 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 825 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 833 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 845 | Subtree, used by the master toggle. |
-| `findNode` | function | 885 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 819 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 835 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 843 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 855 | Subtree, used by the master toggle. |
+| `findNode` | function | 895 | Looks up a node by key. |
 
 ### `role-home.ts`
 
@@ -1377,7 +1377,7 @@ Zustand store caching the user's effective permission keys, fetched once after l
 
 ### `index.ts`
 
-`frontend/src/types/index.ts` · 376 lines
+`frontend/src/types/index.ts` · 359 lines
 
 Client-side TypeScript mirrors of the API payloads. These track the Prisma models but are hand-maintained — when a model changes, update this file or the UI silently drifts from the API. Canonical field detail lives in `docs/map/01-data-model.md`.
 
@@ -1411,14 +1411,13 @@ Client-side TypeScript mirrors of the API payloads. These track the Prisma model
 | `AgentInvoiceCycle` | type | 184 | Client-side shape of the `AgentInvoiceCycle` API payload; see `docs/map/01-data-model.md#agentinvoicecycle` for the authoritative fields. |
 | `AgentDocument` | type | 192 | Client-side shape of the `AgentDocument` API payload; see `docs/map/01-data-model.md#agentdocument` for the authoritative fields. |
 | `Supplier` | type | 203 | Client-side shape of the `Supplier` API payload; see `docs/map/01-data-model.md#supplier` for the authoritative fields. |
-| `SupplierTripPrice` | type | 220 | Client-side shape of the `SupplierTripPrice` API payload; see `docs/map/01-data-model.md#suppliertripprice` for the authoritative fields. |
-| `SupplierWithVehicles` | type | 237 | A supplier joined with its vehicles, for the supplier detail screen. |
-| `TrafficJob` | type | 242 | Client-side shape of the `TrafficJob` API payload; see `docs/map/01-data-model.md#trafficjob` for the authoritative fields. |
-| `Customer` | type | 280 | Client-side shape of the `Customer` API payload; see `docs/map/01-data-model.md#customer` for the authoritative fields. |
-| `TrafficFlight` | type | 291 | Client-side shape of the `TrafficFlight` API payload; see `docs/map/01-data-model.md#trafficflight` for the authoritative fields. |
-| `TrafficAssignment` | type | 301 | Client-side shape of the `TrafficAssignment` API payload; see `docs/map/01-data-model.md#trafficassignment` for the authoritative fields. |
-| `AgentInvoice` | type | 315 | Client-side shape of the `AgentInvoice` API payload; see `docs/map/01-data-model.md#agentinvoice` for the authoritative fields. |
-| `InvoiceLine` | type | 337 | Client-side shape of the `InvoiceLine` API payload; see `docs/map/01-data-model.md#invoiceline` for the authoritative fields. |
-| `Payment` | type | 349 | Client-side shape of the `Payment` API payload; see `docs/map/01-data-model.md#payment` for the authoritative fields. |
-| `PaginatedResponse` | type | 362 | The standard `{items, page, total}` envelope every list endpoint returns. |
-| `DispatchDayView` | type | 370 | The dispatch console day payload — jobs plus everything the grid renders. |
+| `SupplierWithVehicles` | type | 220 | A supplier joined with its vehicles, for the supplier detail screen. |
+| `TrafficJob` | type | 225 | Client-side shape of the `TrafficJob` API payload; see `docs/map/01-data-model.md#trafficjob` for the authoritative fields. |
+| `Customer` | type | 263 | Client-side shape of the `Customer` API payload; see `docs/map/01-data-model.md#customer` for the authoritative fields. |
+| `TrafficFlight` | type | 274 | Client-side shape of the `TrafficFlight` API payload; see `docs/map/01-data-model.md#trafficflight` for the authoritative fields. |
+| `TrafficAssignment` | type | 284 | Client-side shape of the `TrafficAssignment` API payload; see `docs/map/01-data-model.md#trafficassignment` for the authoritative fields. |
+| `AgentInvoice` | type | 298 | Client-side shape of the `AgentInvoice` API payload; see `docs/map/01-data-model.md#agentinvoice` for the authoritative fields. |
+| `InvoiceLine` | type | 320 | Client-side shape of the `InvoiceLine` API payload; see `docs/map/01-data-model.md#invoiceline` for the authoritative fields. |
+| `Payment` | type | 332 | Client-side shape of the `Payment` API payload; see `docs/map/01-data-model.md#payment` for the authoritative fields. |
+| `PaginatedResponse` | type | 345 | The standard `{items, page, total}` envelope every list endpoint returns. |
+| `DispatchDayView` | type | 353 | The dispatch console day payload — jobs plus everything the grid renders. |

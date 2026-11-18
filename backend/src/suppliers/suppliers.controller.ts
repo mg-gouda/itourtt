@@ -19,10 +19,8 @@ import type { Response } from 'express';
 import { SuppliersService } from './suppliers.service.js';
 import { CreateSupplierDto } from './dto/create-supplier.dto.js';
 import { UpdateSupplierDto } from './dto/update-supplier.dto.js';
-import { CreateTripPriceDto } from './dto/create-trip-price.dto.js';
 import { CreateSupplierVehicleDto, UpdateSupplierVehicleDto } from './dto/create-vehicle.dto.js';
 import { CreateSupplierDriverDto, UpdateSupplierDriverDto } from './dto/create-driver.dto.js';
-import { BulkPriceListDto } from './dto/supplier-price-list.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -140,30 +138,6 @@ export class SuppliersController {
 
   // ─── Trip Prices (legacy) ──────────────────────────────
 
-  @Post(':id/trip-prices')
-  @Permissions('suppliers')
-  async createTripPrice(
-    @Param('id') id: string,
-    @Body() dto: CreateTripPriceDto,
-  ) {
-    return this.suppliersService.createTripPrice(id, dto);
-  }
-
-  @Get(':id/trip-prices')
-  @Permissions('suppliers')
-  async findTripPrices(@Param('id') id: string) {
-    return this.suppliersService.findTripPrices(id);
-  }
-
-  @Put('trip-prices/:priceId')
-  @Permissions('suppliers')
-  async updateTripPrice(
-    @Param('priceId') priceId: string,
-    @Body() dto: CreateTripPriceDto,
-  ) {
-    return this.suppliersService.updateTripPrice(priceId, dto);
-  }
-
   // ─── Vehicles (Supplier-scoped) ───────────────────────
 
   @Get(':id/vehicles')
@@ -277,33 +251,6 @@ export class SuppliersController {
 
   // ─── Price List (Bulk Upsert) ─────────────────────────
 
-  @Get(':id/price-list')
-  @Permissions('suppliers')
-  async getPriceList(@Param('id') id: string) {
-    const result = await this.suppliersService.getPriceList(id);
-    return new ApiResponse(result);
-  }
-
-  @Post(':id/price-list')
-  @Permissions('suppliers')
-  async upsertPriceList(
-    @Param('id') id: string,
-    @Body() dto: BulkPriceListDto,
-  ) {
-    const result = await this.suppliersService.upsertPriceItems(id, dto);
-    return new ApiResponse(result, 'Price list saved successfully');
-  }
-
-  @Delete(':id/price-list/:priceItemId')
-  @Permissions('suppliers')
-  async deletePriceItem(
-    @Param('id') id: string,
-    @Param('priceItemId') priceItemId: string,
-  ) {
-    await this.suppliersService.deletePriceItem(id, priceItemId);
-    return new ApiResponse(null, 'Price item deleted successfully');
-  }
-
   // ─── Vehicle Import/Export ────────────────────────────
 
   @Get(':id/vehicles/export')
@@ -387,45 +334,6 @@ export class SuppliersController {
   }
 
   // ─── Price List Import/Export ───────────────────────────
-
-  @Get(':id/price-list/export')
-  @Permissions('suppliers')
-  async exportPriceList(
-    @Param('id') id: string,
-    @Res() res: Response,
-  ) {
-    const buffer = await this.suppliersService.exportPriceListToExcel(id);
-    res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="supplier-price-list-${id}.xlsx"`,
-    });
-    res.send(buffer);
-  }
-
-  @Get(':id/price-list/template')
-  @Permissions('suppliers')
-  async getPriceListTemplate(
-    @Param('id') id: string,
-    @Res() res: Response,
-  ) {
-    const buffer = await this.suppliersService.generatePriceListTemplate(id);
-    res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="price-list-import-template.xlsx"`,
-    });
-    res.send(buffer);
-  }
-
-  @Post(':id/price-list/import')
-  @Permissions('suppliers')
-  @UseInterceptors(FileInterceptor('file'))
-  async importPriceList(
-    @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    const result = await this.suppliersService.importPriceListFromExcel(id, file.buffer);
-    return new ApiResponse(result, 'Price list imported successfully');
-  }
 
   // ─── Account Management ───────────────────────────────
 

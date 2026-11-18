@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**26 classes**, **419 methods**.
+**26 classes**, **401 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -140,29 +140,29 @@ REST surface for the dispatch console — day view, assign/reassign/unassign, av
 
 ### DispatchService
 
-`backend/src/dispatch/dispatch.service.ts:22` · service · 17 methods
+`backend/src/dispatch/dispatch.service.ts:23` · service · 17 methods
 
 The dispatch console backend: the day view and all assignment logic. Assignment order is Vehicle → Driver → Rep, each gated by its own permission key. Vehicle and driver double-booking is a NON-blocking warning; rep double-booking is a hard conflict.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getDayView` | pub | 38 | `trafficJob` | One day's jobs with everything the Excel-like grid renders, ARR and DEP served together for the split console. |
-| `assignJob` | pub | 134 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +8 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
-| `sendStaffAssignmentEmail` | priv | 404 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
-| `reassignJob` | pub | 454 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +7 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
-| `unassignJob` | pub | 756 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
-| `getAvailableVehicles` | pub | 806 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
-| `getAvailableSuppliers` | pub | 879 | `supplier` | Suppliers that can source a car for this job. |
-| `getAvailableDrivers` | pub | 918 | `driver` | Active drivers offered for assignment. |
-| `getAvailableReps` | pub | 943 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
-| `unlockJob` | pub | 1036 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
-| `lockJob` | pub | 1052 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
-| `checkDispatcherTimelock` | priv | 1073 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
-| `getJobReferenceTime` | priv | 1098 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
-| `validateVehicleAvailability` | priv | 1115 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
-| `detectAssignmentConflicts` | priv | 1129 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
-| `validateDriverAvailability` | priv | 1173 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
-| `validateRepAvailability` | priv | 1193 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
+| `getDayView` | pub | 40 | `trafficJob` | One day's jobs with everything the Excel-like grid renders, ARR and DEP served together for the split console. |
+| `assignJob` | pub | 136 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +8 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
+| `sendStaffAssignmentEmail` | priv | 409 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
+| `reassignJob` | pub | 459 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +7 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
+| `unassignJob` | pub | 764 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
+| `getAvailableVehicles` | pub | 817 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
+| `getAvailableSuppliers` | pub | 890 | `supplier` | Suppliers that can source a car for this job. |
+| `getAvailableDrivers` | pub | 929 | `driver` | Active drivers offered for assignment. |
+| `getAvailableReps` | pub | 954 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
+| `unlockJob` | pub | 1047 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
+| `lockJob` | pub | 1063 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
+| `checkDispatcherTimelock` | priv | 1084 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
+| `getJobReferenceTime` | priv | 1109 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
+| `validateVehicleAvailability` | priv | 1126 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
+| `detectAssignmentConflicts` | priv | 1140 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
+| `validateDriverAvailability` | priv | 1184 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
+| `validateRepAvailability` | priv | 1204 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
 
 ## `drivers`
 
@@ -489,100 +489,82 @@ Rep records, zone coverage, portal accounts and fee history. A rep must have at 
 
 ### SuppliersController
 
-`backend/src/suppliers/suppliers.controller.ts:36` · controller · 40 methods
+`backend/src/suppliers/suppliers.controller.ts:34` · controller · 31 methods
 
 REST surface for suppliers and everything nested under them: their vehicles, drivers, trip prices, car types, portal account, and four separate Excel import/export pipelines.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 41 | `suppliersService.findAll` | Supplier list (Active/Inactive tabs). |
-| `exportExcel` | pub | 56 | `suppliersService.exportToExcel` | Downloads suppliers as xlsx. |
-| `downloadTemplate` | pub | 70 | `suppliersService.generateImportTemplate` | Blank supplier import workbook. |
-| `importExcel` | pub | 84 | `suppliersService.importFromExcel` | Multipart bulk supplier import. |
-| `create` | pub | 98 | `suppliersService.create` | Creates a supplier. |
-| `findOne` | pub | 104 | `suppliersService.findOne` | One supplier's detail. |
-| `update` | pub | 110 | `suppliersService.update` | Edits a supplier. |
-| `toggleStatus` | pub | 120 | `suppliersService.toggleStatus` | Activates/deactivates a supplier. |
-| `bulkDelete` | pub | 128 | `suppliersService.bulkDelete` | Soft-deletes several suppliers. |
-| `delete` | pub | 136 | `suppliersService.delete` | Soft-deletes a supplier. |
-| `createTripPrice` | pub | 145 | `suppliersService.createTripPrice` | Adds a supplier trip price. |
-| `findTripPrices` | pub | 154 | `suppliersService.findTripPrices` | Trip prices we pay this supplier. |
-| `updateTripPrice` | pub | 160 | `suppliersService.updateTripPrice` | Edits a supplier trip price. |
-| `findVehicles` | pub | 171 | `suppliersService.findVehicles` | The supplier's vehicles. |
-| `createVehicle` | pub | 184 | `suppliersService.createVehicle` | Adds a supplier vehicle. |
-| `updateVehicle` | pub | 194 | `suppliersService.updateVehicle` | Edits a supplier vehicle. |
-| `deleteVehicle` | pub | 205 | `suppliersService.deleteVehicle` | Soft-deletes a supplier vehicle. |
-| `toggleVehicleStatus` | pub | 215 | `suppliersService.toggleVehicleStatus` | Activates/deactivates a supplier vehicle. |
-| `findDrivers` | pub | 227 | `suppliersService.findDrivers` | The supplier's drivers. |
-| `createDriver` | pub | 239 | `suppliersService.createDriver` | Adds a supplier driver. |
-| `updateDriver` | pub | 249 | `suppliersService.updateDriver` | Edits a supplier driver. |
-| `deleteDriver` | pub | 260 | `suppliersService.deleteDriver` | Soft-deletes a supplier driver. |
-| `toggleDriverStatus` | pub | 270 | `suppliersService.toggleDriverStatus` | Activates/deactivates a supplier driver. |
-| `getPriceList` | pub | 282 | `suppliersService.getPriceList` | The supplier's price grid. |
-| `upsertPriceList` | pub | 289 | `suppliersService.upsertPriceItems` | Bulk-saves the supplier price grid. |
-| `deletePriceItem` | pub | 299 | `suppliersService.deletePriceItem` | Removes one price row. |
-| `exportVehicles` | pub | 311 | `suppliersService.exportVehiclesToExcel` | Downloads the supplier's vehicles as xlsx. |
-| `getVehicleTemplate` | pub | 325 | `suppliersService.generateVehicleImportTemplate` | Blank supplier-vehicle workbook. |
-| `importVehicles` | pub | 340 | `suppliersService.importVehiclesFromExcel` | Multipart supplier-vehicle import. |
-| `exportDrivers` | pub | 352 | `suppliersService.exportDriversToExcel` | Downloads the supplier's drivers as xlsx. |
-| `getDriverTemplate` | pub | 366 | `suppliersService.generateDriverImportTemplate` | Blank supplier-driver workbook. |
-| `importDrivers` | pub | 381 | `suppliersService.importDriversFromExcel` | Multipart supplier-driver import. |
-| `exportPriceList` | pub | 393 | `suppliersService.exportPriceListToExcel` | Downloads the price grid as xlsx. |
-| `getPriceListTemplate` | pub | 407 | `suppliersService.generatePriceListTemplate` | Blank price workbook pre-filled with real zones and vehicle types. |
-| `importPriceList` | pub | 422 | `suppliersService.importPriceListFromExcel` | Multipart price-grid import. |
-| `createAccount` | pub | 435 | `suppliersService.createUserAccount` | Creates the supplier's portal login. |
-| `resetPassword` | pub | 446 | `suppliersService.resetPassword` | Admin password reset; also clears the session. |
-| `uploadNationalId` | pub | 459 | `suppliersService.update` | Multipart upload of the supplier contact's national ID. |
-| `getCarTypes` | pub | 482 | `suppliersService.getCarTypes` | Car types this supplier can source. |
-| `setCarTypes` | pub | 488 | `suppliersService.setCarTypes` | Replaces the supplier's offered car types. |
+| `findAll` | pub | 39 | `suppliersService.findAll` | Supplier list (Active/Inactive tabs). |
+| `exportExcel` | pub | 54 | `suppliersService.exportToExcel` | Downloads suppliers as xlsx. |
+| `downloadTemplate` | pub | 68 | `suppliersService.generateImportTemplate` | Blank supplier import workbook. |
+| `importExcel` | pub | 82 | `suppliersService.importFromExcel` | Multipart bulk supplier import. |
+| `create` | pub | 96 | `suppliersService.create` | Creates a supplier. |
+| `findOne` | pub | 102 | `suppliersService.findOne` | One supplier's detail. |
+| `update` | pub | 108 | `suppliersService.update` | Edits a supplier. |
+| `toggleStatus` | pub | 118 | `suppliersService.toggleStatus` | Activates/deactivates a supplier. |
+| `bulkDelete` | pub | 126 | `suppliersService.bulkDelete` | Soft-deletes several suppliers. |
+| `delete` | pub | 134 | `suppliersService.delete` | Soft-deletes a supplier. |
+| `findVehicles` | pub | 145 | `suppliersService.findVehicles` | The supplier's vehicles. |
+| `createVehicle` | pub | 158 | `suppliersService.createVehicle` | Adds a supplier vehicle. |
+| `updateVehicle` | pub | 168 | `suppliersService.updateVehicle` | Edits a supplier vehicle. |
+| `deleteVehicle` | pub | 179 | `suppliersService.deleteVehicle` | Soft-deletes a supplier vehicle. |
+| `toggleVehicleStatus` | pub | 189 | `suppliersService.toggleVehicleStatus` | Activates/deactivates a supplier vehicle. |
+| `findDrivers` | pub | 201 | `suppliersService.findDrivers` | The supplier's drivers. |
+| `createDriver` | pub | 213 | `suppliersService.createDriver` | Adds a supplier driver. |
+| `updateDriver` | pub | 223 | `suppliersService.updateDriver` | Edits a supplier driver. |
+| `deleteDriver` | pub | 234 | `suppliersService.deleteDriver` | Soft-deletes a supplier driver. |
+| `toggleDriverStatus` | pub | 244 | `suppliersService.toggleDriverStatus` | Activates/deactivates a supplier driver. |
+| `exportVehicles` | pub | 258 | `suppliersService.exportVehiclesToExcel` | Downloads the supplier's vehicles as xlsx. |
+| `getVehicleTemplate` | pub | 272 | `suppliersService.generateVehicleImportTemplate` | Blank supplier-vehicle workbook. |
+| `importVehicles` | pub | 287 | `suppliersService.importVehiclesFromExcel` | Multipart supplier-vehicle import. |
+| `exportDrivers` | pub | 299 | `suppliersService.exportDriversToExcel` | Downloads the supplier's drivers as xlsx. |
+| `getDriverTemplate` | pub | 313 | `suppliersService.generateDriverImportTemplate` | Blank supplier-driver workbook. |
+| `importDrivers` | pub | 328 | `suppliersService.importDriversFromExcel` | Multipart supplier-driver import. |
+| `createAccount` | pub | 343 | `suppliersService.createUserAccount` | Creates the supplier's portal login. |
+| `resetPassword` | pub | 354 | `suppliersService.resetPassword` | Admin password reset; also clears the session. |
+| `uploadNationalId` | pub | 367 | `suppliersService.update` | Multipart upload of the supplier contact's national ID. |
+| `getCarTypes` | pub | 390 | `suppliersService.getCarTypes` | Car types this supplier can source. |
+| `setCarTypes` | pub | 396 | `suppliersService.setCarTypes` | Replaces the supplier's offered car types. |
 
 ### SuppliersService
 
-`backend/src/suppliers/suppliers.service.ts:20` · service · 39 methods
+`backend/src/suppliers/suppliers.service.ts:18` · service · 30 methods
 
 External car suppliers and everything they bring: their own vehicles, their own drivers, their trip price list, the car types they offer, and their portal account. The largest service in the codebase — most of its bulk is the four separate Excel import/export pipelines (suppliers, vehicles, drivers, price list).
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 25 | `supplier` | Supplier list, split Active/Inactive. |
-| `findOne` | pub | 57 | `supplier` | One supplier with vehicles, drivers and prices. |
-| `create` | pub | 88 | `supplier` | Creates a supplier. |
-| `update` | pub | 106 | `supplier` | Edits supplier details. |
-| `toggleStatus` | pub | 133 | `supplier` | Activates/deactivates a supplier. |
-| `delete` | pub | 142 | `supplier` | Soft-deletes a supplier. |
-| `bulkDelete` | pub | 157 | `supplier` | Soft-deletes many suppliers at once. |
-| `findTripPrices` | pub | 172 | `supplier` `supplierTripPrice` | A supplier's trip prices — what we PAY them, distinct from agent/customer prices we charge. |
-| `createTripPrice` | pub | 195 | `supplier` `supplierTripPrice` | Adds a supplier trip price for a zone pair and vehicle type. |
-| `updateTripPrice` | pub | 225 | `supplierTripPrice` | Edits a supplier trip price. |
-| `findVehicles` | pub | 257 | `supplier` `vehicle` | Vehicles belonging to this supplier. |
-| `createVehicle` | pub | 300 | `supplier` `vehicle` | Adds a vehicle owned by the supplier. |
-| `updateVehicle` | pub | 333 | `vehicle` | Edits a supplier vehicle. |
-| `deleteVehicle` | pub | 367 | `vehicle` | Soft-deletes a supplier vehicle. |
-| `toggleVehicleStatus` | pub | 382 | `vehicle` | Activates/deactivates a supplier vehicle. |
-| `findDrivers` | pub | 400 | `supplier` `driver` | Drivers belonging to this supplier. |
-| `createDriver` | pub | 438 | `supplier` `driver` | Adds a driver under the supplier. Supplier drivers are what the midnight cron auto-completes. |
-| `updateDriver` | pub | 458 | `driver` | Edits a supplier driver. |
-| `deleteDriver` | pub | 478 | `driver` | Soft-deletes a supplier driver. |
-| `toggleDriverStatus` | pub | 493 | `driver` | Activates/deactivates a supplier driver. |
-| `getPriceList` | pub | 510 | `supplier` `supplierTripPrice` | The supplier's full price grid (zone pair × vehicle type). |
-| `upsertPriceItems` | pub | 535 | `supplier` `supplierTripPrice` | Bulk-upserts supplier price rows from the grid editor. |
-| `deletePriceItem` | pub | 580 | `supplier` `supplierTripPrice` | Removes one supplier price row. |
-| `createUserAccount` | pub | 604 | `user` `supplier` | Creates the supplier's portal login and links it to the Supplier row. |
-| `resetPassword` | pub | 650 | `user` | Admin password reset that also clears the session. |
-| `exportToExcel` | pub | 676 | `supplier` | Exports suppliers to xlsx. |
-| `generateImportTemplate` | pub | 707 | — | Blank supplier import workbook. |
-| `importFromExcel` | pub | 764 | `supplier` | Bulk-imports suppliers. |
-| `exportVehiclesToExcel` | pub | 831 | `vehicle` | Exports a supplier's vehicles. |
-| `generateVehicleImportTemplate` | pub | 867 | `vehicleType` | Blank supplier-vehicle workbook, pre-filled with vehicle types. |
-| `importVehiclesFromExcel` | pub | 907 | `vehicleType` `vehicle` | Bulk-imports a supplier's vehicles. |
-| `exportDriversToExcel` | pub | 998 | `driver` | Exports a supplier's drivers. |
-| `generateDriverImportTemplate` | pub | 1031 | — | Blank supplier-driver workbook. |
-| `importDriversFromExcel` | pub | 1053 | `driver` | Bulk-imports a supplier's drivers. |
-| `exportPriceListToExcel` | pub | 1104 | — | Exports a supplier's price grid. |
-| `generatePriceListTemplate` | pub | 1131 | `zone` `vehicleType` | Blank price workbook pre-filled with real zones and vehicle types, so imported rows resolve to ids. |
-| `importPriceListFromExcel` | pub | 1175 | `zone` `vehicleType` | Bulk-imports supplier prices, resolving zone and vehicle-type names. |
-| `getCarTypes` | pub | 1236 | `supplierCarType` | Car types this supplier can source — what dispatch offers when no own vehicle is used. |
-| `setCarTypes` | pub | 1245 | `supplier` `supplierCarType` | Replaces the supplier's offered car types. |
+| `findAll` | pub | 23 | `supplier` | Supplier list, split Active/Inactive. |
+| `findOne` | pub | 55 | `supplier` | One supplier with vehicles, drivers and prices. |
+| `create` | pub | 79 | `supplier` `supplierPriceList` | Creates a supplier. |
+| `update` | pub | 102 | `supplier` | Edits supplier details. |
+| `toggleStatus` | pub | 130 | `supplier` | Activates/deactivates a supplier. |
+| `delete` | pub | 139 | `supplier` | Soft-deletes a supplier. |
+| `bulkDelete` | pub | 154 | `supplier` | Soft-deletes many suppliers at once. |
+| `findVehicles` | pub | 171 | `supplier` `vehicle` | Vehicles belonging to this supplier. |
+| `createVehicle` | pub | 214 | `supplier` `vehicle` | Adds a vehicle owned by the supplier. |
+| `updateVehicle` | pub | 247 | `vehicle` | Edits a supplier vehicle. |
+| `deleteVehicle` | pub | 281 | `vehicle` | Soft-deletes a supplier vehicle. |
+| `toggleVehicleStatus` | pub | 296 | `vehicle` | Activates/deactivates a supplier vehicle. |
+| `findDrivers` | pub | 314 | `supplier` `driver` | Drivers belonging to this supplier. |
+| `createDriver` | pub | 352 | `supplier` `driver` | Adds a driver under the supplier. Supplier drivers are what the midnight cron auto-completes. |
+| `updateDriver` | pub | 372 | `driver` | Edits a supplier driver. |
+| `deleteDriver` | pub | 392 | `driver` | Soft-deletes a supplier driver. |
+| `toggleDriverStatus` | pub | 407 | `driver` | Activates/deactivates a supplier driver. |
+| `createUserAccount` | pub | 426 | `user` `supplier` | Creates the supplier's portal login and links it to the Supplier row. |
+| `resetPassword` | pub | 472 | `user` | Admin password reset that also clears the session. |
+| `exportToExcel` | pub | 498 | `supplier` | Exports suppliers to xlsx. |
+| `generateImportTemplate` | pub | 529 | — | Blank supplier import workbook. |
+| `importFromExcel` | pub | 586 | `supplier` | Bulk-imports suppliers. |
+| `exportVehiclesToExcel` | pub | 653 | `vehicle` | Exports a supplier's vehicles. |
+| `generateVehicleImportTemplate` | pub | 689 | `vehicleType` | Blank supplier-vehicle workbook, pre-filled with vehicle types. |
+| `importVehiclesFromExcel` | pub | 729 | `vehicleType` `vehicle` | Bulk-imports a supplier's vehicles. |
+| `exportDriversToExcel` | pub | 820 | `driver` | Exports a supplier's drivers. |
+| `generateDriverImportTemplate` | pub | 853 | — | Blank supplier-driver workbook. |
+| `importDriversFromExcel` | pub | 875 | `driver` | Bulk-imports a supplier's drivers. |
+| `getCarTypes` | pub | 928 | `supplierCarType` | Car types this supplier can source — what dispatch offers when no own vehicle is used. |
+| `setCarTypes` | pub | 937 | `supplier` `supplierCarType` | Replaces the supplier's offered car types. |
 
 ## `traffic-jobs`
 
@@ -607,25 +589,25 @@ REST surface for job CRUD, status changes, bulk import, evidence upload and Forc
 
 ### TrafficJobsService
 
-`backend/src/traffic-jobs/traffic-jobs.service.ts:33` · service · 13 methods
+`backend/src/traffic-jobs/traffic-jobs.service.ts:34` · service · 13 methods
 
 The core job entity: creation, editing, status transitions and admin Force Control. Channel rules differ — ONLINE jobs require an agent plus a unique agent reference matching that agent's `refPattern`; B2B jobs require a customer.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 173 | `trafficJob` | Filterable, paginated job list backing the traffic-jobs screens. |
-| `findOne` | pub | 221 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
-| `create` | pub | 234 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
-| `update` | pub | 387 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
-| `updateStatus` | pub | 623 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
-| `forceControl` | pub | 770 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
-| `remove` | pub | 802 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
-| `uploadEvidence` | pub | 815 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
-| `deriveAbbreviation` | priv | 844 | — | Builds the reference prefix from the company name's initials. |
-| `generateInternalRef` | pub | 850 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
-| `resolveZoneFromFKs` | priv | 870 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
-| `bulkCreate` | pub | 887 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
-| `recalculateDriverFees` | pub | 909 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
+| `findAll` | pub | 175 | `trafficJob` | Filterable, paginated job list backing the traffic-jobs screens. |
+| `findOne` | pub | 223 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
+| `create` | pub | 236 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
+| `update` | pub | 389 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
+| `updateStatus` | pub | 630 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
+| `forceControl` | pub | 777 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
+| `remove` | pub | 809 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
+| `uploadEvidence` | pub | 822 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
+| `deriveAbbreviation` | priv | 851 | — | Builds the reference prefix from the company name's initials. |
+| `generateInternalRef` | pub | 857 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
+| `resolveZoneFromFKs` | priv | 877 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
+| `bulkCreate` | pub | 894 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
+| `recalculateDriverFees` | pub | 916 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
 
 ## `vehicles`
 
@@ -689,7 +671,7 @@ Vehicle types, the owned fleet, and per-vehicle compliance records (licences, in
 
 ## Standalone exports
 
-4 free functions, constants and types in these modules.
+3 free functions, constants and types in these modules.
 
 ### `backend/src/agents/dto/agent-price-list.dto.ts`
 
@@ -714,11 +696,3 @@ DTO for creating a vehicle owned by a supplier.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `VehicleOwnershipEnum` | type | 11 | Whether a vehicle is owned by the company or by a supplier. |
-
-### `backend/src/suppliers/dto/supplier-price-list.dto.ts`
-
-DTOs for the supplier price-grid bulk save.
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `ServiceTypeEnum` | type | 13 | Service types accepted on a supplier price row. |

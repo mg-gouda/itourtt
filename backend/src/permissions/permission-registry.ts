@@ -641,6 +641,15 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     ],
   },
 
+  // ─── SUPPLIER PRICE LISTS ───
+  {
+    key: 'supplier-price-lists',
+    labelKey: 'permissions.supplierPriceLists',
+    children: [
+      { key: 'supplier-price-lists.edit', labelKey: 'permissions.supplierPriceLists.edit' },
+    ],
+  },
+
   // ─── DRIVER TARIFFS ───
   {
     key: 'driver-tariffs',

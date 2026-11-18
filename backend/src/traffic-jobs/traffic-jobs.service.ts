@@ -1,3 +1,4 @@
+import { SupplierCostingService } from '../supplier-price-lists/supplier-costing.service.js';
 import {
   Injectable,
   Logger,
@@ -40,6 +41,7 @@ export class TrafficJobsService {
     private readonly settingsService: SettingsService,
     private readonly driverTariffsService: DriverTariffsService,
     private readonly jobCompletion: JobCompletionService,
+    private readonly supplierCosting: SupplierCostingService,
   ) {}
 
   // Full include — used for findOne() detail view only
@@ -616,6 +618,11 @@ export class TrafficJobsService {
     this.notificationsService
       .notifyAssigneesOfJobUpdate(job, result, userId)
       .catch((err) => this.logger.error(`Failed to notify job assignees: ${err.message}`));
+
+    // A different route can mean a different supplier price.
+    if (dto.jobServiceTypeId !== undefined && (dto.jobServiceTypeId || null) !== job.jobServiceTypeId) {
+      await this.supplierCosting.syncJobCost(id);
+    }
 
     return result;
   }

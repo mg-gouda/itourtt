@@ -183,6 +183,7 @@ interface RevenueReport {
     driverFees: number;
     repFees: number;
     supplierCosts: number;
+    ownCarCosts?: number;
   };
   byServiceType: Record<string, number>;
   byAgent: Array<{
@@ -3649,6 +3650,14 @@ export default function ReportsPage() {
                       </span>
                       <span className="text-sm font-mono text-foreground">
                         {fmt(revenueData.costBreakdown.supplierCosts, locale)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Own cars (own-car price list)
+                      </span>
+                      <span className="text-sm font-mono text-foreground">
+                        {fmt(revenueData.costBreakdown.ownCarCosts ?? 0, locale)}
                       </span>
                     </div>
                   </div>

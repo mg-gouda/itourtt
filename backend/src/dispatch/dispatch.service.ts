@@ -1,3 +1,4 @@
+import { SupplierCostingService } from '../supplier-price-lists/supplier-costing.service.js';
 import {
   Injectable,
   NotFoundException,
@@ -29,6 +30,7 @@ export class DispatchService {
     private readonly notificationsService: NotificationsService,
     private readonly whatsappService: WhatsappNotificationsService,
     private readonly b2cService: B2CService,
+    private readonly supplierCosting: SupplierCostingService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -337,6 +339,9 @@ export class DispatchService {
 
       return created;
     });
+
+    // Supplier cars are costed from the supplier's price list (route × car type).
+    await this.supplierCosting.syncJobCost(dto.trafficJobId);
 
     // Push notifications (fire-and-forget)
     if (assignment.driverId) {
@@ -675,6 +680,9 @@ export class DispatchService {
       return result;
     });
 
+    // Supplier cars are costed from the supplier's price list (route × car type).
+    await this.supplierCosting.syncJobCost(updated.trafficJobId);
+
     // Whoever was swapped out is told they are off the job.
     const swappedDriver =
       dto.driverId !== undefined && existing.driverId && dto.driverId !== existing.driverId
@@ -778,6 +786,9 @@ export class DispatchService {
         data: { status: 'PENDING' as JobStatus },
       });
     });
+
+    // No assignment → no supplier car → the unposted price-list cost goes.
+    await this.supplierCosting.syncJobCost(assignment.trafficJobId);
 
     // The people taken off the job are told (portal notification + push).
     this.notificationsService

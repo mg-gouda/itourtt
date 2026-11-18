@@ -5,10 +5,8 @@ import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateSupplierDto } from './dto/create-supplier.dto.js';
 import { UpdateSupplierDto } from './dto/update-supplier.dto.js';
-import { CreateTripPriceDto } from './dto/create-trip-price.dto.js';
 import { CreateSupplierVehicleDto, UpdateSupplierVehicleDto } from './dto/create-vehicle.dto.js';
 import { CreateSupplierDriverDto, UpdateSupplierDriverDto } from './dto/create-driver.dto.js';
-import { BulkPriceListDto, PriceItemDto } from './dto/supplier-price-list.dto.js';
 import type { Currency, ServiceType, VehicleOwnership } from '../../generated/prisma/enums.js';
 import { SELECTABLE_SERVICE_TYPES, SERVICE_TYPE_LABEL_PAIRS } from '../common/utils/service-type.util.js';
 
@@ -63,14 +61,7 @@ export class SuppliersService {
           include: { vehicleType: true },
           orderBy: { plateNumber: 'asc' },
         },
-        tripPrices: {
-          orderBy: { effectiveFrom: 'desc' },
-          include: {
-            fromZone: true,
-            toZone: true,
-            vehicleType: true,
-          },
-        },
+        priceList: { select: { id: true, name: true } },
         carTypes: {
           include: { vehicleType: true },
           orderBy: { vehicleType: { name: 'asc' } },
@@ -99,6 +90,11 @@ export class SuppliersService {
         email: dto.email,
         mobileNumber: dto.mobileNumber,
         nationalIdImage: dto.nationalIdImage,
+        // New suppliers start on the list flagged "default for new" (List D).
+        priceListId:
+          dto.priceListId !== undefined
+            ? dto.priceListId
+            : (await this.prisma.supplierPriceList.findFirst({ where: { isDefaultForNew: true }, select: { id: true } }))?.id ?? null,
       },
     });
   }
@@ -126,6 +122,7 @@ export class SuppliersService {
         email: dto.email,
         mobileNumber: dto.mobileNumber,
         nationalIdImage: dto.nationalIdImage,
+        ...(dto.priceListId !== undefined && { priceListId: dto.priceListId }),
       },
     });
   }
@@ -168,89 +165,6 @@ export class SuppliersService {
   }
 
   // ─── Trip Prices ────────────────────────────────────────────
-
-  async findTripPrices(supplierId: string) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId, deletedAt: null },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Supplier with id ${supplierId} not found`);
-    }
-
-    return this.prisma.supplierTripPrice.findMany({
-      where: { supplierId },
-      orderBy: [
-        { serviceType: 'asc' },
-        { effectiveFrom: 'desc' },
-      ],
-      include: {
-        fromZone: true,
-        toZone: true,
-        vehicleType: true,
-      },
-    });
-  }
-
-  async createTripPrice(supplierId: string, dto: CreateTripPriceDto) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId, deletedAt: null },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Supplier with id ${supplierId} not found`);
-    }
-
-    return this.prisma.supplierTripPrice.create({
-      data: {
-        supplierId,
-        serviceType: ((dto as unknown as Record<string, unknown>).serviceType as ServiceType) ?? 'ARR',
-        fromZoneId: dto.fromZoneId,
-        toZoneId: dto.toZoneId,
-        vehicleTypeId: dto.vehicleTypeId,
-        price: dto.price,
-        driverTip: ((dto as unknown as Record<string, unknown>).driverTip as number) ?? 0,
-        currency: (dto.currency as Currency) ?? undefined,
-        effectiveFrom: dto.effectiveFrom ? new Date(dto.effectiveFrom) : null,
-        effectiveTo: dto.effectiveTo ? new Date(dto.effectiveTo) : null,
-      },
-      include: {
-        fromZone: true,
-        toZone: true,
-        vehicleType: true,
-      },
-    });
-  }
-
-  async updateTripPrice(priceId: string, dto: CreateTripPriceDto) {
-    const tripPrice = await this.prisma.supplierTripPrice.findUnique({
-      where: { id: priceId },
-    });
-
-    if (!tripPrice) {
-      throw new NotFoundException(`Trip price with id ${priceId} not found`);
-    }
-
-    return this.prisma.supplierTripPrice.update({
-      where: { id: priceId },
-      data: {
-        serviceType: ((dto as unknown as Record<string, unknown>).serviceType as ServiceType) ?? undefined,
-        fromZoneId: dto.fromZoneId,
-        toZoneId: dto.toZoneId,
-        vehicleTypeId: dto.vehicleTypeId,
-        price: dto.price,
-        driverTip: ((dto as unknown as Record<string, unknown>).driverTip as number) ?? undefined,
-        currency: (dto.currency as Currency) ?? undefined,
-        effectiveFrom: dto.effectiveFrom ? new Date(dto.effectiveFrom) : undefined,
-        effectiveTo: dto.effectiveTo ? new Date(dto.effectiveTo) : undefined,
-      },
-      include: {
-        fromZone: true,
-        toZone: true,
-        vehicleType: true,
-      },
-    });
-  }
 
   // ─── Vehicles (Supplier-scoped) ─────────────────────────────
 
@@ -506,98 +420,6 @@ export class SuppliersService {
   }
 
   // ─── Price List (Bulk Upsert Pattern) ───────────────────────
-
-  async getPriceList(supplierId: string) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId, deletedAt: null },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Supplier with id ${supplierId} not found`);
-    }
-
-    return this.prisma.supplierTripPrice.findMany({
-      where: { supplierId },
-      include: {
-        fromZone: { select: { id: true, name: true } },
-        toZone: { select: { id: true, name: true } },
-        vehicleType: { select: { id: true, name: true, seatCapacity: true } },
-      },
-      orderBy: [
-        { serviceType: 'asc' },
-        { fromZone: { name: 'asc' } },
-        { toZone: { name: 'asc' } },
-        { vehicleType: { seatCapacity: 'asc' } },
-      ],
-    });
-  }
-
-  async upsertPriceItems(supplierId: string, dto: BulkPriceListDto) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId, deletedAt: null },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Supplier with id ${supplierId} not found`);
-    }
-
-    const results = await this.prisma.$transaction(
-      dto.items.map((item: PriceItemDto) =>
-        this.prisma.supplierTripPrice.upsert({
-          where: {
-            supplierId_serviceType_fromZoneId_toZoneId_vehicleTypeId: {
-              supplierId,
-              serviceType: item.serviceType as ServiceType,
-              fromZoneId: item.fromZoneId,
-              toZoneId: item.toZoneId,
-              vehicleTypeId: item.vehicleTypeId,
-            },
-          },
-          create: {
-            supplierId,
-            serviceType: item.serviceType as ServiceType,
-            fromZoneId: item.fromZoneId,
-            toZoneId: item.toZoneId,
-            vehicleTypeId: item.vehicleTypeId,
-            price: item.price,
-            driverTip: item.driverTip,
-            effectiveFrom: item.effectiveFrom ? new Date(item.effectiveFrom) : null,
-            effectiveTo: item.effectiveTo ? new Date(item.effectiveTo) : null,
-          },
-          update: {
-            price: item.price,
-            driverTip: item.driverTip,
-            effectiveFrom: item.effectiveFrom ? new Date(item.effectiveFrom) : null,
-            effectiveTo: item.effectiveTo ? new Date(item.effectiveTo) : null,
-          },
-        }),
-      ),
-    );
-
-    return results;
-  }
-
-  async deletePriceItem(supplierId: string, priceItemId: string) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId, deletedAt: null },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Supplier with id ${supplierId} not found`);
-    }
-
-    const priceItem = await this.prisma.supplierTripPrice.findFirst({
-      where: { id: priceItemId, supplierId },
-    });
-
-    if (!priceItem) {
-      throw new NotFoundException(`Price item with id "${priceItemId}" not found for this supplier`);
-    }
-
-    return this.prisma.supplierTripPrice.delete({
-      where: { id: priceItemId },
-    });
-  }
 
   // ─── Supplier Account ────────────────────────────────────────
 
@@ -1100,136 +922,6 @@ export class SuppliersService {
   }
 
   // ─── Price List Excel Export ───────────────────────────────────
-
-  async exportPriceListToExcel(supplierId: string): Promise<Buffer> {
-    const prices = await this.getPriceList(supplierId);
-
-    const rows = prices.map((p: any) => ({
-      'Service Type': p.serviceType,
-      'From Zone': p.fromZone?.name || '',
-      'To Zone': p.toZone?.name || '',
-      'Vehicle Type': p.vehicleType?.name || '',
-      Price: Number(p.price),
-      'Driver Tip': Number(p.driverTip),
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{}]);
-    if (rows.length > 0) {
-      const colWidths = Object.keys(rows[0]).map((key) => {
-        const maxLen = Math.max(key.length, ...rows.map((r) => String((r as any)[key] || '').length));
-        return { wch: Math.min(maxLen + 2, 40) };
-      });
-      ws['!cols'] = colWidths;
-    }
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Price List');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    return Buffer.from(buf);
-  }
-
-  async generatePriceListTemplate(supplierId: string): Promise<Buffer> {
-    await this.findOne(supplierId);
-
-    const [zones, vehicleTypes] = await Promise.all([
-      this.prisma.zone.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-      this.prisma.vehicleType.findMany({ where: { isActive: true }, select: { id: true, name: true, seatCapacity: true }, orderBy: { seatCapacity: 'asc' } }),
-    ]);
-
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'iTour Transport';
-
-    const priceSheet = workbook.addWorksheet('Price List');
-    priceSheet.columns = [
-      { header: 'Service Type', key: 'serviceType', width: 25 },
-      { header: 'From Zone', key: 'fromZone', width: 25 },
-      { header: 'To Zone', key: 'toZone', width: 25 },
-      { header: 'Vehicle Type', key: 'vehicleType', width: 20 },
-      { header: 'Price', key: 'price', width: 15 },
-      { header: 'Driver Tip', key: 'driverTip', width: 15 },
-    ];
-
-    priceSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    priceSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
-
-    // Reference sheets
-    const zonesSheet = workbook.addWorksheet('Zones');
-    zonesSheet.columns = [{ header: 'Zone Name', key: 'name', width: 30 }];
-    zonesSheet.getRow(1).font = { bold: true };
-    zones.forEach((z) => zonesSheet.addRow({ name: z.name }));
-
-    const vtSheet = workbook.addWorksheet('Vehicle Types');
-    vtSheet.columns = [{ header: 'Vehicle Type', key: 'name', width: 25 }, { header: 'Seats', key: 'seats', width: 10 }];
-    vtSheet.getRow(1).font = { bold: true };
-    vehicleTypes.forEach((vt) => vtSheet.addRow({ name: vt.name, seats: vt.seatCapacity }));
-
-    const stSheet = workbook.addWorksheet('Service Types');
-    stSheet.columns = [{ header: 'Code', key: 'code', width: 25 }, { header: 'Description', key: 'desc', width: 35 }];
-    stSheet.getRow(1).font = { bold: true };
-    SERVICE_TYPE_LABELS.forEach(([code, desc]) => stSheet.addRow({ code, desc }));
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    return Buffer.from(buffer);
-  }
-
-  async importPriceListFromExcel(supplierId: string, fileBuffer: Buffer): Promise<{ imported: number; errors: string[] }> {
-    await this.findOne(supplierId);
-
-    const [zones, vehicleTypes] = await Promise.all([
-      this.prisma.zone.findMany({ select: { id: true, name: true } }),
-      this.prisma.vehicleType.findMany({ where: { isActive: true }, select: { id: true, name: true } }),
-    ]);
-
-    const zoneMap = new Map(zones.map((z) => [z.name.toLowerCase(), z.id]));
-    const vtMap = new Map(vehicleTypes.map((vt) => [vt.name.toLowerCase(), vt.id]));
-
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(fileBuffer as unknown as ExcelJS.Buffer);
-
-    const sheet = workbook.getWorksheet('Price List');
-    if (!sheet) throw new BadRequestException('Invalid template: "Price List" sheet not found');
-
-    const items: PriceItemDto[] = [];
-    const errors: string[] = [];
-
-    sheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return;
-
-      const serviceType = String(row.getCell(1).value || '').trim().toUpperCase();
-      const fromZoneName = String(row.getCell(2).value || '').trim();
-      const toZoneName = String(row.getCell(3).value || '').trim();
-      const vehicleTypeName = String(row.getCell(4).value || '').trim();
-      const price = Number(row.getCell(5).value) || 0;
-      const driverTip = Number(row.getCell(6).value) || 0;
-
-      if (!serviceType && !fromZoneName && !toZoneName && !vehicleTypeName) return;
-
-      if (!serviceType || !fromZoneName || !toZoneName || !vehicleTypeName) {
-        errors.push(`Row ${rowNumber}: Missing required fields`); return;
-      }
-      if (!VALID_SERVICE_TYPES.has(serviceType)) {
-        errors.push(`Row ${rowNumber}: Unknown service type "${serviceType}"`); return;
-      }
-
-      const fromZoneId = zoneMap.get(fromZoneName.toLowerCase());
-      const toZoneId = zoneMap.get(toZoneName.toLowerCase());
-      const vehicleTypeId = vtMap.get(vehicleTypeName.toLowerCase());
-
-      if (!fromZoneId) { errors.push(`Row ${rowNumber}: Unknown zone "${fromZoneName}"`); return; }
-      if (!toZoneId) { errors.push(`Row ${rowNumber}: Unknown zone "${toZoneName}"`); return; }
-      if (!vehicleTypeId) { errors.push(`Row ${rowNumber}: Unknown vehicle type "${vehicleTypeName}"`); return; }
-
-      if (price > 0 || driverTip > 0) {
-        items.push({ serviceType, fromZoneId, toZoneId, vehicleTypeId, price, driverTip });
-      }
-    });
-
-    if (items.length > 0) {
-      await this.upsertPriceItems(supplierId, { items });
-    }
-
-    return { imported: items.length, errors };
-  }
 
   // ── Supplier Car Types ──
 

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TrafficJobsService } from '../traffic-jobs/traffic-jobs.service.js';
+import { SupplierCostingService } from '../supplier-price-lists/supplier-costing.service.js';
 import { normalizeImportName, plateDigits } from '../common/utils/import-name.util.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -119,6 +120,7 @@ export class B2bExcelImportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly trafficJobs: TrafficJobsService,
+    private readonly supplierCosting: SupplierCostingService,
   ) {}
 
   // ── Parsing ────────────────────────────────────────────────────────────────
@@ -561,6 +563,7 @@ export class B2bExcelImportService {
       try {
         if (r.status === 'NEW') {
           const job = await this.createJob(r, user.id);
+          await this.supplierCosting.syncJobCost(job.id);
           created.push({ rowNo: r.rowNo, jobRef: job.internalRef });
           logs.push({
             userId: user.id, userName, action: 'CREATE', entity: 'TrafficJob', entityId: job.id,
@@ -570,6 +573,7 @@ export class B2bExcelImportService {
           });
         } else if (r.status === 'CHANGED' && toUpdate.has(r.rowNo)) {
           const before = await this.updateJob(r, user.id);
+          await this.supplierCosting.syncJobCost(r.jobId!);
           updated.push({ rowNo: r.rowNo, jobRef: r.jobRef! });
           logs.push({
             userId: user.id, userName, action: 'UPDATE', entity: 'TrafficJob', entityId: r.jobId,

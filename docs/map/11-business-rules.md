@@ -590,6 +590,38 @@ traffic team's daily sheet: one sheet row = one B2B job. Rules agreed with the o
 - `GET /job-service-types` is readable with the B2B/Online route-field keys too, so non-admin
   roles get a populated Route dropdown (it used to need `driver-tariffs`).
 
+## Supplier price lists — where does a supplier job's cost come from?
+
+`supplier-price-lists/` (page **Supplier Price Lists**, keys `supplier-price-lists` / `.edit`).
+Replaced the zone-based `SupplierTripPrice` on 2026-11-18 (it had no rows and could not hold
+per-route prices: ten route groups collapse onto the same zone pair with different prices).
+
+- **A price list is shared.** `SupplierPriceList` (List A, B, C, D…) holds one price per
+  **route** (`JobServiceType`) × **vehicle type**; every supplier points at one list
+  (`Supplier.priceListId`). Editing a list re-prices every supplier on it. The sheet's car
+  columns map Limo→Sedan, Hi Ace 7→Minivan 7, Hi Ace 15→Hi Ace, Coaster, Bus (`PRICE_COLUMNS`).
+- **Two exclusive flags.** `isDefaultForNew` — a supplier created without a list starts on it
+  (`suppliers.service.ts › create`). `isOwnCarList` — own-car jobs are *reported* at its prices.
+  At most one list carries each flag; setting it clears the other lists.
+- **Automatic supplier cost** — `supplier-costing.service.ts › syncJobCost`. A job whose assignment
+  is a supplier car (supplier + `SupplierCarType`, no own vehicle) gets **one** `SupplierCost` with
+  `source = 'PRICE_LIST'`, priced by its route × the car type's vehicle type on the supplier's list.
+  It is recomputed after `dispatch.service › assignJob / reassignJob / unassignJob`, after the B2B
+  Excel import creates or updates a job, and when `traffic-jobs.service › update` changes the route.
+  No list / no price for that cell → no cost row (the job simply has no automatic cost).
+- **What the recompute never touches:** a *posted* PRICE_LIST row (settled pay — the recompute stops
+  and leaves it), manual supplier costs and complaint charges (both `source = null`). Old jobs are
+  not back-filled; costs appear as jobs are assigned or changed from 2026-11-18 on.
+- **Own cars are never a `SupplierCost`** — those rows become Odoo vendor bills. Their notional cost
+  is `supplier-costing.service.ts › ownCarCostTotal` (route × the vehicle's type on the
+  `isOwnCarList` list) and appears only in the revenue report's cost breakdown as `ownCarCosts`,
+  where it is included in total costs.
+- **Excel in the sheet's own layout.** Export/import use the "Supplier R-T" columns
+  (Price List | OPERATION | Limo | Hi Ace 7 | Hi Ace 15 | Coaster | Bus). OPERATION matches the
+  **English half** of route names; a code shared by the ذهاب / عوده pair prices both. For a row in
+  the file, a number sets the price and an empty cell clears it. Unknown lists are created; unknown
+  operations are reported, not guessed.
+
 ## References
 
 - `traffic-jobs.service.ts › generateInternalRef` — `PREFIX-nnnn`, prefix from the company initials.

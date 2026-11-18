@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**61 classes**, **477 methods**.
+**64 classes**, **496 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -166,27 +166,27 @@ B2B Import-from-Excel endpoints; every call uploads the sheet itself. Excluded f
 
 ### B2bExcelImportService
 
-`backend/src/b2b-excel-import/b2b-excel-import.service.ts:116` · service · 15 methods
+`backend/src/b2b-excel-import/b2b-excel-import.service.ts:117` · service · 15 methods
 
 Parses the traffic sheet, resolves each row to route/customer/car/carrier, diffs against existing jobs and writes them.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `parseWorkbook` | pub | 127 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
-| `toIsoDate` | priv | 187 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
-| `loadContext` | priv | 204 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
-| `lookup` | priv | 286 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
-| `resolveRow` | priv | 299 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
-| `summarizeDates` | pub | 439 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
-| `preview` | pub | 452 | — | Date summary of the file, plus evaluated rows for the requested dates. |
-| `evaluate` | priv | 461 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
-| `diff` | priv | 519 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
-| `commit` | pub | 544 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
-| `rowSnapshot` | priv | 609 | — | The sheet values of a row as stored in the Activity Log. |
-| `createJob` | priv | 613 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
-| `updateJob` | priv | 657 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
-| `saveAlias` | pub | 703 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
-| `lookups` | pub | 719 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
+| `parseWorkbook` | pub | 129 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
+| `toIsoDate` | priv | 189 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
+| `loadContext` | priv | 206 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
+| `lookup` | priv | 288 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
+| `resolveRow` | priv | 301 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
+| `summarizeDates` | pub | 441 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
+| `preview` | pub | 454 | — | Date summary of the file, plus evaluated rows for the requested dates. |
+| `evaluate` | priv | 463 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
+| `diff` | priv | 521 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
+| `commit` | pub | 546 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
+| `rowSnapshot` | priv | 613 | — | The sheet values of a row as stored in the Activity Log. |
+| `createJob` | priv | 617 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
+| `updateJob` | priv | 661 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
+| `saveAlias` | pub | 707 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
+| `lookups` | pub | 723 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
 
 ## `chat`
 
@@ -911,6 +911,54 @@ All persisted configuration: system, company, email, website (B2C), Google Drive
 | `disconnectGoogleDrive` | pub | 637 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
 | `updateGoogleDriveSettings` | pub | 646 | `googleDriveSettings` | Updates Drive folder configuration. |
 
+## `supplier-price-lists`
+
+### SupplierCostingService
+
+`backend/src/supplier-price-lists/supplier-costing.service.ts:21` · service · 2 methods
+
+Keeps each supplier-car job's PRICE_LIST cost in step with its route, supplier and car type.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `syncJobCost` | pub | 27 | `trafficJob` `supplierCost` `supplierPriceListItem` | Replaces a job's unposted PRICE_LIST cost from its supplier's list; never touches posted, manual or complaint rows; never throws. |
+| `ownCarCostTotal` | pub | 87 | `supplierPriceList` | Own-car jobs in a date range priced on the own-car list — report only, never a SupplierCost. |
+
+### SupplierPriceListsController
+
+`backend/src/supplier-price-lists/supplier-price-lists.controller.ts:35` · controller · 6 methods
+
+Supplier price lists CRUD, grid, prices save, Excel export/import in the Supplier R-T layout.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `findAll` | pub | 40 | — | Lists with item counts and their suppliers. |
+| `create` | pub | 66 | — | Creates a price list. |
+| `grid` | pub | 73 | — | Route rows × car-type columns with the list's prices. |
+| `savePrices` | pub | 79 | — | Saves edited grid cells (null clears). |
+| `update` | pub | 85 | — | Renames a list or sets its default-for-new / own-car flags. |
+| `remove` | pub | 91 | — | Deletes a list nobody uses. |
+
+### SupplierPriceListsService
+
+`backend/src/supplier-price-lists/supplier-price-lists.service.ts:30` · service · 11 methods
+
+CRUD, grid and Excel import/export for supplier price lists.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `findAll` | pub | 33 | `supplierPriceList` | Lists with item counts and assigned suppliers. |
+| `create` | pub | 44 | `supplierPriceList` | Creates a list (name unique). |
+| `update` | pub | 57 | `supplierPriceList` | Updates name/notes/flags. |
+| `clearExclusiveFlags` | priv | 74 | `supplierPriceList` | Keeps default-for-new and own-car flags on at most one list each. |
+| `remove` | pub | 80 | `supplierPriceList` | Deletes a list with no suppliers on it. |
+| `get` | priv | 93 | `supplierPriceList` | Loads a list or 404s. |
+| `columns` | priv | 99 | `vehicleType` | PRICE_COLUMNS resolved to vehicle type ids. |
+| `grid` | pub | 105 | `jobServiceType` `supplierPriceListItem` | Active routes, car columns and the list's prices. |
+| `saveCells` | pub | 121 | `supplierPriceListItem` | Upserts / clears price cells in one transaction. |
+| `exportWorkbook` | pub | 145 | `supplierPriceList` `jobServiceType` | All lists as one Supplier R-T sheet (plus the Arabic route name). |
+| `importWorkbook` | pub | 175 | `jobServiceType` `supplierPriceList` | Imports a Supplier R-T sheet: lists by name (created if new), OPERATION by route English code, empty cell clears. |
+
 ## `tracking`
 
 ### RecordLocationInterceptor
@@ -1075,7 +1123,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-161 free functions, constants and types in these modules.
+165 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1122,12 +1170,12 @@ Traffic sheet → B2B jobs: parsing, matching, re-upload diff and commit. Rules 
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SUPPLIER_CAR_NUMBERS` | const | 29 | Sheet car numbers 2000–2004 — supplier cars, not own vehicles. |
-| `AliasKind` | type | 43 | CUSTOMER \| SUPPLIER \| DRIVER — what an import alias points at. |
-| `RowStatus` | type | 44 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
-| `SheetRow` | type | 46 | One parsed traffic-sheet row (Excel row number + column values). |
-| `FieldChange` | type | 74 | One old → new difference shown in the preview. |
-| `RowResult` | type | 80 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
+| `SUPPLIER_CAR_NUMBERS` | const | 30 | Sheet car numbers 2000–2004 — supplier cars, not own vehicles. |
+| `AliasKind` | type | 44 | CUSTOMER \| SUPPLIER \| DRIVER — what an import alias points at. |
+| `RowStatus` | type | 45 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
+| `SheetRow` | type | 47 | One parsed traffic-sheet row (Excel row number + column values). |
+| `FieldChange` | type | 75 | One old → new difference shown in the preview. |
+| `RowResult` | type | 81 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
 
 ### `backend/src/chat/chat.constants.ts`
 
@@ -1465,10 +1513,10 @@ Staff job-update notifications/emails, dispatch-action notices, and driver/rep j
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 733 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 749 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 757 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 769 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 742 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 758 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 766 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 778 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 
@@ -1499,6 +1547,24 @@ Device-session tracking behind the admin Active-Sessions view and the single-dev
 | `SessionEndReason` | type | 35 | Why a session ended: LOGOUT, FORCED (admin) or IDLE_TIMEOUT (inactivity sweep). |
 | `BACKGROUND_POLL_HEADER` | const | 51 | Header (x-background-poll: 1) a client sets on timer-driven requests so they don't count as user activity. |
 | `isBackgroundRequest` | function | 54 | True for background polls (GET notification endpoints or X-Background-Poll header) — they refresh lastSeenAt but not lastActivityAt. |
+
+### `backend/src/supplier-price-lists/supplier-costing.service.ts`
+
+Supplier cost from price lists: per-job PRICE_LIST SupplierCost sync and the own-car report cost.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PRICE_LIST_COST_SOURCE` | const | 5 | SupplierCost.source marking rows owned by the price-list costing (manual/complaint rows are null). |
+| `CostSyncResult` | type | 7 | Outcome of a job cost sync: COSTED / NO_PRICE / NO_PRICE_LIST / NOT_SUPPLIER / POSTED. |
+
+### `backend/src/supplier-price-lists/supplier-price-lists.service.ts`
+
+Supplier price list management and the Supplier R-T Excel round-trip.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PRICE_COLUMNS` | const | 10 | Sheet car columns → system vehicle types (Limo→Sedan, Hi Ace 7→Minivan 7, Hi Ace 15→Hi Ace, Coaster, Bus). |
+| `PriceCell` | type | 23 | One route × vehicle-type price edit (null clears). |
 
 ### `backend/src/tracking/tracking.service.ts`
 
