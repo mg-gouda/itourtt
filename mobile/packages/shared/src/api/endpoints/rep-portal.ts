@@ -34,6 +34,11 @@ export const repPortalApi = {
     return api.patch(`/rep-portal/jobs/${jobId}/status`, { status, latitude, longitude });
   },
 
+  /** After IN PLACE: will the rep escort the transfer (complete at the drop-off) or stay at the airport? */
+  setEscort(jobId: string, escort: boolean) {
+    return api.post(`/rep-portal/jobs/${jobId}/escort`, { escort });
+  },
+
   /** PENDING → IN_PLACE: exactly 2 photos + GPS; ARR jobs only inside arrival −10 / +80 min. */
   submitInPlace(jobId: string, formData: FormData) {
     return api.post(`/rep-portal/jobs/${jobId}/in-place`, formData, {

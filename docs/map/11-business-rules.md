@@ -107,7 +107,7 @@ Where each status is checked against:
 | Driver | COMPLETED | **drop-off** end (same order) — before 2026-11-16 it wrongly used the origin |
 | Driver | CANCELLED | none |
 | Rep | every other status | the job's airport — origin for ARR, **destination for DEP** (was origin-only, so DEP reps were never checked) |
-| Rep | COMPLETED on **ARR** | the **drop-off** end (pin → hotel → zone), like a driver's completion — the rep rides to the hotel and closes there (since 2026-11-17; FT-3143 was blocked 22 km from the airport) |
+| Rep | COMPLETED | decided by the rep's **escort answer** (`TrafficAssignment.repEscort`, asked right after IN PLACE, since 2026-11-18): **escorting → the drop-off end** (pin → hotel → zone); **not escorting → the airport**. Unanswered (older jobs) keeps the old rule: ARR completes at the drop-off (FT-3143 was blocked 22 km from the airport), others at the airport |
 
 Only a **precise** target blocks: an exact pickup/drop-off pin, an airport, or a hotel with
 coordinates. A zone centroid covers a whole area, so a miss against one is only logged. A location
@@ -121,6 +121,33 @@ The evidence routes call `precheckGeofence` in the controller **before** uploadi
 refused submission leaves no orphan files in Drive; the submit method re-checks authoritatively.
 Airport coordinates must point at the terminal, not the airfield centre — a large airport's
 centroid can be well outside the airport radius from where reps actually stand.
+
+## Rep escort question and job alarms
+
+**Escort question.** After IN PLACE the rep portal (`components/rep-escort-dialog.tsx`) and the rep app
+(`apps/rep/src/lib/escort.ts`) ask *"Will you escort this transfer?"* — not dismissable, re-asked until
+answered, and Complete is held until it is. `POST /rep-portal/jobs/:id/escort` (only while IN_PLACE;
+never for **DEP**, whose drop-off is the airport) stores `repEscort` + `repEscortAt`; the answer picks
+the COMPLETED geofence (table above) and arms the drop-off alarm for an escorting rep.
+
+**Job alarms** (`common/services/job-alerts.service.ts`, `GET /{rep,driver}-portal/alerts`, a
+background poll): the server lists the person's jobs that qualify; clients only time and display them.
+- `START_60` / `START_30` — 1 h and 30 min before the job **starts** (`jobStartsAt`: flight arrival
+  for ARR, pickup time otherwise), only while that person's leg is still PENDING. The 30-min one
+  supersedes a missed 1-h one.
+- `DROPOFF_ARRIVED` / `DROPOFF_LEFT` — a driver whose leg is IN_PROGRESS, or a rep IN_PLACE with
+  `repEscort = true`: inside the drop-off geofence (same target and radius as the COMPLETED check)
+  → "complete before you leave"; inside earlier and now outside, still not completed → alarm. Only
+  **precise** targets (pin / hotel / airport) arm it — a zone centroid is too coarse.
+- Every alarm is a modal that only closes with **"I've seen it"** → `POST …/jobs/:id/alerts/ack`
+  upserts `JobAlertAck` (job + user + kind, first ack wins) and, as a portal POST, writes the
+  Activity Log row against the job (the audit interceptor words it "Rep acknowledged alarm: …").
+- Web: `components/job-alarms.tsx` in both portal layouts (chime + vibrate, system notification
+  when the tab is hidden; GPS `watchPosition` only while a drop-off is armed — a closed tab can't
+  alarm). Apps: `shared/native/job-alerts.ts` schedules the start reminders as
+  `SET_AND_ALLOW_WHILE_IDLE` trigger notifications (ring with the app closed, may drift a few minutes
+  in Doze), the sync service re-polls every 30 s and reads GPS for armed drop-offs, and
+  `JobAlarmHost` (kit) shows the modal queue with vibration.
 
 ---
 

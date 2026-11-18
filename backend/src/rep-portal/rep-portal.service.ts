@@ -172,7 +172,7 @@ export class RepPortalService {
     };
 
     const jobs = assignments
-      .map((a) => ({ ...a.trafficJob, repStatus: a.repStatus }))
+      .map((a) => ({ ...a.trafficJob, repStatus: a.repStatus, repEscort: a.repEscort }))
       .sort((a, b) => resolveTime(a) - resolveTime(b));
 
     return {
@@ -529,7 +529,7 @@ export class RepPortalService {
         where: { id: jobId },
         include: this.jobInclude,
       });
-      return { ...job, repStatus: 'IN_PLACE' };
+      return { ...job, repStatus: 'IN_PLACE', repEscort: assignment.repEscort };
     }
 
     if (currentStatus !== 'PENDING') {
@@ -582,6 +582,7 @@ export class RepPortalService {
       return {
         ...updated.trafficJob,
         repStatus: updated.repStatus,
+        repEscort: updated.repEscort,
       };
     });
   }

@@ -4,13 +4,13 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**124 files**, **348 exported symbols**.
+**127 files**, **367 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
 ### `App.tsx`
 
-`mobile/apps/driver/src/App.tsx` · 132 lines
+`mobile/apps/driver/src/App.tsx` · 136 lines
 
 Driver app root — providers, theme and navigation.
 
@@ -379,7 +379,7 @@ Guest booking funnel state across steps.
 
 ### `App.tsx`
 
-`mobile/apps/rep/src/App.tsx` · 132 lines
+`mobile/apps/rep/src/App.tsx` · 136 lines
 
 Rep app root.
 
@@ -400,6 +400,17 @@ Rep app day-list job card: big job time, service + status pills, two-stop route,
 | `RepJobCard` | function | 21 | One job on the rep's day list; the CTA is In Place (window-gated) or Complete, mirroring the web rep portal. |
 
 ## `mobile/apps/rep/src/lib/`
+
+### `escort.ts`
+
+`mobile/apps/rep/src/lib/escort.ts` · 36 lines
+
+Rep app escort question (after IN PLACE, before completing).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `needsEscortAnswer` | function | 10 | True when a job is IN_PLACE, not DEP, and the escort question is unanswered. |
+| `askEscort` | function | 15 | Ask the escort question (not dismissable) and save it; retries on failure. |
 
 ### `job-rules.ts`
 
@@ -494,14 +505,14 @@ Rep app Complaints tab.
 
 ### `EvidenceScreen.tsx`
 
-`mobile/apps/rep/src/screens/EvidenceScreen.tsx` · 254 lines
+`mobile/apps/rep/src/screens/EvidenceScreen.tsx` · 268 lines
 
 Rep evidence capture for IN PLACE / COMPLETED / NO SHOW: photos + up-front GPS fix, one multipart upload.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `EvidenceKind` | type | 23 | Which rep submission the evidence screen is making. |
-| `EvidenceScreen` | function | 37 | Photo grid (camera/gallery) + GPS card; IN PLACE needs exactly 2 photos, COMPLETED/NO SHOW 1–10, as the server enforces. |
+| `EvidenceKind` | type | 26 | Which rep submission the evidence screen is making. |
+| `EvidenceScreen` | function | 40 | Photo grid (camera/gallery) + GPS card; IN PLACE needs exactly 2 photos, COMPLETED/NO SHOW 1–10, as the server enforces. |
 
 ### `HistoryScreen.tsx`
 
@@ -515,13 +526,13 @@ Rep History tab.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 494 lines
+`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 510 lines
 
 Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 80 | Rep job detail: progress stepper, next-step CTA (In Place / Complete), No Show / Flight Delay / Survey / Update / Cancel tiles, route with navigation, guest, customer rep, driver. |
+| `JobDetailScreen` | function | 87 | Rep job detail: progress stepper, next-step CTA (In Place / Complete), No Show / Flight Delay / Survey / Update / Cancel tiles, route with navigation, guest, customer rep, driver. |
 
 ### `JobFormsScreens.tsx`
 
@@ -538,13 +549,13 @@ Rep job side-forms: flight delay, free-text update to ops, and the arrival guest
 
 ### `JobsListScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobsListScreen.tsx` · 261 lines
+`mobile/apps/rep/src/screens/JobsListScreen.tsx` · 279 lines
 
 Rep Jobs tab (day list).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobsListScreen` | function | 45 | Home tab: greeting, week strip, day counters and RepJobCards; bell opens Notifications. Refreshes on focus and every 60 s. |
+| `JobsListScreen` | function | 46 | Home tab: greeting, week strip, day counters and RepJobCards; bell opens Notifications. Refreshes on focus and every 60 s. |
 
 ### `LoginScreen.tsx`
 
@@ -749,7 +760,7 @@ Public B2C endpoints used by the guest app (search, pricing, booking).
 
 ### `rep-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 106 lines
+`mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 111 lines
 
 Typed wrappers over `/api/rep-portal`; mirrors `RepPortalController`.
 
@@ -840,7 +851,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 429 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 457 lines
 
 Arabic strings for all four apps.
 
@@ -850,14 +861,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 429 lines
+`mobile/packages/shared/src/i18n/en.ts` · 457 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 428 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 456 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -882,21 +893,21 @@ Translator and locale selection for the mobile apps.
 
 ### `background-sync.ts`
 
-`mobile/packages/shared/src/native/background-sync.ts` · 385 lines
+`mobile/packages/shared/src/native/background-sync.ts` · 405 lines
 
 Firebase-free sync: Android foreground service polling jobs/chat + tracking heartbeat, local notifications.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Portal` | type | 28 | driver \| rep. |
-| `NotificationTarget` | type | 38 | What a tapped local notification opens: job, chat thread or notifications. |
-| `requestStartupPermissions` | function | 87 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
-| `setupNotifications` | function | 129 | Requests notification permission and creates the Android channels. |
-| `clearChatNotifications` | function | 224 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
-| `registerBackgroundSync` | function | 296 | Registers notifee's foreground-service task; call once from index.js. |
-| `startBackgroundSync` | function | 310 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
-| `stopBackgroundSync` | function | 346 | Stops polling and the foreground service (sign-out). |
-| `onNotificationOpen` | function | 371 | Routes taps on local notifications (incl. cold start). |
+| `Portal` | type | 29 | driver \| rep. |
+| `NotificationTarget` | type | 39 | What a tapped local notification opens: job, chat thread or notifications. |
+| `requestStartupPermissions` | function | 88 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
+| `setupNotifications` | function | 130 | Requests notification permission and creates the Android channels. |
+| `clearChatNotifications` | function | 225 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
+| `registerBackgroundSync` | function | 314 | Registers notifee's foreground-service task; call once from index.js. |
+| `startBackgroundSync` | function | 328 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
+| `stopBackgroundSync` | function | 364 | Stops polling and the foreground service (sign-out). |
+| `onNotificationOpen` | function | 391 | Routes taps on local notifications (incl. cold start). |
 
 ### `camera.ts`
 
@@ -912,6 +923,31 @@ Camera and gallery access for evidence photos.
 | `takePhoto` | function | 46 | Camera and gallery access for evidence photos (`takePhoto`). |
 | `pickPhoto` | function | 90 | Camera and gallery access for evidence photos (`pickPhoto`). |
 | `captureOrPick` | function | 126 | Camera and gallery access for evidence photos (`captureOrPick`). |
+
+### `job-alerts.ts`
+
+`mobile/packages/shared/src/native/job-alerts.ts` · 299 lines
+
+Mobile job alarm engine: schedules start reminders, watches drop-off geofence, queues must-acknowledge modals.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AlarmPortal` | type | 31 | rep or driver. |
+| `AlarmKind` | type | 32 | START_60 \| START_30 \| DROPOFF_ARRIVED \| DROPOFF_LEFT. |
+| `AlarmJob` | type | 34 | A job as GET /alerts returns it (start time, route, acked kinds, optional drop-off target). |
+| `PendingAlarm` | type | 48 | An alarm waiting for acknowledgement in the modal queue. |
+| `CHANNEL_ALARMS` | const | 54 | Android notification channel for job alarms (high importance, sound, vibration). |
+| `onAlarmsChange` | function | 70 | Subscribe to modal-queue changes; returns unsubscribe. |
+| `getPendingAlarms` | function | 77 | The current modal queue. |
+| `hasActiveDropoffs` | function | 82 | Whether a precise drop-off geofence is armed (the sync service reads GPS only then). |
+| `alarmTitle` | function | 86 | Localised title for an alarm kind. |
+| `alarmBody` | function | 99 | Notification body for an alarm (flight, time, route or drop-off text). |
+| `dueStartKind` | function | 158 | Which start reminder is due now (30-min supersedes 1-h). |
+| `evaluateDueAlarms` | function | 168 | Raise any start reminder due now (called every tick). |
+| `refreshJobAlerts` | function | 222 | Fetch GET /{portal}-portal/alerts, (re)schedule trigger notifications, raise due alarms. |
+| `checkDropoffs` | function | 249 | Compare a GPS fix with armed drop-off geofences; raise arrived / left alarms. |
+| `acknowledgeAlarm` | function | 265 | Close an alarm, cancel its notification and POST the acknowledgement. |
+| `resetJobAlerts` | function | 288 | Sign-out: clear state and cancel scheduled alarms. |
 
 ### `location.ts`
 
@@ -1071,7 +1107,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 558 lines
+`mobile/packages/shared/src/types/index.ts` · 560 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -1114,22 +1150,22 @@ Shared TypeScript types for API payloads across the apps.
 | `PortalJob` | type | 281 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
 | `DriverPortalJob` | type | 316 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
 | `RepPortalJob` | type | 334 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
-| `SupplierPortalJob` | type | 355 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
-| `PortalNotification` | type | 361 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
-| `GuestSurveyInput` | type | 373 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
-| `GuestSurveyPayload` | type | 389 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
-| `PortalComplaint` | type | 400 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
-| `PortalDeduction` | type | 418 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
-| `BookingExtras` | type | 434 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 440 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 452 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 458 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 483 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 509 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 514 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 522 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 535 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 549 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `SupplierPortalJob` | type | 357 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
+| `PortalNotification` | type | 363 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
+| `GuestSurveyInput` | type | 375 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
+| `GuestSurveyPayload` | type | 391 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
+| `PortalComplaint` | type | 402 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
+| `PortalDeduction` | type | 420 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
+| `BookingExtras` | type | 436 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 442 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 454 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 460 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 485 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 511 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 516 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 524 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 537 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 551 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 
@@ -1464,6 +1500,16 @@ Calendar date picker modal for the rep/driver jobs header.
 |---|---|---|---|
 | `DatePickerModal` | function | 24 | Month calendar in the app popup card; tap a day to pick it (opened from the jobs header month label). |
 
+### `JobAlarmHost.tsx`
+
+`mobile/packages/ui/src/kit/JobAlarmHost.tsx` · 143 lines
+
+App-styled job alarm modal host for the rep/driver apps.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `JobAlarmHost` | function | 29 | Mounted in App.tsx when signed in: polls alarms and shows each as a must-acknowledge modal with vibration. |
+
 ### `Splash.tsx`
 
 `mobile/packages/ui/src/kit/Splash.tsx` · 108 lines
@@ -1499,13 +1545,13 @@ Shared app form controls (field, choice chips, counter).
 
 ### `index.ts`
 
-`mobile/packages/ui/src/kit/index.ts` · 13 lines
+`mobile/packages/ui/src/kit/index.ts` · 14 lines
 
 Barrel for the shared rep/driver app design kit.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `logoBadge` | const | 12 | The iTour badge PNG (packages/ui/assets) for splash and login. |
+| `logoBadge` | const | 13 | The iTour badge PNG (packages/ui/assets) for splash and login. |
 
 ### `kit.tsx`
 

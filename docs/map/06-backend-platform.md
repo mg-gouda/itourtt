@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**58 classes**, **454 methods**.
+**59 classes**, **458 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -256,22 +256,22 @@ _No methods._
 
 ### AuditInterceptor
 
-`backend/src/common/interceptors/audit.interceptor.ts:115` · middleware · 10 methods
+`backend/src/common/interceptors/audit.interceptor.ts:123` · middleware · 10 methods
 
 Writes an `ActivityLog` row for every create/update/delete, capturing actor, entity and a field-level diff. This is what satisfies the mandatory audit-logging rule without touching each service.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `intercept` | pub | 122 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
-| `captureBefore` | priv | 176 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
-| `enqueue` | priv | 220 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
-| `flush` | priv | 267 | `activityLog` | Batch-writes queued audit rows. |
-| `buildSummary` | priv | 302 | — | Composes a log summary from action, entity and the resolved job reference. |
-| `resolveJobRefs` | priv | 311 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
-| `resolveJob` | priv | 364 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
-| `methodToAction` | priv | 459 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
-| `parseEntityFromPath` | priv | 473 | — | Derives the entity type and id from the request path. |
-| `sanitizeBody` | priv | 510 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
+| `intercept` | pub | 130 | — | Wraps every mutating request: captures the before-state, lets the handler run, then enqueues an audit row with the diff. |
+| `captureBefore` | priv | 184 | — | Reads the entity's current state before the handler mutates it, so a field-level diff is possible. |
+| `enqueue` | priv | 228 | — | Queues an audit row rather than writing inline, keeping request latency off the audit write. |
+| `flush` | priv | 275 | `activityLog` | Batch-writes queued audit rows. |
+| `buildSummary` | priv | 310 | — | Composes a log summary from action, entity and the resolved job reference. |
+| `resolveJobRefs` | priv | 330 | `trafficAssignment` `trafficJob` | Batch-resolves queued entries' job ids (and dispatch assignments) to internal refs at flush time. |
+| `resolveJob` | priv | 383 | — | Works out which traffic job a request touched, from response, URL, body or before-snapshot. |
+| `methodToAction` | priv | 478 | — | Maps HTTP verb to CREATE/UPDATE/DELETE. |
+| `parseEntityFromPath` | priv | 492 | — | Derives the entity type and id from the request path. |
+| `sanitizeBody` | priv | 529 | — | Strips passwords, tokens and other secrets before anything is persisted to the audit log. |
 
 ### CaptchaService
 
@@ -294,6 +294,19 @@ Google Places/Geocoding lookups behind the backend, used for pickup/dropoff coor
 | `getApiKey` | priv | 18 | — | Reads the Google API key from configuration. |
 | `searchPlaces` | pub | 34 | — | Place autocomplete search. Note the B2C booking widget uses the NEW Places API directly in the browser; legacy `google.maps.places.Autocomplete` is blocked for this Cloud project. |
 | `geocodeAddress` | pub | 82 | — | Resolves an address string to coordinates. |
+
+### JobAlertsService
+
+`backend/src/common/services/job-alerts.service.ts:53` · service · 4 methods
+
+Job alarms for rep/driver portals and apps: start reminders, drop-off geofence targets, acknowledgements, rep escort answer.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `personId` | priv | 56 | `rep` `driver` | Resolve the rep or driver profile id for a user. |
+| `getAlerts` | pub | 65 | `trafficAssignment` | Jobs starting in the next 26 h with a PENDING leg (reminders) and running legs with a drop-off geofence (driver IN_PROGRESS / escorting rep). |
+| `acknowledge` | pub | 167 | `trafficAssignment` `jobAlertAck` | Upsert a JobAlertAck for the user's assigned job (first ack wins); the POST is activity-logged. |
+| `setRepEscort` | pub | 199 | `trafficAssignment` | Save the rep's escort answer (IN_PLACE only, not DEP); decides the COMPLETED geofence target. |
 
 ### JobCompletionService
 
@@ -1023,7 +1036,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-147 free functions, constants and types in these modules.
+153 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1150,9 +1163,11 @@ Haversine distance, geofence target resolution and enforcement (403) for rep/dri
 | `isWithinGeofence` | function | 65 | True when two points are within `radiusMeters` of each other. |
 | `GeofenceJob` | type | 83 | Job location shape the geofence reads: exact pins plus origin/destination airport, hotel and zones. |
 | `GeofenceTarget` | type | 99 | Point a status must be made near: label for the error, whether it is precise (enforceable), and whether it is an airport (picks the airport vs other radius). |
-| `resolveRepGeofenceTarget` | function | 168 | The job's airport: origin for ARR, destination for DEP; null when the job has no airport. |
-| `resolveDriverGeofenceTarget` | function | 185 | Per status: IN_PROGRESS/NO_SHOW → pickup end, COMPLETED → drop-off end (pin → airport → hotel precise; zones not); other statuses → null. |
-| `assertWithinGeofence` | function | 208 | Throws 403 when a rep/driver status GPS is beyond the configured radius (airport vs other, from CompanySettings) of a precise target; zone targets and unlocked jobs only log. |
+| `resolveRepGeofenceTarget` | function | 169 | The job's airport: origin for ARR, destination for DEP; null when the job has no airport. |
+| `repEscortApplies` | function | 188 | Whether the rep escort question applies to a job (every service type except DEP). |
+| `resolveDriverGeofenceTarget` | function | 197 | Per status: IN_PROGRESS/NO_SHOW → pickup end, COMPLETED → drop-off end (pin → airport → hotel precise; zones not); other statuses → null. |
+| `LOC` | const | 208 | Prisma select for a location's name + coordinates, shared by the geofence loaders. |
+| `assertWithinGeofence` | function | 220 | Throws 403 when a rep/driver status GPS is beyond the configured radius (airport vs other, from CompanySettings) of a precise target; zone targets and unlocked jobs only log. |
 
 ### `backend/src/common/license-verify.ts`
 
@@ -1179,6 +1194,17 @@ Normalisation helpers around licence status and public-key formats.
 | `LicenseStatus` | type | 7 | UI-facing licence status shape (distinct from the verifier's internal `LicenseStatus`). |
 | `toLicenseStatus` | function | 30 | Normalises a licence check result into the status the API and UI consume. |
 | `normalizePublicKey` | function | 50 | Accepts the public key in either raw or PEM form and normalises it for verification. |
+
+### `backend/src/common/services/job-alerts.service.ts`
+
+Job alarms + rep escort answer shared by the rep and driver portals.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AlertRole` | type | 16 | REP or DRIVER — whose leg the alarms are for. |
+| `ALERT_KINDS` | const | 19 | The job alarm kinds: START_60, START_30, DROPOFF_ARRIVED, DROPOFF_LEFT. |
+| `AlertKind` | type | 20 | One of ALERT_KINDS. |
+| `jobStartsAt` | function | 32 | When a job starts: flight arrival for ARR, pickup time otherwise. |
 
 ### `backend/src/common/services/job-completion.service.ts`
 

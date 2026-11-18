@@ -84,6 +84,14 @@ const MODEL_MAP: Record<string, string> = {
   'agent-adjustments': 'agentAdjustment',
 };
 
+/** Job alarm kinds (common/services/job-alerts.service.ts) → activity-log wording. */
+const ALERT_LABELS: Record<string, string> = {
+  START_60: 'job starts in 1 hour',
+  START_30: 'job starts in 30 minutes',
+  DROPOFF_ARRIVED: 'at the drop-off — complete before leaving',
+  DROPOFF_LEFT: 'left the drop-off without completing',
+};
+
 /** UUID v4 regex */
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -303,7 +311,18 @@ export class AuditInterceptor implements NestInterceptor {
     const ref =
       entry.jobRef ??
       (entry.entityId ? `${entry.entityId.slice(0, 8)}…` : null);
-    return `${entry.action} ${entry.entity}${ref ? ` (${ref})` : ''}`;
+    const suffix = ref ? ` (${ref})` : '';
+    // Portal job alarms / escort answer read as what they are, not "CREATE RepPortal".
+    const d = entry.details as { kind?: unknown; escort?: unknown } | undefined;
+    if ((entry.entity === 'RepPortal' || entry.entity === 'DriverPortal') && d) {
+      const who = entry.entity === 'RepPortal' ? 'Rep' : 'Driver';
+      const alarm = typeof d.kind === 'string' ? ALERT_LABELS[d.kind] : undefined;
+      if (alarm) return `${who} acknowledged alarm: ${alarm}${suffix}`;
+      if (typeof d.escort === 'boolean') {
+        return `Rep ${d.escort ? 'WILL' : 'will NOT'} escort the transfer${suffix}`;
+      }
+    }
+    return `${entry.action} ${entry.entity}${suffix}`;
   }
 
   /** Fill in `jobRef` for queued entries: one lookup per batch, resolving both

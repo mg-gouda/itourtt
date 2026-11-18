@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LicenseGate } from "@/components/license-gate";
 import { useT } from "@/lib/i18n";
 import { useLocationHeartbeat } from "@/lib/use-location-heartbeat";
+import { JobAlarms } from "@/components/job-alarms";
 import {
   Truck,
   Briefcase,
@@ -138,6 +139,8 @@ function DriverPortalShell({
       <main className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         <PushPrompt />
         {children}
+        {/* 1 h / 30 min start reminders + drop-off geofence alarms (must be acknowledged) */}
+        <JobAlarms portal="driver" />
       </main>
 
       {/* Footer — fixed above bottom nav */}

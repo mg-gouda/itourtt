@@ -21,6 +21,7 @@ import { ActionButton, GradientHeader, HeaderIconButton, HeaderStat } from '@ito
 import { WeekStrip } from '@itour/ui';
 import { useNotificationsStore } from '../lib/notifications-store';
 import { jobDay } from '../lib/job-rules';
+import { askEscort, needsEscortAnswer } from '../lib/escort';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 /** Which header counter is filtering the list ('all' = Total, no filter). */
@@ -85,6 +86,16 @@ export function JobsListScreen() {
       return () => clearInterval(id);
     }, [fetchJobs]),
   );
+
+  // A job left IN PLACE without the escort answer (e.g. the app closed right
+  // after the evidence) gets the question as soon as the list shows it.
+  const askedEscort = useRef(new Set<string>());
+  useEffect(() => {
+    const job = jobs.find((j) => needsEscortAnswer(j) && !askedEscort.current.has(j.id));
+    if (!job) return;
+    askedEscort.current.add(job.id);
+    askEscort(job.id, job.internalRef, () => fetchJobs());
+  }, [jobs, fetchJobs]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -210,7 +221,14 @@ export function JobsListScreen() {
             job={item}
             onOpen={() => open(item)}
             onInPlace={() => navigation.navigate('Evidence', { jobId: item.id, jobRef: item.internalRef, kind: 'IN_PLACE' })}
-            onComplete={() => navigation.navigate('Evidence', { jobId: item.id, jobRef: item.internalRef, kind: 'COMPLETED' })}
+            onComplete={() => {
+              const go = () => navigation.navigate('Evidence', { jobId: item.id, jobRef: item.internalRef, kind: 'COMPLETED' });
+              if (needsEscortAnswer(item)) askEscort(item.id, item.internalRef, () => {
+                fetchJobs();
+                go();
+              });
+              else go();
+            }}
           />
         )}
         ListEmptyComponent={

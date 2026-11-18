@@ -47,6 +47,7 @@ import {
   originLabel,
   originSub,
 } from '../lib/job-rules';
+import { askEscort, needsEscortAnswer } from '../lib/escort';
 
 type Props = StackScreenProps<RootStackParamList, 'JobDetail'>;
 
@@ -57,7 +58,7 @@ type Props = StackScreenProps<RootStackParamList, 'JobDetail'>;
  */
 async function loadJob(jobId: string, date?: string): Promise<RepPortalJob | null> {
   let day = date;
-  let detail: (RepPortalJob & { assignment?: { repStatus?: string } }) | null = null;
+  let detail: (RepPortalJob & { assignment?: { repStatus?: string; repEscort?: boolean | null } }) | null = null;
   if (!day) {
     const { data } = await repPortalApi.getJobDetail(jobId);
     detail = unwrapData(data);
@@ -72,7 +73,13 @@ async function loadJob(jobId: string, date?: string): Promise<RepPortalJob | nul
     const { data } = await repPortalApi.getJobDetail(jobId);
     detail = unwrapData(data);
   }
-  return detail ? ({ ...detail, repStatus: (detail.assignment?.repStatus ?? 'PENDING') as RepPortalJob['repStatus'] } as RepPortalJob) : null;
+  return detail
+    ? ({
+        ...detail,
+        repStatus: (detail.assignment?.repStatus ?? 'PENDING') as RepPortalJob['repStatus'],
+        repEscort: detail.assignment?.repEscort ?? null,
+      } as RepPortalJob)
+    : null;
 }
 
 const STEPS = ['PENDING', 'IN_PLACE', 'COMPLETED'] as const;
@@ -118,8 +125,17 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const driver = driverLine(job);
   const stepIndex = job.repStatus === 'COMPLETED' ? 2 : job.repStatus === 'IN_PLACE' ? 1 : 0;
   const extras = job.jobExtras?.filter((e) => e.qty > 0) ?? [];
-  const evidence = (kind: 'IN_PLACE' | 'COMPLETED' | 'NO_SHOW') =>
+  const evidence = (kind: 'IN_PLACE' | 'COMPLETED' | 'NO_SHOW') => {
+    // Completing needs the escort answer first: it decides where COMPLETED is geofenced.
+    if (kind === 'COMPLETED' && needsEscortAnswer(job)) {
+      askEscort(job.id, job.internalRef, () => {
+        fetchJob();
+        navigation.navigate('Evidence', { jobId: job.id, jobRef: job.internalRef, kind });
+      });
+      return;
+    }
     navigation.navigate('Evidence', { jobId: job.id, jobRef: job.internalRef, kind });
+  };
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>

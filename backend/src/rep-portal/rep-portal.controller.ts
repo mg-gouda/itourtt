@@ -23,6 +23,8 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
+import { JobAlertsService } from '../common/services/job-alerts.service.js';
+import { AckJobAlertDto, RepEscortDto } from '../common/dto/job-alerts.dto.js';
 import { IsString, IsIn, IsOptional, IsNumber, IsInt, Min } from 'class-validator';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -117,7 +119,37 @@ export class RepPortalController {
   constructor(
     private readonly repPortalService: RepPortalService,
     private readonly googleDriveService: GoogleDriveService,
+    private readonly jobAlerts: JobAlertsService,
   ) {}
+
+  /**
+   * Job alarms: start reminders (60 / 30 min before) for jobs not started yet,
+   * and the drop-off geofence for an escorting rep. Polled by the portal and app.
+   */
+  @Get('alerts')
+  async getAlerts(@CurrentUser('id') userId: string) {
+    return new ApiResponse(await this.jobAlerts.getAlerts(userId, 'REP'));
+  }
+
+  /** Acknowledge an alarm; the request itself is the activity-log entry. */
+  @Post('jobs/:jobId/alerts/ack')
+  async ackAlert(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Body() dto: AckJobAlertDto,
+  ) {
+    return new ApiResponse(await this.jobAlerts.acknowledge(userId, 'REP', jobId, dto), 'Alert acknowledged');
+  }
+
+  /** After IN PLACE: will the rep escort the transfer? Decides where COMPLETED is geofenced. */
+  @Post('jobs/:jobId/escort')
+  async setEscort(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Body() dto: RepEscortDto,
+  ) {
+    return new ApiResponse(await this.jobAlerts.setRepEscort(userId, jobId, dto.escort), 'Escort answer saved');
+  }
 
   @Get('jobs')
   async getMyJobs(

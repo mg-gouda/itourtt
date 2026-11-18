@@ -1282,6 +1282,7 @@ model SupplierTripPrice {
 // ─────────────────────────────────────────────
 
 model TrafficJob {
+  alertAcks            JobAlertAck[]
   id               String         @id @default(uuid())
   internalRef      String         @unique @map("internal_ref")
   bookingChannel   BookingChannel @default(ONLINE) @map("booking_channel")
@@ -1470,6 +1471,11 @@ model TrafficAssignment {
   driverStatus        PortalJobStatus @default(PENDING) @map("driver_status")
   repStatus           PortalJobStatus @default(PENDING) @map("rep_status")
   supplierStatus      PortalJobStatus @default(PENDING) @map("supplier_status")
+  /// Rep's answer after IN PLACE: will they ride with the guests to the drop-off?
+  /// true → the rep's COMPLETED geofence is the drop-off end; false → the airport.
+  /// null = not answered (legacy rule: ARR completes at the drop-off).
+  repEscort           Boolean?        @map("rep_escort")
+  repEscortAt         DateTime?       @map("rep_escort_at")
   supplierNotes       String?         @map("supplier_notes")
   externalDriverName  String?         @map("external_driver_name")
   externalDriverPhone String?         @map("external_driver_phone")
@@ -2939,4 +2945,31 @@ model WebPushSubscription {
 
   @@index([userId])
   @@map("web_push_subscriptions")
+}
+
+/// A rep/driver acknowledging a job alarm in the portal or app: the start
+/// reminders (60 and 30 min before the job) and the drop-off geofence alarms
+/// (arrived at the drop-off / left it without completing). One row per
+/// job + user + kind; the acknowledging request is also in the activity log.
+model JobAlertAck {
+  id             String    @id @default(uuid())
+  trafficJobId   String    @map("traffic_job_id")
+  userId         String    @map("user_id")
+  /// REP or DRIVER
+  role           String
+  /// START_60 | START_30 | DROPOFF_ARRIVED | DROPOFF_LEFT
+  kind           String
+  /// When the alarm was put on screen (client clock), if known.
+  shownAt        DateTime? @map("shown_at")
+  acknowledgedAt DateTime  @default(now()) @map("acknowledged_at")
+  latitude       Decimal?  @db.Decimal(10, 7)
+  longitude      Decimal?  @db.Decimal(10, 7)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
+
+  @@unique([trafficJobId, userId, kind])
+  @@index([userId])
+  @@map("job_alert_acks")
 }

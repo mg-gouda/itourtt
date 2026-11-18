@@ -93,3 +93,15 @@ export {
   requestStartupPermissions,
 } from './native/background-sync';
 export type { NotificationTarget, Portal } from './native/background-sync';
+export {
+  refreshJobAlerts,
+  evaluateDueAlarms,
+  checkDropoffs,
+  acknowledgeAlarm,
+  getPendingAlarms,
+  onAlarmsChange,
+  alarmTitle,
+  alarmBody,
+  dueStartKind,
+} from './native/job-alerts';
+export type { AlarmKind, AlarmJob, AlarmPortal, PendingAlarm } from './native/job-alerts';

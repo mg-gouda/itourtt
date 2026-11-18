@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**108 files**, **394 exported symbols**.
+**110 files**, **397 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -98,6 +98,17 @@ Evidence dialog for a driver starting a job.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `InProgressEvidenceDialog` | function | 34 | Job-start evidence capture for drivers. |
+
+### `job-alarms.tsx`
+
+`frontend/src/components/job-alarms.tsx` · 314 lines
+
+Web job alarms (start reminders, drop-off arrived/left) for the rep and driver portals.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `dueStartKind` | function | 69 | Which start reminder is due now (30-min supersedes 1-h). |
+| `JobAlarms` | function | 141 | Rep/driver portal alarm host: 1 h / 30 min start reminders and drop-off geofence alarms as must-acknowledge modals. |
 
 ### `job-detail-modal.tsx`
 
@@ -243,6 +254,16 @@ Rep/driver portal banner to turn on browser notifications.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `PushPrompt` | function | 27 | Asks for notification permission (or shows iPhone Home-Screen steps); silently re-subscribes when already granted. |
+
+### `rep-escort-dialog.tsx`
+
+`frontend/src/components/rep-escort-dialog.tsx` · 94 lines
+
+Rep portal escort question dialog.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RepEscortDialog` | function | 24 | Non-dismissable 'Will you escort this transfer?' dialog shown after IN PLACE in the rep portal. |
 
 ### `rich-text-editor.tsx`
 
@@ -1144,17 +1165,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3860 lines
+`frontend/src/lib/i18n.ts` · 3908 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3837 | Translates a key in the current locale. |
-| `getTranslator` | function | 3841 | Translator for a specific locale, outside React. |
-| `useT` | function | 3849 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3856 | The active locale id. |
+| `t` | function | 3885 | Translates a key in the current locale. |
+| `getTranslator` | function | 3889 | Translator for a specific locale, outside React. |
+| `useT` | function | 3897 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3904 | The active locale id. |
 
 ### `maps-nav.ts`
 

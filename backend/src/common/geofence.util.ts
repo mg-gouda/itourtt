@@ -160,21 +160,33 @@ function resolveEnd(job: GeofenceJob, end: 'origin' | 'destination'): GeofenceTa
 
 /**
  * Where a REP must be: the job's airport — arrival airport for ARR, departure
- * airport for DEP. Exception: an ARR rep rides with the guests and COMPLETES
- * at the drop-off (hotel / pin), so that one status is checked against the
- * destination end like a driver's completion. A job with no airport (day tour,
- * city transfer) has no rep geofence.
+ * airport for DEP. COMPLETED depends on the rep's escort answer (asked right
+ * after IN PLACE): escorting the transfer → the drop-off end (pin → hotel →
+ * zone), like a driver's completion; not escorting → the airport. Unanswered
+ * (older jobs) keeps the previous rule: an ARR rep completes at the drop-off.
+ * A job with no airport (day tour, city transfer) has no airport geofence.
  */
 export function resolveRepGeofenceTarget(
   job: GeofenceJob,
   status: string,
+  escort?: boolean | null,
 ): GeofenceTarget | null {
-  if (job.serviceType === 'ARR' && status === 'COMPLETED') {
-    return resolveEnd(job, 'destination');
+  const airport = () => fromAirport(job.originAirport) ?? fromAirport(job.destinationAirport);
+  if (status === 'COMPLETED') {
+    if (escort === true) return resolveEnd(job, 'destination');
+    if (escort === false) return airport();
+    if (job.serviceType === 'ARR') return resolveEnd(job, 'destination');
   }
-  return (
-    fromAirport(job.originAirport) ?? fromAirport(job.destinationAirport)
-  );
+  return airport();
+}
+
+/**
+ * Whether the escort question applies: only when the drop-off is somewhere
+ * other than the airport the rep is standing at — not for a DEP, whose
+ * drop-off IS the airport.
+ */
+export function repEscortApplies(serviceType: string): boolean {
+  return serviceType !== 'DEP';
 }
 
 /**
@@ -193,7 +205,7 @@ export function resolveDriverGeofenceTarget(
 
 // ─── Enforcement ────────────────────────────────────────────────────────────
 
-const LOC = { select: { name: true, latitude: true, longitude: true } } as const;
+export const LOC = { select: { name: true, latitude: true, longitude: true } } as const;
 
 function formatDistance(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
@@ -226,6 +238,7 @@ export async function assertWithinGeofence(
       serviceType: true,
       driverUnlockedAt: true,
       repUnlockedAt: true,
+      assignment: { select: { repEscort: true } },
       pickupLat: true,
       pickupLng: true,
       dropoffLat: true,
@@ -243,7 +256,9 @@ export async function assertWithinGeofence(
   if (!job) return; // the caller reports the missing job
 
   const target =
-    role === 'REP' ? resolveRepGeofenceTarget(job, status) : resolveDriverGeofenceTarget(job, status);
+    role === 'REP'
+      ? resolveRepGeofenceTarget(job, status, job.assignment?.repEscort)
+      : resolveDriverGeofenceTarget(job, status);
   if (!target) return; // nowhere configured to check against
 
   const radii = await getGeofenceRadii(prisma);

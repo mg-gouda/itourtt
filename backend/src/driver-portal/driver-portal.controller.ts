@@ -25,6 +25,8 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
+import { JobAlertsService } from '../common/services/job-alerts.service.js';
+import { AckJobAlertDto } from '../common/dto/job-alerts.dto.js';
 import { IsString, IsIn, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 import { stampEvidenceImage, StampMeta } from '../common/utils/stamp-image.js';
 
@@ -78,7 +80,27 @@ export class DriverPortalController {
   constructor(
     private readonly driverPortalService: DriverPortalService,
     private readonly googleDriveService: GoogleDriveService,
+    private readonly jobAlerts: JobAlertsService,
   ) {}
+
+  /**
+   * Job alarms: start reminders (60 / 30 min before) for jobs not started yet,
+   * and the drop-off geofence for a started trip. Polled by the portal and app.
+   */
+  @Get('alerts')
+  async getAlerts(@CurrentUser('id') userId: string) {
+    return new ApiResponse(await this.jobAlerts.getAlerts(userId, 'DRIVER'));
+  }
+
+  /** Acknowledge an alarm; the request itself is the activity-log entry. */
+  @Post('jobs/:jobId/alerts/ack')
+  async ackAlert(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Body() dto: AckJobAlertDto,
+  ) {
+    return new ApiResponse(await this.jobAlerts.acknowledge(userId, 'DRIVER', jobId, dto), 'Alert acknowledged');
+  }
 
   @Get('jobs')
   async getMyJobs(

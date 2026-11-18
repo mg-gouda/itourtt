@@ -7,9 +7,10 @@ import { SupplierAutoCompleteService } from './supplier-auto-complete.service.js
 import { EmailModule } from '../email/email.module.js';
 import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 import { JobCompletionModule } from '../common/services/job-completion.module.js';
+import { JobAlertsModule } from '../common/services/job-alerts.module.js';
 
 @Module({
-  imports: [TrackingModule, EmailModule, GoogleDriveModule, JobCompletionModule],
+  imports: [TrackingModule, EmailModule, GoogleDriveModule, JobCompletionModule, JobAlertsModule],
   controllers: [DriverPortalController],
   providers: [DriverPortalService, NoShowDisputeService, SupplierAutoCompleteService],
 })

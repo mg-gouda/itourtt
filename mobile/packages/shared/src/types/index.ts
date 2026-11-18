@@ -333,6 +333,8 @@ export interface DriverPortalJob extends PortalJob {
 
 export interface RepPortalJob extends PortalJob {
   repStatus: PortalJobStatus;
+  /** Escort answer after IN PLACE: true = completes at the drop-off, false = at the airport, null = not asked yet. */
+  repEscort?: boolean | null;
   feeEarned?: number | null;
   agentRef?: string | null;
   bookingChannel?: string | null;

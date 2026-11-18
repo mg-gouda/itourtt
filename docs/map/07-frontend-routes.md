@@ -58,7 +58,7 @@
 | `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | Driver's own profile. |
 | `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | Requests a password-reset email. |
 | `/login` | `frontend/src/app/login/page.tsx` | 281 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
-| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 936 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
+| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 958 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
 | `/rep/chat` | `frontend/src/app/(rep-portal)/rep/chat/page.tsx` | 9 | — | — | Rep portal chat page (PortalChat). |
 | `/rep/history` | `frontend/src/app/(rep-portal)/rep/history/page.tsx` | 345 | 1 | — | Rep's terminal jobs with fees earned. |
 | `/rep/profile` | `frontend/src/app/(rep-portal)/rep/profile/page.tsx` | 8 | — | — | Rep's own profile. |

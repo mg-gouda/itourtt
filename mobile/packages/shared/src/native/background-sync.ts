@@ -13,6 +13,7 @@ import { CHAT_ANNOUNCEMENTS_ID, chatApi } from '../api/endpoints/chat';
 import { secureStorage } from '../auth/secure-storage';
 import { appAlert } from '../utils/dialog';
 import { t } from '../i18n';
+import { checkDropoffs, hasActiveDropoffs, refreshJobAlerts, resetJobAlerts } from './job-alerts';
 
 /**
  * Keeps a rep / driver app in touch with the iTour server without Firebase:
@@ -278,6 +279,23 @@ async function pollChat() {
   });
 }
 
+/** Start reminders (scheduled ahead) + the drop-off geofence watch while a leg is running. */
+async function pollJobAlarms() {
+  if (!portal) return;
+  await refreshJobAlerts(portal, true);
+  if (!hasActiveDropoffs() || !(await locationAllowed())) return;
+  await new Promise<void>((resolve) => {
+    Geolocation.getCurrentPosition(
+      (pos) => {
+        checkDropoffs({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        resolve();
+      },
+      () => resolve(),
+      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 15_000 },
+    );
+  });
+}
+
 async function tick() {
   if (!running) return;
   // Signed out (or token gone): stop quietly.
@@ -285,7 +303,7 @@ async function tick() {
     await stopBackgroundSync();
     return;
   }
-  await Promise.allSettled([pollNotifications(), pollChat(), heartbeat()]);
+  await Promise.allSettled([pollNotifications(), pollChat(), heartbeat(), pollJobAlarms()]);
   if (running) timer = setTimeout(tick, POLL_MS);
 }
 
@@ -345,6 +363,7 @@ export async function startBackgroundSync(p: Portal, labels: { title: string; bo
 /** Stop on sign-out. */
 export async function stopBackgroundSync() {
   running = false;
+  await resetJobAlerts().catch(() => {});
   portal = null;
   if (timer) clearTimeout(timer);
   timer = null;
@@ -356,6 +375,7 @@ export async function stopBackgroundSync() {
 
 function targetOf(data?: Record<string, unknown>): NotificationTarget | null {
   if (!data) return null;
+  if (data.type === 'ALARM' && typeof data.jobId === 'string') return { kind: 'job', jobId: data.jobId };
   if (data.type === 'CHAT' && typeof data.conversationId === 'string') {
     return { kind: 'chat', conversationId: data.conversationId };
   }

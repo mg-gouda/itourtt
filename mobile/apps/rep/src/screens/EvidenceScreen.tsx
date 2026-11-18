@@ -13,11 +13,14 @@ import {
   type CapturedPhoto,
   type GPSPosition,
   appAlert,
+  unwrapData,
+  type RepPortalJob,
 } from '@itour/shared';
 import { ActivityIndicator } from 'react-native';
 import { Icon } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { ActionButton, GradientHeader, Surface } from '@itour/ui';
+import { askEscort, needsEscortAnswer } from '../lib/escort';
 
 type Props = StackScreenProps<RootStackParamList, 'Evidence'>;
 export type EvidenceKind = 'IN_PLACE' | 'COMPLETED' | 'NO_SHOW';
@@ -80,8 +83,19 @@ export function EvidenceScreen({ route, navigation }: Props) {
       );
       form.append('latitude', String(gps.lat));
       form.append('longitude', String(gps.lng));
-      if (kind === 'IN_PLACE') await repPortalApi.submitInPlace(jobId, form);
-      else if (kind === 'COMPLETED') await repPortalApi.submitCompleted(jobId, form);
+      if (kind === 'IN_PLACE') {
+        const res = await repPortalApi.submitInPlace(jobId, form);
+        const job = unwrapData<RepPortalJob>(res.data);
+        // Right after IN PLACE: ask whether the rep escorts the transfer.
+        if (job && needsEscortAnswer(job)) {
+          askEscort(jobId, jobRef, (escort) =>
+            appAlert(t('repApp.submitted'), t(escort ? 'escort.savedYes' : 'escort.savedNo'), [
+              { text: t('common.ok'), onPress: () => navigation.goBack() },
+            ], { tone: 'success' }),
+          );
+          return;
+        }
+      } else if (kind === 'COMPLETED') await repPortalApi.submitCompleted(jobId, form);
       else await repPortalApi.submitNoShow(jobId, form);
       appAlert(t('repApp.submitted'), `${jobRef} · ${t(`status.${kind}`)}`, [{ text: t('common.ok'), onPress: () => navigation.goBack() }], { tone: 'success' });
     } catch (err) {

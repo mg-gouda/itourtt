@@ -40,6 +40,7 @@ import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { InPlaceEvidenceDialog } from "@/components/in-place-evidence-dialog";
 import { CompletedEvidenceDialog } from "@/components/completed-evidence-dialog";
 import { GuestSurveyDialog } from "@/components/guest-survey-dialog";
+import { RepEscortDialog } from "@/components/rep-escort-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr, formatTimeCairo, dateStrCairo, cairoWallclockToISO } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
@@ -53,6 +54,8 @@ interface RepJob {
   jobDate: string;
   status: string;
   repStatus: string;
+  /** Escort answer after IN PLACE (null = not answered yet). */
+  repEscort?: boolean | null;
   repUnlockedAt: string | null;
   bookingChannel: string | null;
   clientName: string | null;
@@ -209,6 +212,13 @@ export default function RepDashboardPage() {
     fetchAll();
   }, [fetchAll]);
 
+  // Escort question: asked as soon as a job is IN PLACE without an answer
+  // (right after the IN PLACE evidence, or on the next load if it was missed).
+  // Not for DEP — its drop-off is the airport the rep is already at.
+  const escortJob = jobs.find(
+    (j) => j.repStatus === "IN_PLACE" && j.repEscort == null && j.serviceType !== "DEP",
+  );
+
   const handleStatusChange = (jobId: string, jobRef: string, status: string) => {
     if (status === "NO_SHOW") {
       setNoShowDialog({ open: true, jobId, jobRef });
@@ -219,6 +229,10 @@ export default function RepDashboardPage() {
       return;
     }
     if (status === "COMPLETED") {
+      if (escortJob?.id === jobId) {
+        toast.error(t("escort.pending"));
+        return;
+      }
       setCompletedDialog({ open: true, jobId, jobRef });
       return;
     }
@@ -544,6 +558,14 @@ export default function RepDashboardPage() {
         jobRef={inPlaceDialog.jobRef}
         portalApiBase="/rep-portal"
         onSuccess={fetchJobs}
+      />
+
+      {/* Escort question (after IN PLACE) */}
+      <RepEscortDialog
+        jobId={escortJob?.id ?? null}
+        jobRef={escortJob?.internalRef ?? ""}
+        dropoff={escortJob?.destinationHotel?.name ?? escortJob?.destinationZone?.name ?? null}
+        onAnswered={fetchJobs}
       />
 
       {/* Completed Evidence Dialog */}

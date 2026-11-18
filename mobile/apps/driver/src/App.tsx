@@ -20,7 +20,7 @@ import {
 } from '@itour/shared';
 import { RootNavigator } from './navigation/RootNavigator';
 import { Splash } from '@itour/ui';
-import { DialogHost, OfflinePill } from '@itour/ui';
+import { DialogHost, JobAlarmHost, OfflinePill } from '@itour/ui';
 
 /**
  * Driver app root. No Firebase: while signed in, a background sync service
@@ -123,6 +123,10 @@ export function App() {
         </NavigationContainer>
       ) : null}
       {ready ? <OfflinePill /> : null}
+      {/* 1 h / 30 min start reminders + drop-off alarms; must be acknowledged (activity-logged). */}
+      {ready && isAuthenticated ? (
+        <JobAlarmHost portal="driver" onOpenJob={(jobId) => navigationRef.current?.navigate('JobDetail', { jobId })} />
+      ) : null}
       {/* Every popup (appAlert) renders here in the app's own style. */}
       <DialogHost />
       {!splashGone ? <Splash done={ready} onHidden={hideSplash} appName="Driver" tagline={t('driverApp.appTagline')} /> : null}
