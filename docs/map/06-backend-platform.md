@@ -1201,7 +1201,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-189 free functions, constants and types in these modules.
+193 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1513,6 +1513,17 @@ The single super-admin account identity; login/session alerts go only to this us
 |---|---|---|---|
 | `SUPER_ADMIN_EMAIL` | const | 5 | Email of the one super-admin who alone receives blocked-login (REP_LOGIN_CONFLICT) alerts. |
 | `isSuperAdminEmail` | function | 8 | Case-insensitive check that an email belongs to the super-admin account. |
+
+### `backend/src/common/utils/survey-normalize.util.ts`
+
+Folds free-text guest survey answers for analytics: nationality spellings, stay length in days, comment words
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `normalizeNationality` | function | 45 | Country / misspelt / Arabic-script nationality → one nationality name (stored answers untouched) |
+| `parseStayDays` | function | 80 | Stay length text ('7', '7 days', '1 week', 'one week') → days, or null |
+| `stayBucket` | function | 92 | Days → stay bucket label used by Guest Analytics |
+| `topWords` | function | 107 | Most frequent meaningful words across guest comments |
 
 ### `backend/src/common/utils/totp.util.ts`
 

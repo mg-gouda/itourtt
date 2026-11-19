@@ -65,6 +65,7 @@ import { SortableHeader } from "@/components/sortable-header";
 import { useSortable } from "@/hooks/use-sortable";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCompanyStore } from "@/stores/company-store";
+import { downloadBlob, printReport } from "@/lib/print-report";
 import { usePermission } from "@/hooks/use-permission";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
@@ -1006,7 +1007,6 @@ export default function ReportsPage() {
   const canAgentStatement = usePermission("reports.agentStatement");
   const canRepFees = usePermission("reports.repFees");
   const canRepScore = usePermission("reports.repScore");
-  const canGuestSurveys = usePermission("reports.guestSurveys");
   const canComplaints = usePermission("reports.complaints");
   const canRevenue = usePermission("reports.revenue");
   const canVehicleCompliance = usePermission("reports.vehicleCompliance");
@@ -1110,13 +1110,6 @@ export default function ReportsPage() {
   const [repScoreLoading, setRepScoreLoading] = useState(false);
   const repScorePrintRef = useRef<HTMLDivElement>(null);
 
-  // Guest Surveys
-  const [guestSurveyFrom, setGuestSurveyFrom] = useState(today);
-  const [guestSurveyTo, setGuestSurveyTo] = useState(today);
-  const [guestSurveyRepId, setGuestSurveyRepId] = useState("ALL");
-  const [guestSurveyData, setGuestSurveyData] = useState<GuestSurveyReport | null>(null);
-  const [guestSurveyLoading, setGuestSurveyLoading] = useState(false);
-  const guestSurveyPrintRef = useRef<HTMLDivElement>(null);
 
   const [complaintsFrom, setComplaintsFrom] = useState(today);
   const [complaintsTo, setComplaintsTo] = useState(today);
@@ -1727,21 +1720,6 @@ export default function ReportsPage() {
     }
   };
 
-  const fetchGuestSurveys = async () => {
-    setGuestSurveyLoading(true);
-    try {
-      const repParam = guestSurveyRepId !== "ALL" ? `&repId=${guestSurveyRepId}` : "";
-      const { data } = await api.get(
-        `/reports/guest-surveys?from=${guestSurveyFrom}&to=${guestSurveyTo}${repParam}`
-      );
-      setGuestSurveyData(data.data || data);
-    } catch {
-      toast.error("Failed to load guest survey report");
-    } finally {
-      setGuestSurveyLoading(false);
-    }
-  };
-
   const complaintsQuery = () => {
     const p = new URLSearchParams({ from: complaintsFrom, to: complaintsTo });
     if (complaintsStatus !== "ALL") p.set("status", complaintsStatus);
@@ -1772,18 +1750,6 @@ export default function ReportsPage() {
       downloadBlob(res.data, `complaints_${complaintsFrom}_to_${complaintsTo}.xlsx`);
     } catch {
       toast.error("Failed to export the complaints report");
-    }
-  };
-
-  const exportGuestSurveysPdf = () => printFromRef(guestSurveyPrintRef, `Guest Surveys - ${guestSurveyFrom} to ${guestSurveyTo}`);
-
-  const exportGuestSurveysExcel = async () => {
-    try {
-      const repParam = guestSurveyRepId !== "ALL" ? `&repId=${guestSurveyRepId}` : "";
-      const res = await api.get(`/export/odoo/guest-surveys?from=${guestSurveyFrom}&to=${guestSurveyTo}${repParam}`, { responseType: "blob" });
-      downloadBlob(res.data, `guest_surveys_${guestSurveyFrom}_to_${guestSurveyTo}.xlsx`);
-    } catch {
-      toast.error("Failed to export guest surveys to Excel");
     }
   };
 
@@ -1897,64 +1863,11 @@ export default function ReportsPage() {
 
   // ── Generic helpers ──
 
-  const downloadBlob = (data: Blob, filename: string) => {
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", filename);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  };
-
   const printFromRef = (ref: React.RefObject<HTMLDivElement | null>, title: string) => {
     if (!ref.current) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) { toast.error(t("reports.allowPopups")); return; }
-    const now = new Date().toLocaleString();
-    const userName = user?.name || "System";
-    const logoHtml = logoUrl
-      ? `<img src="${logoUrl}" alt="Logo" style="height:48px;max-width:160px;object-fit:contain;" />`
-      : `<span style="font-size:18px;font-weight:700;">${companyName}</span>`;
-    printWindow.document.write(`
-      <html><head><title>${title}</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; color: #111; }
-        h1 { font-size: 18px; margin-bottom: 4px; }
-        h2 { font-size: 14px; color: #555; margin-bottom: 16px; }
-        h3 { font-size: 13px; margin-top: 16px; margin-bottom: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; font-size: 12px; }
-        th { background: #f5f5f5; font-weight: 600; }
-        .text-right { text-align: right; }
-        .total-row { font-weight: 700; background: #f9f9f9; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin-bottom: 16px; font-size: 12px; }
-        .info-grid dt { color: #666; } .info-grid dd { font-weight: 600; margin: 0; }
-        .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111; }
-        .report-header .logo { flex-shrink: 0; }
-        .report-header .report-title { font-size: 20px; font-weight: 700; text-align: center; flex: 1; }
-        .report-footer { display: flex; justify-content: space-between; margin-top: 32px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #555; }
-        @media print {
-          body { padding: 0; }
-          .report-footer { position: fixed; bottom: 20px; left: 20px; right: 20px; }
-        }
-      </style></head><body>
-      <div class="report-header">
-        <div class="logo">${logoHtml}</div>
-        <div class="report-title">${title}</div>
-        <div style="width:160px;"></div>
-      </div>
-      ${ref.current.innerHTML}
-      <div class="report-footer">
-        <span>Issued By: ${userName}</span>
-        <span>Issued on ${now}</span>
-      </div>
-      </body></html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+    if (!printReport({ title, html: ref.current.innerHTML, userName: user?.name, logoUrl, companyName })) {
+      toast.error(t("reports.allowPopups"));
+    }
   };
 
   // ── Daily Dispatch Export ──
@@ -2299,15 +2212,6 @@ export default function ReportsPage() {
             >
               <UserCheck className="h-3.5 w-3.5" />
               Rep Score
-            </TabsTrigger>
-          )}
-          {canGuestSurveys && (
-            <TabsTrigger
-              value="guest-surveys"
-              className="gap-1.5 whitespace-nowrap data-[state=active]:bg-accent text-muted-foreground data-[state=active]:text-accent-foreground"
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              Guest Surveys
             </TabsTrigger>
           )}
           {canComplaints && (
@@ -5393,149 +5297,6 @@ export default function ReportsPage() {
           </TabsContent>
         )}
 
-        {canGuestSurveys && (
-          <TabsContent value="guest-surveys" className="space-y-4">
-            <Card className="border-border bg-card p-4">
-              <div className="flex flex-wrap items-end gap-3">
-                <div>
-                  <Label className="text-muted-foreground text-xs">{t("common.from")}</Label>
-                  <Input
-                    type="date"
-                    value={guestSurveyFrom}
-                    onChange={(e) => setGuestSurveyFrom(e.target.value)}
-                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
-                  />
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">{t("common.to")}</Label>
-                  <Input
-                    type="date"
-                    value={guestSurveyTo}
-                    onChange={(e) => setGuestSurveyTo(e.target.value)}
-                    className="border-border bg-muted/50 text-foreground mt-0.5 h-8 text-sm w-36"
-                  />
-                </div>
-                <div className="min-w-[180px]">
-                  <Label className="text-muted-foreground text-xs">Rep Name</Label>
-                  <Select value={guestSurveyRepId} onValueChange={setGuestSurveyRepId}>
-                    <SelectTrigger className="border-border bg-muted/50 mt-0.5 h-8 text-sm">
-                      <SelectValue placeholder="All Reps" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Reps</SelectItem>
-                      {repList.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button size="sm" onClick={fetchGuestSurveys} disabled={guestSurveyLoading} className="gap-1.5">
-                  {guestSurveyLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                  {t("common.search")}
-                </Button>
-                {guestSurveyData && guestSurveyData.rows.length > 0 && (
-                  <>
-                    <Button size="sm" variant="outline" onClick={exportGuestSurveysPdf} className="gap-1.5 ml-auto">
-                      <Printer className="h-3.5 w-3.5" />
-                      {t("reports.exportPdf")}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={exportGuestSurveysExcel} className="gap-1.5">
-                      <FileSpreadsheet className="h-3.5 w-3.5" />
-                      {t("reports.excel")}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </Card>
-
-            {guestSurveyLoading ? (
-              <div className="flex h-32 items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : guestSurveyData ? (
-              <Card className="border-border bg-card p-4">
-                <div ref={guestSurveyPrintRef}>
-                  <div className="mb-4 flex flex-wrap gap-4">
-                    <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
-                      <p className="text-xs text-muted-foreground">Total Surveys</p>
-                      <p className="text-lg font-bold text-foreground">{guestSurveyData.count}</p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-muted/20 px-4 py-2">
-                      <p className="text-xs text-muted-foreground">Reps</p>
-                      <p className="text-lg font-bold text-foreground">{guestSurveyData.reps.length}</p>
-                    </div>
-                  </div>
-
-                  {guestSurveyData.reps.length > 0 && (
-                    <div className="mb-4 flex flex-wrap gap-2">
-                      {guestSurveyData.reps.map((r) => (
-                        <span key={r.repId} className="rounded-full border border-border bg-muted/30 px-3 py-1 text-xs text-foreground">
-                          {r.repName}: <b>{r.count}</b>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {guestSurveyData.rows.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">No surveys found for this period.</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="border-border">
-                            <TableHead className="text-muted-foreground text-xs">Date</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Rep</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Job Ref</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Flight</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Hotel</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Nationality</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Age</TableHead>
-                            <TableHead className="text-muted-foreground text-xs text-center">Adt</TableHead>
-                            <TableHead className="text-muted-foreground text-xs text-center">Chd</TableHead>
-                            <TableHead className="text-muted-foreground text-xs text-center">Inf</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Stay</TableHead>
-                            <TableHead className="text-muted-foreground text-xs text-center">Repeat</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Local Agent</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Contact</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Email</TableHead>
-                            <TableHead className="text-muted-foreground text-xs">Comment</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {guestSurveyData.rows.map((row, idx) => (
-                            <TableRow
-                              key={row.id}
-                              className={`border-border ${idx % 2 === 0 ? "bg-gray-100/25 dark:bg-gray-800/25" : "bg-gray-200/50 dark:bg-gray-700/50"}`}
-                            >
-                              <TableCell className="text-xs whitespace-nowrap">{formatDate(row.jobDate)}</TableCell>
-                              <TableCell className="text-xs font-medium whitespace-nowrap">{row.repName}</TableCell>
-                              <TableCell className="text-xs font-mono whitespace-nowrap">{row.internalRef}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{row.flightNo}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{row.hotelName}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{row.guestNationality}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{row.ageRange}</TableCell>
-                              <TableCell className="text-xs text-center">{row.noOfAdults}</TableCell>
-                              <TableCell className="text-xs text-center">{row.noOfChildren}</TableCell>
-                              <TableCell className="text-xs text-center">{row.noOfInfants}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{row.stayLength || "—"}</TableCell>
-                              <TableCell className="text-xs text-center">{row.repeaterGuest}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{row.localTravelAgent || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{row.contactNumber}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{row.email || "—"}</TableCell>
-                              <TableCell className="text-xs max-w-[240px] truncate" title={row.generalComment}>{row.generalComment}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">Select a date range and search to view guest surveys.</p>
-            )}
-          </TabsContent>
-        )}
 
         {/* ─── ZONES ANALYTICS REPORT ─── */}
         {canZonesAnalytics && (

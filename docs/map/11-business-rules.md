@@ -726,6 +726,20 @@ Agents (online channel) keep their own zone price lists — untouched.
   (`amount == tariffAmount`). Posted fees, manual fees (`tariffAmount` null) and complaint deductions
   (negative) are never touched.
 
+## Guest surveys and Guest Analytics (Quality Control)
+
+- **Guest Surveys** (`/dashboard/guest-surveys`, moved out of Reports on 2026-11-19) lists the arrival
+  surveys reps submit, by job date, with PDF / Excel. **Guest Analytics** (`/dashboard/guest-analytics`,
+  `GET /reports/guest-analytics`, `reports.service › guestAnalytics`) aggregates the same surveys. Both
+  use the `reports.guestSurveys` permission and sit in the Quality Control sidebar group.
+- Survey answers are free text; analytics fold them without changing what was stored
+  (`common/utils/survey-normalize.util.ts`): nationality (country → nationality, typos, Arabic script,
+  first word of a sentence), stay length → days (weeks ×7, "one week"), buckets. Extend the alias map
+  rather than editing stored answers.
+- **Coverage** = surveys ÷ arrivals (ARR) in the period with a rep, not cancelled / no-show — per rep
+  and overall. Hotel = the job's destination hotel when set (consistent names), else the typed one.
+  Tour operator = the job's agent / customer.
+
 ## Editing grids — DataSheet (Access-style datasheet)
 
 Every tabular editing screen uses `frontend/src/components/data-sheet.tsx` (price grids via

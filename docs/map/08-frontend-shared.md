@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**115 files**, **408 exported symbols**.
+**116 files**, **410 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -365,7 +365,7 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 448 lines
+`frontend/src/components/sidebar.tsx` · 450 lines
 
 Main dashboard navigation, filtered by permission.
 
@@ -377,7 +377,7 @@ Main dashboard navigation, filtered by permission.
 | `NavGroup` | type | 81 | A collapsible navigation group. |
 | `NavItem` | type | 88 | One navigation entry. |
 | `navigation` | const | 95 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 164 | Main dashboard navigation, permission-filtered. |
+| `Sidebar` | function | 166 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -1222,17 +1222,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3920 lines
+`frontend/src/lib/i18n.ts` · 3924 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3897 | Translates a key in the current locale. |
-| `getTranslator` | function | 3901 | Translator for a specific locale, outside React. |
-| `useT` | function | 3909 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3916 | The active locale id. |
+| `t` | function | 3901 | Translates a key in the current locale. |
+| `getTranslator` | function | 3905 | Translator for a specific locale, outside React. |
+| `useT` | function | 3913 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3920 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -1264,6 +1264,17 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `getAncestorKeys` | function | 844 | Parent chain, used to auto-check parents in the matrix. |
 | `getDescendantKeys` | function | 856 | Subtree, used by the master toggle. |
 | `findNode` | function | 896 | Looks up a node by key. |
+
+### `print-report.ts`
+
+`frontend/src/lib/print-report.ts` · 66 lines
+
+Shared printable-report window and blob download for report pages
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `printReport` | function | 4 | Opens a print window with company header, report HTML and issued-by footer |
+| `downloadBlob` | function | 56 | Saves a blob under a file name |
 
 ### `role-home.ts`
 

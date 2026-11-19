@@ -4,7 +4,7 @@
 
 Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
-**19 classes**, **259 methods**.
+**19 classes**, **261 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -389,7 +389,7 @@ The public B2C price list (zone pair × vehicle type) that the standalone site q
 
 ### ReportsController
 
-`backend/src/reports/reports.controller.ts:214` · controller · 21 methods
+`backend/src/reports/reports.controller.ts:214` · controller · 22 methods
 
 JSON surface for every on-screen report; the matching xlsx downloads live on `ExportController`.
 
@@ -404,51 +404,53 @@ JSON surface for every on-screen report; the matching xlsx downloads live on `Ex
 | `upsertDriverScore` | pub | 303 | `reportsService.upsertDriverScore` | Sets a driver's per-job score, recalculating the fee it implies. |
 | `repScoreReport` | pub | 314 | `reportsService.repScoreReport` | Rep scores across jobs. |
 | `guestSurveyReport` | pub | 328 | `reportsService.guestSurveyReport` | Arrival guest survey responses. |
-| `complaintsReport` | pub | 342 | `reportsService.complaintsReport` | GET /reports/complaints — the complaints report, filterable by status, agent, category and responsible party. |
-| `driverScoreReport` | pub | 357 | `reportsService.driverScoreReport` | Driver scores across jobs. |
-| `evidenceReport` | pub | 371 | `reportsService.evidenceReport` | Which jobs have evidence photos and which are missing them. |
-| `visaReport` | pub | 388 | `reportsService.visaReport` | Visa-related job report. |
-| `salesReport` | pub | 398 | `reportsService.salesReport` | Sales by period and counterparty. |
-| `departureReport` | pub | 408 | `reportsService.departureReport` | Departure jobs report. |
-| `jobStatusReport` | pub | 422 | `reportsService.jobStatusReport` | Job counts by status over a period. |
-| `flightDelayReport` | pub | 442 | `reportsService.flightDelayReport` | Flight delays reported by reps, reconstructed from the notifications they raised. |
-| `flightDelayForJob` | pub | 456 | `reportsService.flightDelayForJob` | Delay history for one job. |
-| `reviewReport` | pub | 463 | `reportsService.reviewReport` | Guest reviews per job. |
-| `zonesAnalyticsReport` | pub | 473 | `reportsService.zonesAnalyticsReport` | Zones analytics report — which zone pairs the work runs between. |
-| `productionReport` | pub | 486 | `reportsService.productionReport` | Production report — job volume per agent over a period. |
+| `guestAnalytics` | pub | 343 | `reportsService.guestAnalytics` | GET /reports/guest-analytics: guest survey aggregates for a period (reports.guestSurveys) |
+| `complaintsReport` | pub | 352 | `reportsService.complaintsReport` | GET /reports/complaints — the complaints report, filterable by status, agent, category and responsible party. |
+| `driverScoreReport` | pub | 367 | `reportsService.driverScoreReport` | Driver scores across jobs. |
+| `evidenceReport` | pub | 381 | `reportsService.evidenceReport` | Which jobs have evidence photos and which are missing them. |
+| `visaReport` | pub | 398 | `reportsService.visaReport` | Visa-related job report. |
+| `salesReport` | pub | 408 | `reportsService.salesReport` | Sales by period and counterparty. |
+| `departureReport` | pub | 418 | `reportsService.departureReport` | Departure jobs report. |
+| `jobStatusReport` | pub | 432 | `reportsService.jobStatusReport` | Job counts by status over a period. |
+| `flightDelayReport` | pub | 452 | `reportsService.flightDelayReport` | Flight delays reported by reps, reconstructed from the notifications they raised. |
+| `flightDelayForJob` | pub | 466 | `reportsService.flightDelayForJob` | Delay history for one job. |
+| `reviewReport` | pub | 473 | `reportsService.reviewReport` | Guest reviews per job. |
+| `zonesAnalyticsReport` | pub | 483 | `reportsService.zonesAnalyticsReport` | Zones analytics report — which zone pairs the work runs between. |
+| `productionReport` | pub | 496 | `reportsService.productionReport` | Production report — job volume per agent over a period. |
 
 ### ReportsService
 
-`backend/src/reports/reports.service.ts:47` · service · 24 methods
+`backend/src/reports/reports.service.ts:48` · service · 25 methods
 
 Every operational and financial report behind the Reports screen. Each report is a filtered aggregate query with a matching Excel export in `ExportService`.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `dailyDispatchSummary` | pub | 57 | `trafficJob` | One day's dispatch counts and status breakdown. |
-| `driverTripReport` | pub | 129 | `trafficAssignment` `driverTripFee` | Trips and fees per driver over a period. |
-| `upsertDriverScore` | pub | 290 | `trafficAssignment` `driverJobScore` `driverTripFee` | Sets a driver's per-job score, recalculating the fee it implies. |
-| `chargeTotalOf` | priv | 355 | — | A complaint's deduction as one number: every charge not voided. |
-| `chargeStatusOf` | priv | 365 | — | One status for a complaint's charges — MIXED when they disagree. |
-| `complaintResponsibleNames` | priv | 377 | — | The people a complaint blames — driver/rep/supplier off the complaint, agent/guest/office roles off the job. |
-| `complaintsReport` | pub | 423 | `complaint` | Complaints on jobs in the period with aggregates: counts by status/category/agent/party, win rate, SLA compliance and loss by currency. |
-| `agentStatement` | pub | 612 | `agent` `agentInvoice` `trafficJob` | Statement of account for an agent: invoices, payments and balance. |
-| `repFeeReport` | pub | 697 | `trafficAssignment` | Rep fees per job, with the score behind each. |
-| `upsertRepScore` | pub | 828 | `trafficAssignment` `repJobScore` `repFee` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
-| `revenueReport` | pub | 884 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | Revenue against driver, rep and supplier costs for a period. |
-| `repScoreReport` | pub | 1008 | `repJobScore` | Rep scores across jobs. |
-| `guestSurveyReport` | pub | 1082 | `guestSurvey` | Arrival guest survey responses. |
-| `driverScoreReport` | pub | 1150 | `driverJobScore` | Driver scores across jobs. |
-| `evidenceReport` | pub | 1216 | `trafficJob` | Which jobs have evidence photos and which are missing them. |
-| `jobStatusReport` | pub | 1319 | `trafficJob` | Job counts by status over a period. |
-| `visaReport` | pub | 1407 | `trafficJob` | Visa-related job report. |
-| `salesReport` | pub | 1437 | `trafficJob` | Sales by period and counterparty. |
-| `departureReport` | pub | 1474 | `trafficJob` | Departure jobs report. |
-| `flightDelayReport` | pub | 1503 | `userNotification` | Flight delays reported by reps, reconstructed from the notifications they raised. |
-| `flightDelayForJob` | pub | 1576 | `userNotification` | Delay history for one job. |
-| `reviewReport` | pub | 1633 | `trafficJob` | Guest reviews per job. |
-| `zonesAnalyticsReport` | pub | 1700 | `trafficJob` | Zone-pair volume over a period, filterable by agent and job status (both multi-select, comma-separated). Rows carry the resolved pricing zones (`fromZone` / `toZone`), not the raw origin/destination FKs; `summary.byRoute` ranks the pairs by job count. |
-| `productionReport` | pub | 1784 | `trafficJob` | Jobs produced per agent over a period, filterable by agent and job status (both multi-select, comma-separated). `summary.byAgent` ranks agents by volume and `summary.byStatus` counts each status. |
+| `dailyDispatchSummary` | pub | 58 | `trafficJob` | One day's dispatch counts and status breakdown. |
+| `driverTripReport` | pub | 130 | `trafficAssignment` `driverTripFee` | Trips and fees per driver over a period. |
+| `upsertDriverScore` | pub | 291 | `trafficAssignment` `driverJobScore` `driverTripFee` | Sets a driver's per-job score, recalculating the fee it implies. |
+| `chargeTotalOf` | priv | 356 | — | A complaint's deduction as one number: every charge not voided. |
+| `chargeStatusOf` | priv | 366 | — | One status for a complaint's charges — MIXED when they disagree. |
+| `complaintResponsibleNames` | priv | 378 | — | The people a complaint blames — driver/rep/supplier off the complaint, agent/guest/office roles off the job. |
+| `complaintsReport` | pub | 424 | `complaint` | Complaints on jobs in the period with aggregates: counts by status/category/agent/party, win rate, SLA compliance and loss by currency. |
+| `agentStatement` | pub | 613 | `agent` `agentInvoice` `trafficJob` | Statement of account for an agent: invoices, payments and balance. |
+| `repFeeReport` | pub | 698 | `trafficAssignment` | Rep fees per job, with the score behind each. |
+| `upsertRepScore` | pub | 829 | `trafficAssignment` `repJobScore` `repFee` | Sets a rep's per-job score flags and recalculates the fee via `scoreToFeeAndEval` — this is the write path behind the Rep Fees modal. |
+| `revenueReport` | pub | 885 | `agentInvoice` `driverTripFee` `repFee` `supplierCost` | Revenue against driver, rep and supplier costs for a period. |
+| `repScoreReport` | pub | 1009 | `repJobScore` | Rep scores across jobs. |
+| `guestSurveyReport` | pub | 1083 | `guestSurvey` | Arrival guest survey responses. |
+| `guestAnalytics` | pub | 1157 | `guestSurvey` `trafficAssignment` | Guest survey analytics: KPIs, coverage vs arrivals, trend, nationality, party, stay, hotels, operators, reps, comments |
+| `driverScoreReport` | pub | 1332 | `driverJobScore` | Driver scores across jobs. |
+| `evidenceReport` | pub | 1398 | `trafficJob` | Which jobs have evidence photos and which are missing them. |
+| `jobStatusReport` | pub | 1501 | `trafficJob` | Job counts by status over a period. |
+| `visaReport` | pub | 1589 | `trafficJob` | Visa-related job report. |
+| `salesReport` | pub | 1619 | `trafficJob` | Sales by period and counterparty. |
+| `departureReport` | pub | 1656 | `trafficJob` | Departure jobs report. |
+| `flightDelayReport` | pub | 1685 | `userNotification` | Flight delays reported by reps, reconstructed from the notifications they raised. |
+| `flightDelayForJob` | pub | 1758 | `userNotification` | Delay history for one job. |
+| `reviewReport` | pub | 1815 | `trafficJob` | Guest reviews per job. |
+| `zonesAnalyticsReport` | pub | 1882 | `trafficJob` | Zone-pair volume over a period, filterable by agent and job status (both multi-select, comma-separated). Rows carry the resolved pricing zones (`fromZone` / `toZone`), not the raw origin/destination FKs; `summary.byRoute` ranks the pairs by job count. |
+| `productionReport` | pub | 1966 | `trafficJob` | Jobs produced per agent over a period, filterable by agent and job status (both multi-select, comma-separated). `summary.byAgent` ranks agents by volume and `summary.byStatus` counts each status. |
 
 ## Standalone exports
 

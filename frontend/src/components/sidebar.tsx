@@ -106,6 +106,8 @@ export const navigation: NavItem[] = [
       { type: "link", nameKey: "sidebar.complaints", href: "/dashboard/complaints", icon: MessageSquareWarning, permissionKey: "complaints" },
       { type: "link", nameKey: "sidebar.complaintAnalytics", href: "/dashboard/complaints/analytics", icon: BarChart3, permissionKey: "complaints.analytics" },
       { type: "link", nameKey: "sidebar.complaintCategories", href: "/dashboard/complaint-categories", icon: MessageSquareWarning, permissionKey: "complaint-categories" },
+      { type: "link", nameKey: "sidebar.guestSurveys", href: "/dashboard/guest-surveys", icon: ClipboardList, permissionKey: "reports.guestSurveys" },
+      { type: "link", nameKey: "sidebar.guestAnalytics", href: "/dashboard/guest-analytics", icon: BarChart3, permissionKey: "reports.guestSurveys" },
       { type: "link", nameKey: "sidebar.agentAdjustments", href: "/dashboard/finance/agent-adjustments", icon: FileMinus, permissionKey: "finance.agentAdjustments" },
     ],
   },

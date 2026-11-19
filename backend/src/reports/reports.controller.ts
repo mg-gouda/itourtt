@@ -337,6 +337,16 @@ export class ReportsController {
     return new ApiResponse(result);
   }
 
+  /** Quality Control › Guest Analytics (same access as the Guest Surveys report). */
+  @Get('guest-analytics')
+  @Permissions('reports.guestSurveys')
+  async guestAnalytics(@Query() query: RepScoreQueryDto) {
+    if (!query.from || !query.to) {
+      throw new BadRequestException('from and to query parameters are required');
+    }
+    return new ApiResponse(await this.reportsService.guestAnalytics(query.from, query.to, query.repId));
+  }
+
   @Get('complaints')
   @Permissions('reports.complaints')
   async complaintsReport(@Query() query: ComplaintsReportQueryDto) {

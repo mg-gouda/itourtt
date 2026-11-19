@@ -1,4 +1,5 @@
 import { SupplierCostingService } from '../supplier-price-lists/supplier-costing.service.js';
+import { normalizeNationality, parseStayDays, stayBucket, topWords } from '../common/utils/survey-normalize.util.js';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { JobStatus, ServiceType } from '../../generated/prisma/client.js';
@@ -1141,6 +1142,187 @@ export class ReportsService {
     );
 
     return { from, to, count: rows.length, reps, rows };
+  }
+
+  // ─────────────────────────────────────────────
+  // GUEST ANALYTICS (Quality Control › Guest Analytics)
+  // ─────────────────────────────────────────────
+
+  /**
+   * Aggregates of the arrival guest surveys for a period (by job date). Free-text answers are folded
+   * (survey-normalize.util.ts): nationality spellings, stay length in days. Hotel is the job's
+   * destination hotel when it has one (consistent names), else what the rep typed. Coverage = surveys
+   * ÷ arrivals with a rep that were not cancelled / no-show.
+   */
+  async guestAnalytics(from: string, to: string, repId?: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const jobWhere = { jobDate: { gte: fromDate, lte: toDate }, deletedAt: null };
+
+    const [surveys, eligible] = await Promise.all([
+      this.prisma.guestSurvey.findMany({
+        where: { ...(repId ? { repId } : {}), trafficJob: jobWhere },
+        include: {
+          rep: { select: { id: true, name: true } },
+          trafficJob: {
+            select: {
+              jobDate: true,
+              internalRef: true,
+              destinationHotel: { select: { name: true } },
+              agent: { select: { legalName: true, tradeName: true } },
+              customer: { select: { legalName: true, tradeName: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.trafficAssignment.findMany({
+        where: {
+          repId: repId ?? { not: null },
+          trafficJob: { ...jobWhere, serviceType: 'ARR', status: { notIn: ['CANCELLED', 'NO_SHOW'] } },
+        },
+        select: { repId: true, rep: { select: { name: true } } },
+      }),
+    ]);
+
+    const n = surveys.length;
+    const pct = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : 0);
+    const count = <T,>(items: T[], key: (x: T) => string) => {
+      const m = new Map<string, number>();
+      for (const it of items) m.set(key(it), (m.get(key(it)) ?? 0) + 1);
+      return [...m.entries()].map(([name, c]) => ({ name, count: c })).sort((a, b) => b.count - a.count);
+    };
+    const filled = (v: string | null | undefined) => !!v && v.trim() !== '' && v.trim() !== '-';
+
+    const rows = surveys.map((s) => {
+      const guests = s.noOfAdults + s.noOfChildren + s.noOfInfants;
+      const stayDays = parseStayDays(s.stayLength);
+      return {
+        s,
+        guests,
+        stayDays,
+        nationality: normalizeNationality(s.guestNationality),
+        repeat: s.repeaterGuest === 'YES',
+        hotel: (s.trafficJob.destinationHotel?.name || s.hotelName || 'Not given').trim(),
+        operator: s.trafficJob.agent?.tradeName || s.trafficJob.agent?.legalName || s.trafficJob.customer?.tradeName || s.trafficJob.customer?.legalName || 'Unknown',
+        party:
+          s.noOfChildren + s.noOfInfants > 0 ? 'Family with children'
+            : s.noOfAdults === 1 ? 'Solo traveller'
+            : s.noOfAdults === 2 ? 'Couple / pair'
+            : 'Group (3+ adults)',
+        day: s.trafficJob.jobDate.toISOString().slice(0, 10),
+      };
+    });
+
+    const adults = rows.reduce((a, r) => a + r.s.noOfAdults, 0);
+    const children = rows.reduce((a, r) => a + r.s.noOfChildren, 0);
+    const infants = rows.reduce((a, r) => a + r.s.noOfInfants, 0);
+    const repeats = rows.filter((r) => r.repeat).length;
+    const stays = rows.map((r) => r.stayDays).filter((d): d is number => d !== null);
+
+    // Trend: per day (≤ 62 days) or per ISO week start (Monday)
+    const spanDays = Math.round((toDate.getTime() - fromDate.getTime()) / 86_400_000) + 1;
+    const weekly = spanDays > 62;
+    const bucketOf = (iso: string) => {
+      if (!weekly) return iso;
+      const d = new Date(`${iso}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+      return d.toISOString().slice(0, 10);
+    };
+    const trendMap = new Map<string, number>();
+    for (let t = fromDate.getTime(); t <= toDate.getTime(); t += 86_400_000) trendMap.set(bucketOf(new Date(t).toISOString().slice(0, 10)), 0);
+    for (const r of rows) trendMap.set(bucketOf(r.day), (trendMap.get(bucketOf(r.day)) ?? 0) + 1);
+
+    const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weekday = WEEKDAYS.map((d) => ({ name: d, count: 0 }));
+    for (const r of rows) weekday[(new Date(`${r.day}T00:00:00Z`).getUTCDay() + 6) % 7].count++;
+
+    const groupStats = (key: (r: (typeof rows)[number]) => string, limit: number) => {
+      const m = new Map<string, { name: string; count: number; repeats: number; guests: number }>();
+      for (const r of rows) {
+        const k = key(r);
+        const g = m.get(k) ?? { name: k, count: 0, repeats: 0, guests: 0 };
+        g.count++;
+        if (r.repeat) g.repeats++;
+        g.guests += r.guests;
+        m.set(k, g);
+      }
+      return [...m.values()]
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit)
+        .map((g) => ({ name: g.name, count: g.count, repeatPct: pct(g.repeats, g.count), avgParty: Math.round((g.guests / g.count) * 10) / 10 }));
+    };
+
+    // Reps: surveys vs eligible arrivals
+    const repMap = new Map<string, { repId: string; repName: string; surveys: number; eligible: number }>();
+    for (const e of eligible) {
+      if (!e.repId) continue;
+      const g = repMap.get(e.repId) ?? { repId: e.repId, repName: e.rep?.name ?? '—', surveys: 0, eligible: 0 };
+      g.eligible++;
+      repMap.set(e.repId, g);
+    }
+    for (const r of rows) {
+      const g = repMap.get(r.s.repId) ?? { repId: r.s.repId, repName: r.s.rep.name, surveys: 0, eligible: 0 };
+      g.surveys++;
+      repMap.set(r.s.repId, g);
+    }
+    const reps = [...repMap.values()]
+      .map((g) => ({ ...g, coveragePct: pct(g.surveys, g.eligible) }))
+      .sort((a, b) => b.surveys - a.surveys || b.eligible - a.eligible);
+
+    const comments = rows
+      .filter((r) => (r.s.generalComment ?? '').trim().length > 2)
+      .map((r) => ({
+        date: r.day,
+        ref: r.s.trafficJob.internalRef,
+        rep: r.s.rep.name,
+        nationality: r.nationality,
+        hotel: r.hotel,
+        repeat: r.repeat,
+        comment: r.s.generalComment.trim(),
+      }));
+
+    const STAY_ORDER = ['1–3 days', '4–6 days', '7 days', '8–13 days', '14 days', '15+ days', 'Not given'];
+    const stay = count(rows, (r) => stayBucket(r.stayDays)).sort((a, b) => STAY_ORDER.indexOf(a.name) - STAY_ORDER.indexOf(b.name));
+    const AGE_ORDER = ['20-30', '30-45', '45-60'];
+    const ageRanges = count(rows, (r) => r.s.ageRange || 'Not given').sort((a, b) => {
+      const ia = AGE_ORDER.indexOf(a.name), ib = AGE_ORDER.indexOf(b.name);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+
+    return {
+      from,
+      to,
+      kpis: {
+        surveys: n,
+        eligibleArrivals: eligible.length,
+        coveragePct: pct(n, eligible.length),
+        guests: adults + children + infants,
+        adults,
+        children,
+        infants,
+        avgParty: n ? Math.round(((adults + children + infants) / n) * 10) / 10 : 0,
+        repeatPct: pct(repeats, n),
+        repeats,
+        avgStayDays: stays.length ? Math.round((stays.reduce((a, b) => a + b, 0) / stays.length) * 10) / 10 : null,
+        emailPct: pct(rows.filter((r) => filled(r.s.email)).length, n),
+        localAgentPct: pct(rows.filter((r) => filled(r.s.localTravelAgent)).length, n),
+        commentPct: pct(comments.length, n),
+      },
+      trend: { weekly, points: [...trendMap.entries()].map(([date, c]) => ({ date, count: c })) },
+      weekday,
+      nationalities: groupStats((r) => r.nationality, 20),
+      hotels: groupStats((r) => r.hotel, 15),
+      operators: groupStats((r) => r.operator, 15),
+      localAgents: count(rows.filter((r) => filled(r.s.localTravelAgent)), (r) => r.s.localTravelAgent!.trim()).slice(0, 15),
+      ageRanges,
+      stay,
+      partyTypes: count(rows, (r) => r.party),
+      repeat: { yes: repeats, no: n - repeats },
+      reps,
+      words: topWords(comments.map((c) => c.comment)),
+      comments: comments.slice(0, 300),
+    };
   }
 
   // ─────────────────────────────────────────────
