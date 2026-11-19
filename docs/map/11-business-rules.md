@@ -732,6 +732,11 @@ pay and period totals.
   `b2c.service.ts › amendBooking`. `bulkCreate` inherits it by calling `create`.
 - The car-dispatch board's day selector is **both** a view filter and the new job's service date, so
   browsing a past day stays allowed but creating on one is blocked with an inline notice.
+- Car-dispatch cards show every job assigned to the car that day: the day view returns
+  `arrivals`, `departures` and `cityJobs` (day tours, going, return). Rows are coloured
+  Departure green, Arrival blue, Cancelled red (status wins over type), white text. Cards per row
+  (2/3), hidden columns and column widths are one per-user setting for the whole board
+  (user-preferences key `car_dispatch_view`).
 - Report ranges, activity-log filters and `complaintDate` are *not* service dates and must keep
   accepting past dates — do not apply the floor to them.
 - Every report on the Reports page opens with **From and To both set to today** (not the last 30

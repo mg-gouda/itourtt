@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -40,6 +40,7 @@ import {
   Check,
   X,
   Loader2,
+  Columns3,
 } from "lucide-react";
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
@@ -106,6 +107,7 @@ interface JobRow {
   extraDriverName: string;
   extraDriverPhone: string;
   serviceType: string;
+  status?: string; // job status of a saved job (CANCELLED rows are red)
   // location IDs for API
   originAirportId: string;
   originZoneId: string;
@@ -375,6 +377,7 @@ function CarDispatchContent() {
     return d.toISOString().slice(0, 10);
   });
   const [loading, setLoading] = useState(true);
+  const { view, update: updateView } = useBoardView();
   const [selectedOwnedIds, setSelectedOwnedIds] = useState<Set<string>>(new Set());
   const [addCarOpen, setAddCarOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
@@ -461,7 +464,7 @@ function CarDispatchContent() {
       const allJobs: any[] = [
         ...(dayData.arrivals || []),
         ...(dayData.departures || []),
-        ...(dayData.city || []),
+        ...(dayData.cityJobs || dayData.city || []),
       ];
 
       // Group jobs by assigned vehicleId
@@ -500,6 +503,7 @@ function CarDispatchContent() {
         extraDriverName: j.assignment?.externalDriverName || "",
         extraDriverPhone: j.assignment?.externalDriverPhone || "",
         serviceType: j.serviceType || "ARR",
+        status: j.status,
         originAirportId: j.originAirportId || "",
         originZoneId: j.originZoneId || "",
         originHotelId: j.originHotelId || "",
@@ -863,16 +867,38 @@ function CarDispatchContent() {
         />
       )}
 
+      {/* ─── Board toolbar: legend + cards per row ─── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ColorLegend />
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">Cards per row</Label>
+          <div className="inline-flex rounded-md border border-border p-0.5">
+            {([2, 3] as const).map((n) => (
+              <Button
+                key={n}
+                size="sm"
+                variant={view.perRow === n ? "default" : "ghost"}
+                className="h-7 px-3 text-xs"
+                onClick={() => updateView({ perRow: n })}
+              >
+                {n}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ─── Car Cards Grid ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={cn("grid grid-cols-1 gap-4", view.perRow === 3 ? "lg:grid-cols-3" : "lg:grid-cols-2")}>
         {cards.filter((c) => c.isSupplier || selectedOwnedIds.has(c.vehicle.id)).map((card) => (
           <VehicleCard
             key={card.vehicle.id}
             card={card}
+            view={view}
+            onViewChange={updateView}
             customerOptions={customerOptions}
             driverOptions={driverOptions}
             zoneOptions={zones}
-            jobDate={jobDate}
             onAddJob={() => addJobRow(card.vehicle.id)}
             onUpdateField={(uid, field, value) =>
               updateJobField(card.vehicle.id, uid, field, value)
@@ -952,14 +978,148 @@ function CarDispatchContent() {
   );
 }
 
+/* ───────────────────── Board view settings ───────────────────── */
+// One per user (user-preferences key "car_dispatch_view"), shared by every card on the board:
+// cards per row, hidden columns and column widths.
+
+type ColKey =
+  | "customer" | "booking" | "custJobId" | "origin" | "destination" | "time"
+  | "driver" | "custRep" | "extraDriver" | "type" | "pax" | "actions";
+
+const JOB_COLUMNS: { key: ColKey; label: string; width: number; center?: boolean; fixed?: boolean }[] = [
+  { key: "customer", label: "Customer", width: 140 },
+  { key: "booking", label: "Booking #", width: 80 },
+  { key: "custJobId", label: "Cust. Job ID", width: 90 },
+  { key: "origin", label: "Origin", width: 110 },
+  { key: "destination", label: "Destination", width: 110 },
+  { key: "time", label: "Time", width: 56 },
+  { key: "driver", label: "Driver", width: 130 },
+  { key: "custRep", label: "Cust. Rep", width: 100 },
+  { key: "extraDriver", label: "Extra Driver", width: 100 },
+  { key: "type", label: "Type", width: 90 },
+  { key: "pax", label: "Pax", width: 44, center: true },
+  { key: "actions", label: "Act", width: 64, center: true, fixed: true },
+];
+
+const MIN_COL_WIDTH = 40;
+const VIEW_PREF_KEY = "car_dispatch_view";
+
+interface BoardView {
+  perRow: 2 | 3;
+  hidden: ColKey[];
+  widths: Partial<Record<ColKey, number>>;
+}
+
+const DEFAULT_VIEW: BoardView = { perRow: 2, hidden: [], widths: {} };
+
+function useBoardView() {
+  const [view, setView] = useState<BoardView>(DEFAULT_VIEW);
+
+  useEffect(() => {
+    api
+      .get(`/user-preferences/${VIEW_PREF_KEY}`)
+      .then((res) => {
+        const v = res.data?.value;
+        if (v && typeof v === "object") {
+          setView({
+            perRow: v.perRow === 3 ? 3 : 2,
+            hidden: Array.isArray(v.hidden) ? v.hidden.filter((k: string) => JOB_COLUMNS.some((c) => c.key === k && !c.fixed)) : [],
+            widths: v.widths && typeof v.widths === "object" ? v.widths : {},
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  /** Update and persist. `persist: false` while a column is being dragged; saved on release. */
+  const update = useCallback((patch: Partial<BoardView>, persist = true) => {
+    setView((prev) => {
+      const next = { ...prev, ...patch };
+      if (persist) api.put(`/user-preferences/${VIEW_PREF_KEY}`, { value: next }).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  return { view, update };
+}
+
+/* ───────────────────── Row colours ───────────────────── */
+// Departure = green, Arrival = blue, Cancelled = red (wins over the type); white text on colour.
+
+function rowColor(job: JobRow): string | null {
+  if (job.status === "CANCELLED") return "bg-red-600";
+  if (job.serviceType === "DEP") return "bg-green-600";
+  if (job.serviceType === "ARR") return "bg-blue-600";
+  return null;
+}
+
+const COLOR_LEGEND = [
+  { label: "Departure", className: "bg-green-600" },
+  { label: "Arrival", className: "bg-blue-600" },
+  { label: "Cancelled", className: "bg-red-600" },
+];
+
+function ColorLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+      {COLOR_LEGEND.map((l) => (
+        <span key={l.label} className="inline-flex items-center gap-1.5">
+          <span className={cn("h-3 w-3 rounded-sm", l.className)} />
+          {l.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* ───────────────────── Column picker ───────────────────── */
+
+function ColumnPicker({ view, onChange }: { view: BoardView; onChange: (patch: Partial<BoardView>) => void }) {
+  const hidden = new Set(view.hidden);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Columns">
+          <Columns3 className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-52 p-2">
+        <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">Columns (all cards)</p>
+        {JOB_COLUMNS.filter((c) => !c.fixed).map((c) => (
+          <label key={c.key} className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm hover:bg-muted">
+            <Checkbox
+              checked={!hidden.has(c.key)}
+              onCheckedChange={(on) =>
+                onChange({ hidden: on ? view.hidden.filter((k) => k !== c.key) : [...view.hidden, c.key] })
+              }
+            />
+            {c.label}
+          </label>
+        ))}
+        {(view.hidden.length > 0 || Object.keys(view.widths).length > 0) && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="mt-1 h-7 w-full text-xs"
+            onClick={() => onChange({ hidden: [], widths: {} })}
+          >
+            Reset columns
+          </Button>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /* ───────────────────── Vehicle Card Component ───────────────────── */
 
 function VehicleCard({
   card,
+  view,
+  onViewChange,
   customerOptions,
   driverOptions,
   zoneOptions,
-  jobDate,
   onAddJob,
   onUpdateField,
   onRemoveJob,
@@ -968,10 +1128,11 @@ function VehicleCard({
   onRemoveCard,
 }: {
   card: CarCard;
+  view: BoardView;
+  onViewChange: (patch: Partial<BoardView>, persist?: boolean) => void;
   customerOptions: { value: string; label: string }[];
   driverOptions: { value: string; label: string }[];
   zoneOptions: LocationOption[];
-  jobDate: string;
   onAddJob: () => void;
   onUpdateField: (uid: string, field: keyof JobRow, value: string | boolean | number) => void;
   onRemoveJob: (uid: string) => void;
@@ -981,22 +1142,44 @@ function VehicleCard({
 }) {
   const { vehicle, jobs, isSupplier } = card;
   const unsavedCount = jobs.filter((j) => !j.saved).length;
+  const columns = JOB_COLUMNS.filter((c) => c.fixed || !view.hidden.includes(c.key));
+  const widthOf = (c: (typeof JOB_COLUMNS)[number]) => view.widths[c.key] ?? c.width;
+
+  // Drag the right edge of a header to resize that column (all cards follow).
+  function startResize(e: ReactMouseEvent, key: ColKey, startWidth: number) {
+    e.preventDefault();
+    const startX = e.clientX;
+    let width = startWidth;
+    const onMove = (ev: MouseEvent) => {
+      width = Math.max(MIN_COL_WIDTH, Math.round(startWidth + ev.clientX - startX));
+      onViewChange({ widths: { ...view.widths, [key]: width } }, false);
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.classList.remove("cursor-col-resize", "select-none");
+      onViewChange({ widths: { ...view.widths, [key]: width } }, true);
+    };
+    document.body.classList.add("cursor-col-resize", "select-none");
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
 
   return (
     <Card
       className={cn(
-        "overflow-hidden text-[11px] [&_*]:text-[11px]",
+        "min-w-0 overflow-hidden text-[11px] [&_*]:text-[11px]",
         isSupplier && "border-amber-300 dark:border-amber-700"
       )}
     >
       {/* ─── Card Header: Plate + Type ─── */}
-      <CardHeader className="flex flex-row items-center justify-between gap-4 border-b bg-muted/40 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <Car className="h-5 w-5 text-primary" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-lg font-bold tracking-wider">
                 {vehicle.plateNumber}
               </span>
@@ -1021,7 +1204,7 @@ function VehicleCard({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {unsavedCount > 0 && (
             <Button
               size="sm"
@@ -1036,6 +1219,7 @@ function VehicleCard({
             <Plus className="h-3.5 w-3.5" />
             Add Job
           </Button>
+          <ColumnPicker view={view} onChange={(p) => onViewChange(p)} />
           {onRemoveCard && (
             <Button
               size="sm"
@@ -1057,21 +1241,35 @@ function VehicleCard({
           </div>
         ) : (
           <div className="overflow-x-auto [overflow-y:clip]">
-            <table className="w-full border-collapse text-xs">
+            <table
+              className="border-collapse text-xs"
+              style={{ tableLayout: "fixed", width: columns.reduce((s, c) => s + widthOf(c), 0), minWidth: "100%" }}
+            >
+              <colgroup>
+                {columns.map((c) => (
+                  <col key={c.key} style={{ width: widthOf(c) }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr className="bg-muted/50">
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Customer</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Booking #</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Cust. Job ID</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Origin</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Destination</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Time</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Driver</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Cust. Rep</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Extra Driver</th>
-                  <th className="border border-border px-1 py-1 text-left font-semibold text-xs">Type</th>
-                  <th className="border border-border px-1 py-1 text-center font-semibold text-xs">Pax</th>
-                  <th className="border border-border px-1 py-1 text-center font-semibold text-xs">Act</th>
+                  {columns.map((c) => (
+                    <th
+                      key={c.key}
+                      className={cn(
+                        "relative truncate border border-border px-1 py-1 font-semibold text-xs",
+                        c.center ? "text-center" : "text-left"
+                      )}
+                    >
+                      {c.label}
+                      <span
+                        role="separator"
+                        aria-orientation="vertical"
+                        title="Drag to resize"
+                        onMouseDown={(e) => startResize(e, c.key, widthOf(c))}
+                        className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none hover:bg-primary/40"
+                      />
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -1079,6 +1277,7 @@ function VehicleCard({
                   <JobRowComponent
                     key={job.uid}
                     job={job}
+                    columns={columns.map((c) => c.key)}
                     isSupplierCard={isSupplier}
                     customerOptions={customerOptions}
                     driverOptions={driverOptions}
@@ -1103,6 +1302,7 @@ function VehicleCard({
 
 function JobRowComponent({
   job,
+  columns,
   isSupplierCard,
   customerOptions,
   driverOptions,
@@ -1112,6 +1312,7 @@ function JobRowComponent({
   onSave,
 }: {
   job: JobRow;
+  columns: ColKey[];
   isSupplierCard: boolean;
   customerOptions: { value: string; label: string }[];
   driverOptions: { value: string; label: string }[];
@@ -1120,109 +1321,88 @@ function JobRowComponent({
   onRemove: () => void;
   onSave: () => void;
 }) {
-  const cell = "border border-border p-0 align-top";
-  const inp = "h-7 rounded-none border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary";
+  const color = rowColor(job);
+  const cell = "border border-border p-0 align-top overflow-hidden";
+  const inp = "h-7 w-full rounded-none border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary";
+  const muted = color ? "text-white/80" : "text-muted-foreground";
+  const zoneList = zoneOptions.map((z) => ({ value: z.id, label: z.name }));
 
-  return (
-    <tr
-      className={cn(
-        job.saved && "bg-green-50 dark:bg-green-950/20",
-        job.error && "bg-red-50 dark:bg-red-950/20"
-      )}
-    >
-      {/* Customer */}
-      <td className={cell}>
-        <ComboSelect
-          options={customerOptions}
-          value={job.customerId}
-          onChange={(v) => onUpdate("customerId", v)}
-          placeholder="Customer..."
-          className="h-7 rounded-none border-0 shadow-none"
-        />
-      </td>
-
-      {/* Booking # */}
-      <td className={cn(cell, "px-1 text-center")}>
-        {job.bookingNumber ? (
-          <span className="text-[11px] font-mono">{job.bookingNumber}</span>
-        ) : (
-          <span className="text-[10px] text-muted-foreground italic">Auto</span>
-        )}
-      </td>
-
-      {/* Customer Job ID */}
-      <td className={cell}>
-        <Input
-          value={job.customerJobId}
-          onChange={(e) => onUpdate("customerJobId", e.target.value)}
-          placeholder="Cust. Job ID..."
-          className="h-7 rounded-none border-0 shadow-none text-xs"
-          disabled={job.saved}
-        />
-      </td>
-
-      {/* Origin Zone */}
-      <td className={cell}>
-        <ComboSelect
-          options={zoneOptions.map((z) => ({ value: z.id, label: z.name }))}
-          value={job.originZoneId}
-          onChange={(v) => onUpdate("originZoneId", v)}
-          placeholder="Origin..."
-          className="h-7 rounded-none border-0 shadow-none"
-        />
-      </td>
-
-      {/* Destination Zone */}
-      <td className={cell}>
-        <ComboSelect
-          options={zoneOptions.map((z) => ({ value: z.id, label: z.name }))}
-          value={job.destinationZoneId}
-          onChange={(v) => onUpdate("destinationZoneId", v)}
-          placeholder="Dest..."
-          className="h-7 rounded-none border-0 shadow-none"
-        />
-      </td>
-
-      {/* Time (24hr) */}
-      <td className={cell}>
-        <Input
-          type="text"
-          value={job.pickUpTime}
-          onChange={(e) => {
-            let v = e.target.value.replace(/[^0-9:]/g, "");
-            if (v.length === 2 && !v.includes(":")) v += ":";
-            if (v.length > 5) v = v.slice(0, 5);
-            onUpdate("pickUpTime", v);
-          }}
-          placeholder="HH:MM"
-          maxLength={5}
-          className={cn(inp, "font-mono")}
-          disabled={job.saved}
-        />
-      </td>
-
-      {/* Driver */}
-      <td className={cell}>
-        {isSupplierCard ? (
-          <span className="px-1 text-[10px] text-muted-foreground italic">External</span>
-        ) : (
-          <ComboSelect
-            options={driverOptions}
-            value={job.driverId}
-            onChange={(v) => onUpdate("driverId", v)}
-            placeholder="Driver..."
-            className="h-7 rounded-none border-0 shadow-none"
-          />
-        )}
-      </td>
-
-      {/* Customer Rep */}
-      <td className={cell}>
+  const cells: Record<ColKey, ReactNode> = {
+    customer: (
+      <ComboSelect
+        options={customerOptions}
+        value={job.customerId}
+        onChange={(v) => onUpdate("customerId", v)}
+        placeholder="Customer..."
+        className="h-7 rounded-none border-0 bg-transparent shadow-none"
+      />
+    ),
+    booking: job.bookingNumber ? (
+      <span className="block truncate px-1 text-center font-mono text-[11px] leading-7">{job.bookingNumber}</span>
+    ) : (
+      <span className={cn("block px-1 text-center text-[10px] italic leading-7", muted)}>Auto</span>
+    ),
+    custJobId: (
+      <Input
+        value={job.customerJobId}
+        onChange={(e) => onUpdate("customerJobId", e.target.value)}
+        placeholder="Cust. Job ID..."
+        className={inp}
+        disabled={job.saved}
+      />
+    ),
+    origin: (
+      <ComboSelect
+        options={zoneList}
+        value={job.originZoneId}
+        onChange={(v) => onUpdate("originZoneId", v)}
+        placeholder="Origin..."
+        className="h-7 rounded-none border-0 bg-transparent shadow-none"
+      />
+    ),
+    destination: (
+      <ComboSelect
+        options={zoneList}
+        value={job.destinationZoneId}
+        onChange={(v) => onUpdate("destinationZoneId", v)}
+        placeholder="Dest..."
+        className="h-7 rounded-none border-0 bg-transparent shadow-none"
+      />
+    ),
+    time: (
+      <Input
+        type="text"
+        value={job.pickUpTime}
+        onChange={(e) => {
+          let v = e.target.value.replace(/[^0-9:]/g, "");
+          if (v.length === 2 && !v.includes(":")) v += ":";
+          if (v.length > 5) v = v.slice(0, 5);
+          onUpdate("pickUpTime", v);
+        }}
+        placeholder="HH:MM"
+        maxLength={5}
+        className={cn(inp, "font-mono")}
+        disabled={job.saved}
+      />
+    ),
+    driver: isSupplierCard ? (
+      <span className={cn("block px-1 text-[10px] italic leading-7", muted)}>External</span>
+    ) : (
+      <ComboSelect
+        options={driverOptions}
+        value={job.driverId}
+        onChange={(v) => onUpdate("driverId", v)}
+        placeholder="Driver..."
+        className="h-7 rounded-none border-0 bg-transparent shadow-none"
+      />
+    ),
+    custRep: (
+      <>
         <Input
           value={job.custRepName}
           onChange={(e) => onUpdate("custRepName", e.target.value)}
           placeholder="Name"
-          className={cn(inp, "border-b border-border rounded-none")}
+          className={cn(inp, "border-b border-border")}
           disabled={job.saved}
         />
         <Input
@@ -1232,15 +1412,16 @@ function JobRowComponent({
           className={inp}
           disabled={job.saved}
         />
-      </td>
-
-      {/* Extra Driver (always shown — supplier cards use this for external driver) */}
-      <td className={cell}>
+      </>
+    ),
+    // Always shown option — supplier cards use it for the external driver.
+    extraDriver: (
+      <>
         <Input
           value={job.extraDriverName}
           onChange={(e) => onUpdate("extraDriverName", e.target.value)}
           placeholder="Name"
-          className={cn(inp, "border-b border-border rounded-none")}
+          className={cn(inp, "border-b border-border")}
           disabled={job.saved}
         />
         <Input
@@ -1250,42 +1431,40 @@ function JobRowComponent({
           className={inp}
           disabled={job.saved}
         />
-      </td>
-
-      {/* Transfer Type */}
-      <td className={cell}>
-        <select
-          value={job.serviceType}
-          onChange={(e) => onUpdate("serviceType", e.target.value)}
-          disabled={job.saved}
-          className="h-7 w-full border-0 bg-transparent px-1 text-xs focus:outline-none"
-        >
-          {SERVICE_TYPE_DROPDOWN_OPTIONS.map((st) => (
-            <option key={st.value} value={st.value}>{st.label}</option>
-          ))}
-        </select>
-      </td>
-
-      {/* Pax */}
-      <td className={cell}>
-        <input
-          type="number"
-          min={1}
-          value={job.paxCount}
-          onChange={(e) => onUpdate("paxCount", e.target.value)}
-          className="h-7 w-full border-0 bg-transparent px-1 text-xs text-center focus:outline-none"
-          disabled={job.saved}
-        />
-      </td>
-
-      {/* Actions */}
-      <td className={cn(cell, "text-center")}>
+      </>
+    ),
+    type: (
+      <select
+        value={job.serviceType}
+        onChange={(e) => onUpdate("serviceType", e.target.value)}
+        disabled={job.saved}
+        className="h-7 w-full border-0 bg-transparent px-1 text-xs focus:outline-none"
+      >
+        {SERVICE_TYPE_DROPDOWN_OPTIONS.map((st) => (
+          // Options keep the normal colours: the open list is not tinted with the row.
+          <option key={st.value} value={st.value} className="bg-background text-foreground">{st.label}</option>
+        ))}
+      </select>
+    ),
+    pax: (
+      <input
+        type="number"
+        min={1}
+        value={job.paxCount}
+        onChange={(e) => onUpdate("paxCount", e.target.value)}
+        className="h-7 w-full border-0 bg-transparent px-1 text-xs text-center focus:outline-none"
+        disabled={job.saved}
+      />
+    ),
+    actions: (
+      <>
         <div className="flex items-center justify-center gap-0">
           {!job.saved && (
             <button
               onClick={onSave}
               disabled={job.saving}
-              className="h-7 w-7 inline-flex items-center justify-center text-primary hover:bg-primary/10"
+              title="Save"
+              className={cn("inline-flex h-7 w-7 items-center justify-center", color ? "hover:bg-white/20" : "text-primary hover:bg-primary/10")}
             >
               {job.saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1295,23 +1474,42 @@ function JobRowComponent({
             </button>
           )}
           {job.saved && (
-            <span className="text-[10px] text-green-600 font-medium">OK</span>
+            <span className={cn("text-[10px] font-medium", color ? "" : "text-green-600")}>
+              {job.status === "CANCELLED" ? "Cancelled" : "OK"}
+            </span>
           )}
           {!job.saved && (
             <button
               onClick={onRemove}
-              className="h-7 w-7 inline-flex items-center justify-center text-destructive hover:bg-destructive/10"
+              title="Remove"
+              className={cn("inline-flex h-7 w-7 items-center justify-center", color ? "hover:bg-white/20" : "text-destructive hover:bg-destructive/10")}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
         {job.error && (
-          <p className="text-[9px] text-destructive leading-tight px-0.5 truncate" title={job.error}>
+          <p className={cn("truncate px-0.5 text-[9px] leading-tight", color ? "font-semibold" : "text-destructive")} title={job.error}>
             {job.error}
           </p>
         )}
-      </td>
+      </>
+    ),
+  };
+
+  return (
+    <tr
+      className={cn(
+        // Coloured rows: white text everywhere in the row (inputs, pickers, placeholders, icons).
+        color && [color, "text-white [&_*]:text-white [&_option]:bg-background [&_option]:text-foreground [&_input::placeholder]:text-white/70 [&_input:disabled]:opacity-100 [&_select:disabled]:opacity-100"],
+        job.error && "outline outline-2 -outline-offset-2 outline-red-500"
+      )}
+    >
+      {columns.map((key) => (
+        <td key={key} className={cn(cell, key === "actions" && "text-center")}>
+          {cells[key]}
+        </td>
+      ))}
     </tr>
   );
 }
