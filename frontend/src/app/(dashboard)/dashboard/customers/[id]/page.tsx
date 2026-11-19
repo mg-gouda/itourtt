@@ -47,7 +47,6 @@ export default function CustomerDetailPage({
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceGrid, setPriceGrid] = useState<RoutePriceGridData | null>(null);
-  const [tipGrid, setTipGrid] = useState<RoutePriceGridData | null>(null);
   const canEditPrices = usePermission("customers.detail.priceList.editPrice");
   const canImportPrices = usePermission("customers.detail.priceList.import");
 
@@ -65,12 +64,8 @@ export default function CustomerDetailPage({
 
   const fetchPriceList = useCallback(async () => {
     try {
-      const [p, t] = await Promise.all([
-        api.get(`/route-prices/customers/${resolvedParams.id}`),
-        api.get("/route-prices/driver-tips"),
-      ]);
+      const p = await api.get(`/route-prices/customers/${resolvedParams.id}`);
       setPriceGrid(p.data.data);
-      setTipGrid(t.data.data);
     } catch {
       toast.error("Failed to load prices");
     }
@@ -95,17 +90,7 @@ export default function CustomerDetailPage({
     }
   }
 
-  async function saveTips(cells: RoutePriceCellEdit[]) {
-    try {
-      const { data } = await api.put("/route-prices/driver-tips", { cells });
-      toast.success(`Saved ${data.data.saved} tip(s)${data.data.cleared ? `, cleared ${data.data.cleared}` : ""}`);
-      await fetchPriceList();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Failed to save tips");
-    }
-  }
-
-  async function importSheet(kind: "customers" | "driver-tips", file?: File) {
+  async function importSheet(kind: "customers", file?: File) {
     if (!file) return;
     try {
       const fd = new FormData();
@@ -272,23 +257,9 @@ export default function CustomerDetailPage({
             </div>
             {priceGrid && <RoutePriceGrid data={priceGrid} canEdit={canEditPrices} onSave={savePrices} />}
           </div>
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-semibold">Driver tips (same for all customers)</h3>
-              <div className="ml-auto flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => downloadXlsx(() => api.get("/route-prices/driver-tips/export", { responseType: "blob" }), "driver-tips.xlsx")}>
-                  <Download className="h-4 w-4 mr-1.5" />Export
-                </Button>
-                {canImportPrices && (
-                  <label className="inline-flex">
-                    <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => importSheet("driver-tips", e.target.files?.[0])} />
-                    <span className="inline-flex h-8 cursor-pointer items-center rounded-md border px-3 text-sm"><Upload className="h-4 w-4 mr-1.5" />Import Driver Tips</span>
-                  </label>
-                )}
-              </div>
-            </div>
-            {tipGrid && <RoutePriceGrid data={tipGrid} canEdit={canEditPrices} onSave={saveTips} emptyHint="empty cell = no tip" />}
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Driver tips (the same for every customer) are on System Parameters › Driver Tariffs › Driver Tips.
+          </p>
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4">

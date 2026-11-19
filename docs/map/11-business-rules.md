@@ -682,7 +682,8 @@ Agents (online channel) keep their own zone price lists — untouched.
   cost ([Supplier price lists](#supplier-price-lists--where-does-a-supplier-jobs-cost-come-from))
   and the customer price together. Both halves guard themselves and never throw.
 - **Driver tips billed to customers are one global table** — `DriverTipRate`, same route × car-type
-  key, used by the driver-tip invoices.
+  key, used by the driver-tip invoices. Edited on **Driver Tariffs › Driver Tips** (no longer on the
+  customer Price List tab).
 - **Invoicing** (`finance.service.ts › generateCustomerInvoices` and the invoice suggestions) reads
   `CustomerPricingService.quote`: transfer = the job's own `priceAmount` if set, else the customer's
   route price; tip = the global rate; missing → 0.
@@ -700,6 +701,20 @@ Agents (online channel) keep their own zone price lists — untouched.
   "… 2 WAYS", "ROUND CITY TRIP…") are `ImportNameAlias` rows of kind **ROUTE** whose `targetId` is
   the canonical route *code* (not an id — the ذهاب / عوده pair shares one code). All three sheet
   importers resolve OPERATION through `common/utils/route-price-sheet.util.ts › loadRouteIndex`.
+
+## Driver tariffs — what does a driver earn for a trip?
+
+- **One route × car-type table for every driver** — `DriverTariffRate` (System Parameters › Driver
+  Tariffs, tab *Driver Tariffs*; keys `driver-tariffs` / `.upsert`), same sheet layout and code as the
+  driver tips (`job-pricing/route-rate-table.ts`). Replaced the zone-based `DriverPriceTariff` on
+  2026-11-19: it never had a row, so every one of the 3,095 trip fees until then was 0.
+- **A trip fee** = the job's route × the assigned vehicle's type (H-1 falls back to Hi Ace 7),
+  `driver-tariffs.service › resolveJobTripFee`, used by every completion path (portal roll-up,
+  dispatcher status change). A job without a route gets no fee row; no tariff for the cell → 0.
+- **Recalculate** (`POST /traffic-jobs/recalculate-driver-fees`, admin, button on the page): for completed
+  jobs in a date range it creates missing fees and re-prices **unposted** fees nobody edited
+  (`amount == tariffAmount`). Posted fees, manual fees (`tariffAmount` null) and complaint deductions
+  (negative) are never touched.
 
 ## References
 

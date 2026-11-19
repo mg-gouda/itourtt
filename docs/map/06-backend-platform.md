@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**68 classes**, **519 methods**.
+**69 classes**, **523 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -360,7 +360,7 @@ Job alarms for rep/driver portals and apps: start reminders, drop-off geofence t
 | `projectJobStatus` | pub | 52 | — | Predicts, without writing, the job status reconcileJobStatus would produce if a portal leg moved to the given target — used by the evidence stamp so the burned-in overlay shows the resulting status, not the pre-transition one. |
 | `reconcileJobStatus` | pub | 96 | `trafficJob` `trafficAssignment` | Idempotent roll-up. Refuses to touch jobs already CANCELLED/NO_SHOW. Auto-closes the rep leg on DEP jobs once the driver finishes (a DEP rep has no work left after the car runs). A supplier-sourced car has no own driver, so a null `driverId` is not a gate. Requires at least one leg actually worked before flipping to COMPLETED, then materialises both fees. |
 | `ensureDriverTripFee` | priv | 159 | `driverTripFee` `driverTariffsService.resolveJobTripFee` | Creates the driver's `DriverTripFee` from the airport-aware tariff table, if one does not already exist. |
-| `ensureRepFee` | priv | 184 | `repFee` `repJobScore` `rep` | Creates the rep's fee from their `RepJobScore`, converting score to money via `scoreToFeeAndEval`. |
+| `ensureRepFee` | priv | 181 | `repFee` `repJobScore` `rep` | Creates the rep's fee from their `RepJobScore`, converting score to money via `scoreToFeeAndEval`. |
 
 ### JwtAuthGuard
 
@@ -698,22 +698,35 @@ Customer route prices and the global driver-tip table: grids, save, Excel import
 
 ### RoutePricesService
 
-`backend/src/job-pricing/route-prices.service.ts:20` · service · 10 methods
+`backend/src/job-pricing/route-prices.service.ts:21` · service · 10 methods
 
 Grid, save, import and export for customer route prices and driver tips.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `columns` | priv | 23 | `vehicleType` | PRICE_COLUMNS with vehicle type ids (types that exist only). |
-| `routes` | priv | 29 | `jobServiceType` | Active routes ordered by name. |
-| `customerGrid` | pub | 35 | `customer` `customerRoutePrice` | Active routes, car columns and the customer's prices. |
-| `saveCustomerCells` | pub | 46 | `customerRoutePrice` | Upserts/clears a customer's price cells in one transaction. |
-| `exportCustomerPrices` | pub | 67 | `customer` | Every customer with prices, one Customer Price List sheet. |
-| `importCustomerPrices` | pub | 97 | `vehicleType` `customer` `importNameAlias` | Imports CUST × OPERATION rows; unknown customers/operations reported; empty cell clears. |
-| `tipGrid` | pub | 153 | `driverTipRate` | Active routes, car columns and the tip amounts. |
-| `saveTipCells` | pub | 162 | `driverTipRate` | Upserts/clears driver-tip cells in one transaction. |
-| `exportTips` | pub | 182 | — | The driver-tip table as a Driver Tips sheet. |
-| `importTips` | pub | 194 | `vehicleType` | Imports OPERATION rows into the driver-tip table; H-1 ignored; empty cell clears. |
+| `columns` | priv | 24 | `vehicleType` | PRICE_COLUMNS with vehicle type ids (types that exist only). |
+| `routes` | priv | 30 | `jobServiceType` | Active routes ordered by name. |
+| `customerGrid` | pub | 36 | `customer` `customerRoutePrice` | Active routes, car columns and the customer's prices. |
+| `saveCustomerCells` | pub | 47 | `customerRoutePrice` | Upserts/clears a customer's price cells in one transaction. |
+| `exportCustomerPrices` | pub | 68 | `customer` | Every customer with prices, one Customer Price List sheet. |
+| `importCustomerPrices` | pub | 98 | `vehicleType` `customer` `importNameAlias` | Imports CUST × OPERATION rows; unknown customers/operations reported; empty cell clears. |
+| `tipGrid` | pub | 159 | — | Active routes, car columns and the tip amounts. |
+| `saveTipCells` | pub | 163 | — | Upserts/clears driver-tip cells in one transaction. |
+| `exportTips` | pub | 167 | — | The driver-tip table as a Driver Tips sheet. |
+| `importTips` | pub | 172 | — | Imports OPERATION rows into the driver-tip table; H-1 ignored; empty cell clears. |
+
+### RouteRateTable
+
+`backend/src/job-pricing/route-rate-table.ts:20` · class · 4 methods
+
+Route × car-type amount table over a Prisma model with (route, vehicle type, amount)
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `grid` | pub | 32 | `vehicleType` `jobServiceType` | Columns, active routes and amounts for the grid UI |
+| `saveCells` | pub | 47 | — | Upserts amounts and deletes cleared cells in one transaction |
+| `exportSheet` | pub | 65 | — | xlsx in the traffic sheet layout (No. \| OPERATION \| car columns \| Route (AR)) |
+| `importSheet` | pub | 77 | `vehicleType` | Reads only the sheet named for this table; number sets, empty clears, unknown routes reported |
 
 ## `mobile-apps`
 
@@ -1184,7 +1197,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-185 free functions, constants and types in these modules.
+186 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1451,8 +1464,8 @@ Shared helpers for the traffic team's route × car-type price sheets (supplier l
 | `parsePrice` | function | 49 | Price cell → number, or null for empty/zero/text. |
 | `loadRouteIndex` | function | 60 | OPERATION → route ids by English code, with ROUTE aliases for sheet spellings. |
 | `findSheet` | function | 82 | First workbook sheet whose header row has all required headers. |
-| `priceColumnsIn` | function | 110 | PRICE_COLUMNS found in a header row, with column index and vehicle type id. |
-| `sheetBuffer` | function | 119 | One-sheet xlsx buffer from rows. |
+| `priceColumnsIn` | function | 115 | PRICE_COLUMNS found in a header row, with column index and vehicle type id. |
+| `sheetBuffer` | function | 124 | One-sheet xlsx buffer from rows. |
 
 ### `backend/src/common/utils/service-date.util.ts`
 
@@ -1604,7 +1617,15 @@ Customer route prices and driver tips: grids, saves and the traffic sheets' Exce
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RoutePriceCell` | type | 8 | One route × vehicle-type price edit (null clears). |
+| `RoutePriceCell` | type | 9 | One route × vehicle-type price edit (null clears). |
+
+### `backend/src/job-pricing/route-rate-table.ts`
+
+Shared global route × car-type amount table (driver tips, driver tariffs): grid, save, Excel export/import
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RouteRateCell` | type | 6 | One route × vehicle type cell edit (null clears) |
 
 ### `backend/src/notifications/notifications.service.ts`
 

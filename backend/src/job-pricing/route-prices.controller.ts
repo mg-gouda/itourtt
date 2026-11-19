@@ -64,13 +64,13 @@ export class RoutePricesController {
   }
 
   @Get('driver-tips/export')
-  @Permissions('customers.detail.priceList.downloadTemplate', 'customers.detail.priceList')
+  @Permissions('driver-tariffs', 'customers.detail.priceList.downloadTemplate', 'customers.detail.priceList')
   async exportTips(@Res() res: Response) {
     xlsx(res, await this.service.exportTips(), 'driver-tips.xlsx');
   }
 
   @Post('driver-tips/import')
-  @Permissions('customers.detail.priceList.import')
+  @Permissions('driver-tariffs.upsert', 'customers.detail.priceList.import')
   @UseInterceptors(upload)
   async importTips(@UploadedFile() file: any) {
     if (!file?.buffer) throw new BadRequestException('Attach the Excel file');
@@ -78,13 +78,13 @@ export class RoutePricesController {
   }
 
   @Get('driver-tips')
-  @Permissions('customers.detail.priceList')
+  @Permissions('driver-tariffs', 'customers.detail.priceList')
   async tipGrid() {
     return new ApiResponse(await this.service.tipGrid());
   }
 
   @Put('driver-tips')
-  @Permissions('customers.detail.priceList.editPrice')
+  @Permissions('driver-tariffs.upsert', 'customers.detail.priceList.editPrice')
   async saveTips(@Body() dto: CellsDto) {
     return new ApiResponse(await this.service.saveTipCells(dto.cells));
   }

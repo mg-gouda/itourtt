@@ -391,7 +391,7 @@ Rep app root.
 
 ### `RepJobCard.tsx`
 
-`mobile/apps/rep/src/components/RepJobCard.tsx` · 179 lines
+`mobile/apps/rep/src/components/RepJobCard.tsx` · 181 lines
 
 Rep app day-list job card: big job time, service + status pills, two-stop route, fact chips and the single next-step button.
 
@@ -526,7 +526,7 @@ Rep History tab.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 510 lines
+`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 511 lines
 
 Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting.
 
@@ -851,7 +851,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 457 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 458 lines
 
 Arabic strings for all four apps.
 
@@ -861,14 +861,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 457 lines
+`mobile/packages/shared/src/i18n/en.ts` · 458 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 456 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 457 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -1107,7 +1107,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 560 lines
+`mobile/packages/shared/src/types/index.ts` · 562 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -1150,22 +1150,22 @@ Shared TypeScript types for API payloads across the apps.
 | `PortalJob` | type | 281 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
 | `DriverPortalJob` | type | 316 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
 | `RepPortalJob` | type | 334 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
-| `SupplierPortalJob` | type | 357 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
-| `PortalNotification` | type | 363 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
-| `GuestSurveyInput` | type | 375 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
-| `GuestSurveyPayload` | type | 391 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
-| `PortalComplaint` | type | 402 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
-| `PortalDeduction` | type | 420 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
-| `BookingExtras` | type | 436 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 442 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 454 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 460 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 485 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 511 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 516 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 524 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 537 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 551 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `SupplierPortalJob` | type | 359 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
+| `PortalNotification` | type | 365 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
+| `GuestSurveyInput` | type | 377 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
+| `GuestSurveyPayload` | type | 393 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
+| `PortalComplaint` | type | 404 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
+| `PortalDeduction` | type | 422 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
+| `BookingExtras` | type | 438 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 444 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 456 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 462 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 487 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 513 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 518 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 526 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 539 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 553 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 

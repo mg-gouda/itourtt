@@ -605,15 +605,15 @@ The core job entity: creation, editing, status transitions and admin Force Contr
 | `findOne` | pub | 223 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
 | `create` | pub | 236 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
 | `update` | pub | 393 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
-| `updateStatus` | pub | 640 | `trafficJob` `trafficAssignment` `driverTripFee` `vehicle` `rep` +2 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
-| `forceControl` | pub | 787 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
-| `remove` | pub | 819 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
-| `uploadEvidence` | pub | 832 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
-| `deriveAbbreviation` | priv | 861 | — | Builds the reference prefix from the company name's initials. |
-| `generateInternalRef` | pub | 867 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
-| `resolveZoneFromFKs` | priv | 887 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
-| `bulkCreate` | pub | 904 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
-| `recalculateDriverFees` | pub | 926 | `trafficJob` `driverTripFee` `driverTariffsService.lookup` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
+| `updateStatus` | pub | 640 | `trafficJob` `trafficAssignment` `driverTripFee` `rep` `repFee` +1 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
+| `forceControl` | pub | 742 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
+| `remove` | pub | 774 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
+| `uploadEvidence` | pub | 787 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
+| `deriveAbbreviation` | priv | 816 | — | Builds the reference prefix from the company name's initials. |
+| `generateInternalRef` | pub | 822 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
+| `resolveZoneFromFKs` | priv | 842 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
+| `bulkCreate` | pub | 859 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
+| `recalculateDriverFees` | pub | 883 | `trafficJob` `driverTripFee` `driverTariffsService.resolveJobTripFee` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
 
 ## `vehicles`
 

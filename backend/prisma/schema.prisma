@@ -471,8 +471,6 @@ model Airport {
   jobsDestination     TrafficJob[]        @relation("JobDestAirport")
   guestBookingsOrigin GuestBooking[]      @relation("GuestBookingOriginAirport")
   guestBookingsDest   GuestBooking[]      @relation("GuestBookingDestAirport")
-  fromTariffs         DriverPriceTariff[] @relation("TariffFromAirport")
-  toTariffs           DriverPriceTariff[] @relation("TariffToAirport")
   serviceTypesFrom    JobServiceType[]    @relation("ServiceTypeFromAirport")
   serviceTypesTo      JobServiceType[]    @relation("ServiceTypeToAirport")
   fromFees            DriverTripFee[]     @relation("FeeFromAirport")
@@ -527,8 +525,6 @@ model Zone {
   jobsDestination    TrafficJob[]        @relation("JobDestZone")
   driverFeesFrom     DriverTripFee[]     @relation("FeeFromZone")
   driverFeesTo       DriverTripFee[]     @relation("FeeToZone")
-  driverTariffsFrom  DriverPriceTariff[] @relation("TariffFromZone")
-  driverTariffsTo    DriverPriceTariff[] @relation("TariffToZone")
   agentPricesFrom    AgentPriceItem[]    @relation("AgentPriceFromZone")
   agentPricesTo      AgentPriceItem[]    @relation("AgentPriceToZone")
   publicPricesFrom   PublicPriceItem[]   @relation("PublicPriceFromZone")
@@ -603,7 +599,7 @@ model VehicleType {
   guestBookings    GuestBooking[]
   requestedByJobs  TrafficJob[]          @relation("JobRequestedVehicleType")
   supplierCarTypes SupplierCarType[]
-  driverTariffs    DriverPriceTariff[]
+  driverTariffRates DriverTariffRate[]
   driverTripFees   DriverTripFee[]
   allowedForExtras B2cExtraVehicleType[]
 
@@ -1535,7 +1531,6 @@ model DriverTripFee {
   fromAirportId String?  @map("from_airport_id")
   toAirportId   String?  @map("to_airport_id")
   vehicleTypeId String?  @map("vehicle_type_id")
-  tariffId      String?  @map("tariff_id")
   amount        Decimal  @db.Decimal(15, 2)
   tariffAmount  Decimal? @map("tariff_amount") @db.Decimal(15, 2)
   currency      Currency @default(EGP)
@@ -1550,7 +1545,6 @@ model DriverTripFee {
   fromAirport Airport?           @relation("FeeFromAirport", fields: [fromAirportId], references: [id])
   toAirport   Airport?           @relation("FeeToAirport", fields: [toAirportId], references: [id])
   vehicleType VehicleType?       @relation(fields: [vehicleTypeId], references: [id])
-  tariff      DriverPriceTariff? @relation(fields: [tariffId], references: [id])
 
   @@index([driverId])
   @@index([trafficJobId])
@@ -1558,34 +1552,22 @@ model DriverTripFee {
   @@map("driver_trip_fees")
 }
 
-model DriverPriceTariff {
-  id            String   @id @default(uuid())
-  fromZoneId    String?  @map("from_zone_id")
-  toZoneId      String?  @map("to_zone_id")
-  fromAirportId String?  @map("from_airport_id")
-  toAirportId   String?  @map("to_airport_id")
-  vehicleTypeId String   @map("vehicle_type_id")
-  amount        Decimal  @db.Decimal(15, 2)
-  currency      Currency @default(EGP)
-  notes         String?
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+/// Driver tariff: what a driver earns for a trip on a route with a car type (one table for every
+/// driver; same layout as DriverTipRate). Replaced the zone-based DriverPriceTariff on 2026-11-19.
+model DriverTariffRate {
+  id               String   @id @default(uuid())
+  jobServiceTypeId String   @map("job_service_type_id")
+  vehicleTypeId    String   @map("vehicle_type_id")
+  amount           Decimal  @db.Decimal(15, 2)
+  currency         Currency @default(EGP)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  jobServiceTypeId String? @map("job_service_type_id")
+  jobServiceType JobServiceType @relation(fields: [jobServiceTypeId], references: [id], onDelete: Cascade)
+  vehicleType    VehicleType    @relation(fields: [vehicleTypeId], references: [id])
 
-  fromZone       Zone?           @relation("TariffFromZone", fields: [fromZoneId], references: [id])
-  toZone         Zone?           @relation("TariffToZone", fields: [toZoneId], references: [id])
-  fromAirport    Airport?        @relation("TariffFromAirport", fields: [fromAirportId], references: [id])
-  toAirport      Airport?        @relation("TariffToAirport", fields: [toAirportId], references: [id])
-  vehicleType    VehicleType     @relation(fields: [vehicleTypeId], references: [id])
-  jobServiceType JobServiceType? @relation(fields: [jobServiceTypeId], references: [id])
-  fees           DriverTripFee[]
-
-  @@index([fromZoneId, toZoneId])
-  @@index([vehicleTypeId])
-  @@index([jobServiceTypeId])
-  @@map("driver_price_tariffs")
+  @@unique([jobServiceTypeId, vehicleTypeId])
+  @@map("driver_tariff_rates")
 }
 
 model JobServiceType {
@@ -1606,7 +1588,7 @@ model JobServiceType {
   toZone      Zone?               @relation("ServiceTypeToZone", fields: [toZoneId], references: [id])
   fromAirport Airport?            @relation("ServiceTypeFromAirport", fields: [fromAirportId], references: [id])
   toAirport   Airport?            @relation("ServiceTypeToAirport", fields: [toAirportId], references: [id])
-  tariffs     DriverPriceTariff[]
+  driverTariffRates      DriverTariffRate[]
   trafficJobs TrafficJob[]
   supplierPriceListItems SupplierPriceListItem[]
   customerRoutePrices    CustomerRoutePrice[]

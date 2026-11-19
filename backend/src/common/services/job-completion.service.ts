@@ -168,10 +168,7 @@ export class JobCompletionService {
     });
     if (existing) return false;
 
-    const feeData = await this.driverTariffsService.resolveJobTripFee(
-      job,
-      assignment.vehicleId,
-    );
+    const feeData = await this.driverTariffsService.resolveJobTripFee(job, assignment.vehicleId, tx);
     if (!feeData) return false;
 
     await tx.driverTripFee.create({

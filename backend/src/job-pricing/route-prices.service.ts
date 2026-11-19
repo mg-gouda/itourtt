@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RouteRateTable } from './route-rate-table.js';
 import { normalizeImportName } from '../common/utils/import-name.util.js';
 import {
   PRICE_COLUMNS, findSheet, loadRouteIndex, parsePrice, priceColumnsIn, routeCode, sheetBuffer,
@@ -148,67 +149,27 @@ export class RoutePricesService {
     };
   }
 
-  // ── Driver tips (one table for every customer) ─────────────────────────────
+  // ── Driver tips (one table for every customer) — route-rate-table.ts ──────────
 
-  async tipGrid() {
-    const [columns, routes, items] = await Promise.all([
-      this.columns(),
-      this.routes(),
-      this.prisma.driverTipRate.findMany({ select: { jobServiceTypeId: true, vehicleTypeId: true, amount: true } }),
-    ]);
-    return { columns, routes, prices: items.map((i) => ({ jobServiceTypeId: i.jobServiceTypeId, vehicleTypeId: i.vehicleTypeId, price: Number(i.amount) })) };
+  private _tips?: RouteRateTable;
+  private get tips() {
+    return (this._tips ??= new RouteRateTable(this.prisma, 'driverTipRate', { name: 'Driver Tips', match: /tip/i }));
   }
 
-  async saveTipCells(cells: RoutePriceCell[]) {
-    let saved = 0;
-    let cleared = 0;
-    await this.prisma.$transaction(async (tx) => {
-      for (const c of cells) {
-        if (c.price === null || !(c.price > 0)) {
-          cleared += (await tx.driverTipRate.deleteMany({ where: { jobServiceTypeId: c.jobServiceTypeId, vehicleTypeId: c.vehicleTypeId } })).count;
-          continue;
-        }
-        await tx.driverTipRate.upsert({
-          where: { jobServiceTypeId_vehicleTypeId: { jobServiceTypeId: c.jobServiceTypeId, vehicleTypeId: c.vehicleTypeId } },
-          create: { jobServiceTypeId: c.jobServiceTypeId, vehicleTypeId: c.vehicleTypeId, amount: c.price },
-          update: { amount: c.price },
-        });
-        saved++;
-      }
-    });
-    return { saved, cleared };
+  tipGrid() {
+    return this.tips.grid();
   }
 
-  async exportTips(): Promise<Buffer> {
-    const g = await this.tipGrid();
-    const rows = g.routes.map((r, i) => {
-      const row: Record<string, unknown> = { 'No.': i + 1, OPERATION: routeCode(r.name) };
-      for (const c of g.columns) row[c.header] = g.prices.find((p) => p.jobServiceTypeId === r.id && p.vehicleTypeId === c.vehicleTypeId)?.price ?? null;
-      row['Route (AR)'] = r.name.split(' | ').slice(1).join(' | ');
-      return row;
-    });
-    return sheetBuffer(rows, ['No.', 'OPERATION', ...g.columns.map((c) => c.header), 'Route (AR)'], 'Driver Tips');
+  saveTipCells(cells: RoutePriceCell[]) {
+    return this.tips.saveCells(cells);
   }
 
-  /** Imports a "Driver Tips" sheet (OPERATION + car columns; columns without a vehicle type, e.g. H-1, are ignored). */
-  async importTips(buffer: Buffer) {
-    // The whole traffic workbook may be uploaded: prefer the "Driver Tips" sheet and never read
-    // the Customer Price List (CUST) or Supplier R-T (Price List) sheets as tips.
-    const { grid, headerIdx, header } = findSheet(buffer, ['OPERATION'], { prefer: /tip/i, forbid: ['CUST', 'Price List'] });
-    const opCol = header.indexOf('operation');
-    const cols = priceColumnsIn(header, await this.prisma.vehicleType.findMany({ select: { id: true, name: true } }));
-    const routesFor = await loadRouteIndex(this.prisma);
-    const unmatched = new Map<string, number>();
-    const cells: RoutePriceCell[] = [];
-    for (let i = headerIdx + 1; i < grid.length; i++) {
-      const row = grid[i] || [];
-      const op = String(row[opCol] ?? '').trim();
-      if (!op) continue;
-      const routeIds = routesFor(op);
-      if (routeIds.length === 0) { unmatched.set(op, (unmatched.get(op) || 0) + 1); continue; }
-      for (const c of cols) for (const rid of routeIds) cells.push({ jobServiceTypeId: rid, vehicleTypeId: c.vehicleTypeId, price: parsePrice(row[c.idx]) });
-    }
-    const r = await this.saveTipCells(cells);
-    return { pricesSaved: r.saved, pricesCleared: r.cleared, unmatchedOperations: [...unmatched.entries()].map(([operation, rows]) => ({ operation, rows })) };
+  exportTips(): Promise<Buffer> {
+    return this.tips.exportSheet();
+  }
+
+  /** Imports the "Driver Tips" sheet (the whole traffic workbook may be uploaded). */
+  importTips(buffer: Buffer) {
+    return this.tips.importSheet(buffer);
   }
 }

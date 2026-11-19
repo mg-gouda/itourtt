@@ -82,7 +82,7 @@ export async function loadRouteIndex(prisma: any): Promise<(operation: string) =
 export function findSheet(
   buffer: Buffer,
   required: string[],
-  opts: { prefer?: RegExp; forbid?: string[] } = {},
+  opts: { prefer?: RegExp; only?: RegExp; forbid?: string[] } = {},
 ): { grid: any[][]; headerIdx: number; header: string[] } {
   let wb: XLSX.WorkBook;
   try {
@@ -92,9 +92,14 @@ export function findSheet(
   }
   const want = required.map((h) => normalizeImportName(h));
   const forbid = (opts.forbid || []).map((h) => normalizeImportName(h));
-  const names = opts.prefer
+  let names = opts.prefer
     ? [...wb.SheetNames.filter((n) => opts.prefer!.test(n)), ...wb.SheetNames.filter((n) => !opts.prefer!.test(n))]
     : wb.SheetNames;
+  // `only`: read just the sheet named for this table (the traffic workbook has several look-alikes).
+  if (opts.only && wb.SheetNames.length > 1) {
+    names = names.filter((n) => opts.only!.test(n));
+    if (!names.length) throw new BadRequestException(`No sheet named like ${opts.only} in this workbook`);
+  }
   for (const n of names) {
     const grid = XLSX.utils.sheet_to_json<any[]>(wb.Sheets[n], { header: 1, raw: true, defval: null });
     const headerIdx = grid.findIndex((r) => {

@@ -4,7 +4,7 @@
 
 Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
-**19 classes**, **263 methods**.
+**19 classes**, **259 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -12,33 +12,29 @@ Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
 ### DriverTariffsController
 
-`backend/src/driver-tariffs/driver-tariffs.controller.ts:34` · controller · 5 methods
+`backend/src/driver-tariffs/driver-tariffs.controller.ts:14` · controller · 2 methods
 
 REST surface for the driver tariff table.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 39 | `driverTariffsService.findAll` | Lists tariff rows. |
-| `downloadTemplate` | pub | 46 | `driverTariffsService.generateTemplate` | Blank tariff import workbook. |
-| `importExcel` | pub | 60 | `driverTariffsService.importFromExcel` | Multipart tariff import. |
-| `upsert` | pub | 74 | `driverTariffsService.upsert` | Creates or updates a tariff row. |
-| `remove` | pub | 82 | `driverTariffsService.remove` | Deletes a tariff row. |
+| `grid` | pub | 19 | — | GET /driver-tariffs/grid: route × car-type driver tariff grid |
+| `save` | pub | 25 | — | PUT /driver-tariffs/grid: set or clear tariff cells |
 
 ### DriverTariffsService
 
-`backend/src/driver-tariffs/driver-tariffs.service.ts:8` · service · 7 methods
+`backend/src/driver-tariffs/driver-tariffs.service.ts:14` · service · 6 methods
 
 ★ The driver trip-fee tariff table. Drivers are paid per trip by route, and a tariff row is keyed on a from/to pair (zone OR airport on either side) plus vehicle type. `resolveJobTripFee` is the one place that turns a completed job into money.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 20 | `driverPriceTariff` | Lists tariff rows for the tariff editor. |
-| `upsert` | pub | 33 | `driverPriceTariff` | Creates or updates a tariff row. |
-| `remove` | pub | 86 | `driverPriceTariff` | Deletes a tariff row. |
-| `lookup` | pub | 96 | `driverPriceTariff` | Airport-aware tariff match. Builds an OR over the four valid from/to shapes (zone→zone, airport→zone, zone→airport, airport→airport), requiring the unused side to be explicitly null so a zone rule cannot accidentally match an airport job. |
-| `resolveJobTripFee` | pub | 133 | `vehicle` | ★ Builds the `DriverTripFee` payload for a completed job: resolves the vehicle's type, looks up the tariff, and returns null if the job has no from+to pair. Amount falls back to 0 when nothing matches. Centralised here specifically so the portals stopped creating fees at amount 0. |
-| `generateTemplate` | pub | 184 | `zone` `airport` `vehicleType` `jobServiceType` | Blank tariff workbook pre-filled with real zones, airports, vehicle types and service types. |
-| `importFromExcel` | pub | 275 | `zone` `airport` `vehicleType` `jobServiceType` | Bulk-imports tariff rows, resolving names to ids. |
+| `grid` | pub | 21 | — | Route × car-type grid of driver tariffs |
+| `saveCells` | pub | 25 | — | Sets / clears driver tariff cells |
+| `exportSheet` | pub | 29 | — | Driver tariffs as an xlsx in the traffic sheet layout |
+| `importSheet` | pub | 33 | — | Imports a 'Driver Tariffs' sheet (number sets, empty clears, unknown routes reported) |
+| `rateFor` | pub | 38 | — | Tariff for a route × vehicle type (H-1 falls back to Hi Ace 7), or null |
+| `resolveJobTripFee` | pub | 55 | — | ★ Builds the `DriverTripFee` payload for a completed job: resolves the vehicle's type, looks up the tariff, and returns null if the job has no from+to pair. Amount falls back to 0 when nothing matches. Centralised here specifically so the portals stopped creating fees at amount 0. |
 
 ## `export`
 

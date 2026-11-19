@@ -168,6 +168,6 @@ export class TrafficJobsController {
     @Body() body: { from: string; to: string },
   ) {
     const result = await this.trafficJobsService.recalculateDriverFees(body.from, body.to);
-    return new ApiResponse(result, `Created ${result.created} fee records, skipped ${result.skipped}`);
+    return new ApiResponse(result, `Created ${result.created}, re-priced ${result.repriced}, skipped ${result.skipped} driver fees`);
   }
 }

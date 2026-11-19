@@ -33,7 +33,7 @@ export class JobServiceTypesService {
         toZone: { select: { id: true, name: true } },
         fromAirport: { select: { id: true, code: true, name: true } },
         toAirport: { select: { id: true, code: true, name: true } },
-        _count: { select: { trafficJobs: true, tariffs: true, customerRoutePrices: true, supplierPriceListItems: true, driverTipRates: true } },
+        _count: { select: { trafficJobs: true, driverTariffRates: true, customerRoutePrices: true, supplierPriceListItems: true, driverTipRates: true } },
       },
       orderBy: { name: 'asc' },
     });
@@ -41,7 +41,7 @@ export class JobServiceTypesService {
       ...r,
       usage: {
         jobs: _count.trafficJobs,
-        tariffs: _count.tariffs,
+        tariffs: _count.driverTariffRates,
         customerPrices: _count.customerRoutePrices,
         supplierPrices: _count.supplierPriceListItems,
         tips: _count.driverTipRates,
@@ -111,13 +111,13 @@ export class JobServiceTypesService {
   async remove(id: string) {
     const existing = await this.prisma.jobServiceType.findUnique({
       where: { id },
-      include: { _count: { select: { trafficJobs: true, tariffs: true, customerRoutePrices: true, supplierPriceListItems: true, driverTipRates: true } } },
+      include: { _count: { select: { trafficJobs: true, driverTariffRates: true, customerRoutePrices: true, supplierPriceListItems: true, driverTipRates: true } } },
     });
     if (!existing) throw new NotFoundException(`Service type "${id}" not found`);
     const c = existing._count;
     const prices = c.customerRoutePrices + c.supplierPriceListItems + c.driverTipRates;
-    if (c.trafficJobs || c.tariffs || prices) {
-      const used = [c.trafficJobs && `${c.trafficJobs} jobs`, prices && `${prices} prices / tips`, c.tariffs && `${c.tariffs} driver tariffs`]
+    if (c.trafficJobs || c.driverTariffRates || prices) {
+      const used = [c.trafficJobs && `${c.trafficJobs} jobs`, prices && `${prices} prices / tips`, c.driverTariffRates && `${c.driverTariffRates} driver tariffs`]
         .filter(Boolean).join(', ');
       throw new ConflictException(`"${existing.name}" is used by ${used}. Deactivate it instead — that hides it and keeps the history.`);
     }
