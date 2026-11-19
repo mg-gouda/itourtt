@@ -762,6 +762,21 @@ export default function B2BJobPage() {
           </h1>
           <p className="text-sm text-muted-foreground">{t("jobs.b2bDescription")}</p>
         </div>
+        {/* Imports sit at the top: the sheet import and the AI import (PDF / Excel / screenshot). */}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {canB2BExcelImport && (
+            <Button variant="outline" className="gap-1.5 border-border" onClick={() => setExcelImportOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4 text-green-600" />
+              Import from Excel
+            </Button>
+          )}
+          {canB2BImport && (
+            <Button variant="outline" className="gap-1.5 border-border" onClick={() => setImportModalOpen(true)}>
+              <Upload className="h-4 w-4" />
+              {t("jobImport.title") || "Import Jobs"} (AI)
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ─── Inline Form ─── */}
@@ -1283,26 +1298,7 @@ export default function B2BJobPage() {
               </SelectContent>
             </Select>
           </div>
-          {canB2BExcelImport && (
-          <Button
-            variant="outline"
-            className="gap-1.5 border-border ml-auto"
-            onClick={() => setExcelImportOpen(true)}
-          >
-            <FileSpreadsheet className="h-4 w-4 text-green-600" />
-            Import from Excel
-          </Button>
-          )}
-          {canB2BImport && (
-          <Button
-            variant="outline"
-            className={`gap-1.5 border-border ${canB2BExcelImport ? "" : "ml-auto"}`}
-            onClick={() => setImportModalOpen(true)}
-          >
-            <Upload className="h-4 w-4" />
-            {t("jobImport.title") || "Import Jobs"}
-          </Button>
-          )}
+          <div className="ml-auto" />
           <ColumnVisibilityControl
             columns={b2bColumnDefs}
             visibility={b2bVisibility}
