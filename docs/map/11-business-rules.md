@@ -755,7 +755,9 @@ pay and period totals.
 - Car-dispatch cards show every job assigned to the car that day: the day view returns
   `arrivals`, `departures` and `cityJobs` (day tours, going, return). The **Cust. Job ID cell** (not
   the row) is coloured from the row's Type: Departure green, Arrival blue, Cancelled red (status wins
-  over type), white text; it changes as soon as the Type is picked. Hiding that column hides the colour. Cards per row
+  over type), white text; it changes as soon as the Type is picked. Hiding that column hides the colour.
+  A saved, still-open job can be cancelled from the card's Act column (confirmation, then
+  `PATCH /traffic-jobs/:id/status` CANCELLED — the same action and permission as the B2B/Online pages). Cards per row
   (2/3), hidden columns and column widths are one per-user setting for the whole board
   (user-preferences key `car_dispatch_view`).
 - Report ranges, activity-log filters and `complaintDate` are *not* service dates and must keep

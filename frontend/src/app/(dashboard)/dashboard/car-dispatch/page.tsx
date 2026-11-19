@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { toast } from "sonner";
+import { usePermission } from "@/hooks/use-permission";
 import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -41,6 +43,7 @@ import {
   X,
   Loader2,
   Columns3,
+  Ban,
 } from "lucide-react";
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
@@ -380,6 +383,10 @@ function CarDispatchContent() {
   const { view, update: updateView } = useBoardView();
   const [selectedOwnedIds, setSelectedOwnedIds] = useState<Set<string>>(new Set());
   const [addCarOpen, setAddCarOpen] = useState(false);
+  // Cancel a saved job from its card (same action as the B2B / Online pages: PATCH status CANCELLED).
+  const canCancelJobs = usePermission("traffic-jobs.online.table.statusFilter");
+  const [cancelTarget, setCancelTarget] = useState<{ vehicleId: string; uid: string; jobId: string; ref: string } | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [selectedSupplierCarTypeId, setSelectedSupplierCarTypeId] = useState("");
   const [supplierCarTypes, setSupplierCarTypes] = useState<VehicleType[]>([]);
@@ -787,6 +794,29 @@ function CarDispatchContent() {
     }
   };
 
+  // ─── Cancel a saved job (after confirmation) ───
+  const confirmCancelJob = async () => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      await api.patch(`/traffic-jobs/${cancelTarget.jobId}/status`, { status: "CANCELLED" });
+      setCards((prev) =>
+        prev.map((c) =>
+          c.vehicle.id === cancelTarget.vehicleId
+            ? { ...c, jobs: c.jobs.map((j) => (j.uid === cancelTarget.uid ? { ...j, status: "CANCELLED", error: undefined } : j)) }
+            : c
+        )
+      );
+      toast.success(`Job ${cancelTarget.ref} cancelled`);
+      setCancelTarget(null);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || "Could not cancel the job");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   // ─── Save all unsaved jobs on a card ───
   const saveAllJobs = async (vehicleId: string) => {
     const card = cards.find((c) => c.vehicle.id === vehicleId);
@@ -906,6 +936,13 @@ function CarDispatchContent() {
             onRemoveJob={(uid) => removeJobRow(card.vehicle.id, uid)}
             onSaveJob={(uid) => saveJobRow(card.vehicle.id, uid)}
             onSaveAll={() => saveAllJobs(card.vehicle.id)}
+            onCancelJob={
+              canCancelJobs
+                ? (job) =>
+                    job.savedJobId &&
+                    setCancelTarget({ vehicleId: card.vehicle.id, uid: job.uid, jobId: job.savedJobId, ref: job.bookingNumber || job.customerJobId || "" })
+                : undefined
+            }
             onRemoveCard={
               card.isSupplier
                 ? () => removeSupplierCard(card.vehicle.id)
@@ -920,6 +957,27 @@ function CarDispatchContent() {
           </div>
         )}
       </div>
+
+      {/* ─── Cancel Job Confirmation ─── */}
+      <Dialog open={!!cancelTarget} onOpenChange={(open) => !open && !cancelling && setCancelTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cancel job {cancelTarget?.ref}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            The job is marked CANCELLED and its driver and rep are notified. This can&apos;t be undone from here.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelling}>
+              Keep job
+            </Button>
+            <Button variant="destructive" onClick={confirmCancelJob} disabled={cancelling} className="gap-1.5">
+              {cancelling && <Loader2 className="h-4 w-4 animate-spin" />}
+              Cancel job
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Add Supplier Car Dialog ─── */}
       <Dialog open={addCarOpen} onOpenChange={setAddCarOpen}>
@@ -1126,6 +1184,7 @@ function VehicleCard({
   onRemoveJob,
   onSaveJob,
   onSaveAll,
+  onCancelJob,
   onRemoveCard,
 }: {
   card: CarCard;
@@ -1139,6 +1198,8 @@ function VehicleCard({
   onRemoveJob: (uid: string) => void;
   onSaveJob: (uid: string) => void;
   onSaveAll: () => void;
+  /** Present only for users allowed to cancel jobs. */
+  onCancelJob?: (job: JobRow) => void;
   onRemoveCard?: () => void;
 }) {
   const { vehicle, jobs, isSupplier } = card;
@@ -1288,6 +1349,7 @@ function VehicleCard({
                     }
                     onRemove={() => onRemoveJob(job.uid)}
                     onSave={() => onSaveJob(job.uid)}
+                    onCancel={onCancelJob ? () => onCancelJob(job) : undefined}
                   />
                 ))}
               </tbody>
@@ -1311,6 +1373,7 @@ function JobRowComponent({
   onUpdate,
   onRemove,
   onSave,
+  onCancel,
 }: {
   job: JobRow;
   columns: ColKey[];
@@ -1321,8 +1384,11 @@ function JobRowComponent({
   onUpdate: (field: keyof JobRow, value: string | boolean | number) => void;
   onRemove: () => void;
   onSave: () => void;
+  onCancel?: () => void;
 }) {
   const color = jobColor(job);
+  // Saved jobs that are still open can be cancelled from the card.
+  const cancellable = job.saved && !!job.savedJobId && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(job.status ?? "");
   const cell = "border border-border p-0 align-top overflow-hidden";
   const inp = "h-7 w-full rounded-none border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary";
   const muted = "text-muted-foreground";
@@ -1475,9 +1541,19 @@ function JobRowComponent({
             </button>
           )}
           {job.saved && (
-            <span className="text-[10px] font-medium text-green-600">
-              {job.status === "CANCELLED" ? "Cancelled" : "OK"}
+            <span className={cn("text-[10px] font-medium", job.status === "CANCELLED" ? "text-red-600" : "text-green-600")}>
+              {job.status === "CANCELLED" ? "CXL" : "OK"}
             </span>
+          )}
+          {cancellable && onCancel && (
+            <button
+              onClick={onCancel}
+              title="Cancel job"
+              aria-label="Cancel job"
+              className="inline-flex h-7 w-7 items-center justify-center text-destructive hover:bg-destructive/10"
+            >
+              <Ban className="h-3.5 w-3.5" />
+            </button>
           )}
           {!job.saved && (
             <button
