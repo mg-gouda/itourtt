@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**68 classes**, **518 methods**.
+**68 classes**, **519 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -12,13 +12,14 @@ Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cro
 
 ### AppController
 
-`backend/src/app.controller.ts:6` · controller · 1 methods
+`backend/src/app.controller.ts:6` · controller · 2 methods
 
 Root controller — health check.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `getHello` | pub | 11 | `appService.getHello` | Health/liveness response. |
+| `reportClientError` | pub | 22 | — | POST /client-errors: browser crash report from the error screens, written to the server log (ClientError) |
 
 ### AppService
 

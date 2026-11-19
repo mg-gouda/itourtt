@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**112 files**, **401 exported symbols**.
+**113 files**, **402 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -37,6 +37,16 @@ Capture-and-upload dialog for completion evidence: photos plus a mandatory GPS f
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `CompletedEvidenceDialog` | function | 35 | Completion evidence capture — photos plus a mandatory GPS fix, with retry when the fix fails. |
+
+### `error-screen.tsx`
+
+`frontend/src/components/error-screen.tsx` · 68 lines
+
+Shared crash screen that reports browser errors of signed-in users to the server log
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ErrorScreen` | function | 10 | Crash screen for app/error.tsx and global-error.tsx: bilingual reload prompt, shows the error, reports it to /client-errors |
 
 ### `geofence-settings-card.tsx`
 
