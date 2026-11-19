@@ -595,7 +595,6 @@ model VehicleType {
   vehicles         Vehicle[]
   supplierPriceListItems SupplierPriceListItem[]
   customerRoutePrices    CustomerRoutePrice[]
-  driverTipRates         DriverTipRate[]
   agentPrices      AgentPriceItem[]
   publicPrices     PublicPriceItem[]
   guestBookings    GuestBooking[]
@@ -1557,7 +1556,8 @@ model DriverTripFee {
 }
 
 /// Driver tariff: what a driver earns for a trip on a route with a car type (one table for every
-/// driver; same layout as DriverTipRate). Replaced the zone-based DriverPriceTariff on 2026-11-19.
+/// driver). Replaced the zone-based DriverPriceTariff on 2026-11-19; took over the driver-tip
+/// amounts when customer driver tips were removed the same day.
 model DriverTariffRate {
   id               String   @id @default(uuid())
   jobServiceTypeId String   @map("job_service_type_id")
@@ -1596,7 +1596,6 @@ model JobServiceType {
   trafficJobs TrafficJob[]
   supplierPriceListItems SupplierPriceListItem[]
   customerRoutePrices    CustomerRoutePrice[]
-  driverTipRates         DriverTipRate[]
 
   @@map("job_service_types")
 }
@@ -3031,20 +3030,3 @@ model CustomerRoutePrice {
   @@map("customer_route_prices")
 }
 
-/// Driver tip billed to B2B customers (driver-tip invoices), one table for all
-/// customers, per route × vehicle type.
-model DriverTipRate {
-  id               String   @id @default(uuid())
-  jobServiceTypeId String   @map("job_service_type_id")
-  vehicleTypeId    String   @map("vehicle_type_id")
-  amount           Decimal  @db.Decimal(15, 2)
-  currency         Currency @default(EGP)
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  jobServiceType JobServiceType @relation(fields: [jobServiceTypeId], references: [id], onDelete: Cascade)
-  vehicleType    VehicleType    @relation(fields: [vehicleTypeId], references: [id])
-
-  @@unique([jobServiceTypeId, vehicleTypeId])
-  @@map("driver_tip_rates")
-}

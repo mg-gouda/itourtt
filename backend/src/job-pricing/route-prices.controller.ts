@@ -63,29 +63,5 @@ export class RoutePricesController {
     return new ApiResponse(await this.service.saveCustomerCells(id, dto.cells));
   }
 
-  @Get('driver-tips/export')
-  @Permissions('driver-tariffs', 'customers.detail.priceList.downloadTemplate', 'customers.detail.priceList')
-  async exportTips(@Res() res: Response) {
-    xlsx(res, await this.service.exportTips(), 'driver-tips.xlsx');
-  }
 
-  @Post('driver-tips/import')
-  @Permissions('driver-tariffs.upsert', 'customers.detail.priceList.import')
-  @UseInterceptors(upload)
-  async importTips(@UploadedFile() file: any) {
-    if (!file?.buffer) throw new BadRequestException('Attach the Excel file');
-    return new ApiResponse(await this.service.importTips(file.buffer));
-  }
-
-  @Get('driver-tips')
-  @Permissions('driver-tariffs', 'customers.detail.priceList')
-  async tipGrid() {
-    return new ApiResponse(await this.service.tipGrid());
-  }
-
-  @Put('driver-tips')
-  @Permissions('driver-tariffs.upsert', 'customers.detail.priceList.editPrice')
-  async saveTips(@Body() dto: CellsDto) {
-    return new ApiResponse(await this.service.saveTipCells(dto.cells));
-  }
 }

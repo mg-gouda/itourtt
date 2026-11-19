@@ -258,9 +258,6 @@ export default function CustomerDetailPage({
             </div>
             {priceGrid && <RoutePriceGrid data={priceGrid} canEdit={canEditPrices} onSave={savePrices} />}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Driver tips (the same for every customer) are on System Parameters › Driver Tariffs › Driver Tips.
-          </p>
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4">

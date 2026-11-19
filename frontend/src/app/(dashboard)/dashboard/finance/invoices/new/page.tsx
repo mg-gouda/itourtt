@@ -79,7 +79,6 @@ interface CustomerJob {
   // Client-side:
   selected: boolean;
   transferPrice: number;
-  driverTip: number;
 }
 
 const VAT_RATE = 14;
@@ -245,7 +244,6 @@ export default function NewInvoicePage() {
         ...j,
         selected: true,
         transferPrice: j.suggestedTransferPrice || 0,
-        driverTip: j.suggestedDriverTip || 0,
       }));
       setCustomerJobs(jobs);
       setCustomerJobsFetched(true);
@@ -259,12 +257,8 @@ export default function NewInvoicePage() {
 
   const customerTotals = useMemo(() => {
     let transfers = 0;
-    let tips = 0;
-    for (const j of customerJobs.filter((x) => x.selected)) {
-      transfers += j.transferPrice;
-      tips += j.driverTip;
-    }
-    return { transfers, tips };
+    for (const j of customerJobs.filter((x) => x.selected)) transfers += j.transferPrice;
+    return { transfers };
   }, [customerJobs]);
 
   /* ─── Submit ──────────────────────────────── */
@@ -316,7 +310,6 @@ export default function NewInvoicePage() {
           jobs: selected.map((j) => ({
             trafficJobId: j.id,
             transferPrice: j.transferPrice,
-            driverTip: j.driverTip,
           })),
         });
         toast.success(t("finance.customerInvoicesGenerated"));
@@ -607,14 +600,13 @@ export default function NewInvoicePage() {
                             <TableHead className="text-xs">{t("finance.route") || "Route"}</TableHead>
                             <TableHead className="text-xs">{t("finance.vehicleType")}</TableHead>
                             <TableHead className="w-28 text-xs">{t("finance.transferPrice") || "Transfer Price"} *</TableHead>
-                            <TableHead className="w-28 text-xs">{t("finance.driverTip") || "Driver Tip"}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {customerJobs.map((job) => {
                             const toggle = () =>
                               setCustomerJobs((p) => p.map((j) => (j.id === job.id ? { ...j, selected: !j.selected } : j)));
-                            const setField = (field: "transferPrice" | "driverTip", value: string) =>
+                            const setField = (field: "transferPrice", value: string) =>
                               setCustomerJobs((p) =>
                                 p.map((j) => (j.id === job.id ? { ...j, [field]: parseFloat(value) || 0 } : j))
                               );
@@ -644,16 +636,6 @@ export default function NewInvoicePage() {
                                     className="h-7 w-24 border-border bg-card text-xs"
                                   />
                                 </TableCell>
-                                <TableCell onClick={(e) => e.stopPropagation()}>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={job.driverTip}
-                                    onChange={(e) => setField("driverTip", e.target.value)}
-                                    className="h-7 w-24 border-border bg-card text-xs"
-                                  />
-                                </TableCell>
                               </TableRow>
                             );
                           })}
@@ -669,10 +651,6 @@ export default function NewInvoicePage() {
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>{t("finance.transferPrice") || "Transfer Price"}</span>
                           <span className="font-mono font-medium">{fmtNum(customerTotals.transfers, locale)}</span>
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>{t("finance.driverTip") || "Driver Tip"}</span>
-                          <span className="font-mono font-medium">{fmtNum(customerTotals.tips, locale)}</span>
                         </div>
                       </div>
                     </>

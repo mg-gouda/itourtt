@@ -5,8 +5,8 @@ import { loadPriceFallback, priceTypes } from '../common/utils/route-price-sheet
 
 /**
  * Driver tariffs — what a driver earns for a trip (rules: docs/map/11-business-rules.md › Driver
- * tariffs). One table for every driver: route (JobServiceType) × car type, in the same sheet layout
- * as the driver tips. A trip fee is the job's route × the assigned vehicle's type (H-1 falls back to
+ * tariffs). One table for every driver: route (JobServiceType) × car type, in the traffic sheets'
+ * layout (No. | OPERATION | Limo | Hi Ace 7 | Hi Ace 15 | H-1 | Coaster | Bus). A trip fee is the job's route × the assigned vehicle's type (H-1 falls back to
  * Hi Ace 7 like every price table). Replaced the zone-based DriverPriceTariff on 2026-11-19 (it never
  * had a row, so every fee was 0).
  */

@@ -1,90 +1,99 @@
 "use client";
 
 // System Parameters › Routes — the "EN | AR" routes (JobServiceType) used by B2B jobs, the B2B Excel
-// import, customer / supplier price lists and driver tips. Rules: docs/map/11-business-rules.md › Routes.
-//  - A route in use (jobs, tariffs, prices or tips) can't be deleted — deleting would strip it from
-//    those jobs and wipe its prices. It is deactivated instead: hidden from dropdowns, history kept.
+// import, customer / supplier price lists and driver tariffs. Rules: docs/map/11-business-rules.md ›
+// Routes. An Access-style datasheet: type in the ✱ row (or press Down on the last row) to add a route,
+// a row saves when you leave it, Save saves everything pending.
+//  - A route in use (jobs, tariffs or prices) can't be deleted — deleting would strip it from those
+//    jobs and wipe its prices. It is deactivated instead: hidden from dropdowns, history kept.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, Pencil, Plus, Power, Search, Trash2, Upload, X } from "lucide-react";
+import { Download, Loader2, Power, Save, Search, Trash2, Upload, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { SearchableCombobox } from "@/components/searchable-combobox";
+import { DataSheet, type DSColumn } from "@/components/data-sheet";
 import api from "@/lib/api";
 import { usePermission } from "@/hooks/use-permission";
-import { SERVICE_TYPE_DROPDOWN_OPTIONS, serviceTypeDropdownLabel } from "@/lib/service-types";
+import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
 
-interface RouteRow {
+interface ApiRoute {
   id: string;
   name: string;
   isActive: boolean;
   defaultServiceType?: string | null;
-  fromZone?: { id: string; name: string } | null;
-  toZone?: { id: string; name: string } | null;
-  fromAirport?: { id: string; code: string; name: string } | null;
-  toAirport?: { id: string; code: string; name: string } | null;
-  usage: { jobs: number; tariffs: number; customerPrices: number; supplierPrices: number; tips: number };
+  fromZone?: { id: string } | null;
+  toZone?: { id: string } | null;
+  fromAirport?: { id: string } | null;
+  toAirport?: { id: string } | null;
+  usage?: { jobs: number; tariffs: number; customerPrices: number; supplierPrices: number };
 }
 
-interface Zone { id: string; name: string; city?: { name: string } }
-interface Airport { id: string; name: string; code: string }
+/** One editable datasheet row. */
+interface Row {
+  key: string; // stable row key (the route id, or "new:n" until saved)
+  id: string | null;
+  en: string;
+  ar: string;
+  type: string;
+  from: string; // "airport:<id>" | "zone:<id>" | ""
+  to: string;
+  isActive: boolean;
+  usage: NonNullable<ApiRoute["usage"]>;
+  dirty: boolean;
+  error?: string;
+  saving?: boolean;
+}
 
-type Filter = "active" | "inactive" | "incomplete" | "all";
+type Filter = "active" | "incomplete" | "inactive" | "all";
 
+const NO_USE = { jobs: 0, tariffs: 0, customerPrices: 0, supplierPrices: 0 };
 const endValue = (a?: { id: string } | null, z?: { id: string } | null) => (a ? `airport:${a.id}` : z ? `zone:${z.id}` : "");
-const endLabel = (a?: { code: string } | null, z?: { name: string } | null) => (a ? `${a.code} airport` : z?.name ?? "—");
-const splitName = (name: string) => {
-  const i = name.indexOf(" | ");
-  return i === -1 ? { en: name, ar: "" } : { en: name.slice(0, i), ar: name.slice(i + 3) };
-};
-const inUse = (r: RouteRow) => Object.values(r.usage).some((n) => n > 0);
-const complete = (r: RouteRow) => !!r.defaultServiceType && !!(r.fromAirport || r.fromZone) && !!(r.toAirport || r.toZone);
+const complete = (r: Row) => !!r.type && !!r.from && !!r.to;
+const inUse = (r: Row) => Object.values(r.usage).some((n) => n > 0);
+const errText = (e: unknown) => (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Not saved";
+
+function toRow(r: ApiRoute): Row {
+  const i = r.name.indexOf(" | ");
+  return {
+    key: r.id,
+    id: r.id,
+    en: i === -1 ? r.name : r.name.slice(0, i),
+    ar: i === -1 ? "" : r.name.slice(i + 3),
+    type: r.defaultServiceType ?? "",
+    from: endValue(r.fromAirport, r.fromZone),
+    to: endValue(r.toAirport, r.toZone),
+    isActive: r.isActive,
+    usage: r.usage ?? NO_USE,
+    dirty: false,
+  };
+}
 
 export default function RoutesPage() {
   const canUpsert = usePermission("driver-tariffs.upsert");
   const canDelete = usePermission("driver-tariffs.delete");
 
-  const [rows, setRows] = useState<RouteRow[]>([]);
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [airports, setAirports] = useState<Airport[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [endOptions, setEndOptions] = useState<{ value: string; label: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("active");
-
-  // Form
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<RouteRow | null>(null);
-  const [nameEn, setNameEn] = useState("");
-  const [nameAr, setNameAr] = useState("");
-  const [fromLoc, setFromLoc] = useState("");
-  const [toLoc, setToLoc] = useState("");
-  const [defaultType, setDefaultType] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const [deleteTarget, setDeleteTarget] = useState<RouteRow | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-
-  // Excel
+  const [savingAll, setSavingAll] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const newSeq = useRef(0);
 
   const load = useCallback(async () => {
     try {
-      const [r, z, a] = await Promise.all([
-        api.get("/job-service-types/manage"),
-        api.get("/locations/zones"),
-        api.get("/locations/airports"),
+      const [r, z, a] = await Promise.all([api.get("/job-service-types/manage"), api.get("/locations/zones"), api.get("/locations/airports")]);
+      setRows(((r.data.data || []) as ApiRoute[]).map(toRow));
+      const zones = (z.data.data || z.data || []) as { id: string; name: string; city?: { name: string } }[];
+      const airports = (a.data.data || a.data || []) as { id: string; name: string; code: string }[];
+      setEndOptions([
+        ...airports.map((x) => ({ value: `airport:${x.id}`, label: `${x.code} – ${x.name} (airport)` })),
+        ...zones.map((x) => ({ value: `zone:${x.id}`, label: x.city ? `${x.name} (${x.city.name})` : x.name })),
       ]);
-      setRows(r.data.data || []);
-      setZones(z.data.data || z.data || []);
-      setAirports(a.data.data || a.data || []);
     } catch {
       toast.error("Failed to load routes");
     } finally {
@@ -96,19 +105,11 @@ export default function RoutesPage() {
     load();
   }, [load]);
 
-  const endItems = useMemo(
-    () => [
-      ...airports.map((a) => ({ value: `airport:${a.id}`, label: `${a.code} – ${a.name}`, sub: "Airport" })),
-      ...zones.map((z) => ({ value: `zone:${z.id}`, label: z.name, sub: z.city?.name })),
-    ],
-    [airports, zones]
-  );
-
   const counts = useMemo(
     () => ({
       active: rows.filter((r) => r.isActive).length,
-      inactive: rows.filter((r) => !r.isActive).length,
       incomplete: rows.filter((r) => r.isActive && !complete(r)).length,
+      inactive: rows.filter((r) => !r.isActive).length,
       all: rows.length,
     }),
     [rows]
@@ -117,86 +118,153 @@ export default function RoutesPage() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
+      if (!r.id) return true; // unsaved new rows always show
       if (filter === "active" && !r.isActive) return false;
       if (filter === "inactive" && r.isActive) return false;
       if (filter === "incomplete" && (!r.isActive || complete(r))) return false;
-      return !q || r.name.toLowerCase().includes(q);
+      return !q || `${r.en} ${r.ar}`.toLowerCase().includes(q);
     });
   }, [rows, search, filter]);
 
-  function openAdd() {
-    setEditing(null);
-    setNameEn(""); setNameAr(""); setFromLoc(""); setToLoc(""); setDefaultType("");
-    setFormOpen(true);
-  }
+  const patchRow = (key: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
-  function openEdit(r: RouteRow) {
-    const n = splitName(r.name);
-    setEditing(r);
-    setNameEn(n.en); setNameAr(n.ar);
-    setFromLoc(endValue(r.fromAirport, r.fromZone));
-    setToLoc(endValue(r.toAirport, r.toZone));
-    setDefaultType(r.defaultServiceType ?? "");
-    setFormOpen(true);
-  }
-
-  async function save() {
-    const en = nameEn.trim().replace(/\s*\|\s*/g, " ");
-    const ar = nameAr.trim().replace(/\s*\|\s*/g, " ");
-    if (!en) return toast.error("English name is required");
-    const [ft, fid] = fromLoc ? fromLoc.split(":") : ["", ""];
-    const [tt, tid] = toLoc ? toLoc.split(":") : ["", ""];
+  /** Save one row (create or update). */
+  const saveRow = useCallback(async (row: Row) => {
+    if (!row.dirty || row.saving) return;
+    const en = row.en.replace(/\s*\|\s*/g, " ").trim();
+    const ar = row.ar.replace(/\s*\|\s*/g, " ").trim();
+    if (!en) {
+      patchRow(row.key, { error: "English name is required" });
+      return;
+    }
+    const [ft, fid] = row.from ? row.from.split(":") : ["", ""];
+    const [tt, tid] = row.to ? row.to.split(":") : ["", ""];
     const body = {
       name: ar ? `${en} | ${ar}` : en,
+      defaultServiceType: row.type || null,
       fromZoneId: ft === "zone" ? fid : null,
       fromAirportId: ft === "airport" ? fid : null,
       toZoneId: tt === "zone" ? tid : null,
       toAirportId: tt === "airport" ? tid : null,
-      defaultServiceType: defaultType || null,
     };
-    setSaving(true);
+    patchRow(row.key, { saving: true, error: undefined });
     try {
-      if (editing) await api.patch(`/job-service-types/${editing.id}`, body);
-      else await api.post("/job-service-types", body);
-      toast.success(editing ? "Route updated" : "Route added");
-      setFormOpen(false);
-      load();
-    } catch (err: unknown) {
-      toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to save");
-    } finally {
-      setSaving(false);
+      const { data } = row.id ? await api.patch(`/job-service-types/${row.id}`, body) : await api.post("/job-service-types", body);
+      const saved = data.data as ApiRoute;
+      setRows((rs) => rs.map((r) => (r.key === row.key ? { ...toRow({ ...saved, usage: r.usage }), key: r.key } : r)));
+    } catch (e) {
+      patchRow(row.key, { saving: false, error: errText(e) });
     }
-  }
+  }, []);
 
-  async function setActive(r: RouteRow, isActive: boolean) {
-    setBusyId(r.id);
+  const saveAll = async () => {
+    setSavingAll(true);
+    try {
+      for (const r of rows.filter((x) => x.dirty)) await saveRow(r);
+    } finally {
+      setSavingAll(false);
+    }
+  };
+
+  const setActive = async (r: Row, isActive: boolean) => {
+    if (!r.id) return;
     try {
       await api.patch(`/job-service-types/${r.id}`, { isActive });
+      patchRow(r.key, { isActive });
       toast.success(isActive ? "Route reactivated" : "Route deactivated — hidden from dropdowns, history kept");
-      load();
-    } catch (err: unknown) {
-      toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed");
-    } finally {
-      setBusyId(null);
+    } catch (e) {
+      toast.error(errText(e));
     }
-  }
+  };
 
-  async function confirmDelete() {
-    if (!deleteTarget) return;
-    setBusyId(deleteTarget.id);
-    try {
-      await api.delete(`/job-service-types/${deleteTarget.id}`);
-      toast.success("Route deleted");
-      setDeleteTarget(null);
-      load();
-    } catch (err: unknown) {
-      toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to delete");
-    } finally {
-      setBusyId(null);
+  const deleteRows = async (targets: Row[]) => {
+    const unsaved = targets.filter((r) => !r.id);
+    const saved = targets.filter((r) => r.id);
+    const used = saved.filter(inUse);
+    if (used.length) toast.error(`In use, can't be deleted (deactivate instead): ${used.map((r) => r.en).join(", ")}`);
+    const deletable = saved.filter((r) => !inUse(r));
+    if (unsaved.length) setRows((rs) => rs.filter((r) => !unsaved.includes(r)));
+    if (!deletable.length || !canDelete) return;
+    if (!confirm(`Delete ${deletable.length} route(s) permanently? ${deletable.map((r) => r.en).join(", ")}`)) return;
+    for (const r of deletable) {
+      try {
+        await api.delete(`/job-service-types/${r.id}`);
+        setRows((rs) => rs.filter((x) => x.key !== r.key));
+      } catch (e) {
+        toast.error(`${r.en}: ${errText(e)}`);
+      }
     }
-  }
+  };
 
-  async function downloadTemplate() {
+  const columns: DSColumn<Row>[] = useMemo(() => {
+    const edit = () => canUpsert;
+    return [
+      { key: "en", title: "Route (English)", width: 230, get: (r) => r.en, editable: edit, placeholder: "e.g. ARR-HRG" },
+      { key: "ar", title: "Arabic", width: 190, get: (r) => r.ar, editable: edit, placeholder: "مثال: وصول داخلي" },
+      { key: "type", title: "Default type", width: 140, type: "select", options: SERVICE_TYPE_DROPDOWN_OPTIONS.map((o) => ({ value: o.value, label: o.label })), get: (r) => r.type, editable: edit },
+      { key: "from", title: "From", width: 190, type: "select", options: endOptions, get: (r) => r.from, editable: edit },
+      { key: "to", title: "To", width: 190, type: "select", options: endOptions, get: (r) => r.to, editable: edit },
+      {
+        key: "status",
+        title: "Status",
+        width: 120,
+        type: "readonly",
+        get: (r) => (r.isActive ? "Active" : "Inactive"),
+        display: (r) =>
+          !r.id ? (
+            <span className="italic">new</span>
+          ) : !r.isActive ? (
+            <span>Inactive</span>
+          ) : !complete(r) ? (
+            <span className="text-amber-600 dark:text-amber-400" title="The B2B Excel import skips rows on a route without a default type, From and To.">
+              Missing defaults
+            </span>
+          ) : (
+            <span className="text-green-600 dark:text-green-400">Active</span>
+          ),
+      },
+      {
+        key: "usage",
+        title: "Used by",
+        width: 150,
+        type: "readonly",
+        get: () => "",
+        display: (r) => {
+          const u = r.usage;
+          const prices = u.customerPrices + u.supplierPrices;
+          return [u.jobs && `${u.jobs} jobs`, prices && `${prices} prices`, u.tariffs && `${u.tariffs} tariffs`].filter(Boolean).join(" · ") || "—";
+        },
+      },
+      {
+        key: "actions",
+        title: "",
+        width: 64,
+        type: "readonly",
+        align: "center",
+        get: () => "",
+        display: (r) =>
+          r.saving ? (
+            <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <span className="flex items-center justify-center gap-1.5">
+              {canUpsert && r.id && (
+                <button type="button" title={r.isActive ? "Deactivate (hide from dropdowns, keep history)" : "Reactivate"} onClick={() => setActive(r, !r.isActive)}>
+                  <Power className={r.isActive ? "h-3.5 w-3.5 text-amber-600" : "h-3.5 w-3.5 text-green-600"} />
+                </button>
+              )}
+              {canDelete && (!r.id || !inUse(r)) && (
+                <button type="button" title="Delete" onClick={() => deleteRows([r])}>
+                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                </button>
+              )}
+            </span>
+          ),
+      },
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endOptions, canUpsert, canDelete, rows]);
+
+  const downloadTemplate = async () => {
     try {
       const res = await api.get("/job-service-types/import/template", { responseType: "blob" });
       const url = URL.createObjectURL(new Blob([res.data]));
@@ -208,9 +276,9 @@ export default function RoutesPage() {
     } catch {
       toast.error("Failed to download template");
     }
-  }
+  };
 
-  async function importExcel(e: React.ChangeEvent<HTMLInputElement>) {
+  const importExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true);
@@ -222,20 +290,15 @@ export default function RoutesPage() {
       if (r.errors?.length) toast.warning(`${r.imported} imported, ${r.errors.length} skipped: ${r.errors.slice(0, 3).join("; ")}`);
       else toast.success(`${r.imported} routes imported`);
       load();
-    } catch (err: unknown) {
-      toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Import failed");
+    } catch (err) {
+      toast.error(errText(err));
     } finally {
       setImporting(false);
       if (importRef.current) importRef.current.value = "";
     }
-  }
-
-  const usageText = (r: RouteRow) => {
-    const u = r.usage;
-    const prices = u.customerPrices + u.supplierPrices + u.tips;
-    return [u.jobs && `${u.jobs} jobs`, prices && `${prices} prices`, u.tariffs && `${u.tariffs} tariffs`].filter(Boolean).join(" · ") || "—";
   };
 
+  const dirtyCount = rows.filter((r) => r.dirty).length;
   const FILTERS: { key: Filter; label: string }[] = [
     { key: "active", label: "Active" },
     { key: "incomplete", label: "Missing defaults" },
@@ -246,10 +309,7 @@ export default function RoutesPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          title="Routes"
-          description="Routes used by B2B jobs, the Excel import, price lists and driver tips (English | Arabic)."
-        />
+        <PageHeader title="Routes" description="Routes used by B2B jobs, the Excel import, price lists and driver tariffs (English | Arabic)." />
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={downloadTemplate} className="gap-1.5">
             <Download className="h-4 w-4" /> Template
@@ -260,8 +320,9 @@ export default function RoutesPage() {
                 <Upload className="h-4 w-4" /> {importing ? "Importing…" : "Import"}
               </Button>
               <input ref={importRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={importExcel} />
-              <Button size="sm" onClick={openAdd} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Add route
+              <Button size="sm" onClick={saveAll} disabled={savingAll || dirtyCount === 0} className="gap-1.5">
+                {savingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save {dirtyCount ? `(${dirtyCount})` : ""}
               </Button>
             </>
           )}
@@ -287,142 +348,51 @@ export default function RoutesPage() {
         </div>
       </div>
 
-      <Card className="overflow-hidden border-border p-0">
-        <div className="max-h-[70vh] overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Route</TableHead>
-                <TableHead>Default type</TableHead>
-                <TableHead>From</TableHead>
-                <TableHead>To</TableHead>
-                <TableHead>Used by</TableHead>
-                {(canUpsert || canDelete) && <TableHead className="w-32 text-right">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">Loading…</TableCell></TableRow>
-              ) : visible.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">No routes match.</TableCell></TableRow>
-              ) : (
-                visible.map((r) => {
-                  const n = splitName(r.name);
-                  return (
-                    <TableRow key={r.id} className={r.isActive ? "" : "opacity-60"}>
-                      <TableCell>
-                        <div className="font-medium">{n.en}</div>
-                        {n.ar && <div dir="rtl" className="text-right text-xs text-muted-foreground">{n.ar}</div>}
-                        <div className="mt-0.5 flex gap-1">
-                          {!r.isActive && <Badge variant="outline" className="text-[10px]">Inactive</Badge>}
-                          {r.isActive && !complete(r) && (
-                            <Badge variant="outline" className="border-amber-400 text-[10px] text-amber-600 dark:text-amber-400" title="The B2B Excel import skips rows on a route without a default type, From and To.">
-                              Missing defaults
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{r.defaultServiceType ? serviceTypeDropdownLabel(r.defaultServiceType) : "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{endLabel(r.fromAirport, r.fromZone)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{endLabel(r.toAirport, r.toZone)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{usageText(r)}</TableCell>
-                      {(canUpsert || canDelete) && (
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            {canUpsert && (
-                              <Button variant="ghost" size="icon" title="Edit" onClick={() => openEdit(r)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {canUpsert && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title={r.isActive ? "Deactivate (hide from dropdowns, keep history)" : "Reactivate"}
-                                disabled={busyId === r.id}
-                                onClick={() => setActive(r, !r.isActive)}
-                              >
-                                <Power className={r.isActive ? "h-4 w-4 text-amber-600" : "h-4 w-4 text-green-600"} />
-                              </Button>
-                            )}
-                            {canDelete && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title={inUse(r) ? "In use — deactivate it instead" : "Delete"}
-                                disabled={inUse(r) || busyId === r.id}
-                                onClick={() => setDeleteTarget(r)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+      <p className="text-xs text-muted-foreground">
+        Arrows / Tab to move, type to edit, Enter for the next field. Down on the last row (✱) adds a route; a row saves when you
+        leave it. The English part is the code the traffic sheets use — renaming it moves remembered sheet spellings with it.
+        Default type, From and To are copied onto jobs by the B2B Excel import.
+      </p>
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      </Card>
-
-      {/* Add / edit */}
-      <Dialog open={formOpen} onOpenChange={(o) => !o && !saving && setFormOpen(false)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit route" : "Add route"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-1">
-            <div className="space-y-1.5">
-              <Label>English name <span className="text-destructive">*</span></Label>
-              <Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="e.g. ARR-HRG" autoFocus />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Arabic name</Label>
-              <Input dir="rtl" value={nameAr} onChange={(e) => setNameAr(e.target.value)} placeholder="مثال: وصول داخلي" />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Saved as “English | Arabic”. The English part is the code the traffic sheets use (Excel import,
-              price lists, driver tips) — renaming it moves remembered sheet spellings with it.
-            </p>
-            <div className="space-y-1.5">
-              <Label>Default type</Label>
-              <SearchableCombobox items={SERVICE_TYPE_DROPDOWN_OPTIONS} value={defaultType} onChange={setDefaultType} placeholder="Select type…" searchPlaceholder="Search…" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>From <span className="text-xs text-muted-foreground">(airport or zone)</span></Label>
-              <SearchableCombobox items={endItems} value={fromLoc} onChange={setFromLoc} placeholder="Select airport or zone…" searchPlaceholder="Search airports and zones…" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>To <span className="text-xs text-muted-foreground">(airport or zone)</span></Label>
-              <SearchableCombobox items={endItems} value={toLoc} onChange={setToLoc} placeholder="Select airport or zone…" searchPlaceholder="Search airports and zones…" />
-            </div>
-            <p className="text-xs text-muted-foreground">Default type, From and To are copied onto jobs by the B2B Excel import; a route missing any of them is skipped there.</p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</Button>
-            <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete (unused routes only) */}
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete route?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{deleteTarget?.name}</span> has no jobs, prices or tips and will be removed permanently.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Keep</Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={busyId === deleteTarget?.id}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      ) : (
+        <DataSheet
+          rows={visible}
+          rowKey={(r) => r.key}
+          columns={columns}
+          maxHeight="70vh"
+          onChange={(r, col, value) => patchRow(r.key, { [col]: value, dirty: true, error: undefined } as Partial<Row>)}
+          onCreateRows={
+            canUpsert
+              ? (values) =>
+                  setRows((rs) => [
+                    ...rs,
+                    ...values.map<Row>((v) => ({
+                      key: `new:${++newSeq.current}`,
+                      id: null,
+                      en: v.en ?? "",
+                      ar: v.ar ?? "",
+                      type: v.type ?? "",
+                      from: v.from ?? "",
+                      to: v.to ?? "",
+                      isActive: true,
+                      usage: NO_USE,
+                      dirty: true,
+                    })),
+                  ])
+              : undefined
+          }
+          onRowLeave={canUpsert ? (r) => void saveRow(rows.find((x) => x.key === r.key) ?? r) : undefined}
+          onDeleteRows={canDelete || canUpsert ? (rs) => void deleteRows(rs) : undefined}
+          isDirty={(r) => r.dirty}
+          rowError={(r) => r.error}
+          rowClassName={(r) => !r.isActive && "opacity-60"}
+          emptyText="No routes match"
+        />
+      )}
     </div>
   );
 }

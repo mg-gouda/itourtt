@@ -1,9 +1,8 @@
 "use client";
 
-// System Parameters › Driver Tariffs — two route × car-type grids in the traffic sheets' layout:
-//  - Driver tariffs: what a driver earns per trip (one table for every driver).
-//  - Driver tips: the tip billed to customers on their invoices (one table for every customer).
-// Rules: docs/map/11-business-rules.md › Driver tariffs and driver tips.
+// System Parameters › Driver Tariffs — what a driver earns per trip: one route × car-type grid in
+// the traffic sheets' layout, the same for every driver. Rules: docs/map/11-business-rules.md ›
+// Driver tariffs. (Customer driver tips were removed on 2026-11-19; their amounts became these tariffs.)
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -13,7 +12,6 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RoutePriceGrid, downloadXlsx, type RoutePriceCellEdit, type RoutePriceGridData } from "@/components/route-price-grid";
 import api from "@/lib/api";
@@ -21,32 +19,12 @@ import { usePermission } from "@/hooks/use-permission";
 import { useAuthStore } from "@/stores/auth-store";
 import { localDateStr } from "@/lib/utils";
 
-type Kind = "tariffs" | "tips";
-
-const ENDPOINTS: Record<Kind, { grid: string; save: string; export: string; import: string; file: string; label: string }> = {
-  tariffs: {
-    grid: "/driver-tariffs/grid",
-    save: "/driver-tariffs/grid",
-    export: "/driver-tariffs/export",
-    import: "/driver-tariffs/import",
-    file: "driver-tariffs.xlsx",
-    label: "tariff",
-  },
-  tips: {
-    grid: "/route-prices/driver-tips",
-    save: "/route-prices/driver-tips",
-    export: "/route-prices/driver-tips/export",
-    import: "/route-prices/driver-tips/import",
-    file: "driver-tips.xlsx",
-    label: "tip",
-  },
-};
+const errMsg = (e: unknown) => (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
 
 export default function DriverTariffsPage() {
   const canEdit = usePermission("driver-tariffs.upsert");
   const isAdmin = useAuthStore((s) => s.user?.role === "ADMIN");
-  const [grids, setGrids] = useState<Partial<Record<Kind, RoutePriceGridData>>>({});
-  const [tab, setTab] = useState<Kind>("tariffs");
+  const [grid, setGrid] = useState<RoutePriceGridData | null>(null);
 
   // Recalculate driver fees (completed jobs in a date range)
   const [recalcOpen, setRecalcOpen] = useState(false);
@@ -57,44 +35,43 @@ export default function DriverTariffsPage() {
   const [to, setTo] = useState(() => localDateStr(new Date()));
   const [recalculating, setRecalculating] = useState(false);
 
-  const load = useCallback(async (kind: Kind) => {
+  const load = useCallback(async () => {
     try {
-      const { data } = await api.get(ENDPOINTS[kind].grid);
-      setGrids((g) => ({ ...g, [kind]: data.data }));
+      const { data } = await api.get("/driver-tariffs/grid");
+      setGrid(data.data);
     } catch {
-      toast.error(`Failed to load driver ${ENDPOINTS[kind].label}s`);
+      toast.error("Failed to load driver tariffs");
     }
   }, []);
 
   useEffect(() => {
-    load("tariffs");
-    load("tips");
+    load();
   }, [load]);
 
-  async function save(kind: Kind, cells: RoutePriceCellEdit[]) {
+  async function save(cells: RoutePriceCellEdit[]) {
     try {
-      const { data } = await api.put(ENDPOINTS[kind].save, { cells });
-      toast.success(`Saved ${data.data.saved} ${ENDPOINTS[kind].label}(s)${data.data.cleared ? `, cleared ${data.data.cleared}` : ""}`);
-      await load(kind);
+      const { data } = await api.put("/driver-tariffs/grid", { cells });
+      toast.success(`Saved ${data.data.saved} tariff(s)${data.data.cleared ? `, cleared ${data.data.cleared}` : ""}`);
+      await load();
     } catch (e: unknown) {
-      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to save");
+      toast.error(errMsg(e) || "Failed to save");
       throw e; // the grid keeps the edits pending
     }
   }
 
-  async function importSheet(kind: Kind, file?: File) {
+  async function importSheet(file?: File) {
     if (!file) return;
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const { data } = await api.post(ENDPOINTS[kind].import, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const { data } = await api.post("/driver-tariffs/import", fd, { headers: { "Content-Type": "multipart/form-data" } });
       const r = data.data;
       toast.success(`Imported: ${r.pricesSaved} set, ${r.pricesCleared} cleared`);
       const missing = (r.unmatchedOperations ?? []).map((u: { operation: string }) => u.operation);
       if (missing.length) toast.warning(`Routes not found: ${missing.join(", ")}`, { duration: 20000 });
-      await load(kind);
+      await load();
     } catch (e: unknown) {
-      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Import failed");
+      toast.error(errMsg(e) || "Import failed");
     }
   }
 
@@ -106,78 +83,52 @@ export default function DriverTariffsPage() {
       toast.success(`Driver fees: ${r.created} created, ${r.repriced} re-priced, ${r.skipped} left as they were`);
       setRecalcOpen(false);
     } catch (e: unknown) {
-      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Recalculation failed");
+      toast.error(errMsg(e) || "Recalculation failed");
     } finally {
       setRecalculating(false);
     }
   }
 
-  const toolbar = (kind: Kind) => (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-muted-foreground">
-        {kind === "tariffs"
-          ? "What a driver earns per trip: the job's route × the car's type. Same for every driver."
-          : "The tip billed to customers on their invoices. Same for every customer."}
-      </span>
-      <div className="ml-auto flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => downloadXlsx(() => api.get(ENDPOINTS[kind].export, { responseType: "blob" }), ENDPOINTS[kind].file)}>
-          <Download className="mr-1.5 h-4 w-4" />
-          Export
-        </Button>
-        {canEdit && (
-          <label className="inline-flex">
-            <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => { importSheet(kind, e.target.files?.[0]); e.target.value = ""; }} />
-            <span className="inline-flex h-8 cursor-pointer items-center rounded-md border px-3 text-sm">
-              <Upload className="mr-1.5 h-4 w-4" />
-              Import
-            </span>
-          </label>
-        )}
-        {kind === "tariffs" && isAdmin && (
-          <Button variant="outline" size="sm" onClick={() => setRecalcOpen(true)}>
-            <Calculator className="mr-1.5 h-4 w-4" />
-            Recalculate driver fees
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title="Driver Tariffs" description="Driver trip fees and driver tips, by route and car type." />
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/dashboard/routes">
-            <Settings2 className="mr-1.5 h-4 w-4" />
-            Routes
-          </Link>
-        </Button>
+        <PageHeader title="Driver Tariffs" description="What a driver earns per trip: the job's route × the car's type. Same for every driver." />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => downloadXlsx(() => api.get("/driver-tariffs/export", { responseType: "blob" }), "driver-tariffs.xlsx")}>
+            <Download className="mr-1.5 h-4 w-4" />
+            Export
+          </Button>
+          {canEdit && (
+            <label className="inline-flex">
+              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => { importSheet(e.target.files?.[0]); e.target.value = ""; }} />
+              <span className="inline-flex h-8 cursor-pointer items-center rounded-md border px-3 text-sm">
+                <Upload className="mr-1.5 h-4 w-4" />
+                Import
+              </span>
+            </label>
+          )}
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={() => setRecalcOpen(true)}>
+              <Calculator className="mr-1.5 h-4 w-4" />
+              Recalculate driver fees
+            </Button>
+          )}
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/routes">
+              <Settings2 className="mr-1.5 h-4 w-4" />
+              Routes
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Kind)} className="space-y-3">
-        <TabsList>
-          <TabsTrigger value="tariffs">Driver Tariffs</TabsTrigger>
-          <TabsTrigger value="tips">Driver Tips</TabsTrigger>
-        </TabsList>
-        {(["tariffs", "tips"] as Kind[]).map((kind) => (
-          <TabsContent key={kind} value={kind} className="space-y-3">
-            {toolbar(kind)}
-            {grids[kind] ? (
-              <RoutePriceGrid
-                data={grids[kind]!}
-                canEdit={canEdit}
-                onSave={(cells) => save(kind, cells)}
-                emptyHint={kind === "tariffs" ? "empty cell = no tariff (fee 0)" : "empty cell = no tip"}
-              />
-            ) : (
-              <div className="flex justify-center py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+      {grid ? (
+        <RoutePriceGrid data={grid} canEdit={canEdit} onSave={save} emptyHint="empty cell = no tariff (fee 0)" />
+      ) : (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
 
       <Dialog open={recalcOpen} onOpenChange={(o) => !o && !recalculating && setRecalcOpen(false)}>
         <DialogContent className="max-w-sm">

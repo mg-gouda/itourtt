@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { RouteRateTable } from './route-rate-table.js';
 import { normalizeImportName } from '../common/utils/import-name.util.js';
 import {
   PRICE_COLUMNS, findSheet, loadRouteIndex, parsePrice, priceColumnsIn, routeCode, sheetBuffer,
@@ -13,9 +12,8 @@ export interface RoutePriceCell {
 }
 
 /**
- * Customer route prices (per customer) and the global driver-tip table — both a
- * route × car-type grid, imported/exported in the traffic team's own sheet layouts
- * ("Customer Price List": CUST | OPERATION | Limo…; "Driver Tips": No. | OPERATION | Limo…).
+ * Customer route prices (per customer) — a route × car-type grid, imported/exported in the
+ * traffic team's own "Customer Price List" layout (CUST | OPERATION | Limo…).
  */
 @Injectable()
 export class RoutePricesService {
@@ -147,29 +145,5 @@ export class RoutePricesService {
       unmatchedCustomers: [...unmatchedCustomers.entries()].map(([name, rows]) => ({ name, rows })),
       unmatchedOperations: [...unmatchedOperations.entries()].map(([operation, rows]) => ({ operation, rows })),
     };
-  }
-
-  // ── Driver tips (one table for every customer) — route-rate-table.ts ──────────
-
-  private _tips?: RouteRateTable;
-  private get tips() {
-    return (this._tips ??= new RouteRateTable(this.prisma, 'driverTipRate', { name: 'Driver Tips', match: /tip/i }));
-  }
-
-  tipGrid() {
-    return this.tips.grid();
-  }
-
-  saveTipCells(cells: RoutePriceCell[]) {
-    return this.tips.saveCells(cells);
-  }
-
-  exportTips(): Promise<Buffer> {
-    return this.tips.exportSheet();
-  }
-
-  /** Imports the "Driver Tips" sheet (the whole traffic workbook may be uploaded). */
-  importTips(buffer: Buffer) {
-    return this.tips.importSheet(buffer);
   }
 }

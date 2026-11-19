@@ -547,12 +547,12 @@ location's lat/lng changes who can update status from where.
 ### Routes (System Parameters › Routes)
 
 `JobServiceType` rows named "English | Arabic"; the English part is the code every traffic sheet uses
-(B2B Excel import, customer / supplier price lists, driver tips — `routeCode`). Managed on
-`/dashboard/routes` (permissions `driver-tariffs`, `.upsert`, `.delete`; the old popup in Driver Tariffs
-now links there).
+(B2B Excel import, customer / supplier price lists, driver tariffs — `routeCode`). Managed on
+`/dashboard/routes` (permissions `driver-tariffs`, `.upsert`, `.delete`) as a DataSheet: the ✱ row
+(Down on the last row) adds a route, a row saves when you leave it.
 
 - **A route in use is never deleted** — delete would strip it from its jobs and tariffs (SET NULL) and
-  wipe its customer prices, supplier prices and driver tips (CASCADE). `remove` refuses with a 409
+  wipe its customer prices, supplier prices and driver tariffs (CASCADE). `remove` refuses with a 409
   naming the usage; the page offers **Deactivate** (hidden from dropdowns, history and prices kept).
 - Renaming the English part moves the remembered ROUTE import aliases to the new code, unless the
   ذهاب / عوده partner still has the old code.
@@ -690,22 +690,23 @@ Agents (online channel) keep their own zone price lists — untouched.
 - **One call per job write.** Every hook calls `JobPricingService.syncJob`, which runs the supplier
   cost ([Supplier price lists](#supplier-price-lists--where-does-a-supplier-jobs-cost-come-from))
   and the customer price together. Both halves guard themselves and never throw.
-- **Driver tips billed to customers are one global table** — `DriverTipRate`, same route × car-type
-  key, used by the driver-tip invoices. Edited on **Driver Tariffs › Driver Tips** (no longer on the
-  customer Price List tab).
+- **There are no customer driver tips** (removed 2026-11-19): the `DriverTipRate` amounts became the
+  driver tariffs and the table was dropped; customer invoicing makes only the transfer invoice (CIT-).
+  The 2 DRIVER_TIP invoices issued before stay as records. Agent price lists and the website's public
+  prices still have their own `driverTip` column (separate features).
 - **Invoicing** (`finance.service.ts › generateCustomerInvoices` and the invoice suggestions) reads
   `CustomerPricingService.quote`: transfer = the job's own `priceAmount` if set, else the customer's
-  route price; tip = the global rate; missing → 0.
+  route price; missing → 0.
 - **Excel in the traffic team's layouts.** Customer prices: `CUST | OPERATION | Limo | Hi Ace 7 |
   Hi Ace 15 | Coaster | Bus` (all customers in one file; CUST matched like the B2B import, incl.
-  remembered CUSTOMER aliases). Driver tips: `No. | OPERATION | Limo | Hi Ace 7 | Hi Ace 15 | H-1 |
-  Bus`. For a row in the file, a number sets the price and an empty cell clears it. The tip import
-  prefers a sheet named "…tip…" and never reads a sheet with a CUST or Price List column, so the
-  whole traffic workbook can be uploaded.
-- **H-1** is its own vehicle type (own car 517, 2026-11-19) because the Driver Tips sheet tips it
-  differently from Hi Ace 7. Everywhere else it has no column, so a car type without a price of its
-  own is priced as its fallback (`PRICE_FALLBACK_TYPE`: H-1 → Minivan 7) — customer prices, tips,
-  supplier lists and the own-car cost. Car Category "H-1"/"H1" in the B2B import maps to it.
+  remembered CUSTOMER aliases). Driver tariffs: `No. | OPERATION | Limo | Hi Ace 7 | Hi Ace 15 | H-1 |
+  Coaster | Bus`. For a row in the file, a number sets the price and an empty cell clears it. The
+  tariff import reads only a sheet named "…tariff…" (a lone sheet is always read) and never a sheet
+  with a CUST or Price List column, so the whole traffic workbook can be uploaded.
+- **H-1** is its own vehicle type (own car 517, 2026-11-19) because the drivers' sheet pays it
+  differently from Hi Ace 7. Where it has no price of its own a car type is priced as its fallback
+  (`PRICE_FALLBACK_TYPE`: H-1 → Minivan 7) — customer prices, driver tariffs, supplier lists and the
+  own-car cost. Car Category "H-1"/"H1" in the B2B import maps to it.
 - **Sheet spellings of a route** that differ from the route's English code ("ARR-QUSEIR",
   "… 2 WAYS", "ROUND CITY TRIP…") are `ImportNameAlias` rows of kind **ROUTE** whose `targetId` is
   the canonical route *code* (not an id — the ذهاب / عوده pair shares one code). All three sheet
@@ -714,9 +715,9 @@ Agents (online channel) keep their own zone price lists — untouched.
 ## Driver tariffs — what does a driver earn for a trip?
 
 - **One route × car-type table for every driver** — `DriverTariffRate` (System Parameters › Driver
-  Tariffs, tab *Driver Tariffs*; keys `driver-tariffs` / `.upsert`), same sheet layout and code as the
-  driver tips (`job-pricing/route-rate-table.ts`). Replaced the zone-based `DriverPriceTariff` on
-  2026-11-19: it never had a row, so every one of the 3,095 trip fees until then was 0.
+  Tariffs; keys `driver-tariffs` / `.upsert`; `job-pricing/route-rate-table.ts`). Replaced the
+  zone-based `DriverPriceTariff` on 2026-11-19: it never had a row, so every one of the 3,095 trip
+  fees until then was 0. Seeded the same day from the former driver-tip amounts (283 cells).
 - **A trip fee** = the job's route × the assigned vehicle's type (H-1 falls back to Hi Ace 7),
   `driver-tariffs.service › resolveJobTripFee`, used by every completion path (portal roll-up,
   dispatcher status change). A job without a route gets no fee row; no tariff for the cell → 0.
@@ -728,8 +729,8 @@ Agents (online channel) keep their own zone price lists — untouched.
 ## Editing grids — DataSheet (Access-style datasheet)
 
 Every tabular editing screen uses `frontend/src/components/data-sheet.tsx` (price grids via
-`route-price-grid.tsx`: customer prices, supplier price lists, driver tariffs, driver tips; Car Dispatch
-cards). Keyboard: arrows / Tab / Enter move (Enter = next field, Access-style), typing or F2 edits, Esc
+`route-price-grid.tsx`: customer prices, supplier price lists, driver tariffs; Car Dispatch cards; Routes).
+Price grids have no ✱ row — their rows are the routes; Car Dispatch and Routes add rows. Keyboard: arrows / Tab / Enter move (Enter = next field, Access-style), typing or F2 edits, Esc
 cancels, Delete clears, Shift extends a range, Ctrl+C / Ctrl+V copy / paste blocks with Excel (pasting
 past the last row creates rows where the screen allows new rows). Down on the last row reaches the ✱
 new-record row. **A row saves when you leave it** (`onRowLeave`) and the screen's Save button saves

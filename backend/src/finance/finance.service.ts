@@ -761,7 +761,7 @@ export class FinanceService {
   // CUSTOMER INVOICES
   // ─────────────────────────────────────────────
 
-  private generateCustomerInvoiceNumber(type: 'TRANSFER' | 'DRIVER_TIP'): string {
+  private generateCustomerInvoiceNumber(type: 'TRANSFER'): string {
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -784,10 +784,10 @@ export class FinanceService {
       ? dto.jobs.map((j) => j.trafficJobId)
       : dto.trafficJobIds || [];
 
-    const overrideMap = new Map<string, { transferPrice?: number; driverTip?: number }>();
+    const overrideMap = new Map<string, { transferPrice?: number }>();
     if (dto.jobs) {
       for (const j of dto.jobs) {
-        overrideMap.set(j.trafficJobId, { transferPrice: j.transferPrice, driverTip: j.driverTip });
+        overrideMap.set(j.trafficJobId, { transferPrice: j.transferPrice });
       }
     }
 
@@ -804,11 +804,10 @@ export class FinanceService {
       throw new NotFoundException('No valid traffic jobs found');
     }
 
-    // Route × car-type prices (the job's own price wins) and the global driver-tip table.
+    // Route × car-type prices (the job's own price wins). Customer driver tips were removed 2026-11-19.
     const quotes = await this.customerPricing.quote(dto.customerId, jobs.map((j) => j.id));
 
     const transferLines: Array<{ trafficJobId: string; description: string; amount: number }> = [];
-    const driverTipLines: Array<{ trafficJobId: string; description: string; amount: number }> = [];
     const pendingPriceUpdates: Array<{ id: string; price: number }> = [];
 
     for (const job of jobs) {
@@ -818,7 +817,6 @@ export class FinanceService {
 
       // Use override if provided, otherwise fall back to price list
       const transferPrice = override?.transferPrice !== undefined ? override.transferPrice : (prices?.transferPrice || 0);
-      const driverTip = override?.driverTip !== undefined ? override.driverTip : (prices?.driverTip || 0);
 
       const fromName = job.fromZone?.name || 'Origin';
       const toName = job.toZone?.name || 'Destination';
@@ -837,13 +835,6 @@ export class FinanceService {
           amount: transferPrice,
         });
       }
-      if (driverTip > 0) {
-        driverTipLines.push({
-          trafficJobId: job.id,
-          description: `Driver Tip: ${routeDescription} (${vehicleName}) - ${job.internalRef || job.id}`,
-          amount: driverTip,
-        });
-      }
     }
 
     // Batch-update all override prices in a single transaction (replaces per-job updates)
@@ -858,10 +849,7 @@ export class FinanceService {
       );
     }
 
-    const results: { transferInvoice: unknown; driverTipInvoice: unknown } = {
-      transferInvoice: null,
-      driverTipInvoice: null,
-    };
+    const results: { transferInvoice: unknown } = { transferInvoice: null };
 
     const currency = customer.currency as Currency;
     const issueDate = new Date(dto.issueDate);
@@ -903,48 +891,6 @@ export class FinanceService {
           status: InvoiceStatus.DRAFT,
           lines: {
             create: transferLines.map((line) => ({
-              trafficJobId: line.trafficJobId,
-              description: line.description,
-              quantity: 1,
-              unitPrice: line.amount,
-              taxRate: 0,
-              taxAmount: 0,
-              lineTotal: line.amount,
-            })),
-          },
-        },
-        include: invoiceInclude,
-      });
-    }
-
-    // Create driver tip invoice using AgentInvoice with customerId
-    if (driverTipLines.length > 0) {
-      const totalAmount = driverTipLines.reduce((sum, line) => sum + line.amount, 0);
-      let invoiceNo = '';
-      let attempts = 0;
-      while (attempts < 5) {
-        invoiceNo = this.generateCustomerInvoiceNumber('DRIVER_TIP');
-        const existing = await this.prisma.agentInvoice.findUnique({ where: { invoiceNumber: invoiceNo } });
-        if (!existing) break;
-        attempts++;
-      }
-
-      results.driverTipInvoice = await this.prisma.agentInvoice.create({
-        data: {
-          customerId: dto.customerId,
-          agentId: null,
-          invoiceNumber: invoiceNo,
-          invoiceType: 'DRIVER_TIP' as InvoiceType,
-          invoiceDate: issueDate,
-          dueDate,
-          currency,
-          subtotal: totalAmount,
-          taxAmount: 0,
-          total: totalAmount,
-          exchangeRate: 1,
-          status: InvoiceStatus.DRAFT,
-          lines: {
-            create: driverTipLines.map((line) => ({
               trafficJobId: line.trafficJobId,
               description: line.description,
               quantity: 1,
@@ -1096,7 +1042,6 @@ export class FinanceService {
     return jobs.map((job: any) => ({
       ...job,
       suggestedTransferPrice: quotes.get(job.id)?.transferPrice ?? 0,
-      suggestedDriverTip: quotes.get(job.id)?.driverTip ?? 0,
     }));
   }
 

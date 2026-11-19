@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**69 classes**, **535 methods**.
+**69 classes**, **527 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -660,14 +660,14 @@ Evidence photo storage in Google Drive, with a folder per job reference. Every m
 
 ### CustomerPricingService
 
-`backend/src/job-pricing/customer-pricing.service.ts:38` · service · 2 methods
+`backend/src/job-pricing/customer-pricing.service.ts:37` · service · 2 methods
 
 Prices B2B jobs from the customer's route prices; quotes invoice transfer + tip amounts.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `syncJobPrice` | pub | 44 | `trafficJob` `customerRoutePrice` | Re-prices a B2B job unless its price is manual or it is invoiced; never throws. |
-| `quote` | pub | 85 | `trafficJob` `customerRoutePrice` `driverTipRate` | Per job: transfer = own price or route price, tip = global rate (missing → 0). |
+| `syncJobPrice` | pub | 43 | `trafficJob` `customerRoutePrice` | Re-prices a B2B job unless its price is manual or it is invoiced; never throws. |
+| `quote` | pub | 81 | `trafficJob` `customerRoutePrice` | Per job: transfer = own price or route price, tip = global rate (missing → 0). |
 
 ### JobPricingService
 
@@ -681,7 +681,7 @@ One call after every job write: supplier cost + customer price.
 
 ### RoutePricesController
 
-`backend/src/job-pricing/route-prices.controller.ts:37` · controller · 8 methods
+`backend/src/job-pricing/route-prices.controller.ts:37` · controller · 4 methods
 
 Customer route prices and the global driver-tip table: grids, save, Excel import/export.
 
@@ -691,29 +691,21 @@ Customer route prices and the global driver-tip table: grids, save, Excel import
 | `importCustomers` | pub | 49 | — | Imports a Customer Price List sheet. |
 | `customerGrid` | pub | 56 | — | A customer's route × car-type price grid. |
 | `saveCustomer` | pub | 62 | — | Saves edited customer price cells. |
-| `exportTips` | pub | 68 | — | Driver tips in the Driver Tips layout. |
-| `importTips` | pub | 75 | — | Imports a Driver Tips sheet. |
-| `tipGrid` | pub | 82 | — | The global driver-tip grid. |
-| `saveTips` | pub | 88 | — | Saves edited driver-tip cells. |
 
 ### RoutePricesService
 
-`backend/src/job-pricing/route-prices.service.ts:21` · service · 10 methods
+`backend/src/job-pricing/route-prices.service.ts:19` · service · 6 methods
 
 Grid, save, import and export for customer route prices and driver tips.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `columns` | priv | 24 | `vehicleType` | PRICE_COLUMNS with vehicle type ids (types that exist only). |
-| `routes` | priv | 30 | `jobServiceType` | Active routes ordered by name. |
-| `customerGrid` | pub | 36 | `customer` `customerRoutePrice` | Active routes, car columns and the customer's prices. |
-| `saveCustomerCells` | pub | 47 | `customerRoutePrice` | Upserts/clears a customer's price cells in one transaction. |
-| `exportCustomerPrices` | pub | 68 | `customer` | Every customer with prices, one Customer Price List sheet. |
-| `importCustomerPrices` | pub | 98 | `vehicleType` `customer` `importNameAlias` | Imports CUST × OPERATION rows; unknown customers/operations reported; empty cell clears. |
-| `tipGrid` | pub | 159 | — | Active routes, car columns and the tip amounts. |
-| `saveTipCells` | pub | 163 | — | Upserts/clears driver-tip cells in one transaction. |
-| `exportTips` | pub | 167 | — | The driver-tip table as a Driver Tips sheet. |
-| `importTips` | pub | 172 | — | Imports OPERATION rows into the driver-tip table; H-1 ignored; empty cell clears. |
+| `columns` | priv | 22 | `vehicleType` | PRICE_COLUMNS with vehicle type ids (types that exist only). |
+| `routes` | priv | 28 | `jobServiceType` | Active routes ordered by name. |
+| `customerGrid` | pub | 34 | `customer` `customerRoutePrice` | Active routes, car columns and the customer's prices. |
+| `saveCustomerCells` | pub | 45 | `customerRoutePrice` | Upserts/clears a customer's price cells in one transaction. |
+| `exportCustomerPrices` | pub | 66 | `customer` | Every customer with prices, one Customer Price List sheet. |
+| `importCustomerPrices` | pub | 96 | `vehicleType` `customer` `importNameAlias` | Imports CUST × OPERATION rows; unknown customers/operations reported; empty cell clears. |
 
 ### RouteRateTable
 
@@ -1629,7 +1621,7 @@ Customer route prices and driver tips: grids, saves and the traffic sheets' Exce
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RoutePriceCell` | type | 9 | One route × vehicle-type price edit (null clears). |
+| `RoutePriceCell` | type | 8 | One route × vehicle-type price edit (null clears). |
 
 ### `backend/src/job-pricing/route-rate-table.ts`
 

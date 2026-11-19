@@ -9,13 +9,13 @@ export interface RouteRateCell {
   price: number | null; // null clears
 }
 
-/** The global route × car-type tables that share one shape: (route, vehicle type) → amount. */
-type RateModel = 'driverTipRate' | 'driverTariffRate';
+/** Global route × car-type tables of the shape (route, vehicle type) → amount. */
+type RateModel = 'driverTariffRate';
 
 /**
  * One global route × car-type amount table in the traffic sheets' layout
  * (`No. | OPERATION | Limo | Hi Ace 7 | Hi Ace 15 | H-1 | Coaster | Bus | Route (AR)`).
- * Driver tips (billed to customers) and driver tariffs (a driver's trip fee) are both this.
+ * Used by the driver tariffs (a driver's trip fee).
  */
 export class RouteRateTable {
   constructor(

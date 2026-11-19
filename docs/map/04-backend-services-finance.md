@@ -209,14 +209,14 @@ Fees, invoices, payments and collections. Two invoice families share the `AgentI
 | `getJobFinancials` | pub | 709 | `trafficJob` `driverTripFee` `repFee` `supplierCost` `invoiceLine` | Everything financial attached to one job: driver fee, rep fee, supplier cost and invoice lines — the per-job P&L view. |
 | `generateCustomerInvoiceNumber` | priv | 764 | — | Allocates the next customer (B2B) invoice number, a separate sequence from agent invoices. |
 | `generateCustomerInvoices` | pub | 774 | `customer` `trafficJob` `agentInvoice` | Batch-generates B2B invoices from completed jobs priced off each customer's price list. |
-| `getCustomerInvoice` | pub | 965 | `agentInvoice` | One customer invoice. |
-| `listCustomerInvoices` | pub | 983 | `agentInvoice` | Filterable customer invoice list. |
-| `getAgentOptions` | pub | 1025 | `agent` | Agents available for invoicing, for the picker. |
-| `getCustomerOptions` | pub | 1041 | `customer` | Customers available for invoicing. |
-| `getCustomerJobsForInvoice` | pub | 1055 | `customer` `trafficJob` | Uninvoiced customer jobs with their resolved prices, ready to select. |
-| `getAgentJobsForInvoice` | pub | 1103 | `agent` `trafficJob` `agentPriceItem` | Uninvoiced agent jobs with their resolved prices. |
-| `getCollections` | pub | 1182 | `trafficJob` | Cash collections drivers have taken on jobs, and their liquidation state. |
-| `liquidateCollection` | pub | 1220 | `trafficJob` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
+| `getCustomerInvoice` | pub | 911 | `agentInvoice` | One customer invoice. |
+| `listCustomerInvoices` | pub | 929 | `agentInvoice` | Filterable customer invoice list. |
+| `getAgentOptions` | pub | 971 | `agent` | Agents available for invoicing, for the picker. |
+| `getCustomerOptions` | pub | 987 | `customer` | Customers available for invoicing. |
+| `getCustomerJobsForInvoice` | pub | 1001 | `customer` `trafficJob` | Uninvoiced customer jobs with their resolved prices, ready to select. |
+| `getAgentJobsForInvoice` | pub | 1048 | `agent` `trafficJob` `agentPriceItem` | Uninvoiced agent jobs with their resolved prices. |
+| `getCollections` | pub | 1127 | `trafficJob` | Cash collections drivers have taken on jobs, and their liquidation state. |
+| `liquidateCollection` | pub | 1165 | `trafficJob` | Marks collected cash as handed in to the office, stamping `collectionLiquidatedAt`. |
 
 ### InvoiceExportService
 

@@ -19,9 +19,9 @@
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 580 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
 | `/dashboard/complaints/analytics` | `frontend/src/app/(dashboard)/dashboard/complaints/analytics/page.tsx` | 800 | 1 | 1 | Complaint Analytics screen: filters, headline KPIs, reply-window split, monthly trend, breakdowns and the money panel. |
 | `/dashboard/customers` | `frontend/src/app/(dashboard)/dashboard/customers/page.tsx` | 1183 | 9 | 12 | B2B customer management with price grids and import templates. |
-| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 273 | 5 | 2 | One customer's detail, price list and stored import templates. |
+| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 270 | 5 | 2 | One customer's detail, price list and stored import templates. |
 | `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3149 | 10 | 5 | ★ The dispatch console. One window per day, ARR left and DEP right, Excel-like grid with inline editing, keyboard navigation and live conflict warnings. Assignment order is Vehicle → Driver → Rep. |
-| `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 213 | 1 | 1 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
+| `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 164 | 5 | 1 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
 | `/dashboard/driver-tracking` | `frontend/src/app/(dashboard)/dashboard/driver-tracking/page.tsx` | 9 | — | — | Driver Tracking page — map of every active driver's last-known position with name search. |
 | `/dashboard/drivers` | `frontend/src/app/(dashboard)/dashboard/drivers/page.tsx` | 1089 | 11 | 14 | Driver management: records, vehicle links, portal accounts, trip fees and Excel pipelines. |
 | `/dashboard/drivers/[id]` | `frontend/src/app/(dashboard)/dashboard/drivers/[id]/page.tsx` | 859 | 9 | — | One driver's detail, vehicles and fee history. |
@@ -29,7 +29,7 @@
 | `/dashboard/finance` | `frontend/src/app/(dashboard)/dashboard/finance/page.tsx` | 1442 | 11 | 17 | ★ Finance console: fees, agent and customer invoices, payments, collections and the Odoo-ready exports. |
 | `/dashboard/finance/agent-adjustments` | `frontend/src/app/(dashboard)/dashboard/finance/agent-adjustments/page.tsx` | 417 | 4 | 3 | Agent adjustments queue — what lost complaints owe each agent, and the three ways to settle it: a negative invoice line, a credit note, or a waiver. |
 | `/dashboard/finance/b2c-invoices` | `frontend/src/app/(dashboard)/dashboard/finance/b2c-invoices/page.tsx` | 285 | 2 | — | B2C guest invoices (`INV-B2C-NNNNN`) and their PDFs. |
-| `/dashboard/finance/invoices/new` | `frontend/src/app/(dashboard)/dashboard/finance/invoices/new/page.tsx` | 699 | 6 | 1 | Create Invoice page (agent: fetch + price jobs, PDF/Excel download; customer: fetch COMPLETED uninvoiced jobs, generate) — replaced the modal on the finance page |
+| `/dashboard/finance/invoices/new` | `frontend/src/app/(dashboard)/dashboard/finance/invoices/new/page.tsx` | 677 | 6 | 1 | Create Invoice page (agent: fetch + price jobs, PDF/Excel download; customer: fetch COMPLETED uninvoiced jobs, generate) — replaced the modal on the finance page |
 | `/dashboard/google-drive` | `frontend/src/app/(dashboard)/dashboard/google-drive/page.tsx` | 372 | 5 | — | Google Drive connection for evidence storage — connect, test and migrate. An expired grant shows up here. |
 | `/dashboard/guest-bookings` | `frontend/src/app/(dashboard)/dashboard/guest-bookings/page.tsx` | 512 | 3 | 2 | B2C guest bookings and their conversion into operational jobs. |
 | `/dashboard/help` | `frontend/src/app/(dashboard)/dashboard/help/page.tsx` | 268 | — | — | In-app help and tips per module. |
@@ -42,7 +42,7 @@
 | `/dashboard/reports` | `frontend/src/app/(dashboard)/dashboard/reports/page.tsx` | 6659 | 47 | 21 | ★ Every report in one screen (5,882 lines, 41 API calls, 18 permission keys) — dispatch, driver trips, rep and driver scores, guest surveys, revenue, evidence, job status, visa, sales, departures, flight delays and reviews. Each tab has a matching xlsx export. The largest file in the frontend; navigate it via the symbol index rather than reading it end to end. |
 | `/dashboard/reps` | `frontend/src/app/(dashboard)/dashboard/reps/page.tsx` | 954 | 11 | 13 | Rep management: records, zone coverage, portal accounts and fees. A rep with no zone never appears in dispatch. |
 | `/dashboard/reps/[id]` | `frontend/src/app/(dashboard)/dashboard/reps/[id]/page.tsx` | 771 | 9 | — | One rep's detail, zones and fee history. |
-| `/dashboard/routes` | `frontend/src/app/(dashboard)/dashboard/routes/page.tsx` | 429 | 8 | 2 | System Parameters › Routes: search, add, edit (English \| Arabic, default type, From/To), deactivate, delete unused routes |
+| `/dashboard/routes` | `frontend/src/app/(dashboard)/dashboard/routes/page.tsx` | 399 | 8 | 2 | System Parameters › Routes: search, add, edit (English \| Arabic, default type, From/To), deactivate, delete unused routes |
 | `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 578 | — | — | Theme and appearance settings. |
 | `/dashboard/supplier-price-lists` | `frontend/src/app/(dashboard)/dashboard/supplier-price-lists/page.tsx` | 431 | 11 | 2 | Supplier Price Lists page: list tabs, flags, route × car-type price grid, Excel import/export. |
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1340 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
@@ -131,7 +131,7 @@
 
 **`/dashboard/driver-tariffs`**
 
-- calls: `POST /traffic-jobs/recalculate-driver-fees`
+- calls: `GET /driver-tariffs/grid`, `PUT /driver-tariffs/grid`, `POST /driver-tariffs/import`, `POST /traffic-jobs/recalculate-driver-fees`, `GET /driver-tariffs/export`
 - perms: `driver-tariffs.upsert`
 
 **`/dashboard/drivers`**

@@ -33,7 +33,7 @@ export class JobServiceTypesService {
         toZone: { select: { id: true, name: true } },
         fromAirport: { select: { id: true, code: true, name: true } },
         toAirport: { select: { id: true, code: true, name: true } },
-        _count: { select: { trafficJobs: true, driverTariffRates: true, customerRoutePrices: true, supplierPriceListItems: true, driverTipRates: true } },
+        _count: { select: { trafficJobs: true, driverTariffRates: true, customerRoutePrices: true, supplierPriceListItems: true, } },
       },
       orderBy: { name: 'asc' },
     });
@@ -44,7 +44,6 @@ export class JobServiceTypesService {
         tariffs: _count.driverTariffRates,
         customerPrices: _count.customerRoutePrices,
         supplierPrices: _count.supplierPriceListItems,
-        tips: _count.driverTipRates,
       },
     }));
   }
@@ -106,18 +105,18 @@ export class JobServiceTypesService {
 
   /**
    * Deleting a route strips it from its jobs and tariffs (SET NULL) and wipes its customer prices,
-   * supplier prices and driver tips (CASCADE) — so a route in use is refused: deactivate it instead.
+   * supplier prices and driver tariffs (CASCADE) — so a route in use is refused: deactivate it instead.
    */
   async remove(id: string) {
     const existing = await this.prisma.jobServiceType.findUnique({
       where: { id },
-      include: { _count: { select: { trafficJobs: true, driverTariffRates: true, customerRoutePrices: true, supplierPriceListItems: true, driverTipRates: true } } },
+      include: { _count: { select: { trafficJobs: true, driverTariffRates: true, customerRoutePrices: true, supplierPriceListItems: true, } } },
     });
     if (!existing) throw new NotFoundException(`Service type "${id}" not found`);
     const c = existing._count;
-    const prices = c.customerRoutePrices + c.supplierPriceListItems + c.driverTipRates;
+    const prices = c.customerRoutePrices + c.supplierPriceListItems;
     if (c.trafficJobs || c.driverTariffRates || prices) {
-      const used = [c.trafficJobs && `${c.trafficJobs} jobs`, prices && `${prices} prices / tips`, c.driverTariffRates && `${c.driverTariffRates} driver tariffs`]
+      const used = [c.trafficJobs && `${c.trafficJobs} jobs`, prices && `${prices} prices`, c.driverTariffRates && `${c.driverTariffRates} driver tariffs`]
         .filter(Boolean).join(', ');
       throw new ConflictException(`"${existing.name}" is used by ${used}. Deactivate it instead — that hides it and keeps the history.`);
     }

@@ -17,11 +17,6 @@ export class CustomerInvoiceJobDto {
   @IsNumber()
   @Min(0)
   transferPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  driverTip?: number;
 }
 
 export class GenerateCustomerInvoicesDto {

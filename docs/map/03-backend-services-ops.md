@@ -344,12 +344,12 @@ Named service-type variants attached to jobs (distinct from the fixed ARR/DEP/â€
 |---|---|---|---|---|
 | `findAll` | pub | 12 | `jobServiceType` | Lists job service types. |
 | `findAllForManagement` | pub | 29 | `jobServiceType` | All routes with counts of jobs, tariffs, customer/supplier prices and driver tips using each |
-| `create` | pub | 52 | `jobServiceType` | Creates one. |
-| `update` | pub | 78 | `jobServiceType` | Edits one. |
-| `remove` | pub | 111 | `jobServiceType` | Deletes one. |
-| `followRenamedCode` | priv | 132 | `jobServiceType` `importNameAlias` | On a route rename that changes its English code, moves ROUTE import aliases to the new code (unless its pair keeps the old one) |
-| `importFromExcel` | pub | 147 | `zone` `jobServiceType` | Bulk-imports service types, resolving zone names. |
-| `generateTemplate` | pub | 209 | `zone` | Blank import workbook pre-filled with real zones. |
+| `create` | pub | 51 | `jobServiceType` | Creates one. |
+| `update` | pub | 77 | `jobServiceType` | Edits one. |
+| `remove` | pub | 110 | `jobServiceType` | Deletes one. |
+| `followRenamedCode` | priv | 131 | `jobServiceType` `importNameAlias` | On a route rename that changes its English code, moves ROUTE import aliases to the new code (unless its pair keeps the old one) |
+| `importFromExcel` | pub | 146 | `zone` `jobServiceType` | Bulk-imports service types, resolving zone names. |
+| `generateTemplate` | pub | 208 | `zone` | Blank import workbook pre-filled with real zones. |
 
 ## `locations`
 

@@ -31,7 +31,6 @@ function pricedVehicleTypeId(job: any): string | null {
  * - A B2B job's price is its customer's CustomerRoutePrice for route × car type.
  * - syncJobPrice keeps TrafficJob.priceAmount in step on create / import / route or car change,
  *   until a person types a price (priceManual) or the job is on an invoice — then it stops.
- * - The driver tip billed to customers is one global table (DriverTipRate), same key.
  * - A car type without a price of its own uses its fallback type's (H-1 → Hi Ace 7; PRICE_FALLBACK_TYPE).
  */
 @Injectable()
@@ -78,20 +77,15 @@ export class CustomerPricingService {
     }
   }
 
-  /**
-   * Invoice amounts per job: transfer = the job's own price if it has one, else the customer's
-   * route price; tip = the global driver-tip rate. Missing → 0.
-   */
-  async quote(customerId: string, jobIds: string[]): Promise<Map<string, { transferPrice: number; driverTip: number }>> {
-    const [jobs, prices, tips, fallback] = await Promise.all([
+  /** Invoice amount per job: the job's own price if it has one, else the customer's route price; missing → 0. */
+  async quote(customerId: string, jobIds: string[]): Promise<Map<string, { transferPrice: number }>> {
+    const [jobs, prices, fallback] = await Promise.all([
       this.prisma.trafficJob.findMany({ where: { id: { in: jobIds } }, select: JOB_PRICING_SELECT }),
       this.prisma.customerRoutePrice.findMany({ where: { customerId }, select: { jobServiceTypeId: true, vehicleTypeId: true, price: true } }),
-      this.prisma.driverTipRate.findMany({ select: { jobServiceTypeId: true, vehicleTypeId: true, amount: true } }),
       loadPriceFallback(this.prisma),
     ]);
     const key = (r: string | null, v: string | null) => `${r}|${v}`;
     const priceMap = new Map(prices.map((p) => [key(p.jobServiceTypeId, p.vehicleTypeId), Number(p.price)]));
-    const tipMap = new Map(tips.map((t) => [key(t.jobServiceTypeId, t.vehicleTypeId), Number(t.amount)]));
     const find = (m: Map<string, number>, route: string | null, types: string[]) => {
       for (const t of types) {
         const v = m.get(key(route, t));
@@ -99,12 +93,11 @@ export class CustomerPricingService {
       }
       return undefined;
     };
-    const out = new Map<string, { transferPrice: number; driverTip: number }>();
+    const out = new Map<string, { transferPrice: number }>();
     for (const j of jobs) {
       const types = priceTypes(pricedVehicleTypeId(j), fallback);
       out.set(j.id, {
         transferPrice: j.priceAmount != null ? Number(j.priceAmount) : find(priceMap, j.jobServiceTypeId, types) ?? 0,
-        driverTip: find(tipMap, j.jobServiceTypeId, types) ?? 0,
       });
     }
     return out;
