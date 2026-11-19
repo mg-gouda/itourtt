@@ -544,6 +544,26 @@ destination FK — setting both a zone and a hotel breaks later edit/cancel vali
 Airport and hotel coordinates are the enforced geofence targets (zones only log), so editing a
 location's lat/lng changes who can update status from where.
 
+### Location pins — why did a hotel's pin move / why does it say "Check pin"?
+
+A wrong hotel pin blocks reps and drivers at the geofence (FT-3161, 2026-11-19: Sunrise Royal Makadi
+pinned 5.7 km off). So hotel pins are checked against Google Places by
+`locations/pin-verifier.service.ts`, with the rules in `common/utils/place-match.util.ts`:
+Google's place must match the **name** (>= 0.85, no extra distinctive word — "Rixos *Radamis*" is
+not "Rixos"), be in Egypt and within 100 km of the hotel's city. `Hotel.pinStatus`:
+
+- **VERIFIED** — the pin is within 250 m of Google's match. **CORRECTED** — it was missing or
+  further off and was moved (`pinNote` says how far). **REVIEW** — no confident match; nothing was
+  changed and the Locations page shows "Check pin" (filter: *Pins to check*). **MANUAL** — a person
+  set the pin (edit with new coordinates, or the batch-geocode candidate picker): it is trusted and
+  **never** moved or re-checked. Null = not checked yet.
+- Checked after create, rename / zone change and Excel import (in the background — saving never
+  waits on Google), and nightly at 03:30 for new or changed hotels (150 per night, one pod only).
+- **One hotel per name**: create / rename / import refuse a name that already exists after folding
+  case, accents and punctuation (`placeNameKey`). Never merge on a shared Google place_id alone —
+  wrong picks share IDs. The 2026-11-19 clean-up (pins + 110 duplicates) is recorded row by row in
+  table `loc_audit_20261119`.
+
 ## B2B Excel import — why was this row skipped / why didn't the job update?
 
 `b2b-excel-import/b2b-excel-import.service.ts` (UI: `components/b2b-excel-import-dialog.tsx`, the
@@ -751,6 +771,7 @@ pay and period totals.
   be widened to rep status, supplier status, or `TrafficJob.status`.
 - `invoice-scheduler.service.ts` — generates invoices on each agent's cycle.
 - `activity-logs.service.ts › purgeOldActivityLogs` — audit retention.
+- `pin-verifier.service.ts › nightly` — 03:30 Google check of new/changed hotel pins (see Location pins).
 - All cron work serialises through `CronRunLock` so only one pod runs it.
 
 ## Storage & integrations

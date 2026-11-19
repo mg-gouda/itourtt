@@ -35,7 +35,7 @@
 | `/dashboard/help` | `frontend/src/app/(dashboard)/dashboard/help/page.tsx` | 268 | — | — | In-app help and tips per module. |
 | `/dashboard/job-control` | `frontend/src/app/(dashboard)/dashboard/job-control/page.tsx` | 378 | 4 | 1 | Admin Force Control — sets job, rep and driver statuses directly, bypassing the transition rules. |
 | `/dashboard/job-locks` | `frontend/src/app/(dashboard)/dashboard/job-locks/page.tsx` | 457 | 2 | 8 | Per-role lock/unlock screen. Unlocking is how a legitimately late submission gets past a 48h timelock or the rep IN-PLACE window. |
-| `/dashboard/locations` | `frontend/src/app/(dashboard)/dashboard/locations/page.tsx` | 1401 | 8 | 14 | The location tree editor — Country → Airport → City → Zone → Hotel, plus coordinates (which set the geofence targets) and Excel import/export. |
+| `/dashboard/locations` | `frontend/src/app/(dashboard)/dashboard/locations/page.tsx` | 1444 | 8 | 14 | The location tree editor — Country → Airport → City → Zone → Hotel, plus coordinates (which set the geofence targets) and Excel import/export. |
 | `/dashboard/overall-tracking` | `frontend/src/app/(dashboard)/dashboard/overall-tracking/page.tsx` | 9 | — | — | Overall Tracking page — reps and drivers on one map (TrackingView kind=all). |
 | `/dashboard/profile` | `frontend/src/app/(dashboard)/dashboard/profile/page.tsx` | 210 | — | — | The signed-in user's own profile and 2FA settings. |
 | `/dashboard/rep-tracking` | `frontend/src/app/(dashboard)/dashboard/rep-tracking/page.tsx` | 9 | — | — | Rep Tracking page — map of every active rep's last-known position with name search. |

@@ -31,7 +31,7 @@ export class GeocodingService {
    * REQUEST_DENIED for this Cloud project (Google retired the legacy Places
    * API), so we call `places.googleapis.com/v1/places:searchText` instead.
    */
-  async searchPlaces(query: string, type?: string): Promise<PlaceResult[]> {
+  async searchPlaces(query: string, type?: string, near?: { lat: number; lng: number }): Promise<PlaceResult[]> {
     const apiKey = await this.getApiKey();
 
     // Map our location types to the new Places API `includedType` where a
@@ -46,6 +46,10 @@ export class GeocodingService {
     const body: Record<string, unknown> = { textQuery: query };
     if (type && typeMap[type]) {
       body.includedType = typeMap[type];
+    }
+    // Prefer results near a known point (the hotel's zone/city): same-name places elsewhere lose.
+    if (near) {
+      body.locationBias = { circle: { center: { latitude: near.lat, longitude: near.lng }, radius: 50000 } };
     }
 
     const response = await fetch('https://places.googleapis.com/v1/places:searchText', {

@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**26 classes**, **390 methods**.
+**27 classes**, **395 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -389,39 +389,53 @@ REST surface for the location tree — one create/update/delete trio per level, 
 
 ### LocationsService
 
-`backend/src/locations/locations.service.ts:18` · service · 27 methods
+`backend/src/locations/locations.service.ts:21` · service · 28 methods
 
 ★ The location tree: Country → Airport → City → Zone → Hotel. Zones are the PRICING unit and hotels must cascade from a zone — there are no flat or free-text locations anywhere in the system. Also owns Excel import/export and coordinate geocoding for the geofence targets.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `searchLocations` | pub | 28 | `airport` `zone` `hotel` | Cross-level search over airports, zones and hotels, for the dispatch and job-form pickers. |
-| `getTree` | pub | 103 | `country` | The whole hierarchy in one nested payload, used to hydrate cascading dropdowns. |
-| `findAllCountries` | pub | 138 | `country` | Lists countries. |
-| `createCountry` | pub | 164 | `country` | Creates a country (tree root). |
-| `findAirportsByCountry` | pub | 178 | `country` `airport` | Airports under a country. |
-| `createAirport` | pub | 195 | `country` `airport` | Creates an airport under a country. |
-| `findCitiesByAirport` | pub | 218 | `airport` `city` | Cities under an airport. |
-| `createCity` | pub | 233 | `airport` `city` | Creates a city under an airport. |
-| `findZones` | pub | 255 | `city` `zone` | Zones under a city — the pricing level. |
-| `createZone` | pub | 272 | `city` `zone` | Creates a zone under a city. |
-| `findHotelsByZone` | pub | 294 | `zone` `hotel` | Hotels cascaded under a zone. |
-| `createHotel` | pub | 309 | `zone` `hotel` | Creates a hotel under a zone; a hotel can never exist without one. |
-| `updateCountry` | pub | 333 | `country` | Renames or edits a country. |
-| `updateAirport` | pub | 349 | `airport` `country` | Edits an airport, including moving it between countries. |
-| `updateCity` | pub | 372 | `city` `airport` | Edits a city, including re-parenting to another airport. |
-| `updateZone` | pub | 394 | `zone` `city` | Edits a zone, including re-parenting to another city. Changing a zone moves the pricing unit — check price lists. |
-| `updateHotel` | pub | 416 | `hotel` `zone` | Edits a hotel, including moving it to another zone (which changes its price). |
-| `deleteCountry` | pub | 442 | `country` | Soft-deletes a country. |
-| `deleteAirport` | pub | 454 | `airport` | Soft-deletes an airport. |
-| `deleteCity` | pub | 466 | `city` | Soft-deletes a city. |
-| `deleteZone` | pub | 478 | `zone` | Soft-deletes a zone. |
-| `deleteHotel` | pub | 490 | `hotel` | Soft-deletes a hotel. |
-| `exportToExcel` | pub | 502 | — | Exports the whole tree to xlsx. |
-| `generateImportTemplate` | pub | 577 | — | Produces the blank import workbook with the expected columns per level. |
-| `importFromExcel` | pub | 678 | `country` `airport` `city` `zone` `hotel` | Bulk-imports the tree, creating each level in hierarchy order and matching existing nodes rather than duplicating. |
-| `updateLocationCoordinates` | pub | 889 | `country` `airport` `city` `zone` `hotel` | Sets lat/lng on one node. These coordinates are what the driver and rep geofence targets resolve to — a node with no coordinates disables the check for that job. |
-| `batchGeocode` | pub | 919 | `airport` `city` `zone` `hotel` | Bulk-geocodes airports, cities, zones and hotels that are missing coordinates. |
+| `searchLocations` | pub | 32 | `airport` `zone` `hotel` | Cross-level search over airports, zones and hotels, for the dispatch and job-form pickers. |
+| `getTree` | pub | 107 | `country` | The whole hierarchy in one nested payload, used to hydrate cascading dropdowns. |
+| `findAllCountries` | pub | 142 | `country` | Lists countries. |
+| `createCountry` | pub | 168 | `country` | Creates a country (tree root). |
+| `findAirportsByCountry` | pub | 182 | `country` `airport` | Airports under a country. |
+| `createAirport` | pub | 199 | `country` `airport` | Creates an airport under a country. |
+| `findCitiesByAirport` | pub | 222 | `airport` `city` | Cities under an airport. |
+| `createCity` | pub | 237 | `airport` `city` | Creates a city under an airport. |
+| `findZones` | pub | 259 | `city` `zone` | Zones under a city — the pricing level. |
+| `createZone` | pub | 276 | `city` `zone` | Creates a zone under a city. |
+| `findHotelsByZone` | pub | 298 | `zone` `hotel` | Hotels cascaded under a zone. |
+| `createHotel` | pub | 313 | `zone` `hotel` | Creates a hotel under a zone; a hotel can never exist without one. |
+| `assertHotelNameFree` | priv | 343 | `hotel` | Refuses a hotel name that already exists (409, names the existing hotel) |
+| `updateCountry` | pub | 358 | `country` | Renames or edits a country. |
+| `updateAirport` | pub | 374 | `airport` `country` | Edits an airport, including moving it between countries. |
+| `updateCity` | pub | 397 | `city` `airport` | Edits a city, including re-parenting to another airport. |
+| `updateZone` | pub | 419 | `zone` `city` | Edits a zone, including re-parenting to another city. Changing a zone moves the pricing unit — check price lists. |
+| `updateHotel` | pub | 441 | `hotel` `zone` | Edits a hotel, including moving it to another zone (which changes its price). |
+| `deleteCountry` | pub | 477 | `country` | Soft-deletes a country. |
+| `deleteAirport` | pub | 489 | `airport` | Soft-deletes an airport. |
+| `deleteCity` | pub | 501 | `city` | Soft-deletes a city. |
+| `deleteZone` | pub | 513 | `zone` | Soft-deletes a zone. |
+| `deleteHotel` | pub | 525 | `hotel` | Soft-deletes a hotel. |
+| `exportToExcel` | pub | 537 | — | Exports the whole tree to xlsx. |
+| `generateImportTemplate` | pub | 612 | — | Produces the blank import workbook with the expected columns per level. |
+| `importFromExcel` | pub | 713 | `country` `airport` `city` `zone` `hotel` | Bulk-imports the tree, creating each level in hierarchy order and matching existing nodes rather than duplicating. |
+| `updateLocationCoordinates` | pub | 939 | `country` `airport` `city` `zone` `hotel` | Sets lat/lng on one node. These coordinates are what the driver and rep geofence targets resolve to — a node with no coordinates disables the check for that job. |
+| `batchGeocode` | pub | 972 | `airport` `city` `zone` `hotel` | Bulk-geocodes airports, cities, zones and hotels that are missing coordinates. |
+
+### PinVerifierService
+
+`backend/src/locations/pin-verifier.service.ts:32` · service · 4 methods
+
+Checks hotel pins against Google Places; never moves a hand-set pin
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `verifyHotel` | pub | 40 | `hotel` | Checks one hotel's pin against Google: VERIFIED / CORRECTED (moved) / REVIEW; never throws |
+| `verifyLater` | pub | 96 | — | Fire-and-forget verifyHotel for save paths |
+| `markManual` | pub | 101 | `hotel` | Marks a hotel pin as set by hand: trusted, never moved or re-checked |
+| `nightly` | pub | 110 | `cronRunLock` | 03:30 cron (one pod): checks up to 150 new or changed hotel pins |
 
 ## `reps`
 
@@ -660,7 +674,7 @@ Vehicle types, the owned fleet, and per-vehicle compliance records (licences, in
 
 ## Standalone exports
 
-2 free functions, constants and types in these modules.
+4 free functions, constants and types in these modules.
 
 ### `backend/src/agents/dto/agent-price-list.dto.ts`
 
@@ -669,6 +683,15 @@ DTOs for the agent price-grid bulk save.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `ServiceTypeEnum` | type | 13 | Service types accepted on an agent price row. |
+
+### `backend/src/locations/pin-verifier.service.ts`
+
+Google check of hotel GPS pins: verify, auto-correct confident mismatches, flag the rest
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PinStatus` | type | 9 | Hotel.pinStatus values: VERIFIED, CORRECTED, REVIEW, MANUAL |
+| `PinCheckResult` | type | 11 | Outcome of one hotel pin check, with Google's candidates |
 
 ### `backend/src/suppliers/dto/create-vehicle.dto.ts`
 

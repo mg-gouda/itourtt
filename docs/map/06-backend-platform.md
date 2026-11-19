@@ -334,7 +334,7 @@ Google Places/Geocoding lookups behind the backend, used for pickup/dropoff coor
 |---|---|---|---|---|
 | `getApiKey` | priv | 18 | — | Reads the Google API key from configuration. |
 | `searchPlaces` | pub | 34 | — | Place autocomplete search. Note the B2C booking widget uses the NEW Places API directly in the browser; legacy `google.maps.places.Autocomplete` is blocked for this Cloud project. |
-| `geocodeAddress` | pub | 82 | — | Resolves an address string to coordinates. |
+| `geocodeAddress` | pub | 86 | — | Resolves an address string to coordinates. |
 
 ### JobAlertsService
 
@@ -1184,7 +1184,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-176 free functions, constants and types in these modules.
+185 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1409,6 +1409,22 @@ The 80-minute no-show delay, shared by both portals so drivers and reps cannot m
 | `resolveNoShowWaitMinutes` | function | 46 | The wait for one job: agent override, else company default, else the constant. Only DEP gets the departure number. |
 | `getNoShowAvailableFrom` | function | 77 | The instant NO SHOW becomes reportable, or null when the job has no resolvable time and therefore no guard. |
 | `checkNoShowWindow` | function | 87 | Throws unless at least 80 minutes past the job time. No job time configured means no guard at all. |
+
+### `backend/src/common/utils/place-match.util.ts`
+
+Rules for whether a Google Places result is the same place as a named location (hotel pin checks)
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PIN_MATCH_MIN` | const | 20 | Minimum name similarity (0.85) for a Google place to count as the hotel |
+| `PIN_MOVE_METERS` | const | 21 | A pin within 250 m of Google's match is VERIFIED; further is moved |
+| `normalizePlaceName` | function | 26 | Lower-case, accent-free, punctuation-free place name (any script) |
+| `placeNameKey` | function | 36 | Duplicate key for a place name: normalised with spaces removed |
+| `placeNameSimilarity` | function | 63 | 0..1 similarity of two place names ignoring filler words and word order |
+| `extraPlaceWords` | function | 74 | Distinctive words in Google's name that ours lacks (e.g. 'radamis') — a sign of another place |
+| `inEgypt` | function | 82 | Whether a point lies inside Egypt's bounding box |
+| `PlaceCandidate` | type | 86 | A Google Places search result (id, name, address, lat/lng) |
+| `judgePlaceMatch` | function | 98 | Best Google candidate for a name and whether it is safe to use (name, extra words, Egypt, near city) |
 
 ### `backend/src/common/utils/rep-score.util.ts`
 

@@ -558,6 +558,11 @@ model Hotel {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
+  // GPS pin check against Google (locations/pin-verifier.service.ts):
+  // VERIFIED | CORRECTED | REVIEW | MANUAL (set by hand — never moved). Null = not checked yet.
+  pinStatus     String?   @map("pin_status")
+  pinNote       String?   @map("pin_note")
+  pinCheckedAt  DateTime? @map("pin_checked_at")
 
   zone Zone @relation(fields: [zoneId], references: [id])
 

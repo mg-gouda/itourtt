@@ -1,4 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException,
+  ConflictException, Logger } from '@nestjs/common';
+import { PinVerifierService } from './pin-verifier.service.js';
+import { placeNameKey } from '../common/utils/place-match.util.js';
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -21,6 +24,7 @@ export class LocationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly geocoding: GeocodingService,
+    private readonly pins: PinVerifierService,
   ) {}
 
   // ─── Search ──────────────────────────────────────────────
@@ -314,7 +318,8 @@ export class LocationsService {
       throw new NotFoundException(`Zone with id ${dto.zoneId} not found`);
     }
 
-    return this.prisma.hotel.create({
+    await this.assertHotelNameFree(dto.name);
+    const hotel = await this.prisma.hotel.create({
       data: {
         name: dto.name,
         zoneId: dto.zoneId,
@@ -326,6 +331,26 @@ export class LocationsService {
       },
       include: { zone: true },
     });
+    // A Places pick can be the wrong place: check it against the name (moves it if clearly wrong).
+    this.pins.verifyLater(hotel.id);
+    return hotel;
+  }
+
+  /**
+   * One hotel per name: "Cook's Club El Gouna" and "cooks club, el gouna" are the same hotel
+   * (duplicates split a hotel's jobs and pins — see Location pins in 11-business-rules.md).
+   */
+  private async assertHotelNameFree(name: string, exceptId?: string) {
+    const key = placeNameKey(name);
+    if (!key) return;
+    const rows = await this.prisma.hotel.findMany({
+      where: { deletedAt: null, ...(exceptId && { id: { not: exceptId } }) },
+      select: { id: true, name: true, zone: { select: { name: true } } },
+    });
+    const twin = rows.find((r) => placeNameKey(r.name) === key);
+    if (twin) {
+      throw new ConflictException(`Hotel "${twin.name}" already exists (zone ${twin.zone?.name ?? '—'}). Use or edit that one.`);
+    }
   }
 
   // ─── Update Methods ──────────────────────────────────────
@@ -421,8 +446,14 @@ export class LocationsService {
       const zone = await this.prisma.zone.findUnique({ where: { id: dto.zoneId, deletedAt: null } });
       if (!zone) throw new NotFoundException(`Zone with id ${dto.zoneId} not found`);
     }
+    if (dto.name !== undefined && placeNameKey(dto.name) !== placeNameKey(hotel.name)) {
+      await this.assertHotelNameFree(dto.name, id);
+    }
+    const pinByHand = dto.latitude != null && dto.longitude != null &&
+      (Number(dto.latitude) !== Number(hotel.latitude) || Number(dto.longitude) !== Number(hotel.longitude));
+    const renamedOrMoved = (dto.name !== undefined && dto.name !== hotel.name) || (dto.zoneId !== undefined && dto.zoneId !== hotel.zoneId);
 
-    return this.prisma.hotel.update({
+    const updated = await this.prisma.hotel.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -435,6 +466,10 @@ export class LocationsService {
       },
       include: { zone: true },
     });
+    // A pin someone set is trusted (never moved); a rename / zone change is re-checked.
+    if (pinByHand) await this.pins.markManual(id);
+    else if (renamedOrMoved) this.pins.verifyLater(id);
+    return updated;
   }
 
   // ─── Soft-Delete Methods ──────────────────────────────────
@@ -865,14 +900,29 @@ export class LocationsService {
         });
       });
 
+      const taken = new Set(
+        (await this.prisma.hotel.findMany({ where: { deletedAt: null }, select: { name: true } })).map((h) => placeNameKey(h.name)),
+      );
+      const created: string[] = [];
       for (const item of hotelItems) {
+        const key = placeNameKey(item.name);
+        if (key && taken.has(key)) {
+          errors.push(`Hotel "${item.name}" already exists — skipped`);
+          continue;
+        }
         try {
-          await this.prisma.hotel.create({ data: item });
+          const h = await this.prisma.hotel.create({ data: item });
+          taken.add(key);
+          created.push(h.id);
           imported++;
         } catch (err: any) {
           errors.push(`Failed hotel "${item.name}": ${err.message}`);
         }
       }
+      // Imported hotels have no pin: find them on Google in the background.
+      void (async () => {
+        for (const id of created) await this.pins.verifyHotel(id);
+      })();
     }
 
     if (imported === 0 && errors.length === 0) {
@@ -905,8 +955,11 @@ export class LocationsService {
         return this.prisma.city.update({ where: { id }, data });
       case 'zone':
         return this.prisma.zone.update({ where: { id }, data });
-      case 'hotel':
-        return this.prisma.hotel.update({ where: { id }, data });
+      case 'hotel': {
+        const hotel = await this.prisma.hotel.update({ where: { id }, data });
+        await this.pins.markManual(id); // a person chose this point
+        return hotel;
+      }
       default:
         throw new BadRequestException(`Unknown location level: ${level}`);
     }
@@ -954,8 +1007,13 @@ export class LocationsService {
     for (const z of zones) {
       items.push({ type: 'zone', id: z.id, name: z.name, searchQuery: z.name, googleType: 'zone' });
     }
+    // Hotels: the pin verifier (name must match Google's place; uncertain ones are listed for review).
     for (const h of hotels) {
-      items.push({ type: 'hotel', id: h.id, name: h.name, searchQuery: h.name, googleType: 'hotel' });
+      const res = await this.pins.verifyHotel(h.id);
+      if (res.status === 'CORRECTED' || res.status === 'VERIFIED') resolved++;
+      else if (res.status === 'REVIEW') {
+        needsReview.push({ type: 'hotel', id: h.id, name: h.name, candidates: res.candidates.slice(0, 5) });
+      }
     }
 
     for (const item of items) {

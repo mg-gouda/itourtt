@@ -52,7 +52,16 @@ import {
 interface HotelNode {
   id: string;
   name: string;
+  /** Google pin check: VERIFIED | CORRECTED | REVIEW | MANUAL (null = not checked yet). */
+  pinStatus?: string | null;
+  pinNote?: string | null;
 }
+
+/** Hotel pin badge: only the states someone should notice. */
+const PIN_BADGE: Record<string, { label: string; className: string }> = {
+  REVIEW: { label: "Check pin", className: "border-amber-400 text-amber-600 dark:text-amber-400" },
+  CORRECTED: { label: "Pin fixed", className: "border-sky-400 text-sky-600 dark:text-sky-400" },
+};
 
 interface ZoneNode {
   id: string;
@@ -159,10 +168,12 @@ function TreeRow({
   childLabel,
   onEdit,
   onDelete,
+  pin,
 }: {
   icon: React.ElementType;
   name: string;
   code?: string;
+  pin?: { status?: string | null; note?: string | null };
   depth: number;
   hasChildren: boolean;
   expanded: boolean;
@@ -252,6 +263,13 @@ function TreeRow({
           {code}
         </Badge>
       )}
+
+      {/* Hotel GPS pin check */}
+      {pin?.status && PIN_BADGE[pin.status] && (
+        <Badge variant="outline" title={pin.note || undefined} className={`ml-1 text-[10px] ${PIN_BADGE[pin.status].className}`}>
+          {PIN_BADGE[pin.status].label}
+        </Badge>
+      )}
     </div>
   );
 }
@@ -280,6 +298,7 @@ export default function LocationsPage() {
   const [countries, setCountries] = useState<CountryNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [onlyPinsToCheck, setOnlyPinsToCheck] = useState(false);
 
   // Import/Export state
   const importFileRef = useRef<HTMLInputElement>(null);
@@ -397,8 +416,10 @@ export default function LocationsPage() {
 
   // ─── Search filter ────────────────────────────────────────
   const searchLower = search.toLowerCase().trim();
+  const filtering = !!searchLower || onlyPinsToCheck;
 
   function matchesSearch(name: string, code?: string): boolean {
+    if (onlyPinsToCheck) return false; // keep only branches that lead to a hotel to check
     if (!searchLower) return true;
     return (
       name.toLowerCase().includes(searchLower) ||
@@ -407,7 +428,15 @@ export default function LocationsPage() {
   }
 
   // Filter tree: keep a node if it or any descendant matches
-  const filteredCountries = !searchLower
+  const pinsToCheck = countries.reduce(
+    (n, c) => n + c.airports.reduce((n2, a) => n2 + a.cities.reduce((n3, ci) => n3 + ci.zones.reduce((n4, z) => n4 + z.hotels.filter((h) => h.pinStatus === "REVIEW").length, 0), 0), 0),
+    0,
+  );
+  const hotelMatches = (h: HotelNode) =>
+    (!onlyPinsToCheck || h.pinStatus === "REVIEW") &&
+    (!searchLower || h.name.toLowerCase().includes(searchLower));
+
+  const filteredCountries = !filtering
     ? countries
     : countries
         .map((country) => {
@@ -417,9 +446,7 @@ export default function LocationsPage() {
                 .map((city) => {
                   const filteredZones = city.zones
                     .map((zone) => {
-                      const filteredHotels = zone.hotels.filter((h) =>
-                        matchesSearch(h.name)
-                      );
+                      const filteredHotels = zone.hotels.filter(hotelMatches);
                       if (filteredHotels.length > 0 || matchesSearch(zone.name))
                         return { ...zone, hotels: filteredHotels };
                       return null;
@@ -449,7 +476,7 @@ export default function LocationsPage() {
 
   // Auto-expand all nodes when searching
   const searchExpanded: Record<string, boolean> = {};
-  if (searchLower) {
+  if (filtering) {
     filteredCountries.forEach((country) => {
       searchExpanded[`country-${country.id}`] = true;
       country.airports.forEach((airport) => {
@@ -464,7 +491,7 @@ export default function LocationsPage() {
     });
   }
 
-  const effectiveExpanded = searchLower ? searchExpanded : expanded;
+  const effectiveExpanded = filtering ? searchExpanded : expanded;
 
   // ─── Open add dialog ──────────────────────────────────────
   function openAdd(level: LocationLevel, parentId: string, parentLabel: string) {
@@ -837,8 +864,9 @@ export default function LocationsPage() {
       {/* Rep/driver status geofence radii */}
       <GeofenceSettingsCard />
 
-      {/* Search filter */}
-      <div className="relative">
+      {/* Search filter + hotels whose GPS pin needs checking */}
+      <div className="flex items-center gap-2">
+      <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder={t("locations.searchPlaceholder") || "Search locations..."}
@@ -853,6 +881,20 @@ export default function LocationsPage() {
           >
             <X className="h-4 w-4" />
           </button>
+        )}
+      </div>
+        {pinsToCheck > 0 && (
+          <Button
+            type="button"
+            size="sm"
+            variant={onlyPinsToCheck ? "default" : "outline"}
+            className="h-9 shrink-0 gap-1.5"
+            title="Hotels whose GPS pin Google could not confirm. Fix the pin (edit the hotel) and the badge goes away."
+            onClick={() => setOnlyPinsToCheck((v) => !v)}
+          >
+            <MapPin className="h-4 w-4" />
+            Pins to check ({pinsToCheck})
+          </Button>
         )}
       </div>
 
@@ -1001,6 +1043,7 @@ export default function LocationsPage() {
                                                 key={hotel.id}
                                                 icon={HotelIcon}
                                                 name={hotel.name}
+                                                pin={{ status: hotel.pinStatus, note: hotel.pinNote }}
                                                 depth={4}
                                                 hasChildren={false}
                                                 expanded={false}
