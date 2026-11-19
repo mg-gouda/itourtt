@@ -1043,10 +1043,11 @@ function useBoardView() {
   return { view, update };
 }
 
-/* ───────────────────── Row colours ───────────────────── */
+/* ───────────────────── Job colour (Cust. Job ID cell) ───────────────────── */
+// Conditional formatting on the Cust. Job ID cell only, driven by the Type picked on the row:
 // Departure = green, Arrival = blue, Cancelled = red (wins over the type); white text on colour.
 
-function rowColor(job: JobRow): string | null {
+function jobColor(job: JobRow): string | null {
   if (job.status === "CANCELLED") return "bg-red-600";
   if (job.serviceType === "DEP") return "bg-green-600";
   if (job.serviceType === "ARR") return "bg-blue-600";
@@ -1321,10 +1322,10 @@ function JobRowComponent({
   onRemove: () => void;
   onSave: () => void;
 }) {
-  const color = rowColor(job);
+  const color = jobColor(job);
   const cell = "border border-border p-0 align-top overflow-hidden";
   const inp = "h-7 w-full rounded-none border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary";
-  const muted = color ? "text-white/80" : "text-muted-foreground";
+  const muted = "text-muted-foreground";
   const zoneList = zoneOptions.map((z) => ({ value: z.id, label: z.name }));
 
   const cells: Record<ColKey, ReactNode> = {
@@ -1464,7 +1465,7 @@ function JobRowComponent({
               onClick={onSave}
               disabled={job.saving}
               title="Save"
-              className={cn("inline-flex h-7 w-7 items-center justify-center", color ? "hover:bg-white/20" : "text-primary hover:bg-primary/10")}
+              className="inline-flex h-7 w-7 items-center justify-center text-primary hover:bg-primary/10"
             >
               {job.saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1474,7 +1475,7 @@ function JobRowComponent({
             </button>
           )}
           {job.saved && (
-            <span className={cn("text-[10px] font-medium", color ? "" : "text-green-600")}>
+            <span className="text-[10px] font-medium text-green-600">
               {job.status === "CANCELLED" ? "Cancelled" : "OK"}
             </span>
           )}
@@ -1482,14 +1483,14 @@ function JobRowComponent({
             <button
               onClick={onRemove}
               title="Remove"
-              className={cn("inline-flex h-7 w-7 items-center justify-center", color ? "hover:bg-white/20" : "text-destructive hover:bg-destructive/10")}
+              className="inline-flex h-7 w-7 items-center justify-center text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
         {job.error && (
-          <p className={cn("truncate px-0.5 text-[9px] leading-tight", color ? "font-semibold" : "text-destructive")} title={job.error}>
+          <p className="truncate px-0.5 text-[9px] leading-tight text-destructive" title={job.error}>
             {job.error}
           </p>
         )}
@@ -1498,15 +1499,18 @@ function JobRowComponent({
   };
 
   return (
-    <tr
-      className={cn(
-        // Coloured rows: white text everywhere in the row (inputs, pickers, placeholders, icons).
-        color && [color, "text-white [&_*]:text-white [&_option]:bg-background [&_option]:text-foreground [&_input::placeholder]:text-white/70 [&_input:disabled]:opacity-100 [&_select:disabled]:opacity-100"],
-        job.error && "outline outline-2 -outline-offset-2 outline-red-500"
-      )}
-    >
+    <tr className={cn(job.error && "outline outline-2 -outline-offset-2 outline-red-500")}>
       {columns.map((key) => (
-        <td key={key} className={cn(cell, key === "actions" && "text-center")}>
+        <td
+          key={key}
+          className={cn(
+            cell,
+            key === "actions" && "text-center",
+            // Only the Cust. Job ID cell carries the job colour, with white text.
+            key === "custJobId" && color &&
+              [color, "text-white [&_*]:text-white [&_input::placeholder]:text-white/70 [&_input:disabled]:opacity-100"],
+          )}
+        >
           {cells[key]}
         </td>
       ))}
