@@ -110,6 +110,8 @@ interface JobRow {
   extraDriverName: string;
   extraDriverPhone: string;
   serviceType: string;
+  /** Route (JobServiceType). Picking one fills Type (its default) and the origin / destination. */
+  jobServiceTypeId: string;
   status?: string; // job status of a saved job (CANCELLED rows are red)
   // location IDs for API
   originAirportId: string;
@@ -124,6 +126,16 @@ interface JobRow {
   saving: boolean;
   savedJobId?: string;
   error?: string;
+}
+
+interface RouteOption {
+  id: string;
+  name: string;
+  defaultServiceType?: string | null;
+  fromZone?: { id: string } | null;
+  toZone?: { id: string } | null;
+  fromAirport?: { id: string } | null;
+  toAirport?: { id: string } | null;
 }
 
 interface CarCard {
@@ -152,6 +164,7 @@ function newJobRow(): JobRow {
     extraDriverName: "",
     extraDriverPhone: "",
     serviceType: "ARR",
+    jobServiceTypeId: "",
     originAirportId: "",
     originZoneId: "",
     originHotelId: "",
@@ -372,6 +385,7 @@ function CarDispatchContent() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [zones, setZones] = useState<LocationOption[]>([]);
+  const [routes, setRoutes] = useState<RouteOption[]>([]);
 
   // State
   const [cards, setCards] = useState<CarCard[]>([]);
@@ -415,6 +429,11 @@ function CarDispatchContent() {
       );
       setSuppliers(supRes.data.data || supRes.data || []);
       setVehicleTypes(typRes.data.data || typRes.data || []);
+      // Routes: a role without route access (e.g. Viewer) still gets the board.
+      api.get("/job-service-types").then(
+        (r) => setRoutes(r.data.data || r.data || []),
+        () => setRoutes([])
+      );
       const rawZones = zoneRes.data.data || zoneRes.data || [];
       setZones(rawZones.map((z: { id: string; name: string; city?: { name: string } }) => ({
         id: z.id,
@@ -510,6 +529,7 @@ function CarDispatchContent() {
         extraDriverName: j.assignment?.externalDriverName || "",
         extraDriverPhone: j.assignment?.externalDriverPhone || "",
         serviceType: j.serviceType || "ARR",
+        jobServiceTypeId: j.jobServiceTypeId || "",
         status: j.status,
         originAirportId: j.originAirportId || "",
         originZoneId: j.originZoneId || "",
@@ -603,13 +623,28 @@ function CarDispatchContent() {
     field: keyof JobRow,
     value: string | boolean | number
   ) => {
+    // A route carries its default type and both ends (System Parameters › Routes).
+    const routeFill = (): Partial<JobRow> => {
+      if (field !== "jobServiceTypeId") return {};
+      const r = routes.find((x) => x.id === value);
+      if (!r) return {};
+      return {
+        ...(r.defaultServiceType && { serviceType: r.defaultServiceType }),
+        originAirportId: r.fromAirport?.id ?? "",
+        originZoneId: r.fromAirport ? "" : r.fromZone?.id ?? "",
+        originHotelId: "",
+        destinationAirportId: r.toAirport?.id ?? "",
+        destinationZoneId: r.toAirport ? "" : r.toZone?.id ?? "",
+        destinationHotelId: "",
+      };
+    };
     setCards((prev) =>
       prev.map((c) =>
         c.vehicle.id === vehicleId
           ? {
               ...c,
               jobs: c.jobs.map((j) =>
-                j.uid === uid ? { ...j, [field]: value } : j
+                j.uid === uid ? { ...j, [field]: value, ...routeFill() } : j
               ),
             }
           : c
@@ -642,10 +677,12 @@ function CarDispatchContent() {
     if (isPastServiceDate(jobDate))
       errors.push("Can't create a job on a past date — switch the board to today or later");
     if (!job.customerId) errors.push("Customer is required");
-    if (!job.originZoneId && !job.originAirportId && !job.originHotelId)
-      errors.push("Origin is required");
-    if (!job.destinationZoneId && !job.destinationAirportId && !job.destinationHotelId)
-      errors.push("Destination is required");
+    if (!job.jobServiceTypeId) errors.push("Route is required");
+    else if (
+      (!job.originZoneId && !job.originAirportId && !job.originHotelId) ||
+      (!job.destinationZoneId && !job.destinationAirportId && !job.destinationHotelId)
+    )
+      errors.push("This route has no From / To — set them in System Parameters › Routes");
     if (errors.length > 0) {
       setCards((prev) =>
         prev.map((c) =>
@@ -681,6 +718,7 @@ function CarDispatchContent() {
       const payload: Record<string, unknown> = {
         bookingChannel: "B2B",
         serviceType: job.serviceType || "ARR",
+        jobServiceTypeId: job.jobServiceTypeId || undefined,
         jobDate: jobDate,
         adultCount: parseInt(job.paxCount) || 1,
         childCount: 0,
@@ -929,6 +967,7 @@ function CarDispatchContent() {
             customerOptions={customerOptions}
             driverOptions={driverOptions}
             zoneOptions={zones}
+            routeOptions={routes}
             onAddJob={() => addJobRow(card.vehicle.id)}
             onUpdateField={(uid, field, value) =>
               updateJobField(card.vehicle.id, uid, field, value)
@@ -1041,15 +1080,14 @@ function CarDispatchContent() {
 // cards per row, hidden columns and column widths.
 
 type ColKey =
-  | "customer" | "booking" | "custJobId" | "origin" | "destination" | "time"
+  | "customer" | "booking" | "custJobId" | "route" | "time"
   | "driver" | "custRep" | "extraDriver" | "type" | "pax" | "actions";
 
 const JOB_COLUMNS: { key: ColKey; label: string; width: number; center?: boolean; fixed?: boolean }[] = [
   { key: "customer", label: "Customer", width: 140 },
   { key: "booking", label: "Booking #", width: 80 },
   { key: "custJobId", label: "Cust. Job ID", width: 90 },
-  { key: "origin", label: "Origin", width: 110 },
-  { key: "destination", label: "Destination", width: 110 },
+  { key: "route", label: "Route", width: 200 },
   { key: "time", label: "Time", width: 56 },
   { key: "driver", label: "Driver", width: 130 },
   { key: "custRep", label: "Cust. Rep", width: 100 },
@@ -1179,6 +1217,7 @@ function VehicleCard({
   customerOptions,
   driverOptions,
   zoneOptions,
+  routeOptions,
   onAddJob,
   onUpdateField,
   onRemoveJob,
@@ -1193,6 +1232,7 @@ function VehicleCard({
   customerOptions: { value: string; label: string }[];
   driverOptions: { value: string; label: string }[];
   zoneOptions: LocationOption[];
+  routeOptions: RouteOption[];
   onAddJob: () => void;
   onUpdateField: (uid: string, field: keyof JobRow, value: string | boolean | number) => void;
   onRemoveJob: (uid: string) => void;
@@ -1344,6 +1384,7 @@ function VehicleCard({
                     customerOptions={customerOptions}
                     driverOptions={driverOptions}
                     zoneOptions={zoneOptions}
+                    routeOptions={routeOptions}
                     onUpdate={(field, value) =>
                       onUpdateField(job.uid, field, value)
                     }
@@ -1369,7 +1410,7 @@ function JobRowComponent({
   isSupplierCard,
   customerOptions,
   driverOptions,
-  zoneOptions,
+  routeOptions,
   onUpdate,
   onRemove,
   onSave,
@@ -1381,6 +1422,7 @@ function JobRowComponent({
   customerOptions: { value: string; label: string }[];
   driverOptions: { value: string; label: string }[];
   zoneOptions: LocationOption[];
+  routeOptions: RouteOption[];
   onUpdate: (field: keyof JobRow, value: string | boolean | number) => void;
   onRemove: () => void;
   onSave: () => void;
@@ -1392,7 +1434,7 @@ function JobRowComponent({
   const cell = "border border-border p-0 align-top overflow-hidden";
   const inp = "h-7 w-full rounded-none border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary";
   const muted = "text-muted-foreground";
-  const zoneList = zoneOptions.map((z) => ({ value: z.id, label: z.name }));
+  const routeList = routeOptions.map((r) => ({ value: r.id, label: r.name }));
 
   const cells: Record<ColKey, ReactNode> = {
     customer: (
@@ -1418,21 +1460,12 @@ function JobRowComponent({
         disabled={job.saved}
       />
     ),
-    origin: (
+    route: (
       <ComboSelect
-        options={zoneList}
-        value={job.originZoneId}
-        onChange={(v) => onUpdate("originZoneId", v)}
-        placeholder="Origin..."
-        className="h-7 rounded-none border-0 bg-transparent shadow-none"
-      />
-    ),
-    destination: (
-      <ComboSelect
-        options={zoneList}
-        value={job.destinationZoneId}
-        onChange={(v) => onUpdate("destinationZoneId", v)}
-        placeholder="Dest..."
+        options={routeList}
+        value={job.jobServiceTypeId}
+        onChange={(v) => onUpdate("jobServiceTypeId", v)}
+        placeholder="Route..."
         className="h-7 rounded-none border-0 bg-transparent shadow-none"
       />
     ),

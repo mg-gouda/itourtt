@@ -770,6 +770,8 @@ pay and period totals.
   `arrivals`, `departures` and `cityJobs` (day tours, going, return). The **Cust. Job ID cell** (not
   the row) is coloured from the row's Type: Departure green, Arrival blue, Cancelled red (status wins
   over type), white text; it changes as soon as the Type is picked. Hiding that column hides the colour.
+  Rows take a **Route** (no Origin / Destination columns): picking one fills Type with the route's
+  default and the origin / destination from its From / To; a route without both ends can't be saved.
   A saved, still-open job can be cancelled from the card's Act column (confirmation, then
   `PATCH /traffic-jobs/:id/status` CANCELLED — the same action and permission as the B2B/Online pages). Cards per row
   (2/3), hidden columns and column widths are one per-user setting for the whole board
