@@ -162,10 +162,11 @@
   );
 }
 
-/* Table header text always black in light mode */
+/* Table header text: full-contrast foreground in both themes (near-black on light,
+   near-white on dark). Overrides muted header classes on purpose. */
 :root thead th,
 :root thead td {
-  color: oklch(0.141 0.005 285.823);
+  color: var(--foreground);
 }
 
 /* Table row hover, every body row in the admin area (the public website is left

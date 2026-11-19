@@ -1807,6 +1807,7 @@
   "frontend/src/app/(dashboard)/dashboard/email-settings/page.tsx#default": "SMTP configuration and the test-send button.",
   "frontend/src/app/(dashboard)/dashboard/finance/agent-adjustments/page.tsx#default": "Agent adjustments queue — what lost complaints owe each agent, and the three ways to settle it: a negative invoice line, a credit note, or a waiver.",
   "frontend/src/app/(dashboard)/dashboard/finance/b2c-invoices/page.tsx#default": "B2C guest invoices (`INV-B2C-NNNNN`) and their PDFs.",
+  "frontend/src/app/(dashboard)/dashboard/finance/invoices/new/page.tsx#default": "Create Invoice page (agent: fetch + price jobs, PDF/Excel download; customer: fetch COMPLETED uninvoiced jobs, generate) — replaced the modal on the finance page",
   "frontend/src/app/(dashboard)/dashboard/finance/page.tsx#default": "★ Finance console: fees, agent and customer invoices, payments, collections and the Odoo-ready exports.",
   "frontend/src/app/(dashboard)/dashboard/google-drive/page.tsx#default": "Google Drive connection for evidence storage — connect, test and migrate. An expired grant shows up here.",
   "frontend/src/app/(dashboard)/dashboard/guest-bookings/page.tsx#default": "B2C guest bookings and their conversion into operational jobs.",
