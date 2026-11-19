@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export interface RoutePriceGridData {
-  columns: { header: string; vehicleType: string; vehicleTypeId: string }[];
+  columns: { header: string; vehicleType: string; vehicleTypeId: string; note?: string }[];
   routes: { id: string; name: string }[];
   prices: { jobServiceTypeId: string; vehicleTypeId: string; price: number }[];
 }
@@ -86,6 +86,7 @@ export function RoutePriceGrid({
                 <TableHead key={c.vehicleTypeId} className="text-right w-28">
                   {c.header}
                   {c.header !== c.vehicleType && <div className="text-[10px] font-normal text-muted-foreground">{c.vehicleType}</div>}
+                  {c.note && <div className="text-[10px] font-normal text-muted-foreground">{c.note}</div>}
                 </TableHead>
               ))}
             </TableRow>

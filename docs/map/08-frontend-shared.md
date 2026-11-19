@@ -297,7 +297,7 @@ Tap-to-navigate link component for rep/driver portal route labels.
 
 ### `route-price-grid.tsx`
 
-`frontend/src/components/route-price-grid.tsx` · 133 lines
+`frontend/src/components/route-price-grid.tsx` · 134 lines
 
 Shared editable route × car-type price grid (supplier lists, customer prices, driver tips).
 
@@ -306,7 +306,7 @@ Shared editable route × car-type price grid (supplier lists, customer prices, d
 | `RoutePriceGridData` | type | 13 | Columns, routes and prices the grid renders. |
 | `RoutePriceCellEdit` | type | 18 | An edited grid cell sent to the API (null clears). |
 | `RoutePriceGrid` | function | 26 | Searchable route rows × car-type inputs with dirty tracking and Save. |
-| `downloadXlsx` | function | 124 | Saves a blob xlsx response under a file name. |
+| `downloadXlsx` | function | 125 | Saves a blob xlsx response under a file name. |
 
 ### `searchable-combobox.tsx`
 

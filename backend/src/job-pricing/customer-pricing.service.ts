@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { loadPriceFallback, priceTypes } from '../common/utils/route-price-sheet.util.js';
 
 export type PriceSyncResult = 'PRICED' | 'NO_PRICE' | 'MANUAL' | 'INVOICED' | 'NOT_B2B';
 
@@ -31,6 +32,7 @@ function pricedVehicleTypeId(job: any): string | null {
  * - syncJobPrice keeps TrafficJob.priceAmount in step on create / import / route or car change,
  *   until a person types a price (priceManual) or the job is on an invoice — then it stops.
  * - The driver tip billed to customers is one global table (DriverTipRate), same key.
+ * - A car type without a price of its own uses its fallback type's (H-1 → Hi Ace 7; PRICE_FALLBACK_TYPE).
  */
 @Injectable()
 export class CustomerPricingService {
@@ -49,20 +51,22 @@ export class CustomerPricingService {
       if (job.priceManual) return 'MANUAL';
       if (job._count.invoiceLines > 0) return 'INVOICED';
 
-      const vehicleTypeId = pricedVehicleTypeId(job);
-      const item =
-        job.jobServiceTypeId && vehicleTypeId
-          ? await this.prisma.customerRoutePrice.findUnique({
-              where: {
-                customerId_jobServiceTypeId_vehicleTypeId: {
-                  customerId: job.customerId,
-                  jobServiceTypeId: job.jobServiceTypeId,
-                  vehicleTypeId,
-                },
+      let item: { price: any; currency: any } | null = null;
+      if (job.jobServiceTypeId) {
+        for (const vehicleTypeId of priceTypes(pricedVehicleTypeId(job), await loadPriceFallback(this.prisma))) {
+          item = await this.prisma.customerRoutePrice.findUnique({
+            where: {
+              customerId_jobServiceTypeId_vehicleTypeId: {
+                customerId: job.customerId,
+                jobServiceTypeId: job.jobServiceTypeId,
+                vehicleTypeId,
               },
-              select: { price: true, currency: true },
-            })
-          : null;
+            },
+            select: { price: true, currency: true },
+          });
+          if (item) break;
+        }
+      }
       await this.prisma.trafficJob.update({
         where: { id: trafficJobId },
         data: item ? { priceAmount: item.price, priceCurrency: item.currency } : { priceAmount: null },
@@ -79,20 +83,28 @@ export class CustomerPricingService {
    * route price; tip = the global driver-tip rate. Missing → 0.
    */
   async quote(customerId: string, jobIds: string[]): Promise<Map<string, { transferPrice: number; driverTip: number }>> {
-    const [jobs, prices, tips] = await Promise.all([
+    const [jobs, prices, tips, fallback] = await Promise.all([
       this.prisma.trafficJob.findMany({ where: { id: { in: jobIds } }, select: JOB_PRICING_SELECT }),
       this.prisma.customerRoutePrice.findMany({ where: { customerId }, select: { jobServiceTypeId: true, vehicleTypeId: true, price: true } }),
       this.prisma.driverTipRate.findMany({ select: { jobServiceTypeId: true, vehicleTypeId: true, amount: true } }),
+      loadPriceFallback(this.prisma),
     ]);
     const key = (r: string | null, v: string | null) => `${r}|${v}`;
     const priceMap = new Map(prices.map((p) => [key(p.jobServiceTypeId, p.vehicleTypeId), Number(p.price)]));
     const tipMap = new Map(tips.map((t) => [key(t.jobServiceTypeId, t.vehicleTypeId), Number(t.amount)]));
+    const find = (m: Map<string, number>, route: string | null, types: string[]) => {
+      for (const t of types) {
+        const v = m.get(key(route, t));
+        if (v !== undefined) return v;
+      }
+      return undefined;
+    };
     const out = new Map<string, { transferPrice: number; driverTip: number }>();
     for (const j of jobs) {
-      const k = key(j.jobServiceTypeId, pricedVehicleTypeId(j));
+      const types = priceTypes(pricedVehicleTypeId(j), fallback);
       out.set(j.id, {
-        transferPrice: j.priceAmount != null ? Number(j.priceAmount) : priceMap.get(k) ?? 0,
-        driverTip: tipMap.get(k) ?? 0,
+        transferPrice: j.priceAmount != null ? Number(j.priceAmount) : find(priceMap, j.jobServiceTypeId, types) ?? 0,
+        driverTip: find(tipMap, j.jobServiceTypeId, types) ?? 0,
       });
     }
     return out;

@@ -41,6 +41,8 @@ const CAR_CATEGORY_TO_VEHICLE_TYPE: Record<string, string> = {
   hiace15: 'Hi Ace',
   hiace: 'Hi Ace',
   hiace7: 'Minivan 7',
+  'h-1': 'H-1',
+  h1: 'H-1',
   coaster: 'Coaster',
   coster: 'Coaster',
   bus: 'Bus',

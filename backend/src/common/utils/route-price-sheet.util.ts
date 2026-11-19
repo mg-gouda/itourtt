@@ -7,13 +7,38 @@ import { normalizeImportName } from './import-name.util.js';
 // and driver tips (Driver Tips). One home, so the three can never drift.
 
 /** Car-type columns of the traffic sheets, in sheet order → the system vehicle type each prices. */
-export const PRICE_COLUMNS = [
+export const PRICE_COLUMNS: readonly { header: string; vehicleType: string; note?: string }[] = [
   { header: 'Limo', vehicleType: 'Sedan' },
   { header: 'Hi Ace 7', vehicleType: 'Minivan 7' },
   { header: 'Hi Ace 15', vehicleType: 'Hi Ace' },
+  { header: 'H-1', vehicleType: 'H-1', note: 'empty → Hi Ace 7' },
   { header: 'Coaster', vehicleType: 'Coaster' },
   { header: 'Bus', vehicleType: 'Bus' },
-] as const;
+];
+
+/**
+ * A car type with no price of its own on a route is priced as another type. Only the Driver Tips
+ * sheet has an H-1 column; customer prices, supplier lists and the own-car list price H-1 as Hi Ace 7.
+ */
+export const PRICE_FALLBACK_TYPE: Record<string, string> = { 'H-1': 'Minivan 7' };
+
+/** vehicleTypeId → the vehicleTypeId it falls back to (PRICE_FALLBACK_TYPE, by name). */
+export async function loadPriceFallback(prisma: any): Promise<Map<string, string>> {
+  const types: { id: string; name: string }[] = await prisma.vehicleType.findMany({ select: { id: true, name: true } });
+  const idOf = new Map(types.map((t) => [t.name, t.id]));
+  const out = new Map<string, string>();
+  for (const [from, to] of Object.entries(PRICE_FALLBACK_TYPE)) {
+    if (idOf.has(from) && idOf.has(to)) out.set(idOf.get(from)!, idOf.get(to)!);
+  }
+  return out;
+}
+
+/** The car types to try for a price, in order: the type itself, then its fallback. */
+export function priceTypes(vehicleTypeId: string | null, fallback: Map<string, string>): string[] {
+  if (!vehicleTypeId) return [];
+  const fb = fallback.get(vehicleTypeId);
+  return fb ? [vehicleTypeId, fb] : [vehicleTypeId];
+}
 
 /** English half of a route name ("ARR-HRG | وصول داخلي" → "ARR-HRG") — the sheets' OPERATION. */
 export function routeCode(name: string): string {
@@ -49,8 +74,16 @@ export async function loadRouteIndex(prisma: any): Promise<(operation: string) =
   };
 }
 
-/** First sheet whose header row contains every required header (normalised). */
-export function findSheet(buffer: Buffer, required: string[]): { grid: any[][]; headerIdx: number; header: string[] } {
+/**
+ * First sheet whose header row contains every required header (normalised) and none of the
+ * `forbid` headers. Sheets whose name matches `prefer` are tried first — the traffic workbook holds
+ * several OPERATION sheets (customer prices, supplier lists, driver tips) side by side.
+ */
+export function findSheet(
+  buffer: Buffer,
+  required: string[],
+  opts: { prefer?: RegExp; forbid?: string[] } = {},
+): { grid: any[][]; headerIdx: number; header: string[] } {
   let wb: XLSX.WorkBook;
   try {
     wb = XLSX.read(buffer, { type: 'buffer' });
@@ -58,11 +91,15 @@ export function findSheet(buffer: Buffer, required: string[]): { grid: any[][]; 
     throw new BadRequestException('Could not read the file');
   }
   const want = required.map((h) => normalizeImportName(h));
-  for (const n of wb.SheetNames) {
+  const forbid = (opts.forbid || []).map((h) => normalizeImportName(h));
+  const names = opts.prefer
+    ? [...wb.SheetNames.filter((n) => opts.prefer!.test(n)), ...wb.SheetNames.filter((n) => !opts.prefer!.test(n))]
+    : wb.SheetNames;
+  for (const n of names) {
     const grid = XLSX.utils.sheet_to_json<any[]>(wb.Sheets[n], { header: 1, raw: true, defval: null });
     const headerIdx = grid.findIndex((r) => {
       const cells = (r || []).map((c) => normalizeImportName(c));
-      return want.every((w) => cells.includes(w));
+      return want.every((w) => cells.includes(w)) && !forbid.some((f) => cells.includes(f));
     });
     if (headerIdx !== -1) return { grid, headerIdx, header: grid[headerIdx].map((c) => normalizeImportName(c)) };
   }
@@ -75,7 +112,7 @@ export function priceColumnsIn(header: string[], vehicleTypes: { id: string; nam
     ...c,
     idx: header.indexOf(normalizeImportName(c.header)),
     vehicleTypeId: vehicleTypes.find((t) => t.name === c.vehicleType)?.id ?? null,
-  })).filter((c) => c.idx !== -1 && c.vehicleTypeId) as { header: string; vehicleType: string; idx: number; vehicleTypeId: string }[];
+  })).filter((c) => c.idx !== -1 && c.vehicleTypeId) as { header: string; vehicleType: string; note?: string; idx: number; vehicleTypeId: string }[];
 }
 
 /** Workbook buffer with one sheet. */

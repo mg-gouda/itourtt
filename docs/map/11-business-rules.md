@@ -655,8 +655,13 @@ Agents (online channel) keep their own zone price lists — untouched.
 - **Excel in the traffic team's layouts.** Customer prices: `CUST | OPERATION | Limo | Hi Ace 7 |
   Hi Ace 15 | Coaster | Bus` (all customers in one file; CUST matched like the B2B import, incl.
   remembered CUSTOMER aliases). Driver tips: `No. | OPERATION | Limo | Hi Ace 7 | Hi Ace 15 | H-1 |
-  Bus` (H-1 has no vehicle type and is ignored). For a row in the file, a number sets the price and
-  an empty cell clears it.
+  Bus`. For a row in the file, a number sets the price and an empty cell clears it. The tip import
+  prefers a sheet named "…tip…" and never reads a sheet with a CUST or Price List column, so the
+  whole traffic workbook can be uploaded.
+- **H-1** is its own vehicle type (own car 517, 2026-11-19) because the Driver Tips sheet tips it
+  differently from Hi Ace 7. Everywhere else it has no column, so a car type without a price of its
+  own is priced as its fallback (`PRICE_FALLBACK_TYPE`: H-1 → Minivan 7) — customer prices, tips,
+  supplier lists and the own-car cost. Car Category "H-1"/"H1" in the B2B import maps to it.
 - **Sheet spellings of a route** that differ from the route's English code ("ARR-QUSEIR",
   "… 2 WAYS", "ROUND CITY TRIP…") are `ImportNameAlias` rows of kind **ROUTE** whose `targetId` is
   the canonical route *code* (not an id — the ذهاب / عوده pair shares one code). All three sheet

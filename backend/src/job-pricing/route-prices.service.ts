@@ -192,7 +192,9 @@ export class RoutePricesService {
 
   /** Imports a "Driver Tips" sheet (OPERATION + car columns; columns without a vehicle type, e.g. H-1, are ignored). */
   async importTips(buffer: Buffer) {
-    const { grid, headerIdx, header } = findSheet(buffer, ['OPERATION']);
+    // The whole traffic workbook may be uploaded: prefer the "Driver Tips" sheet and never read
+    // the Customer Price List (CUST) or Supplier R-T (Price List) sheets as tips.
+    const { grid, headerIdx, header } = findSheet(buffer, ['OPERATION'], { prefer: /tip/i, forbid: ['CUST', 'Price List'] });
     const opCol = header.indexOf('operation');
     const cols = priceColumnsIn(header, await this.prisma.vehicleType.findMany({ select: { id: true, name: true } }));
     const routesFor = await loadRouteIndex(this.prisma);

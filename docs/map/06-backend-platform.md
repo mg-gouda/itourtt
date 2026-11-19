@@ -166,28 +166,28 @@ B2B Import-from-Excel endpoints; every call uploads the sheet itself. Excluded f
 
 ### B2bExcelImportService
 
-`backend/src/b2b-excel-import/b2b-excel-import.service.ts:123` · service · 16 methods
+`backend/src/b2b-excel-import/b2b-excel-import.service.ts:125` · service · 16 methods
 
 Parses the traffic sheet, resolves each row to route/customer/car/carrier, diffs against existing jobs and writes them.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `parseWorkbook` | pub | 136 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
-| `toIsoDate` | priv | 196 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
-| `loadContext` | priv | 213 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
-| `lookup` | priv | 295 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
-| `resolveRow` | priv | 308 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
-| `summarizeDates` | pub | 451 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
-| `preview` | pub | 464 | — | Date summary of the file, plus evaluated rows for the requested dates. |
-| `evaluate` | priv | 473 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
-| `diff` | priv | 532 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
-| `commit` | pub | 560 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
-| `rowSnapshot` | priv | 627 | — | The sheet values of a row as stored in the Activity Log. |
-| `createJob` | priv | 631 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
-| `updateJob` | priv | 676 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
-| `completeJob` | priv | 728 | `trafficJob` `trafficAssignment` | Completes an imported job: closes every assigned leg, runs reconcileJobStatus (fees), sets COMPLETED directly for supplier-only jobs; never touches CANCELLED/NO_SHOW. |
-| `saveAlias` | pub | 753 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
-| `lookups` | pub | 769 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
+| `parseWorkbook` | pub | 138 | — | Finds the sheet with the Date/Route/CarNo header and returns its job rows (legend and blank lines dropped). |
+| `toIsoDate` | priv | 198 | — | Excel serial / YYYY-MM-DD / D/M/YYYY cell → YYYY-MM-DD. |
+| `loadContext` | priv | 215 | `jobServiceType` `customer` `supplier` `driver` `vehicle` +1 | Loads routes, customers, suppliers (+car types), drivers, vehicles and aliases once per request. |
+| `lookup` | priv | 297 | — | Name → single record id via alias first, then the normalised index; reports ambiguity. |
+| `resolveRow` | priv | 310 | — | One sheet row → route defaults, customer, own car + driver or supplier + car type, or the reasons it is skipped. |
+| `summarizeDates` | pub | 453 | — | Distinct dates in the file with row counts, plus how many rows have no date. |
+| `preview` | pub | 466 | — | Date summary of the file, plus evaluated rows for the requested dates. |
+| `evaluate` | priv | 475 | `trafficJob` | Resolves rows, then pairs them with existing jobs on date + customer + order no in sheet order. |
+| `diff` | priv | 534 | — | Route / car source / car / driver-or-supplier differences between a job and a row, as display labels. |
+| `commit` | pub | 562 | `user` `activityLog` | Re-evaluates the file, creates NEW rows, updates ticked CHANGED rows, writes the summary + per-job Activity Log rows. |
+| `rowSnapshot` | priv | 629 | — | The sheet values of a row as stored in the Activity Log. |
+| `createJob` | priv | 633 | `trafficJob` `trafficAssignment` | Creates one ASSIGNED B2B job + its assignment from a resolved row (past dates allowed). |
+| `updateJob` | priv | 678 | `trafficJob` `trafficAssignment` | Applies route + assignment changes to a matched job, never its status; returns the before-snapshot. |
+| `completeJob` | priv | 730 | `trafficJob` `trafficAssignment` | Completes an imported job: closes every assigned leg, runs reconcileJobStatus (fees), sets COMPLETED directly for supplier-only jobs; never touches CANCELLED/NO_SHOW. |
+| `saveAlias` | pub | 755 | `customer` `supplier` `driver` `importNameAlias` | Upserts an ImportNameAlias after checking the target record exists. |
+| `lookups` | pub | 771 | `customer` `supplier` `driver` | Customer/supplier/active-driver id+name lists for the alias pickers. |
 
 ## `chat`
 
@@ -659,14 +659,14 @@ Evidence photo storage in Google Drive, with a folder per job reference. Every m
 
 ### CustomerPricingService
 
-`backend/src/job-pricing/customer-pricing.service.ts:36` · service · 2 methods
+`backend/src/job-pricing/customer-pricing.service.ts:38` · service · 2 methods
 
 Prices B2B jobs from the customer's route prices; quotes invoice transfer + tip amounts.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `syncJobPrice` | pub | 42 | `trafficJob` `customerRoutePrice` | Re-prices a B2B job unless its price is manual or it is invoiced; never throws. |
-| `quote` | pub | 81 | `trafficJob` `customerRoutePrice` `driverTipRate` | Per job: transfer = own price or route price, tip = global rate (missing → 0). |
+| `syncJobPrice` | pub | 44 | `trafficJob` `customerRoutePrice` | Re-prices a B2B job unless its price is manual or it is invoiced; never throws. |
+| `quote` | pub | 85 | `trafficJob` `customerRoutePrice` `driverTipRate` | Per job: transfer = own price or route price, tip = global rate (missing → 0). |
 
 ### JobPricingService
 
@@ -975,14 +975,14 @@ All persisted configuration: system, company, email, website (B2C), Google Drive
 
 ### SupplierCostingService
 
-`backend/src/supplier-price-lists/supplier-costing.service.ts:21` · service · 2 methods
+`backend/src/supplier-price-lists/supplier-costing.service.ts:23` · service · 2 methods
 
 Keeps each supplier-car job's PRICE_LIST cost in step with its route, supplier and car type.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `syncJobCost` | pub | 27 | `trafficJob` `supplierCost` `supplierPriceListItem` | Replaces a job's unposted PRICE_LIST cost from its supplier's list; never touches posted, manual or complaint rows; never throws. |
-| `ownCarCostTotal` | pub | 87 | `supplierPriceList` | Own-car jobs in a date range priced on the own-car list — report only, never a SupplierCost. |
+| `syncJobCost` | pub | 29 | `trafficJob` `supplierCost` `supplierPriceListItem` | Replaces a job's unposted PRICE_LIST cost from its supplier's list; never touches posted, manual or complaint rows; never throws. |
+| `ownCarCostTotal` | pub | 93 | `supplierPriceList` `supplierPriceListItem` | Own-car jobs in a date range priced on the own-car list — report only, never a SupplierCost. |
 
 ### SupplierPriceListsController
 
@@ -1183,7 +1183,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-173 free functions, constants and types in these modules.
+176 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1231,11 +1231,11 @@ Traffic sheet → B2B jobs: parsing, matching, re-upload diff and commit. Rules 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `SUPPLIER_CAR_NUMBERS` | const | 35 | Sheet car numbers 2000–2004 — supplier cars, not own vehicles. |
-| `AliasKind` | type | 49 | CUSTOMER \| SUPPLIER \| DRIVER — what an import alias points at. |
-| `RowStatus` | type | 51 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
-| `SheetRow` | type | 53 | One parsed traffic-sheet row (Excel row number + column values). |
-| `FieldChange` | type | 81 | One old → new difference shown in the preview. |
-| `RowResult` | type | 87 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
+| `AliasKind` | type | 51 | CUSTOMER \| SUPPLIER \| DRIVER — what an import alias points at. |
+| `RowStatus` | type | 53 | NEW \| CHANGED \| UNCHANGED \| SKIPPED. |
+| `SheetRow` | type | 55 | One parsed traffic-sheet row (Excel row number + column values). |
+| `FieldChange` | type | 83 | One old → new difference shown in the preview. |
+| `RowResult` | type | 89 | A sheet row's verdict: NEW / CHANGED / UNCHANGED / SKIPPED with reasons, warnings and changes. |
 
 ### `backend/src/chat/chat.constants.ts`
 
@@ -1427,12 +1427,15 @@ Shared helpers for the traffic team's route × car-type price sheets (supplier l
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `PRICE_COLUMNS` | const | 10 | Sheet car columns → system vehicle types (Limo→Sedan, Hi Ace 7→Minivan 7, Hi Ace 15→Hi Ace, Coaster, Bus). |
-| `routeCode` | function | 19 | English half of an 'EN \| AR' route name — the sheets' OPERATION. |
-| `parsePrice` | function | 24 | Price cell → number, or null for empty/zero/text. |
-| `loadRouteIndex` | function | 35 | OPERATION → route ids by English code, with ROUTE aliases for sheet spellings. |
-| `findSheet` | function | 53 | First workbook sheet whose header row has all required headers. |
-| `priceColumnsIn` | function | 73 | PRICE_COLUMNS found in a header row, with column index and vehicle type id. |
-| `sheetBuffer` | function | 82 | One-sheet xlsx buffer from rows. |
+| `PRICE_FALLBACK_TYPE` | const | 23 | Car type priced as another type when it has no price of its own (H-1 → Minivan 7) |
+| `loadPriceFallback` | function | 26 | vehicleTypeId → fallback vehicleTypeId map from PRICE_FALLBACK_TYPE (H-1 → Minivan 7) |
+| `priceTypes` | function | 37 | Car types to try for a price, in order: the type itself, then its fallback |
+| `routeCode` | function | 44 | English half of an 'EN \| AR' route name — the sheets' OPERATION. |
+| `parsePrice` | function | 49 | Price cell → number, or null for empty/zero/text. |
+| `loadRouteIndex` | function | 60 | OPERATION → route ids by English code, with ROUTE aliases for sheet spellings. |
+| `findSheet` | function | 82 | First workbook sheet whose header row has all required headers. |
+| `priceColumnsIn` | function | 110 | PRICE_COLUMNS found in a header row, with column index and vehicle type id. |
+| `sheetBuffer` | function | 119 | One-sheet xlsx buffer from rows. |
 
 ### `backend/src/common/utils/service-date.util.ts`
 
@@ -1576,7 +1579,7 @@ B2B customer job prices from route × car-type prices, and invoice quotes.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PriceSyncResult` | type | 4 | Outcome of a job price sync: PRICED / NO_PRICE / MANUAL / INVOICED / NOT_B2B. |
+| `PriceSyncResult` | type | 5 | Outcome of a job price sync: PRICED / NO_PRICE / MANUAL / INVOICED / NOT_B2B. |
 
 ### `backend/src/job-pricing/route-prices.service.ts`
 
@@ -1644,8 +1647,8 @@ Supplier cost from price lists: per-job PRICE_LIST SupplierCost sync and the own
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PRICE_LIST_COST_SOURCE` | const | 5 | SupplierCost.source marking rows owned by the price-list costing (manual/complaint rows are null). |
-| `CostSyncResult` | type | 7 | Outcome of a job cost sync: COSTED / NO_PRICE / NO_PRICE_LIST / NOT_SUPPLIER / POSTED. |
+| `PRICE_LIST_COST_SOURCE` | const | 6 | SupplierCost.source marking rows owned by the price-list costing (manual/complaint rows are null). |
+| `CostSyncResult` | type | 8 | Outcome of a job cost sync: COSTED / NO_PRICE / NO_PRICE_LIST / NOT_SUPPLIER / POSTED. |
 
 ### `backend/src/supplier-price-lists/supplier-price-lists.service.ts`
 
