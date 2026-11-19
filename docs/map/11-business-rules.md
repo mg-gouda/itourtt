@@ -725,6 +725,17 @@ Agents (online channel) keep their own zone price lists — untouched.
   (`amount == tariffAmount`). Posted fees, manual fees (`tariffAmount` null) and complaint deductions
   (negative) are never touched.
 
+## Editing grids — DataSheet (Access-style datasheet)
+
+Every tabular editing screen uses `frontend/src/components/data-sheet.tsx` (price grids via
+`route-price-grid.tsx`: customer prices, supplier price lists, driver tariffs, driver tips; Car Dispatch
+cards). Keyboard: arrows / Tab / Enter move (Enter = next field, Access-style), typing or F2 edits, Esc
+cancels, Delete clears, Shift extends a range, Ctrl+C / Ctrl+V copy / paste blocks with Excel (pasting
+past the last row creates rows where the screen allows new rows). Down on the last row reaches the ✱
+new-record row. **A row saves when you leave it** (`onRowLeave`) and the screen's Save button saves
+everything pending; a failed save keeps the edits and marks the row ⚠. Read-only report tables are not
+DataSheets.
+
 ## References
 
 - `traffic-jobs.service.ts › generateInternalRef` — `PREFIX-nnnn`, prefix from the company initials.
@@ -794,6 +805,8 @@ pay and period totals.
   `arrivals`, `departures` and `cityJobs` (day tours, going, return). The **Cust. Job ID cell** (not
   the row) is coloured from the row's Type: Departure green, Arrival blue, Cancelled red (status wins
   over type), white text; it changes as soon as the Type is picked. Hiding that column hides the colour.
+  Each card is a DataSheet (below): type in the ✱ row to add a job, a new row is saved to the B2B pool
+  when you leave it; saved jobs are read-only there. Cust. Rep and Extra Driver are name + phone columns.
   Rows take a **Route** (no Origin / Destination columns): picking one fills Type with the route's
   default and the origin / destination from its From / To; a route without both ends can't be saved.
   A saved, still-open job can be cancelled from the card's Act column (confirmation, then

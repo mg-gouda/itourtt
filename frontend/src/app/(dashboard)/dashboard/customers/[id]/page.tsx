@@ -87,6 +87,7 @@ export default function CustomerDetailPage({
       await fetchPriceList();
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Failed to save prices");
+      throw e; // the grid keeps the edits pending
     }
   }
 

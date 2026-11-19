@@ -123,11 +123,14 @@ export default function SupplierPriceListsPage() {
     if (!grid) return;
     try {
       const { data } = await api.put(`/supplier-price-lists/${grid.list.id}/prices`, { cells });
-      toast.success(`Saved ${data.data.saved} price(s)${data.data.cleared ? `, cleared ${data.data.cleared}` : ""}`);
-      setReport(data.data.recalc);
+      const rc = data.data.recalc;
+      toast.success(`Saved ${data.data.saved} price(s)${data.data.cleared ? `, cleared ${data.data.cleared}` : ""} · ${rc.costed} job(s) re-costed`);
+      // Rows save as you leave them: only interrupt when a posted cost is affected.
+      if (rc.postedDifferences.length) setReport(rc);
       await refresh();
     } catch (e) {
       toast.error(errMsg(e));
+      throw e; // the grid keeps the edits pending
     }
   };
 

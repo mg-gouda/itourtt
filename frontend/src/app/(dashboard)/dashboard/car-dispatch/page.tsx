@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { toast } from "sonner";
@@ -48,6 +48,7 @@ import {
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
+import { DataSheet, type DSColumn } from "@/components/data-sheet";
 
 /* ────────────────────────────── Types ────────────────────────────── */
 
@@ -624,20 +625,7 @@ function CarDispatchContent() {
     value: string | boolean | number
   ) => {
     // A route carries its default type and both ends (System Parameters › Routes).
-    const routeFill = (): Partial<JobRow> => {
-      if (field !== "jobServiceTypeId") return {};
-      const r = routes.find((x) => x.id === value);
-      if (!r) return {};
-      return {
-        ...(r.defaultServiceType && { serviceType: r.defaultServiceType }),
-        originAirportId: r.fromAirport?.id ?? "",
-        originZoneId: r.fromAirport ? "" : r.fromZone?.id ?? "",
-        originHotelId: "",
-        destinationAirportId: r.toAirport?.id ?? "",
-        destinationZoneId: r.toAirport ? "" : r.toZone?.id ?? "",
-        destinationHotelId: "",
-      };
-    };
+    const routeFill = (): Partial<JobRow> => (field === "jobServiceTypeId" ? routeEnds(routes, String(value)) : {});
     setCards((prev) =>
       prev.map((c) =>
         c.vehicle.id === vehicleId
@@ -649,6 +637,26 @@ function CarDispatchContent() {
             }
           : c
       )
+    );
+  };
+
+  // Datasheet ✱ row / Excel paste: new job rows from column values (see COLUMN_FIELD).
+  const createJobRows = (vehicleId: string, values: Record<string, string>[]) => {
+    setCards((prev) =>
+      prev.map((c) => {
+        if (c.vehicle.id !== vehicleId) return c;
+        const created = values.map((v) => {
+          let row = newJobRow();
+          for (const [col, raw] of Object.entries(v)) {
+            const field = COLUMN_FIELD[col as ColKey];
+            if (!field) continue;
+            const value = field === "pickUpTime" ? normTime(raw) : raw;
+            row = { ...row, [field]: value, ...(field === "jobServiceTypeId" ? routeEnds(routes, value) : {}) };
+          }
+          return row;
+        });
+        return { ...c, jobs: [...c.jobs, ...created] };
+      })
     );
   };
 
@@ -966,9 +974,9 @@ function CarDispatchContent() {
             onViewChange={updateView}
             customerOptions={customerOptions}
             driverOptions={driverOptions}
-            zoneOptions={zones}
             routeOptions={routes}
             onAddJob={() => addJobRow(card.vehicle.id)}
+            onCreateRows={(values) => createJobRows(card.vehicle.id, values)}
             onUpdateField={(uid, field, value) =>
               updateJobField(card.vehicle.id, uid, field, value)
             }
@@ -1080,8 +1088,45 @@ function CarDispatchContent() {
 // cards per row, hidden columns and column widths.
 
 type ColKey =
-  | "customer" | "booking" | "custJobId" | "route" | "time"
-  | "driver" | "custRep" | "extraDriver" | "type" | "pax" | "actions";
+  | "customer" | "booking" | "custJobId" | "route" | "time" | "driver"
+  | "custRepName" | "custRepMobile" | "extraDriverName" | "extraDriverPhone" | "type" | "pax" | "actions";
+
+/** Datasheet column → JobRow field. */
+const COLUMN_FIELD: Partial<Record<ColKey, keyof JobRow>> = {
+  customer: "customerId",
+  custJobId: "customerJobId",
+  route: "jobServiceTypeId",
+  time: "pickUpTime",
+  driver: "driverId",
+  custRepName: "custRepName",
+  custRepMobile: "custRepMobile",
+  extraDriverName: "extraDriverName",
+  extraDriverPhone: "extraDriverPhone",
+  type: "serviceType",
+  pax: "paxCount",
+};
+
+/** "930" / "0930" / "9:30" → "09:30". */
+function normTime(v: string): string {
+  const t = v.trim();
+  const m = t.match(/^(\d{1,2})[:.]?(\d{2})$/);
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : t;
+}
+
+/** A route's default type and both ends, copied onto the job row when it is picked. */
+function routeEnds(routes: RouteOption[], id: string): Partial<JobRow> {
+  const r = routes.find((x) => x.id === id);
+  if (!r) return {};
+  return {
+    ...(r.defaultServiceType && { serviceType: r.defaultServiceType }),
+    originAirportId: r.fromAirport?.id ?? "",
+    originZoneId: r.fromAirport ? "" : r.fromZone?.id ?? "",
+    originHotelId: "",
+    destinationAirportId: r.toAirport?.id ?? "",
+    destinationZoneId: r.toAirport ? "" : r.toZone?.id ?? "",
+    destinationHotelId: "",
+  };
+}
 
 const JOB_COLUMNS: { key: ColKey; label: string; width: number; center?: boolean; fixed?: boolean }[] = [
   { key: "customer", label: "Customer", width: 140 },
@@ -1090,14 +1135,15 @@ const JOB_COLUMNS: { key: ColKey; label: string; width: number; center?: boolean
   { key: "route", label: "Route", width: 200 },
   { key: "time", label: "Time", width: 56 },
   { key: "driver", label: "Driver", width: 130 },
-  { key: "custRep", label: "Cust. Rep", width: 100 },
-  { key: "extraDriver", label: "Extra Driver", width: 100 },
+  { key: "custRepName", label: "Cust. Rep", width: 100 },
+  { key: "custRepMobile", label: "Rep Mobile", width: 96 },
+  { key: "extraDriverName", label: "Extra Driver", width: 100 },
+  { key: "extraDriverPhone", label: "Driver Phone", width: 96 },
   { key: "type", label: "Type", width: 90 },
   { key: "pax", label: "Pax", width: 44, center: true },
   { key: "actions", label: "Act", width: 64, center: true, fixed: true },
 ];
 
-const MIN_COL_WIDTH = 40;
 const VIEW_PREF_KEY = "car_dispatch_view";
 
 interface BoardView {
@@ -1216,9 +1262,9 @@ function VehicleCard({
   onViewChange,
   customerOptions,
   driverOptions,
-  zoneOptions,
   routeOptions,
   onAddJob,
+  onCreateRows,
   onUpdateField,
   onRemoveJob,
   onSaveJob,
@@ -1231,9 +1277,9 @@ function VehicleCard({
   onViewChange: (patch: Partial<BoardView>, persist?: boolean) => void;
   customerOptions: { value: string; label: string }[];
   driverOptions: { value: string; label: string }[];
-  zoneOptions: LocationOption[];
   routeOptions: RouteOption[];
   onAddJob: () => void;
+  onCreateRows: (values: Record<string, string>[]) => void;
   onUpdateField: (uid: string, field: keyof JobRow, value: string | boolean | number) => void;
   onRemoveJob: (uid: string) => void;
   onSaveJob: (uid: string) => void;
@@ -1247,25 +1293,72 @@ function VehicleCard({
   const columns = JOB_COLUMNS.filter((c) => c.fixed || !view.hidden.includes(c.key));
   const widthOf = (c: (typeof JOB_COLUMNS)[number]) => view.widths[c.key] ?? c.width;
 
-  // Drag the right edge of a header to resize that column (all cards follow).
-  function startResize(e: ReactMouseEvent, key: ColKey, startWidth: number) {
-    e.preventDefault();
-    const startX = e.clientX;
-    let width = startWidth;
-    const onMove = (ev: MouseEvent) => {
-      width = Math.max(MIN_COL_WIDTH, Math.round(startWidth + ev.clientX - startX));
-      onViewChange({ widths: { ...view.widths, [key]: width } }, false);
-    };
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      document.body.classList.remove("cursor-col-resize", "select-none");
-      onViewChange({ widths: { ...view.widths, [key]: width } }, true);
-    };
-    document.body.classList.add("cursor-col-resize", "select-none");
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }
+  const typeOptions = SERVICE_TYPE_DROPDOWN_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
+  const routeList = routeOptions.map((r) => ({ value: r.id, label: r.name }));
+  const open = (j: JobRow) => !j.saved; // saved jobs are read-only on the board
+
+  const dsColumns: DSColumn<JobRow>[] = columns.map((c): DSColumn<JobRow> => {
+    const base = { key: c.key, title: c.label, width: widthOf(c), align: c.center ? ("center" as const) : undefined };
+    switch (c.key) {
+      case "customer":
+        return { ...base, type: "select", options: customerOptions, get: (j) => j.customerId, editable: open };
+      case "booking":
+        return { ...base, type: "readonly", get: (j) => j.bookingNumber, display: (j) => j.bookingNumber || <span className="italic">Auto</span> };
+      case "custJobId":
+        return {
+          ...base,
+          get: (j) => j.customerJobId,
+          editable: open,
+          // Conditional formatting: the job colour (Departure / Arrival / Cancelled), white text.
+          cellClassName: (j) => {
+            const color = jobColor(j);
+            return color ? `${color} text-white` : undefined;
+          },
+        };
+      case "route":
+        return { ...base, type: "select", options: routeList, get: (j) => j.jobServiceTypeId, editable: open };
+      case "time":
+        return { ...base, get: (j) => j.pickUpTime, editable: open, placeholder: "HH:MM" };
+      case "driver":
+        return isSupplier
+          ? { ...base, type: "readonly", get: () => "", display: () => <span className="italic">External</span> }
+          : { ...base, type: "select", options: driverOptions, get: (j) => j.driverId, editable: open };
+      case "type":
+        return { ...base, type: "select", options: typeOptions, get: (j) => j.serviceType, editable: open };
+      case "pax":
+        return { ...base, type: "number", get: (j) => j.paxCount, editable: open };
+      case "actions":
+        return {
+          ...base,
+          type: "readonly",
+          get: () => "",
+          display: (j) => (
+            <span className="flex items-center justify-center gap-1">
+              {j.saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : j.saved ? (
+                <span className={cn("text-[10px] font-medium", j.status === "CANCELLED" ? "text-red-600" : "text-green-600")}>
+                  {j.status === "CANCELLED" ? "CXL" : "OK"}
+                </span>
+              ) : (
+                <button type="button" title="Remove row" onClick={() => onRemoveJob(j.uid)} className="text-destructive hover:opacity-70">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {j.saved && j.savedJobId && onCancelJob && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(j.status ?? "") && (
+                <button type="button" title="Cancel job" onClick={() => onCancelJob(j)} className="text-destructive hover:opacity-70">
+                  <Ban className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </span>
+          ),
+        };
+      default: {
+        const field = COLUMN_FIELD[c.key]!;
+        return { ...base, get: (j) => String(j[field] ?? ""), editable: open };
+      }
+    }
+  });
 
   return (
     <Card
@@ -1335,294 +1428,30 @@ function VehicleCard({
         </div>
       </CardHeader>
 
-      {/* ─── Jobs Table ─── */}
+      {/* ─── Jobs datasheet (Access-style: ✱ row adds a job, a row saves when you leave it) ─── */}
       <CardContent className="p-0">
-        {jobs.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-            No jobs yet — click &quot;Add Job&quot; to start
-          </div>
-        ) : (
-          <div className="overflow-x-auto [overflow-y:clip]">
-            <table
-              className="border-collapse text-xs"
-              style={{ tableLayout: "fixed", width: columns.reduce((s, c) => s + widthOf(c), 0), minWidth: "100%" }}
-            >
-              <colgroup>
-                {columns.map((c) => (
-                  <col key={c.key} style={{ width: widthOf(c) }} />
-                ))}
-              </colgroup>
-              <thead>
-                <tr className="bg-muted/50">
-                  {columns.map((c) => (
-                    <th
-                      key={c.key}
-                      className={cn(
-                        "relative truncate border border-border px-1 py-1 font-semibold text-xs",
-                        c.center ? "text-center" : "text-left"
-                      )}
-                    >
-                      {c.label}
-                      <span
-                        role="separator"
-                        aria-orientation="vertical"
-                        title="Drag to resize"
-                        onMouseDown={(e) => startResize(e, c.key, widthOf(c))}
-                        className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none hover:bg-primary/40"
-                      />
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {jobs.map((job) => (
-                  <JobRowComponent
-                    key={job.uid}
-                    job={job}
-                    columns={columns.map((c) => c.key)}
-                    isSupplierCard={isSupplier}
-                    customerOptions={customerOptions}
-                    driverOptions={driverOptions}
-                    zoneOptions={zoneOptions}
-                    routeOptions={routeOptions}
-                    onUpdate={(field, value) =>
-                      onUpdateField(job.uid, field, value)
-                    }
-                    onRemove={() => onRemoveJob(job.uid)}
-                    onSave={() => onSaveJob(job.uid)}
-                    onCancel={onCancelJob ? () => onCancelJob(job) : undefined}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataSheet
+          rows={jobs}
+          rowKey={(j) => j.uid}
+          columns={dsColumns}
+          dense
+          maxHeight="none"
+          className="rounded-none border-0"
+          onChange={(j, col, value) => {
+            const field = COLUMN_FIELD[col as ColKey];
+            if (field) onUpdateField(j.uid, field, field === "pickUpTime" ? normTime(value) : value);
+          }}
+          onCreateRows={onCreateRows}
+          onRowLeave={(j) => {
+            if (!j.saved && !j.saving && (j.customerId || j.jobServiceTypeId || j.customerJobId)) onSaveJob(j.uid);
+          }}
+          onDeleteRows={(rs) => rs.filter((j) => !j.saved).forEach((j) => onRemoveJob(j.uid))}
+          isDirty={(j) => !j.saved}
+          rowError={(j) => j.error}
+          onResize={(key, width, done) => onViewChange({ widths: { ...view.widths, [key]: width } }, done)}
+          emptyText="No jobs yet — type in the ✱ row or click Add Job"
+        />
       </CardContent>
     </Card>
-  );
-}
-
-/* ───────────────────── Job Row Component ───────────────────── */
-
-function JobRowComponent({
-  job,
-  columns,
-  isSupplierCard,
-  customerOptions,
-  driverOptions,
-  routeOptions,
-  onUpdate,
-  onRemove,
-  onSave,
-  onCancel,
-}: {
-  job: JobRow;
-  columns: ColKey[];
-  isSupplierCard: boolean;
-  customerOptions: { value: string; label: string }[];
-  driverOptions: { value: string; label: string }[];
-  zoneOptions: LocationOption[];
-  routeOptions: RouteOption[];
-  onUpdate: (field: keyof JobRow, value: string | boolean | number) => void;
-  onRemove: () => void;
-  onSave: () => void;
-  onCancel?: () => void;
-}) {
-  const color = jobColor(job);
-  // Saved jobs that are still open can be cancelled from the card.
-  const cancellable = job.saved && !!job.savedJobId && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(job.status ?? "");
-  const cell = "border border-border p-0 align-top overflow-hidden";
-  const inp = "h-7 w-full rounded-none border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary";
-  const muted = "text-muted-foreground";
-  const routeList = routeOptions.map((r) => ({ value: r.id, label: r.name }));
-
-  const cells: Record<ColKey, ReactNode> = {
-    customer: (
-      <ComboSelect
-        options={customerOptions}
-        value={job.customerId}
-        onChange={(v) => onUpdate("customerId", v)}
-        placeholder="Customer..."
-        className="h-7 rounded-none border-0 bg-transparent shadow-none"
-      />
-    ),
-    booking: job.bookingNumber ? (
-      <span className="block truncate px-1 text-center font-mono text-[11px] leading-7">{job.bookingNumber}</span>
-    ) : (
-      <span className={cn("block px-1 text-center text-[10px] italic leading-7", muted)}>Auto</span>
-    ),
-    custJobId: (
-      <Input
-        value={job.customerJobId}
-        onChange={(e) => onUpdate("customerJobId", e.target.value)}
-        placeholder="Cust. Job ID..."
-        className={inp}
-        disabled={job.saved}
-      />
-    ),
-    route: (
-      <ComboSelect
-        options={routeList}
-        value={job.jobServiceTypeId}
-        onChange={(v) => onUpdate("jobServiceTypeId", v)}
-        placeholder="Route..."
-        className="h-7 rounded-none border-0 bg-transparent shadow-none"
-      />
-    ),
-    time: (
-      <Input
-        type="text"
-        value={job.pickUpTime}
-        onChange={(e) => {
-          let v = e.target.value.replace(/[^0-9:]/g, "");
-          if (v.length === 2 && !v.includes(":")) v += ":";
-          if (v.length > 5) v = v.slice(0, 5);
-          onUpdate("pickUpTime", v);
-        }}
-        placeholder="HH:MM"
-        maxLength={5}
-        className={cn(inp, "font-mono")}
-        disabled={job.saved}
-      />
-    ),
-    driver: isSupplierCard ? (
-      <span className={cn("block px-1 text-[10px] italic leading-7", muted)}>External</span>
-    ) : (
-      <ComboSelect
-        options={driverOptions}
-        value={job.driverId}
-        onChange={(v) => onUpdate("driverId", v)}
-        placeholder="Driver..."
-        className="h-7 rounded-none border-0 bg-transparent shadow-none"
-      />
-    ),
-    custRep: (
-      <>
-        <Input
-          value={job.custRepName}
-          onChange={(e) => onUpdate("custRepName", e.target.value)}
-          placeholder="Name"
-          className={cn(inp, "border-b border-border")}
-          disabled={job.saved}
-        />
-        <Input
-          value={job.custRepMobile}
-          onChange={(e) => onUpdate("custRepMobile", e.target.value)}
-          placeholder="Mobile"
-          className={inp}
-          disabled={job.saved}
-        />
-      </>
-    ),
-    // Always shown option — supplier cards use it for the external driver.
-    extraDriver: (
-      <>
-        <Input
-          value={job.extraDriverName}
-          onChange={(e) => onUpdate("extraDriverName", e.target.value)}
-          placeholder="Name"
-          className={cn(inp, "border-b border-border")}
-          disabled={job.saved}
-        />
-        <Input
-          value={job.extraDriverPhone}
-          onChange={(e) => onUpdate("extraDriverPhone", e.target.value)}
-          placeholder="Phone"
-          className={inp}
-          disabled={job.saved}
-        />
-      </>
-    ),
-    type: (
-      <select
-        value={job.serviceType}
-        onChange={(e) => onUpdate("serviceType", e.target.value)}
-        disabled={job.saved}
-        className="h-7 w-full border-0 bg-transparent px-1 text-xs focus:outline-none"
-      >
-        {SERVICE_TYPE_DROPDOWN_OPTIONS.map((st) => (
-          // Options keep the normal colours: the open list is not tinted with the row.
-          <option key={st.value} value={st.value} className="bg-background text-foreground">{st.label}</option>
-        ))}
-      </select>
-    ),
-    pax: (
-      <input
-        type="number"
-        min={1}
-        value={job.paxCount}
-        onChange={(e) => onUpdate("paxCount", e.target.value)}
-        className="h-7 w-full border-0 bg-transparent px-1 text-xs text-center focus:outline-none"
-        disabled={job.saved}
-      />
-    ),
-    actions: (
-      <>
-        <div className="flex items-center justify-center gap-0">
-          {!job.saved && (
-            <button
-              onClick={onSave}
-              disabled={job.saving}
-              title="Save"
-              className="inline-flex h-7 w-7 items-center justify-center text-primary hover:bg-primary/10"
-            >
-              {job.saving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-            </button>
-          )}
-          {job.saved && (
-            <span className={cn("text-[10px] font-medium", job.status === "CANCELLED" ? "text-red-600" : "text-green-600")}>
-              {job.status === "CANCELLED" ? "CXL" : "OK"}
-            </span>
-          )}
-          {cancellable && onCancel && (
-            <button
-              onClick={onCancel}
-              title="Cancel job"
-              aria-label="Cancel job"
-              className="inline-flex h-7 w-7 items-center justify-center text-destructive hover:bg-destructive/10"
-            >
-              <Ban className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {!job.saved && (
-            <button
-              onClick={onRemove}
-              title="Remove"
-              className="inline-flex h-7 w-7 items-center justify-center text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-        {job.error && (
-          <p className="truncate px-0.5 text-[9px] leading-tight text-destructive" title={job.error}>
-            {job.error}
-          </p>
-        )}
-      </>
-    ),
-  };
-
-  return (
-    <tr className={cn(job.error && "outline outline-2 -outline-offset-2 outline-red-500")}>
-      {columns.map((key) => (
-        <td
-          key={key}
-          className={cn(
-            cell,
-            key === "actions" && "text-center",
-            // Only the Cust. Job ID cell carries the job colour, with white text.
-            key === "custJobId" && color &&
-              [color, "text-white [&_*]:text-white [&_input::placeholder]:text-white/70 [&_input:disabled]:opacity-100"],
-          )}
-        >
-          {cells[key]}
-        </td>
-      ))}
-    </tr>
   );
 }

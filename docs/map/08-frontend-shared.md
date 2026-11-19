@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**114 files**, **404 exported symbols**.
+**115 files**, **408 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -37,6 +37,19 @@ Capture-and-upload dialog for completion evidence: photos plus a mandatory GPS f
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `CompletedEvidenceDialog` | function | 35 | Completion evidence capture — photos plus a mandatory GPS fix, with retry when the fix fails. |
+
+### `data-sheet.tsx`
+
+`frontend/src/components/data-sheet.tsx` · 608 lines
+
+Access-style datasheet: keyboard cell navigation, in-cell editing, ✱ new-record row, Excel copy/paste, row saves on leave
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `DSOption` | type | 24 | Option of a DataSheet select column (value + label) |
+| `DSColumn` | type | 29 | DataSheet column: key, title, width, type (text/number/select/readonly), value getter, display, editability, cell class |
+| `DataSheetProps` | type | 45 | DataSheet props: rows, columns, onChange, onCreateRows, onRowLeave (save), onDeleteRows, dirty/error markers, resize |
+| `DataSheet` | function | 95 | Controlled Access-style editing grid shared by every tabular editing screen |
 
 ### `error-screen.tsx`
 
@@ -318,16 +331,16 @@ Tap-to-navigate link component for rep/driver portal route labels.
 
 ### `route-price-grid.tsx`
 
-`frontend/src/components/route-price-grid.tsx` · 134 lines
+`frontend/src/components/route-price-grid.tsx` · 180 lines
 
 Shared editable route × car-type price grid (supplier lists, customer prices, driver tips).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RoutePriceGridData` | type | 13 | Columns, routes and prices the grid renders. |
-| `RoutePriceCellEdit` | type | 18 | An edited grid cell sent to the API (null clears). |
-| `RoutePriceGrid` | function | 26 | Searchable route rows × car-type inputs with dirty tracking and Save. |
-| `downloadXlsx` | function | 125 | Saves a blob xlsx response under a file name. |
+| `RoutePriceGridData` | type | 14 | Columns, routes and prices the grid renders. |
+| `RoutePriceCellEdit` | type | 19 | An edited grid cell sent to the API (null clears). |
+| `RoutePriceGrid` | function | 28 | Searchable route rows × car-type inputs with dirty tracking and Save. |
+| `downloadXlsx` | function | 171 | Saves a blob xlsx response under a file name. |
 
 ### `searchable-combobox.tsx`
 

@@ -78,6 +78,7 @@ export default function DriverTariffsPage() {
       await load(kind);
     } catch (e: unknown) {
       toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to save");
+      throw e; // the grid keeps the edits pending
     }
   }
 
