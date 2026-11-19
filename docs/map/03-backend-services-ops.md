@@ -543,34 +543,34 @@ External car suppliers and everything they bring: their own vehicles, their own 
 |---|---|---|---|---|
 | `findAll` | pub | 23 | `supplier` | Supplier list, split Active/Inactive. |
 | `findOne` | pub | 55 | `supplier` | One supplier with vehicles, drivers and prices. |
-| `create` | pub | 79 | `supplier` `supplierPriceList` | Creates a supplier. |
-| `update` | pub | 102 | `supplier` | Edits supplier details. |
-| `toggleStatus` | pub | 130 | `supplier` | Activates/deactivates a supplier. |
-| `delete` | pub | 139 | `supplier` | Soft-deletes a supplier. |
-| `bulkDelete` | pub | 154 | `supplier` | Soft-deletes many suppliers at once. |
-| `findVehicles` | pub | 171 | `supplier` `vehicle` | Vehicles belonging to this supplier. |
-| `createVehicle` | pub | 214 | `supplier` `vehicle` | Adds a vehicle owned by the supplier. |
-| `updateVehicle` | pub | 247 | `vehicle` | Edits a supplier vehicle. |
-| `deleteVehicle` | pub | 281 | `vehicle` | Soft-deletes a supplier vehicle. |
-| `toggleVehicleStatus` | pub | 296 | `vehicle` | Activates/deactivates a supplier vehicle. |
-| `findDrivers` | pub | 314 | `supplier` `driver` | Drivers belonging to this supplier. |
-| `createDriver` | pub | 352 | `supplier` `driver` | Adds a driver under the supplier. Supplier drivers are what the midnight cron auto-completes. |
-| `updateDriver` | pub | 372 | `driver` | Edits a supplier driver. |
-| `deleteDriver` | pub | 392 | `driver` | Soft-deletes a supplier driver. |
-| `toggleDriverStatus` | pub | 407 | `driver` | Activates/deactivates a supplier driver. |
-| `createUserAccount` | pub | 426 | `user` `supplier` | Creates the supplier's portal login and links it to the Supplier row. |
-| `resetPassword` | pub | 472 | `user` | Admin password reset that also clears the session. |
-| `exportToExcel` | pub | 498 | `supplier` | Exports suppliers to xlsx. |
-| `generateImportTemplate` | pub | 529 | — | Blank supplier import workbook. |
-| `importFromExcel` | pub | 586 | `supplier` | Bulk-imports suppliers. |
-| `exportVehiclesToExcel` | pub | 653 | `vehicle` | Exports a supplier's vehicles. |
-| `generateVehicleImportTemplate` | pub | 689 | `vehicleType` | Blank supplier-vehicle workbook, pre-filled with vehicle types. |
-| `importVehiclesFromExcel` | pub | 729 | `vehicleType` `vehicle` | Bulk-imports a supplier's vehicles. |
-| `exportDriversToExcel` | pub | 820 | `driver` | Exports a supplier's drivers. |
-| `generateDriverImportTemplate` | pub | 853 | — | Blank supplier-driver workbook. |
-| `importDriversFromExcel` | pub | 875 | `driver` | Bulk-imports a supplier's drivers. |
-| `getCarTypes` | pub | 928 | `supplierCarType` | Car types this supplier can source — what dispatch offers when no own vehicle is used. |
-| `setCarTypes` | pub | 937 | `supplier` `supplierCarType` | Replaces the supplier's offered car types. |
+| `create` | pub | 79 | `supplierPriceList` `supplier` | Creates a supplier. |
+| `update` | pub | 105 | `supplier` | Edits supplier details. |
+| `toggleStatus` | pub | 133 | `supplier` | Activates/deactivates a supplier. |
+| `delete` | pub | 142 | `supplier` | Soft-deletes a supplier. |
+| `bulkDelete` | pub | 157 | `supplier` | Soft-deletes many suppliers at once. |
+| `findVehicles` | pub | 174 | `supplier` `vehicle` | Vehicles belonging to this supplier. |
+| `createVehicle` | pub | 217 | `supplier` `vehicle` | Adds a vehicle owned by the supplier. |
+| `updateVehicle` | pub | 250 | `vehicle` | Edits a supplier vehicle. |
+| `deleteVehicle` | pub | 284 | `vehicle` | Soft-deletes a supplier vehicle. |
+| `toggleVehicleStatus` | pub | 299 | `vehicle` | Activates/deactivates a supplier vehicle. |
+| `findDrivers` | pub | 317 | `supplier` `driver` | Drivers belonging to this supplier. |
+| `createDriver` | pub | 355 | `supplier` `driver` | Adds a driver under the supplier. Supplier drivers are what the midnight cron auto-completes. |
+| `updateDriver` | pub | 375 | `driver` | Edits a supplier driver. |
+| `deleteDriver` | pub | 395 | `driver` | Soft-deletes a supplier driver. |
+| `toggleDriverStatus` | pub | 410 | `driver` | Activates/deactivates a supplier driver. |
+| `createUserAccount` | pub | 429 | `user` `supplier` | Creates the supplier's portal login and links it to the Supplier row. |
+| `resetPassword` | pub | 475 | `user` | Admin password reset that also clears the session. |
+| `exportToExcel` | pub | 501 | `supplier` | Exports suppliers to xlsx. |
+| `generateImportTemplate` | pub | 532 | — | Blank supplier import workbook. |
+| `importFromExcel` | pub | 589 | `supplier` | Bulk-imports suppliers. |
+| `exportVehiclesToExcel` | pub | 656 | `vehicle` | Exports a supplier's vehicles. |
+| `generateVehicleImportTemplate` | pub | 692 | `vehicleType` | Blank supplier-vehicle workbook, pre-filled with vehicle types. |
+| `importVehiclesFromExcel` | pub | 732 | `vehicleType` `vehicle` | Bulk-imports a supplier's vehicles. |
+| `exportDriversToExcel` | pub | 823 | `driver` | Exports a supplier's drivers. |
+| `generateDriverImportTemplate` | pub | 856 | — | Blank supplier-driver workbook. |
+| `importDriversFromExcel` | pub | 878 | `driver` | Bulk-imports a supplier's drivers. |
+| `getCarTypes` | pub | 931 | `supplierCarType` | Car types this supplier can source — what dispatch offers when no own vehicle is used. |
+| `setCarTypes` | pub | 940 | `supplier` `supplierCarType` | Replaces the supplier's offered car types. |
 
 ## `traffic-jobs`
 

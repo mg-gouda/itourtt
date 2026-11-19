@@ -77,8 +77,15 @@ export class SuppliersService {
   }
 
   async create(dto: CreateSupplierDto) {
+    // New suppliers start on the given list or the one flagged "default for new" (List D), from today.
+    const listId =
+      dto.priceListId !== undefined
+        ? dto.priceListId
+        : (await this.prisma.supplierPriceList.findFirst({ where: { isDefaultForNew: true }, select: { id: true } }))?.id ?? null;
+    const today = new Date(`${new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })}T00:00:00Z`);
     return this.prisma.supplier.create({
       data: {
+        ...(listId && { priceListAssignments: { create: { priceListId: listId, validFrom: today } } }),
         supplierType: (dto.supplierType as any) || 'COMPANY',
         legalName: dto.legalName,
         tradeName: dto.tradeName,
@@ -90,11 +97,7 @@ export class SuppliersService {
         email: dto.email,
         mobileNumber: dto.mobileNumber,
         nationalIdImage: dto.nationalIdImage,
-        // New suppliers start on the list flagged "default for new" (List D).
-        priceListId:
-          dto.priceListId !== undefined
-            ? dto.priceListId
-            : (await this.prisma.supplierPriceList.findFirst({ where: { isDefaultForNew: true }, select: { id: true } }))?.id ?? null,
+        priceListId: listId,
       },
     });
   }
@@ -122,7 +125,7 @@ export class SuppliersService {
         email: dto.email,
         mobileNumber: dto.mobileNumber,
         nationalIdImage: dto.nationalIdImage,
-        ...(dto.priceListId !== undefined && { priceListId: dto.priceListId }),
+        // The list is a dated history: change it with POST /supplier-price-lists/move (from a date).
       },
     });
   }

@@ -44,9 +44,9 @@
 | `/dashboard/reps/[id]` | `frontend/src/app/(dashboard)/dashboard/reps/[id]/page.tsx` | 771 | 9 | — | One rep's detail, zones and fee history. |
 | `/dashboard/routes` | `frontend/src/app/(dashboard)/dashboard/routes/page.tsx` | 429 | 8 | 2 | System Parameters › Routes: search, add, edit (English \| Arabic, default type, From/To), deactivate, delete unused routes |
 | `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 578 | — | — | Theme and appearance settings. |
-| `/dashboard/supplier-price-lists` | `frontend/src/app/(dashboard)/dashboard/supplier-price-lists/page.tsx` | 199 | 8 | 1 | Supplier Price Lists page: list tabs, flags, route × car-type price grid, Excel import/export. |
+| `/dashboard/supplier-price-lists` | `frontend/src/app/(dashboard)/dashboard/supplier-price-lists/page.tsx` | 428 | 11 | 2 | Supplier Price Lists page: list tabs, flags, route × car-type price grid, Excel import/export. |
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1340 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
-| `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 244 | 3 | 1 | One supplier's detail. |
+| `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 313 | 4 | 2 | One supplier's detail. |
 | `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | Traffic jobs landing page with the shared filters. |
 | `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1373 | 15 | 15 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
 | `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1276 | 8 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
@@ -211,8 +211,8 @@
 
 **`/dashboard/supplier-price-lists`**
 
-- calls: `GET /supplier-price-lists`, `GET /supplier-price-lists/:x/grid`, `PUT /supplier-price-lists/:x/prices`, `POST /supplier-price-lists`, `PATCH /supplier-price-lists/:x`, `DELETE /supplier-price-lists/:x`, `GET /supplier-price-lists/export`, `POST /supplier-price-lists/import`
-- perms: `supplier-price-lists.edit`
+- calls: `GET /supplier-price-lists`, `GET /supplier-price-lists/:x/grid`, `GET /supplier-price-lists/alerts`, `PUT /supplier-price-lists/:x/prices`, `POST /supplier-price-lists`, `PATCH /supplier-price-lists/:x`, `DELETE /supplier-price-lists/:x`, `GET /suppliers`, `POST /supplier-price-lists/move`, `GET /supplier-price-lists/export`, `POST /supplier-price-lists/import`
+- perms: `supplier-price-lists.edit`, `supplier-price-lists.alerts`
 
 **`/dashboard/suppliers`**
 
@@ -221,8 +221,8 @@
 
 **`/dashboard/suppliers/[id]`**
 
-- calls: `GET /supplier-price-lists`, `PUT /suppliers/:x`, `GET /suppliers/:x`
-- perms: `suppliers.table.editButton`
+- calls: `GET /supplier-price-lists/history/:x`, `GET /supplier-price-lists`, `POST /supplier-price-lists/move`, `GET /suppliers/:x`
+- perms: `suppliers.table.editButton`, `supplier-price-lists.edit`
 
 **`/dashboard/traffic-jobs`**
 

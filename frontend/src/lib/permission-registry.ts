@@ -719,6 +719,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     crudType: 'page',
     children: [
       { key: 'supplier-price-lists.edit', labelKey: 'permissions.supplierPriceLists.edit', crudType: 'U' },
+      { key: 'supplier-price-lists.alerts', labelKey: 'permissions.supplierPriceLists.alerts', crudType: 'R' },
     ],
   },
 

@@ -361,6 +361,8 @@ model User {
   complaintsAssigned       Complaint[]       @relation("ComplaintAssignedTo")
   complaintChargesApproved ComplaintCharge[] @relation("ComplaintChargeApprovedBy")
 
+  priceListAssignmentsCreated SupplierPriceListAssignment[] @relation("PriceListAssignmentCreatedBy")
+
   @@map("users")
 }
 
@@ -1210,6 +1212,8 @@ model Supplier {
 
   complaints       Complaint[]       @relation("ComplaintResponsibleSupplier")
   complaintCharges ComplaintCharge[] @relation("ComplaintChargeSupplier")
+
+  priceListAssignments SupplierPriceListAssignment[]
 
   @@map("suppliers")
 }
@@ -2952,16 +2956,39 @@ model ImportNameAlias {
 model SupplierPriceList {
   id              String   @id @default(uuid())
   name            String   @unique
+  /// Season / validity: an empty end means "until changed". After the end the list is read-only.
+  validFrom       DateTime @default(now()) @map("valid_from") @db.Date
+  validTo         DateTime? @map("valid_to") @db.Date
   isDefaultForNew Boolean  @default(false) @map("is_default_for_new")
   isOwnCarList    Boolean  @default(false) @map("is_own_car_list")
   notes           String?
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  items     SupplierPriceListItem[]
-  suppliers Supplier[]
+  items       SupplierPriceListItem[]
+  suppliers   Supplier[]
+  assignments SupplierPriceListAssignment[]
 
   @@map("supplier_price_lists")
+}
+
+/// Which price list a supplier is on, by date (supplier-price-lists.service › moveSuppliers).
+/// Periods of one supplier never overlap; validTo null = until changed.
+model SupplierPriceListAssignment {
+  id          String    @id @default(uuid())
+  supplierId  String    @map("supplier_id")
+  priceListId String    @map("price_list_id")
+  validFrom   DateTime  @map("valid_from") @db.Date
+  validTo     DateTime? @map("valid_to") @db.Date
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  supplier  Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  priceList SupplierPriceList @relation(fields: [priceListId], references: [id])
+  createdBy User?             @relation("PriceListAssignmentCreatedBy", fields: [createdById], references: [id])
+
+  @@index([supplierId, validFrom])
+  @@map("supplier_price_list_assignments")
 }
 
 model SupplierPriceListItem {

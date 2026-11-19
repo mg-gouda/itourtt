@@ -647,6 +647,7 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     labelKey: 'permissions.supplierPriceLists',
     children: [
       { key: 'supplier-price-lists.edit', labelKey: 'permissions.supplierPriceLists.edit' },
+      { key: 'supplier-price-lists.alerts', labelKey: 'permissions.supplierPriceLists.alerts' },
     ],
   },
 

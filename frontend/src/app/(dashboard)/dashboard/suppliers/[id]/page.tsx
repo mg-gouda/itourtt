@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RecalcReportDialog, type RecalcReport } from "@/components/recalc-report-dialog";
+import { localDateStr } from "@/lib/utils";
 
 interface Supplier {
   id: string;
@@ -42,23 +46,48 @@ export default function SupplierDetailPage({
   const t = useT();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [loading, setLoading] = useState(true);
-  const [priceLists, setPriceLists] = useState<{ id: string; name: string }[]>([]);
+  // Price list: a dated history (supplier-price-lists.service › moveSuppliers).
+  const [priceLists, setPriceLists] = useState<{ id: string; name: string; status: string; validFrom: string; validTo: string | null }[]>([]);
+  const [history, setHistory] = useState<{ id: string; priceList: { name: string; ended: boolean }; validFrom: string; validTo: string | null; createdBy: string | null }[]>([]);
+  const [newListId, setNewListId] = useState("");
+  const [newListFrom, setNewListFrom] = useState(() => localDateStr(new Date()));
+  const [changingList, setChangingList] = useState(false);
+  const [report, setReport] = useState<RecalcReport | null>(null);
   const canEditSupplier = usePermission("suppliers.table.editButton");
+  const canEditLists = usePermission("supplier-price-lists.edit");
+  const canChangeList = canEditSupplier || canEditLists;
+
+  const loadHistory = useCallback(() => {
+    api.get(`/supplier-price-lists/history/${resolvedParams.id}`)
+      .then((res) => setHistory(res.data?.data || []))
+      .catch(() => setHistory([]));
+  }, [resolvedParams.id]);
 
   useEffect(() => {
     api.get("/supplier-price-lists")
-      .then((res) => setPriceLists((res.data?.data || []).map((l: any) => ({ id: l.id, name: l.name }))))
+      .then((res) => setPriceLists(res.data?.data || []))
       .catch(() => {});
-  }, []);
+    loadHistory();
+  }, [loadHistory]);
 
-  const changePriceList = async (value: string) => {
-    if (!supplier) return;
+  const changePriceList = async () => {
+    if (!supplier || !newListId) return;
+    setChangingList(true);
     try {
-      await api.put(`/suppliers/${supplier.id}`, { priceListId: value === "none" ? null : value });
-      toast.success("Price list updated — new and changed supplier jobs are costed from it");
+      const { data } = await api.post("/supplier-price-lists/move", {
+        supplierIds: [supplier.id],
+        priceListId: newListId === "none" ? null : newListId,
+        from: newListFrom,
+      });
+      toast.success("Price list changed — this supplier's jobs from that date were re-costed");
+      setReport(data.data.recalc);
+      setNewListId("");
+      loadHistory();
       fetchSupplier();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Failed to update price list");
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to change price list");
+    } finally {
+      setChangingList(false);
     }
   };
 
@@ -216,28 +245,68 @@ export default function SupplierDetailPage({
         <CardHeader>
           <CardTitle className="text-foreground">Price list</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <Select
-            value={supplier.priceList?.id ?? "none"}
-            onValueChange={changePriceList}
-            disabled={!canEditSupplier}
-          >
-            <SelectTrigger className="w-64 border-border bg-card text-foreground">
-              <SelectValue placeholder="No price list" />
-            </SelectTrigger>
-            <SelectContent className="border-border bg-popover text-foreground">
-              <SelectItem value="none">No price list (no automatic cost)</SelectItem>
-              {priceLists.map((l) => (
-                <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-muted-foreground">
-            Jobs on this supplier&apos;s cars get their supplier cost from this list (route × car type). Prices are
-            managed on the Supplier Price Lists page.
+        <CardContent className="space-y-3 text-sm">
+          <p>
+            Today: <b>{supplier.priceList?.name ?? "no price list"}</b>
+            <span className="text-muted-foreground"> — jobs on this supplier&apos;s cars are costed from the list it was on on the job&apos;s date.</span>
           </p>
+          {history.length > 0 && (
+            <div className="rounded border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>List</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>To</TableHead>
+                    <TableHead>Set by</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {history.map((h) => (
+                    <TableRow key={h.id}>
+                      <TableCell>
+                        {h.priceList.name}
+                        {h.priceList.ended && <span className="ml-1.5 text-xs text-red-600 dark:text-red-400">(list ended)</span>}
+                      </TableCell>
+                      <TableCell>{h.validFrom}</TableCell>
+                      <TableCell>{h.validTo ?? "until changed"}</TableCell>
+                      <TableCell className="text-muted-foreground">{h.createdBy ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          {canChangeList && (
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Change to</p>
+                <Select value={newListId} onValueChange={setNewListId}>
+                  <SelectTrigger className="w-56 border-border bg-card text-foreground">
+                    <SelectValue placeholder="Pick a list" />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-popover text-foreground">
+                    {priceLists.filter((l) => l.status !== "ENDED").map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name} ({l.validFrom} – {l.validTo ?? "open"})
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="none">No price list (no automatic cost)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">From (can be in the past)</p>
+                <Input type="date" value={newListFrom} onChange={(e) => setNewListFrom(e.target.value)} className="w-40" />
+              </div>
+              <Button onClick={changePriceList} disabled={!newListId || !newListFrom || changingList}>
+                {changingList ? "Changing…" : "Change list"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
+      <RecalcReportDialog report={report} onClose={() => setReport(null)} />
     </div>
   );
 }

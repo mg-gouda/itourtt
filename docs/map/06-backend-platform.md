@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**69 classes**, **523 methods**.
+**69 classes**, **535 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -989,49 +989,61 @@ All persisted configuration: system, company, email, website (B2C), Google Drive
 
 ### SupplierCostingService
 
-`backend/src/supplier-price-lists/supplier-costing.service.ts:23` · service · 2 methods
+`backend/src/supplier-price-lists/supplier-costing.service.ts:48` · service · 5 methods
 
 Keeps each supplier-car job's PRICE_LIST cost in step with its route, supplier and car type.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `syncJobCost` | pub | 29 | `trafficJob` `supplierCost` `supplierPriceListItem` | Replaces a job's unposted PRICE_LIST cost from its supplier's list; never touches posted, manual or complaint rows; never throws. |
-| `ownCarCostTotal` | pub | 93 | `supplierPriceList` `supplierPriceListItem` | Own-car jobs in a date range priced on the own-car list — report only, never a SupplierCost. |
+| `listOn` | pub | 54 | — | The price list a supplier was on on a date (its covering assignment) |
+| `quote` | priv | 65 | — | What a job's supplier cost would be now, without writing |
+| `syncJobCost` | pub | 90 | `supplierCost` | Replaces a job's unposted PRICE_LIST cost from its supplier's list; never touches posted, manual or complaint rows; never throws. |
+| `recalculate` | pub | 116 | `supplierPriceListAssignment` `trafficJob` `supplierCost` | Re-costs supplier-car jobs (by suppliers / dates / list / cells); unposted rewritten, posted reported |
+| `ownCarCostTotal` | pub | 174 | `supplierPriceList` `supplierPriceListItem` | Own-car jobs in a date range priced on the own-car list — report only, never a SupplierCost. |
 
 ### SupplierPriceListsController
 
-`backend/src/supplier-price-lists/supplier-price-lists.controller.ts:35` · controller · 6 methods
+`backend/src/supplier-price-lists/supplier-price-lists.controller.ts:46` · controller · 9 methods
 
 Supplier price lists CRUD, grid, prices save, Excel export/import in the Supplier R-T layout.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 40 | — | Lists with item counts and their suppliers. |
-| `create` | pub | 66 | — | Creates a price list. |
-| `grid` | pub | 73 | — | Route rows × car-type columns with the list's prices. |
-| `savePrices` | pub | 79 | — | Saves edited grid cells (null clears). |
-| `update` | pub | 85 | — | Renames a list or sets its default-for-new / own-car flags. |
-| `remove` | pub | 91 | — | Deletes a list nobody uses. |
+| `findAll` | pub | 51 | — | Lists with item counts and their suppliers. |
+| `alerts` | pub | 58 | — | GET /supplier-price-lists/alerts: ended lists still pricing suppliers or own cars |
+| `history` | pub | 65 | — | GET /supplier-price-lists/history/:supplierId: a supplier's dated list history |
+| `move` | pub | 72 | — | POST /supplier-price-lists/move: put suppliers on a list from a date (backdating re-costs) |
+| `create` | pub | 98 | — | Creates a price list. |
+| `grid` | pub | 105 | — | Route rows × car-type columns with the list's prices. |
+| `savePrices` | pub | 111 | — | Saves edited grid cells (null clears). |
+| `update` | pub | 117 | — | Renames a list or sets its default-for-new / own-car flags. |
+| `remove` | pub | 123 | — | Deletes a list nobody uses. |
 
 ### SupplierPriceListsService
 
-`backend/src/supplier-price-lists/supplier-price-lists.service.ts:14` · service · 11 methods
+`backend/src/supplier-price-lists/supplier-price-lists.service.ts:39` · service · 17 methods
 
 CRUD, grid and Excel import/export for supplier price lists.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 17 | `supplierPriceList` | Lists with item counts and assigned suppliers. |
-| `create` | pub | 28 | `supplierPriceList` | Creates a list (name unique). |
-| `update` | pub | 41 | `supplierPriceList` | Updates name/notes/flags. |
-| `clearExclusiveFlags` | priv | 58 | `supplierPriceList` | Keeps default-for-new and own-car flags on at most one list each. |
-| `remove` | pub | 64 | `supplierPriceList` | Deletes a list with no suppliers on it. |
-| `get` | priv | 77 | `supplierPriceList` | Loads a list or 404s. |
-| `columns` | priv | 83 | `vehicleType` | PRICE_COLUMNS resolved to vehicle type ids. |
-| `grid` | pub | 89 | `jobServiceType` `supplierPriceListItem` | Active routes, car columns and the list's prices. |
-| `saveCells` | pub | 105 | `supplierPriceListItem` | Upserts / clears price cells in one transaction. |
-| `exportWorkbook` | pub | 129 | `supplierPriceList` `jobServiceType` | All lists as one Supplier R-T sheet (plus the Arabic route name). |
-| `importWorkbook` | pub | 156 | `vehicleType` `supplierPriceList` | Imports a Supplier R-T sheet: lists by name (created if new), OPERATION by route English code, empty cell clears. |
+| `status` | priv | 47 | — | CURRENT / ENDED / UPCOMING for a list on a day (Cairo) |
+| `findAll` | pub | 53 | `supplierPriceList` | Lists with item counts and assigned suppliers. |
+| `create` | pub | 76 | `supplierPriceList` | Creates a list (name unique). |
+| `update` | pub | 92 | `supplierPriceList` | Updates name/notes/flags. |
+| `remove` | pub | 119 | `supplierPriceList` | Deletes a list with no suppliers on it. |
+| `get` | priv | 129 | `supplierPriceList` | Loads a list or 404s. |
+| `readOnlyError` | priv | 135 | — | Throws the 'list ended — read-only, extend it to change' error |
+| `columns` | priv | 141 | `vehicleType` | PRICE_COLUMNS resolved to vehicle type ids. |
+| `grid` | pub | 147 | `jobServiceType` `supplierPriceListItem` | Active routes, car columns and the list's prices. |
+| `writeCells` | priv | 162 | `supplierPriceListItem` | Writes price cells (null/0 deletes) without the read-only check or recalculation |
+| `saveCells` | pub | 186 | — | Upserts / clears price cells in one transaction. |
+| `history` | pub | 196 | `supplierPriceListAssignment` | A supplier's list periods, newest first |
+| `moveSuppliers` | pub | 217 | `supplierPriceListAssignment` `supplier` | Cuts suppliers' list history at a date, opens a new period, mirrors today's list, re-costs jobs from that date |
+| `alerts` | pub | 253 | `supplierPriceList` | Ended lists that suppliers (or own cars) are still priced from |
+| `notifyEndedLists` | pub | 282 | `cronRunLock` `user` `userNotification` | 08:00 cron (one pod): notifies admins + finance about ended lists still in use, once a week per list |
+| `exportWorkbook` | pub | 315 | `supplierPriceList` `jobServiceType` | All lists as one Supplier R-T sheet (plus the Arabic route name). |
+| `importWorkbook` | pub | 344 | `vehicleType` `supplierPriceList` | Imports a Supplier R-T sheet: lists by name (created if new), OPERATION by route English code, empty cell clears. |
 
 ## `tracking`
 
@@ -1197,7 +1209,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-186 free functions, constants and types in these modules.
+189 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1644,10 +1656,10 @@ Staff job-update notifications/emails, dispatch-action notices, and driver/rep j
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 742 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 758 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 766 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 778 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 743 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 759 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 767 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 779 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 
@@ -1687,6 +1699,8 @@ Supplier cost from price lists: per-job PRICE_LIST SupplierCost sync and the own
 |---|---|---|---|
 | `PRICE_LIST_COST_SOURCE` | const | 6 | SupplierCost.source marking rows owned by the price-list costing (manual/complaint rows are null). |
 | `CostSyncResult` | type | 8 | Outcome of a job cost sync: COSTED / NO_PRICE / NO_PRICE_LIST / NOT_SUPPLIER / POSTED. |
+| `PostedDifference` | type | 11 | A posted supplier cost a recalculation left alone although the new price differs |
+| `RecalcReport` | type | 21 | Counts of a supplier-cost recalculation plus posted-cost differences |
 
 ### `backend/src/supplier-price-lists/supplier-price-lists.service.ts`
 
@@ -1694,7 +1708,8 @@ Supplier price list management and the Supplier R-T Excel round-trip.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `PriceCell` | type | 7 | One route × vehicle-type price edit (null clears). |
+| `PriceCell` | type | 9 | One route × vehicle-type price edit (null clears). |
+| `PRICE_LIST_ALERT_PERMISSION` | const | 16 | Permission whose holders (finance roles) get ended-price-list alerts, besides admins |
 
 ### `backend/src/tracking/tracking.service.ts`
 

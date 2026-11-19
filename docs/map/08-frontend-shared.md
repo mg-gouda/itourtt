@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**113 files**, **402 exported symbols**.
+**114 files**, **404 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -274,6 +274,17 @@ Rep/driver portal banner to turn on browser notifications.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `PushPrompt` | function | 27 | Asks for notification permission (or shows iPhone Home-Screen steps); silently re-subscribes when already granted. |
+
+### `recalc-report-dialog.tsx`
+
+`frontend/src/components/recalc-report-dialog.tsx` · 95 lines
+
+Dialog showing a supplier-cost recalculation result and posted-cost differences (CSV)
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RecalcReport` | type | 12 | Shape of a supplier-cost recalculation report |
+| `RecalcReportDialog` | function | 21 | Recalculation result dialog with posted-cost differences table and CSV download |
 
 ### `rep-escort-dialog.tsx`
 
@@ -1198,17 +1209,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3918 lines
+`frontend/src/lib/i18n.ts` · 3920 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3895 | Translates a key in the current locale. |
-| `getTranslator` | function | 3899 | Translator for a specific locale, outside React. |
-| `useT` | function | 3907 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3914 | The active locale id. |
+| `t` | function | 3897 | Translates a key in the current locale. |
+| `getTranslator` | function | 3901 | Translator for a specific locale, outside React. |
+| `useT` | function | 3909 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3916 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -1226,7 +1237,7 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 908 lines
+`frontend/src/lib/permission-registry.ts` · 909 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -1235,11 +1246,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 819 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 835 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 843 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 855 | Subtree, used by the master toggle. |
-| `findNode` | function | 895 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 820 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 836 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 844 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 856 | Subtree, used by the master toggle. |
+| `findNode` | function | 896 | Looks up a node by key. |
 
 ### `role-home.ts`
 
