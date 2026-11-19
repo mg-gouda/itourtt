@@ -24,6 +24,13 @@ export class JobServiceTypesController {
     return new ApiResponse(await this.service.findAll());
   }
 
+  /** System Parameters › Routes: every route (inactive too) with its usage counts. */
+  @Get('manage')
+  @Permissions('driver-tariffs')
+  async findAllForManagement() {
+    return new ApiResponse(await this.service.findAllForManagement());
+  }
+
   @Get('import/template')
   @Permissions('driver-tariffs')
   async downloadTemplate(@Res() res: Response) {

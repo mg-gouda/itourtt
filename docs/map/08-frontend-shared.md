@@ -341,19 +341,19 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 446 lines
+`frontend/src/components/sidebar.tsx` · 448 lines
 
 Main dashboard navigation, filtered by permission.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 61 | A navigation link with active-state styling. |
-| `NavSeparator` | type | 71 | Divider between sidebar sections. |
-| `NavSectionLabel` | type | 75 | Section heading in the sidebar. |
-| `NavGroup` | type | 80 | A collapsible navigation group. |
-| `NavItem` | type | 87 | One navigation entry. |
-| `navigation` | const | 94 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 162 | Main dashboard navigation, permission-filtered. |
+| `NavLink` | type | 62 | A navigation link with active-state styling. |
+| `NavSeparator` | type | 72 | Divider between sidebar sections. |
+| `NavSectionLabel` | type | 76 | Section heading in the sidebar. |
+| `NavGroup` | type | 81 | A collapsible navigation group. |
+| `NavItem` | type | 88 | One navigation entry. |
+| `navigation` | const | 95 | The navigation definition — sections, items and the permission key gating each. |
+| `Sidebar` | function | 164 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -1198,17 +1198,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3916 lines
+`frontend/src/lib/i18n.ts` · 3918 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3893 | Translates a key in the current locale. |
-| `getTranslator` | function | 3897 | Translator for a specific locale, outside React. |
-| `useT` | function | 3905 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3912 | The active locale id. |
+| `t` | function | 3895 | Translates a key in the current locale. |
+| `getTranslator` | function | 3899 | Translator for a specific locale, outside React. |
+| `useT` | function | 3907 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3914 | The active locale id. |
 
 ### `maps-nav.ts`
 

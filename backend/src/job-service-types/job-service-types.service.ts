@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import ExcelJS from 'exceljs';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { routeCode } from '../common/utils/route-price-sheet.util.js';
+import { normalizeImportName } from '../common/utils/import-name.util.js';
 import { CreateJobServiceTypeDto } from './dto/create-job-service-type.dto.js';
 
 @Injectable()
@@ -18,6 +20,33 @@ export class JobServiceTypesService {
       },
       orderBy: { name: 'asc' },
     });
+  }
+
+  /**
+   * Every route, active or not, with what uses it — for System Parameters › Routes.
+   * A route in use can only be deactivated (see remove).
+   */
+  async findAllForManagement() {
+    const rows = await this.prisma.jobServiceType.findMany({
+      include: {
+        fromZone: { select: { id: true, name: true } },
+        toZone: { select: { id: true, name: true } },
+        fromAirport: { select: { id: true, code: true, name: true } },
+        toAirport: { select: { id: true, code: true, name: true } },
+        _count: { select: { trafficJobs: true, tariffs: true, customerRoutePrices: true, supplierPriceListItems: true, driverTipRates: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+    return rows.map(({ _count, ...r }) => ({
+      ...r,
+      usage: {
+        jobs: _count.trafficJobs,
+        tariffs: _count.tariffs,
+        customerPrices: _count.customerRoutePrices,
+        supplierPrices: _count.supplierPriceListItems,
+        tips: _count.driverTipRates,
+      },
+    }));
   }
 
   async create(dto: CreateJobServiceTypeDto) {
@@ -49,6 +78,12 @@ export class JobServiceTypesService {
   async update(id: string, dto: Partial<CreateJobServiceTypeDto>) {
     const existing = await this.prisma.jobServiceType.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Service type "${id}" not found`);
+    const newName = dto.name?.trim();
+    if (newName && newName !== existing.name) {
+      const clash = await this.prisma.jobServiceType.findUnique({ where: { name: newName } });
+      if (clash) throw new ConflictException(`Route "${newName}" already exists`);
+      await this.followRenamedCode(existing.name, newName, id);
+    }
     return this.prisma.jobServiceType.update({
       where: { id },
       data: {
@@ -69,10 +104,40 @@ export class JobServiceTypesService {
     });
   }
 
+  /**
+   * Deleting a route strips it from its jobs and tariffs (SET NULL) and wipes its customer prices,
+   * supplier prices and driver tips (CASCADE) — so a route in use is refused: deactivate it instead.
+   */
   async remove(id: string) {
-    const existing = await this.prisma.jobServiceType.findUnique({ where: { id } });
+    const existing = await this.prisma.jobServiceType.findUnique({
+      where: { id },
+      include: { _count: { select: { trafficJobs: true, tariffs: true, customerRoutePrices: true, supplierPriceListItems: true, driverTipRates: true } } },
+    });
     if (!existing) throw new NotFoundException(`Service type "${id}" not found`);
+    const c = existing._count;
+    const prices = c.customerRoutePrices + c.supplierPriceListItems + c.driverTipRates;
+    if (c.trafficJobs || c.tariffs || prices) {
+      const used = [c.trafficJobs && `${c.trafficJobs} jobs`, prices && `${prices} prices / tips`, c.tariffs && `${c.tariffs} driver tariffs`]
+        .filter(Boolean).join(', ');
+      throw new ConflictException(`"${existing.name}" is used by ${used}. Deactivate it instead — that hides it and keeps the history.`);
+    }
     return this.prisma.jobServiceType.delete({ where: { id } });
+  }
+
+  /**
+   * Sheet spellings of a route are remembered as ROUTE import aliases pointing at its English code.
+   * When a rename changes that code, move the aliases along — unless another route (the ذهاب / عوده
+   * partner) still carries the old code.
+   */
+  private async followRenamedCode(oldName: string, newName: string, id: string) {
+    const oldCode = routeCode(oldName);
+    const newCode = routeCode(newName);
+    if (normalizeImportName(oldCode) === normalizeImportName(newCode)) return;
+    const others = await this.prisma.jobServiceType.findMany({ where: { id: { not: id } }, select: { name: true } });
+    if (others.some((o) => normalizeImportName(routeCode(o.name)) === normalizeImportName(oldCode))) return;
+    const aliases = await this.prisma.importNameAlias.findMany({ where: { kind: 'ROUTE' }, select: { id: true, targetId: true } });
+    const ids = aliases.filter((a) => normalizeImportName(a.targetId) === normalizeImportName(oldCode)).map((a) => a.id);
+    if (ids.length) await this.prisma.importNameAlias.updateMany({ where: { id: { in: ids } }, data: { targetId: newCode } });
   }
 
   // ─────────────────────────────────────────────────────

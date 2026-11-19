@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**27 classes**, **395 methods**.
+**27 classes**, **398 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -320,33 +320,36 @@ Admin screen for the per-role unlock flags on a job (`dispatchUnlockedAt`, `driv
 
 ### JobServiceTypesController
 
-`backend/src/job-service-types/job-service-types.controller.ts:16` · controller · 6 methods
+`backend/src/job-service-types/job-service-types.controller.ts:16` · controller · 7 methods
 
 REST surface for operator-defined job service types.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `findAll` | pub | 23 | — | Lists job service types. |
-| `downloadTemplate` | pub | 29 | — | Blank import workbook pre-filled with zones. |
-| `importExcel` | pub | 42 | — | Multipart bulk import. |
-| `create` | pub | 53 | — | Creates one. |
-| `update` | pub | 59 | — | Edits one. |
-| `remove` | pub | 65 | — | Deletes one. |
+| `findAllForManagement` | pub | 30 | — | GET /job-service-types/manage: every route (inactive too) with usage counts, for System Parameters › Routes |
+| `downloadTemplate` | pub | 36 | — | Blank import workbook pre-filled with zones. |
+| `importExcel` | pub | 49 | — | Multipart bulk import. |
+| `create` | pub | 60 | — | Creates one. |
+| `update` | pub | 66 | — | Edits one. |
+| `remove` | pub | 72 | — | Deletes one. |
 
 ### JobServiceTypesService
 
-`backend/src/job-service-types/job-service-types.service.ts:7` · service · 6 methods
+`backend/src/job-service-types/job-service-types.service.ts:9` · service · 8 methods
 
 Named service-type variants attached to jobs (distinct from the fixed ARR/DEP/… enum in `service-type.util.ts`). These are operator-defined and zone-aware.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 10 | `jobServiceType` | Lists job service types. |
-| `create` | pub | 23 | `jobServiceType` | Creates one. |
-| `update` | pub | 49 | `jobServiceType` | Edits one. |
-| `remove` | pub | 72 | `jobServiceType` | Deletes one. |
-| `importFromExcel` | pub | 82 | `zone` `jobServiceType` | Bulk-imports service types, resolving zone names. |
-| `generateTemplate` | pub | 144 | `zone` | Blank import workbook pre-filled with real zones. |
+| `findAll` | pub | 12 | `jobServiceType` | Lists job service types. |
+| `findAllForManagement` | pub | 29 | `jobServiceType` | All routes with counts of jobs, tariffs, customer/supplier prices and driver tips using each |
+| `create` | pub | 52 | `jobServiceType` | Creates one. |
+| `update` | pub | 78 | `jobServiceType` | Edits one. |
+| `remove` | pub | 111 | `jobServiceType` | Deletes one. |
+| `followRenamedCode` | priv | 132 | `jobServiceType` `importNameAlias` | On a route rename that changes its English code, moves ROUTE import aliases to the new code (unless its pair keeps the old one) |
+| `importFromExcel` | pub | 147 | `zone` `jobServiceType` | Bulk-imports service types, resolving zone names. |
+| `generateTemplate` | pub | 209 | `zone` | Blank import workbook pre-filled with real zones. |
 
 ## `locations`
 

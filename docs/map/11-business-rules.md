@@ -544,6 +544,20 @@ destination FK — setting both a zone and a hotel breaks later edit/cancel vali
 Airport and hotel coordinates are the enforced geofence targets (zones only log), so editing a
 location's lat/lng changes who can update status from where.
 
+### Routes (System Parameters › Routes)
+
+`JobServiceType` rows named "English | Arabic"; the English part is the code every traffic sheet uses
+(B2B Excel import, customer / supplier price lists, driver tips — `routeCode`). Managed on
+`/dashboard/routes` (permissions `driver-tariffs`, `.upsert`, `.delete`; the old popup in Driver Tariffs
+now links there).
+
+- **A route in use is never deleted** — delete would strip it from its jobs and tariffs (SET NULL) and
+  wipe its customer prices, supplier prices and driver tips (CASCADE). `remove` refuses with a 409
+  naming the usage; the page offers **Deactivate** (hidden from dropdowns, history and prices kept).
+- Renaming the English part moves the remembered ROUTE import aliases to the new code, unless the
+  ذهاب / عوده partner still has the old code.
+- "Missing defaults": no default type, From or To — the B2B Excel import skips such rows.
+
 ### Location pins — why did a hotel's pin move / why does it say "Check pin"?
 
 A wrong hotel pin blocks reps and drivers at the geofence (FT-3161, 2026-11-19: Sunrise Royal Makadi
