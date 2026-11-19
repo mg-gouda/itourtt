@@ -337,6 +337,8 @@ export interface RepPortalJob extends PortalJob {
   repEscort?: boolean | null;
   feeEarned?: number | null;
   agentRef?: string | null;
+  /** B2B customer's order no. — shown as the reference when there is no agent ref. */
+  customerJobId?: string | null;
   bookingChannel?: string | null;
   /** Server-computed NO SHOW unlock (agent override → company default). Never derive it locally. */
   noShowAvailableFrom?: string | null;

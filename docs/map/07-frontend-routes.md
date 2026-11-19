@@ -19,9 +19,9 @@
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 580 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
 | `/dashboard/complaints/analytics` | `frontend/src/app/(dashboard)/dashboard/complaints/analytics/page.tsx` | 800 | 1 | 1 | Complaint Analytics screen: filters, headline KPIs, reply-window split, monthly trend, breakdowns and the money panel. |
 | `/dashboard/customers` | `frontend/src/app/(dashboard)/dashboard/customers/page.tsx` | 1183 | 9 | 12 | B2B customer management with price grids and import templates. |
-| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 301 | 8 | 2 | One customer's detail, price list and stored import templates. |
+| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 272 | 5 | 2 | One customer's detail, price list and stored import templates. |
 | `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3149 | 10 | 5 | ★ The dispatch console. One window per day, ARR left and DEP right, Excel-like grid with inline editing, keyboard navigation and live conflict warnings. Assignment order is Vehicle → Driver → Rep. |
-| `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 768 | 10 | 2 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
+| `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 212 | 1 | 1 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
 | `/dashboard/driver-tracking` | `frontend/src/app/(dashboard)/dashboard/driver-tracking/page.tsx` | 9 | — | — | Driver Tracking page — map of every active driver's last-known position with name search. |
 | `/dashboard/drivers` | `frontend/src/app/(dashboard)/dashboard/drivers/page.tsx` | 1089 | 11 | 14 | Driver management: records, vehicle links, portal accounts, trip fees and Excel pipelines. |
 | `/dashboard/drivers/[id]` | `frontend/src/app/(dashboard)/dashboard/drivers/[id]/page.tsx` | 859 | 9 | — | One driver's detail, vehicles and fee history. |
@@ -121,7 +121,7 @@
 
 **`/dashboard/customers/[id]`**
 
-- calls: `GET /customers/:x`, `GET /route-prices/customers/:x`, `GET /route-prices/driver-tips`, `PUT /route-prices/customers/:x`, `PUT /route-prices/driver-tips`, `POST /route-prices/:x/import`, `GET /route-prices/customers/export`, `GET /route-prices/driver-tips/export`
+- calls: `GET /customers/:x`, `GET /route-prices/customers/:x`, `PUT /route-prices/customers/:x`, `POST /route-prices/:x/import`, `GET /route-prices/customers/export`
 - perms: `customers.detail.priceList.editPrice`, `customers.detail.priceList.import`
 
 **`/dashboard/dispatch`**
@@ -131,8 +131,8 @@
 
 **`/dashboard/driver-tariffs`**
 
-- calls: `GET /driver-tariffs`, `GET /locations/zones`, `GET /locations/airports`, `GET /vehicles/types`, `GET /job-service-types`, `POST /job-service-types`, `POST /driver-tariffs`, `DELETE /driver-tariffs/:x`, `GET /driver-tariffs/import/template`, `POST /driver-tariffs/import/excel`
-- perms: `driver-tariffs.upsert`, `driver-tariffs.delete`
+- calls: `POST /traffic-jobs/recalculate-driver-fees`
+- perms: `driver-tariffs.upsert`
 
 **`/dashboard/drivers`**
 

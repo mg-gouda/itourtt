@@ -290,6 +290,7 @@ export const ar: TranslationKeys = {
     extras: "الإضافات",
     notes: "ملاحظات",
     agent: "الوكيل",
+    agentRef: "مرجع الوكيل",
     flight: "الرحلة",
     terminal: "صالة",
     evidenceInPlaceTitle: "تأكيد الوصول للموقع",

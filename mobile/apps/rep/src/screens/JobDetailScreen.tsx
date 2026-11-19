@@ -163,7 +163,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
           <Text style={styles.heroRef}>{job.internalRef}</Text>
           <Text style={styles.heroSub}>
             {formatDayLabel(jobDay(job))}
-            {job.agentRef ? `  ·  ${job.agentRef}` : ''}
+            {job.agentRef || job.customerJobId ? `  ·  ${job.agentRef ?? job.customerJobId}` : ''}
           </Text>
           <View style={styles.heroRow}>
             <View>
@@ -397,10 +397,11 @@ export function JobDetailScreen({ route, navigation }: Props) {
           ) : null}
 
           {/* Extras + notes */}
-          {extras.length || job.notes || job.agent?.legalName || job.customer?.legalName ? (
+          {extras.length || job.notes || job.agentRef || job.customerJobId ? (
             <Surface>
               <SectionTitle title={t('repApp.details')} icon="document-text" />
-              <InfoLine icon="business-outline" label={t('repApp.agent')} value={job.agent?.legalName ?? job.customer?.legalName} />
+              {/* Owner's rule (2026-11-19): reps see the agent's reference, not the agent's name. */}
+              <InfoLine icon="pricetag-outline" label={t('repApp.agentRef')} value={job.agentRef ?? job.customerJobId ?? undefined} />
               {extras.length ? (
                 <View style={styles.extras}>
                   {extras.map((e) => (

@@ -56,7 +56,9 @@ export function RepJobCard({
             </View>
             <Text style={[styles.ref, { color: colors.foreground }]} numberOfLines={1}>
               {job.internalRef}
-              {job.agentRef ? <Text style={{ color: colors.mutedForeground, fontWeight: '500' }}>  ·  {job.agentRef}</Text> : null}
+              {job.agentRef || job.customerJobId ? (
+                <Text style={{ color: colors.mutedForeground, fontWeight: '500' }}>  ·  {job.agentRef ?? job.customerJobId}</Text>
+              ) : null}
             </Text>
           </View>
         </View>

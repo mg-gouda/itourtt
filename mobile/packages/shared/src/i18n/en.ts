@@ -288,6 +288,7 @@ export const en = {
     extras: "Extras",
     notes: "Notes",
     agent: "Agent",
+    agentRef: "Agent Ref",
     flight: "Flight",
     terminal: "Terminal",
     evidenceInPlaceTitle: "Confirm you're in place",
