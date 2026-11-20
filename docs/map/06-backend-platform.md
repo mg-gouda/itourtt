@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**71 classes**, **546 methods**.
+**71 classes**, **547 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -747,13 +747,14 @@ Route × car-type amount table over a Prisma model with (route, vehicle type, am
 
 ### MobileAppsController
 
-`backend/src/mobile-apps/mobile-apps.controller.ts:17` · controller · 1 methods
+`backend/src/mobile-apps/mobile-apps.controller.ts:17` · controller · 2 methods
 
 Public Android APK downloads for the rep/driver apps (sideloading).
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `download` | pub | 21 | — | GET /public/apps/:app.apk — streams uploads/.apps/itour-<app>.apk (public, no auth). |
+| `latest` | pub | 25 | — | GET /api/public/apps/latest: published rep / driver app versions (versions.json) |
+| `download` | pub | 39 | — | GET /public/apps/:app.apk — streams uploads/.apps/itour-<app>.apk (public, no auth). |
 
 ## `notifications`
 

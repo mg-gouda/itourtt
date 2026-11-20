@@ -579,6 +579,25 @@ Not notified on purpose: the bulk driver-fee re-price (`recalculateDriverFees`, 
 recalc report goes to finance instead), and no-show disputes (the dispute service only builds the
 PDF for the customer; there is no decision step to report).
 
+## Mobile app updates (sideloaded APKs, no Google Play)
+
+- The rep / driver APKs are served publicly at `/api/public/apps/{rep|driver}.apk` from
+  `uploads/.apps/itour-<app>.apk`. **Publishing = `scripts/publish-apk.sh <app> "notes" [--required]`**
+  (owner approval each time): copies the built APK in and records `versionName`, `versionCode`,
+  `notes`, `size`, `publishedAt`, `minVersionCode` in `uploads/.apps/versions.json`, which
+  `GET /api/public/apps/latest` returns.
+- The apps (`AppUpdateHost`, from rep 1.2.8 / driver 1.2.7) check that endpoint at start and on every
+  return to the foreground (at most every 30 min). If the published `versionCode` is higher than the
+  installed APK's (native `BuildConfig`, module `AppUpdate`), a dialog offers it: download with
+  progress (Android DownloadManager, also shown in the tray) → the system installer. Android asks
+  once to allow "install unknown apps" for the app; the installer always asks the user to confirm.
+- `--required` sets `minVersionCode` = this version: older installs get a dialog they cannot dismiss.
+- Installs older than rep 1.2.8 / driver 1.2.7 have no updater — they need one manual install of the
+  APK; every later version arrives in-app. Bump `versionCode` (+1) on every build or the update is
+  not offered (see CLAUDE.md › version numbering).
+- The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
+  `build.gradle` again.
+
 ## Dispatch
 
 | Rule | Where |

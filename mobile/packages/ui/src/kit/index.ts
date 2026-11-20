@@ -7,6 +7,7 @@ export { Splash } from './Splash';
 export { AppModal, DialogHost } from './AppDialog';
 export { DatePickerModal } from './DatePickerModal';
 export { JobAlarmHost } from './JobAlarmHost';
+export { AppUpdateHost } from './AppUpdateHost';
 
 /** The iTour badge (logo mark on a white disc) used by splash and login screens. */
 // eslint-disable-next-line @typescript-eslint/no-var-requires

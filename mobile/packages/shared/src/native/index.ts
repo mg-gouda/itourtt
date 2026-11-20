@@ -4,6 +4,10 @@ export { callPhone, openDialer } from './phone';
 // WhatsApp
 export { openWhatsApp, sendJobWhatsApp } from './whatsapp';
 
+// In-app updates (sideloaded APKs)
+export { appUpdate, checkForUpdate, installedVersion } from './app-update';
+export type { AvailableUpdate, DownloadStatus, PublishedApp, UpdatableApp } from './app-update';
+
 // Camera
 export { takePhoto, pickPhoto, captureOrPick } from './camera';
 export type { CapturedPhoto } from './camera';

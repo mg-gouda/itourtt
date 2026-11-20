@@ -58,6 +58,9 @@ export {
   takePhoto,
   pickPhoto,
   captureOrPick,
+  appUpdate,
+  checkForUpdate,
+  installedVersion,
   // Location
   getCurrentPosition,
   watchPosition,
@@ -78,7 +81,7 @@ export {
   navTarget,
   googleMapsNavUrl,
 } from './native';
-export type { CapturedPhoto, GPSPosition, NavJob, RouteEnd } from './native';
+export type { CapturedPhoto, GPSPosition, NavJob, RouteEnd, AvailableUpdate, DownloadStatus, PublishedApp, UpdatableApp } from './native';
 
 // Voice notes + background sync (rep / driver apps; no Firebase)
 export { useVoiceRecorder, useVoicePlayer, stopVoicePlayback, VOICE_MAX_SEC } from './native/voice';

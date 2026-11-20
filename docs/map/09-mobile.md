@@ -4,13 +4,13 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**128 files**, **368 exported symbols**.
+**130 files**, **376 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
 ### `App.tsx`
 
-`mobile/apps/driver/src/App.tsx` · 138 lines
+`mobile/apps/driver/src/App.tsx` · 140 lines
 
 Driver app root — providers, theme and navigation.
 
@@ -77,13 +77,13 @@ Zustand store for the driver app's unread-notification badge.
 
 ### `version.ts`
 
-`mobile/apps/driver/src/lib/version.ts` · 3 lines
+`mobile/apps/driver/src/lib/version.ts` · 5 lines
 
 Driver app version shown on Login/Profile.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `APP_VERSION` | const | 2 | Must match versionName in apps/driver/android/app/build.gradle. |
+| `APP_VERSION` | const | 4 | Must match versionName in apps/driver/android/app/build.gradle. |
 
 ## `mobile/apps/driver/src/navigation/`
 
@@ -379,7 +379,7 @@ Guest booking funnel state across steps.
 
 ### `App.tsx`
 
-`mobile/apps/rep/src/App.tsx` · 138 lines
+`mobile/apps/rep/src/App.tsx` · 140 lines
 
 Rep app root.
 
@@ -447,13 +447,13 @@ Zustand store for the rep app's unread-notification badge (header bell, Profile 
 
 ### `version.ts`
 
-`mobile/apps/rep/src/lib/version.ts` · 3 lines
+`mobile/apps/rep/src/lib/version.ts` · 5 lines
 
 Rep app version shown on Login/Profile.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `APP_VERSION` | const | 2 | Must match versionName in apps/rep/android/app/build.gradle. |
+| `APP_VERSION` | const | 4 | Must match versionName in apps/rep/android/app/build.gradle. |
 
 ## `mobile/apps/rep/src/navigation/`
 
@@ -851,7 +851,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 482 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 495 lines
 
 Arabic strings for all four apps.
 
@@ -861,14 +861,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 482 lines
+`mobile/packages/shared/src/i18n/en.ts` · 495 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 481 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 494 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -890,6 +890,22 @@ Translator and locale selection for the mobile apps.
 | `ar` | const | 124 | Translator and locale selection for the mobile apps (`ar`). |
 
 ## `mobile/packages/shared/src/native/`
+
+### `app-update.ts`
+
+`mobile/packages/shared/src/native/app-update.ts` · 73 lines
+
+In-app updates for the sideloaded APKs: version check against the server, native download + install
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `UpdatableApp` | type | 10 | rep \| driver |
+| `PublishedApp` | type | 12 | One app entry of versions.json |
+| `AvailableUpdate` | type | 22 | A newer published version, with download url and required flag |
+| `DownloadStatus` | type | 27 | DownloadManager progress of the update APK |
+| `installedVersion` | function | 46 | Installed APK versionName / versionCode from native BuildConfig |
+| `checkForUpdate` | function | 51 | Compares the installed versionCode with the published one; returns the update or null |
+| `appUpdate` | const | 65 | Native AppUpdate wrapper: download, status, install permission, install |
 
 ### `background-sync.ts`
 
@@ -1502,6 +1518,16 @@ Branded modal card (AppModal) and the DialogHost that replaces Alert.alert popup
 | `AppModal` | function | 36 | The app's popup card: navy backdrop, rounded surface, springy entrance; used by dialogs and pickers. |
 | `DialogHost` | function | 97 | Mounted once in App.tsx; renders appAlert/showDialog calls as branded cards and queues overlaps. |
 
+### `AppUpdateHost.tsx`
+
+`mobile/packages/ui/src/kit/AppUpdateHost.tsx` · 165 lines
+
+Update dialog shown when a newer APK is published
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AppUpdateHost` | function | 26 | Checks for updates on start / foreground; download with progress, then the Android installer |
+
 ### `DatePickerModal.tsx`
 
 `mobile/packages/ui/src/kit/DatePickerModal.tsx` · 153 lines
@@ -1557,13 +1583,13 @@ Shared app form controls (field, choice chips, counter).
 
 ### `index.ts`
 
-`mobile/packages/ui/src/kit/index.ts` · 14 lines
+`mobile/packages/ui/src/kit/index.ts` · 15 lines
 
 Barrel for the shared rep/driver app design kit.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `logoBadge` | const | 13 | The iTour badge PNG (packages/ui/assets) for splash and login. |
+| `logoBadge` | const | 14 | The iTour badge PNG (packages/ui/assets) for splash and login. |
 
 ### `kit.tsx`
 

@@ -1,2 +1,4 @@
-/** Keep in step with versionName in android/app/build.gradle. */
-export const APP_VERSION = '1.2.7';
+import { installedVersion } from '@itour/shared';
+
+/** The installed APK's versionName (native BuildConfig); the fallback only for builds without AppUpdate. */
+export const APP_VERSION = installedVersion()?.versionName ?? '1.2.8';

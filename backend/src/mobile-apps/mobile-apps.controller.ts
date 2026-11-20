@@ -15,6 +15,24 @@ const APPS = { driver: 'itour-driver.apk', rep: 'itour-rep.apk' } as const;
 
 @Controller('public/apps')
 export class MobileAppsController {
+  /**
+   * GET /api/public/apps/latest — the published version of each app (uploads/.apps/versions.json,
+   * written by scripts/publish-apk.sh). The apps compare it with their own versionCode and offer
+   * the update in-app. Declared before `:file` so "latest" is not read as an app name.
+   */
+  @Public()
+  @Get('latest')
+  async latest(@Res() res: Response) {
+    let versions: Record<string, unknown> = {};
+    try {
+      versions = JSON.parse(await fs.readFile(path.join(APPS_DIR, 'versions.json'), 'utf8'));
+    } catch {
+      // nothing published through the script yet
+    }
+    res.setHeader('Cache-Control', 'no-cache');
+    res.json({ success: true, data: versions });
+  }
+
   /** GET /api/public/apps/driver.apk | rep.apk */
   @Public()
   @Get(':file')

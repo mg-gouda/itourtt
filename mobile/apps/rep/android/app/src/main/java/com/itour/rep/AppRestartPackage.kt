@@ -7,7 +7,7 @@ import com.facebook.react.uimanager.ViewManager
 
 class AppRestartPackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
-      listOf(AppRestartModule(reactContext))
+      listOf(AppRestartModule(reactContext), AppUpdateModule(reactContext))
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
 }

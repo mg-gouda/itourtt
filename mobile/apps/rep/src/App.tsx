@@ -20,7 +20,7 @@ import {
 } from '@itour/shared';
 import { RootNavigator } from './navigation/RootNavigator';
 import { Splash } from '@itour/ui';
-import { DialogHost, JobAlarmHost, OfflinePill } from '@itour/ui';
+import { DialogHost, AppUpdateHost, JobAlarmHost, OfflinePill } from '@itour/ui';
 
 /**
  * Rep app root. No Firebase: while signed in, a background sync service
@@ -126,6 +126,8 @@ export function App() {
       ) : null}
       {ready ? <OfflinePill /> : null}
       {/* 1 h / 30 min start reminders + drop-off alarms; must be acknowledged (activity-logged). */}
+      {/* Newer APK published → offer the in-app download + install (not on Google Play). */}
+      {ready ? <AppUpdateHost app="rep" /> : null}
       {ready && isAuthenticated ? (
         <JobAlarmHost portal="rep" onOpenJob={(jobId) => navigationRef.current?.navigate('JobDetail', { jobId })} />
       ) : null}
