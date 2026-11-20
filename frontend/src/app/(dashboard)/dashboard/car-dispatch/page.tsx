@@ -44,6 +44,7 @@ import {
   Loader2,
   Columns3,
   Ban,
+  ArrowRightLeft,
 } from "lucide-react";
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
@@ -126,6 +127,8 @@ interface JobRow {
   saved: boolean;
   saving: boolean;
   savedJobId?: string;
+  /** Saved jobs: their assignment, so the driver / extra driver / car can be changed from the board. */
+  assignmentId?: string;
   error?: string;
 }
 
@@ -542,6 +545,7 @@ function CarDispatchContent() {
         saved: true,
         saving: false,
         savedJobId: j.id,
+        assignmentId: j.assignment?.id,
       });
 
       setCards((prev) =>
@@ -863,6 +867,31 @@ function CarDispatchContent() {
     }
   };
 
+  // ─── Change a saved job's driver / extra driver / car (PATCH /dispatch/assignments/:id) ───
+  // reassignJob keeps the 48 h dispatcher lock, availability and conflict checks, notifies the new /
+  // removed driver and syncs pricing. A refusal rolls the cell back.
+  const reassignSaved = async (
+    vehicleId: string,
+    job: JobRow,
+    patch: { driverId?: string; externalDriverName?: string; externalDriverPhone?: string; vehicleId?: string },
+    rollback?: () => void,
+  ) => {
+    if (!job.assignmentId) return;
+    try {
+      await api.patch(`/dispatch/assignments/${job.assignmentId}`, patch);
+      toast.success(patch.vehicleId ? `${job.bookingNumber} moved` : `${job.bookingNumber} updated`);
+      if (patch.vehicleId) {
+        setSelectedOwnedIds((prev) => new Set(prev).add(patch.vehicleId!));
+        await loadJobsForDate();
+      }
+    } catch (err: unknown) {
+      rollback?.();
+      const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      toast.error(Array.isArray(msg) ? msg.join(", ") : msg || "Could not change the assignment");
+    }
+    void vehicleId;
+  };
+
   // ─── Save all unsaved jobs on a card ───
   const saveAllJobs = async (vehicleId: string) => {
     const card = cards.find((c) => c.vehicle.id === vehicleId);
@@ -981,6 +1010,23 @@ function CarDispatchContent() {
               updateJobField(card.vehicle.id, uid, field, value)
             }
             onRemoveJob={(uid) => removeJobRow(card.vehicle.id, uid)}
+            onReassign={(job, field, value) => {
+              const before = job[field] as string;
+              updateJobField(card.vehicle.id, job.uid, field, value);
+              const rollback = () => updateJobField(card.vehicle.id, job.uid, field, before);
+              const patch =
+                field === "driverId"
+                  ? { driverId: value }
+                  : {
+                      externalDriverName: field === "extraDriverName" ? value : job.extraDriverName,
+                      externalDriverPhone: field === "extraDriverPhone" ? value : job.extraDriverPhone,
+                    };
+              reassignSaved(card.vehicle.id, job, patch, rollback);
+            }}
+            moveTargets={cards
+              .filter((c) => !c.isSupplier && c.vehicle.id !== card.vehicle.id)
+              .map((c) => ({ id: c.vehicle.id, label: `${c.vehicle.plateNumber}${c.vehicle.vehicleType?.name ? ` · ${c.vehicle.vehicleType.name}` : ""}` }))}
+            onMoveJob={(job, toVehicleId) => reassignSaved(card.vehicle.id, job, { vehicleId: toVehicleId })}
             onSaveJob={(uid) => saveJobRow(card.vehicle.id, uid)}
             onSaveAll={() => saveAllJobs(card.vehicle.id)}
             onCancelJob={
@@ -1271,6 +1317,9 @@ function VehicleCard({
   onSaveAll,
   onCancelJob,
   onRemoveCard,
+  onReassign,
+  moveTargets = [],
+  onMoveJob,
 }: {
   card: CarCard;
   view: BoardView;
@@ -1287,6 +1336,11 @@ function VehicleCard({
   /** Present only for users allowed to cancel jobs. */
   onCancelJob?: (job: JobRow) => void;
   onRemoveCard?: () => void;
+  /** Saved job: change driver / extra driver (rolls back on refusal). */
+  onReassign?: (job: JobRow, field: "driverId" | "extraDriverName" | "extraDriverPhone", value: string) => void;
+  /** Other owned cars on the board a saved job can move to. */
+  moveTargets?: { id: string; label: string }[];
+  onMoveJob?: (job: JobRow, toVehicleId: string) => void;
 }) {
   const { vehicle, jobs, isSupplier } = card;
   const unsavedCount = jobs.filter((j) => !j.saved).length;
@@ -1295,7 +1349,11 @@ function VehicleCard({
 
   const typeOptions = SERVICE_TYPE_DROPDOWN_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
   const routeList = routeOptions.map((r) => ({ value: r.id, label: r.name }));
-  const open = (j: JobRow) => !j.saved; // saved jobs are read-only on the board
+  const open = (j: JobRow) => !j.saved; // saved jobs are read-only on the board…
+  // …except who drives them: driver, extra driver and the car (Act › move) while the job is live.
+  const live = (j: JobRow) =>
+    j.saved && !!j.assignmentId && !isSupplier && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(j.status ?? "");
+  const assignable = (j: JobRow) => open(j) || live(j);
 
   const dsColumns: DSColumn<JobRow>[] = columns.map((c): DSColumn<JobRow> => {
     const base = { key: c.key, title: c.label, width: widthOf(c), align: c.center ? ("center" as const) : undefined };
@@ -1322,7 +1380,7 @@ function VehicleCard({
       case "driver":
         return isSupplier
           ? { ...base, type: "readonly", get: () => "", display: () => <span className="italic">External</span> }
-          : { ...base, type: "select", options: driverOptions, get: (j) => j.driverId, editable: open };
+          : { ...base, type: "select", options: driverOptions, get: (j) => j.driverId, editable: assignable };
       case "type":
         return { ...base, type: "select", options: typeOptions, get: (j) => j.serviceType, editable: open };
       case "pax":
@@ -1345,6 +1403,28 @@ function VehicleCard({
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               )}
+              {live(j) && onMoveJob && moveTargets.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button type="button" title="Move to car…" className="text-primary hover:opacity-70">
+                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-56 p-1">
+                    <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground">Move {j.bookingNumber} to car</div>
+                    {moveTargets.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-muted"
+                        onClick={() => onMoveJob(j, t.id)}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </PopoverContent>
+                </Popover>
+              )}
               {j.saved && j.savedJobId && onCancelJob && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(j.status ?? "") && (
                 <button type="button" title="Cancel job" onClick={() => onCancelJob(j)} className="text-destructive hover:opacity-70">
                   <Ban className="h-3.5 w-3.5" />
@@ -1355,7 +1435,8 @@ function VehicleCard({
         };
       default: {
         const field = COLUMN_FIELD[c.key]!;
-        return { ...base, get: (j) => String(j[field] ?? ""), editable: open };
+        const reassignable = field === "extraDriverName" || field === "extraDriverPhone";
+        return { ...base, get: (j) => String(j[field] ?? ""), editable: reassignable ? assignable : open };
       }
     }
   });
@@ -1388,6 +1469,9 @@ function VehicleCard({
                 >
                   Supplier
                 </Badge>
+              )}
+              {isSupplier && (
+                <span className="text-[10px] text-muted-foreground">Saved supplier jobs are re-assigned on the Dispatch page</span>
               )}
             </div>
             {(vehicle.carBrand || vehicle.carModel) && (
@@ -1439,7 +1523,15 @@ function VehicleCard({
           className="rounded-none border-0"
           onChange={(j, col, value) => {
             const field = COLUMN_FIELD[col as ColKey];
-            if (field) onUpdateField(j.uid, field, field === "pickUpTime" ? normTime(value) : value);
+            if (!field) return;
+            if (j.saved) {
+              // Only the driver cells are editable on a saved row; each change is saved at once.
+              if ((field === "driverId" || field === "extraDriverName" || field === "extraDriverPhone") && value !== j[field]) {
+                onReassign?.(j, field, value);
+              }
+              return;
+            }
+            onUpdateField(j.uid, field, field === "pickUpTime" ? normTime(value) : value);
           }}
           onCreateRows={onCreateRows}
           onRowLeave={(j) => {

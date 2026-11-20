@@ -598,6 +598,21 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Car Dispatch: changing a saved job's driver / car
+
+Owner request 2026-11-20. Saved rows on Car Dispatch stay read-only **except who drives them**, while
+the job is live (not COMPLETED / CANCELLED / NO_SHOW) and on an owned car:
+- **Driver**, **Extra Driver** and **Extra Driver Phone** cells are editable; each change is saved at
+  once with `PATCH /dispatch/assignments/:id` (`{ driverId }` or `{ externalDriverName,
+  externalDriverPhone }`).
+- **Move to car…** (Act column, ⇄) lists the other owned cars on the board and PATCHes `{ vehicleId }`;
+  the board reloads and the row appears on the new card.
+- Same backend as the Dispatch page (`dispatch.service › reassignJob`): 48 h dispatcher lock,
+  availability / conflict checks, notifications (new driver assigned, removed driver, car changed)
+  and pricing sync. A refusal shows the server message and rolls the cell back.
+- Supplier cards: saved supplier jobs are not on the board (no vehicle); they are re-assigned on the
+  Dispatch page (hint on the card).
+
 ## Job type badge (drivers / reps)
 
 Owner request 2026-11-20: drivers (and reps, for consistency) see each job's type as a badge next

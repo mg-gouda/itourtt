@@ -391,7 +391,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `CardFooter` | function | `frontend/src/components/ui/card.tsx:74` |
 | `CardGridSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:95` |
 | `CardHeader` | function | `frontend/src/components/ui/card.tsx:18` |
-| `CarDispatchPage` | function | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx:367` |
+| `CarDispatchPage` | function | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx:370` |
 | `CardSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:113` |
 | `CardTitle` | function | `frontend/src/components/ui/card.tsx:31` |
 | `categoryNames` | function | `frontend/src/lib/complaints.ts:311` |
