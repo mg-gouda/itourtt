@@ -3333,7 +3333,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `TripKmPage` | function | `frontend/src/app/(dashboard)/dashboard/trip-km/page.tsx:27` |
 | `TripKmReminder` | function | `frontend/src/components/trip-km-reminder.tsx:27` |
 | `TripKmRow` | type | `backend/src/trip-km/trip-km.service.ts:20` |
-| `TripKmRow` | type | `frontend/src/components/trip-km-table.tsx:19` |
+| `TripKmRow` | type | `frontend/src/components/trip-km-table.tsx:20` |
 | `TripKmService` | class | `backend/src/trip-km/trip-km.service.ts:70` |
 | `TripKmService.assertForCompletion` | method | `backend/src/trip-km/trip-km.service.ts:177` |
 | `TripKmService.capture` | method | `backend/src/trip-km/trip-km.service.ts:142` |
@@ -3348,7 +3348,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `TripKmService.statusForDriver` | method | `backend/src/trip-km/trip-km.service.ts:127` |
 | `TripKmService.summary` | method | `backend/src/trip-km/trip-km.service.ts:350` |
 | `TripKmService.yesterday` | method | `backend/src/trip-km/trip-km.service.ts:373` |
-| `TripKmTable` | function | `frontend/src/components/trip-km-table.tsx:67` |
+| `TripKmTable` | function | `frontend/src/components/trip-km-table.tsx:96` |
 | `TripOdometer` | model | `backend/prisma/schema.prisma:3075` |
 | `turnOffAlarmsOnPhone` | function | `mobile/packages/shared/src/native/job-alerts.ts:425` |
 | `turnOffJobAlarms` | function | `mobile/packages/shared/src/native/background-sync.ts:471` |

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertTriangle, Camera, Check, Download, Loader2, Pencil, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { downloadBlob } from "@/lib/print-report";
@@ -44,23 +45,51 @@ const shift = (day: string, n: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-function PhotoButton({ id }: { id: string }) {
+/**
+ * Odometer photo in a dialog on the page. (A new window opened after the download is treated as a
+ * pop-up and blocked or left blank, so the photo is shown here instead.)
+ */
+function PhotoButton({ id, title }: { id: string; title: string }) {
   const [busy, setBusy] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
   const open = async () => {
     setBusy(true);
     try {
       const { data } = await api.get(`/trip-km/${id}/photo`, { responseType: "blob" });
-      window.open(URL.createObjectURL(data as Blob), "_blank", "noopener");
+      setUrl(URL.createObjectURL(data as Blob));
     } catch {
       toast.error("Photo not available");
     } finally {
       setBusy(false);
     }
   };
+  const close = () => {
+    if (url) URL.revokeObjectURL(url);
+    setUrl(null);
+  };
   return (
-    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={open} title="Odometer photo">
-      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-    </Button>
+    <>
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={open} disabled={busy} title="Odometer photo">
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+      </Button>
+      <Dialog open={!!url} onOpenChange={(o) => !o && close()}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Odometer photo</DialogTitle>
+            <DialogDescription>{title}</DialogDescription>
+          </DialogHeader>
+          {url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt="Odometer photo" className="max-h-[75vh] w-full rounded-md object-contain bg-black" />
+          )}
+          {url && (
+            <a href={url} download={`odometer-${id}.jpg`} className="text-sm text-primary underline-offset-4 hover:underline">
+              Download photo
+            </a>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -265,7 +294,7 @@ export function TripKmTable({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end">
-                        {r.hasPhoto && <PhotoButton id={r.id} />}
+                        {r.hasPhoto && <PhotoButton id={r.id} title={`${r.jobRef} · ${r.plateNumber} · ${r.readingKm.toLocaleString("en-US")} km`} />}
                         {canExport && editing?.id !== r.id && (
                           <Button
                             variant="ghost"
