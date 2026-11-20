@@ -405,7 +405,13 @@ export interface PortalComplaint {
   id: string;
   complaintNo: string;
   subject: string;
-  status: 'WON' | 'PARTIALLY_LOST' | 'LOST';
+  status: 'OPEN' | 'UNDER_REVIEW' | 'REPLIED' | 'ESCALATED' | 'WON' | 'PARTIALLY_LOST' | 'LOST' | 'CANCELLED';
+  /** Still answerable (not resolved / cancelled). */
+  open: boolean;
+  /** Messages in this person's thread with the office. */
+  messageCount: number;
+  /** Open, and nothing sent yet or the office spoke last. */
+  awaitingYou: boolean;
   resolvedAt: string | null;
   scorePenalty: number;
   categoryEn: string;

@@ -517,9 +517,27 @@ scoring form can't wipe it.
 adjustments from the payload — they are absent, not null. Hiding them in the UI alone is not the
 rule.
 
-Reps and drivers see a complaint **only once it is terminal** and only where they are the
-responsible party (`/driver-portal/complaints`, `/rep-portal/complaints`). A dispute still being
-argued is internal, and the claimed/conceded amounts never reach the portals.
+**Reps and drivers answer the complaints that blame them** (changed 2026-11-20; before, they saw a
+complaint only once it was terminal). `complaints/complaint-thread.service.ts`:
+- A rep / driver sees a complaint **as soon as it names them** (`responsibleParties` has REP / DRIVER
+  and the id is theirs), any status, open ones first — in the apps (Complaints tab) and the web portals
+  (`/rep/complaints`, `/driver/complaints`; API `GET /{rep|driver}-portal/complaints[/:id]`).
+- They see **the story, not the money**: job, route, guest, category, subject, description. The
+  claimed / loss amounts never reach the portals; a deduction shows only once POSTED, as before.
+- **One thread per party** (`ComplaintMessage.party`): the rep never sees the driver's answers and vice
+  versa; admin sees both in the complaint view and replies in either (`POST /complaints/:id/messages`,
+  `complaints.editButton`). The party answers with text and/or up to 10 images / PDF (≤15 MB each,
+  e.g. WhatsApp screenshots) — `POST /{portal}/complaints/:id/messages`. Evidence is not stamped.
+- Each file is a `ComplaintAttachment` (kind EVIDENCE, `messageId` set, `submittedBy` = who), stored on
+  Drive in the job's Rep / Driver Evidence folder (local `uploads/complaints` when Drive is off), so it
+  also appears in the complaint's attachment list. Files stream through
+  `GET /complaints/attachments/:id/file` (`complaints.attachments.view`) or, for the party, only from
+  their own thread.
+- A resolved / cancelled complaint's threads are read-only.
+- **Notifications:** the rep / driver (bell + push) when a complaint newly names them — on create, or
+  on an edit that adds / swaps them (`notifyNamed`) — and when the office replies; the complaint's
+  owner (`assignedTo`, else every active ADMIN) when the party answers. The settlement notice
+  (LOST / PARTIALLY_LOST) still comes from the SLA service.
 
 ## Dispatch
 

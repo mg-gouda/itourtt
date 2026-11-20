@@ -24,5 +24,8 @@ export { ChatThreadScreen, ChatImageViewer, DaySeparator } from './chat/ChatThre
 export { AnnouncementsScreen } from './chat/AnnouncementsScreen';
 export { ChatBubble, StatusTicks } from './chat/ChatBubble';
 
+// Complaints that name the rep / driver, with their answer thread
+export { PortalComplaintsScreen } from './complaints/PortalComplaintsScreen';
+
 // App design kit (rep / driver apps)
 export * from './kit';

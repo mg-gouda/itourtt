@@ -115,6 +115,7 @@ export interface ComplaintAttachment {
   fileUrl: string;
   fileName: string;
   mimeType?: string | null;
+  submittedBy?: string | null;
   createdAt: string;
 }
 

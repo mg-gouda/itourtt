@@ -11,9 +11,12 @@ import { AgentAdjustmentsService } from './agent-adjustments.service.js';
 import { ComplaintScoringService } from './complaint-scoring.service.js';
 import { ComplaintSlaService } from './complaint-sla.service.js';
 import { ComplaintAnalyticsService } from './complaint-analytics.service.js';
+import { ComplaintThreadService } from './complaint-thread.service.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
+import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 
 @Module({
+  imports: [GoogleDriveModule],
   controllers: [
     ComplaintsController,
     ComplaintCategoriesController,
@@ -31,9 +34,10 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
     ComplaintScoringService,
     ComplaintSlaService,
     ComplaintAnalyticsService,
+    ComplaintThreadService,
     PermissionsGuard,
     Reflector,
   ],
-  exports: [ComplaintsService, ComplaintCategoriesService, AgentAdjustmentsService],
+  exports: [ComplaintsService, ComplaintCategoriesService, AgentAdjustmentsService, ComplaintThreadService],
 })
 export class ComplaintsModule {}

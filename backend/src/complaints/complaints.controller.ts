@@ -10,7 +10,15 @@ import {
   UseGuards,
   ParseUUIDPipe,
   ForbiddenException,
+  Res,
+  UseInterceptors,
+  UploadedFiles,
+  BadRequestException,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import * as express from 'express';
+import { ComplaintThreadService, sendComplaintFile } from './complaint-thread.service.js';
 import { ComplaintsService } from './complaints.service.js';
 import { CreateComplaintDto } from './dto/create-complaint.dto.js';
 import { UpdateComplaintDto } from './dto/update-complaint.dto.js';
@@ -43,6 +51,7 @@ export class ComplaintsController {
     private readonly complaintsService: ComplaintsService,
     private readonly analyticsService: ComplaintAnalyticsService,
     private readonly permissionsGuard: PermissionsGuard,
+    private readonly complaintThreads: ComplaintThreadService,
   ) {}
 
   @Get()
@@ -75,6 +84,36 @@ export class ComplaintsController {
   @Permissions('complaints.assign', 'complaints.addButton', 'complaints.editButton')
   async assignableUsers() {
     return new ApiResponse(await this.complaintsService.assignableUsers());
+  }
+
+  /** GET /complaints/:id/messages — the rep's and the driver's answer threads (admin sees both). */
+  @Get(':id/messages')
+  @Permissions('complaints.view', 'complaints')
+  async threads(@Param('id', ParseUUIDPipe) id: string) {
+    return new ApiResponse(await this.complaintThreads.threadsForStaff(id));
+  }
+
+  /** POST /complaints/:id/messages — the office replies in the rep's or the driver's thread (multipart: party, message, files). */
+  @Post(':id/messages')
+  @Permissions('complaints.editButton')
+  @UseInterceptors(FilesInterceptor('files', 10, { storage: memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } }))
+  async replyInThread(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('party') party: string,
+    @Body('message') message: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @CurrentUser('id') userId: string,
+  ) {
+    if (party !== 'REP' && party !== 'DRIVER') throw new BadRequestException('party must be REP or DRIVER');
+    const msg = await this.complaintThreads.addMessage({ complaintId: id, party, author: 'STAFF', userId, message, files });
+    return new ApiResponse(msg, 'Reply sent');
+  }
+
+  /** GET /complaints/attachments/:attId/file — streams a complaint file (Drive or local). */
+  @Get('attachments/:attId/file')
+  @Permissions('complaints.attachments.view')
+  async attachmentFile(@Param('attId', ParseUUIDPipe) attId: string, @Res() res: express.Response) {
+    sendComplaintFile(res, await this.complaintThreads.openAttachment(attId));
   }
 
   @Get('job/:jobId')

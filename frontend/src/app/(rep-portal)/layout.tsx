@@ -16,6 +16,7 @@ import {
   User,
   Settings,
   MessageCircle,
+  MessageSquareWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api, { backgroundPoll } from "@/lib/api";
@@ -99,6 +100,7 @@ function RepPortalShell({
   const tabs = [
     { href: "/rep", label: t("portal.jobs"), icon: Briefcase, exact: true },
     { href: "/rep/history", label: t("portal.history"), icon: History },
+    { href: "/rep/complaints", label: t("portal.complaints"), icon: MessageSquareWarning },
     { href: "/rep/chat", label: t("portal.chat"), icon: MessageCircle, badge: chatUnread },
     { href: "/rep/profile", label: t("portal.settings"), icon: Settings },
   ];

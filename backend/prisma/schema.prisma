@@ -329,31 +329,31 @@ model User {
   updatedAt              DateTime  @updatedAt @map("updated_at")
   deletedAt              DateTime? @map("deleted_at")
 
-  roleRef              Role?               @relation(fields: [roleId], references: [id])
-  createdJobs          TrafficJob[]        @relation("JobCreatedBy")
-  unlockedJobs         TrafficJob[]        @relation("JobDispatchUnlockedBy")
-  driverUnlockedJobs   TrafficJob[]        @relation("JobDriverUnlockedBy")
-  repUnlockedJobs      TrafficJob[]        @relation("JobRepUnlockedBy")
-  supplierUnlockedJobs TrafficJob[]        @relation("JobSupplierUnlockedBy")
-  editUnlockedJobs     TrafficJob[]        @relation("JobEditUnlockedBy")
-  assignments          TrafficAssignment[] @relation("AssignedBy")
+  roleRef              Role?                    @relation(fields: [roleId], references: [id])
+  createdJobs          TrafficJob[]             @relation("JobCreatedBy")
+  unlockedJobs         TrafficJob[]             @relation("JobDispatchUnlockedBy")
+  driverUnlockedJobs   TrafficJob[]             @relation("JobDriverUnlockedBy")
+  repUnlockedJobs      TrafficJob[]             @relation("JobRepUnlockedBy")
+  supplierUnlockedJobs TrafficJob[]             @relation("JobSupplierUnlockedBy")
+  editUnlockedJobs     TrafficJob[]             @relation("JobEditUnlockedBy")
+  assignments          TrafficAssignment[]      @relation("AssignedBy")
   rep                  Rep?
   driver               Driver?
   supplier             Supplier?
   activityLogs         ActivityLog[]
   notifications        UserNotification[]
   deviceTokens         DeviceToken[]
-  repScoresGiven       RepJobScore[]       @relation("RepScoreScoredBy")
-  driverScoresGiven    DriverJobScore[]    @relation("DriverScoreScoredBy")
+  repScoresGiven       RepJobScore[]            @relation("RepScoreScoredBy")
+  driverScoresGiven    DriverJobScore[]         @relation("DriverScoreScoredBy")
   preferences          UserPreference[]
-  b2cBookings          GuestBooking[]      @relation("B2CClientBookings")
-  b2cInvoices          B2CInvoice[]        @relation("B2CClientInvoices")
+  b2cBookings          GuestBooking[]           @relation("B2CClientBookings")
+  b2cInvoices          B2CInvoice[]             @relation("B2CClientInvoices")
   sessions             UserSession[]
   lastLocation         UserLocation?
-  chatsAsPortal        ChatConversation[]  @relation("ChatPortalUser")
-  chatsAsStaff         ChatConversation[]  @relation("ChatStaffUser")
-  chatMessagesSent     ChatMessage[]       @relation("ChatMessageSender")
-  chatBroadcastsSent   ChatBroadcast[]     @relation("ChatBroadcastSender")
+  chatsAsPortal        ChatConversation[]       @relation("ChatPortalUser")
+  chatsAsStaff         ChatConversation[]       @relation("ChatStaffUser")
+  chatMessagesSent     ChatMessage[]            @relation("ChatMessageSender")
+  chatBroadcastsSent   ChatBroadcast[]          @relation("ChatBroadcastSender")
   chatBroadcastsRecv   ChatBroadcastRecipient[]
   webPushSubscriptions WebPushSubscription[]
 
@@ -362,6 +362,7 @@ model User {
   complaintChargesApproved ComplaintCharge[] @relation("ComplaintChargeApprovedBy")
 
   priceListAssignmentsCreated SupplierPriceListAssignment[] @relation("PriceListAssignmentCreatedBy")
+  complaintMessages           ComplaintMessage[]
 
   @@map("users")
 }
@@ -395,21 +396,21 @@ model UserLocation {
 /// REP/DRIVER single-device lock (a new device is blocked while an active session
 /// exists). "Active" = endedAt is null AND lastSeenAt within the idle window.
 model UserSession {
-  id         String    @id @default(uuid())
-  userId     String    @map("user_id")
-  sessionId  String    @unique @map("session_id") // mirrors the JWT `sid`
-  deviceName String?   @map("device_name")
-  ipAddress  String?   @map("ip_address")
-  userAgent  String?   @map("user_agent")
-  startedAt  DateTime  @default(now()) @map("started_at")
-  lastSeenAt DateTime  @default(now()) @map("last_seen_at")
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  sessionId      String    @unique @map("session_id") // mirrors the JWT `sid`
+  deviceName     String?   @map("device_name")
+  ipAddress      String?   @map("ip_address")
+  userAgent      String?   @map("user_agent")
+  startedAt      DateTime  @default(now()) @map("started_at")
+  lastSeenAt     DateTime  @default(now()) @map("last_seen_at")
   /// Last request the user actually made — background polls (notification badge)
   /// refresh lastSeenAt but NOT this. REP/DRIVER sessions idle past
   /// SESSION_INACTIVITY_MINUTES (default 180) are ended and logged out.
-  lastActivityAt DateTime @default(now()) @map("last_activity_at")
-  endedAt    DateTime? @map("ended_at")
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at")
+  endedAt        DateTime? @map("ended_at")
   /// Why the session ended: LOGOUT | FORCED | IDLE_TIMEOUT (null while open).
-  endReason  String?   @map("end_reason")
+  endReason      String?   @map("end_reason")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -469,14 +470,14 @@ model Airport {
   country Country @relation(fields: [countryId], references: [id])
   cities  City[]
 
-  jobsOrigin          TrafficJob[]        @relation("JobOriginAirport")
-  jobsDestination     TrafficJob[]        @relation("JobDestAirport")
-  guestBookingsOrigin GuestBooking[]      @relation("GuestBookingOriginAirport")
-  guestBookingsDest   GuestBooking[]      @relation("GuestBookingDestAirport")
-  serviceTypesFrom    JobServiceType[]    @relation("ServiceTypeFromAirport")
-  serviceTypesTo      JobServiceType[]    @relation("ServiceTypeToAirport")
-  fromFees            DriverTripFee[]     @relation("FeeFromAirport")
-  toFees              DriverTripFee[]     @relation("FeeToAirport")
+  jobsOrigin          TrafficJob[]     @relation("JobOriginAirport")
+  jobsDestination     TrafficJob[]     @relation("JobDestAirport")
+  guestBookingsOrigin GuestBooking[]   @relation("GuestBookingOriginAirport")
+  guestBookingsDest   GuestBooking[]   @relation("GuestBookingDestAirport")
+  serviceTypesFrom    JobServiceType[] @relation("ServiceTypeFromAirport")
+  serviceTypesTo      JobServiceType[] @relation("ServiceTypeToAirport")
+  fromFees            DriverTripFee[]  @relation("FeeFromAirport")
+  toFees              DriverTripFee[]  @relation("FeeToAirport")
 
   @@index([countryId])
   @@map("airports")
@@ -521,20 +522,20 @@ model Zone {
   hotels   Hotel[]
   repZones RepZone[]
 
-  jobsFrom           TrafficJob[]        @relation("JobFromZone")
-  jobsTo             TrafficJob[]        @relation("JobToZone")
-  jobsOrigin         TrafficJob[]        @relation("JobOriginZone")
-  jobsDestination    TrafficJob[]        @relation("JobDestZone")
-  driverFeesFrom     DriverTripFee[]     @relation("FeeFromZone")
-  driverFeesTo       DriverTripFee[]     @relation("FeeToZone")
-  agentPricesFrom    AgentPriceItem[]    @relation("AgentPriceFromZone")
-  agentPricesTo      AgentPriceItem[]    @relation("AgentPriceToZone")
-  publicPricesFrom   PublicPriceItem[]   @relation("PublicPriceFromZone")
-  publicPricesTo     PublicPriceItem[]   @relation("PublicPriceToZone")
-  guestBookingsFrom  GuestBooking[]      @relation("GuestBookingFromZone")
-  guestBookingsTo    GuestBooking[]      @relation("GuestBookingToZone")
-  serviceTypesFrom   JobServiceType[]    @relation("ServiceTypeFromZone")
-  serviceTypesTo     JobServiceType[]    @relation("ServiceTypeToZone")
+  jobsFrom          TrafficJob[]      @relation("JobFromZone")
+  jobsTo            TrafficJob[]      @relation("JobToZone")
+  jobsOrigin        TrafficJob[]      @relation("JobOriginZone")
+  jobsDestination   TrafficJob[]      @relation("JobDestZone")
+  driverFeesFrom    DriverTripFee[]   @relation("FeeFromZone")
+  driverFeesTo      DriverTripFee[]   @relation("FeeToZone")
+  agentPricesFrom   AgentPriceItem[]  @relation("AgentPriceFromZone")
+  agentPricesTo     AgentPriceItem[]  @relation("AgentPriceToZone")
+  publicPricesFrom  PublicPriceItem[] @relation("PublicPriceFromZone")
+  publicPricesTo    PublicPriceItem[] @relation("PublicPriceToZone")
+  guestBookingsFrom GuestBooking[]    @relation("GuestBookingFromZone")
+  guestBookingsTo   GuestBooking[]    @relation("GuestBookingToZone")
+  serviceTypesFrom  JobServiceType[]  @relation("ServiceTypeFromZone")
+  serviceTypesTo    JobServiceType[]  @relation("ServiceTypeToZone")
 
   @@index([cityId])
   @@map("zones")
@@ -592,17 +593,17 @@ model VehicleType {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  vehicles         Vehicle[]
+  vehicles               Vehicle[]
   supplierPriceListItems SupplierPriceListItem[]
   customerRoutePrices    CustomerRoutePrice[]
-  agentPrices      AgentPriceItem[]
-  publicPrices     PublicPriceItem[]
-  guestBookings    GuestBooking[]
-  requestedByJobs  TrafficJob[]          @relation("JobRequestedVehicleType")
-  supplierCarTypes SupplierCarType[]
-  driverTariffRates DriverTariffRate[]
-  driverTripFees   DriverTripFee[]
-  allowedForExtras B2cExtraVehicleType[]
+  agentPrices            AgentPriceItem[]
+  publicPrices           PublicPriceItem[]
+  guestBookings          GuestBooking[]
+  requestedByJobs        TrafficJob[]            @relation("JobRequestedVehicleType")
+  supplierCarTypes       SupplierCarType[]
+  driverTariffRates      DriverTariffRate[]
+  driverTripFees         DriverTripFee[]
+  allowedForExtras       B2cExtraVehicleType[]
 
   @@map("vehicle_types")
 }
@@ -1236,7 +1237,7 @@ model SupplierCarType {
 // ─────────────────────────────────────────────
 
 model TrafficJob {
-  alertAcks            JobAlertAck[]
+  alertAcks        JobAlertAck[]
   id               String         @id @default(uuid())
   internalRef      String         @unique @map("internal_ref")
   bookingChannel   BookingChannel @default(ONLINE) @map("booking_channel")
@@ -1541,13 +1542,13 @@ model DriverTripFee {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  driver      Driver             @relation(fields: [driverId], references: [id])
-  trafficJob  TrafficJob         @relation(fields: [trafficJobId], references: [id])
-  fromZone    Zone?              @relation("FeeFromZone", fields: [fromZoneId], references: [id])
-  toZone      Zone?              @relation("FeeToZone", fields: [toZoneId], references: [id])
-  fromAirport Airport?           @relation("FeeFromAirport", fields: [fromAirportId], references: [id])
-  toAirport   Airport?           @relation("FeeToAirport", fields: [toAirportId], references: [id])
-  vehicleType VehicleType?       @relation(fields: [vehicleTypeId], references: [id])
+  driver      Driver       @relation(fields: [driverId], references: [id])
+  trafficJob  TrafficJob   @relation(fields: [trafficJobId], references: [id])
+  fromZone    Zone?        @relation("FeeFromZone", fields: [fromZoneId], references: [id])
+  toZone      Zone?        @relation("FeeToZone", fields: [toZoneId], references: [id])
+  fromAirport Airport?     @relation("FeeFromAirport", fields: [fromAirportId], references: [id])
+  toAirport   Airport?     @relation("FeeToAirport", fields: [toAirportId], references: [id])
+  vehicleType VehicleType? @relation(fields: [vehicleTypeId], references: [id])
 
   @@index([driverId])
   @@index([trafficJobId])
@@ -1575,25 +1576,25 @@ model DriverTariffRate {
 }
 
 model JobServiceType {
-  id         String   @id @default(uuid())
-  name       String   @unique
-  fromZoneId String?  @map("from_zone_id")
-  toZoneId   String?  @map("to_zone_id")
+  id                 String       @id @default(uuid())
+  name               String       @unique
+  fromZoneId         String?      @map("from_zone_id")
+  toZoneId           String?      @map("to_zone_id")
   /// Route defaults copied onto jobs created by the B2B Excel import:
   /// service type + exactly one origin (airport or zone) + one destination.
   defaultServiceType ServiceType? @map("default_service_type")
   fromAirportId      String?      @map("from_airport_id")
   toAirportId        String?      @map("to_airport_id")
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  isActive           Boolean      @default(true) @map("is_active")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
 
-  fromZone    Zone?               @relation("ServiceTypeFromZone", fields: [fromZoneId], references: [id])
-  toZone      Zone?               @relation("ServiceTypeToZone", fields: [toZoneId], references: [id])
-  fromAirport Airport?            @relation("ServiceTypeFromAirport", fields: [fromAirportId], references: [id])
-  toAirport   Airport?            @relation("ServiceTypeToAirport", fields: [toAirportId], references: [id])
+  fromZone               Zone?                   @relation("ServiceTypeFromZone", fields: [fromZoneId], references: [id])
+  toZone                 Zone?                   @relation("ServiceTypeToZone", fields: [toZoneId], references: [id])
+  fromAirport            Airport?                @relation("ServiceTypeFromAirport", fields: [fromAirportId], references: [id])
+  toAirport              Airport?                @relation("ServiceTypeToAirport", fields: [toAirportId], references: [id])
   driverTariffRates      DriverTariffRate[]
-  trafficJobs TrafficJob[]
+  trafficJobs            TrafficJob[]
   supplierPriceListItems SupplierPriceListItem[]
   customerRoutePrices    CustomerRoutePrice[]
 
@@ -2639,6 +2640,8 @@ model Complaint {
   createdBy           User              @relation("ComplaintCreatedBy", fields: [createdById], references: [id])
 
   attachments   ComplaintAttachment[]
+  // Answers from the blamed rep / driver and the office's replies, one thread per party.
+  messages      ComplaintMessage[]
   // One deduction per party blamed — a job that a rep and a driver both spoiled
   // carries two, and each is approved, posted and voided on its own.
   charges       ComplaintCharge[]
@@ -2670,12 +2673,40 @@ model ComplaintAttachment {
   mimeType     String?                 @map("mime_type")
   submittedBy  String?                 @map("submitted_by")
   uploadedById String                  @map("uploaded_by_id")
+  // Set when the file is evidence sent with a rep / driver / office thread message.
+  messageId    String?                 @map("message_id")
   createdAt    DateTime                @default(now()) @map("created_at")
 
-  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  complaint Complaint         @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  message   ComplaintMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
 
   @@index([complaintId])
+  @@index([messageId])
   @@map("complaint_attachments")
+}
+
+// A message in a complaint thread. Each party a complaint blames (REP / DRIVER) has its own thread
+// with the office: `party` is the thread, `authorType` who wrote it (the party itself or STAFF).
+// The rep never sees the driver's thread and vice versa; admin sees both.
+model ComplaintMessage {
+  id          String   @id @default(uuid())
+  complaintId String   @map("complaint_id")
+  party       String   @db.VarChar(10) // REP | DRIVER — whose thread
+  authorType  String   @map("author_type") @db.VarChar(10) // REP | DRIVER | STAFF
+  repId       String?  @map("rep_id")
+  driverId    String?  @map("driver_id")
+  userId      String   @map("user_id")
+  message     String   @default("") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  complaint   Complaint             @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  user        User                  @relation(fields: [userId], references: [id])
+  attachments ComplaintAttachment[]
+
+  @@index([complaintId, createdAt])
+  @@index([repId])
+  @@index([driverId])
+  @@map("complaint_messages")
 }
 
 // A deduction against the party that worked a job. Nothing moves until
@@ -2715,10 +2746,10 @@ model ComplaintCharge {
 
   trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id])
   complaint  Complaint? @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  driver     Driver?   @relation("ComplaintChargeDriver", fields: [driverId], references: [id])
-  rep        Rep?      @relation("ComplaintChargeRep", fields: [repId], references: [id])
-  supplier   Supplier? @relation("ComplaintChargeSupplier", fields: [supplierId], references: [id])
-  approvedBy User?     @relation("ComplaintChargeApprovedBy", fields: [approvedById], references: [id])
+  driver     Driver?    @relation("ComplaintChargeDriver", fields: [driverId], references: [id])
+  rep        Rep?       @relation("ComplaintChargeRep", fields: [repId], references: [id])
+  supplier   Supplier?  @relation("ComplaintChargeSupplier", fields: [supplierId], references: [id])
+  approvedBy User?      @relation("ComplaintChargeApprovedBy", fields: [approvedById], references: [id])
 
   @@index([trafficJobId])
   @@index([complaintId])
@@ -2783,21 +2814,21 @@ enum ChatBroadcastAudience {
 /// open one is decided by CompanySettings.chat{Driver,Rep}ContactRoles.
 /// Read state is a per-side "read up to" timestamp, not a row per message.
 model ChatConversation {
-  id               String    @id @default(uuid())
-  portalUserId     String    @map("portal_user_id")
-  staffUserId      String    @map("staff_user_id")
+  id                    String    @id @default(uuid())
+  portalUserId          String    @map("portal_user_id")
+  staffUserId           String    @map("staff_user_id")
   /// REP or DRIVER — the portal side's role when the thread was opened.
-  portalRole       UserRole  @map("portal_role")
-  lastMessageAt    DateTime? @map("last_message_at")
-  portalLastReadAt DateTime? @map("portal_last_read_at")
-  staffLastReadAt  DateTime? @map("staff_last_read_at")
+  portalRole            UserRole  @map("portal_role")
+  lastMessageAt         DateTime? @map("last_message_at")
+  portalLastReadAt      DateTime? @map("portal_last_read_at")
+  staffLastReadAt       DateTime? @map("staff_last_read_at")
   /// "Delivered up to": bumped whenever that side's app fetches chat state
   /// (the /chat/me poll, opening the inbox or the thread).
   portalLastDeliveredAt DateTime? @map("portal_last_delivered_at")
   staffLastDeliveredAt  DateTime? @map("staff_last_delivered_at")
-  createdById      String    @map("created_by_id")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdById           String    @map("created_by_id")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   portalUser User          @relation("ChatPortalUser", fields: [portalUserId], references: [id])
   staffUser  User          @relation("ChatStaffUser", fields: [staffUserId], references: [id])
@@ -2953,16 +2984,16 @@ model ImportNameAlias {
 /// isDefaultForNew: new suppliers start on it. isOwnCarList: own-car jobs are
 /// costed from it in profit reports (never as a SupplierCost/vendor bill).
 model SupplierPriceList {
-  id              String   @id @default(uuid())
-  name            String   @unique
+  id              String    @id @default(uuid())
+  name            String    @unique
   /// Season / validity: an empty end means "until changed". After the end the list is read-only.
-  validFrom       DateTime @default(now()) @map("valid_from") @db.Date
+  validFrom       DateTime  @default(now()) @map("valid_from") @db.Date
   validTo         DateTime? @map("valid_to") @db.Date
-  isDefaultForNew Boolean  @default(false) @map("is_default_for_new")
-  isOwnCarList    Boolean  @default(false) @map("is_own_car_list")
+  isDefaultForNew Boolean   @default(false) @map("is_default_for_new")
+  isOwnCarList    Boolean   @default(false) @map("is_own_car_list")
   notes           String?
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   items       SupplierPriceListItem[]
   suppliers   Supplier[]
@@ -3029,4 +3060,3 @@ model CustomerRoutePrice {
   @@index([jobServiceTypeId])
   @@map("customer_route_prices")
 }
-

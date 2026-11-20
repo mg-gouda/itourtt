@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**116 files**, **410 exported symbols**.
+**119 files**, **417 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -27,6 +27,20 @@ Bulk job import for B2B customers, including the AI manifest parser flow.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `B2BJobImportModal` | function | 94 | Bulk B2B job import: upload a manifest, run the AI parser, review the resolved rows, then commit. |
+
+### `complaint-thread.tsx`
+
+`frontend/src/components/complaint-thread.tsx` · 262 lines
+
+Complaint thread UI shared by portals and admin: messages, authed files, composer
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ThreadAttachment` | type | 16 | Thread attachment shape |
+| `ThreadMessage` | type | 22 | Thread message shape |
+| `AuthedFile` | function | 35 | JWT-fetched complaint file: image thumbnail or PDF link, opens in a new tab |
+| `ComplaintThread` | function | 89 | Renders a complaint thread's messages with attachments |
+| `ThreadComposer` | function | 145 | Text + image/PDF (gallery or camera) composer posting a thread message |
 
 ### `completed-evidence-dialog.tsx`
 
@@ -264,6 +278,16 @@ Tree renderer behind the permission matrix, handling ancestor/descendant auto-ch
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `PermissionTree` | function | 18 | Tree renderer handling ancestor/descendant auto-checking in the matrix. |
+
+### `portal-complaints.tsx`
+
+`frontend/src/components/portal-complaints.tsx` · 296 lines
+
+Rep / driver web portal complaints list and detail (story, thread, answer)
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PortalComplaints` | function | 109 | Portal complaints page body for rep or driver (bilingual) |
 
 ### `price-list-grid.tsx`
 
@@ -559,13 +583,13 @@ Charge and adjustment panel inside the complaint detail dialog.
 
 ### `complaint-detail-dialog.tsx`
 
-`frontend/src/components/complaints/complaint-detail-dialog.tsx` · 591 lines
+`frontend/src/components/complaints/complaint-detail-dialog.tsx` · 605 lines
 
 Read-and-act detail dialog for one complaint.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintDetailDialog` | function | 93 | Complaint detail — SLA banner, summary, description, amounts, attachments, owner, and the per-status transition buttons. |
+| `ComplaintDetailDialog` | function | 95 | Complaint detail — SLA banner, summary, description, amounts, attachments, owner, and the per-status transition buttons. |
 
 ### `complaint-form-dialog.tsx`
 
@@ -586,6 +610,16 @@ The Won / Lost radio group shared by the complaint form and the complaint detail
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `ComplaintOutcomeRadios` | function | 23 | Won / Lost radios with an optional 'not decided yet' reset, disabled once a transition has settled the complaint. |
+
+### `complaint-party-threads.tsx`
+
+`frontend/src/components/complaints/complaint-party-threads.tsx` · 84 lines
+
+Admin complaint view: rep / driver answer threads with office reply
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ComplaintPartyThreads` | function | 19 | Loads and shows both party threads of a complaint; reply box with complaints.editButton |
 
 ### `job-deduction-dialog.tsx`
 
@@ -1156,7 +1190,7 @@ Chat client: types, polling hook, attachment blob fetch, image shrink, voice rec
 
 ### `complaints.ts`
 
-`frontend/src/lib/complaints.ts` · 457 lines
+`frontend/src/lib/complaints.ts` · 458 lines
 
 Shared complaint types, labels, transition maps and SLA/money formatting for the dashboard.
 
@@ -1171,32 +1205,32 @@ Shared complaint types, labels, transition maps and SLA/money formatting for the
 | `ComplaintCategory` | type | 33 | Client-side shape of a complaint category. |
 | `Complaint` | type | 43 | Client-side shape of a complaint; the money fields are absent, not null, when the viewer lacks financial.viewAmounts. |
 | `ComplaintAttachment` | type | 111 | Client-side shape of a complaint attachment. |
-| `ComplaintChargeStatus` | type | 121 | Charge lifecycle: pending approval, approved, posted to fees, or void. |
-| `ComplaintCharge` | type | 123 | Client-side shape of a party deduction raised against a complaint. |
-| `AgentAdjustmentStatus` | type | 146 | Whether an adjustment is still pending or was settled on an invoice, as a credit note, or by waiver. |
-| `AgentAdjustment` | type | 152 | Client-side shape of money owed to an agent from a lost complaint. |
-| `CHARGE_STATUS_META` | const | 182 | Label and badge variant for each charge status. |
-| `ADJUSTMENT_STATUS_META` | const | 192 | Label and badge variant for each adjustment status. |
-| `chargeForParty` | function | 206 | The live (non-void) charge against one party. |
-| `CHARGEABLE_PARTIES` | const | 216 | The parties with a fee table a deduction can actually be posted into. |
-| `COMPLAINT_STATUS_META` | const | 218 | Label and badge variant for each complaint status. |
-| `STAGE_LABELS` | const | 232 | Display labels for the complaint stages. |
-| `SELECTABLE_STAGES` | const | 243 | The stages the form offers. BEFORE_JOB is absent by design but stays in STAGE_LABELS so old rows still read. |
-| `ASSIGNABLE_PARTIES` | const | 249 | DRIVER / REP / SUPPLIER — the parties whose person the backend names from the job's assignment. |
-| `SOURCE_LABELS` | const | 251 | Display labels for the complaint sources. |
-| `OUTCOME_LABELS` | const | 259 | Display labels for the two complaint outcomes. |
-| `PARTY_LABELS` | const | 264 | Display labels for the responsible parties. |
-| `TERMINAL_STATUSES` | const | 274 | Statuses a complaint can no longer move out of. |
-| `NEXT_STATUSES` | const | 286 | Which statuses each state may move to — mirrors VALID_TRANSITIONS; the backend stays the authority. |
-| `TRANSITION_PERMISSION` | const | 298 | The permission key each target status needs, matching the controller's gate. |
-| `categoryNames` | function | 310 | Every category a complaint carries, primary first, for display. |
-| `responsibleParties` | function | 324 | Every party a complaint blames, falling back to the single responsibleParty on older rows. |
-| `responsibleDetails` | function | 341 | Each blamed party paired with whoever it names; OFFICE resolves to two people — who entered the job and who dispatched the car. |
-| `responsibleNames` | function | 375 | The named people a complaint blames — at most one per party. |
-| `SlaTone` | type | 379 | Severity of the reply-window state, driving the badge colour. |
-| `formatSlaCountdown` | function | 385 | Turns the reply deadline into a human label — time left, overdue by, or whether the reply landed in time. |
-| `describeReplyWindow` | function | 407 | Time left against a reply deadline computed from dates alone, so the form can show a countdown before anything is saved. |
-| `formatMoney` | function | 445 | Formats a complaint amount with its currency, or an em dash when absent. |
+| `ComplaintChargeStatus` | type | 122 | Charge lifecycle: pending approval, approved, posted to fees, or void. |
+| `ComplaintCharge` | type | 124 | Client-side shape of a party deduction raised against a complaint. |
+| `AgentAdjustmentStatus` | type | 147 | Whether an adjustment is still pending or was settled on an invoice, as a credit note, or by waiver. |
+| `AgentAdjustment` | type | 153 | Client-side shape of money owed to an agent from a lost complaint. |
+| `CHARGE_STATUS_META` | const | 183 | Label and badge variant for each charge status. |
+| `ADJUSTMENT_STATUS_META` | const | 193 | Label and badge variant for each adjustment status. |
+| `chargeForParty` | function | 207 | The live (non-void) charge against one party. |
+| `CHARGEABLE_PARTIES` | const | 217 | The parties with a fee table a deduction can actually be posted into. |
+| `COMPLAINT_STATUS_META` | const | 219 | Label and badge variant for each complaint status. |
+| `STAGE_LABELS` | const | 233 | Display labels for the complaint stages. |
+| `SELECTABLE_STAGES` | const | 244 | The stages the form offers. BEFORE_JOB is absent by design but stays in STAGE_LABELS so old rows still read. |
+| `ASSIGNABLE_PARTIES` | const | 250 | DRIVER / REP / SUPPLIER — the parties whose person the backend names from the job's assignment. |
+| `SOURCE_LABELS` | const | 252 | Display labels for the complaint sources. |
+| `OUTCOME_LABELS` | const | 260 | Display labels for the two complaint outcomes. |
+| `PARTY_LABELS` | const | 265 | Display labels for the responsible parties. |
+| `TERMINAL_STATUSES` | const | 275 | Statuses a complaint can no longer move out of. |
+| `NEXT_STATUSES` | const | 287 | Which statuses each state may move to — mirrors VALID_TRANSITIONS; the backend stays the authority. |
+| `TRANSITION_PERMISSION` | const | 299 | The permission key each target status needs, matching the controller's gate. |
+| `categoryNames` | function | 311 | Every category a complaint carries, primary first, for display. |
+| `responsibleParties` | function | 325 | Every party a complaint blames, falling back to the single responsibleParty on older rows. |
+| `responsibleDetails` | function | 342 | Each blamed party paired with whoever it names; OFFICE resolves to two people — who entered the job and who dispatched the car. |
+| `responsibleNames` | function | 376 | The named people a complaint blames — at most one per party. |
+| `SlaTone` | type | 380 | Severity of the reply-window state, driving the badge colour. |
+| `formatSlaCountdown` | function | 386 | Turns the reply deadline into a human label — time left, overdue by, or whether the reply landed in time. |
+| `describeReplyWindow` | function | 408 | Time left against a reply deadline computed from dates alone, so the form can show a countdown before anything is saved. |
+| `formatMoney` | function | 446 | Formats a complaint amount with its currency, or an em dash when absent. |
 
 ### `compress-image.ts`
 
@@ -1222,17 +1256,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3924 lines
+`frontend/src/lib/i18n.ts` · 3926 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3901 | Translates a key in the current locale. |
-| `getTranslator` | function | 3905 | Translator for a specific locale, outside React. |
-| `useT` | function | 3913 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3920 | The active locale id. |
+| `t` | function | 3903 | Translates a key in the current locale. |
+| `getTranslator` | function | 3907 | Translator for a specific locale, outside React. |
+| `useT` | function | 3915 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3922 | The active locale id. |
 
 ### `maps-nav.ts`
 

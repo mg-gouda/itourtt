@@ -11,7 +11,10 @@ import {
   UploadedFiles,
   ParseUUIDPipe,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
+import * as express from 'express';
+import { ComplaintThreadService, sendComplaintFile } from '../complaints/complaint-thread.service.js';
 import { RecordLocationInterceptor } from '../tracking/record-location.interceptor.js';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -120,6 +123,7 @@ export class RepPortalController {
     private readonly repPortalService: RepPortalService,
     private readonly googleDriveService: GoogleDriveService,
     private readonly jobAlerts: JobAlertsService,
+    private readonly complaintThreads: ComplaintThreadService,
   ) {}
 
   /**
@@ -329,6 +333,38 @@ export class RepPortalController {
   async getComplaints(@CurrentUser('id') userId: string) {
     const result = await this.repPortalService.getComplaints(userId);
     return new ApiResponse(result);
+  }
+
+  /** GET /rep-portal/complaints/:id — a complaint that names this rep: the story (no money) and their thread. */
+  @Get('complaints/:id')
+  async getComplaint(@CurrentUser('id') userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    const repId = await this.repPortalService.resolveRepId(userId);
+    return new ApiResponse(await this.complaintThreads.detailForParty('REP', repId, id));
+  }
+
+  /** POST /rep-portal/complaints/:id/messages — answer with text and/or evidence (multipart: message, files ≤10 images/PDF). */
+  @Post('complaints/:id/messages')
+  @UseInterceptors(FilesInterceptor('files', 10, { storage: memStore, limits: { fileSize: 15 * 1024 * 1024 } }))
+  async answerComplaint(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('message') message: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const repId = await this.repPortalService.resolveRepId(userId);
+    const msg = await this.complaintThreads.addMessage({ complaintId: id, party: 'REP', author: 'PARTY', partyId: repId, userId, message, files });
+    return new ApiResponse(msg, 'Answer sent');
+  }
+
+  /** GET /rep-portal/complaints/:id/attachments/:attId — a file from their own thread. */
+  @Get('complaints/:id/attachments/:attId')
+  async complaintFile(
+    @CurrentUser('id') userId: string,
+    @Param('attId', ParseUUIDPipe) attId: string,
+    @Res() res: express.Response,
+  ) {
+    const repId = await this.repPortalService.resolveRepId(userId);
+    sendComplaintFile(res, await this.complaintThreads.openAttachment(attId, { party: 'REP', partyId: repId }));
   }
 
   /** GET /rep-portal/deductions?dateFrom=&dateTo= — posted deductions against this rep, with the reason. */

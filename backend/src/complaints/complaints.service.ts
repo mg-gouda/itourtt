@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { ComplaintThreadService } from './complaint-thread.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { PaginatedResponse } from '../common/dto/api-response.dto.js';
@@ -73,6 +74,7 @@ export class ComplaintsService {
     private readonly chargesService: ComplaintChargesService,
     private readonly scoringService: ComplaintScoringService,
     private readonly slaService: ComplaintSlaService,
+    private readonly threads: ComplaintThreadService,
   ) {}
 
   private readonly complaintInclude = {
@@ -337,6 +339,9 @@ export class ComplaintsService {
     // complaint that explains it adopts it rather than asking for it again.
     await this.chargesService.attachToComplaint(created.id, job.id, parties);
 
+    // A rep / driver hears about a complaint as soon as it names them, so they can answer it.
+    void this.threads.notifyNamed(null, created);
+
     return this.flattenCategories(created);
   }
 
@@ -445,6 +450,9 @@ export class ComplaintsService {
         include: this.complaintInclude,
       });
     });
+
+    // Newly named (or swapped) rep / driver → tell them.
+    void this.threads.notifyNamed(existing, updated);
 
     return this.flattenCategories(updated);
   }

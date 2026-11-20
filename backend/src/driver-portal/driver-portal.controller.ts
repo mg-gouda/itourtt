@@ -11,7 +11,10 @@ import {
   UploadedFiles,
   ParseUUIDPipe,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
+import * as express from 'express';
+import { ComplaintThreadService, sendComplaintFile } from '../complaints/complaint-thread.service.js';
 import { RecordLocationInterceptor } from '../tracking/record-location.interceptor.js';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -81,6 +84,7 @@ export class DriverPortalController {
     private readonly driverPortalService: DriverPortalService,
     private readonly googleDriveService: GoogleDriveService,
     private readonly jobAlerts: JobAlertsService,
+    private readonly complaintThreads: ComplaintThreadService,
   ) {}
 
   /**
@@ -249,6 +253,38 @@ export class DriverPortalController {
   async getComplaints(@CurrentUser('id') userId: string) {
     const result = await this.driverPortalService.getComplaints(userId);
     return new ApiResponse(result);
+  }
+
+  /** GET /driver-portal/complaints/:id — a complaint that names this driver: the story (no money) and their thread. */
+  @Get('complaints/:id')
+  async getComplaint(@CurrentUser('id') userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    const driverId = await this.driverPortalService.resolveDriverId(userId);
+    return new ApiResponse(await this.complaintThreads.detailForParty('DRIVER', driverId, id));
+  }
+
+  /** POST /driver-portal/complaints/:id/messages — answer with text and/or evidence (multipart: message, files ≤10 images/PDF). */
+  @Post('complaints/:id/messages')
+  @UseInterceptors(FilesInterceptor('files', 10, { storage: memStore, limits: { fileSize: 15 * 1024 * 1024 } }))
+  async answerComplaint(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('message') message: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const driverId = await this.driverPortalService.resolveDriverId(userId);
+    const msg = await this.complaintThreads.addMessage({ complaintId: id, party: 'DRIVER', author: 'PARTY', partyId: driverId, userId, message, files });
+    return new ApiResponse(msg, 'Answer sent');
+  }
+
+  /** GET /driver-portal/complaints/:id/attachments/:attId — a file from their own thread. */
+  @Get('complaints/:id/attachments/:attId')
+  async complaintFile(
+    @CurrentUser('id') userId: string,
+    @Param('attId', ParseUUIDPipe) attId: string,
+    @Res() res: express.Response,
+  ) {
+    const driverId = await this.driverPortalService.resolveDriverId(userId);
+    sendComplaintFile(res, await this.complaintThreads.openAttachment(attId, { party: 'DRIVER', partyId: driverId }));
   }
 
   /** GET /driver-portal/deductions?dateFrom=&dateTo= — posted deductions against this driver, with the reason. */

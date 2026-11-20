@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**69 classes**, **527 methods**.
+**70 classes**, **540 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -520,24 +520,27 @@ Raise, approve, post and void a deduction against the driver, rep or supplier bl
 
 ### ComplaintsController
 
-`backend/src/complaints/complaints.controller.ts:41` · controller · 12 methods
+`backend/src/complaints/complaints.controller.ts:49` · controller · 15 methods
 
 REST surface for complaints; every status change is gated by its own permission key so 'may answer' never implies 'may decide'.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 50 | `complaintsService.findAll` | GET /complaints — paginated list with status, stage, party, SLA and date filters. |
-| `analytics` | pub | 61 | `complaintsService.canViewAmounts` `analyticsService.summary` | GET /complaints/analytics — the analytics summary for a filtered range; declared before :id so the word is never read as a complaint id. |
-| `assignableUsers` | pub | 76 | `complaintsService.assignableUsers` | Staff a complaint can be handed to — the owner picker's source, unlike ADMIN-only GET /users. |
-| `findByJob` | pub | 82 | `complaintsService.findByJob` | GET /complaints/job/:jobId — every complaint on one job, for the job screen's Complaints tab. |
-| `findOne` | pub | 91 | `complaintsService.findOne` | GET /complaints/:id — one complaint with attachments, charge and adjustments. |
-| `create` | pub | 100 | `complaintsService.create` | POST /complaints — log a complaint against a job. |
-| `update` | pub | 107 | `complaintsService.update` | PATCH /complaints/:id — edit the complaint's details; amount fields need financial.editAmounts on top. |
-| `transition` | pub | 130 | `complaintsService.transition` | POST /complaints/:id/transition — the only way status moves; checks the caller holds the key for that specific target state. |
-| `assign` | pub | 149 | `complaintsService.assign` | PATCH /complaints/:id/assign — set the dashboard user who owns the reply. |
-| `remove` | pub | 159 | `complaintsService.remove` | DELETE /complaints/:id — soft-delete; refused once the charge has been posted. |
-| `assertMayReassign` | priv | 172 | — | Refuses to move a complaint off someone else's desk without complaints.assign. |
-| `assertMayEditAmounts` | priv | 183 | — | Blocks a caller with only editButton from setting claimed/loss/currency/rate. |
+| `findAll` | pub | 59 | `complaintsService.findAll` | GET /complaints — paginated list with status, stage, party, SLA and date filters. |
+| `analytics` | pub | 70 | `complaintsService.canViewAmounts` `analyticsService.summary` | GET /complaints/analytics — the analytics summary for a filtered range; declared before :id so the word is never read as a complaint id. |
+| `assignableUsers` | pub | 85 | `complaintsService.assignableUsers` | Staff a complaint can be handed to — the owner picker's source, unlike ADMIN-only GET /users. |
+| `threads` | pub | 92 | — | GET /complaints/:id/messages: rep and driver answer threads |
+| `replyInThread` | pub | 100 | — | POST /complaints/:id/messages: office reply in the rep or driver thread (complaints.editButton) |
+| `attachmentFile` | pub | 115 | — | GET /complaints/attachments/:attId/file (complaints.attachments.view) |
+| `findByJob` | pub | 121 | `complaintsService.findByJob` | GET /complaints/job/:jobId — every complaint on one job, for the job screen's Complaints tab. |
+| `findOne` | pub | 130 | `complaintsService.findOne` | GET /complaints/:id — one complaint with attachments, charge and adjustments. |
+| `create` | pub | 139 | `complaintsService.create` | POST /complaints — log a complaint against a job. |
+| `update` | pub | 146 | `complaintsService.update` | PATCH /complaints/:id — edit the complaint's details; amount fields need financial.editAmounts on top. |
+| `transition` | pub | 169 | `complaintsService.transition` | POST /complaints/:id/transition — the only way status moves; checks the caller holds the key for that specific target state. |
+| `assign` | pub | 188 | `complaintsService.assign` | PATCH /complaints/:id/assign — set the dashboard user who owns the reply. |
+| `remove` | pub | 198 | `complaintsService.remove` | DELETE /complaints/:id — soft-delete; refused once the charge has been posted. |
+| `assertMayReassign` | priv | 211 | — | Refuses to move a complaint off someone else's desk without complaints.assign. |
+| `assertMayEditAmounts` | priv | 222 | — | Blocks a caller with only editButton from setting claimed/loss/currency/rate. |
 
 ### ComplaintScoringService
 
@@ -566,40 +569,59 @@ The reply-window sweep: flips slaBreached and writes notifications, and never to
 
 ### ComplaintsService
 
-`backend/src/complaints/complaints.service.ts:66` · service · 28 methods
+`backend/src/complaints/complaints.service.ts:67` · service · 28 methods
 
 Complaint lifecycle: numbering, SLA computation, guarded status transitions and server-side redaction of the money fields.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 120 | `complaint` | Paginated query plus per-viewer amount redaction. |
-| `findOne` | pub | 143 | `complaint` | One complaint with attachments, charge and adjustments, redacted for the viewer. |
-| `findByJob` | pub | 162 | `complaint` | All complaints on one job, newest first. |
-| `assignableUsers` | pub | 181 | `user` | Active back-office users by name; portal roles excluded, since a driver never owns a complaint. |
-| `buildWhere` | priv | 193 | — | Turns the query DTO into the Prisma where clause, always excluding soft-deleted rows. |
-| `create` | pub | 248 | `trafficJob` `complaint` `chargesService.attachToComplaint` | Logs a complaint: denormalises the agent off the job, computes replyDueAt in Cairo time and allocates the CMP- number. |
-| `update` | pub | 343 | `complaintCategoryLink` `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
-| `assign` | pub | 452 | `complaint` | Sets the owning user without touching status. |
-| `remove` | pub | 462 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
-| `transition` | pub | 491 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` `slaService.notifyResponsibleParty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
-| `assertOutcomeConsistent` | priv | 627 | — | Rejects a won complaint that still carries a conceded amount. |
-| `assertOutcomeMatchesStatus` | priv | 640 | — | Stops a plain edit contradicting the outcome a terminal status already settled. |
-| `assertOutcomeAmounts` | priv | 661 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
-| `computeReplyDueAt` | priv | 699 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
-| `isBreached` | priv | 704 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
-| `getEditable` | priv | 708 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
-| `normaliseCategoryIds` | priv | 723 | — | Merges categoryId and categoryIds into one deduped list whose first entry becomes the primary category; throws when empty. |
-| `loadCategories` | priv | 733 | `complaintCategory` | Checks every named category exists and is not deleted, returning the primary one. |
-| `normaliseParties` | priv | 752 | — | Merges responsibleParty and responsibleParties into one deduped list; NONE only survives alone, and an empty answer becomes ['NONE']. |
-| `storedParties` | priv | 764 | — | The party set on a stored row, falling back to its single responsibleParty for rows written before the multi-select migration. |
-| `resolveResponsible` | priv | 783 | `trafficAssignment` | Reads the driver, rep and supplier off the job's own TrafficAssignment for each party blamed, and clears the ids of every party that is not. |
-| `assertResponsibleConsistent` | priv | 825 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
-| `resolveAgentId` | priv | 854 | `agent` | Resolves the agent a complaint is with — an explicit choice wins over the job's agent, and both are validated since this is who a conceded amount is owed to. |
-| `generateComplaintNo` | priv | 870 | — | Allocates the next sequential CMP-00001 reference. |
-| `canViewAmounts` | pub | 882 | — | Whether this user holds complaints.financial.viewAmounts. |
-| `present` | priv | 891 | — | What a complaint looks like on the wire: categories flattened, money stripped when the viewer lacks financial.viewAmounts. |
-| `flattenCategories` | priv | 901 | — | Turns the categoryLinks join rows into a flat categories/categoryIds array on the payload, primary category first. |
-| `redactAmounts` | priv | 925 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
+| `findAll` | pub | 122 | `complaint` | Paginated query plus per-viewer amount redaction. |
+| `findOne` | pub | 145 | `complaint` | One complaint with attachments, charge and adjustments, redacted for the viewer. |
+| `findByJob` | pub | 164 | `complaint` | All complaints on one job, newest first. |
+| `assignableUsers` | pub | 183 | `user` | Active back-office users by name; portal roles excluded, since a driver never owns a complaint. |
+| `buildWhere` | priv | 195 | — | Turns the query DTO into the Prisma where clause, always excluding soft-deleted rows. |
+| `create` | pub | 250 | `trafficJob` `complaint` `chargesService.attachToComplaint` | Logs a complaint: denormalises the agent off the job, computes replyDueAt in Cairo time and allocates the CMP- number. |
+| `update` | pub | 348 | `complaintCategoryLink` `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
+| `assign` | pub | 460 | `complaint` | Sets the owning user without touching status. |
+| `remove` | pub | 470 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
+| `transition` | pub | 499 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` `slaService.notifyResponsibleParty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
+| `assertOutcomeConsistent` | priv | 635 | — | Rejects a won complaint that still carries a conceded amount. |
+| `assertOutcomeMatchesStatus` | priv | 648 | — | Stops a plain edit contradicting the outcome a terminal status already settled. |
+| `assertOutcomeAmounts` | priv | 669 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
+| `computeReplyDueAt` | priv | 707 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
+| `isBreached` | priv | 712 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
+| `getEditable` | priv | 716 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
+| `normaliseCategoryIds` | priv | 731 | — | Merges categoryId and categoryIds into one deduped list whose first entry becomes the primary category; throws when empty. |
+| `loadCategories` | priv | 741 | `complaintCategory` | Checks every named category exists and is not deleted, returning the primary one. |
+| `normaliseParties` | priv | 760 | — | Merges responsibleParty and responsibleParties into one deduped list; NONE only survives alone, and an empty answer becomes ['NONE']. |
+| `storedParties` | priv | 772 | — | The party set on a stored row, falling back to its single responsibleParty for rows written before the multi-select migration. |
+| `resolveResponsible` | priv | 791 | `trafficAssignment` | Reads the driver, rep and supplier off the job's own TrafficAssignment for each party blamed, and clears the ids of every party that is not. |
+| `assertResponsibleConsistent` | priv | 833 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
+| `resolveAgentId` | priv | 862 | `agent` | Resolves the agent a complaint is with — an explicit choice wins over the job's agent, and both are validated since this is who a conceded amount is owed to. |
+| `generateComplaintNo` | priv | 878 | — | Allocates the next sequential CMP-00001 reference. |
+| `canViewAmounts` | pub | 890 | — | Whether this user holds complaints.financial.viewAmounts. |
+| `present` | priv | 899 | — | What a complaint looks like on the wire: categories flattened, money stripped when the viewer lacks financial.viewAmounts. |
+| `flattenCategories` | priv | 909 | — | Turns the categoryLinks join rows into a flat categories/categoryIds array on the payload, primary category first. |
+| `redactAmounts` | priv | 933 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
+
+### ComplaintThreadService
+
+`backend/src/complaints/complaint-thread.service.ts:48` · service · 10 methods
+
+Rep / driver complaint threads: portal detail, answers with evidence, staff replies, files, notifications
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `partyWhere` | priv | 57 | — | Prisma filter: complaints naming this rep / driver |
+| `summaries` | pub | 74 | `complaintMessage` | Per-complaint thread state for the portal list: open, message count, answer needed |
+| `detailForParty` | pub | 99 | `complaint` | A complaint naming this rep / driver: job story (no money) and their own thread |
+| `toMessage` | priv | 160 | — | Thread message → API shape |
+| `addMessage` | pub | 177 | `complaint` `user` `complaintMessage` | Adds a party answer or office reply (text + ≤10 images/PDF to Drive) to an open complaint's thread; notifies the other side |
+| `notifyMessage` | priv | 264 | `user` `userNotification` | Notifies the party on an office reply, or the owner / admins on a party answer |
+| `notifyParty` | priv | 285 | `repNotification` `driverNotification` | Rep / driver bell notification plus push |
+| `notifyNamed` | pub | 300 | — | Bell + push to a rep / driver newly named by a complaint (create or edit) |
+| `threadsForStaff` | pub | 324 | `complaint` | Both party threads of a complaint for the admin view |
+| `openAttachment` | pub | 352 | `complaintAttachment` | Opens a complaint file stream (Drive or local); a party may only open files in their own thread |
 
 ## `email`
 
@@ -1201,7 +1223,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-193 free functions, constants and types in these modules.
+195 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1547,15 +1569,24 @@ Read-only aggregation behind the Complaint Analytics screen — one pass over th
 |---|---|---|---|
 | `Slice` | type | 11 | One breakdown row: how many, how many breached, won and lost, and what it cost. |
 
+### `backend/src/complaints/complaint-thread.service.ts`
+
+Complaint answer threads between the office and the blamed rep / driver: story, answers, evidence, notifications
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ThreadParty` | type | 10 | REP \| DRIVER — whose thread |
+| `sendComplaintFile` | function | 19 | Pipes a complaint file to the response inline |
+
 ### `backend/src/complaints/complaints.service.ts`
 
 Complaint lifecycle service — numbering, SLA, transitions, amount redaction.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TERMINAL_STATUSES` | const | 43 | Statuses a complaint can never move out of. |
-| `LOSS_STATUSES` | const | 51 | Outcomes that carry a conceded amount (LOST, PARTIALLY_LOST). |
-| `VIEW_AMOUNTS_PERMISSION` | const | 63 | The permission key that decides whether the money fields survive redaction. |
+| `TERMINAL_STATUSES` | const | 44 | Statuses a complaint can never move out of. |
+| `LOSS_STATUSES` | const | 52 | Outcomes that carry a conceded amount (LOST, PARTIALLY_LOST). |
+| `VIEW_AMOUNTS_PERMISSION` | const | 64 | The permission key that decides whether the money fields survive redaction. |
 
 ### `backend/src/complaints/dto/agent-adjustment.dto.ts`
 

@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePermission } from "@/hooks/use-permission";
+import { ComplaintPartyThreads } from "@/components/complaints/complaint-party-threads";
+import { AuthedFile } from "@/components/complaint-thread";
 import { APP_TZ } from "@/lib/utils";
 import {
   type Complaint,
@@ -402,6 +404,13 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
               <ComplaintChargePanel complaint={complaint} onChanged={handleChanged} />
             )}
 
+            {(complaint.responsibleParties ?? []).some((p: string) => p === "REP" || p === "DRIVER") && (
+              <>
+                <Separator />
+                <ComplaintPartyThreads complaintId={complaint.id} />
+              </>
+            )}
+
             {canViewAttachments && complaint.attachments && complaint.attachments.length > 0 && (
               <>
                 <Separator />
@@ -413,8 +422,13 @@ export function ComplaintDetailDialog({ complaintId, onOpenChange, onChanged }: 
                     {complaint.attachments.map((a) => (
                       <li key={a.id} className="flex items-center gap-2 text-sm">
                         <Paperclip className="h-3 w-3 text-muted-foreground" />
-                        <span>{a.fileName}</span>
-                        <span className="text-xs text-muted-foreground">({a.kind})</span>
+                        <AuthedFile
+                          url={`/complaints/attachments/${a.id}/file`}
+                          file={{ id: a.id, fileName: a.fileName, mimeType: a.mimeType ?? null, createdAt: "" }}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          ({a.kind}{a.submittedBy ? ` · ${a.submittedBy}` : ""})
+                        </span>
                       </li>
                     ))}
                   </ul>

@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**127 files**, **367 exported symbols**.
+**128 files**, **368 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -125,13 +125,13 @@ Driver app chat routes wrapping the shared @itour/ui chat screens.
 
 ### `ComplaintsScreen.tsx`
 
-`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 194 lines
+`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 11 lines
 
 Driver app Complaints tab.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintsScreen` | function | 23 | Read-only list of the driver's settled complaints with a summary header. |
+| `ComplaintsScreen` | function | 8 | Read-only list of the driver's settled complaints with a summary header. |
 
 ### `EvidenceScreen.tsx`
 
@@ -495,13 +495,13 @@ Rep app chat routes wrapping the shared @itour/ui chat screens.
 
 ### `ComplaintsScreen.tsx`
 
-`mobile/apps/rep/src/screens/ComplaintsScreen.tsx` · 194 lines
+`mobile/apps/rep/src/screens/ComplaintsScreen.tsx` · 11 lines
 
 Rep app Complaints tab.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintsScreen` | function | 23 | Read-only list of the rep's settled complaints and what each one cost them. |
+| `ComplaintsScreen` | function | 8 | Read-only list of the rep's settled complaints and what each one cost them. |
 
 ### `EvidenceScreen.tsx`
 
@@ -851,7 +851,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 458 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 482 lines
 
 Arabic strings for all four apps.
 
@@ -861,14 +861,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 458 lines
+`mobile/packages/shared/src/i18n/en.ts` · 482 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 457 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 481 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -1107,7 +1107,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 562 lines
+`mobile/packages/shared/src/types/index.ts` · 568 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -1155,17 +1155,17 @@ Shared TypeScript types for API payloads across the apps.
 | `GuestSurveyInput` | type | 377 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
 | `GuestSurveyPayload` | type | 393 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
 | `PortalComplaint` | type | 404 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
-| `PortalDeduction` | type | 422 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
-| `BookingExtras` | type | 438 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 444 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 456 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 462 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 487 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 513 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 518 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 526 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 539 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 553 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `PortalDeduction` | type | 428 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
+| `BookingExtras` | type | 444 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 450 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 462 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 468 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 493 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 519 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 524 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 532 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 545 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 559 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 
@@ -1476,6 +1476,18 @@ Native 1:1 chat thread.
 | `DaySeparator` | function | 42 | Today / Yesterday / date chip between chat days (Cairo). |
 | `ChatImageViewer` | function | 73 | Full-screen photo modal (auth headers passed through). |
 | `ChatThreadScreen` | function | 96 | Inverted history, 5 s polling, read receipts, optimistic send of text / photo / location with retry. |
+
+## `mobile/packages/ui/src/complaints/`
+
+### `PortalComplaintsScreen.tsx`
+
+`mobile/packages/ui/src/complaints/PortalComplaintsScreen.tsx` · 507 lines
+
+Rep / driver app Complaints: list naming them, detail story and answer thread with photos
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PortalComplaintsScreen` | function | 85 | Complaints tab shared by rep and driver apps (portal prop) |
 
 ## `mobile/packages/ui/src/kit/`
 

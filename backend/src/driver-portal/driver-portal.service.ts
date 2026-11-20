@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { ComplaintThreadService } from '../complaints/complaint-thread.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { assertWithinGeofence } from '../common/geofence.util.js';
 import {
@@ -42,6 +43,7 @@ export class DriverPortalService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly complaintThreads: ComplaintThreadService,
     private readonly noShowDisputeService: NoShowDisputeService,
     private readonly jobCompletion: JobCompletionService,
   ) {}
@@ -793,10 +795,9 @@ export class DriverPortalService {
         // the driver second is still the driver's to see.
         responsibleParties: { has: 'DRIVER' },
         responsibleDriverId: driverId,
-        status: { in: ['WON', 'PARTIALLY_LOST', 'LOST'] },
       },
-      orderBy: { resolvedAt: 'desc' },
-      take: 100,
+      orderBy: { complaintDate: 'desc' },
+      take: 200,
       select: {
         id: true,
         complaintNo: true,
@@ -814,10 +815,14 @@ export class DriverPortalService {
       },
     });
 
+    // Every complaint that names them, as soon as it does — open ones (still answerable) first.
+    const threads = await this.complaintThreads.summaries('DRIVER', complaints);
+    complaints.sort((x, y) => Number(threads.get(y.id)!.open) - Number(threads.get(x.id)!.open));
     return complaints.map((c) => {
       const charged = this.postedChargeAgainst(c.charges, driverId);
       return {
       id: c.id,
+      ...threads.get(c.id)!,
       complaintNo: c.complaintNo,
       subject: c.subject,
       status: c.status,

@@ -19,6 +19,7 @@ import {
   User,
   Settings,
   MessageCircle,
+  MessageSquareWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api, { backgroundPoll } from "@/lib/api";
@@ -99,6 +100,7 @@ function DriverPortalShell({
   const tabs = [
     { href: "/driver", label: t("portal.jobs"), icon: Briefcase, exact: true },
     { href: "/driver/history", label: t("portal.history"), icon: History },
+    { href: "/driver/complaints", label: t("portal.complaints"), icon: MessageSquareWarning },
     { href: "/driver/chat", label: t("portal.chat"), icon: MessageCircle, badge: chatUnread },
     { href: "/driver/profile", label: t("portal.settings"), icon: Settings },
   ];
