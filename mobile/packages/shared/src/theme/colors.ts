@@ -6,30 +6,36 @@
  * redesigned screens use for state.
  */
 
+/**
+ * Light theme — owner palette 2026-11-20 (same as the web light mode), 60 / 30 / 10:
+ * #F7F2EA warm ivory (main) · #1C2B5A navy (second: headers, buttons, tab accents) ·
+ * #FF7A1A orange (loud: focus, highlights only). Text is black (#000000).
+ */
 export const lightColors = {
-  background: '#F3F5FA',
-  foreground: '#0B1530',
-  card: '#FFFFFF',
-  cardForeground: '#0B1530',
-  popover: '#FFFFFF',
-  popoverForeground: '#0B1530',
-  primary: '#0B2A7A',
+  background: '#F7F2EA',
+  foreground: '#000000',
+  card: '#FDFAF5',
+  cardForeground: '#000000',
+  popover: '#FDFAF5',
+  popoverForeground: '#000000',
+  primary: '#1C2B5A',
   primaryForeground: '#FFFFFF',
-  secondary: '#EAEFF8',
-  secondaryForeground: '#0B2A7A',
-  muted: '#EEF1F7',
-  mutedForeground: '#64708A',
-  accent: '#E8F1FB',
-  accentForeground: '#0B2A7A',
+  secondary: '#EFE7DA',
+  secondaryForeground: '#1C2B5A',
+  muted: '#EFE7DA',
+  mutedForeground: '#4A4F63',
+  accent: '#F3E3D1',
+  accentForeground: '#1C2B5A',
   destructive: '#E5484D',
-  border: '#E3E8F2',
-  input: '#D6DDEA',
-  ring: '#278ACC',
+  border: '#E3D8C6',
+  input: '#DDD1BD',
+  ring: '#FF7A1A',
 
-  brand: '#001E72',
-  brandDeep: '#000F45',
-  brandAccent: '#278ACC',
-  primarySoft: '#E6ECFA',
+  brand: '#1C2B5A',
+  brandDeep: '#121D3F',
+  brandAccent: '#FF7A1A',
+  brandGradientEnd: '#2A3D78',
+  primarySoft: '#E4E7F0',
   success: '#16A34A',
   successSoft: '#E7F7EC',
   warning: '#D97706',
@@ -39,8 +45,8 @@ export const lightColors = {
   destructiveSoft: '#FDECEC',
   violet: '#7C3AED',
   violetSoft: '#F1EAFE',
-  shadow: '#0B1530',
-  tabBar: '#FFFFFF',
+  shadow: '#1C2B5A',
+  tabBar: '#FDFAF5',
 };
 
 export const darkColors: typeof lightColors = {
@@ -65,6 +71,7 @@ export const darkColors: typeof lightColors = {
 
   brand: '#0A1F5C',
   brandDeep: '#030A24',
+  brandGradientEnd: '#1B5FA8',
   brandAccent: '#4BA3E0',
   primarySoft: '#14264A',
   success: '#34D399',

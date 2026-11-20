@@ -233,6 +233,16 @@ sequence — never leave work uncommitted or unpushed (this is what caused the J
 
 Never end a task with uncommitted or unpushed changes to tracked files.
 
+## 11. VERSION NUMBERING (owner's rule, 2026-11-20)
+
+Versions are `MAJOR.FEATURE.FIX` and **no part ever reaches 10** — each counts 0–9 and carries over:
+- A fix raises FIX: `x.y.9` + fix → `x.(y+1).0`.
+- A feature raises FEATURE and resets FIX: `x.9.z` + feature → `(x+1).0.0`.
+- Applies to the web system (backend + frontend `package.json`, kept equal) and to each app
+  (`versionName` in `mobile/apps/*/android/app/build.gradle`; `versionCode` always +1).
+- The web system was on 3.15.0 when the rule started; the owner set the next release to **4.5.1**
+  and numbering follows the rule from there.
+
 ---
 
 END OF FILE

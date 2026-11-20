@@ -9,6 +9,8 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-loud: var(--loud);
+  --color-loud-foreground: var(--loud-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -48,45 +50,52 @@
 
 :root {
   --radius: 0.625rem;
-  /* Light peer — iTour Reservations LITE (white content, slate rail, sky accent).
+  /* Light mode — owner palette 2026-11-20, 60 / 30 / 10:
+       #F7F2EA warm ivory  (main, 60%)  → page, cards, inputs, surfaces
+       #1C2B5A navy        (second, 30%) → sidebar rail, primary buttons, headings
+       #FF7A1A orange      (loud, 10%)   → active item, focus ring, highlights only
      Text is pure black (#000000) — owner's choice, 2026-11-19. */
-  --background: hsl(0 0% 100%);
+  --background: #f7f2ea;
   --foreground: #000000;
-  --card: hsl(0 0% 100%);
+  --card: #fdfaf5;
   --card-foreground: #000000;
-  --popover: hsl(0 0% 100%);
+  --popover: #fdfaf5;
   --popover-foreground: #000000;
-  --primary: hsl(199 89% 48%);
-  --primary-foreground: hsl(210 40% 98%);
-  --secondary: hsl(210 40% 96%);
+  --primary: #1c2b5a;
+  --primary-foreground: #ffffff;
+  --secondary: #efe7da;
   --secondary-foreground: #000000;
-  --muted: hsl(210 40% 96%);
-  --muted-foreground: hsl(215 16% 32%);
-  --accent: hsl(210 40% 96%);
+  --muted: #efe7da;
+  --muted-foreground: #4a4f63;
+  --accent: #f3e3d1;
   --accent-foreground: #000000;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: hsl(214 32% 91%);
-  --input: hsl(214 32% 91%);
-  --ring: hsl(199 89% 48%);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  /* Light sidebar rail (ResLite bg-slate-200 + dark text) */
-  --sidebar: hsl(214 32% 91%);
-  --sidebar-foreground: #000000;
-  --sidebar-primary: hsl(199 89% 48%);
-  --sidebar-primary-foreground: hsl(210 40% 98%);
-  --sidebar-accent: hsl(214 32% 85%);
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: hsl(214 25% 84%);
-  --sidebar-ring: hsl(199 89% 48%);
-  /* Table row hover: a dark wash over the light surface */
-  --row-hover-overlay: hsl(222 47% 11% / 0.09);
+  --border: #e3d8c6;
+  --input: #ddd1bd;
+  --ring: #ff7a1a;
+  --loud: #ff7a1a;
+  --loud-foreground: #000000;
+  --chart-1: #1c2b5a;
+  --chart-2: #ff7a1a;
+  --chart-3: #4f6bb3;
+  --chart-4: #f2b27a;
+  --chart-5: #8a93ad;
+  /* Navy rail with white text; the active item is the loud orange. */
+  --sidebar: #1c2b5a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ff7a1a;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #2a3d78;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2e3f70;
+  --sidebar-ring: #ff7a1a;
+  /* Table row hover: a navy wash over the ivory surface */
+  --row-hover-overlay: rgb(28 43 90 / 0.08);
 }
 
 .dark {
+  --loud: #ff7a1a;
+  --loud-foreground: #000000;
   /* iTour Reservations LITE — slate-950/900 with sky/cyan accent */
   --background: hsl(222 47% 8%);
   --foreground: hsl(210 40% 96%);

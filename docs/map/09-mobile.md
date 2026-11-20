@@ -1036,18 +1036,18 @@ Opens WhatsApp to a phone number.
 
 ### `colors.ts`
 
-`mobile/packages/shared/src/theme/colors.ts` · 117 lines
+`mobile/packages/shared/src/theme/colors.ts` · 124 lines
 
 Colour palette shared by the apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `lightColors` | const | 9 | Colour palette shared by the apps (`lightColors`). |
-| `darkColors` | const | 46 | Colour palette shared by the apps (`darkColors`). |
-| `ThemeColors` | type | 83 | Palette shape shared by light and dark (shadcn keys + semantic brand/success/warning/info tints). |
-| `statusColors` | const | 86 | Colour palette shared by the apps (`statusColors`). |
-| `statusColorsDark` | const | 97 | Colour palette shared by the apps (`statusColorsDark`). |
-| `serviceTypeColors` | const | 108 | Colour palette shared by the apps (`serviceTypeColors`). |
+| `lightColors` | const | 14 | Colour palette shared by the apps (`lightColors`). |
+| `darkColors` | const | 52 | Colour palette shared by the apps (`darkColors`). |
+| `ThemeColors` | type | 90 | Palette shape shared by light and dark (shadcn keys + semantic brand/success/warning/info tints). |
+| `statusColors` | const | 93 | Colour palette shared by the apps (`statusColors`). |
+| `statusColorsDark` | const | 104 | Colour palette shared by the apps (`statusColorsDark`). |
+| `serviceTypeColors` | const | 115 | Colour palette shared by the apps (`serviceTypeColors`). |
 
 ### `index.ts`
 

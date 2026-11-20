@@ -22,7 +22,7 @@ import { Icon } from '../Icon';
 export const radius = { sm: 10, md: 14, lg: 18, xl: 24 } as const;
 
 export function brandGradient(colors: ThemeColors): string[] {
-  return [colors.brandDeep, colors.brand, '#1B5FA8'];
+  return [colors.brandDeep, colors.brand, colors.brandGradientEnd];
 }
 
 // ─── Headers ────────────────────────────────────────────────────

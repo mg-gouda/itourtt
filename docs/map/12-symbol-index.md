@@ -807,7 +807,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 
 | Symbol | Kind | Location |
 |---|---|---|
-| `darkColors` | const | `mobile/packages/shared/src/theme/colors.ts:46` |
+| `darkColors` | const | `mobile/packages/shared/src/theme/colors.ts:52` |
 | `darkColors` | const | `mobile/packages/shared/src/theme/index.ts:33` |
 | `DashboardLayout` | function | `frontend/src/app/(dashboard)/layout.tsx:33` |
 | `DashboardPage` | function | `frontend/src/app/(dashboard)/dashboard/page.tsx:128` |
@@ -1889,7 +1889,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `LicensePayload` | type | `backend/src/common/license-verify.ts:20` |
 | `LicenseStatus` | type | `backend/src/common/license-verify.ts:36` |
 | `LicenseStatus` | type | `backend/src/common/license.util.ts:7` |
-| `lightColors` | const | `mobile/packages/shared/src/theme/colors.ts:9` |
+| `lightColors` | const | `mobile/packages/shared/src/theme/colors.ts:14` |
 | `lightColors` | const | `mobile/packages/shared/src/theme/index.ts:33` |
 | `ListPageSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:226` |
 | `Loading` | function | `frontend/src/app/(dashboard)/dashboard/activity-log/loading.tsx:3` |
@@ -2871,7 +2871,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ServiceType` | type | `frontend/src/types/index.ts:4` |
 | `ServiceType` | type | `mobile/packages/shared/src/types/index.ts:4` |
 | `ServiceTypeBadge` | function | `mobile/packages/ui/src/ServiceTypeBadge.tsx:9` |
-| `serviceTypeColors` | const | `mobile/packages/shared/src/theme/colors.ts:108` |
+| `serviceTypeColors` | const | `mobile/packages/shared/src/theme/colors.ts:115` |
 | `serviceTypeColors` | const | `mobile/packages/shared/src/theme/index.ts:33` |
 | `serviceTypeDropdownLabel` | function | `frontend/src/lib/service-types.ts:83` |
 | `ServiceTypeEnum` | type | `backend/src/agents/dto/agent-price-list.dto.ts:13` |
@@ -3008,9 +3008,9 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `StatusBadge` | function | `frontend/src/components/ui/status-badge.tsx:43` |
 | `StatusBadge` | function | `mobile/packages/ui/src/StatusBadge.tsx:9` |
 | `StatusChangeLog` | model | `backend/prisma/schema.prisma:1464` |
-| `statusColors` | const | `mobile/packages/shared/src/theme/colors.ts:86` |
+| `statusColors` | const | `mobile/packages/shared/src/theme/colors.ts:93` |
 | `statusColors` | const | `mobile/packages/shared/src/theme/index.ts:33` |
-| `statusColorsDark` | const | `mobile/packages/shared/src/theme/colors.ts:97` |
+| `statusColorsDark` | const | `mobile/packages/shared/src/theme/colors.ts:104` |
 | `statusColorsDark` | const | `mobile/packages/shared/src/theme/index.ts:33` |
 | `StatusPill` | function | `mobile/packages/ui/src/kit/kit.tsx:192` |
 | `StatusTicks` | function | `frontend/src/components/chat/chat-message.tsx:26` |
@@ -3196,7 +3196,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `TERMINAL_STATUSES` | const | `frontend/src/lib/complaints.ts:275` |
 | `Textarea` | function | `frontend/src/components/ui/textarea.tsx:5` |
 | `tf` | function | `mobile/packages/shared/src/i18n/index.ts:115` |
-| `ThemeColors` | type | `mobile/packages/shared/src/theme/colors.ts:83` |
+| `ThemeColors` | type | `mobile/packages/shared/src/theme/colors.ts:90` |
 | `ThemeMode` | type | `mobile/packages/shared/src/theme/index.ts:6` |
 | `ThemeProvider` | function | `frontend/src/components/theme-provider.tsx:56` |
 | `ThreadAttachment` | type | `frontend/src/components/complaint-thread.tsx:16` |

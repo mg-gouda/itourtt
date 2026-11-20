@@ -203,7 +203,7 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-slate-100 dark:bg-sidebar px-3 md:px-6">
+    <header className="flex h-14 items-center justify-between border-b border-border bg-secondary dark:bg-sidebar px-3 md:px-6">
       <div className="flex items-center gap-3">
         <button
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
