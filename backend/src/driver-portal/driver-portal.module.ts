@@ -1,3 +1,4 @@
+import { TripKmModule } from '../trip-km/trip-km.module.js';
 import { ComplaintsModule } from '../complaints/complaints.module.js';
 import { Module } from '@nestjs/common';
 import { TrackingModule } from '../tracking/tracking.module.js';
@@ -11,7 +12,7 @@ import { JobCompletionModule } from '../common/services/job-completion.module.js
 import { JobAlertsModule } from '../common/services/job-alerts.module.js';
 
 @Module({
-  imports: [ComplaintsModule, TrackingModule, EmailModule, GoogleDriveModule, JobCompletionModule, JobAlertsModule],
+  imports: [TripKmModule, ComplaintsModule, TrackingModule, EmailModule, GoogleDriveModule, JobCompletionModule, JobAlertsModule],
   controllers: [DriverPortalController],
   providers: [DriverPortalService, NoShowDisputeService, SupplierAutoCompleteService],
 })

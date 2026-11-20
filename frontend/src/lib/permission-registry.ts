@@ -393,6 +393,17 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     ],
   },
 
+  // ─── TRIP KILOMETRES ───
+  {
+    key: 'trip-km',
+    labelKey: 'permissions.tripKm',
+    crudType: 'page',
+    children: [
+      { key: 'trip-km.export', labelKey: 'permissions.tripKm.export', crudType: 'export' },
+      { key: 'trip-km.reminder', labelKey: 'permissions.tripKm.reminder', crudType: 'action' },
+    ],
+  },
+
   // ─── DRIVERS ───
   {
     key: 'drivers',

@@ -45,6 +45,7 @@ import {
   FileText,
   MessageSquareWarning,
   FileMinus,
+  Gauge,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -143,6 +144,7 @@ export const navigation: NavItem[] = [
     children: [
       { type: "link", nameKey: "sidebar.locations", href: "/dashboard/locations", icon: MapPin, permissionKey: "locations" },
       { type: "link", nameKey: "sidebar.vehicles", href: "/dashboard/vehicles", icon: Car, permissionKey: "vehicles" },
+      { type: "link", nameKey: "sidebar.tripKm", href: "/dashboard/trip-km", icon: Gauge, permissionKey: "trip-km" },
       { type: "link", nameKey: "sidebar.drivers", href: "/dashboard/drivers", icon: Users, permissionKey: "drivers" },
       { type: "link", nameKey: "sidebar.routes", href: "/dashboard/routes", icon: Route, permissionKey: "driver-tariffs" },
       { type: "link", nameKey: "sidebar.driverTariffs", href: "/dashboard/driver-tariffs", icon: Receipt, permissionKey: "driver-tariffs" },

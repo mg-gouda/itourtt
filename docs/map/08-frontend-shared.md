@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**119 files**, **417 exported symbols**.
+**121 files**, **420 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -44,13 +44,13 @@ Complaint thread UI shared by portals and admin: messages, authed files, compose
 
 ### `completed-evidence-dialog.tsx`
 
-`frontend/src/components/completed-evidence-dialog.tsx` · 239 lines
+`frontend/src/components/completed-evidence-dialog.tsx` · 349 lines
 
 Capture-and-upload dialog for completion evidence: photos plus a mandatory GPS fix.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CompletedEvidenceDialog` | function | 35 | Completion evidence capture — photos plus a mandatory GPS fix, with retry when the fix fails. |
+| `CompletedEvidenceDialog` | function | 47 | Completion evidence capture — photos plus a mandatory GPS fix, with retry when the fix fails. |
 
 ### `data-sheet.tsx`
 
@@ -389,19 +389,19 @@ Shown when a rep/driver login is refused because another device holds an active 
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 450 lines
+`frontend/src/components/sidebar.tsx` · 452 lines
 
 Main dashboard navigation, filtered by permission.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 62 | A navigation link with active-state styling. |
-| `NavSeparator` | type | 72 | Divider between sidebar sections. |
-| `NavSectionLabel` | type | 76 | Section heading in the sidebar. |
-| `NavGroup` | type | 81 | A collapsible navigation group. |
-| `NavItem` | type | 88 | One navigation entry. |
-| `navigation` | const | 95 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 166 | Main dashboard navigation, permission-filtered. |
+| `NavLink` | type | 63 | A navigation link with active-state styling. |
+| `NavSeparator` | type | 73 | Divider between sidebar sections. |
+| `NavSectionLabel` | type | 77 | Section heading in the sidebar. |
+| `NavGroup` | type | 82 | A collapsible navigation group. |
+| `NavItem` | type | 89 | One navigation entry. |
+| `navigation` | const | 96 | The navigation definition — sections, items and the permission key gating each. |
+| `Sidebar` | function | 168 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 
@@ -443,6 +443,27 @@ Light/dark theme context.
 |---|---|---|---|
 | `useTheme` | function | 52 | Reads and sets the active theme. |
 | `ThemeProvider` | function | 56 | Light/dark theme context provider. |
+
+### `trip-km-reminder.tsx`
+
+`frontend/src/components/trip-km-reminder.tsx` · 111 lines
+
+Morning pop-up for the transportation accountant about yesterday's trip kilometres
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TripKmReminder` | function | 27 | Shows yesterday's trip-km summary once a day after 08:00 (trip-km.reminder) |
+
+### `trip-km-table.tsx`
+
+`frontend/src/components/trip-km-table.tsx` · 297 lines
+
+Trip kilometres table with filters, correction, photo and Odoo export
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TripKmRow` | type | 19 | Trip-km row shape from GET /trip-km |
+| `TripKmTable` | function | 67 | Readings table for one car (vehicle tab) or all cars (page) |
 
 ### `two-factor-settings.tsx`
 
@@ -1256,17 +1277,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3926 lines
+`frontend/src/lib/i18n.ts` · 3954 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3903 | Translates a key in the current locale. |
-| `getTranslator` | function | 3907 | Translator for a specific locale, outside React. |
-| `useT` | function | 3915 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3922 | The active locale id. |
+| `t` | function | 3931 | Translates a key in the current locale. |
+| `getTranslator` | function | 3935 | Translator for a specific locale, outside React. |
+| `useT` | function | 3943 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3950 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -1284,7 +1305,7 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 
 ### `permission-registry.ts`
 
-`frontend/src/lib/permission-registry.ts` · 909 lines
+`frontend/src/lib/permission-registry.ts` · 920 lines
 
 Frontend mirror of the backend permission tree, driving the permission matrix UI and all `usePermission` gating. Keys must match `backend/src/permissions/permission-registry.ts`.
 
@@ -1293,11 +1314,11 @@ Frontend mirror of the backend permission tree, driving the permission matrix UI
 | `CrudType` | type | 9 | The create/read/update/delete axis of the matrix. |
 | `PermissionNode` | type | 21 | One node: key, label, children. |
 | `PERMISSION_REGISTRY` | const | 28 | The permission tree rendered by the admin matrix. |
-| `getAllPermissionKeys` | function | 820 | Flattens the tree to every key. |
-| `isValidPermissionKey` | function | 836 | Guards against typo'd keys. |
-| `getAncestorKeys` | function | 844 | Parent chain, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 856 | Subtree, used by the master toggle. |
-| `findNode` | function | 896 | Looks up a node by key. |
+| `getAllPermissionKeys` | function | 831 | Flattens the tree to every key. |
+| `isValidPermissionKey` | function | 847 | Guards against typo'd keys. |
+| `getAncestorKeys` | function | 855 | Parent chain, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 867 | Subtree, used by the master toggle. |
+| `findNode` | function | 907 | Looks up a node by key. |
 
 ### `print-report.ts`
 

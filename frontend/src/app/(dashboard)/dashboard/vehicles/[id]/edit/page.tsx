@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TripKmTable } from "@/components/trip-km-table";
 import {
   Select,
   SelectContent,
@@ -58,6 +59,7 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
   const canMakeYear = usePermission("vehicles.form.makeYear");
   const canLuggageCapacity = usePermission("vehicles.form.luggageCapacity");
   const canOwnership = usePermission("vehicles.form.ownership");
+  const canTripKm = usePermission("trip-km");
 
   const [types, setTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -373,6 +375,7 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
             <TabsList className="border-border bg-card w-full">
               <TabsTrigger value="details" className="flex-1">{t("vehicles.details")}</TabsTrigger>
               <TabsTrigger value="compliance" className="flex-1">{t("vehicles.compliance")}</TabsTrigger>
+              {canTripKm && <TabsTrigger value="trip-km" className="flex-1">{t("vehicles.tripKm")}</TabsTrigger>}
             </TabsList>
 
             {/* Details Tab */}
@@ -684,6 +687,17 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                 </>
               )}
             </TabsContent>
+
+            {/* Odometer readings taken on this car at job completion, any driver. */}
+            {canTripKm && (
+              <TabsContent value="trip-km" className="mt-4">
+                {ownership && ownership !== "OWNED" ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">{t("vehicles.tripKmOwnedOnly")}</p>
+                ) : (
+                  <TripKmTable vehicleId={id} />
+                )}
+              </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>

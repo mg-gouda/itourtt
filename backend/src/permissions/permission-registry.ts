@@ -384,6 +384,16 @@ export const PERMISSION_REGISTRY: PermissionNode[] = [
     ],
   },
 
+  // ─── TRIP KILOMETRES (odometer at completion, Odoo export) ───
+  {
+    key: 'trip-km',
+    labelKey: 'permissions.tripKm',
+    children: [
+      { key: 'trip-km.export', labelKey: 'permissions.tripKm.export' },
+      { key: 'trip-km.reminder', labelKey: 'permissions.tripKm.reminder' },
+    ],
+  },
+
   // ─── REPS ───
   {
     key: 'reps',

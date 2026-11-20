@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**71 classes**, **547 methods**.
+**73 classes**, **564 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -1115,6 +1115,43 @@ Records and serves last-known rep/driver positions for the tracking maps.
 | `todayDate` | priv | 173 | — | Today's Cairo date as the UTC-midnight Date a @db.Date column compares against. |
 | `assemble` | priv | 177 | `userLocation` `userSession` | Joins people with their UserLocation, open-session online flag (last 5 min) and today's jobs sorted by time. |
 
+## `trip-km`
+
+### TripKmController
+
+`backend/src/trip-km/trip-km.controller.ts:14` · controller · 4 methods
+
+Office endpoints for trip kilometres: list, summary, Odoo export, correction, photo
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `list` | pub | 20 | — | GET /trip-km: readings in a date range by car / driver, distance from the car's previous reading |
+| `summary` | pub | 33 | — | GET /trip-km/summary: yesterday's readings for the morning reminder |
+| `correct` | pub | 57 | — | PATCH /trip-km/:id: correct a misread odometer value (trip-km.export) |
+| `photo` | pub | 68 | — | GET /trip-km/:id/photo: the odometer photo |
+
+### TripKmService
+
+`backend/src/trip-km/trip-km.service.ts:70` · service · 13 methods
+
+Odometer readings at completion and their office views / export
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `readOdometer` | pub | 86 | — | Gemini vision read of the total odometer km from a photo; null if not legible |
+| `jobContext` | priv | 117 | `trafficAssignment` | The driver's assignment for the job and whether its car is owned |
+| `statusForDriver` | pub | 127 | `tripOdometer` | Completion dialog state: required, read value, attempts, typing allowed |
+| `capture` | pub | 142 | `tripOdometer` | Stores the odometer photo as the job's draft reading and runs the AI read |
+| `assertForCompletion` | pub | 177 | `tripOdometer` | Completion gate: owned car needs an AI-read or (after two failed reads) typed reading |
+| `confirm` | pub | 194 | `tripOdometer` | Marks the reading confirmed at completion and flags typed / lower / huge-jump values |
+| `list` | pub | 218 | `trafficJob` `driver` `vehicle` | Confirmed readings in a Cairo date range with LAG by vehicle for previous / distance |
+| `odooVehicleName` | priv | 282 | — | Odoo Fleet vehicle display name Brand/Model/Plate |
+| `correct` | pub | 288 | `tripOdometer` `user` | Office correction of a reading; clears the flag and notes who |
+| `exportXlsx` | pub | 304 | `tripOdometer` | Excel for Odoo Fleet odometer import (+ details sheet); stamps exported rows |
+| `summary` | pub | 350 | `trafficAssignment` `tripOdometer` | A day's readings, km, flagged, not exported and missing readings |
+| `yesterday` | priv | 373 | — | Yesterday's date in Cairo |
+| `photo` | pub | 380 | `tripOdometer` | Streams the odometer photo from Drive or local uploads |
+
 ## `user-preferences`
 
 ### UserPreferencesController
@@ -1239,7 +1276,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-196 free functions, constants and types in these modules.
+197 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1706,10 +1743,10 @@ Staff job-update notifications/emails, dispatch-action notices, and driver/rep j
 |---|---|---|---|
 | `PermissionNode` | type | 9 | One node: key, label, optional children. |
 | `PERMISSION_REGISTRY` | const | 15 | Hierarchical permission definition; parents imply their descendants in the UI matrix. |
-| `getAllPermissionKeys` | function | 743 | Flattens the registry to every key — what ADMIN is granted implicitly. |
-| `isValidPermissionKey` | function | 759 | Guards against typo'd or retired keys being stored. |
-| `getAncestorKeys` | function | 767 | Parent chain of a key, used to auto-check parents in the matrix. |
-| `getDescendantKeys` | function | 779 | Subtree of a key, used when a master toggle grants a whole section. |
+| `getAllPermissionKeys` | function | 753 | Flattens the registry to every key — what ADMIN is granted implicitly. |
+| `isValidPermissionKey` | function | 769 | Guards against typo'd or retired keys being stored. |
+| `getAncestorKeys` | function | 777 | Parent chain of a key, used to auto-check parents in the matrix. |
+| `getDescendantKeys` | function | 789 | Subtree of a key, used when a master toggle grants a whole section. |
 
 ### `backend/src/prisma/seed-egypt-locations.ts`
 
@@ -1779,3 +1816,11 @@ Live rep/driver location tracking service.
 | `LocationSource` | type | 6 | Where a fix came from: HEARTBEAT (portal open) or STATUS (status/evidence submission). |
 | `isValidCoord` | function | 15 | True for a finite in-range WGS-84 coordinate that isn't the 0,0 null fix. |
 | `TrackedPerson` | type | 23 | Row shape of the tracking map feeds: person, account/online flags, last location and today's jobs. |
+
+### `backend/src/trip-km/trip-km.service.ts`
+
+Trip kilometres: odometer photo reading (Gemini), completion gate, per-car distance, Odoo Fleet export
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `TripKmRow` | type | 20 | One reading row with previous reading of the same car and distance |

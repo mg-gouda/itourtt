@@ -633,6 +633,7 @@ model Vehicle {
   @@index([vehicleTypeId])
   @@index([supplierId])
   @@map("vehicles")
+  tripOdometers TripOdometer[]
 }
 
 model VehicleCompliance {
@@ -710,6 +711,7 @@ model Driver {
 
   @@index([supplierId])
   @@map("drivers")
+  tripOdometers TripOdometer[]
 }
 
 model DriverVehicle {
@@ -1399,6 +1401,7 @@ model TrafficJob {
   @@index([jobDate, status])
   @@index([jobDate, deletedAt])
   @@map("traffic_jobs")
+  tripOdometer TripOdometer?
 }
 
 model TrafficFlight {
@@ -3063,4 +3066,34 @@ model CustomerRoutePrice {
   @@unique([customerId, jobServiceTypeId, vehicleTypeId])
   @@index([jobServiceTypeId])
   @@map("customer_route_prices")
+}
+
+// Odometer reading taken when a driver completes a job in an OWNED car (photo → Gemini → km).
+// It belongs to the job's car: drivers and cars are freely paired, so a trip's distance is this
+// reading minus the previous confirmed reading of the same vehicle, whoever drove it.
+model TripOdometer {
+  id           String    @id @default(uuid())
+  trafficJobId String    @unique @map("traffic_job_id")
+  driverId     String    @map("driver_id")
+  vehicleId    String    @map("vehicle_id")
+  readingKm    Int?      @map("reading_km")
+  aiReadingKm  Int?      @map("ai_reading_km")
+  source       String    @default("AI") @db.VarChar(10) // AI | MANUAL (typed after two failed reads)
+  aiAttempts   Int       @default(0) @map("ai_attempts")
+  photoUrl     String?   @map("photo_url")
+  flagged      Boolean   @default(false)
+  flagNote     String?   @map("flag_note")
+  confirmedAt  DateTime? @map("confirmed_at") // set when the job is completed
+  exportedAt   DateTime? @map("exported_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  trafficJob TrafficJob @relation(fields: [trafficJobId], references: [id], onDelete: Cascade)
+  driver     Driver     @relation(fields: [driverId], references: [id])
+  vehicle    Vehicle    @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId, confirmedAt])
+  @@index([driverId, confirmedAt])
+  @@index([confirmedAt])
+  @@map("trip_odometers")
 }

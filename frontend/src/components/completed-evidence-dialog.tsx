@@ -11,7 +11,8 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, Camera, MapPin, AlertCircle, X } from "lucide-react";
+import { Loader2, Camera, MapPin, AlertCircle, X, Gauge } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
 import { useGeoCapture } from "@/lib/use-geo-capture";
@@ -32,6 +33,17 @@ interface ImageSlot {
   preview: string;
 }
 
+/** GET {portal}/jobs/:id/odometer — owned car → odometer photo read by AI (driver portal only). */
+interface OdometerStatus {
+  required: boolean;
+  plateNumber: string | null;
+  readingKm: number | null;
+  source: string | null;
+  aiAttempts: number;
+  hasPhoto: boolean;
+  canType: boolean;
+}
+
 export function CompletedEvidenceDialog({
   open,
   onOpenChange,
@@ -44,13 +56,51 @@ export function CompletedEvidenceDialog({
   const [images, setImages] = useState<ImageSlot[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const odoInputRef = useRef<HTMLInputElement>(null);
+  const [odo, setOdo] = useState<OdometerStatus | null>(null);
+  const [odoBusy, setOdoBusy] = useState(false);
+  const [typedKm, setTypedKm] = useState("");
+  const isDriver = portalApiBase === "/driver-portal";
 
   const { gps, gpsError, gpsLoading, retry } = useGeoCapture(open);
 
   // Reset selected images whenever the dialog closes.
   useEffect(() => {
-    if (!open) setImages([]);
+    if (!open) {
+      setImages([]);
+      setOdo(null);
+      setTypedKm("");
+    }
   }, [open]);
+
+  // Owned car? Then completing needs the odometer photo (read by AI on the server).
+  useEffect(() => {
+    if (!open || !isDriver || !jobId) return;
+    api
+      .get(`${portalApiBase}/jobs/${jobId}/odometer`)
+      .then(({ data }) => setOdo(data.data))
+      .catch(() => setOdo(null));
+  }, [open, isDriver, jobId, portalApiBase]);
+
+  const captureOdometer = async (file?: File) => {
+    if (!file) return;
+    setOdoBusy(true);
+    try {
+      const [small] = await compressImages([file]);
+      const fd = new FormData();
+      fd.append("image", small);
+      const { data } = await api.post(`${portalApiBase}/jobs/${jobId}/odometer`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: 60000,
+      });
+      setOdo(data.data);
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(message || t("completed.odometerUnreadable"));
+    } finally {
+      setOdoBusy(false);
+    }
+  };
 
   const handleFilesSelected = (files: FileList | null) => {
     if (!files) return;
@@ -68,7 +118,9 @@ export function CompletedEvidenceDialog({
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = images.length >= 1 && !submitting && !!gps;
+  const odoReady =
+    !odo?.required || odo.readingKm != null || (odo.canType && Number(typedKm) > 0);
+  const canSubmit = images.length >= 1 && !submitting && !!gps && odoReady && !odoBusy;
 
   const handleSubmit = async () => {
     if (images.length < 1) return;
@@ -82,6 +134,7 @@ export function CompletedEvidenceDialog({
         formData.append("latitude", gps.lat.toString());
         formData.append("longitude", gps.lng.toString());
       }
+      if (odo?.required && odo.readingKm == null && typedKm) formData.append("odometerKm", typedKm);
 
       await api.post(`${portalApiBase}/jobs/${jobId}/completed`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -160,6 +213,63 @@ export function CompletedEvidenceDialog({
               )}
             </div>
           </div>
+
+          {/* Odometer (owned cars): photo → AI reads the km into a read-only field */}
+          {odo?.required && (
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Gauge className="h-4 w-4" />
+                {t("completed.odometer")}
+                {odo.plateNumber && <span className="text-muted-foreground font-normal">· {odo.plateNumber}</span>}
+              </label>
+              <input
+                ref={odoInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  captureOdometer(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              <div className="mt-1 space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => odoInputRef.current?.click()}
+                  disabled={odoBusy || submitting}
+                >
+                  {odoBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                  {odoBusy ? t("completed.odometerReadingNow") : odo.hasPhoto ? t("completed.odometerRetake") : t("completed.odometerPhoto")}
+                </Button>
+                <div>
+                  <label className="text-xs text-muted-foreground">{t("completed.odometerReading")}</label>
+                  {odo.readingKm != null ? (
+                    <Input readOnly value={odo.readingKm.toLocaleString("en-US")} className="mt-1 h-9 bg-background font-semibold tabular-nums" />
+                  ) : odo.canType ? (
+                    <Input
+                      inputMode="numeric"
+                      placeholder={t("completed.odometerType")}
+                      value={typedKm}
+                      onChange={(e) => setTypedKm(e.target.value.replace(/[^\d]/g, ""))}
+                      className="mt-1 h-9 bg-background tabular-nums"
+                    />
+                  ) : (
+                    <Input readOnly value="" placeholder="—" className="mt-1 h-9 bg-background" />
+                  )}
+                </div>
+                {odo.readingKm == null && odo.aiAttempts > 0 && !odo.canType && (
+                  <p className="flex items-center gap-1.5 text-xs text-destructive">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    {t("completed.odometerUnreadable")}
+                  </p>
+                )}
+                {!odo.hasPhoto && <p className="text-xs text-muted-foreground">{t("completed.odometerRequired")}</p>}
+              </div>
+            </div>
+          )}
 
           {/* GPS Location */}
           <div>

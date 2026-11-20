@@ -135,14 +135,14 @@ Driver app Complaints tab.
 
 ### `EvidenceScreen.tsx`
 
-`mobile/apps/driver/src/screens/EvidenceScreen.tsx` · 254 lines
+`mobile/apps/driver/src/screens/EvidenceScreen.tsx` · 343 lines
 
 Driver evidence capture for Start (IN_PROGRESS) / COMPLETED / NO SHOW: 1–10 photos + GPS, one multipart upload.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `EvidenceKind` | type | 23 | Which driver submission the evidence screen is making. |
-| `EvidenceScreen` | function | 37 | Photo grid + GPS card; posts to /in-progress, /completed or /no-show. |
+| `EvidenceKind` | type | 34 | Which driver submission the evidence screen is making. |
+| `EvidenceScreen` | function | 48 | Photo grid + GPS card; posts to /in-progress, /completed or /no-show. |
 
 ### `HistoryScreen.tsx`
 
@@ -740,7 +740,7 @@ Chat API client + types for the native apps (mirrors backend chat.service).
 
 ### `driver-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 89 lines
+`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 102 lines
 
 Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController`.
 
@@ -851,7 +851,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 495 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 503 lines
 
 Arabic strings for all four apps.
 
@@ -861,14 +861,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 495 lines
+`mobile/packages/shared/src/i18n/en.ts` · 503 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 494 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 502 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 

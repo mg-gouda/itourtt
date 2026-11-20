@@ -1,3 +1,5 @@
+import { TripKmService } from '../trip-km/trip-km.service.js';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   Controller,
   Get,
@@ -9,6 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  UploadedFile,
   ParseUUIDPipe,
   BadRequestException,
   Res,
@@ -85,6 +88,7 @@ export class DriverPortalController {
     private readonly googleDriveService: GoogleDriveService,
     private readonly jobAlerts: JobAlertsService,
     private readonly complaintThreads: ComplaintThreadService,
+    private readonly tripKm: TripKmService,
   ) {}
 
   /**
@@ -227,11 +231,17 @@ export class DriverPortalController {
     @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { latitude: string; longitude: string },
+    @Body() body: { latitude: string; longitude: string; odometerKm?: string },
   ) {
     if (!files || files.length < 1) {
       throw new BadRequestException('At least one image is required for completed evidence');
     }
+    // Owned car: the odometer photo (read by AI, or typed after two failed reads) is required.
+    const odometer = await this.tripKm.assertForCompletion(
+      await this.driverPortalService.resolveDriverId(userId),
+      jobId,
+      body.odometerKm,
+    );
 
     // GPS is mandatory: reject the evidence upload when a fix is missing so
     // location is never absent from the audit trail.
@@ -246,7 +256,27 @@ export class DriverPortalController {
     const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed', latitude, longitude, stampMeta);
 
     const result = await this.driverPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);
+    if (odometer) await this.tripKm.confirm(odometer.id);
     return new ApiResponse(result, 'Completed evidence submitted');
+  }
+
+  /** GET /driver-portal/jobs/:jobId/odometer — does completing need an odometer photo, and what was read. */
+  @Get('jobs/:jobId/odometer')
+  async odometerStatus(@CurrentUser('id') userId: string, @Param('jobId') jobId: string) {
+    const driverId = await this.driverPortalService.resolveDriverId(userId);
+    return new ApiResponse(await this.tripKm.statusForDriver(driverId, jobId));
+  }
+
+  /** POST /driver-portal/jobs/:jobId/odometer — odometer photo (field `image`); AI reads the km. */
+  @Post('jobs/:jobId/odometer')
+  @UseInterceptors(FileInterceptor('image', { storage: memStore, limits: { fileSize: 15 * 1024 * 1024 } }))
+  async odometerCapture(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const driverId = await this.driverPortalService.resolveDriverId(userId);
+    return new ApiResponse(await this.tripKm.capture(driverId, jobId, file));
   }
 
   @Get('complaints')

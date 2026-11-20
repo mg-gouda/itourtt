@@ -4,7 +4,7 @@
 
 The driver / rep / supplier / partner portals and the public B2C booking surface. All portal status transitions and evidence capture live here.
 
-**18 classes**, **166 methods**.
+**18 classes**, **168 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -101,32 +101,34 @@ Storage and read-state for contact-form messages submitted from the public site.
 
 ### DriverPortalController
 
-`backend/src/driver-portal/driver-portal.controller.ts:82` · controller · 20 methods
+`backend/src/driver-portal/driver-portal.controller.ts:85` · controller · 22 methods
 
 REST surface for the driver app and `/driver` web portal. Class-guarded to the DRIVER role; every mutation carries mandatory GPS. Photo endpoints stamp images server-side, then push to Google Drive with a local-disk fallback.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getAlerts` | pub | 95 | — | GET /driver-portal/alerts — start reminders and drop-off geofence for the driver's jobs. |
-| `ackAlert` | pub | 101 | — | POST /driver-portal/jobs/:jobId/alerts/ack — acknowledge a job alarm (activity-logged). |
-| `getMyJobs` | pub | 110 | `driverPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in driver. |
-| `getJobHistory` | pub | 119 | `driverPortalService.getJobHistory` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job. |
-| `getJobDetail` | pub | 134 | `driverPortalService.findJobDetail` | One job's full detail, scoped to the calling driver. |
-| `updateJobStatus` | pub | 143 | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
-| `markCollected` | pub | 159 | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
-| `submitNoShow` | pub | 170 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
-| `submitInProgress` | pub | 198 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
-| `submitCompleted` | pub | 226 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
-| `getComplaints` | pub | 253 | `driverPortalService.getComplaints` | GET /driver-portal/complaints — the driver's own settled complaints. |
-| `getComplaint` | pub | 260 | `driverPortalService.resolveDriverId` | GET /driver-portal/complaints/:id: complaint story and the driver's thread |
-| `answerComplaint` | pub | 268 | `driverPortalService.resolveDriverId` | POST /driver-portal/complaints/:id/messages: driver answer with evidence |
-| `complaintFile` | pub | 281 | `driverPortalService.resolveDriverId` | GET /driver-portal/complaints/:id/attachments/:attId: file from the driver's own thread |
-| `getDeductions` | pub | 292 | `driverPortalService.getDeductions` | GET /driver-portal/deductions — the driver's posted deductions in a job-date range, with reason (History card). |
-| `getNotifications` | pub | 302 | `driverPortalService.getNotifications` | Driver's notification feed. |
-| `markNotificationRead` | pub | 308 | `driverPortalService.markNotificationRead` | Marks a single notification read. |
-| `markAllRead` | pub | 317 | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
-| `getProfile` | pub | 323 | `driverPortalService.getProfile` | The driver's own profile. |
-| `uploadFiles` | priv | 332 | `googleDriveService.uploadFile` | Shared helper for the three evidence endpoints: stamps each image, uploads to Google Drive, falls back to local `uploads/` on failure. A silent fallback here is the known symptom of expired Drive OAuth. |
+| `getAlerts` | pub | 99 | — | GET /driver-portal/alerts — start reminders and drop-off geofence for the driver's jobs. |
+| `ackAlert` | pub | 105 | — | POST /driver-portal/jobs/:jobId/alerts/ack — acknowledge a job alarm (activity-logged). |
+| `getMyJobs` | pub | 114 | `driverPortalService.getMyJobs` | Today's (or `?date=`) job list for the signed-in driver. |
+| `getJobHistory` | pub | 123 | `driverPortalService.getJobHistory` | Terminal-status jobs (COMPLETED/CANCELLED/NO_SHOW) in a date range, with the driver fee earned per job. |
+| `getJobDetail` | pub | 138 | `driverPortalService.findJobDetail` | One job's full detail, scoped to the calling driver. |
+| `updateJobStatus` | pub | 147 | `driverPortalService.updateJobStatus` | GPS-stamped driver status transition. PENDING→IN_PROGRESS→COMPLETED only; cannot start before the scheduled job time. |
+| `markCollected` | pub | 163 | `driverPortalService.markCollected` | Driver confirms cash collected. Required before completing any job with `collectionRequired` — this is the gate that blocks the Complete button. |
+| `submitNoShow` | pub | 174 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitNoShow` | Multipart no-show submission: stamps up to 10 photos, uploads them, then records the NO_SHOW leg and triggers the dispute report. |
+| `submitInProgress` | pub | 202 | `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitInProgress` | Multipart job-start submission with stamped photo evidence. |
+| `submitCompleted` | pub | 230 | `driverPortalService.resolveDriverId` `driverPortalService.getJobStampMeta` `driverPortalService.precheckGeofence` `driverPortalService.submitCompleted` | Driver marks the job done. Guards: must be IN_PROGRESS, ≥15 min after job time, within the 48h timelock, and collection settled if required. Stamps evidence photos, then rolls the job status up. |
+| `odometerStatus` | pub | 265 | `driverPortalService.resolveDriverId` | GET /driver-portal/jobs/:jobId/odometer: is a reading needed, and what was read |
+| `odometerCapture` | pub | 273 | `driverPortalService.resolveDriverId` | POST /driver-portal/jobs/:jobId/odometer: odometer photo, AI reads the km |
+| `getComplaints` | pub | 283 | `driverPortalService.getComplaints` | GET /driver-portal/complaints — the driver's own settled complaints. |
+| `getComplaint` | pub | 290 | `driverPortalService.resolveDriverId` | GET /driver-portal/complaints/:id: complaint story and the driver's thread |
+| `answerComplaint` | pub | 298 | `driverPortalService.resolveDriverId` | POST /driver-portal/complaints/:id/messages: driver answer with evidence |
+| `complaintFile` | pub | 311 | `driverPortalService.resolveDriverId` | GET /driver-portal/complaints/:id/attachments/:attId: file from the driver's own thread |
+| `getDeductions` | pub | 322 | `driverPortalService.getDeductions` | GET /driver-portal/deductions — the driver's posted deductions in a job-date range, with reason (History card). |
+| `getNotifications` | pub | 332 | `driverPortalService.getNotifications` | Driver's notification feed. |
+| `markNotificationRead` | pub | 338 | `driverPortalService.markNotificationRead` | Marks a single notification read. |
+| `markAllRead` | pub | 347 | `driverPortalService.markAllRead` | Marks every notification read for this driver. |
+| `getProfile` | pub | 353 | `driverPortalService.getProfile` | The driver's own profile. |
+| `uploadFiles` | priv | 362 | `googleDriveService.uploadFile` | Shared helper for the three evidence endpoints: stamps each image, uploads to Google Drive, falls back to local `uploads/` on failure. A silent fallback here is the known symptom of expired Drive OAuth. |
 
 ### DriverPortalService
 

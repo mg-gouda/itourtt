@@ -50,6 +50,19 @@ export const driverPortalApi = {
     });
   },
 
+  /** Owned car → completing needs an odometer photo; what was read so far. */
+  getOdometer(jobId: string) {
+    return api.get(`/driver-portal/jobs/${jobId}/odometer`);
+  },
+
+  /** Odometer photo (field `image`): the server reads the km with AI and returns the status. */
+  captureOdometer(jobId: string, formData: FormData) {
+    return api.post(`/driver-portal/jobs/${jobId}/odometer`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
+    });
+  },
+
   submitNoShow(jobId: string, formData: FormData) {
     return api.post(`/driver-portal/jobs/${jobId}/no-show`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

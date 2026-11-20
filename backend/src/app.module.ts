@@ -39,6 +39,7 @@ import { ComplaintsModule } from './complaints/complaints.module.js';
 import { B2CModule } from './b2c/b2c.module.js';
 import { EmailModule } from './email/email.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { TripKmModule } from './trip-km/trip-km.module.js';
 import { ImportTemplatesModule } from './import-templates/import-templates.module.js';
 import { AiParserModule } from './ai-parser/ai-parser.module.js';
 import { PushNotificationsModule } from './push-notifications/push-notifications.module.js';
@@ -99,6 +100,7 @@ import { PartnerModule } from './partner/partner.module.js';
     ComplaintsModule,
     B2CModule,
     NotificationsModule,
+    TripKmModule,
     ImportTemplatesModule,
     AiParserModule,
     PushNotificationsModule,

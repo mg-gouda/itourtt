@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -20,6 +20,17 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { ActionButton, GradientHeader, Surface } from '@itour/ui';
 
 type Props = StackScreenProps<RootStackParamList, 'Evidence'>;
+
+/** GET /driver-portal/jobs/:id/odometer */
+interface OdometerStatus {
+  required: boolean;
+  plateNumber: string | null;
+  readingKm: number | null;
+  source: string | null;
+  aiAttempts: number;
+  hasPhoto: boolean;
+  canType: boolean;
+}
 export type EvidenceKind = 'IN_PROGRESS' | 'COMPLETED' | 'NO_SHOW';
 
 /** Photo rules per submission — the same the server and the web portal apply. */
@@ -43,6 +54,34 @@ export function EvidenceScreen({ route, navigation }: Props) {
   const [gps, setGps] = useState<GPSPosition | null>(null);
   const [gpsState, setGpsState] = useState<'locating' | 'ready' | 'failed'>('locating');
   const [submitting, setSubmitting] = useState(false);
+  // Owned car on COMPLETED: odometer photo → the server's AI reads the km (read-only below it).
+  const [odo, setOdo] = useState<OdometerStatus | null>(null);
+  const [odoBusy, setOdoBusy] = useState(false);
+  const [typedKm, setTypedKm] = useState('');
+
+  useEffect(() => {
+    if (kind !== 'COMPLETED') return;
+    driverPortalApi
+      .getOdometer(jobId)
+      .then(({ data }) => setOdo(data.data))
+      .catch(() => setOdo(null));
+  }, [kind, jobId]);
+
+  const captureOdometer = async () => {
+    const p = await takePhoto();
+    if (!p) return;
+    setOdoBusy(true);
+    try {
+      const form = new FormData();
+      form.append('image', { uri: p.uri, name: p.fileName || 'odometer.jpg', type: p.type || 'image/jpeg' } as unknown as Blob);
+      const { data } = await driverPortalApi.captureOdometer(jobId, form);
+      setOdo(data.data);
+    } catch (err) {
+      appAlert(t('common.error'), apiErrorMessage(err, t('driverApp.odometerUnreadable')), undefined, { tone: 'danger' });
+    } finally {
+      setOdoBusy(false);
+    }
+  };
 
   const locate = useCallback(async () => {
     setGpsState('locating');
@@ -68,7 +107,8 @@ export function EvidenceScreen({ route, navigation }: Props) {
   };
 
   const missing = Math.max(0, rules.min - photos.length);
-  const canSubmit = missing === 0 && !!gps && !submitting;
+  const odoReady = !odo?.required || odo.readingKm != null || (odo.canType && Number(typedKm) > 0);
+  const canSubmit = missing === 0 && !!gps && !submitting && odoReady && !odoBusy;
 
   const submit = async () => {
     if (!gps) return;
@@ -80,6 +120,7 @@ export function EvidenceScreen({ route, navigation }: Props) {
       );
       form.append('latitude', String(gps.lat));
       form.append('longitude', String(gps.lng));
+      if (odo?.required && odo.readingKm == null && typedKm) form.append('odometerKm', typedKm);
       if (kind === 'IN_PROGRESS') await driverPortalApi.submitInProgress(jobId, form);
       else if (kind === 'COMPLETED') await driverPortalApi.submitCompleted(jobId, form);
       else await driverPortalApi.submitNoShow(jobId, form);
@@ -142,6 +183,48 @@ export function EvidenceScreen({ route, navigation }: Props) {
             </Pressable>
           ) : null}
         </Surface>
+
+        {/* Odometer — owned cars, on completion */}
+        {odo?.required ? (
+          <Surface style={styles.odoCard}>
+            <View style={styles.odoHead}>
+              <Icon name="speedometer-outline" size={20} color={colors.primary} />
+              <Text style={[styles.photosTitle, { color: colors.foreground }]}>{t('driverApp.odometer')}</Text>
+              {odo.plateNumber ? <Text style={[styles.gpsSub, { color: colors.mutedForeground }]}>{odo.plateNumber}</Text> : null}
+            </View>
+            <ActionButton
+              label={odoBusy ? t('driverApp.odometerReadingNow') : odo.hasPhoto ? t('driverApp.odometerRetake') : t('driverApp.odometerPhoto')}
+              icon="camera"
+              variant="soft"
+              loading={odoBusy}
+              disabled={odoBusy || submitting}
+              onPress={captureOdometer}
+            />
+            <Text style={[styles.odoLabel, { color: colors.mutedForeground }]}>{t('driverApp.odometerReading')}</Text>
+            {odo.readingKm != null ? (
+              <View style={[styles.odoValue, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                <Text style={[styles.odoValueText, { color: colors.foreground }]}>{odo.readingKm.toLocaleString('en-US')}</Text>
+              </View>
+            ) : odo.canType ? (
+              <TextInput
+                value={typedKm}
+                onChangeText={(v) => setTypedKm(v.replace(/[^\d]/g, ''))}
+                keyboardType="number-pad"
+                placeholder={t('driverApp.odometerType')}
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.odoInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+              />
+            ) : (
+              <View style={[styles.odoValue, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                <Text style={[styles.odoValueText, { color: colors.mutedForeground }]}>—</Text>
+              </View>
+            )}
+            {odo.readingKm == null && odo.aiAttempts > 0 && !odo.canType ? (
+              <Text style={[styles.gpsSub, { color: colors.destructive }]}>{t('driverApp.odometerUnreadable')}</Text>
+            ) : null}
+            {!odo.hasPhoto ? <Text style={[styles.gpsSub, { color: colors.mutedForeground }]}>{t('driverApp.odometerRequired')}</Text> : null}
+          </Surface>
+        ) : null}
 
         {/* Photos */}
         <View style={styles.photosHead}>
@@ -249,5 +332,11 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   addText: { fontSize: 12, fontWeight: '700' },
+  odoCard: { gap: 8 },
+  odoHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  odoLabel: { fontSize: 12, marginTop: 4 },
+  odoValue: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  odoValueText: { fontSize: 18, fontWeight: '800', letterSpacing: 0.5 },
+  odoInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
 });

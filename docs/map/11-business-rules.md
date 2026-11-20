@@ -598,6 +598,33 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Trip kilometres (odometer at completion)
+
+Owner decisions 2026-11-20 (`backend/src/trip-km`, model `TripOdometer`):
+- **Which jobs:** completing a job whose assigned car is **OWNED** needs an odometer photo, in the
+  driver app (Evidence › COMPLETED) and the driver web portal (completion dialog). Rented /
+  contracted cars complete as before.
+- **Reading:** `POST /driver-portal/jobs/:id/odometer` (photo) → Gemini (`gemini-2.5-flash`, key
+  `GEMINI_API_KEY`) reads the TOTAL odometer in km into a read-only field. Not legible → retake;
+  after **two** failed reads the driver may type the km (`source = MANUAL`, flagged "typed by
+  driver — check the photo"). `submitCompleted` refuses an owned-car completion without a reading
+  and confirms it (`confirmedAt`) when the completion succeeds.
+- **Distance belongs to the car:** drivers and cars are freely paired, so a trip's distance is its
+  reading minus the **same vehicle's** previous confirmed reading, whichever driver took it
+  (window `LAG … PARTITION BY vehicle_id ORDER BY confirmed_at`, computed on read — never stored).
+  The first reading of a car has no distance. Lower than the previous, or a jump > 1,500 km, is flagged.
+- **Where it is shown:** Vehicles › a car › **Trips Kilometer** tab (that car, all drivers), and
+  Fleet › **Trip Kilometers** (`/dashboard/trip-km`, all cars). The office can correct a misread value
+  (`PATCH /trip-km/:id`, clears the flag, notes who).
+- **Odoo:** `GET /trip-km/export` — Excel whose first sheet "Odometer" is exactly the Odoo Fleet ›
+  Odometers import (Vehicle = `Brand/Model/Plate` as Odoo names fleet vehicles, Date, Odometer Value,
+  Driver); sheet "Details" is the check list. Exporting stamps `exportedAt`. No API integration.
+- **Morning reminder:** users with `trip-km.reminder` (Transportation Accountant) get a centred
+  pop-up the first time they open the system after 08:00 Cairo: yesterday's trips, km, to-check,
+  not-exported and own-fleet completions missing a reading; "Open & export" opens the page on that day.
+- Permissions `trip-km`, `trip-km.export`, `trip-km.reminder` — granted by the migration to
+  Transportation Accountant (all three) and Admin (first two).
+
 ## Dispatch
 
 | Rule | Where |
