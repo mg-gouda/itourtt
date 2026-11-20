@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import * as bcrypt from 'bcryptjs';
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
@@ -11,7 +12,10 @@ import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 
 @Injectable()
 export class RepsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly party: PartyNotificationsService,
+  ) {}
 
   async findAll(pagination: PaginationDto, isActive?: boolean) {
     const { page = 1, limit = 20 } = pagination;
@@ -174,7 +178,7 @@ export class RepsService {
     const rep = await this.findOne(id);
     const newStatus = !rep.isActive;
 
-    return this.prisma.$transaction(async (tx) => {
+    const toggled = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.rep.update({
         where: { id },
         data: { isActive: newStatus },
@@ -189,6 +193,12 @@ export class RepsService {
 
       return updated;
     });
+    void this.party.notifyRep(id, {
+      title: newStatus ? 'Account Activated' : 'Account Deactivated',
+      message: newStatus ? 'Your account is active — you can sign in and receive jobs.' : 'Your account was deactivated by the office.',
+      event: newStatus ? 'ACCOUNT_ACTIVATED' : 'ACCOUNT_DEACTIVATED',
+    });
+    return toggled;
   }
 
   async softDelete(id: string) {

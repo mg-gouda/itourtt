@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -25,7 +26,10 @@ const SAFE_USER_OMIT = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly party: PartyNotificationsService,
+  ) {}
 
   // ──────────────────────────────────────────────
   // CREATE
@@ -179,6 +183,12 @@ export class UsersService {
         sessionExpiresAt: null,
       },
     });
+    // A rep's / driver's account: tell them (silent for back-office users).
+    void this.party.notifyUser(id, {
+      title: 'Password Changed',
+      message: 'Your password was changed. Sign in with the new password.',
+      event: 'PASSWORD_RESET',
+    });
     return { message: 'Password changed successfully' };
   }
 
@@ -194,6 +204,7 @@ export class UsersService {
       data: { isActive: false },
       omit: SAFE_USER_OMIT,
     });
+    void this.party.notifyUser(id, { title: 'Account Deactivated', message: 'Your account was deactivated by the office.', event: 'ACCOUNT_DEACTIVATED' });
 
     return user;
   }
@@ -209,6 +220,7 @@ export class UsersService {
       data: { isActive: true },
       omit: SAFE_USER_OMIT,
     });
+    void this.party.notifyUser(id, { title: 'Account Activated', message: 'Your account is active — you can sign in and receive jobs.', event: 'ACCOUNT_ACTIVATED' });
 
     return updated;
   }

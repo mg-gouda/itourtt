@@ -10,7 +10,7 @@ Four React Native apps (driver, rep, supplier, guest) over shared `packages/shar
 
 ### `App.tsx`
 
-`mobile/apps/driver/src/App.tsx` · 136 lines
+`mobile/apps/driver/src/App.tsx` · 138 lines
 
 Driver app root — providers, theme and navigation.
 
@@ -89,25 +89,25 @@ Driver app version shown on Login/Profile.
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 141 lines
+`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 142 lines
 
 Driver app bottom tabs (Jobs, History, Notifications, Profile).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `MainTabParamList` | type | 19 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 87 | Driver app bottom tabs (Jobs, History, Chat, Complaints, Profile) with the custom icon tab bar; polls the notification badge. |
+| `MainTabNavigator` | function | 88 | Driver app bottom tabs (Jobs, History, Chat, Complaints, Profile) with the custom icon tab bar; polls the notification badge. |
 
 ### `RootNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/RootNavigator.tsx` · 45 lines
+`mobile/apps/driver/src/navigation/RootNavigator.tsx` · 46 lines
 
 Driver app auth vs main navigation switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 11 | Route params for the `RootNavigator` navigator — the typed screen list. |
-| `RootNavigator` | function | 25 | Driver app auth vs main switch plus stack routes (job detail, evidence, notifications, chat). |
+| `RootStackParamList` | type | 12 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 26 | Driver app auth vs main switch plus stack routes (job detail, evidence, notifications, chat). |
 
 ## `mobile/apps/driver/src/screens/`
 
@@ -125,13 +125,13 @@ Driver app chat routes wrapping the shared @itour/ui chat screens.
 
 ### `ComplaintsScreen.tsx`
 
-`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 11 lines
+`mobile/apps/driver/src/screens/ComplaintsScreen.tsx` · 15 lines
 
 Driver app Complaints tab.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintsScreen` | function | 8 | Read-only list of the driver's settled complaints with a summary header. |
+| `ComplaintsScreen` | function | 11 | Read-only list of the driver's settled complaints with a summary header. |
 
 ### `EvidenceScreen.tsx`
 
@@ -186,7 +186,7 @@ Driver login. A 409 here means another device holds the session.
 
 ### `NotificationsScreen.tsx`
 
-`mobile/apps/driver/src/screens/NotificationsScreen.tsx` · 232 lines
+`mobile/apps/driver/src/screens/NotificationsScreen.tsx` · 234 lines
 
 Driver's notification feed.
 
@@ -379,7 +379,7 @@ Guest booking funnel state across steps.
 
 ### `App.tsx`
 
-`mobile/apps/rep/src/App.tsx` · 136 lines
+`mobile/apps/rep/src/App.tsx` · 138 lines
 
 Rep app root.
 
@@ -459,25 +459,25 @@ Rep app version shown on Login/Profile.
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 141 lines
+`mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 142 lines
 
 Rep app bottom tabs with the custom icon tab bar.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `MainTabParamList` | type | 19 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 87 | Rep app bottom tabs (Jobs, History, Chat, Complaints, Profile) with a custom icon tab bar; polls the notification badge. |
+| `MainTabNavigator` | function | 88 | Rep app bottom tabs (Jobs, History, Chat, Complaints, Profile) with a custom icon tab bar; polls the notification badge. |
 
 ### `RootNavigator.tsx`
 
-`mobile/apps/rep/src/navigation/RootNavigator.tsx` · 52 lines
+`mobile/apps/rep/src/navigation/RootNavigator.tsx` · 53 lines
 
 Rep app auth vs main navigation switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 12 | Route params for the `RootNavigator` navigator — the typed screen list. |
-| `RootNavigator` | function | 29 | Rep app auth vs main switch plus stack routes (job detail, evidence, flight delay, update, survey, notifications, chat). |
+| `RootStackParamList` | type | 13 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 30 | Rep app auth vs main switch plus stack routes (job detail, evidence, flight delay, update, survey, notifications, chat). |
 
 ## `mobile/apps/rep/src/screens/`
 
@@ -495,13 +495,13 @@ Rep app chat routes wrapping the shared @itour/ui chat screens.
 
 ### `ComplaintsScreen.tsx`
 
-`mobile/apps/rep/src/screens/ComplaintsScreen.tsx` · 11 lines
+`mobile/apps/rep/src/screens/ComplaintsScreen.tsx` · 15 lines
 
 Rep app Complaints tab.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ComplaintsScreen` | function | 8 | Read-only list of the rep's settled complaints and what each one cost them. |
+| `ComplaintsScreen` | function | 11 | Read-only list of the rep's settled complaints and what each one cost them. |
 
 ### `EvidenceScreen.tsx`
 
@@ -569,7 +569,7 @@ Rep login. A 409 here means another device holds the session.
 
 ### `NotificationsScreen.tsx`
 
-`mobile/apps/rep/src/screens/NotificationsScreen.tsx` · 232 lines
+`mobile/apps/rep/src/screens/NotificationsScreen.tsx` · 234 lines
 
 Rep's notification feed.
 
@@ -893,7 +893,7 @@ Translator and locale selection for the mobile apps.
 
 ### `background-sync.ts`
 
-`mobile/packages/shared/src/native/background-sync.ts` · 405 lines
+`mobile/packages/shared/src/native/background-sync.ts` · 411 lines
 
 Firebase-free sync: Android foreground service polling jobs/chat + tracking heartbeat, local notifications.
 
@@ -901,13 +901,13 @@ Firebase-free sync: Android foreground service polling jobs/chat + tracking hear
 |---|---|---|---|
 | `Portal` | type | 29 | driver \| rep. |
 | `NotificationTarget` | type | 39 | What a tapped local notification opens: job, chat thread or notifications. |
-| `requestStartupPermissions` | function | 88 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
-| `setupNotifications` | function | 130 | Requests notification permission and creates the Android channels. |
-| `clearChatNotifications` | function | 225 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
-| `registerBackgroundSync` | function | 314 | Registers notifee's foreground-service task; call once from index.js. |
-| `startBackgroundSync` | function | 328 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
-| `stopBackgroundSync` | function | 364 | Stops polling and the foreground service (sign-out). |
-| `onNotificationOpen` | function | 391 | Routes taps on local notifications (incl. cold start). |
+| `requestStartupPermissions` | function | 89 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
+| `setupNotifications` | function | 131 | Requests notification permission and creates the Android channels. |
+| `clearChatNotifications` | function | 230 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
+| `registerBackgroundSync` | function | 319 | Registers notifee's foreground-service task; call once from index.js. |
+| `startBackgroundSync` | function | 333 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
+| `stopBackgroundSync` | function | 369 | Stops polling and the foreground service (sign-out). |
+| `onNotificationOpen` | function | 397 | Routes taps on local notifications (incl. cold start). |
 
 ### `camera.ts`
 
@@ -1107,7 +1107,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 568 lines
+`mobile/packages/shared/src/types/index.ts` · 570 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -1152,20 +1152,20 @@ Shared TypeScript types for API payloads across the apps.
 | `RepPortalJob` | type | 334 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
 | `SupplierPortalJob` | type | 359 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
 | `PortalNotification` | type | 365 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
-| `GuestSurveyInput` | type | 377 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
-| `GuestSurveyPayload` | type | 393 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
-| `PortalComplaint` | type | 404 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
-| `PortalDeduction` | type | 428 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
-| `BookingExtras` | type | 444 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 450 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 462 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 468 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 493 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 519 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 524 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 532 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 545 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 559 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `GuestSurveyInput` | type | 379 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
+| `GuestSurveyPayload` | type | 395 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
+| `PortalComplaint` | type | 406 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
+| `PortalDeduction` | type | 430 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
+| `BookingExtras` | type | 446 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 452 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 464 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 470 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 495 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 521 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 526 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 534 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 547 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 561 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 
@@ -1481,7 +1481,7 @@ Native 1:1 chat thread.
 
 ### `PortalComplaintsScreen.tsx`
 
-`mobile/packages/ui/src/complaints/PortalComplaintsScreen.tsx` · 507 lines
+`mobile/packages/ui/src/complaints/PortalComplaintsScreen.tsx` · 511 lines
 
 Rep / driver app Complaints: list naming them, detail story and answer thread with photos
 

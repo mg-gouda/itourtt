@@ -129,29 +129,29 @@ REST surface for the dispatch console — day view, assign/reassign/unassign, av
 
 ### DispatchService
 
-`backend/src/dispatch/dispatch.service.ts:23` · service · 17 methods
+`backend/src/dispatch/dispatch.service.ts:24` · service · 17 methods
 
 The dispatch console backend: the day view and all assignment logic. Assignment order is Vehicle → Driver → Rep, each gated by its own permission key. Vehicle and driver double-booking is a NON-blocking warning; rep double-booking is a hard conflict.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getDayView` | pub | 40 | `trafficJob` | One day's jobs with everything the Excel-like grid renders, ARR and DEP served together for the split console. |
-| `assignJob` | pub | 136 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +8 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
-| `sendStaffAssignmentEmail` | priv | 409 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
-| `reassignJob` | pub | 459 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +7 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
-| `unassignJob` | pub | 764 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
-| `getAvailableVehicles` | pub | 817 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
-| `getAvailableSuppliers` | pub | 890 | `supplier` | Suppliers that can source a car for this job. |
-| `getAvailableDrivers` | pub | 929 | `driver` | Active drivers offered for assignment. |
-| `getAvailableReps` | pub | 954 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
-| `unlockJob` | pub | 1047 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
-| `lockJob` | pub | 1063 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
-| `checkDispatcherTimelock` | priv | 1084 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
-| `getJobReferenceTime` | priv | 1109 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
-| `validateVehicleAvailability` | priv | 1126 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
-| `detectAssignmentConflicts` | priv | 1140 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
-| `validateDriverAvailability` | priv | 1184 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
-| `validateRepAvailability` | priv | 1204 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
+| `getDayView` | pub | 42 | `trafficJob` | One day's jobs with everything the Excel-like grid renders, ARR and DEP served together for the split console. |
+| `assignJob` | pub | 138 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +4 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
+| `sendStaffAssignmentEmail` | priv | 381 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
+| `reassignJob` | pub | 431 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +3 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
+| `unassignJob` | pub | 715 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
+| `getAvailableVehicles` | pub | 768 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
+| `getAvailableSuppliers` | pub | 841 | `supplier` | Suppliers that can source a car for this job. |
+| `getAvailableDrivers` | pub | 880 | `driver` | Active drivers offered for assignment. |
+| `getAvailableReps` | pub | 905 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
+| `unlockJob` | pub | 998 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
+| `lockJob` | pub | 1014 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
+| `checkDispatcherTimelock` | priv | 1035 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
+| `getJobReferenceTime` | priv | 1060 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
+| `validateVehicleAvailability` | priv | 1077 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
+| `detectAssignmentConflicts` | priv | 1091 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
+| `validateDriverAvailability` | priv | 1135 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
+| `validateRepAvailability` | priv | 1155 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
 
 ## `drivers`
 
@@ -181,28 +181,28 @@ REST surface for drivers: records, vehicle links, portal accounts, trip fees and
 
 ### DriversService
 
-`backend/src/drivers/drivers.service.ts:13` · service · 16 methods
+`backend/src/drivers/drivers.service.ts:14` · service · 16 methods
 
 Driver records, their vehicle links, portal user accounts and trip-fee history. Drivers are paid PER TRIP from the zone/route tariff table, never a salary.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 16 | `driver` | Driver list, split Active/Inactive. |
-| `findOne` | pub | 45 | `driver` | One driver with vehicles, account and documents. |
-| `getTripFees` | pub | 64 | `driverTripFee` | A driver's trip fees over a period — the basis for what they are paid. |
-| `create` | pub | 101 | `driver` | Creates a driver record (no portal login yet). |
-| `update` | pub | 112 | `driver` `user` | Edits driver details. |
-| `loginChanges` | priv | 139 | `user` | Login fields (name, phone, portal email) to sync on a driver edit; 409 if another login holds the new mobile |
-| `updateAttachment` | pub | 169 | `driver` | Attaches or replaces a driver document (licence, ID). |
-| `assignVehicle` | pub | 177 | `vehicle` `driverVehicle` | Links a vehicle to a driver via `DriverVehicle`. |
-| `unassignVehicle` | pub | 220 | `driverVehicle` | Removes a driver-vehicle link. |
-| `createUserAccount` | pub | 241 | `user` `driver` | Creates the driver's portal login and links it to the Driver row — `resolveDriverId` depends on this link existing. |
-| `toggleStatus` | pub | 291 | `driver` `user` | Activates/deactivates the driver and their user account together. |
-| `softDelete` | pub | 312 | `user` `driver` | Soft-deletes the driver and disables their account. |
-| `resetPassword` | pub | 329 | `user` | Admin password reset. Also clears the stored session, so a locked-out driver can sign in again immediately. |
-| `exportToExcel` | pub | 355 | `driver` | Exports drivers to xlsx. |
-| `generateImportTemplate` | pub | 395 | `supplier` | Blank driver import workbook, pre-filled with valid suppliers. |
-| `importFromExcel` | pub | 492 | `supplier` `driver` | Bulk-imports drivers, resolving supplier names to ids. |
+| `findAll` | pub | 20 | `driver` | Driver list, split Active/Inactive. |
+| `findOne` | pub | 49 | `driver` | One driver with vehicles, account and documents. |
+| `getTripFees` | pub | 68 | `driverTripFee` | A driver's trip fees over a period — the basis for what they are paid. |
+| `create` | pub | 105 | `driver` | Creates a driver record (no portal login yet). |
+| `update` | pub | 116 | `driver` `user` | Edits driver details. |
+| `loginChanges` | priv | 143 | `user` | Login fields (name, phone, portal email) to sync on a driver edit; 409 if another login holds the new mobile |
+| `updateAttachment` | pub | 173 | `driver` | Attaches or replaces a driver document (licence, ID). |
+| `assignVehicle` | pub | 181 | `vehicle` `driverVehicle` | Links a vehicle to a driver via `DriverVehicle`. |
+| `unassignVehicle` | pub | 224 | `driverVehicle` | Removes a driver-vehicle link. |
+| `createUserAccount` | pub | 245 | `user` `driver` | Creates the driver's portal login and links it to the Driver row — `resolveDriverId` depends on this link existing. |
+| `toggleStatus` | pub | 295 | `driver` `user` | Activates/deactivates the driver and their user account together. |
+| `softDelete` | pub | 322 | `user` `driver` | Soft-deletes the driver and disables their account. |
+| `resetPassword` | pub | 339 | `user` | Admin password reset. Also clears the stored session, so a locked-out driver can sign in again immediately. |
+| `exportToExcel` | pub | 370 | `driver` | Exports drivers to xlsx. |
+| `generateImportTemplate` | pub | 410 | `supplier` | Blank driver import workbook, pre-filled with valid suppliers. |
+| `importFromExcel` | pub | 507 | `supplier` `driver` | Bulk-imports drivers, resolving supplier names to ids. |
 
 ## `extras`
 
@@ -468,28 +468,28 @@ REST surface for reps: records, zone coverage, portal accounts, fees and Excel p
 
 ### RepsService
 
-`backend/src/reps/reps.service.ts:13` · service · 16 methods
+`backend/src/reps/reps.service.ts:14` · service · 16 methods
 
 Rep records, zone coverage, portal accounts and fee history. A rep must have at least one zone assigned or they never appear in the dispatch assignment dropdown. Reps are paid only for completed jobs.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 16 | `rep` | Rep list, split Active/Inactive. |
-| `findOne` | pub | 52 | `rep` | One rep with zones, account and documents. |
-| `getFees` | pub | 77 | `repFee` | A rep's fees over a period, derived from their per-job scores. |
-| `create` | pub | 109 | `rep` | Creates a rep record. |
-| `update` | pub | 119 | `rep` `user` | Edits rep details. |
-| `loginChanges` | priv | 143 | `user` | Login fields (name, phone, portal email) to sync on a rep edit; 409 if another login holds the new mobile |
-| `toggleStatus` | pub | 173 | `rep` `user` | Activates/deactivates the rep and their user account together. |
-| `softDelete` | pub | 194 | `rep` `user` | Soft-deletes the rep and disables their account. |
-| `updateAttachment` | pub | 214 | `rep` | Attaches or replaces a rep document. |
-| `assignZone` | pub | 222 | `zone` `repZone` | Adds a zone to a rep's coverage. Without at least one, the rep is invisible to dispatch. |
-| `unassignZone` | pub | 263 | `repZone` | Removes a zone from a rep's coverage. |
-| `createUserAccount` | pub | 284 | `user` `rep` | Creates the rep's portal login and links it to the Rep row. |
-| `resetPassword` | pub | 333 | `user` | Admin password reset that also clears the session, freeing a locked-out rep. |
-| `exportToExcel` | pub | 359 | `rep` | Exports reps to xlsx. |
-| `generateImportTemplate` | pub | 393 | — | Blank rep import workbook. |
-| `importFromExcel` | pub | 462 | `rep` | Bulk-imports reps. |
+| `findAll` | pub | 20 | `rep` | Rep list, split Active/Inactive. |
+| `findOne` | pub | 56 | `rep` | One rep with zones, account and documents. |
+| `getFees` | pub | 81 | `repFee` | A rep's fees over a period, derived from their per-job scores. |
+| `create` | pub | 113 | `rep` | Creates a rep record. |
+| `update` | pub | 123 | `rep` `user` | Edits rep details. |
+| `loginChanges` | priv | 147 | `user` | Login fields (name, phone, portal email) to sync on a rep edit; 409 if another login holds the new mobile |
+| `toggleStatus` | pub | 177 | `rep` `user` | Activates/deactivates the rep and their user account together. |
+| `softDelete` | pub | 204 | `rep` `user` | Soft-deletes the rep and disables their account. |
+| `updateAttachment` | pub | 224 | `rep` | Attaches or replaces a rep document. |
+| `assignZone` | pub | 232 | `zone` `repZone` | Adds a zone to a rep's coverage. Without at least one, the rep is invisible to dispatch. |
+| `unassignZone` | pub | 273 | `repZone` | Removes a zone from a rep's coverage. |
+| `createUserAccount` | pub | 294 | `user` `rep` | Creates the rep's portal login and links it to the Rep row. |
+| `resetPassword` | pub | 343 | `user` | Admin password reset that also clears the session, freeing a locked-out rep. |
+| `exportToExcel` | pub | 369 | `rep` | Exports reps to xlsx. |
+| `generateImportTemplate` | pub | 403 | — | Blank rep import workbook. |
+| `importFromExcel` | pub | 472 | `rep` | Bulk-imports reps. |
 
 ## `suppliers`
 
@@ -595,25 +595,25 @@ REST surface for job CRUD, status changes, bulk import, evidence upload and Forc
 
 ### TrafficJobsService
 
-`backend/src/traffic-jobs/traffic-jobs.service.ts:34` · service · 13 methods
+`backend/src/traffic-jobs/traffic-jobs.service.ts:35` · service · 13 methods
 
 The core job entity: creation, editing, status transitions and admin Force Control. Channel rules differ — ONLINE jobs require an agent plus a unique agent reference matching that agent's `refPattern`; B2B jobs require a customer.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 175 | `trafficJob` | Filterable, paginated job list backing the traffic-jobs screens. |
-| `findOne` | pub | 223 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
-| `create` | pub | 236 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
-| `update` | pub | 393 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
-| `updateStatus` | pub | 640 | `trafficJob` `trafficAssignment` `driverTripFee` `rep` `repFee` +1 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
-| `forceControl` | pub | 742 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
-| `remove` | pub | 774 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
-| `uploadEvidence` | pub | 787 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
-| `deriveAbbreviation` | priv | 816 | — | Builds the reference prefix from the company name's initials. |
-| `generateInternalRef` | pub | 822 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
-| `resolveZoneFromFKs` | priv | 842 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
-| `bulkCreate` | pub | 859 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
-| `recalculateDriverFees` | pub | 883 | `trafficJob` `driverTripFee` `driverTariffsService.resolveJobTripFee` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
+| `findAll` | pub | 177 | `trafficJob` | Filterable, paginated job list backing the traffic-jobs screens. |
+| `findOne` | pub | 225 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
+| `create` | pub | 238 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
+| `update` | pub | 395 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
+| `updateStatus` | pub | 642 | `trafficJob` `trafficAssignment` `driverTripFee` `rep` `repFee` +1 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
+| `forceControl` | pub | 744 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
+| `remove` | pub | 790 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
+| `uploadEvidence` | pub | 810 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
+| `deriveAbbreviation` | priv | 839 | — | Builds the reference prefix from the company name's initials. |
+| `generateInternalRef` | pub | 845 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
+| `resolveZoneFromFKs` | priv | 865 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
+| `bulkCreate` | pub | 882 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
+| `recalculateDriverFees` | pub | 906 | `trafficJob` `driverTripFee` `driverTariffsService.resolveJobTripFee` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
 
 ## `vehicles`
 

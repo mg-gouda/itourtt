@@ -39,6 +39,7 @@ const HEARTBEAT_MS = 60_000;
 export type NotificationTarget =
   | { kind: 'job'; jobId: string }
   | { kind: 'chat'; conversationId: string }
+  | { kind: 'complaint'; complaintId: string }
   | { kind: 'notifications' };
 
 let portal: Portal | null = null;
@@ -188,6 +189,7 @@ interface PortalNotificationRow {
   isRead: boolean;
   createdAt: string;
   trafficJobId?: string | null;
+  complaintId?: string | null;
 }
 
 /** New portal notifications (job assigned / changed / cancelled …) → local notifications. */
@@ -209,10 +211,13 @@ async function pollNotifications() {
   }
   for (const n of fresh.slice(-5)) {
     shownNotificationIds.add(n.id);
-    await showAlert(`n-${n.id}`, n.title, n.message, {
-      type: n.trafficJobId ? 'JOB' : 'NOTIFICATION',
-      ...(n.trafficJobId ? { jobId: n.trafficJobId } : {}),
-    });
+    // Complaint events open the complaint; job events the job; anything else the list.
+    await showAlert(`n-${n.id}`, n.title, n.message, n.complaintId
+      ? { type: 'COMPLAINT', complaintId: n.complaintId }
+      : {
+          type: n.trafficJobId ? 'JOB' : 'NOTIFICATION',
+          ...(n.trafficJobId ? { jobId: n.trafficJobId } : {}),
+        });
   }
   if (newest) lastNotificationAt = newest;
 }
@@ -379,6 +384,7 @@ function targetOf(data?: Record<string, unknown>): NotificationTarget | null {
   if (data.type === 'CHAT' && typeof data.conversationId === 'string') {
     return { kind: 'chat', conversationId: data.conversationId };
   }
+  if (typeof data.complaintId === 'string') return { kind: 'complaint', complaintId: data.complaintId };
   if (typeof data.jobId === 'string') return { kind: 'job', jobId: data.jobId };
   if (data.type === 'NOTIFICATION') return { kind: 'notifications' };
   return null;

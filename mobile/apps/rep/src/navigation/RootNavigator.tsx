@@ -1,8 +1,9 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { useAuthStore } from '@itour/shared';
 import { LoginScreen } from '../screens/LoginScreen';
-import { MainTabNavigator } from './MainTabNavigator';
+import { MainTabNavigator, type MainTabParamList } from './MainTabNavigator';
 import { JobDetailScreen } from '../screens/JobDetailScreen';
 import { EvidenceScreen, type EvidenceKind } from '../screens/EvidenceScreen';
 import { FlightDelayScreen, JobUpdateScreen, SurveyScreen } from '../screens/JobFormsScreens';
@@ -11,7 +12,7 @@ import { AnnouncementsRoute, ChatThreadRoute } from '../screens/ChatScreens';
 
 export type RootStackParamList = {
   Login: undefined;
-  Main: undefined;
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   /** `date` (YYYY-MM-DD) lets the screen read the job from that day's list. */
   JobDetail: { jobId: string; date?: string };
   Evidence: { jobId: string; jobRef: string; kind: EvidenceKind };

@@ -289,36 +289,36 @@ REST surface for the rep app and `/rep` web portal. REP-role guarded, GPS mandat
 
 ### RepPortalService
 
-`backend/src/rep-portal/rep-portal.service.ts:36` · service · 24 methods
+`backend/src/rep-portal/rep-portal.service.ts:37` · service · 24 methods
 
 Everything the rep-facing portal does. The rep leg runs PENDING→IN_PLACE→COMPLETED (note: IN_PLACE, not IN_PROGRESS — that is the driver leg). Adds two things the driver portal has no equivalent of: the arrival guest survey and per-job scoring that determines the rep's fee.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `resolveNoShowWait` | priv | 83 | `companySettings` | The NO SHOW wait in minutes for one job — the agent's override or the company default. |
-| `withNoShowWindow` | priv | 99 | `companySettings` | Stamps each job with noShowAvailableFrom so the portal gates against the same instant the server enforces. |
-| `resolveRepId` | pub | 115 | `rep` | Maps the JWT user id to a Rep row; throws Forbidden when no rep profile is linked. |
-| `precheckGeofence` | pub | 130 | `trafficAssignment` | Ownership-checked geofence run before evidence photos upload, so a refused submission leaves no orphan files. |
-| `getMyJobs` | pub | 146 | `trafficAssignment` | The rep's jobs for one day (default today), sorted by flight arrival for ARR or `pickUpTime` otherwise. |
-| `getJobHistory` | pub | 187 | `trafficAssignment` | Terminal-status rep legs in a date range, with the fee earned per job. |
-| `updateJobStatus` | pub | 238 | `trafficAssignment` `statusChangeLog` `trafficJob` | Non-evidence rep transition against `REP_VALID_TRANSITIONS`. Can reach COMPLETED (IN_PLACE→COMPLETED), so it also triggers the job-level roll-up. |
-| `submitNoShow` | pub | 335 | `rep` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` | Rep-side no-show with evidence. Allowed from PENDING/IN_PLACE only and constrained by the shared `checkNoShowWindow` (80 min after job time). |
-| `submitInPlace` | pub | 458 | `rep` `trafficAssignment` `trafficJob` `inPlaceEvidence` `statusChangeLog` | Rep confirms arrival at the meeting point. Enforces a hard window of arrival −10 min to +80 min, but ONLY for ARR jobs, and skipped entirely when `repUnlockedAt` is set by an admin. Idempotent: re-submitting while already IN_PLACE returns current state without re-processing. |
-| `getGuestSurvey` | pub | 596 | `trafficAssignment` `guestSurvey` | Returns the arrival guest survey for a job if one has been submitted, scoped to the assigned rep. |
-| `submitGuestSurvey` | pub | 632 | `rep` `trafficAssignment` `guestSurvey` `repJobScore` `repFee` | Upserts the native arrival guest survey (ARR jobs only — replaced the old MS Forms flow). Submitting it auto-awards the 15-point survey scoring dimension and recalculates the rep fee, preserving existing score flags. |
-| `submitCompleted` | pub | 735 | `rep` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | Closes the rep leg with photo evidence. Requires IN_PLACE first, then calls `reconcileJobStatus` to roll the job up and materialise the rep fee — reps are paid only for completed jobs. |
-| `submitFlightDelay` | pub | 834 | `rep` `trafficAssignment` `trafficFlight` `user` `userNotification` | Rep reports a delayed arrival: rewrites `TrafficFlight.arrivalTime` and notifies every user holding the `traffic-jobs` or `dispatch` permission (plus all ADMINs). Rejected for non-ARR jobs or jobs with no flight row. |
-| `submitUpdate` | pub | 926 | `rep` `trafficAssignment` `user` `userNotification` | Free-text rep note pushed as a `UserNotification` to traffic/dispatch operators. Does not change any status. |
-| `getComplaints` | pub | 1002 | `complaint` | Settled complaints this rep was held responsible for — terminal outcomes only, with no claimed or conceded amounts. |
-| `getDeductions` | pub | 1064 | `complaintCharge` | POSTED ComplaintCharge rows against this rep (party REP), filtered by job date; job ref, amount, reason, complaint no/category. |
-| `postedChargeAgainst` | priv | 1116 | — | What this rep actually lost to a complaint: the posted charges naming them, added up. |
-| `getNotifications` | pub | 1130 | `repNotification` | Rep's notification feed from `RepNotification`. |
-| `markNotificationRead` | pub | 1155 | `repNotification` | Marks one notification read, scoped to the calling rep. |
-| `markAllRead` | pub | 1172 | `repNotification` | Bulk-marks this rep's notifications read. |
-| `getProfile` | pub | 1183 | `rep` | The rep's own profile, including assigned zones. |
-| `checkRepTimelock` | priv | 1208 | — | 48h cut-off after `jobDate`, bypassed by `TrafficJob.repUnlockedAt`. Mirrors the driver timelock. |
-| `findJobDetail` | pub | 1219 | `trafficJob` | Full job detail for one assigned job, scoped by `assignment.repId`. |
-| `getJobStampMeta` | pub | 1263 | `trafficJob` | Name/status overlay burned into rep evidence photos before upload. |
+| `resolveNoShowWait` | priv | 85 | `companySettings` | The NO SHOW wait in minutes for one job — the agent's override or the company default. |
+| `withNoShowWindow` | priv | 101 | `companySettings` | Stamps each job with noShowAvailableFrom so the portal gates against the same instant the server enforces. |
+| `resolveRepId` | pub | 117 | `rep` | Maps the JWT user id to a Rep row; throws Forbidden when no rep profile is linked. |
+| `precheckGeofence` | pub | 132 | `trafficAssignment` | Ownership-checked geofence run before evidence photos upload, so a refused submission leaves no orphan files. |
+| `getMyJobs` | pub | 148 | `trafficAssignment` | The rep's jobs for one day (default today), sorted by flight arrival for ARR or `pickUpTime` otherwise. |
+| `getJobHistory` | pub | 189 | `trafficAssignment` | Terminal-status rep legs in a date range, with the fee earned per job. |
+| `updateJobStatus` | pub | 240 | `trafficAssignment` `statusChangeLog` `trafficJob` | Non-evidence rep transition against `REP_VALID_TRANSITIONS`. Can reach COMPLETED (IN_PLACE→COMPLETED), so it also triggers the job-level roll-up. |
+| `submitNoShow` | pub | 337 | `rep` `trafficAssignment` `trafficJob` `noShowEvidence` `statusChangeLog` | Rep-side no-show with evidence. Allowed from PENDING/IN_PLACE only and constrained by the shared `checkNoShowWindow` (80 min after job time). |
+| `submitInPlace` | pub | 460 | `rep` `trafficAssignment` `trafficJob` `inPlaceEvidence` `statusChangeLog` | Rep confirms arrival at the meeting point. Enforces a hard window of arrival −10 min to +80 min, but ONLY for ARR jobs, and skipped entirely when `repUnlockedAt` is set by an admin. Idempotent: re-submitting while already IN_PLACE returns current state without re-processing. |
+| `getGuestSurvey` | pub | 598 | `trafficAssignment` `guestSurvey` | Returns the arrival guest survey for a job if one has been submitted, scoped to the assigned rep. |
+| `submitGuestSurvey` | pub | 634 | `rep` `trafficAssignment` `guestSurvey` `repJobScore` `repFee` | Upserts the native arrival guest survey (ARR jobs only — replaced the old MS Forms flow). Submitting it auto-awards the 15-point survey scoring dimension and recalculates the rep fee, preserving existing score flags. |
+| `submitCompleted` | pub | 737 | `rep` `trafficAssignment` `completedEvidence` `statusChangeLog` `trafficJob` | Closes the rep leg with photo evidence. Requires IN_PLACE first, then calls `reconcileJobStatus` to roll the job up and materialise the rep fee — reps are paid only for completed jobs. |
+| `submitFlightDelay` | pub | 836 | `rep` `trafficAssignment` `trafficFlight` `user` `userNotification` | Rep reports a delayed arrival: rewrites `TrafficFlight.arrivalTime` and notifies every user holding the `traffic-jobs` or `dispatch` permission (plus all ADMINs). Rejected for non-ARR jobs or jobs with no flight row. |
+| `submitUpdate` | pub | 937 | `rep` `trafficAssignment` `user` `userNotification` | Free-text rep note pushed as a `UserNotification` to traffic/dispatch operators. Does not change any status. |
+| `getComplaints` | pub | 1013 | `complaint` | Settled complaints this rep was held responsible for — terminal outcomes only, with no claimed or conceded amounts. |
+| `getDeductions` | pub | 1075 | `complaintCharge` | POSTED ComplaintCharge rows against this rep (party REP), filtered by job date; job ref, amount, reason, complaint no/category. |
+| `postedChargeAgainst` | priv | 1127 | — | What this rep actually lost to a complaint: the posted charges naming them, added up. |
+| `getNotifications` | pub | 1141 | `repNotification` | Rep's notification feed from `RepNotification`. |
+| `markNotificationRead` | pub | 1166 | `repNotification` | Marks one notification read, scoped to the calling rep. |
+| `markAllRead` | pub | 1183 | `repNotification` | Bulk-marks this rep's notifications read. |
+| `getProfile` | pub | 1194 | `rep` | The rep's own profile, including assigned zones. |
+| `checkRepTimelock` | priv | 1219 | — | 48h cut-off after `jobDate`, bypassed by `TrafficJob.repUnlockedAt`. Mirrors the driver timelock. |
+| `findJobDetail` | pub | 1230 | `trafficJob` | Full job detail for one assigned job, scoped by `assignment.repId`. |
+| `getJobStampMeta` | pub | 1274 | `trafficJob` | Name/status overlay burned into rep evidence photos before upload. |
 
 ## `supplier-portal`
 

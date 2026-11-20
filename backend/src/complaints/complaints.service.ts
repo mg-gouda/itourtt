@@ -607,21 +607,13 @@ export class ComplaintsService {
           row.scorePenaltyNote = penalty.note;
         }
 
-        // Reps and drivers only ever hear about a complaint once it is settled
-        // against us — never while it is still being argued.
-        await this.slaService.notifyResponsibleParty(tx, {
-          complaintNo: row.complaintNo,
-          subject: row.subject,
-          status: to,
-          trafficJobId: row.trafficJobId,
-          responsibleParties: this.storedParties(row),
-          responsibleRepId: row.responsibleRepId,
-          responsibleDriverId: row.responsibleDriverId,
-        });
       }
 
       return row;
     });
+
+    // The named rep / driver hears about every status change (row + push).
+    void this.threads.notifyStatus(updated, to);
 
     this.logger.log(
       `Complaint ${updated.complaintNo}: ${from} → ${to} by user ${userId}` +

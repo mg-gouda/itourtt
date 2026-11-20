@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService, type JobUpdateEmailData } from '../email/email.service.js';
@@ -71,6 +72,7 @@ export class NotificationsService {
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
     private readonly push: PushNotificationsService,
+    private readonly party: PartyNotificationsService,
   ) {}
 
   /**
@@ -93,6 +95,7 @@ export class NotificationsService {
       `${after.internalRef} — changed: ${changes.join(', ')}`,
       'JOB_UPDATED',
       updatedByUserId,
+      'JOB_UPDATED',
     );
   }
 
@@ -108,6 +111,7 @@ export class NotificationsService {
       `${job.internalRef} has been cancelled`,
       'JOB_UPDATED',
       updatedByUserId,
+      'JOB_CANCELLED',
     );
   }
 
@@ -124,6 +128,7 @@ export class NotificationsService {
       `You are no longer assigned to ${job.internalRef}`,
       'JOB_UPDATED',
       updatedByUserId,
+      'JOB_REMOVED',
     );
   }
 
@@ -133,6 +138,7 @@ export class NotificationsService {
     message: string,
     type: 'JOB_UPDATED',
     updatedByUserId?: string,
+    event?: string,
   ): Promise<void> {
     const driverId = job.assignment?.driverId ?? null;
     const repId = job.assignment?.repId ?? null;
@@ -142,20 +148,11 @@ export class NotificationsService {
       driverId ? this.prisma.driver.findUnique({ where: { id: driverId }, select: { userId: true } }) : null,
       repId ? this.prisma.rep.findUnique({ where: { id: repId }, select: { userId: true } }) : null,
     ]);
-    const data = { jobId: job.id, type };
+    const note = { title, message, type, event: event ?? type, jobId: job.id };
 
-    if (driverId && driver?.userId !== updatedByUserId) {
-      await this.prisma.driverNotification.create({
-        data: { driverId, title, message, type, trafficJobId: job.id },
-      });
-      await this.push.sendToDriver(driverId, title, message, data).catch(() => {});
-    }
-    if (repId && rep?.userId !== updatedByUserId) {
-      await this.prisma.repNotification.create({
-        data: { repId, title, message, type, trafficJobId: job.id },
-      });
-      await this.push.sendToRep(repId, title, message, data).catch(() => {});
-    }
+    // The person who made the change is not told about it.
+    if (driverId && driver?.userId !== updatedByUserId) await this.party.notifyDriver(driverId, note);
+    if (repId && rep?.userId !== updatedByUserId) await this.party.notifyRep(repId, note);
   }
 
   /**

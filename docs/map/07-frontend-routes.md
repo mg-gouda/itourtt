@@ -57,14 +57,14 @@
 | `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 693 | 8 | 8 | Edit a vehicle, its compliance documents and deposit payments. |
 | `/dashboard/vehicles/new` | `frontend/src/app/(dashboard)/dashboard/vehicles/new/page.tsx` | 300 | 2 | 8 | Add a vehicle. |
 | `/dashboard/whatsapp` | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx` | 713 | 7 | 3 | WhatsApp settings, templates, media and delivery logs. |
-| `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 805 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
+| `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 809 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
 | `/driver/chat` | `frontend/src/app/(driver-portal)/driver/chat/page.tsx` | 9 | — | — | Driver portal chat page (PortalChat). |
 | `/driver/complaints` | `frontend/src/app/(driver-portal)/driver/complaints/page.tsx` | 9 | — | — | Driver portal › Complaints naming the driver, with answer thread |
 | `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 345 | 1 | — | Driver's completed/cancelled/no-show jobs with the fee earned per job. |
 | `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | Driver's own profile. |
 | `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | Requests a password-reset email. |
 | `/login` | `frontend/src/app/login/page.tsx` | 281 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
-| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 958 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
+| `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 962 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
 | `/rep/chat` | `frontend/src/app/(rep-portal)/rep/chat/page.tsx` | 9 | — | — | Rep portal chat page (PortalChat). |
 | `/rep/complaints` | `frontend/src/app/(rep-portal)/rep/complaints/page.tsx` | 9 | — | — | Rep portal › Complaints naming the rep, with answer thread |
 | `/rep/history` | `frontend/src/app/(rep-portal)/rep/history/page.tsx` | 345 | 1 | — | Rep's terminal jobs with fees earned. |

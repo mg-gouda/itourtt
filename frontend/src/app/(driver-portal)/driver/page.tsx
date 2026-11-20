@@ -102,6 +102,7 @@ interface DriverJob {
 
 interface Notification {
   id: string;
+  complaintId?: string | null;
   title: string;
   message: string;
   type: string;
@@ -419,7 +420,10 @@ export default function DriverDashboardPage() {
               <Card
                 key={n.id}
                 className={`cursor-pointer transition-colors ${!n.isRead ? "border-primary/30 bg-primary/5" : ""}`}
-                onClick={() => !n.isRead && markNotificationRead(n.id)}
+                onClick={() => {
+                  if (!n.isRead) markNotificationRead(n.id);
+                  if (n.complaintId) window.location.href = `/driver/complaints?id=${n.complaintId}`;
+                }}
               >
                 <CardContent className="flex items-start gap-3 py-3">
                   <Bell

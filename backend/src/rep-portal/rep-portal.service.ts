@@ -1,3 +1,4 @@
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import {
   Injectable,
   NotFoundException,
@@ -39,6 +40,7 @@ export class RepPortalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly complaintThreads: ComplaintThreadService,
+    private readonly party: PartyNotificationsService,
     private readonly jobCompletion: JobCompletionService,
   ) {}
 
@@ -917,6 +919,15 @@ export class RepPortalService {
         })),
       });
     }
+
+    // The driver on the same job needs the new arrival time too.
+    void this.party.notifyDriver(assignment.driverId, {
+      title: `Flight Delay: ${job.internalRef}`,
+      message: `New arrival time ${newTimeStr} (reported by the rep).`,
+      event: 'FLIGHT_DELAY',
+      type: 'FLIGHT_DELAY',
+      jobId,
+    });
 
     this.logger.log(`Flight delay reported for ${job.internalRef} by ${repName}: new arrival ${newTimeStr}`);
 

@@ -77,7 +77,9 @@ export function NotificationsScreen({ navigation }: Props) {
       setUnread(Math.max(0, unread - 1));
       driverPortalApi.markNotificationRead(n.id).catch(() => {});
     }
-    if (n.trafficJobId) {
+    if (n.complaintId) {
+      navigation.navigate('Main', { screen: 'Complaints', params: { complaintId: n.complaintId, at: Date.now() } });
+    } else if (n.trafficJobId) {
       navigation.navigate('JobDetail', {
         jobId: n.trafficJobId,
         date: n.trafficJob?.jobDate ? n.trafficJob.jobDate.slice(0, 10) : undefined,

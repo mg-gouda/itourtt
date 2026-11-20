@@ -1954,6 +1954,8 @@ model RepNotification {
   type         NotificationType @default(GENERAL)
   isRead       Boolean          @default(false) @map("is_read")
   trafficJobId String?          @map("traffic_job_id")
+  // Set for complaint events, so a tap opens that complaint.
+  complaintId  String?          @map("complaint_id")
   createdAt    DateTime         @default(now()) @map("created_at")
 
   rep        Rep         @relation(fields: [repId], references: [id])
@@ -1974,6 +1976,8 @@ model DriverNotification {
   type         NotificationType @default(GENERAL)
   isRead       Boolean          @default(false) @map("is_read")
   trafficJobId String?          @map("traffic_job_id")
+  // Set for complaint events, so a tap opens that complaint.
+  complaintId  String?          @map("complaint_id")
   createdAt    DateTime         @default(now()) @map("created_at")
 
   driver     Driver      @relation(fields: [driverId], references: [id])

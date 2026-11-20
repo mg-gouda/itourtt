@@ -1,4 +1,5 @@
 import { JobPricingService } from '../job-pricing/job-pricing.service.js';
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import {
   Injectable,
   Logger,
@@ -42,6 +43,7 @@ export class TrafficJobsService {
     private readonly driverTariffsService: DriverTariffsService,
     private readonly jobCompletion: JobCompletionService,
     private readonly jobPricing: JobPricingService,
+    private readonly party: PartyNotificationsService,
   ) {}
 
   // Full include — used for findOne() detail view only
@@ -742,7 +744,7 @@ export class TrafficJobsService {
   async forceControl(id: string, dto: { jobStatus?: string; repStatus?: string; driverStatus?: string }) {
     const job = await this.findOne(id);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       if (dto.jobStatus) {
         await tx.trafficJob.update({
           where: { id },
@@ -769,6 +771,20 @@ export class TrafficJobsService {
 
       return this.findOne(id);
     });
+
+    // The office overrode a status: the people on the job are told what it is now.
+    const parts = [
+      dto.jobStatus && `job ${dto.jobStatus}`,
+      dto.driverStatus && `driver ${dto.driverStatus}`,
+      dto.repStatus && `rep ${dto.repStatus}`,
+    ].filter(Boolean);
+    if (parts.length && job.assignment) {
+      void this.party.notifyAssignees(
+        { driverId: job.assignment.driverId, repId: job.assignment.repId },
+        { title: 'Status Set by Office', message: `${job.internalRef}: ${parts.join(', ')}`, event: 'STATUS_SET', type: 'JOB_UPDATED', jobId: id },
+      );
+    }
+    return result;
   }
 
   async remove(id: string) {
@@ -778,10 +794,17 @@ export class TrafficJobsService {
       throw new BadRequestException('Cannot delete a completed traffic job');
     }
 
-    return this.prisma.trafficJob.update({
+    const deleted = await this.prisma.trafficJob.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+    // A deleted job is off their list: tell the driver / rep (past-dated jobs stay silent).
+    if (job.assignment) {
+      this.notificationsService
+        .notifyRemovedFromJob(job, { driverId: job.assignment.driverId, repId: job.assignment.repId })
+        .catch(() => {});
+    }
+    return deleted;
   }
 
   async uploadEvidence(

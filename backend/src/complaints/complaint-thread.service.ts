@@ -5,6 +5,7 @@ import { Readable } from 'stream';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { GoogleDriveService, isDriveFileId } from '../google-drive/google-drive.service.js';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service.js';
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 
 /** The party a thread belongs to: each blamed rep / driver talks to the office in their own thread. */
 export type ThreadParty = 'REP' | 'DRIVER';
@@ -52,6 +53,7 @@ export class ComplaintThreadService {
     private readonly prisma: PrismaService,
     private readonly drive: GoogleDriveService,
     private readonly push: PushNotificationsService,
+    private readonly party: PartyNotificationsService,
   ) {}
 
   private partyWhere(party: ThreadParty, partyId: string) {
@@ -265,7 +267,7 @@ export class ComplaintThreadService {
     const preview = (text || `${files} file(s) attached`).slice(0, 160);
     if (author === 'STAFF') {
       const title = `Complaint ${c.complaintNo} — reply from the office`;
-      await this.notifyParty(party, party === 'REP' ? c.responsibleRepId : c.responsibleDriverId, c.trafficJobId, title, preview);
+      await this.notifyParty(party, party === 'REP' ? c.responsibleRepId : c.responsibleDriverId, c.trafficJobId, title, preview, c.id, 'COMPLAINT_REPLY');
       return;
     }
     // Party answered → the complaint's owner, else every admin.
@@ -282,15 +284,34 @@ export class ComplaintThreadService {
   }
 
   /** In-app notification (portal + app bell) and a push to the rep / driver. */
-  private async notifyParty(party: ThreadParty, partyId: string | null, trafficJobId: string, title: string, message: string) {
-    if (!partyId) return;
-    if (party === 'REP') {
-      await this.prisma.repNotification.create({ data: { repId: partyId, title, message, trafficJobId } });
-      await this.push.sendToRep(partyId, title, message, { url: '/rep/complaints', tag: `complaint-${trafficJobId}` });
-    } else {
-      await this.prisma.driverNotification.create({ data: { driverId: partyId, title, message, trafficJobId } });
-      await this.push.sendToDriver(partyId, title, message, { url: '/driver/complaints', tag: `complaint-${trafficJobId}` });
-    }
+  private async notifyParty(party: ThreadParty, partyId: string | null, trafficJobId: string, title: string, message: string, complaintId?: string, event = 'COMPLAINT') {
+    const note = { title, message, event, jobId: trafficJobId, complaintId: complaintId ?? null };
+    if (party === 'REP') await this.party.notifyRep(partyId, note);
+    else await this.party.notifyDriver(partyId, note);
+  }
+
+  /** A complaint naming the rep / driver changed status: tell each named party. */
+  async notifyStatus(
+    c: { id: string; complaintNo: string; subject: string; trafficJobId: string; responsibleParties: string[]; responsibleRepId: string | null; responsibleDriverId: string | null; scorePenaltyApplied?: number },
+    status: string,
+  ) {
+    const text: Record<string, [string, string]> = {
+      UNDER_REVIEW: ['under review', 'The office is reviewing it.'],
+      REPLIED: ['replied to the customer', 'The office has replied to the customer.'],
+      ESCALATED: ['escalated', 'The customer escalated it.'],
+      WON: ['closed in your favour', 'It was settled in our favour — no action against you.'],
+      PARTIALLY_LOST: ['partially upheld', 'It was partly settled against us.'],
+      LOST: ['upheld', 'It was settled against us.'],
+      CANCELLED: ['cancelled', 'It was cancelled.'],
+      OPEN: ['re-opened', 'It is open again.'],
+    };
+    const [what, detail] = text[status] ?? [status.toLowerCase(), ''];
+    const penalty = c.scorePenaltyApplied ? ` Score −${c.scorePenaltyApplied}.` : '';
+    const title = `Complaint ${c.complaintNo} ${what}`;
+    const message = `"${c.subject}". ${detail}${penalty}`.trim();
+    const event = `COMPLAINT_${status}`;
+    if (c.responsibleParties.includes('REP')) await this.notifyParty('REP', c.responsibleRepId, c.trafficJobId, title, message, c.id, event);
+    if (c.responsibleParties.includes('DRIVER')) await this.notifyParty('DRIVER', c.responsibleDriverId, c.trafficJobId, title, message, c.id, event);
   }
 
   /**
@@ -299,7 +320,7 @@ export class ComplaintThreadService {
    */
   async notifyNamed(
     before: { responsibleParties: string[]; responsibleRepId: string | null; responsibleDriverId: string | null } | null,
-    after: { complaintNo: string; subject: string; status: string; trafficJobId: string; responsibleParties: string[]; responsibleRepId: string | null; responsibleDriverId: string | null },
+    after: { id: string; complaintNo: string; subject: string; status: string; trafficJobId: string; responsibleParties: string[]; responsibleRepId: string | null; responsibleDriverId: string | null },
   ) {
     try {
       if (TERMINAL.includes(after.status)) return;
@@ -308,10 +329,10 @@ export class ComplaintThreadService {
       const newly = (party: ThreadParty, id: string | null, prevId: string | null | undefined, prevParties: string[] | undefined) =>
         after.responsibleParties.includes(party) && id && !(prevParties?.includes(party) && prevId === id);
       if (newly('REP', after.responsibleRepId, before?.responsibleRepId, before?.responsibleParties)) {
-        await this.notifyParty('REP', after.responsibleRepId, after.trafficJobId, title, message);
+        await this.notifyParty('REP', after.responsibleRepId, after.trafficJobId, title, message, after.id, 'COMPLAINT_NAMED');
       }
       if (newly('DRIVER', after.responsibleDriverId, before?.responsibleDriverId, before?.responsibleParties)) {
-        await this.notifyParty('DRIVER', after.responsibleDriverId, after.trafficJobId, title, message);
+        await this.notifyParty('DRIVER', after.responsibleDriverId, after.trafficJobId, title, message, after.id, 'COMPLAINT_NAMED');
       }
     } catch (e: any) {
       this.logger.warn(`Complaint named-party notification failed: ${e?.message}`);

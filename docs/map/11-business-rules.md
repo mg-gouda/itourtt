@@ -536,8 +536,48 @@ complaint only once it was terminal). `complaints/complaint-thread.service.ts`:
 - A resolved / cancelled complaint's threads are read-only.
 - **Notifications:** the rep / driver (bell + push) when a complaint newly names them — on create, or
   on an edit that adds / swaps them (`notifyNamed`) — and when the office replies; the complaint's
-  owner (`assignedTo`, else every active ADMIN) when the party answers. The settlement notice
-  (LOST / PARTIALLY_LOST) still comes from the SLA service.
+  owner (`assignedTo`, else every active ADMIN) when the party answers; and the named party on
+  **every** status change (`notifyStatus`, after the transition commits — replaces the old
+  LOST-only, no-push notice). See "Rep / driver notifications" below.
+
+## Rep / driver notifications (every event is pushed)
+
+Since 2026-11-20 every rep / driver notification goes through
+`push-notifications/party-notifications.service.ts` (`PartyNotificationsService`, global):
+`notifyRep` / `notifyDriver` / `notifyAssignees` / `notifyUser` write the `repNotification` /
+`driverNotification` row **and** push (web push to the portal, FCM where a device token exists). Never
+write those rows directly. It never throws, and callers run it after their transaction commits.
+
+- **How the phone hears it.** The rep / driver apps have no Firebase: their background sync polls
+  `GET /{rep|driver}-portal/notifications` and raises a local notification for each new row. So the
+  **row is the app push**; the web push covers the portal. Push data = `{ type: <event>, url,
+  jobId?, complaintId? }`; the row carries `trafficJobId` / `complaintId` (column added 2026-11-20).
+- **Taps:** `complaintId` → that complaint (app: Complaints tab with `complaintId`; portal:
+  `/{portal}/complaints?id=`); else `jobId` → the job; else the notifications list.
+- **Kept guards:** no job-change notice for jobs dated before today (Cairo) or for completed /
+  cancelled jobs ("Job Updated" only); the person who made the change is not told.
+
+| Event (`type`) | Who | Where it is raised |
+|---|---|---|
+| JOB_ASSIGNED | new driver / rep | dispatch `assignJob`, `reassignJob` |
+| JOB_UPDATED | driver + rep | job edit with relevant changes (`notifyAssigneesOfJobUpdate`) |
+| JOB_CANCELLED | driver + rep | job cancelled (`notifyAssigneesOfCancellation`) |
+| JOB_REMOVED | the person taken off | unassign, swapped in reassign, job deleted (`traffic-jobs › remove`) |
+| CAR_CHANGED | driver | reassign keeps the driver but changes the car |
+| STATUS_SET | driver + rep | office `forceControl` sets job / driver / rep status |
+| FLIGHT_DELAY | driver | the rep reports a flight delay on their shared job |
+| JOB_SCORED | driver / rep | office records the job score (`upsertDriverScore` / `upsertRepScore`) |
+| COMPLAINT_NAMED | named party | complaint created / edited to name them |
+| COMPLAINT_<STATUS> | named parties | every complaint transition (review, replied, escalated, won, lost, cancelled…) |
+| COMPLAINT_REPLY | the party | office replies in their complaint thread |
+| DEDUCTION_POSTED / DEDUCTION_REVERSED | rep / driver charged | complaint charge posted / voided after posting |
+| ACCOUNT_ACTIVATED / ACCOUNT_DEACTIVATED | rep / driver | rep / driver status toggle, user deactivate / reactivate |
+| PASSWORD_RESET | rep / driver | driver password reset, user password change |
+| CHAT, broadcast | recipient | `chat.service` (own push path, unchanged) |
+
+Not notified on purpose: the bulk driver-fee re-price (`recalculateDriverFees`, hundreds of rows — the
+recalc report goes to finance instead), and no-show disputes (the dispute service only builds the
+PDF for the customer; there is no decision step to report).
 
 ## Dispatch
 

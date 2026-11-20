@@ -1,3 +1,4 @@
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import {
   Injectable,
   Logger,
@@ -39,7 +40,10 @@ const CHARGEABLE_PARTIES: ComplaintParty[] = ['DRIVER', 'REP', 'SUPPLIER'];
 export class ComplaintChargesService {
   private readonly logger = new Logger(ComplaintChargesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly party: PartyNotificationsService,
+  ) {}
 
   /**
    * Raises a deduction on a job. `complaintId` is optional: given, the charge is
@@ -274,11 +278,13 @@ export class ComplaintChargesService {
       `${description}: posted a ${-amount} ${charge.currency} row for ${charge.party} (fee ${feeId})`,
     );
 
-    return this.prisma.complaintCharge.update({
+    const posted = await this.prisma.complaintCharge.update({
       where: { id: charge.id },
       data: { status: 'POSTED', postedAt: new Date(), postedFeeId: feeId },
       include: this.chargeInclude,
     });
+    void this.notifyCharge(charge, 'DEDUCTION_POSTED', 'Deduction posted', `${amount} ${charge.currency} deducted — ${description} (job ${job?.internalRef ?? ''}).`);
+    return posted;
   }
 
   /**
@@ -296,11 +302,28 @@ export class ComplaintChargesService {
       await this.reverseFeeRow(charge.party, charge.postedFeeId, Number(charge.amount));
     }
 
-    return this.prisma.complaintCharge.update({
+    const voided = await this.prisma.complaintCharge.update({
       where: { id: charge.id },
       data: { status: 'VOID', voidedAt: new Date(), voidReason: dto.reason },
       include: this.chargeInclude,
     });
+    // Only money they were told about (posted) needs a "reversed" notice.
+    if (charge.status === 'POSTED') {
+      void this.notifyCharge(charge, 'DEDUCTION_REVERSED', 'Deduction reversed', `The ${Number(charge.amount)} ${charge.currency} deduction was reversed${dto.reason ? `: ${dto.reason}` : ''}.`);
+    }
+    return voided;
+  }
+
+  /** Tells the rep / driver a charge against them was posted or reversed (suppliers have no app). */
+  private async notifyCharge(
+    charge: { party: string; repId: string | null; driverId: string | null; trafficJobId: string; complaintId: string | null },
+    event: string,
+    title: string,
+    message: string,
+  ) {
+    const note = { title, message, event, jobId: charge.trafficJobId, complaintId: charge.complaintId };
+    if (charge.party === 'REP') await this.party.notifyRep(charge.repId, note);
+    if (charge.party === 'DRIVER') await this.party.notifyDriver(charge.driverId, note);
   }
 
   private async reverseFeeRow(

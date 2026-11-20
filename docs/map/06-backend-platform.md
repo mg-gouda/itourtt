@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**70 classes**, **540 methods**.
+**71 classes**, **546 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -498,25 +498,26 @@ Deductions addressed by the job they sit on — the dispatch grid raises them be
 
 ### ComplaintChargesService
 
-`backend/src/complaints/complaint-charges.service.ts:39` · service · 13 methods
+`backend/src/complaints/complaint-charges.service.ts:40` · service · 14 methods
 
 Raise, approve, post and void a deduction against the driver, rep or supplier blamed for a complaint; posting writes a negative row into their existing fee table.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `create` | pub | 50 | `trafficJob` `complaintCharge` | Raises a charge against one party — validates it is chargeable and that exactly one party id was given. Records intent only. |
-| `findByJob` | pub | 115 | `complaintCharge` | Every deduction on a job, with the complaint that claimed it. |
-| `attachToComplaint` | pub | 136 | `complaintCharge` | A new complaint adopts the deductions already standing on its job, for the parties it blames. |
-| `update` | pub | 167 | `complaintCharge` | Overrides a PENDING charge's amount, currency or reason — correcting what a dispatcher typed on the grid. |
-| `approve` | pub | 186 | `complaintCharge` | Moves a PENDING charge to APPROVED and stamps who approved it. |
-| `post` | pub | 206 | `complaint` `trafficJob` `driverTripFee` `repFee` `supplierCost` +1 | The only step that moves money: writes a negative, still-unposted row into DriverTripFee, RepFee or SupplierCost for the complaint's job. |
-| `void` | pub | 289 | `complaintCharge` | Reverses a charge — deletes the fee row while unposted, or writes a compensating positive row once it has been paid out. |
-| `reverseFeeRow` | priv | 306 | `driverTripFee` `repFee` `supplierCost` | Undoes a posted deduction in whichever of the three fee tables it landed in. |
-| `getCharge` | priv | 373 | `complaintCharge` | Loads the complaint's single charge or throws. |
-| `getComplaintForCharge` | priv | 389 | `complaint` | The complaint a charge may be raised under — it must be the job's, and must blame that party. |
-| `assertWorkedTheJob` | priv | 423 | — | Refuses to dock anyone the job's own assignment does not name. |
-| `assertExactlyOnePartyId` | priv | 449 | — | Enforces exactly one of driverId/repId/supplierId, matching the declared party. |
-| `assertPartyExists` | priv | 470 | `driver` `rep` `supplier` | Confirms the charged driver, rep or supplier still exists and is not soft-deleted. |
+| `create` | pub | 54 | `trafficJob` `complaintCharge` | Raises a charge against one party — validates it is chargeable and that exactly one party id was given. Records intent only. |
+| `findByJob` | pub | 119 | `complaintCharge` | Every deduction on a job, with the complaint that claimed it. |
+| `attachToComplaint` | pub | 140 | `complaintCharge` | A new complaint adopts the deductions already standing on its job, for the parties it blames. |
+| `update` | pub | 171 | `complaintCharge` | Overrides a PENDING charge's amount, currency or reason — correcting what a dispatcher typed on the grid. |
+| `approve` | pub | 190 | `complaintCharge` | Moves a PENDING charge to APPROVED and stamps who approved it. |
+| `post` | pub | 210 | `complaint` `trafficJob` `driverTripFee` `repFee` `supplierCost` +1 | The only step that moves money: writes a negative, still-unposted row into DriverTripFee, RepFee or SupplierCost for the complaint's job. |
+| `void` | pub | 295 | `complaintCharge` | Reverses a charge — deletes the fee row while unposted, or writes a compensating positive row once it has been paid out. |
+| `notifyCharge` | priv | 318 | — | Tells the rep / driver a charge against them was posted or reversed |
+| `reverseFeeRow` | priv | 329 | `driverTripFee` `repFee` `supplierCost` | Undoes a posted deduction in whichever of the three fee tables it landed in. |
+| `getCharge` | priv | 396 | `complaintCharge` | Loads the complaint's single charge or throws. |
+| `getComplaintForCharge` | priv | 412 | `complaint` | The complaint a charge may be raised under — it must be the job's, and must blame that party. |
+| `assertWorkedTheJob` | priv | 446 | — | Refuses to dock anyone the job's own assignment does not name. |
+| `assertExactlyOnePartyId` | priv | 472 | — | Enforces exactly one of driverId/repId/supplierId, matching the declared party. |
+| `assertPartyExists` | priv | 493 | `driver` `rep` `supplier` | Confirms the charged driver, rep or supplier still exists and is not soft-deleted. |
 
 ### ComplaintsController
 
@@ -556,7 +557,7 @@ Applies a lost complaint's score penalty to the rep or driver it blames — but 
 
 ### ComplaintSlaService
 
-`backend/src/complaints/complaint-sla.service.ts:17` · service · 4 methods
+`backend/src/complaints/complaint-sla.service.ts:17` · service · 3 methods
 
 The reply-window sweep: flips slaBreached and writes notifications, and never touches a complaint's status.
 
@@ -565,7 +566,6 @@ The reply-window sweep: flips slaBreached and writes notifications, and never to
 | `sweep` | pub | 25 | `cronRunLock` | Hourly cron, claimed per hour via CronRunLock so only one pod runs it. |
 | `flagBreaches` | priv | 61 | `complaint` `userNotification` | Flags unanswered complaints past their deadline and notifies the owner. |
 | `warnDueSoon` | priv | 112 | `complaint` `userNotification` | One nudge per complaint as its deadline approaches; the notification metadata stops it repeating hourly. |
-| `notifyResponsibleParty` | pub | 170 | `repNotification` `driverNotification` | Tells a rep or driver a complaint naming them was upheld — only for terminal LOST / PARTIALLY_LOST, never mid-dispute. |
 
 ### ComplaintsService
 
@@ -584,44 +584,45 @@ Complaint lifecycle: numbering, SLA computation, guarded status transitions and 
 | `update` | pub | 348 | `complaintCategoryLink` `complaint` | Edits complaint details and recomputes the reply deadline when the received date or SLA hours change. |
 | `assign` | pub | 460 | `complaint` | Sets the owning user without touching status. |
 | `remove` | pub | 470 | `complaint` | Soft-deletes a complaint unless its charge is already posted. |
-| `transition` | pub | 499 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` `slaService.notifyResponsibleParty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
-| `assertOutcomeConsistent` | priv | 635 | — | Rejects a won complaint that still carries a conceded amount. |
-| `assertOutcomeMatchesStatus` | priv | 648 | — | Stops a plain edit contradicting the outcome a terminal status already settled. |
-| `assertOutcomeAmounts` | priv | 669 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
-| `computeReplyDueAt` | priv | 707 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
-| `isBreached` | priv | 712 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
-| `getEditable` | priv | 716 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
-| `normaliseCategoryIds` | priv | 731 | — | Merges categoryId and categoryIds into one deduped list whose first entry becomes the primary category; throws when empty. |
-| `loadCategories` | priv | 741 | `complaintCategory` | Checks every named category exists and is not deleted, returning the primary one. |
-| `normaliseParties` | priv | 760 | — | Merges responsibleParty and responsibleParties into one deduped list; NONE only survives alone, and an empty answer becomes ['NONE']. |
-| `storedParties` | priv | 772 | — | The party set on a stored row, falling back to its single responsibleParty for rows written before the multi-select migration. |
-| `resolveResponsible` | priv | 791 | `trafficAssignment` | Reads the driver, rep and supplier off the job's own TrafficAssignment for each party blamed, and clears the ids of every party that is not. |
-| `assertResponsibleConsistent` | priv | 833 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
-| `resolveAgentId` | priv | 862 | `agent` | Resolves the agent a complaint is with — an explicit choice wins over the job's agent, and both are validated since this is who a conceded amount is owed to. |
-| `generateComplaintNo` | priv | 878 | — | Allocates the next sequential CMP-00001 reference. |
-| `canViewAmounts` | pub | 890 | — | Whether this user holds complaints.financial.viewAmounts. |
-| `present` | priv | 899 | — | What a complaint looks like on the wire: categories flattened, money stripped when the viewer lacks financial.viewAmounts. |
-| `flattenCategories` | priv | 909 | — | Turns the categoryLinks join rows into a flat categories/categoryIds array on the payload, primary category first. |
-| `redactAmounts` | priv | 933 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
+| `transition` | pub | 499 | `complaint` `adjustmentsService.createFromComplaint` `scoringService.applyPenalty` | Validates the move against VALID_TRANSITIONS, enforces the outcome amount rules, and stamps repliedAt / resolvedAt. |
+| `assertOutcomeConsistent` | priv | 627 | — | Rejects a won complaint that still carries a conceded amount. |
+| `assertOutcomeMatchesStatus` | priv | 640 | — | Stops a plain edit contradicting the outcome a terminal status already settled. |
+| `assertOutcomeAmounts` | priv | 661 | — | LOST needs a loss amount, PARTIALLY_LOST needs a smaller loss than claimed, WON forbids one. |
+| `computeReplyDueAt` | priv | 699 | — | replyDueAt = complaintDate + slaHours, in calendar hours. |
+| `isBreached` | priv | 704 | — | True when the reply landed after the deadline, or none has landed and the deadline has passed. |
+| `getEditable` | priv | 708 | `complaint` | Loads a complaint and refuses the edit when it is already in a terminal state. |
+| `normaliseCategoryIds` | priv | 723 | — | Merges categoryId and categoryIds into one deduped list whose first entry becomes the primary category; throws when empty. |
+| `loadCategories` | priv | 733 | `complaintCategory` | Checks every named category exists and is not deleted, returning the primary one. |
+| `normaliseParties` | priv | 752 | — | Merges responsibleParty and responsibleParties into one deduped list; NONE only survives alone, and an empty answer becomes ['NONE']. |
+| `storedParties` | priv | 764 | — | The party set on a stored row, falling back to its single responsibleParty for rows written before the multi-select migration. |
+| `resolveResponsible` | priv | 783 | `trafficAssignment` | Reads the driver, rep and supplier off the job's own TrafficAssignment for each party blamed, and clears the ids of every party that is not. |
+| `assertResponsibleConsistent` | priv | 825 | — | Exactly one of the driver/rep/supplier FKs, matching the declared responsible party. |
+| `resolveAgentId` | priv | 854 | `agent` | Resolves the agent a complaint is with — an explicit choice wins over the job's agent, and both are validated since this is who a conceded amount is owed to. |
+| `generateComplaintNo` | priv | 870 | — | Allocates the next sequential CMP-00001 reference. |
+| `canViewAmounts` | pub | 882 | — | Whether this user holds complaints.financial.viewAmounts. |
+| `present` | priv | 891 | — | What a complaint looks like on the wire: categories flattened, money stripped when the viewer lacks financial.viewAmounts. |
+| `flattenCategories` | priv | 901 | — | Turns the categoryLinks join rows into a flat categories/categoryIds array on the payload, primary category first. |
+| `redactAmounts` | priv | 925 | — | Strips claimed/loss/currency/rate and charge data from the payload for viewers without financial.viewAmounts — hidden server-side, not just in the UI. |
 
 ### ComplaintThreadService
 
-`backend/src/complaints/complaint-thread.service.ts:48` · service · 10 methods
+`backend/src/complaints/complaint-thread.service.ts:49` · service · 11 methods
 
 Rep / driver complaint threads: portal detail, answers with evidence, staff replies, files, notifications
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `partyWhere` | priv | 57 | — | Prisma filter: complaints naming this rep / driver |
-| `summaries` | pub | 74 | `complaintMessage` | Per-complaint thread state for the portal list: open, message count, answer needed |
-| `detailForParty` | pub | 99 | `complaint` | A complaint naming this rep / driver: job story (no money) and their own thread |
-| `toMessage` | priv | 160 | — | Thread message → API shape |
-| `addMessage` | pub | 177 | `complaint` `user` `complaintMessage` | Adds a party answer or office reply (text + ≤10 images/PDF to Drive) to an open complaint's thread; notifies the other side |
-| `notifyMessage` | priv | 264 | `user` `userNotification` | Notifies the party on an office reply, or the owner / admins on a party answer |
-| `notifyParty` | priv | 285 | `repNotification` `driverNotification` | Rep / driver bell notification plus push |
-| `notifyNamed` | pub | 300 | — | Bell + push to a rep / driver newly named by a complaint (create or edit) |
-| `threadsForStaff` | pub | 324 | `complaint` | Both party threads of a complaint for the admin view |
-| `openAttachment` | pub | 352 | `complaintAttachment` | Opens a complaint file stream (Drive or local); a party may only open files in their own thread |
+| `partyWhere` | priv | 59 | — | Prisma filter: complaints naming this rep / driver |
+| `summaries` | pub | 76 | `complaintMessage` | Per-complaint thread state for the portal list: open, message count, answer needed |
+| `detailForParty` | pub | 101 | `complaint` | A complaint naming this rep / driver: job story (no money) and their own thread |
+| `toMessage` | priv | 162 | — | Thread message → API shape |
+| `addMessage` | pub | 179 | `complaint` `user` `complaintMessage` | Adds a party answer or office reply (text + ≤10 images/PDF to Drive) to an open complaint's thread; notifies the other side |
+| `notifyMessage` | priv | 266 | `user` `userNotification` | Notifies the party on an office reply, or the owner / admins on a party answer |
+| `notifyParty` | priv | 287 | — | Rep / driver bell notification plus push |
+| `notifyStatus` | pub | 294 | — | Every complaint status change → notification + push to each named rep / driver |
+| `notifyNamed` | pub | 321 | — | Bell + push to a rep / driver newly named by a complaint (create or edit) |
+| `threadsForStaff` | pub | 345 | `complaint` | Both party threads of a complaint for the admin view |
+| `openAttachment` | pub | 373 | `complaintAttachment` | Opens a complaint file stream (Drive or local); a party may only open files in their own thread |
 
 ## `email`
 
@@ -770,21 +771,21 @@ In-app notification feed for signed-in staff.
 
 ### NotificationsService
 
-`backend/src/notifications/notifications.service.ts:66` · service · 9 methods
+`backend/src/notifications/notifications.service.ts:67` · service · 9 methods
 
 In-app `UserNotification` fan-out to staff, with email escalation for job updates.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `notifyAssigneesOfJobUpdate` | pub | 81 | — | Tells the assigned driver/rep what changed (date, time, pax, guest, places, flight, notes); silent if nothing relevant changed. |
-| `notifyAssigneesOfCancellation` | pub | 100 | — | Tells the assigned driver/rep a job was cancelled (not for past-dated jobs). |
-| `notifyRemovedFromJob` | pub | 115 | — | Tells a driver/rep they were unassigned or swapped off a job. |
-| `notifyAssignees` | priv | 130 | `driver` `rep` `driverNotification` `repNotification` | Writes Driver/RepNotification rows and sends push to the job's driver/rep (skips the person who made the change). |
-| `notifyJobUpdate` | pub | 165 | `trafficJob` `user` `userNotification` `companySettings` `emailService.sendJobUpdateNotification` | Notifies relevant staff (and emails them) that a job changed. |
-| `notifyDispatchAction` | pub | 294 | `trafficJob` `user` `userNotification` | Notifies staff of a dispatch action on a job. |
-| `getUserNotifications` | pub | 362 | `userNotification` | The signed-in user's notification feed. |
-| `markAsRead` | pub | 385 | `userNotification` | Marks one notification read. |
-| `markAllAsRead` | pub | 395 | `userNotification` | Marks all of a user's notifications read. |
+| `notifyAssigneesOfJobUpdate` | pub | 83 | — | Tells the assigned driver/rep what changed (date, time, pax, guest, places, flight, notes); silent if nothing relevant changed. |
+| `notifyAssigneesOfCancellation` | pub | 103 | — | Tells the assigned driver/rep a job was cancelled (not for past-dated jobs). |
+| `notifyRemovedFromJob` | pub | 119 | — | Tells a driver/rep they were unassigned or swapped off a job. |
+| `notifyAssignees` | priv | 135 | `driver` `rep` | Writes Driver/RepNotification rows and sends push to the job's driver/rep (skips the person who made the change). |
+| `notifyJobUpdate` | pub | 162 | `trafficJob` `user` `userNotification` `companySettings` `emailService.sendJobUpdateNotification` | Notifies relevant staff (and emails them) that a job changed. |
+| `notifyDispatchAction` | pub | 291 | `trafficJob` `user` `userNotification` | Notifies staff of a dispatch action on a job. |
+| `getUserNotifications` | pub | 359 | `userNotification` | The signed-in user's notification feed. |
+| `markAsRead` | pub | 382 | `userNotification` | Marks one notification read. |
+| `markAllAsRead` | pub | 392 | `userNotification` | Marks all of a user's notifications read. |
 
 ## `permissions`
 
@@ -839,6 +840,20 @@ The Prisma client as an injectable, connecting on module init and disconnecting 
 | `onModuleDestroy` | pub | 36 | — | Closes the connection on shutdown. |
 
 ## `push-notifications`
+
+### PartyNotificationsService
+
+`backend/src/push-notifications/party-notifications.service.ts:24` · service · 5 methods
+
+Writes rep / driver notification rows and pushes them; never throws
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `pushData` | priv | 32 | — | Push payload: event type, url, job / complaint id |
+| `notifyRep` | pub | 42 | `repNotification` | Rep notification row + push |
+| `notifyDriver` | pub | 54 | `driverNotification` | Driver notification row + push |
+| `notifyAssignees` | pub | 67 | — | Notifies the driver and rep of a job |
+| `notifyUser` | pub | 72 | `rep` `driver` | Notifies the rep / driver behind a user account (silent for staff) |
 
 ### PushNotificationsService
 
@@ -1162,22 +1177,22 @@ Staff user administration plus the legacy role-permission endpoints. New permiss
 
 ### UsersService
 
-`backend/src/users/users.service.ts:27` · service · 10 methods
+`backend/src/users/users.service.ts:28` · service · 10 methods
 
 Staff user CRUD. Lists split into Active/Inactive; deletion is deactivation, never a hard delete.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `create` | pub | 34 | `user` | Creates a user with a hashed password and a role assignment. |
-| `findAll` | pub | 62 | `user` | Filterable user list (active/inactive tabs). |
-| `findOne` | pub | 96 | `user` | One user with role and permission detail. |
-| `findByEmail` | pub | 113 | `user` | Lookup by email, used by auth flows. |
-| `update` | pub | 123 | `user` | Updates profile fields. |
-| `updateRole` | pub | 151 | `user` | Reassigns a user's role — must invalidate the permission cache to take effect promptly. |
-| `changePassword` | pub | 170 | `user` | Admin/self password change. Also clears the stored session so a reset frees a locked device. |
-| `deactivate` | pub | 189 | `user` | Soft-deactivates a user (they move to the Inactive tab and can no longer authenticate). |
-| `reactivate` | pub | 201 | `user` | Restores a deactivated user. |
-| `ensureUserExists` | priv | 220 | `user` | Throws NotFound unless the id resolves to a live user. |
+| `create` | pub | 38 | `user` | Creates a user with a hashed password and a role assignment. |
+| `findAll` | pub | 66 | `user` | Filterable user list (active/inactive tabs). |
+| `findOne` | pub | 100 | `user` | One user with role and permission detail. |
+| `findByEmail` | pub | 117 | `user` | Lookup by email, used by auth flows. |
+| `update` | pub | 127 | `user` | Updates profile fields. |
+| `updateRole` | pub | 155 | `user` | Reassigns a user's role — must invalidate the permission cache to take effect promptly. |
+| `changePassword` | pub | 174 | `user` | Admin/self password change. Also clears the stored session so a reset frees a locked device. |
+| `deactivate` | pub | 199 | `user` | Soft-deactivates a user (they move to the Inactive tab and can no longer authenticate). |
+| `reactivate` | pub | 212 | `user` | Restores a deactivated user. |
+| `ensureUserExists` | priv | 232 | `user` | Throws NotFound unless the id resolves to a live user. |
 
 ## `whatsapp-notifications`
 
@@ -1223,7 +1238,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-195 free functions, constants and types in these modules.
+196 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1575,8 +1590,8 @@ Complaint answer threads between the office and the blamed rep / driver: story, 
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ThreadParty` | type | 10 | REP \| DRIVER — whose thread |
-| `sendComplaintFile` | function | 19 | Pipes a complaint file to the response inline |
+| `ThreadParty` | type | 11 | REP \| DRIVER — whose thread |
+| `sendComplaintFile` | function | 20 | Pipes a complaint file to the response inline |
 
 ### `backend/src/complaints/complaints.service.ts`
 
@@ -1679,8 +1694,8 @@ Staff job-update notifications/emails, dispatch-action notices, and driver/rep j
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AssigneeJobSnapshot` | type | 10 | Job fields a driver/rep cares about, compared before vs after an edit. |
-| `assigneeRelevantChanges` | function | 35 | Before/after job diff → short labels of trip-relevant changes (ignores the coarse changedFields list). |
+| `AssigneeJobSnapshot` | type | 11 | Job fields a driver/rep cares about, compared before vs after an edit. |
+| `assigneeRelevantChanges` | function | 36 | Before/after job diff → short labels of trip-relevant changes (ignores the coarse changedFields list). |
 
 ### `backend/src/permissions/permission-registry.ts`
 
@@ -1703,6 +1718,14 @@ Seed data for the Egyptian location tree — the Country→Airport→City→Zone
 |---|---|---|---|
 | `EGYPT_DATA` | const | 51 | The literal Egyptian location hierarchy used by the seed. |
 | `seedEgyptLocations` | function | 614 | Idempotently inserts the Egyptian location tree. |
+
+### `backend/src/push-notifications/party-notifications.service.ts`
+
+The one way to notify a rep / driver: notification row (app + portal bell) plus push
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PartyNote` | type | 7 | Rep / driver notification: title, message, event type, job / complaint link |
 
 ### `backend/src/push-notifications/web-push.service.ts`
 

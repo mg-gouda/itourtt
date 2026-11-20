@@ -1,4 +1,5 @@
 import { SupplierCostingService } from '../supplier-price-lists/supplier-costing.service.js';
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import { normalizeNationality, parseStayDays, stayBucket, topWords } from '../common/utils/survey-normalize.util.js';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -49,6 +50,7 @@ export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supplierCosting: SupplierCostingService,
+    private readonly party: PartyNotificationsService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -332,6 +334,7 @@ export class ReportsService {
       });
     }
 
+    void this.notifyScore('driver', assignment.driverId, jobId, `${total} — ${driverScoreToEval(total)}`);
     return { ok: true, total, evaluation: driverScoreToEval(total) };
   }
 
@@ -873,9 +876,25 @@ export class ReportsService {
           data: { trafficJobId: jobId, repId, amount: fee, currency: 'EGP' },
         });
       }
+      void this.notifyScore('rep', repId, jobId, `${total} — fee ${fee} EGP`);
+    } else {
+      void this.notifyScore('rep', repId, jobId, null);
     }
 
     return { ok: true };
+  }
+
+  /** The rep / driver hears that the office scored their job (the score sets their pay). */
+  private async notifyScore(who: 'rep' | 'driver', id: string, jobId: string, detail: string | null) {
+    const job = await this.prisma.trafficJob.findUnique({ where: { id: jobId }, select: { internalRef: true } }).catch(() => null);
+    const note = {
+      title: 'Job Scored',
+      message: `${job?.internalRef ?? 'Your job'} was scored${detail ? `: ${detail}` : ''}.`,
+      event: 'JOB_SCORED',
+      jobId,
+    };
+    if (who === 'rep') await this.party.notifyRep(id, note);
+    else await this.party.notifyDriver(id, note);
   }
 
   // ─────────────────────────────────────────────

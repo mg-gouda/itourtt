@@ -89,6 +89,8 @@ export function App() {
         else nav.navigate('ChatThread', { conversationId: target.conversationId });
       } else if (target.kind === 'job') {
         nav.navigate('JobDetail', { jobId: target.jobId });
+      } else if (target.kind === 'complaint') {
+        nav.navigate('Main', { screen: 'Complaints', params: { complaintId: target.complaintId, at: Date.now() } });
       } else {
         nav.navigate('Notifications');
       }

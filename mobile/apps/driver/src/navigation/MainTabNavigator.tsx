@@ -20,7 +20,8 @@ export type MainTabParamList = {
   Jobs: undefined;
   History: undefined;
   Chat: undefined;
-  Complaints: undefined;
+  /** `complaintId` opens that complaint (notification tap). */
+  Complaints: { complaintId?: string; at?: number } | undefined;
   Profile: undefined;
 };
 

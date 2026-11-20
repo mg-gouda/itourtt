@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import * as bcrypt from 'bcryptjs';
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
@@ -11,7 +12,10 @@ import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 
 @Injectable()
 export class DriversService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly party: PartyNotificationsService,
+  ) {}
 
   async findAll(pagination: PaginationDto, isActive?: boolean) {
     const { page = 1, limit = 20 } = pagination;
@@ -292,7 +296,7 @@ export class DriversService {
     const driver = await this.findOne(id);
     const newStatus = !driver.isActive;
 
-    return this.prisma.$transaction(async (tx) => {
+    const toggled = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.driver.update({
         where: { id },
         data: { isActive: newStatus },
@@ -307,6 +311,12 @@ export class DriversService {
 
       return updated;
     });
+    void this.party.notifyDriver(id, {
+      title: newStatus ? 'Account Activated' : 'Account Deactivated',
+      message: newStatus ? 'Your account is active — you can sign in and receive jobs.' : 'Your account was deactivated by the office.',
+      event: newStatus ? 'ACCOUNT_ACTIVATED' : 'ACCOUNT_DEACTIVATED',
+    });
+    return toggled;
   }
 
   async softDelete(id: string) {
@@ -328,6 +338,11 @@ export class DriversService {
 
   async resetPassword(driverId: string, newPassword: string) {
     const driver = await this.findOne(driverId);
+    void this.party.notifyDriver(driverId, {
+      title: 'Password Changed',
+      message: 'The office set a new password for your account. Sign in with the new password.',
+      event: 'PASSWORD_RESET',
+    });
 
     if (!driver.userId) {
       throw new BadRequestException('This driver does not have a user account');

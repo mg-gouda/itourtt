@@ -1,4 +1,5 @@
 import { JobPricingService } from '../job-pricing/job-pricing.service.js';
+import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import {
   Injectable,
   NotFoundException,
@@ -31,6 +32,7 @@ export class DispatchService {
     private readonly whatsappService: WhatsappNotificationsService,
     private readonly b2cService: B2CService,
     private readonly jobPricing: JobPricingService,
+    private readonly party: PartyNotificationsService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -313,53 +315,23 @@ export class DispatchService {
         data: { status: 'ASSIGNED' as JobStatus },
       });
 
-      if (dto.repId) {
-        await tx.repNotification.create({
-          data: {
-            repId: dto.repId,
-            title: 'New Job Assigned',
-            message: `${created.trafficJob.internalRef} - ${created.trafficJob.serviceType} on ${created.trafficJob.jobDate.toISOString().split('T')[0]}`,
-            type: 'JOB_ASSIGNED',
-            trafficJobId: dto.trafficJobId,
-          },
-        });
-      }
-
-      if (dto.driverId) {
-        await tx.driverNotification.create({
-          data: {
-            driverId: dto.driverId,
-            title: 'New Job Assigned',
-            message: `${created.trafficJob.internalRef} - ${created.trafficJob.serviceType} on ${created.trafficJob.jobDate.toISOString().split('T')[0]}`,
-            type: 'JOB_ASSIGNED',
-            trafficJobId: dto.trafficJobId,
-          },
-        });
-      }
-
       return created;
     });
 
     // Supplier cost + customer price from the price lists (route × car type).
     await this.jobPricing.syncJob(dto.trafficJobId);
 
-    // Push notifications (fire-and-forget)
-    if (assignment.driverId) {
-      this.pushService.sendToDriver(
-        assignment.driverId,
-        'New Job Assigned',
-        `${assignment.trafficJob.internalRef} - ${assignment.trafficJob.serviceType}`,
-        { jobId: dto.trafficJobId, type: 'JOB_ASSIGNED' },
-      ).catch(() => {});
-    }
-    if (assignment.repId) {
-      this.pushService.sendToRep(
-        assignment.repId,
-        'New Job Assigned',
-        `${assignment.trafficJob.internalRef} - ${assignment.trafficJob.serviceType}`,
-        { jobId: dto.trafficJobId, type: 'JOB_ASSIGNED' },
-      ).catch(() => {});
-    }
+    // The driver / rep: notification row + push (fire-and-forget).
+    void this.party.notifyAssignees(
+      { driverId: assignment.driverId, repId: assignment.repId },
+      {
+        title: 'New Job Assigned',
+        message: `${assignment.trafficJob.internalRef} - ${assignment.trafficJob.serviceType} on ${assignment.trafficJob.jobDate.toISOString().split('T')[0]}`,
+        event: 'JOB_ASSIGNED',
+        type: 'JOB_ASSIGNED',
+        jobId: dto.trafficJobId,
+      },
+    );
 
     // Send the staff-assignment email only once BOTH a driver and a rep are
     // assigned. A brand-new assignment with both set qualifies immediately.
@@ -653,30 +625,6 @@ export class DispatchService {
         },
       });
 
-      if (dto.repId && dto.repId !== existing.repId) {
-        await tx.repNotification.create({
-          data: {
-            repId: dto.repId,
-            title: 'New Job Assigned',
-            message: `${result.trafficJob.internalRef} - ${result.trafficJob.serviceType} on ${result.trafficJob.jobDate.toISOString().split('T')[0]}`,
-            type: 'JOB_ASSIGNED',
-            trafficJobId: result.trafficJobId,
-          },
-        });
-      }
-
-      if (dto.driverId && dto.driverId !== existing.driverId) {
-        await tx.driverNotification.create({
-          data: {
-            driverId: dto.driverId,
-            title: 'New Job Assigned',
-            message: `${result.trafficJob.internalRef} - ${result.trafficJob.serviceType} on ${result.trafficJob.jobDate.toISOString().split('T')[0]}`,
-            type: 'JOB_ASSIGNED',
-            trafficJobId: result.trafficJobId,
-          },
-        });
-      }
-
       return result;
     });
 
@@ -696,22 +644,25 @@ export class DispatchService {
         .catch((err) => this.logger.error(`Failed to notify removed assignees: ${err.message}`));
     }
 
-    // Push notifications (fire-and-forget)
-    if (dto.driverId && dto.driverId !== existing.driverId) {
-      this.pushService.sendToDriver(
-        dto.driverId,
-        'New Job Assigned',
-        `${updated.trafficJob.internalRef} - ${updated.trafficJob.serviceType}`,
-        { jobId: updated.trafficJobId, type: 'JOB_ASSIGNED' },
-      ).catch(() => {});
-    }
-    if (dto.repId && dto.repId !== existing.repId) {
-      this.pushService.sendToRep(
-        dto.repId,
-        'New Job Assigned',
-        `${updated.trafficJob.internalRef} - ${updated.trafficJob.serviceType}`,
-        { jobId: updated.trafficJobId, type: 'JOB_ASSIGNED' },
-      ).catch(() => {});
+    // Newly assigned driver / rep: notification row + push (fire-and-forget).
+    const assignedNote = {
+      title: 'New Job Assigned',
+      message: `${updated.trafficJob.internalRef} - ${updated.trafficJob.serviceType} on ${updated.trafficJob.jobDate.toISOString().split('T')[0]}`,
+      event: 'JOB_ASSIGNED',
+      type: 'JOB_ASSIGNED' as const,
+      jobId: updated.trafficJobId,
+    };
+    if (dto.driverId && dto.driverId !== existing.driverId) void this.party.notifyDriver(dto.driverId, assignedNote);
+    if (dto.repId && dto.repId !== existing.repId) void this.party.notifyRep(dto.repId, assignedNote);
+    // Same driver, different car: tell the driver which car to take.
+    if (updated.driverId && updated.driverId === existing.driverId && updated.vehicleId !== existing.vehicleId) {
+      void this.party.notifyDriver(updated.driverId, {
+        title: 'Car Changed',
+        message: `${updated.trafficJob.internalRef} — your car is now ${updated.vehicle?.plateNumber ?? 'not set'}`,
+        event: 'CAR_CHANGED',
+        type: 'JOB_UPDATED',
+        jobId: updated.trafficJobId,
+      });
     }
 
     // WhatsApp: trigger driver assigned on reassignment (fire-and-forget)

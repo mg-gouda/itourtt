@@ -370,6 +370,8 @@ export interface PortalNotification {
   isRead: boolean;
   createdAt: string;
   trafficJobId?: string | null;
+  /** Set for complaint events — opens that complaint. */
+  complaintId?: string | null;
   trafficJob?: { internalRef: string; serviceType: string; jobDate: string } | null;
 }
 

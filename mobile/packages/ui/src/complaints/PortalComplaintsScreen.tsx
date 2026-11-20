@@ -82,14 +82,18 @@ function useToken() {
   return token;
 }
 
-export function PortalComplaintsScreen({ portal }: { portal: Portal }) {
+export function PortalComplaintsScreen({ portal, initialId }: { portal: Portal; /** Opened from a notification. */ initialId?: string }) {
   const colors = useColors();
   const base = `/${portal}-portal/complaints`;
   const [items, setItems] = useState<PortalComplaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(initialId ?? null);
+
+  useEffect(() => {
+    if (initialId) setOpenId(initialId);
+  }, [initialId]);
 
   const fetchAll = useCallback(async () => {
     try {
