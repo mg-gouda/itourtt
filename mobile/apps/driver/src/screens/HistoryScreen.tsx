@@ -20,7 +20,7 @@ import {
 } from '@itour/shared';
 import { EmptyState, Icon, SkeletonList } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { GradientHeader, Segmented, ServicePill, StatusPill, Surface } from '@itour/ui';
+import { GradientHeader, Segmented, ServicePill, ChannelPill, StatusPill, Surface } from '@itour/ui';
 import { destinationLabel, jobDay, jobTimeLabel, originLabel } from '../lib/job-rules';
 
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -247,6 +247,7 @@ export function HistoryScreen() {
             </Text>
             <View style={styles.pills}>
               <ServicePill serviceType={item.serviceType} />
+<ChannelPill channel={item.bookingChannel} />
               <StatusPill status={item.driverStatus} />
             </View>
           </Surface>

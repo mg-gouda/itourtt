@@ -598,6 +598,15 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Job type badge (drivers / reps)
+
+Owner request 2026-11-20: drivers (and reps, for consistency) see each job's type as a badge next
+to the service type — `TrafficJob.bookingChannel`: **Online** (tour-operator jobs), **B2B** (business
+customers), **B2C** (public-site bookings; tooltip "public site booking"). Web portals:
+`components/booking-channel-badge.tsx` on job cards and history (navy / orange / green in the light
+palette, soft tints in dark). Apps: `ChannelPill` (packages/ui kit) on the job card, job detail and
+history. The portal job payloads already include the channel (full job include); labels EN / AR.
+
 ## Trip kilometres (odometer at completion)
 
 Owner decisions 2026-11-20 (`backend/src/trip-km`, model `TripOdometer`):

@@ -227,6 +227,22 @@ export function ServicePill({ serviceType }: { serviceType: string }) {
   return <Pill label={t(`serviceType.${serviceType}`)} color={tone.fg} bg={tone.bg} icon={tone.icon} />;
 }
 
+/**
+ * Job type badge (TrafficJob.bookingChannel): ONLINE (tour operator) navy, B2B orange, B2C (public
+ * site) green — theme tokens so it reads in light (owner palette) and dark mode.
+ */
+export function ChannelPill({ channel }: { channel?: string | null }) {
+  const colors = useColors();
+  if (channel !== 'ONLINE' && channel !== 'B2B' && channel !== 'B2C') return null;
+  const tone =
+    channel === 'ONLINE'
+      ? { fg: colors.primary, bg: colors.primarySoft, icon: 'globe-outline' }
+      : channel === 'B2B'
+        ? { fg: colors.warning, bg: colors.warningSoft, icon: 'business-outline' }
+        : { fg: colors.success, bg: colors.successSoft, icon: 'person-outline' };
+  return <Pill label={t(`bookingChannel.${channel}`)} color={tone.fg} bg={tone.bg} icon={tone.icon} />;
+}
+
 // ─── Buttons ────────────────────────────────────────────────────
 
 export type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';

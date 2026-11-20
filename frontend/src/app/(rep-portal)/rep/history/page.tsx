@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
+import { BookingChannelBadge } from "@/components/booking-channel-badge";
 import { SERVICE_TYPE_COLORS, useServiceTypeLabel } from "@/lib/service-types";
 import { RouteNavLink } from "@/components/route-nav-link";
 
@@ -34,6 +35,7 @@ interface HistoryJob {
   id: string;
   internalRef: string;
   serviceType: string;
+  bookingChannel?: string | null;
   jobDate: string;
   status: string;
   repStatus: string;
@@ -217,6 +219,7 @@ export default function RepHistoryPage() {
                           >
                             {serviceTypeLabel(job.serviceType)}
                           </Badge>
+                          <BookingChannelBadge channel={job.bookingChannel} />
                         </TableCell>
                         <TableCell className="text-sm">
                           {job.flight ? (
@@ -291,6 +294,7 @@ export default function RepHistoryPage() {
                       >
                         {serviceTypeLabel(job.serviceType)}
                       </Badge>
+                      <BookingChannelBadge channel={job.bookingChannel} />
                       <Badge
                         variant="outline"
                         className={STATUS_COLORS[job.repStatus] || ""}

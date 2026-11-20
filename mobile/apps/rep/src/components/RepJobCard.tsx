@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { t, useColors, type RepPortalJob } from '@itour/shared';
 import { Icon } from '@itour/ui';
-import { ActionButton, ServicePill, StatusPill, Surface, serviceTone, statusTone } from '@itour/ui';
+import { ActionButton, ServicePill, ChannelPill, StatusPill, Surface, serviceTone, statusTone } from '@itour/ui';
 import {
   canComplete,
   canOfferInPlace,
@@ -52,6 +52,7 @@ export function RepJobCard({
           <View style={styles.topRight}>
             <View style={styles.pills}>
               <ServicePill serviceType={job.serviceType} />
+<ChannelPill channel={job.bookingChannel} />
               <StatusPill status={job.repStatus} />
             </View>
             <Text style={[styles.ref, { color: colors.foreground }]} numberOfLines={1}>

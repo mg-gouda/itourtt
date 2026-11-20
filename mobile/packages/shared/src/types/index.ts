@@ -282,6 +282,8 @@ export interface PortalJob {
   id: string;
   internalRef: string;
   serviceType: ServiceType;
+  /** Job type for the driver / rep badge: ONLINE (tour operator), B2B, B2C (public site). */
+  bookingChannel?: string | null;
   jobDate: string;
   status: JobStatus;
   paxCount: number;

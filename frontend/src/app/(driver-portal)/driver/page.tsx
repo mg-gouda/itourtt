@@ -43,6 +43,7 @@ import { RouteNavLink } from "@/components/route-nav-link";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
+import { BookingChannelBadge } from "@/components/booking-channel-badge";
 import { SERVICE_TYPE_COLORS, useServiceTypeLabel } from "@/lib/service-types";
 
 interface DriverJob {
@@ -604,6 +605,7 @@ function DriverJobCard({
           >
             {serviceTypeLabel(job.serviceType)}
           </Badge>
+          <BookingChannelBadge channel={job.bookingChannel} />
           <Badge
             variant="outline"
             className={STATUS_COLORS[driverStatus] || ""}

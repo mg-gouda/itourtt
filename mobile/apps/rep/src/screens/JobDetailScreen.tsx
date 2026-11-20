@@ -27,7 +27,7 @@ import {
   HeaderIconButton,
   InfoLine,
   SectionTitle,
-  ServicePill,
+  ServicePill, ChannelPill,
   StatusPill,
   Surface,
   TileAction,
@@ -159,6 +159,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
             <HeaderIconButton icon="arrow-back" onPress={() => navigation.goBack()} label="Back" />
             <View style={{ flex: 1 }} />
             <ServicePill serviceType={job.serviceType} />
+<ChannelPill channel={job.bookingChannel} />
           </View>
           <Text style={styles.heroRef}>{job.internalRef}</Text>
           <Text style={styles.heroSub}>

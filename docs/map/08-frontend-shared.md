@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**121 files**, **420 exported symbols**.
+**122 files**, **421 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -27,6 +27,16 @@ Bulk job import for B2B customers, including the AI manifest parser flow.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `B2BJobImportModal` | function | 94 | Bulk B2B job import: upload a manifest, run the AI parser, review the resolved rows, then commit. |
+
+### `booking-channel-badge.tsx`
+
+`frontend/src/components/booking-channel-badge.tsx` · 27 lines
+
+Job type badge (Online / B2B / B2C) for driver and rep portals
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `BookingChannelBadge` | function | 18 | Coloured bilingual badge for TrafficJob.bookingChannel |
 
 ### `complaint-thread.tsx`
 
@@ -1277,17 +1287,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3954 lines
+`frontend/src/lib/i18n.ts` · 3966 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3931 | Translates a key in the current locale. |
-| `getTranslator` | function | 3935 | Translator for a specific locale, outside React. |
-| `useT` | function | 3943 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3950 | The active locale id. |
+| `t` | function | 3943 | Translates a key in the current locale. |
+| `getTranslator` | function | 3947 | Translator for a specific locale, outside React. |
+| `useT` | function | 3955 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3962 | The active locale id. |
 
 ### `maps-nav.ts`
 

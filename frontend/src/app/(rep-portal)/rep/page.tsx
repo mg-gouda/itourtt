@@ -44,6 +44,7 @@ import { RepEscortDialog } from "@/components/rep-escort-dialog";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr, formatTimeCairo, dateStrCairo, cairoWallclockToISO } from "@/lib/utils";
 import { captureGPS } from "@/lib/gps";
+import { BookingChannelBadge } from "@/components/booking-channel-badge";
 import { SERVICE_TYPE_COLORS, useServiceTypeLabel } from "@/lib/service-types";
 
 interface RepJob {
@@ -759,6 +760,7 @@ function JobCard({
           >
             {serviceTypeLabel(job.serviceType)}
           </Badge>
+          <BookingChannelBadge channel={job.bookingChannel} />
           <Badge
             variant="outline"
             className={STATUS_COLORS[repStatus] || ""}

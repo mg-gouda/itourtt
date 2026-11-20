@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { t, useColors, type DriverPortalJob } from '@itour/shared';
-import { ActionButton, Icon, ServicePill, StatusPill, Surface, serviceTone, statusTone } from '@itour/ui';
+import { ActionButton, Icon, ServicePill, ChannelPill, StatusPill, Surface, serviceTone, statusTone } from '@itour/ui';
 import { CollectionCard } from './CollectionCard';
 import {
   collectionAmount,
@@ -53,6 +53,7 @@ export function DriverJobCard({
           <View style={styles.topRight}>
             <View style={styles.pills}>
               <ServicePill serviceType={job.serviceType} />
+<ChannelPill channel={job.bookingChannel} />
               <StatusPill status={job.driverStatus} />
             </View>
             <Text style={[styles.ref, { color: colors.foreground }]} numberOfLines={1}>

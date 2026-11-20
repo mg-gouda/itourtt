@@ -54,6 +54,11 @@ export const ar: TranslationKeys = {
     CANCELLED: '\u0645\u0644\u063A\u064A',
     NO_SHOW: '\u0644\u0645 \u064A\u062D\u0636\u0631',
   },
+  bookingChannel: {
+    ONLINE: "أونلاين",
+    B2B: "B2B",
+    B2C: "B2C",
+  },
   serviceType: {
     ARR: '\u0648\u0635\u0648\u0644',
     DEP: '\u0633\u0641\u0631',

@@ -52,6 +52,11 @@ export const en = {
     CANCELLED: 'Cancelled',
     NO_SHOW: 'No Show',
   },
+  bookingChannel: {
+    ONLINE: "Online",
+    B2B: "B2B",
+    B2C: "B2C",
+  },
   serviceType: {
     ARR: 'Arrival',
     DEP: 'Departure',

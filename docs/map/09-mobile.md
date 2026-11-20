@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**130 files**, **376 exported symbols**.
+**130 files**, **377 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -32,7 +32,7 @@ Cash collection card with the Mark Collected action — the gate that unblocks C
 
 ### `DriverJobCard.tsx`
 
-`mobile/apps/driver/src/components/DriverJobCard.tsx` · 202 lines
+`mobile/apps/driver/src/components/DriverJobCard.tsx` · 203 lines
 
 Driver day-list job card (same design as the rep card) with cash-collection strip.
 
@@ -146,7 +146,7 @@ Driver evidence capture for Start (IN_PROGRESS) / COMPLETED / NO SHOW: 1–10 ph
 
 ### `HistoryScreen.tsx`
 
-`mobile/apps/driver/src/screens/HistoryScreen.tsx` · 306 lines
+`mobile/apps/driver/src/screens/HistoryScreen.tsx` · 307 lines
 
 Driver's completed jobs and fees earned.
 
@@ -156,7 +156,7 @@ Driver's completed jobs and fees earned.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 473 lines
+`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 474 lines
 
 Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces.
 
@@ -391,7 +391,7 @@ Rep app root.
 
 ### `RepJobCard.tsx`
 
-`mobile/apps/rep/src/components/RepJobCard.tsx` · 181 lines
+`mobile/apps/rep/src/components/RepJobCard.tsx` · 182 lines
 
 Rep app day-list job card: big job time, service + status pills, two-stop route, fact chips and the single next-step button.
 
@@ -516,7 +516,7 @@ Rep evidence capture for IN PLACE / COMPLETED / NO SHOW: photos + up-front GPS f
 
 ### `HistoryScreen.tsx`
 
-`mobile/apps/rep/src/screens/HistoryScreen.tsx` · 306 lines
+`mobile/apps/rep/src/screens/HistoryScreen.tsx` · 307 lines
 
 Rep History tab.
 
@@ -526,7 +526,7 @@ Rep History tab.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 511 lines
+`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 512 lines
 
 Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting.
 
@@ -851,7 +851,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 503 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 508 lines
 
 Arabic strings for all four apps.
 
@@ -861,14 +861,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 503 lines
+`mobile/packages/shared/src/i18n/en.ts` · 508 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 502 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 507 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -1123,7 +1123,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 570 lines
+`mobile/packages/shared/src/types/index.ts` · 572 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -1164,24 +1164,24 @@ Shared TypeScript types for API payloads across the apps.
 | `TrafficJob` | type | 221 | Shared TypeScript types for API payloads across the apps (`TrafficJob`). |
 | `PortalLocationCoords` | type | 275 | Optional latitude/longitude/address the portal APIs return on job locations. |
 | `PortalJob` | type | 281 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
-| `DriverPortalJob` | type | 316 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
-| `RepPortalJob` | type | 334 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
-| `SupplierPortalJob` | type | 359 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
-| `PortalNotification` | type | 365 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
-| `GuestSurveyInput` | type | 379 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
-| `GuestSurveyPayload` | type | 395 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
-| `PortalComplaint` | type | 406 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
-| `PortalDeduction` | type | 430 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
-| `BookingExtras` | type | 446 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 452 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 464 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 470 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 495 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 521 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 526 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 534 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 547 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 561 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `DriverPortalJob` | type | 318 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
+| `RepPortalJob` | type | 336 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
+| `SupplierPortalJob` | type | 361 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
+| `PortalNotification` | type | 367 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
+| `GuestSurveyInput` | type | 381 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
+| `GuestSurveyPayload` | type | 397 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
+| `PortalComplaint` | type | 408 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
+| `PortalDeduction` | type | 432 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
+| `BookingExtras` | type | 448 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 454 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 466 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 472 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 497 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 523 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 528 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 536 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 549 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 563 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 
@@ -1593,7 +1593,7 @@ Barrel for the shared rep/driver app design kit.
 
 ### `kit.tsx`
 
-`mobile/packages/ui/src/kit/kit.tsx` · 681 lines
+`mobile/packages/ui/src/kit/kit.tsx` · 697 lines
 
 Shared app design kit (rep + driver): gradient headers, surfaces, pills, buttons, tiles, segmented control.
 
@@ -1610,10 +1610,11 @@ Shared app design kit (rep + driver): gradient headers, surfaces, pills, buttons
 | `StatusPill` | function | 192 | Rep-status pill (Pending / In Place / Completed / No Show / Cancelled). |
 | `serviceTone` | function | 208 | Icon + colours per service type. |
 | `ServicePill` | function | 224 | Service-type pill with its icon and tint. |
-| `Tone` | type | 232 | Semantic button/tile tone. |
-| `ActionButton` | function | 251 | Primary button with icon, tone (primary/success/warning/danger/info/neutral), solid/soft/outline and a hint line. |
-| `TileAction` | function | 322 | Square secondary action tile (icon over label) with done tick and hint. |
-| `InfoLine` | function | 373 | Icon + label + value row, optionally tappable (call, navigate). |
-| `Segmented` | function | 410 | Segmented control; `onDark` styles it for the gradient header. |
-| `HeaderStat` | function | 462 | Translucent counter tile on the gradient header. |
-| `OfflinePill` | function | 654 | Floating offline indicator under the translucent status bar. |
+| `ChannelPill` | function | 234 | Job type pill (Online / B2B / B2C) for the driver and rep apps |
+| `Tone` | type | 248 | Semantic button/tile tone. |
+| `ActionButton` | function | 267 | Primary button with icon, tone (primary/success/warning/danger/info/neutral), solid/soft/outline and a hint line. |
+| `TileAction` | function | 338 | Square secondary action tile (icon over label) with done tick and hint. |
+| `InfoLine` | function | 389 | Icon + label + value row, optionally tappable (call, navigate). |
+| `Segmented` | function | 426 | Segmented control; `onDark` styles it for the gradient header. |
+| `HeaderStat` | function | 478 | Translucent counter tile on the gradient header. |
+| `OfflinePill` | function | 670 | Floating offline indicator under the translucent status bar. |
