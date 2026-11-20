@@ -76,10 +76,14 @@ function Breadcrumb() {
   const segments = pathname.split("/").filter(Boolean);
 
   // Build cumulative hrefs
-  const crumbs = segments.map((seg, i) => ({
+  // Record ids (UUIDs) in the address are not names — leave them out of the trail
+  // ("Vehicles › Edit", not "Vehicles › F52b3879 82aa … › Edit"); links keep the full path.
+  const isId = (seg: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seg);
+  const shown = segments.map((seg, i) => ({ seg, i })).filter(({ seg }) => !isId(seg));
+  const crumbs = shown.map(({ seg, i }, k) => ({
     label: SEGMENT_LABEL_MAP[seg] ?? seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
     href: "/" + segments.slice(0, i + 1).join("/"),
-    isLast: i === segments.length - 1,
+    isLast: k === shown.length - 1,
   }));
 
   if (crumbs.length === 0) return null;

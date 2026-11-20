@@ -118,13 +118,13 @@ The native arrival guest survey form. Submitting it awards the rep's 15-point su
 
 ### `header.tsx`
 
-`frontend/src/components/header.tsx` · 428 lines
+`frontend/src/components/header.tsx` · 432 lines
 
 Top bar — user menu, notifications, locale switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Header` | function | 120 | Top bar — user menu, notifications and locale switch. |
+| `Header` | function | 124 | Top bar — user menu, notifications and locale switch. |
 
 ### `import-template-manager.tsx`
 
@@ -466,14 +466,14 @@ Morning pop-up for the transportation accountant about yesterday's trip kilometr
 
 ### `trip-km-table.tsx`
 
-`frontend/src/components/trip-km-table.tsx` · 297 lines
+`frontend/src/components/trip-km-table.tsx` · 326 lines
 
 Trip kilometres table with filters, correction, photo and Odoo export
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TripKmRow` | type | 19 | Trip-km row shape from GET /trip-km |
-| `TripKmTable` | function | 67 | Readings table for one car (vehicle tab) or all cars (page) |
+| `TripKmRow` | type | 20 | Trip-km row shape from GET /trip-km |
+| `TripKmTable` | function | 96 | Readings table for one car (vehicle tab) or all cars (page) |
 
 ### `two-factor-settings.tsx`
 

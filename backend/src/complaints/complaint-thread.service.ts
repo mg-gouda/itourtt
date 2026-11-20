@@ -70,6 +70,26 @@ export class ComplaintThreadService {
   // ── Portal (rep / driver) ────────────────────────────────────────────────────
 
   /**
+   * The categories a rep / driver is named under (category default party = them), joined — so a
+   * "Driver late, Rep late" complaint reads "Rep late" to the rep. Missing = fall back to the
+   * complaint's main category.
+   */
+  async partyCategories(party: ThreadParty, complaintIds: string[]) {
+    const out = new Map<string, { en: string; ar: string }>();
+    if (!complaintIds.length) return out;
+    const links = await this.prisma.complaintCategoryLink.findMany({
+      where: { complaintId: { in: complaintIds }, category: { defaultParty: party } },
+      select: { complaintId: true, category: { select: { nameEn: true, nameAr: true, sortOrder: true } } },
+      orderBy: { category: { sortOrder: 'asc' } },
+    });
+    for (const id of complaintIds) {
+      const mine = links.filter((l) => l.complaintId === id).map((l) => l.category);
+      if (mine.length) out.set(id, { en: mine.map((c) => c.nameEn).join(', '), ar: mine.map((c) => c.nameAr).join('، ') });
+    }
+    return out;
+  }
+
+  /**
    * Thread state for the portal complaint list: open?, message count and whether the party owes an
    * answer (nothing sent yet, or the office spoke last). Keyed by complaint id.
    */
@@ -82,7 +102,11 @@ export class ComplaintThreadService {
           orderBy: { createdAt: 'asc' },
         })
       : [];
-    const out = new Map<string, { open: boolean; messageCount: number; lastMessageAt: Date | null; awaitingYou: boolean }>();
+    const cats = await this.partyCategories(party, ids);
+    const out = new Map<
+      string,
+      { open: boolean; messageCount: number; lastMessageAt: Date | null; awaitingYou: boolean; partyCategoryEn: string | null; partyCategoryAr: string | null }
+    >();
     for (const r of rows) {
       const mine = msgs.filter((m) => m.complaintId === r.id);
       const last = mine[mine.length - 1];
@@ -92,6 +116,8 @@ export class ComplaintThreadService {
         messageCount: mine.length,
         lastMessageAt: last?.createdAt ?? null,
         awaitingYou: open && (!last || last.authorType === 'STAFF'),
+        partyCategoryEn: cats.get(r.id)?.en ?? null,
+        partyCategoryAr: cats.get(r.id)?.ar ?? null,
       });
     }
     return out;
@@ -131,6 +157,7 @@ export class ComplaintThreadService {
       },
     });
     if (!c) throw new NotFoundException('Complaint not found');
+    const mine = (await this.partyCategories(party, [c.id])).get(c.id);
     const j = c.trafficJob;
     const end = (a?: { name: string } | null, h?: { name: string } | null, z?: { name: string } | null) => a?.name ?? h?.name ?? z?.name ?? null;
     return {
@@ -143,8 +170,8 @@ export class ComplaintThreadService {
       open: !TERMINAL.includes(c.status),
       complaintDate: c.complaintDate,
       resolvedAt: c.resolvedAt,
-      categoryEn: c.category.nameEn,
-      categoryAr: c.category.nameAr,
+      categoryEn: mine?.en ?? c.category.nameEn,
+      categoryAr: mine?.ar ?? c.category.nameAr,
       job: {
         internalRef: j.internalRef,
         jobDate: j.jobDate,

@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**74 classes**, **573 methods**.
+**74 classes**, **574 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -624,23 +624,24 @@ Complaint lifecycle: numbering, SLA computation, guarded status transitions and 
 
 ### ComplaintThreadService
 
-`backend/src/complaints/complaint-thread.service.ts:49` · service · 11 methods
+`backend/src/complaints/complaint-thread.service.ts:49` · service · 12 methods
 
 Rep / driver complaint threads: portal detail, answers with evidence, staff replies, files, notifications
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `partyWhere` | priv | 59 | — | Prisma filter: complaints naming this rep / driver |
-| `summaries` | pub | 76 | `complaintMessage` | Per-complaint thread state for the portal list: open, message count, answer needed |
-| `detailForParty` | pub | 101 | `complaint` | A complaint naming this rep / driver: job story (no money) and their own thread |
-| `toMessage` | priv | 162 | — | Thread message → API shape |
-| `addMessage` | pub | 179 | `complaint` `user` `complaintMessage` | Adds a party answer or office reply (text + ≤10 images/PDF to Drive) to an open complaint's thread; notifies the other side |
-| `notifyMessage` | priv | 266 | `user` `userNotification` | Notifies the party on an office reply, or the owner / admins on a party answer |
-| `notifyParty` | priv | 287 | — | Rep / driver bell notification plus push |
-| `notifyStatus` | pub | 294 | — | Every complaint status change → notification + push to each named rep / driver |
-| `notifyNamed` | pub | 321 | — | Bell + push to a rep / driver newly named by a complaint (create or edit) |
-| `threadsForStaff` | pub | 345 | `complaint` | Both party threads of a complaint for the admin view |
-| `openAttachment` | pub | 373 | `complaintAttachment` | Opens a complaint file stream (Drive or local); a party may only open files in their own thread |
+| `partyCategories` | pub | 77 | `complaintCategoryLink` | Categories a rep / driver is named under (category default party), joined; falls back to the main category |
+| `summaries` | pub | 96 | `complaintMessage` | Per-complaint thread state for the portal list: open, message count, answer needed |
+| `detailForParty` | pub | 127 | `complaint` | A complaint naming this rep / driver: job story (no money) and their own thread |
+| `toMessage` | priv | 189 | — | Thread message → API shape |
+| `addMessage` | pub | 206 | `complaint` `user` `complaintMessage` | Adds a party answer or office reply (text + ≤10 images/PDF to Drive) to an open complaint's thread; notifies the other side |
+| `notifyMessage` | priv | 293 | `user` `userNotification` | Notifies the party on an office reply, or the owner / admins on a party answer |
+| `notifyParty` | priv | 314 | — | Rep / driver bell notification plus push |
+| `notifyStatus` | pub | 321 | — | Every complaint status change → notification + push to each named rep / driver |
+| `notifyNamed` | pub | 348 | — | Bell + push to a rep / driver newly named by a complaint (create or edit) |
+| `threadsForStaff` | pub | 372 | `complaint` | Both party threads of a complaint for the admin view |
+| `openAttachment` | pub | 400 | `complaintAttachment` | Opens a complaint file stream (Drive or local); a party may only open files in their own thread |
 
 ## `email`
 

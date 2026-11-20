@@ -619,6 +619,7 @@
   "backend/src/complaints/complaint-thread.service.ts#ComplaintThreadService.notifyParty": "Rep / driver bell notification plus push",
   "backend/src/complaints/complaint-thread.service.ts#ComplaintThreadService.notifyStatus": "Every complaint status change → notification + push to each named rep / driver",
   "backend/src/complaints/complaint-thread.service.ts#ComplaintThreadService.openAttachment": "Opens a complaint file stream (Drive or local); a party may only open files in their own thread",
+  "backend/src/complaints/complaint-thread.service.ts#ComplaintThreadService.partyCategories": "Categories a rep / driver is named under (category default party), joined; falls back to the main category",
   "backend/src/complaints/complaint-thread.service.ts#ComplaintThreadService.partyWhere": "Prisma filter: complaints naming this rep / driver",
   "backend/src/complaints/complaint-thread.service.ts#ComplaintThreadService.summaries": "Per-complaint thread state for the portal list: open, message count, answer needed",
   "backend/src/complaints/complaint-thread.service.ts#ComplaintThreadService.threadsForStaff": "Both party threads of a complaint for the admin view",

@@ -1153,6 +1153,72 @@ const COLUMN_FIELD: Partial<Record<ColKey, keyof JobRow>> = {
 };
 
 /** "930" / "0930" / "9:30" → "09:30". */
+/**
+ * "Move to car…" on a saved row: searchable, height-capped list of the board's cars. (The plain list
+ * ran off the top of short windows once the fleet grew, leaving the first cars unreachable.)
+ */
+function MoveToCarMenu({
+  bookingNumber,
+  targets,
+  onMove,
+}: {
+  bookingNumber: string;
+  targets: { id: string; label: string }[];
+  onMove: (carId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const needle = q.trim().toLowerCase();
+  const shown = needle ? targets.filter((t) => t.label.toLowerCase().includes(needle)) : targets;
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setQ("");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button type="button" title="Move to car…" className="text-primary hover:opacity-70">
+          <ArrowRightLeft className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        collisionPadding={12}
+        className="flex w-60 flex-col p-1"
+        style={{ maxHeight: "min(22rem, var(--radix-popover-content-available-height))" }}
+      >
+        <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground">Move {bookingNumber} to car</div>
+        <Input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search plate or type…"
+          className="mb-1 h-7 text-xs"
+        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {shown.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-muted"
+              onClick={() => {
+                setOpen(false);
+                setQ("");
+                onMove(t.id);
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+          {shown.length === 0 && <div className="px-2 py-2 text-xs text-muted-foreground">No car matches</div>}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function normTime(v: string): string {
   const t = v.trim();
   const m = t.match(/^(\d{1,2})[:.]?(\d{2})$/);
@@ -1404,26 +1470,7 @@ function VehicleCard({
                 </button>
               )}
               {live(j) && onMoveJob && moveTargets.length > 0 && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button type="button" title="Move to car…" className="text-primary hover:opacity-70">
-                      <ArrowRightLeft className="h-3.5 w-3.5" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-56 p-1">
-                    <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground">Move {j.bookingNumber} to car</div>
-                    {moveTargets.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-muted"
-                        onClick={() => onMoveJob(j, t.id)}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </PopoverContent>
-                </Popover>
+                <MoveToCarMenu bookingNumber={j.bookingNumber} targets={moveTargets} onMove={(carId) => onMoveJob(j, carId)} />
               )}
               {j.saved && j.savedJobId && onCancelJob && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(j.status ?? "") && (
                 <button type="button" title="Cancel job" onClick={() => onCancelJob(j)} className="text-destructive hover:opacity-70">
