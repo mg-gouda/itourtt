@@ -1,6 +1,7 @@
 package com.itour.rep
 
 import android.app.DownloadManager
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -114,6 +115,25 @@ class AppUpdateModule(private val reactContext: ReactApplicationContext) :
     } catch (e: Exception) {
       promise.reject("INSTALL_FAILED", e.message, e)
     }
+  }
+
+  /** Android 14+: may job alarms show full-screen over the lock screen? */
+  @ReactMethod
+  fun canUseFullScreenIntent(promise: Promise) {
+    if (Build.VERSION.SDK_INT >= 34) {
+      val nm = reactContext.getSystemService(NotificationManager::class.java)
+      promise.resolve(nm?.canUseFullScreenIntent() ?: true)
+    } else {
+      promise.resolve(true)
+    }
+  }
+
+  @ReactMethod
+  fun openFullScreenIntentSettings() {
+    if (Build.VERSION.SDK_INT < 34) return
+    val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + reactContext.packageName))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    reactContext.startActivity(intent)
   }
 
   companion object {

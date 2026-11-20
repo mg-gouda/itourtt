@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**73 classes**, **564 methods**.
+**74 classes**, **573 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -336,18 +336,36 @@ Google Places/Geocoding lookups behind the backend, used for pickup/dropoff coor
 | `searchPlaces` | pub | 34 | — | Place autocomplete search. Note the B2C booking widget uses the NEW Places API directly in the browser; legacy `google.maps.places.Autocomplete` is blocked for this Cloud project. |
 | `geocodeAddress` | pub | 86 | — | Resolves an address string to coordinates. |
 
+### JobAlarmsPublicController
+
+`backend/src/common/services/job-alarms-public.controller.ts:11` · controller · 3 methods
+
+Job alarms for signed-out phones via X-Alarm-Key: list, ack, turn off
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `list` | pub | 17 | — | GET /public/alarms: the person's upcoming start reminders for the alarm key |
+| `ack` | pub | 24 | — | POST /public/alarms/jobs/:jobId/ack: acknowledge a start alarm with the alarm key |
+| `off` | pub | 31 | — | POST /public/alarms/off: revoke this phone's alarm key |
+
 ### JobAlertsService
 
-`backend/src/common/services/job-alerts.service.ts:53` · service · 4 methods
+`backend/src/common/services/job-alerts.service.ts:54` · service · 10 methods
 
 Job alarms for rep/driver portals and apps: start reminders, drop-off geofence targets, acknowledgements, rep escort answer.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `personId` | priv | 56 | `rep` `driver` | Resolve the rep or driver profile id for a user. |
-| `getAlerts` | pub | 65 | `trafficAssignment` | Jobs starting in the next 26 h with a PENDING leg (reminders) and running legs with a drop-off geofence (driver IN_PROGRESS / escorting rep). |
-| `acknowledge` | pub | 167 | `trafficAssignment` `jobAlertAck` | Upsert a JobAlertAck for the user's assigned job (first ack wins); the POST is activity-logged. |
-| `setRepEscort` | pub | 199 | `trafficAssignment` | Save the rep's escort answer (IN_PLACE only, not DEP); decides the COMPLETED geofence target. |
+| `personId` | priv | 57 | `rep` `driver` | Resolve the rep or driver profile id for a user. |
+| `getAlerts` | pub | 66 | `trafficAssignment` | Jobs starting in the next 26 h with a PENDING leg (reminders) and running legs with a drop-off geofence (driver IN_PROGRESS / escorting rep). |
+| `acknowledge` | pub | 168 | `trafficAssignment` `jobAlertAck` | Upsert a JobAlertAck for the user's assigned job (first ack wins); the POST is activity-logged. |
+| `hashKey` | priv | 201 | — | SHA-256 of an alarm key |
+| `registerAlarmDevice` | pub | 206 | `alarmDevice` | Issues a phone's alarm key at sign-in (keeps 3 per user) |
+| `alarmDevice` | priv | 221 | `alarmDevice` | Resolves an alarm key to its active rep / driver account |
+| `alarmsByKey` | pub | 235 | — | Start reminders for a signed-out phone (no drop-off alarms) |
+| `acknowledgeByKey` | pub | 241 | — | Acknowledge a start alarm from a signed-out phone |
+| `revokeAlarmKey` | pub | 248 | `alarmDevice` | Turns job alarms off for a phone |
+| `setRepEscort` | pub | 258 | `trafficAssignment` | Save the rep's escort answer (IN_PLACE only, not DEP); decides the COMPLETED geofence target. |
 
 ### JobCompletionService
 
@@ -1454,10 +1472,10 @@ Job alarms + rep escort answer shared by the rep and driver portals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AlertRole` | type | 16 | REP or DRIVER — whose leg the alarms are for. |
-| `ALERT_KINDS` | const | 19 | The job alarm kinds: START_60, START_30, DROPOFF_ARRIVED, DROPOFF_LEFT. |
-| `AlertKind` | type | 20 | One of ALERT_KINDS. |
-| `jobStartsAt` | function | 32 | When a job starts: flight arrival for ARR, pickup time otherwise. |
+| `AlertRole` | type | 17 | REP or DRIVER — whose leg the alarms are for. |
+| `ALERT_KINDS` | const | 20 | The job alarm kinds: START_60, START_30, DROPOFF_ARRIVED, DROPOFF_LEFT. |
+| `AlertKind` | type | 21 | One of ALERT_KINDS. |
+| `jobStartsAt` | function | 33 | When a job starts: flight arrival for ARR, pickup time otherwise. |
 
 ### `backend/src/common/services/job-completion.service.ts`
 

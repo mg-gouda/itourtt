@@ -4,13 +4,13 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**130 files**, **377 exported symbols**.
+**131 files**, **388 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
 ### `App.tsx`
 
-`mobile/apps/driver/src/App.tsx` · 140 lines
+`mobile/apps/driver/src/App.tsx` · 144 lines
 
 Driver app root — providers, theme and navigation.
 
@@ -176,7 +176,7 @@ Driver's jobs for a day, sorted by effective start time.
 
 ### `LoginScreen.tsx`
 
-`mobile/apps/driver/src/screens/LoginScreen.tsx` · 207 lines
+`mobile/apps/driver/src/screens/LoginScreen.tsx` · 209 lines
 
 Driver login. A 409 here means another device holds the session.
 
@@ -379,7 +379,7 @@ Guest booking funnel state across steps.
 
 ### `App.tsx`
 
-`mobile/apps/rep/src/App.tsx` · 140 lines
+`mobile/apps/rep/src/App.tsx` · 144 lines
 
 Rep app root.
 
@@ -559,7 +559,7 @@ Rep Jobs tab (day list).
 
 ### `LoginScreen.tsx`
 
-`mobile/apps/rep/src/screens/LoginScreen.tsx` · 207 lines
+`mobile/apps/rep/src/screens/LoginScreen.tsx` · 209 lines
 
 Rep login. A 409 here means another device holds the session.
 
@@ -851,7 +851,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 508 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 517 lines
 
 Arabic strings for all four apps.
 
@@ -861,14 +861,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 508 lines
+`mobile/packages/shared/src/i18n/en.ts` · 517 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 507 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 516 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -909,21 +909,22 @@ In-app updates for the sideloaded APKs: version check against the server, native
 
 ### `background-sync.ts`
 
-`mobile/packages/shared/src/native/background-sync.ts` · 411 lines
+`mobile/packages/shared/src/native/background-sync.ts` · 506 lines
 
 Firebase-free sync: Android foreground service polling jobs/chat + tracking heartbeat, local notifications.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Portal` | type | 29 | driver \| rep. |
-| `NotificationTarget` | type | 39 | What a tapped local notification opens: job, chat thread or notifications. |
-| `requestStartupPermissions` | function | 89 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
-| `setupNotifications` | function | 131 | Requests notification permission and creates the Android channels. |
-| `clearChatNotifications` | function | 230 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
-| `registerBackgroundSync` | function | 319 | Registers notifee's foreground-service task; call once from index.js. |
-| `startBackgroundSync` | function | 333 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
-| `stopBackgroundSync` | function | 369 | Stops polling and the foreground service (sign-out). |
-| `onNotificationOpen` | function | 397 | Routes taps on local notifications (incl. cold start). |
+| `Portal` | type | 41 | driver \| rep. |
+| `NotificationTarget` | type | 53 | What a tapped local notification opens: job, chat thread or notifications. |
+| `requestStartupPermissions` | function | 105 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
+| `setupNotifications` | function | 163 | Requests notification permission and creates the Android channels. |
+| `clearChatNotifications` | function | 262 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
+| `registerBackgroundSync` | function | 361 | Registers notifee's foreground-service task; call once from index.js. |
+| `startBackgroundSync` | function | 377 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
+| `stopBackgroundSync` | function | 423 | Stops polling and the foreground service (sign-out). |
+| `turnOffJobAlarms` | function | 471 | Login screen Turn off: revoke the alarm key and stop alarms |
+| `onNotificationOpen` | function | 492 | Routes taps on local notifications (incl. cold start). |
 
 ### `camera.ts`
 
@@ -942,28 +943,37 @@ Camera and gallery access for evidence photos.
 
 ### `job-alerts.ts`
 
-`mobile/packages/shared/src/native/job-alerts.ts` · 299 lines
+`mobile/packages/shared/src/native/job-alerts.ts` · 481 lines
 
 Mobile job alarm engine: schedules start reminders, watches drop-off geofence, queues must-acknowledge modals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AlarmPortal` | type | 31 | rep or driver. |
-| `AlarmKind` | type | 32 | START_60 \| START_30 \| DROPOFF_ARRIVED \| DROPOFF_LEFT. |
-| `AlarmJob` | type | 34 | A job as GET /alerts returns it (start time, route, acked kinds, optional drop-off target). |
-| `PendingAlarm` | type | 48 | An alarm waiting for acknowledgement in the modal queue. |
-| `CHANNEL_ALARMS` | const | 54 | Android notification channel for job alarms (high importance, sound, vibration). |
-| `onAlarmsChange` | function | 70 | Subscribe to modal-queue changes; returns unsubscribe. |
-| `getPendingAlarms` | function | 77 | The current modal queue. |
-| `hasActiveDropoffs` | function | 82 | Whether a precise drop-off geofence is armed (the sync service reads GPS only then). |
-| `alarmTitle` | function | 86 | Localised title for an alarm kind. |
-| `alarmBody` | function | 99 | Notification body for an alarm (flight, time, route or drop-off text). |
-| `dueStartKind` | function | 158 | Which start reminder is due now (30-min supersedes 1-h). |
-| `evaluateDueAlarms` | function | 168 | Raise any start reminder due now (called every tick). |
-| `refreshJobAlerts` | function | 222 | Fetch GET /{portal}-portal/alerts, (re)schedule trigger notifications, raise due alarms. |
-| `checkDropoffs` | function | 249 | Compare a GPS fix with armed drop-off geofences; raise arrived / left alarms. |
-| `acknowledgeAlarm` | function | 265 | Close an alarm, cancel its notification and POST the acknowledgement. |
-| `resetJobAlerts` | function | 288 | Sign-out: clear state and cancel scheduled alarms. |
+| `AlarmPortal` | type | 43 | rep or driver. |
+| `AlarmKind` | type | 44 | START_60 \| START_30 \| DROPOFF_ARRIVED \| DROPOFF_LEFT. |
+| `AlarmJob` | type | 46 | A job as GET /alerts returns it (start time, route, acked kinds, optional drop-off target). |
+| `PendingAlarm` | type | 60 | An alarm waiting for acknowledgement in the modal queue. |
+| `CHANNEL_ALARMS` | const | 68 | Android notification channel for job alarms (high importance, sound, vibration). |
+| `AlarmKeyInfo` | type | 74 | Stored alarm key with its portal and person |
+| `onAlarmsChange` | function | 97 | Subscribe to modal-queue changes; returns unsubscribe. |
+| `getPendingAlarms` | function | 104 | The current modal queue. |
+| `hasActiveDropoffs` | function | 109 | Whether a precise drop-off geofence is armed (the sync service reads GPS only then). |
+| `alarmTitle` | function | 113 | Localised title for an alarm kind. |
+| `alarmBody` | function | 126 | Notification body for an alarm (flight, time, route or drop-off text). |
+| `dueStartKind` | function | 194 | Which start reminder is due now (30-min supersedes 1-h). |
+| `evaluateDueAlarms` | function | 204 | Raise any start reminder due now (called every tick). |
+| `refreshJobAlerts` | function | 259 | Fetch GET /{portal}-portal/alerts, (re)schedule trigger notifications, raise due alarms. |
+| `checkDropoffs` | function | 306 | Compare a GPS fix with armed drop-off geofences; raise arrived / left alarms. |
+| `acknowledgeAlarm` | function | 322 | Close an alarm, cancel its notification and POST the acknowledgement. |
+| `handleAlarmNotificationAction` | function | 360 | I've seen it pressed on the alarm notification: acknowledge without opening the app |
+| `watchAlarmActions` | function | 379 | In-app listener for the alarm notification's I've seen it button |
+| `getAlarmKeyInfo` | function | 388 | Reads this phone's alarm key from encrypted storage |
+| `ensureAlarmKey` | function | 401 | After sign-in: get / replace this phone's alarm key |
+| `turnOffAlarmsOnPhone` | function | 425 | Forget the alarm key and cancel all scheduled alarms |
+| `missingAlarmPermission` | function | 437 | Which alarm permission is off: exact alarms or full-screen notifications |
+| `openAlarmPermissionSettings` | function | 454 | Opens the Android setting for the missing alarm permission |
+| `releaseSessionAlarms` | function | 463 | Sign-out with an alarm key: keep start reminders, drop the drop-off watch |
+| `resetJobAlerts` | function | 470 | Sign-out: clear state and cancel scheduled alarms. |
 
 ### `location.ts`
 
@@ -1507,6 +1517,16 @@ Rep / driver app Complaints: list naming them, detail story and answer thread wi
 
 ## `mobile/packages/ui/src/kit/`
 
+### `AlarmsOnPhone.tsx`
+
+`mobile/packages/ui/src/kit/AlarmsOnPhone.tsx` · 54 lines
+
+Login screen note: job alarms kept on this phone, with Turn off
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `AlarmsOnPhone` | function | 10 | Shows whose job alarms ring on this phone and turns them off |
+
 ### `AppDialog.tsx`
 
 `mobile/packages/ui/src/kit/AppDialog.tsx` · 185 lines
@@ -1540,13 +1560,13 @@ Calendar date picker modal for the rep/driver jobs header.
 
 ### `JobAlarmHost.tsx`
 
-`mobile/packages/ui/src/kit/JobAlarmHost.tsx` · 143 lines
+`mobile/packages/ui/src/kit/JobAlarmHost.tsx` · 146 lines
 
 App-styled job alarm modal host for the rep/driver apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobAlarmHost` | function | 29 | Mounted in App.tsx when signed in: polls alarms and shows each as a must-acknowledge modal with vibration. |
+| `JobAlarmHost` | function | 30 | Mounted in App.tsx when signed in: polls alarms and shows each as a must-acknowledge modal with vibration. |
 
 ### `Splash.tsx`
 
@@ -1583,13 +1603,13 @@ Shared app form controls (field, choice chips, counter).
 
 ### `index.ts`
 
-`mobile/packages/ui/src/kit/index.ts` · 15 lines
+`mobile/packages/ui/src/kit/index.ts` · 16 lines
 
 Barrel for the shared rep/driver app design kit.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `logoBadge` | const | 14 | The iTour badge PNG (packages/ui/assets) for splash and login. |
+| `logoBadge` | const | 15 | The iTour badge PNG (packages/ui/assets) for splash and login. |
 
 ### `kit.tsx`
 

@@ -128,8 +128,12 @@ export function App() {
       {/* 1 h / 30 min start reminders + drop-off alarms; must be acknowledged (activity-logged). */}
       {/* Newer APK published → offer the in-app download + install (not on Google Play). */}
       {ready ? <AppUpdateHost app="rep" /> : null}
-      {ready && isAuthenticated ? (
-        <JobAlarmHost portal="rep" onOpenJob={(jobId) => navigationRef.current?.navigate('JobDetail', { jobId })} />
+      {/* Mounted signed out too: alarms ring even signed out (alarm key); "open job" needs a session. */}
+      {ready ? (
+        <JobAlarmHost
+          portal="rep"
+          onOpenJob={isAuthenticated ? (jobId) => navigationRef.current?.navigate('JobDetail', { jobId }) : undefined}
+        />
       ) : null}
       {/* Every popup (appAlert) renders here in the app's own style. */}
       <DialogHost />

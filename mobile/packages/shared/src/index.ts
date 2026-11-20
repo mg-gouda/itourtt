@@ -94,6 +94,7 @@ export {
   onNotificationOpen,
   clearChatNotifications,
   requestStartupPermissions,
+  turnOffJobAlarms,
 } from './native/background-sync';
 export type { NotificationTarget, Portal } from './native/background-sync';
 export {
@@ -106,5 +107,7 @@ export {
   alarmTitle,
   alarmBody,
   dueStartKind,
+  watchAlarmActions,
+  getAlarmKeyInfo,
 } from './native/job-alerts';
-export type { AlarmKind, AlarmJob, AlarmPortal, PendingAlarm } from './native/job-alerts';
+export type { AlarmKind, AlarmJob, AlarmPortal, PendingAlarm, AlarmKeyInfo } from './native/job-alerts';

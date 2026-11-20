@@ -10,6 +10,7 @@ import {
   refreshJobAlerts,
   t,
   useColors,
+  watchAlarmActions,
   type AlarmPortal,
   type PendingAlarm,
 } from '@itour/shared';
@@ -32,6 +33,8 @@ export function JobAlarmHost({ portal, onOpenJob }: { portal: AlarmPortal; onOpe
   const [acking, setAcking] = useState(false);
 
   useEffect(() => onAlarmsChange(() => setQueue(getPendingAlarms())), []);
+  // "I've seen it" pressed on the notification while the app is open.
+  useEffect(() => watchAlarmActions(), []);
 
   useEffect(() => {
     refreshJobAlerts(portal);

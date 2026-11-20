@@ -135,6 +135,12 @@ export class RepPortalController {
     return new ApiResponse(await this.jobAlerts.getAlerts(userId, 'REP'));
   }
 
+  /** POST /rep-portal/alarm-device — this phone's alarm key, so job alarms keep working after sign-out. */
+  @Post('alarm-device')
+  async alarmDevice(@CurrentUser('id') userId: string) {
+    return new ApiResponse(await this.jobAlerts.registerAlarmDevice(userId, 'REP'));
+  }
+
   /** Acknowledge an alarm; the request itself is the activity-log entry. */
   @Post('jobs/:jobId/alerts/ack')
   async ackAlert(

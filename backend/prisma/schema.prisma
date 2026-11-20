@@ -365,6 +365,7 @@ model User {
   complaintMessages           ComplaintMessage[]
 
   @@map("users")
+  alarmDevices         AlarmDevice[]
 }
 
 /// Last-known position of a REP/DRIVER portal user — one row per user, upserted
@@ -3096,4 +3097,23 @@ model TripOdometer {
   @@index([driverId, confirmedAt])
   @@index([confirmedAt])
   @@map("trip_odometers")
+}
+
+// A phone that keeps a rep's / driver's job alarms after they sign out. The app gets a random key at
+// sign-in (only its SHA-256 is stored); with it, the phone can read that person's upcoming start
+// reminders and acknowledge them — nothing else. Revoked from the login screen ("turn off alarms on
+// this phone"), when the account is deactivated, or when newer devices push it out (3 per user).
+model AlarmDevice {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  role       String    @db.VarChar(10) // REP | DRIVER
+  keyHash    String    @unique @map("key_hash")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastSeenAt DateTime? @map("last_seen_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("alarm_devices")
 }

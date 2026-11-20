@@ -14,7 +14,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t, useAuthStore, useColors, validateRole, appAlert } from '@itour/shared';
-import { Icon, logoBadge } from '@itour/ui';
+import { AlarmsOnPhone, Icon, logoBadge } from '@itour/ui';
 import { ActionButton } from '@itour/ui';
 import { APP_VERSION } from '../lib/version';
 
@@ -127,6 +127,8 @@ export function LoginScreen() {
               onPress={handleLogin}
               style={styles.submit}
             />
+            {/* Job alarms kept on this phone after sign-out, with "Turn off". */}
+            <AlarmsOnPhone />
           </View>
 
           <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>

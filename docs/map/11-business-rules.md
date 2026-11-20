@@ -598,6 +598,25 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Job alarms ring like an alarm clock (apps, 2026-11-20)
+
+Owner rule: the 1 h / 30 min start alarms must ring **with the screen off, in standby, and after the
+rep / driver signs out** (`mobile/packages/shared/src/native/job-alerts.ts`, `background-sync.ts`).
+- **Exact:** scheduled with `SET_EXACT_AND_ALLOW_WHILE_IDLE` (`USE_EXACT_ALARM`; Android ≤ 12 uses
+  `SCHEDULE_EXACT_ALARM`), so Doze cannot delay them. Restored after a reboot (`RECEIVE_BOOT_COMPLETED`).
+- **Alarm clock:** full-screen over the lock screen (`USE_FULL_SCREEN_INTENT`, MainActivity
+  `showWhenLocked` / `turnScreenOn`), channel `itour_job_alarms_v2` (bypasses Do Not Disturb), sound
+  looping until **I've seen it** — on the notification itself or in the app — at most 15 minutes.
+  The startup check asks the user to allow "Alarms & reminders" / "Full-screen notifications" when off.
+- **After sign-out:** at sign-in the phone gets an alarm key (`POST /{portal}-portal/alarm-device`;
+  table `alarm_devices`, only the SHA-256 is stored, 3 active per user). Signing out keeps the
+  scheduled start reminders and a light service ("Job alarms are on") re-syncs them every 5 minutes
+  with `GET /api/public/alarms` (header `X-Alarm-Key`; start reminders only — no GPS drop-off alarms
+  without a session); acknowledgements go to `POST /api/public/alarms/jobs/:id/ack`.
+- **Off:** login screen › "Job alarms on this phone: <name> · Turn off" (`POST /api/public/alarms/off`).
+  A key stops working when revoked, when the account is deactivated / deleted, or when a different
+  person signs in on the phone (their own key replaces it).
+
 ## Car Dispatch: changing a saved job's driver / car
 
 Owner request 2026-11-20. Saved rows on Car Dispatch stay read-only **except who drives them**, while

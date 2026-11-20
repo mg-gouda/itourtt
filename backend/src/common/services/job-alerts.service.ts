@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   LOC,
@@ -193,6 +194,64 @@ export class JobAlertsService {
       update: {},
     });
     return { jobId, kind: row.kind, acknowledgedAt: row.acknowledgedAt.toISOString() };
+  }
+
+  // ── Alarms that survive sign-out (per-phone alarm key) ──────────────────────
+
+  private static hashKey(key: string) {
+    return createHash('sha256').update(key).digest('hex');
+  }
+
+  /** Signed-in app asks for its alarm key (returned once; only the hash is stored). Keeps 3 per user. */
+  async registerAlarmDevice(userId: string, role: AlertRole) {
+    await this.personId(userId, role); // must be a rep / driver account
+    const key = randomBytes(32).toString('base64url');
+    await this.prisma.alarmDevice.create({ data: { userId, role, keyHash: JobAlertsService.hashKey(key) } });
+    const active = await this.prisma.alarmDevice.findMany({
+      where: { userId, revokedAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    const stale = active.slice(3).map((d) => d.id);
+    if (stale.length) await this.prisma.alarmDevice.updateMany({ where: { id: { in: stale } }, data: { revokedAt: new Date() } });
+    return { key };
+  }
+
+  /** The account behind an alarm key — refused when revoked or the account is no longer active. */
+  private async alarmDevice(key: string | undefined) {
+    if (!key || key.length < 20) throw new ForbiddenException('Alarm key missing');
+    const d = await this.prisma.alarmDevice.findUnique({
+      where: { keyHash: JobAlertsService.hashKey(key) },
+      select: { id: true, userId: true, role: true, revokedAt: true, lastSeenAt: true, user: { select: { isActive: true, deletedAt: true } } },
+    });
+    if (!d || d.revokedAt || !d.user.isActive || d.user.deletedAt) throw new ForbiddenException('Alarms are off on this phone');
+    if (!d.lastSeenAt || Date.now() - d.lastSeenAt.getTime() > 10 * 60_000) {
+      await this.prisma.alarmDevice.update({ where: { id: d.id }, data: { lastSeenAt: new Date() } });
+    }
+    return { userId: d.userId, role: d.role as AlertRole };
+  }
+
+  /** Signed-out phone: the person's start reminders only (no GPS drop-off alarms without a session). */
+  async alarmsByKey(key: string | undefined) {
+    const d = await this.alarmDevice(key);
+    const all = await this.getAlerts(d.userId, d.role);
+    return { serverTime: all.serverTime, role: d.role, reminders: all.reminders };
+  }
+
+  async acknowledgeByKey(key: string | undefined, jobId: string, body: { kind: string; shownAt?: string }) {
+    const d = await this.alarmDevice(key);
+    if (body.kind !== 'START_60' && body.kind !== 'START_30') throw new BadRequestException('Only start reminders can be acknowledged here');
+    return this.acknowledge(d.userId, d.role, jobId, { kind: body.kind, shownAt: body.shownAt });
+  }
+
+  /** "Turn off alarms on this phone". */
+  async revokeAlarmKey(key: string | undefined) {
+    if (!key) return { ok: true };
+    await this.prisma.alarmDevice.updateMany({
+      where: { keyHash: JobAlertsService.hashKey(key), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return { ok: true };
   }
 
   /** The rep's answer after IN PLACE: escorting the transfer to the drop-off or not. */

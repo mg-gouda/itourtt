@@ -13,7 +13,19 @@ import { CHAT_ANNOUNCEMENTS_ID, chatApi } from '../api/endpoints/chat';
 import { secureStorage } from '../auth/secure-storage';
 import { appAlert } from '../utils/dialog';
 import { t } from '../i18n';
-import { checkDropoffs, hasActiveDropoffs, refreshJobAlerts, resetJobAlerts } from './job-alerts';
+import {
+  checkDropoffs,
+  ensureAlarmKey,
+  getAlarmKeyInfo,
+  handleAlarmNotificationAction,
+  hasActiveDropoffs,
+  missingAlarmPermission,
+  openAlarmPermissionSettings,
+  refreshJobAlerts,
+  releaseSessionAlarms,
+  resetJobAlerts,
+  turnOffAlarmsOnPhone,
+} from './job-alerts';
 
 /**
  * Keeps a rep / driver app in touch with the iTour server without Firebase:
@@ -33,6 +45,8 @@ const CHANNEL_SERVICE = 'itour_service';
 const SERVICE_NOTIFICATION_ID = 'itour-connection';
 
 const POLL_MS = 30_000;
+/** Signed out with job alarms on: re-sync the start reminders every 5 minutes. */
+const ALARMS_ONLY_POLL_MS = 5 * 60_000;
 const HEARTBEAT_MS = 60_000;
 
 /** What a tapped notification should open. */
@@ -44,6 +58,8 @@ export type NotificationTarget =
 
 let portal: Portal | null = null;
 let running = false;
+/** Signed out but this phone keeps the person's job alarms (alarm key). */
+let alarmsOnly = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let lastHeartbeat = 0;
 let lastNotificationAt: string | null = null;
@@ -107,6 +123,22 @@ async function askStartupPermissions(): Promise<void> {
     /* activity not ready — features still ask on use */
   }
   await ensureChannels().catch(() => {});
+
+  // Job alarms must ring on time with the screen off: exact alarms + full-screen notifications.
+  const missing = await missingAlarmPermission();
+  if (missing) {
+    await new Promise<void>((resolve) =>
+      appAlert(
+        t('alarm.permTitle'),
+        t(missing === 'exact' ? 'alarm.permExact' : 'alarm.permFullScreen'),
+        [
+          { text: t('repApp.later'), style: 'cancel', onPress: () => resolve() },
+          { text: t('alarm.permOpen'), onPress: () => { openAlarmPermissionSettings(missing); resolve(); } },
+        ],
+        { tone: 'warning', icon: 'alarm' },
+      ),
+    );
+  }
 
   try {
     const storage = require('react-native-encrypted-storage').default;
@@ -302,8 +334,18 @@ async function pollJobAlarms() {
 }
 
 async function tick() {
+  if (alarmsOnly) {
+    const k = await getAlarmKeyInfo();
+    if (!k) {
+      await stopEverything();
+      return;
+    }
+    await refreshJobAlerts(k.portal, true).catch(() => {});
+    if (alarmsOnly) timer = setTimeout(tick, ALARMS_ONLY_POLL_MS);
+    return;
+  }
   if (!running) return;
-  // Signed out (or token gone): stop quietly.
+  // Signed out (or token gone): keep only the job alarms, or stop quietly.
   if (!(await secureStorage.getAccessToken())) {
     await stopBackgroundSync();
     return;
@@ -324,8 +366,10 @@ export function registerBackgroundSync() {
         /* the poll loop runs on timers; stopForegroundService() ends the service */
       }),
   );
-  notifee.onBackgroundEvent(async () => {
-    /* taps are routed by onNotificationOpen when the app comes up */
+  notifee.onBackgroundEvent(async ({ type, detail }) => {
+    // "I've seen it" on a job alarm works without opening the app; other taps are routed by
+    // onNotificationOpen when the app comes up.
+    await handleAlarmNotificationAction(type, detail.notification, detail.pressAction?.id).catch(() => {});
   });
 }
 
@@ -333,7 +377,14 @@ export function registerBackgroundSync() {
 export async function startBackgroundSync(p: Portal, labels: { title: string; body: string }) {
   portal = p;
   if (running) return;
+  if (alarmsOnly) {
+    alarmsOnly = false;
+    if (timer) clearTimeout(timer);
+    timer = null;
+  }
   running = true;
+  // This phone keeps the person's job alarms after sign-out (alarm key).
+  ensureAlarmKey(p).catch(() => {});
   lastNotificationAt = null;
   lastChatAt = null;
   shownNotificationIds.clear();
@@ -365,17 +416,61 @@ export async function startBackgroundSync(p: Portal, labels: { title: string; bo
   tick();
 }
 
-/** Stop on sign-out. */
+/**
+ * Sign-out (or app start signed out). With an alarm key the job alarms stay: the start reminders
+ * remain scheduled and a light service re-syncs them every 5 minutes. Otherwise stop everything.
+ */
 export async function stopBackgroundSync() {
   running = false;
-  await resetJobAlerts().catch(() => {});
   portal = null;
   if (timer) clearTimeout(timer);
   timer = null;
+  const k = Platform.OS === 'android' ? await getAlarmKeyInfo() : null;
+  if (!k) {
+    await stopEverything();
+    return;
+  }
+  releaseSessionAlarms();
+  if (alarmsOnly) return;
+  alarmsOnly = true;
+  const withLocation = await locationAllowed();
+  await notifee
+    .displayNotification({
+      id: SERVICE_NOTIFICATION_ID,
+      title: t('alarm.serviceOn'),
+      body: t('alarm.serviceOnBody'),
+      android: {
+        channelId: CHANNEL_SERVICE,
+        asForegroundService: true,
+        ongoing: true,
+        smallIcon: 'ic_notification',
+        pressAction: { id: 'default' },
+        foregroundServiceTypes: withLocation
+          ? [AndroidForegroundServiceType.FOREGROUND_SERVICE_TYPE_LOCATION]
+          : [AndroidForegroundServiceType.FOREGROUND_SERVICE_TYPE_DATA_SYNC],
+      },
+    })
+    .catch(() => {});
+  tick();
+}
+
+/** Everything off: no session and no alarms on this phone. */
+async function stopEverything() {
+  running = false;
+  alarmsOnly = false;
+  if (timer) clearTimeout(timer);
+  timer = null;
+  await resetJobAlerts().catch(() => {});
   if (Platform.OS === 'android') {
     await notifee.stopForegroundService().catch(() => {});
     await notifee.cancelNotification(SERVICE_NOTIFICATION_ID).catch(() => {});
   }
+}
+
+/** Login screen › "Turn off": revoke this phone's alarm key and stop. */
+export async function turnOffJobAlarms(): Promise<void> {
+  await turnOffAlarmsOnPhone(true);
+  await stopEverything();
 }
 
 function targetOf(data?: Record<string, unknown>): NotificationTarget | null {

@@ -3,10 +3,16 @@ import notifee, {
   AlarmType,
   AndroidCategory,
   AndroidImportance,
+  AndroidNotificationSetting,
   AndroidVisibility,
+  EventType,
   TriggerType,
+  type Notification,
 } from '@notifee/react-native';
+import EncryptedStorage from 'react-native-encrypted-storage';
+import { NativeModules } from 'react-native';
 import api from '../api/client';
+import { secureStorage } from '../auth/secure-storage';
 import { unwrapData } from '../utils/response';
 import { t } from '../i18n';
 import { formatTimeCairo } from '../utils/date';
@@ -26,6 +32,12 @@ import { formatTimeCairo } from '../utils/date';
  *
  * The background sync service calls `refreshJobAlerts` and
  * `checkDropoffs` on its poll; the app's JobAlarmHost shows the modal queue.
+ *
+ * Alarm-clock behaviour (owner, 2026-11-20 — must ring with the screen off, in standby and after
+ * sign-out): start reminders are EXACT alarms (USE_EXACT_ALARM), shown full-screen over the lock
+ * screen, ringing in a loop (up to 15 min) until "I've seen it". At sign-in the phone gets an alarm
+ * key (POST /{portal}-portal/alarm-device); after sign-out the alarms stay scheduled and keep
+ * syncing with that key (GET /public/alarms) until "Turn off alarms on this phone".
  */
 
 export type AlarmPortal = 'rep' | 'driver';
@@ -51,7 +63,22 @@ export interface PendingAlarm {
   shownAt: string;
 }
 
-export const CHANNEL_ALARMS = 'itour_job_alarms';
+// v2: alarm-clock channel (bypasses Do Not Disturb). Android freezes a channel's sound / importance,
+// so the change needs a new id; the old channel is deleted.
+export const CHANNEL_ALARMS = 'itour_job_alarms_v2';
+const OLD_CHANNEL_ALARMS = 'itour_job_alarms';
+const ALARM_KEY_STORE = 'jobAlarmKey';
+const ACK_ACTION = 'alarm-ack';
+
+/** This phone's alarm key (issued at sign-in; survives sign-out). */
+export interface AlarmKeyInfo {
+  key: string;
+  portal: AlarmPortal;
+  userId: string;
+  name: string;
+}
+let keyInfo: AlarmKeyInfo | null | undefined; // undefined = not read yet
+let keyMode = false; // last refresh used the alarm key (signed out)
 
 let portal: AlarmPortal | null = null;
 let reminders: AlarmJob[] = [];
@@ -119,7 +146,9 @@ async function ensureAlarmChannel() {
     vibration: true,
     vibrationPattern: [300, 400, 300, 400, 300, 400],
     lights: true,
+    bypassDnd: true,
   });
+  await notifee.deleteChannel(OLD_CHANNEL_ALARMS).catch(() => {});
 }
 
 function notificationFor(kind: AlarmKind, job: AlarmJob) {
@@ -136,7 +165,14 @@ function notificationFor(kind: AlarmKind, job: AlarmJob) {
       sound: 'default',
       smallIcon: 'ic_notification',
       pressAction: { id: 'default' },
+      // Alarm clock: wake the screen over the lock screen and keep ringing until acknowledged.
+      fullScreenAction: { id: 'default' },
+      lightUpScreen: true,
+      loopSound: true,
+      ongoing: true,
       autoCancel: false,
+      timeoutAfter: 15 * 60_000,
+      actions: [{ title: t('alarm.acknowledge'), pressAction: { id: ACK_ACTION } }],
     },
     ios: { sound: 'default' },
   };
@@ -212,7 +248,8 @@ async function scheduleReminders() {
       .createTriggerNotification(notificationFor(kind, job), {
         type: TriggerType.TIMESTAMP,
         timestamp: at,
-        alarmManager: { type: AlarmType.SET_AND_ALLOW_WHILE_IDLE },
+        // Exact even in Doze / standby (USE_EXACT_ALARM in the manifest).
+        alarmManager: { type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE },
       })
       .catch(() => scheduled.delete(id));
   }
@@ -220,12 +257,32 @@ async function scheduleReminders() {
 
 /** Fetch the user's alarm jobs, (re)schedule reminders and raise anything due. */
 export async function refreshJobAlerts(p: AlarmPortal, background = false): Promise<void> {
-  portal = p;
+  const signedIn = !!(await secureStorage.getAccessToken().catch(() => null));
   try {
-    const res = await api.get(`/${p}-portal/alerts`, { headers: { 'X-Background-Poll': '1' } });
-    const data = unwrapData<{ reminders?: AlarmJob[]; dropoffs?: AlarmJob[] }>(res.data);
-    reminders = data?.reminders ?? [];
-    dropoffs = data?.dropoffs ?? [];
+    if (signedIn) {
+      portal = p;
+      keyMode = false;
+      const res = await api.get(`/${p}-portal/alerts`, { headers: { 'X-Background-Poll': '1' } });
+      const data = unwrapData<{ reminders?: AlarmJob[]; dropoffs?: AlarmJob[] }>(res.data);
+      reminders = data?.reminders ?? [];
+      dropoffs = data?.dropoffs ?? [];
+    } else {
+      // Signed out: this phone's alarm key keeps the start reminders in sync.
+      const k = await getAlarmKeyInfo();
+      if (!k) return;
+      const res = await fetch(`${api.defaults.baseURL}/public/alarms`, { headers: { 'X-Alarm-Key': k.key } });
+      if (res.status === 403) {
+        // Revoked on the server (turned off elsewhere, account deactivated): stop ringing.
+        await turnOffAlarmsOnPhone(false);
+        return;
+      }
+      if (!res.ok) return;
+      const body = await res.json();
+      portal = k.portal;
+      keyMode = true;
+      reminders = (body?.data?.reminders ?? []) as AlarmJob[];
+      dropoffs = []; // drop-off alarms need GPS + a session
+    }
   } catch {
     return; // keep the last known lists
   }
@@ -272,19 +329,144 @@ export async function acknowledgeAlarm(alarm: PendingAlarm): Promise<void> {
     notifee.cancelNotification(keyOf(alarm.job.jobId, 'START_60')).catch(() => {});
   }
   alarm.job.acked = [...alarm.job.acked, alarm.kind];
-  if (!portal) return;
-  await api
-    .post(`/${portal}-portal/jobs/${alarm.job.jobId}/alerts/ack`, {
-      kind: alarm.kind,
-      shownAt: alarm.shownAt,
-      ...(lastPosition ? { latitude: lastPosition.lat, longitude: lastPosition.lng } : {}),
-    })
-    .catch(() => {
-      /* acknowledged on screen; the server keeps offering it until the next ack */
-    });
+  await sendAck(alarm.job.jobId, alarm.kind, alarm.shownAt);
 }
 
-/** Sign-out: forget everything and cancel scheduled alarms. */
+/** POST the acknowledgement — with the session when signed in, else with the alarm key. */
+async function sendAck(jobId: string, kind: AlarmKind, shownAt?: string) {
+  const signedIn = !!(await secureStorage.getAccessToken().catch(() => null));
+  const k = await getAlarmKeyInfo();
+  const p = portal ?? k?.portal ?? null;
+  try {
+    if (signedIn && p && !keyMode) {
+      await api.post(`/${p}-portal/jobs/${jobId}/alerts/ack`, {
+        kind,
+        shownAt,
+        ...(lastPosition ? { latitude: lastPosition.lat, longitude: lastPosition.lng } : {}),
+      });
+    } else if (k) {
+      await fetch(`${api.defaults.baseURL}/public/alarms/jobs/${jobId}/ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Alarm-Key': k.key },
+        body: JSON.stringify({ kind, shownAt }),
+      });
+    }
+  } catch {
+    /* acknowledged on screen; the server keeps offering it until the next ack */
+  }
+}
+
+/** "I've seen it" pressed on the notification itself (app closed, locked, or open). */
+export async function handleAlarmNotificationAction(type: EventType, notification?: Notification, actionId?: string) {
+  if (type !== EventType.ACTION_PRESS || actionId !== ACK_ACTION) return;
+  const jobId = notification?.data?.jobId as string | undefined;
+  const kind = notification?.data?.kind as AlarmKind | undefined;
+  if (!jobId || !kind) return;
+  await notifee.cancelNotification(keyOf(jobId, kind)).catch(() => {});
+  if (kind === 'START_30') await notifee.cancelNotification(keyOf(jobId, 'START_60')).catch(() => {});
+  const queued = pending.find((a) => a.job.jobId === jobId && a.kind === kind);
+  if (queued) {
+    await acknowledgeAlarm(queued);
+    return;
+  }
+  const job = reminders.find((r) => r.jobId === jobId);
+  if (job) job.acked = [...job.acked, kind];
+  raised.add(keyOf(jobId, kind));
+  await sendAck(jobId, kind, new Date().toISOString());
+}
+
+/** In-app listener for the notification's "I've seen it" button. Returns an unsubscribe function. */
+export function watchAlarmActions(): () => void {
+  if (Platform.OS !== 'android') return () => {};
+  return notifee.onForegroundEvent(({ type, detail }) => {
+    handleAlarmNotificationAction(type, detail.notification, detail.pressAction?.id).catch(() => {});
+  });
+}
+
+// ── This phone's alarm key ──────────────────────────────────────────────────
+
+export async function getAlarmKeyInfo(): Promise<AlarmKeyInfo | null> {
+  if (keyInfo === undefined) {
+    try {
+      const raw = await EncryptedStorage.getItem(ALARM_KEY_STORE);
+      keyInfo = raw ? (JSON.parse(raw) as AlarmKeyInfo) : null;
+    } catch {
+      keyInfo = null;
+    }
+  }
+  return keyInfo;
+}
+
+/** After sign-in: make sure this phone holds an alarm key for the signed-in person. */
+export async function ensureAlarmKey(p: AlarmPortal): Promise<void> {
+  try {
+    const raw = await secureStorage.getUser();
+    const user = raw ? (JSON.parse(raw) as { id?: string; name?: string }) : null;
+    if (!user?.id) return;
+    const cur = await getAlarmKeyInfo();
+    if (cur && cur.userId === user.id && cur.portal === p) return;
+    if (cur) await revokeRemote(cur.key); // the phone changed hands
+    const res = await api.post(`/${p}-portal/alarm-device`);
+    const key = unwrapData<{ key?: string }>(res.data)?.key;
+    if (!key) return;
+    keyInfo = { key, portal: p, userId: user.id, name: user.name ?? '' };
+    await EncryptedStorage.setItem(ALARM_KEY_STORE, JSON.stringify(keyInfo));
+    emit();
+  } catch {
+    /* try again at the next sign-in / app start */
+  }
+}
+
+async function revokeRemote(key: string) {
+  await fetch(`${api.defaults.baseURL}/public/alarms/off`, { method: 'POST', headers: { 'X-Alarm-Key': key } }).catch(() => {});
+}
+
+/** "Turn off alarms on this phone" (login screen) — or the server revoked the key. */
+export async function turnOffAlarmsOnPhone(tellServer = true): Promise<void> {
+  const cur = await getAlarmKeyInfo();
+  if (cur && tellServer) await revokeRemote(cur.key);
+  keyInfo = null;
+  await EncryptedStorage.removeItem(ALARM_KEY_STORE).catch(() => {});
+  await resetJobAlerts();
+}
+
+/**
+ * Can this phone ring on time with the screen off? Android 12+ "Alarms & reminders" (exact alarms)
+ * and Android 14+ full-screen notifications. Returns the first missing one, or null.
+ */
+export async function missingAlarmPermission(): Promise<'exact' | 'fullScreen' | null> {
+  if (Platform.OS !== 'android') return null;
+  try {
+    const settings = await notifee.getNotificationSettings();
+    if (settings.android?.alarm === AndroidNotificationSetting.DISABLED) return 'exact';
+  } catch {
+    /* older notifee / phone */
+  }
+  try {
+    const native = NativeModules.AppUpdate;
+    if (native?.canUseFullScreenIntent && !(await native.canUseFullScreenIntent())) return 'fullScreen';
+  } catch {
+    /* module missing */
+  }
+  return null;
+}
+
+export function openAlarmPermissionSettings(which: 'exact' | 'fullScreen') {
+  if (which === 'exact') notifee.openAlarmPermissionSettings().catch(() => {});
+  else NativeModules.AppUpdate?.openFullScreenIntentSettings?.();
+}
+
+/**
+ * Sign-out with an alarm key: drop the session-only parts (drop-off watch) but keep the scheduled
+ * start reminders — they keep ringing and syncing with the key.
+ */
+export function releaseSessionAlarms() {
+  dropoffs = [];
+  Object.keys(inside).forEach((k) => delete inside[k]);
+  emit();
+}
+
+/** Alarms off on this phone: forget everything and cancel scheduled alarms. */
 export async function resetJobAlerts() {
   portal = null;
   reminders = [];
