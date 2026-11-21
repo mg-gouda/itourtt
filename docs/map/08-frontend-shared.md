@@ -1327,13 +1327,15 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 
 `frontend/src/lib/marsa-alam-hotels.ts` · 107 lines
 
+The owner's Marsa Alam hotel list (north / south of RMF, deep south) and the matcher that turns hotel notes into a route
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MarsaAlamArea` | type | 9 | _—_ |
-| `MARSA_ALAM_HOTELS` | const | 13 | _—_ |
-| `findMarsaAlamHotel` | function | 76 | _—_ |
-| `legOf` | function | 87 | _—_ |
-| `marsaAlamRoute` | function | 103 | _—_ |
+| `MarsaAlamArea` | type | 9 | Route area of a Marsa Alam hotel: NORTH-MARSA ALAM, SOUTH MARSA ALAM, SHAMS ALAM or WADI LAHMI |
+| `MARSA_ALAM_HOTELS` | const | 13 | Marsa Alam hotels from RMF HOTEL NEAMS.xlsx with their area and a lower-case name pattern |
+| `findMarsaAlamHotel` | function | 76 | First Marsa Alam hotel named in free text (job notes), or null |
+| `legOf` | function | 87 | A row's leg (ARR / DEP / going / return) from its route prefix, else its service type |
+| `marsaAlamRoute` | function | 103 | The system route for a leg to a Marsa Alam area, matched on the compacted English route name |
 
 ### `permission-registry.ts`
 
