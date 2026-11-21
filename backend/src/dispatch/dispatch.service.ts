@@ -18,6 +18,7 @@ import { B2CService } from '../b2c/b2c.service.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
 import { ReassignJobDto } from './dto/reassign-job.dto.js';
 import type { ServiceType, JobStatus } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
@@ -765,6 +766,22 @@ export class DispatchService {
   // ─────────────────────────────────────────────
   // AVAILABLE RESOURCES
   // ─────────────────────────────────────────────
+
+  // ── Car Dispatch highlight colours ──────────────────────────────────────────
+
+  /** Replaces a job's Car Dispatch colours ({ row?, cells? } of #RRGGBB); empty = cleared. */
+  async setJobColors(jobId: string, colors: { row?: string | null; cells?: Record<string, string | null> } | null) {
+    const hex = (v: unknown) => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
+    const clean: { row?: string; cells?: Record<string, string> } = {};
+    if (colors?.row && hex(colors.row)) clean.row = colors.row.toLowerCase();
+    const cells = Object.entries(colors?.cells ?? {}).filter(([k, v]) => /^[A-Za-z]{1,40}$/.test(k) && hex(v));
+    if (cells.length) clean.cells = Object.fromEntries(cells.map(([k, v]) => [k, (v as string).toLowerCase()]));
+    const job = await this.prisma.trafficJob.findFirst({ where: { id: jobId, deletedAt: null }, select: { id: true } });
+    if (!job) throw new NotFoundException('Job not found');
+    const value = clean.row || clean.cells ? clean : Prisma.DbNull;
+    await this.prisma.trafficJob.update({ where: { id: jobId }, data: { dispatchColors: value } });
+    return { id: jobId, dispatchColors: clean.row || clean.cells ? clean : null };
+  }
 
   // ── Customer report (Car Dispatch › customer + date › PDF / Excel) ──────────
 

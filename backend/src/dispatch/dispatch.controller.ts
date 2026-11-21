@@ -79,6 +79,15 @@ export class DispatchController {
     return new ApiResponse(suppliers);
   }
 
+  /** PATCH /dispatch/jobs/:jobId/colors { row?, cells? } — Car Dispatch highlight colours (shared). */
+  @Patch('jobs/:jobId/colors')
+  async setJobColors(
+    @Param('jobId', ParseUUIDPipe) jobId: string,
+    @Body() body: { colors?: { row?: string | null; cells?: Record<string, string | null> } | null },
+  ) {
+    return this.dispatchService.setJobColors(jobId, body?.colors ?? null);
+  }
+
   /** GET /dispatch/customer-report?date=&customerId= — one customer's jobs on a date (Car Dispatch PDF). */
   @Get('customer-report')
   async customerReport(@Query('date') date: string, @Query('customerId', ParseUUIDPipe) customerId: string) {

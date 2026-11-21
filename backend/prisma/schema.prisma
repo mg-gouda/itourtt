@@ -1246,6 +1246,8 @@ model TrafficJob {
   id               String         @id @default(uuid())
   internalRef      String         @unique @map("internal_ref")
   bookingChannel   BookingChannel @default(ONLINE) @map("booking_channel")
+  /// Car Dispatch highlight colours: { row?: "#RRGGBB", cells?: { <column key>: "#RRGGBB" } } — shared by all users.
+  dispatchColors   Json?          @map("dispatch_colors")
   agentId          String?        @map("agent_id")
   agentRef         String?        @map("agent_ref")
   customerJobId    String?        @map("customer_job_id")

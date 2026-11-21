@@ -598,6 +598,15 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Car Dispatch highlight colours (2026-11-21)
+
+Each car card has a colour picker (palette button in the header): select a cell in that card, pick a
+swatch (or a custom colour), then **Colour cell** / **Colour row** / **Clear cell** / **Clear row**. A
+cell colour wins over its row colour; colours are drawn semi-transparent so text stays readable.
+Saved on the job (`traffic_jobs.dispatch_colors` = `{ row?, cells?: { <column key>: "#RRGGBB" } }`,
+`PATCH /dispatch/jobs/:jobId/colors`), shared by every user and kept until someone changes it.
+Colours put on a new row are saved right after the row's first save.
+
 ## Car Dispatch customer report (2026-11-21)
 
 Under the date on Car Dispatch: **Customer report** — a searchable customer box, then **PDF** (the branded

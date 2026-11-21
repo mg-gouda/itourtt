@@ -18,7 +18,7 @@
  * The grid is controlled: values come from `column.get(row)` and every edit calls `onChange`.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 export interface DSOption {
@@ -55,6 +55,10 @@ export interface DataSheetProps<R> {
   isDirty?: (row: R) => boolean;
   rowError?: (row: R) => string | null | undefined;
   rowClassName?: (row: R) => string | false | null | undefined;
+  /** Inline style per cell (e.g. a user's highlight colour). */
+  cellStyle?: (row: R, columnKey: string) => CSSProperties | undefined;
+  /** The active (selected) cell changed: its row (null on the ✱ row / none) and column key. */
+  onActiveChange?: (row: R | null, columnKey: string | null) => void;
   /** Column resize (drag the header edge); `done` is true on release. */
   onResize?: (columnKey: string, width: number, done: boolean) => void;
   maxHeight?: string;
@@ -103,6 +107,8 @@ export function DataSheet<R>({
   isDirty,
   rowError,
   rowClassName,
+  cellStyle,
+  onActiveChange,
   onResize,
   maxHeight = "65vh",
   className,
@@ -163,6 +169,19 @@ export function DataSheet<R>({
     },
     [rowCount, colCount, leaveRow],
   );
+
+  // Tell the parent which cell is selected (rows / columns via refs: report only on a move).
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const colsRef = useRef(columns);
+  colsRef.current = columns;
+  const onActiveRef = useRef(onActiveChange);
+  onActiveRef.current = onActiveChange;
+  useEffect(() => {
+    if (!onActiveRef.current) return;
+    const row = active ? rowsRef.current[active.r] ?? null : null;
+    onActiveRef.current(row, active ? colsRef.current[active.c]?.key ?? null : null);
+  }, [active]);
 
   // Keep the active cell in range when rows change (filtering, reload).
   useEffect(() => {
@@ -524,6 +543,7 @@ export function DataSheet<R>({
                         moveTo({ r, c }, e.shiftKey);
                       }}
                       onDoubleClick={() => startEdit()}
+                      style={row ? cellStyle?.(row, col.key) : undefined}
                       className={cn(
                         "relative h-7 overflow-hidden whitespace-nowrap border border-border",
                         pad,

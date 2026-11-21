@@ -48,6 +48,7 @@ import {
   UserRound,
   FileText,
   FileSpreadsheet,
+  Palette,
 } from "lucide-react";
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
@@ -139,7 +140,18 @@ interface JobRow {
   /** Saved jobs: their assignment, so the driver / extra driver / car can be changed from the board. */
   assignmentId?: string;
   error?: string;
+  /** Highlight colours (saved on the job, seen by everyone): whole row and / or single cells. */
+  colors?: JobColors;
 }
+
+interface JobColors {
+  row?: string;
+  cells?: Record<string, string>;
+}
+
+/** Light-to-strong highlight swatches for the card colour picker. */
+const HIGHLIGHTS = ["#fde047", "#fdba74", "#fca5a5", "#f9a8d4", "#c4b5fd", "#93c5fd", "#67e8f9", "#86efac", "#bef264", "#d6d3d1"];
+const hasColors = (c?: JobColors) => !!c && (!!c.row || (!!c.cells && Object.keys(c.cells).length > 0));
 
 interface RouteOption {
   id: string;
@@ -534,6 +546,7 @@ function CarDispatchContent() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const toJobRow = (j: any): JobRow => ({
         uid: j.id,
+        colors: (j.dispatchColors as JobColors | null) ?? undefined,
         customerId: j.customerId || "",
         customerJobId: j.customerJobId || "",
         bookingNumber: j.internalRef || "",
@@ -643,6 +656,17 @@ function CarDispatchContent() {
           : c
       )
     );
+  };
+
+  // Row / cell colours: shown at once; saved on the job when it exists (else with its first save).
+  const setJobColors = (vehicleId: string, uid: string, colors: JobColors) => {
+    const job = cards.find((c) => c.vehicle.id === vehicleId)?.jobs.find((j) => j.uid === uid);
+    setCards((prev) =>
+      prev.map((c) => (c.vehicle.id === vehicleId ? { ...c, jobs: c.jobs.map((j) => (j.uid === uid ? { ...j, colors } : j)) } : c)),
+    );
+    if (job?.savedJobId) {
+      api.patch(`/dispatch/jobs/${job.savedJobId}/colors`, { colors }).catch(() => toast.error("Could not save the colour"));
+    }
   };
 
   const updateJobField = (
@@ -822,6 +846,9 @@ function CarDispatchContent() {
           }
         }
         await api.post("/dispatch/assign", assignPayload);
+      }
+      if (hasColors(job.colors)) {
+        api.patch(`/dispatch/jobs/${created.id}/colors`, { colors: job.colors }).catch(() => toast.error("Row colours were not saved"));
       }
 
       // Update row as saved
@@ -1037,6 +1064,7 @@ function CarDispatchContent() {
             onUpdateField={(uid, field, value) =>
               updateJobField(card.vehicle.id, uid, field, value)
             }
+            onSetColors={(uid, colors) => setJobColors(card.vehicle.id, uid, colors)}
             onRemoveJob={(uid) => removeJobRow(card.vehicle.id, uid)}
             onReassign={(job, field, value) => {
               const before = job[field] as string;
@@ -1515,6 +1543,7 @@ function VehicleCard({
   mainDriver,
   routeOptions,
   onAddJob,
+  onSetColors,
   onCreateRows,
   onUpdateField,
   onRemoveJob,
@@ -1534,6 +1563,7 @@ function VehicleCard({
   mainDriver?: MainDriverLink;
   routeOptions: RouteOption[];
   onAddJob: () => void;
+  onSetColors: (uid: string, colors: JobColors) => void;
   onCreateRows: (values: Record<string, string>[]) => void;
   onUpdateField: (uid: string, field: keyof JobRow, value: string | boolean | number) => void;
   onRemoveJob: (uid: string) => void;
@@ -1551,6 +1581,23 @@ function VehicleCard({
   const { vehicle, jobs, isSupplier } = card;
   // Fixed per car (vehicle page › Card colour, or automatic) so cars are told apart at a glance.
   const cardColor = cardColorOf(vehicle);
+  // Last selected cell in this card's grid (kept while the colour picker is open).
+  const [picked, setPicked] = useState<{ uid: string; col: string } | null>(null);
+  const [pickColor, setPickColor] = useState(HIGHLIGHTS[0]);
+  const pickedJob = picked ? jobs.find((j) => j.uid === picked.uid) : undefined;
+  const applyColor = (scope: "cell" | "row", color: string | null) => {
+    if (!pickedJob || !picked) return;
+    const cur = pickedJob.colors ?? {};
+    const cells = { ...(cur.cells ?? {}) };
+    let row = cur.row;
+    if (scope === "row") {
+      row = color ?? undefined;
+      if (color === null) Object.keys(cells).forEach((k) => delete cells[k]);
+    } else if (color) cells[picked.col] = color;
+    else delete cells[picked.col];
+    onSetColors(pickedJob.uid, { ...(row ? { row } : {}), ...(Object.keys(cells).length ? { cells } : {}) });
+  };
+  const tint = (hex: string) => ({ backgroundColor: `${hex}66` });
   const asNamePhone = (label: string) => label.replace(/ \(([^)]*)\)$/, " · $1");
   const otherDrivers = isSupplier
     ? []
@@ -1731,6 +1778,54 @@ function VehicleCard({
               Save All ({unsavedCount})
             </Button>
           )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0" title="Colour the selected cell or row">
+                <Palette className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-60 p-2">
+              <p className="pb-1 text-xs font-medium text-muted-foreground">
+                {pickedJob
+                  ? `Row ${pickedJob.bookingNumber || pickedJob.customerJobId || "(new)"} · ${picked?.col}`
+                  : "Select a cell in this card first"}
+              </p>
+              <div className="flex flex-wrap gap-1.5 pb-2">
+                {HIGHLIGHTS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    title={c}
+                    onClick={() => setPickColor(c)}
+                    className={cn("h-6 w-6 rounded border-2", pickColor === c ? "border-foreground" : "border-transparent")}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <input
+                  type="color"
+                  title="Custom colour"
+                  value={pickColor}
+                  onChange={(e) => setPickColor(e.target.value)}
+                  className="h-6 w-8 cursor-pointer rounded border border-border bg-transparent p-0"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button size="sm" className="h-7 text-xs" disabled={!pickedJob} onClick={() => applyColor("cell", pickColor)}>
+                  Colour cell
+                </Button>
+                <Button size="sm" className="h-7 text-xs" disabled={!pickedJob} onClick={() => applyColor("row", pickColor)}>
+                  Colour row
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" disabled={!pickedJob?.colors?.cells?.[picked?.col ?? ""]} onClick={() => applyColor("cell", null)}>
+                  Clear cell
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" disabled={!hasColors(pickedJob?.colors)} onClick={() => applyColor("row", null)}>
+                  Clear row
+                </Button>
+              </div>
+              <p className="pt-2 text-[10px] text-muted-foreground">Saved on the job — everyone sees it until someone changes it.</p>
+            </PopoverContent>
+          </Popover>
           <Button size="sm" variant="outline" onClick={onAddJob} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             Add Job
@@ -1777,6 +1872,13 @@ function VehicleCard({
           onDeleteRows={(rs) => rs.filter((j) => !j.saved).forEach((j) => onRemoveJob(j.uid))}
           isDirty={(j) => !j.saved}
           rowError={(j) => j.error}
+          onActiveChange={(j, col) => {
+            if (j && col) setPicked({ uid: j.uid, col });
+          }}
+          cellStyle={(j, col) => {
+            const c = j.colors?.cells?.[col] ?? j.colors?.row;
+            return c ? tint(c) : undefined;
+          }}
           onResize={(key, width, done) => onViewChange({ widths: { ...view.widths, [key]: width } }, done)}
           emptyText="No jobs yet — type in the ✱ row or click Add Job"
         />
