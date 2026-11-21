@@ -70,6 +70,7 @@ export class DispatchService {
           repId: true,
           supplierId: true,
           supplierCarTypeId: true,
+          supplierCarNo: true,
           driverStatus: true,
           repStatus: true,
           supplierStatus: true,
@@ -81,7 +82,7 @@ export class DispatchService {
           driver: { select: { id: true, name: true, mobileNumber: true } },
           rep: { select: { id: true, name: true } },
           supplier: { select: { id: true, legalName: true, tradeName: true } },
-          supplierCarType: { select: { id: true, vehicleType: { select: { id: true, name: true, seatCapacity: true } } } },
+          supplierCarType: { select: { id: true, quantity: true, vehicleTypeId: true, vehicleType: { select: { id: true, name: true, seatCapacity: true } } } },
         },
       },
       // Enough to know a job has been complained about, and which complaint to
@@ -269,6 +270,11 @@ export class DispatchService {
       if (dto.supplierId && carType.supplierId !== dto.supplierId) {
         throw new BadRequestException('Supplier car type does not belong to the specified supplier');
       }
+      if (dto.supplierCarNo && dto.supplierCarNo > carType.quantity) {
+        throw new BadRequestException(
+          `The supplier agreed to ${carType.quantity} ${carType.vehicleType.name} car(s) — car ${dto.supplierCarNo} is beyond that`,
+        );
+      }
       resolvedSupplierId = carType.supplierId;
     }
 
@@ -295,6 +301,7 @@ export class DispatchService {
           repId: dto.repId ?? null,
           supplierId: createSupplierId,
           supplierCarTypeId: createSupplierCarTypeId,
+          supplierCarNo: createSupplierCarTypeId ? (dto.supplierCarNo ?? null) : null,
           externalDriverName: dto.externalDriverName ?? null,
           externalDriverPhone: dto.externalDriverPhone ?? null,
           remarks: dto.remarks ?? null,
@@ -940,6 +947,7 @@ export class DispatchService {
       supplier: ct.supplier,
       isCarType: true,
       isBusy: false,
+      quantity: ct.quantity,
       ownership: 'SUPPLIER' as const,
       color: null,
       carBrand: null,

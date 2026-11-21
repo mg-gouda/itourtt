@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsBoolean, IsInt, Min, Max } from 'class-validator';
 
 export class AssignJobDto {
   @IsNotEmpty()
@@ -36,6 +36,13 @@ export class AssignJobDto {
   @IsOptional()
   @IsString()
   supplierCarTypeId?: string;
+
+  /** Which of the supplier's agreed cars of that type (1..quantity) — a Car Dispatch card. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  supplierCarNo?: number;
 
   @IsOptional()
   @IsBoolean()

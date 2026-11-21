@@ -928,30 +928,51 @@ export class SuppliersService {
 
   // ── Supplier Car Types ──
 
+  /** The supplier's car types: the vehicle type + this supplier's row id and agreed quantity. */
   async getCarTypes(supplierId: string) {
     const rows = await this.prisma.supplierCarType.findMany({
       where: { supplierId },
       include: { vehicleType: true },
       orderBy: { vehicleType: { name: 'asc' } },
     });
-    return rows.map((r) => r.vehicleType);
+    return rows.map((r) => ({ ...r.vehicleType, supplierCarTypeId: r.id, quantity: r.quantity }));
   }
 
-  async setCarTypes(supplierId: string, vehicleTypeIds: string[]) {
-    // Verify supplier exists
+  /**
+   * Sets the supplier's car types and the agreed number of each. Existing rows are kept and updated
+   * (jobs reference them: deleting a row used to clear the car type on every job using it). A type
+   * that jobs still use cannot be removed.
+   */
+  async setCarTypes(supplierId: string, vehicleTypeIds: string[], quantities: Record<string, number> = {}) {
     const supplier = await this.prisma.supplier.findUnique({ where: { id: supplierId } });
     if (!supplier) throw new NotFoundException('Supplier not found');
-
-    // Replace all car types in a transaction
+    const wanted = [...new Set(vehicleTypeIds)];
+    const qty = (vtId: string) => {
+      const n = Math.floor(Number(quantities[vtId] ?? 1));
+      if (!Number.isFinite(n) || n < 1 || n > 99) throw new BadRequestException('Number of cars must be between 1 and 99');
+      return n;
+    };
+    const existing = await this.prisma.supplierCarType.findMany({
+      where: { supplierId },
+      select: { id: true, vehicleTypeId: true, vehicleType: { select: { name: true } }, _count: { select: { assignments: true } } },
+    });
+    const removed = existing.filter((e) => !wanted.includes(e.vehicleTypeId));
+    const inUse = removed.filter((e) => e._count.assignments > 0);
+    if (inUse.length) {
+      throw new BadRequestException(
+        `Can't remove ${inUse.map((e) => `${e.vehicleType.name} (${e._count.assignments} jobs)`).join(', ')} — jobs are assigned to it`,
+      );
+    }
     await this.prisma.$transaction([
-      this.prisma.supplierCarType.deleteMany({ where: { supplierId } }),
-      ...vehicleTypeIds.map((vehicleTypeId) =>
-        this.prisma.supplierCarType.create({
-          data: { supplierId, vehicleTypeId },
+      ...(removed.length ? [this.prisma.supplierCarType.deleteMany({ where: { id: { in: removed.map((e) => e.id) } } })] : []),
+      ...wanted.map((vehicleTypeId) =>
+        this.prisma.supplierCarType.upsert({
+          where: { supplierId_vehicleTypeId: { supplierId, vehicleTypeId } },
+          update: { quantity: qty(vehicleTypeId) },
+          create: { supplierId, vehicleTypeId, quantity: qty(vehicleTypeId) },
         }),
       ),
     ]);
-
     return this.getCarTypes(supplierId);
   }
 }

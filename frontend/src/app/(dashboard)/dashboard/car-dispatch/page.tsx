@@ -65,6 +65,9 @@ interface VehicleType {
   id: string;
   name: string;
   seatCapacity: number;
+  /** Supplier car types only: the supplier's row id and the number of cars agreed. */
+  supplierCarTypeId?: string;
+  quantity?: number;
 }
 
 interface Vehicle {
@@ -79,6 +82,35 @@ interface Vehicle {
   carModel?: string | null;
   /** Card header colour chosen on the vehicle page (null = automatic). */
   cardColor?: string | null;
+  /** Supplier cards: which supplier car type, which of its agreed cars (1..quantity). */
+  supplierCarTypeId?: string;
+  supplierCarNo?: number;
+  quantity?: number;
+}
+
+/** A supplier card: "<supplier> · n/qty" for one of the supplier's agreed cars of a type. */
+function supplierCardVehicle(
+  supplierId: string,
+  supplierName: string,
+  type: VehicleType,
+  supplierCarTypeId: string | undefined,
+  n: number,
+  qty: number,
+): Vehicle {
+  return {
+    id: `sup_${supplierId}_${type.id}_${n}`,
+    plateNumber: `${supplierName} · ${n}/${qty}`,
+    vehicleTypeId: type.id,
+    vehicleType: type,
+    ownership: "CONTRACTED",
+    supplierId,
+    isActive: true,
+    carBrand: null,
+    carModel: null,
+    supplierCarTypeId,
+    supplierCarNo: n,
+    quantity: qty,
+  };
 }
 
 interface Customer {
@@ -435,7 +467,7 @@ function CarDispatchContent() {
   const [cancelling, setCancelling] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
   const [selectedSupplierCarTypeId, setSelectedSupplierCarTypeId] = useState("");
-  const [supplierCarTypes, setSupplierCarTypes] = useState<VehicleType[]>([]);
+  const [supplierCarTypes, setSupplierCarTypes] = useState<VehicleType[]>([]); // + supplierCarTypeId, quantity
 
   // ─── Fetch reference data ───
   const fetchData = useCallback(async () => {
@@ -532,11 +564,31 @@ function CarDispatchContent() {
         ...(dayData.cityJobs || dayData.city || []),
       ];
 
-      // Group jobs by assigned vehicleId
+      // Group jobs by assigned vehicleId — supplier jobs by supplier car (type + car number)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const jobsByVehicle: Record<string, any[]> = {};
+      const supplierVehicles: Record<string, Vehicle> = {};
       for (const j of allJobs) {
-        const vId = j.assignment?.vehicleId;
+        const a = j.assignment;
+        let vId: string | undefined = a?.vehicleId;
+        if (!vId && a?.supplierCarTypeId && a.supplierCarType && a.supplierId) {
+          const type: VehicleType = {
+            ...a.supplierCarType.vehicleType,
+            supplierCarTypeId: a.supplierCarTypeId,
+            quantity: a.supplierCarType.quantity ?? 1,
+          };
+          const n = a.supplierCarNo ?? 1;
+          const v = supplierCardVehicle(
+            a.supplierId,
+            a.supplier?.tradeName || a.supplier?.legalName || "Supplier",
+            type,
+            a.supplierCarTypeId,
+            n,
+            Math.max(type.quantity ?? 1, n),
+          );
+          supplierVehicles[v.id] = v;
+          vId = v.id;
+        }
         if (!vId) continue;
         if (!jobsByVehicle[vId]) jobsByVehicle[vId] = [];
         jobsByVehicle[vId].push(j);
@@ -584,15 +636,21 @@ function CarDispatchContent() {
         assignmentId: j.assignment?.id,
       });
 
-      setCards((prev) =>
-        prev.map((card) => {
+      setCards((prev) => {
+        const kept = prev.map((card) => {
           const existingJobs = jobsByVehicle[card.vehicle.id] || [];
           const existingRows = existingJobs.map(toJobRow);
           // Keep unsaved rows the user is currently editing
           const unsavedRows = card.jobs.filter((r) => !r.saved);
           return { ...card, jobs: [...existingRows, ...unsavedRows] };
-        })
-      );
+        });
+        // Supplier cars with saved jobs that aren't on the board yet
+        const have = new Set(kept.map((c) => c.vehicle.id));
+        const added = Object.values(supplierVehicles)
+          .filter((v) => !have.has(v.id))
+          .map((v) => ({ vehicle: v, jobs: (jobsByVehicle[v.id] || []).map(toJobRow), isSupplier: true }));
+        return [...kept, ...added];
+      });
 
       // Auto-select owned vehicles that have jobs on this date
       const vehicleIdsWithJobs = new Set(Object.keys(jobsByVehicle));
@@ -619,24 +677,26 @@ function CarDispatchContent() {
     const carType = supplierCarTypes.find((ct) => ct.id === selectedSupplierCarTypeId);
     if (!carType) return;
     const supplier = suppliers.find((s) => s.id === selectedSupplierId);
-    // Create a virtual vehicle card representing this supplier + car type
-    const virtualId = `sup_${selectedSupplierId}_${selectedSupplierCarTypeId}`;
-    if (cards.some((c) => c.vehicle.id === virtualId)) return;
-    const virtualVehicle: Vehicle = {
-      id: virtualId,
-      plateNumber: supplier?.tradeName || supplier?.legalName || "Supplier",
-      vehicleTypeId: carType.id,
-      vehicleType: carType,
-      ownership: "CONTRACTED",
-      supplierId: selectedSupplierId,
-      isActive: true,
-      carBrand: null,
-      carModel: null,
-    };
-    setCards((prev) => [
-      ...prev,
-      { vehicle: virtualVehicle, jobs: [], isSupplier: true },
-    ]);
+    const qty = carType.quantity ?? 1;
+    const used = new Set(
+      cards
+        .filter((c) => c.isSupplier && c.vehicle.supplierId === selectedSupplierId && c.vehicle.vehicleTypeId === carType.id)
+        .map((c) => c.vehicle.supplierCarNo ?? 1),
+    );
+    const n = Array.from({ length: qty }, (_, i) => i + 1).find((k) => !used.has(k));
+    if (!n) {
+      toast.error(`All ${qty} agreed ${carType.name} car(s) from ${supplier?.tradeName || supplier?.legalName || "this supplier"} are already on the board`);
+      return;
+    }
+    const virtualVehicle = supplierCardVehicle(
+      selectedSupplierId,
+      supplier?.tradeName || supplier?.legalName || "Supplier",
+      carType,
+      carType.supplierCarTypeId,
+      n,
+      qty,
+    );
+    setCards((prev) => [...prev, { vehicle: virtualVehicle, jobs: [], isSupplier: true }]);
     setAddCarOpen(false);
     setSelectedSupplierId("");
     setSelectedSupplierCarTypeId("");
@@ -846,6 +906,20 @@ function CarDispatchContent() {
           }
         }
         await api.post("/dispatch/assign", assignPayload);
+      } else if (created.id && card.isSupplier && card.vehicle.supplierCarTypeId) {
+        try {
+          await api.post("/dispatch/assign", {
+            trafficJobId: created.id,
+            supplierCarTypeId: card.vehicle.supplierCarTypeId,
+            supplierId: card.vehicle.supplierId,
+            supplierCarNo: card.vehicle.supplierCarNo ?? 1,
+            ...(job.extraDriverName ? { externalDriverName: job.extraDriverName } : {}),
+            ...(job.extraDriverPhone ? { externalDriverPhone: job.extraDriverPhone } : {}),
+          });
+        } catch (e: unknown) {
+          const m = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+          toast.warning(`Job ${created.internalRef || ""} saved but not assigned to the supplier car${m ? `: ${m}` : ""} — assign it on Dispatch`);
+        }
       }
       if (hasColors(job.colors)) {
         api.patch(`/dispatch/jobs/${created.id}/colors`, { colors: job.colors }).catch(() => toast.error("Row colours were not saved"));
@@ -1156,10 +1230,15 @@ function CarDispatchContent() {
                   </p>
                 ) : (
                   <ComboSelect
-                    options={supplierCarTypes.map((ct) => ({
-                      value: ct.id,
-                      label: `${ct.name} (${ct.seatCapacity} seats)`,
-                    }))}
+                    options={supplierCarTypes.map((ct) => {
+                      const onBoard = cards.filter(
+                        (c) => c.isSupplier && c.vehicle.supplierId === selectedSupplierId && c.vehicle.vehicleTypeId === ct.id,
+                      ).length;
+                      return {
+                        value: ct.id,
+                        label: `${ct.name} (${ct.seatCapacity} seats) · ${onBoard}/${ct.quantity ?? 1} on the board`,
+                      };
+                    })}
                     value={selectedSupplierCarTypeId}
                     onChange={setSelectedSupplierCarTypeId}
                     placeholder="Select car type..."

@@ -16,11 +16,11 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `AccordionContent` | function | `frontend/src/components/ui/accordion.tsx:57` |
 | `AccordionItem` | function | `frontend/src/components/ui/accordion.tsx:22` |
 | `AccordionTrigger` | function | `frontend/src/components/ui/accordion.tsx:35` |
-| `Account` | model | `backend/prisma/schema.prisma:1731` |
+| `Account` | model | `backend/prisma/schema.prisma:1735` |
 | `AckJobAlertDto` | class | `backend/src/common/dto/job-alerts.dto.ts:5` |
 | `acknowledgeAlarm` | function | `mobile/packages/shared/src/native/job-alerts.ts:322` |
 | `ActionButton` | function | `mobile/packages/ui/src/kit/kit.tsx:267` |
-| `ActivityLog` | model | `backend/prisma/schema.prisma:1505` |
+| `ActivityLog` | model | `backend/prisma/schema.prisma:1509` |
 | `ActivityLogPage` | function | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx:120` |
 | `ActivityLogsController` | class | `backend/src/activity-logs/activity-logs.controller.ts:20` |
 | `ActivityLogsController.exportExcel` | method | `backend/src/activity-logs/activity-logs.controller.ts:30` |
@@ -45,7 +45,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `Agent` | type | `frontend/src/types/index.ts:158` |
 | `Agent` | type | `mobile/packages/shared/src/types/index.ts:160` |
 | `AGENT_ADJUSTMENT_STATUSES` | const | `backend/src/complaints/dto/agent-adjustment.dto.ts:11` |
-| `AgentAdjustment` | model | `backend/prisma/schema.prisma:2777` |
+| `AgentAdjustment` | model | `backend/prisma/schema.prisma:2781` |
 | `AgentAdjustment` | type | `frontend/src/lib/complaints.ts:153` |
 | `AgentAdjustmentQueryDto` | class | `backend/src/complaints/dto/agent-adjustment.dto.ts:18` |
 | `AgentAdjustmentsController` | class | `backend/src/complaints/agent-adjustments.controller.ts:27` |
@@ -72,7 +72,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `AgentDetailPage` | function | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx:42` |
 | `AgentDocument` | model | `backend/prisma/schema.prisma:820` |
 | `AgentDocument` | type | `frontend/src/types/index.ts:192` |
-| `AgentInvoice` | model | `backend/prisma/schema.prisma:1654` |
+| `AgentInvoice` | model | `backend/prisma/schema.prisma:1658` |
 | `AgentInvoice` | type | `frontend/src/types/index.ts:298` |
 | `AgentInvoiceCycle` | model | `backend/prisma/schema.prisma:848` |
 | `AgentInvoiceCycle` | type | `frontend/src/types/index.ts:184` |
@@ -135,7 +135,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `Airport` | type | `frontend/src/types/index.ts:46` |
 | `Airport` | type | `mobile/packages/shared/src/types/index.ts:50` |
 | `alarmBody` | function | `mobile/packages/shared/src/native/job-alerts.ts:126` |
-| `AlarmDevice` | model | `backend/prisma/schema.prisma:3110` |
+| `AlarmDevice` | model | `backend/prisma/schema.prisma:3114` |
 | `AlarmJob` | type | `mobile/packages/shared/src/native/job-alerts.ts:46` |
 | `AlarmKeyInfo` | type | `mobile/packages/shared/src/native/job-alerts.ts:74` |
 | `AlarmKind` | type | `mobile/packages/shared/src/native/job-alerts.ts:44` |
@@ -346,9 +346,9 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `badgeVariants` | const | `frontend/src/components/ui/badge.tsx:7` |
 | `base32Decode` | function | `backend/src/common/utils/totp.util.ts:28` |
 | `base32Encode` | function | `backend/src/common/utils/totp.util.ts:12` |
-| `BlogCategory` | model | `backend/prisma/schema.prisma:2346` |
-| `BlogPost` | model | `backend/prisma/schema.prisma:2358` |
-| `BlogPostTranslation` | model | `backend/prisma/schema.prisma:2465` |
+| `BlogCategory` | model | `backend/prisma/schema.prisma:2350` |
+| `BlogPost` | model | `backend/prisma/schema.prisma:2362` |
+| `BlogPostTranslation` | model | `backend/prisma/schema.prisma:2469` |
 | `bookingCancellationTemplate` | function | `backend/src/email/templates/index.ts:139` |
 | `BookingChannelBadge` | function | `frontend/src/components/booking-channel-badge.tsx:18` |
 | `bookingConfirmationTemplate` | function | `backend/src/email/templates/index.ts:80` |
@@ -397,7 +397,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `CardFooter` | function | `frontend/src/components/ui/card.tsx:74` |
 | `CardGridSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:95` |
 | `CardHeader` | function | `frontend/src/components/ui/card.tsx:18` |
-| `CarDispatchPage` | function | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx:399` |
+| `CarDispatchPage` | function | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx:431` |
 | `CardSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:113` |
 | `CardTitle` | function | `frontend/src/components/ui/card.tsx:31` |
 | `categoryNames` | function | `frontend/src/lib/complaints.ts:311` |
@@ -432,11 +432,11 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ChatAnnouncementsSummary` | type | `mobile/packages/shared/src/api/endpoints/chat.ts:86` |
 | `chatApi` | const | `mobile/packages/shared/src/api/endpoints/chat.ts:97` |
 | `ChatAvatar` | function | `mobile/packages/ui/src/chat/ChatInboxScreen.tsx:46` |
-| `ChatBroadcast` | model | `backend/prisma/schema.prisma:2887` |
+| `ChatBroadcast` | model | `backend/prisma/schema.prisma:2891` |
 | `ChatBroadcastAudience` | type | `frontend/src/lib/chat.ts:13` |
 | `ChatBroadcastAudience` | type | `mobile/packages/shared/src/api/endpoints/chat.ts:8` |
 | `ChatBroadcastAudienceKey` | type | `backend/src/chat/chat.constants.ts:26` |
-| `ChatBroadcastRecipient` | model | `backend/prisma/schema.prisma:2912` |
+| `ChatBroadcastRecipient` | model | `backend/prisma/schema.prisma:2916` |
 | `ChatBubble` | function | `frontend/src/components/chat/chat-message.tsx:114` |
 | `ChatBubble` | function | `mobile/packages/ui/src/chat/ChatBubble.tsx:181` |
 | `ChatComposer` | function | `frontend/src/components/chat/chat-composer.tsx:47` |
@@ -462,7 +462,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ChatController.settings` | method | `backend/src/chat/chat.controller.ts:195` |
 | `ChatController.stream` | method | `backend/src/chat/chat.controller.ts:115` |
 | `ChatController.updateSettings` | method | `backend/src/chat/chat.controller.ts:201` |
-| `ChatConversation` | model | `backend/prisma/schema.prisma:2828` |
+| `ChatConversation` | model | `backend/prisma/schema.prisma:2832` |
 | `ChatConversationSummary` | type | `frontend/src/lib/chat.ts:27` |
 | `ChatConversationSummary` | type | `mobile/packages/shared/src/api/endpoints/chat.ts:22` |
 | `ChatImageViewer` | function | `mobile/packages/ui/src/chat/ChatThreadScreen.tsx:73` |
@@ -473,7 +473,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ChatLocationMap` | function | `frontend/src/components/chat/chat-location-map.tsx:11` |
 | `ChatMe` | type | `frontend/src/lib/chat.ts:63` |
 | `ChatMe` | type | `mobile/packages/shared/src/api/endpoints/chat.ts:71` |
-| `ChatMessage` | model | `backend/prisma/schema.prisma:2859` |
+| `ChatMessage` | model | `backend/prisma/schema.prisma:2863` |
 | `ChatMessage` | type | `frontend/src/lib/chat.ts:42` |
 | `ChatMessage` | type | `mobile/packages/shared/src/api/endpoints/chat.ts:37` |
 | `ChatMessagesPage` | type | `mobile/packages/shared/src/api/endpoints/chat.ts:64` |
@@ -555,8 +555,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `City` | model | `backend/prisma/schema.prisma:487` |
 | `City` | type | `frontend/src/types/index.ts:56` |
 | `City` | type | `mobile/packages/shared/src/types/index.ts:60` |
-| `CityPage` | model | `backend/prisma/schema.prisma:2316` |
-| `CityPageTranslation` | model | `backend/prisma/schema.prisma:2444` |
+| `CityPage` | model | `backend/prisma/schema.prisma:2320` |
+| `CityPageTranslation` | model | `backend/prisma/schema.prisma:2448` |
 | `clearChatNotifications` | function | `mobile/packages/shared/src/native/background-sync.ts:262` |
 | `cn` | function | `frontend/src/lib/utils.ts:4` |
 | `collectionAmount` | function | `mobile/apps/driver/src/lib/job-rules.ts:97` |
@@ -574,8 +574,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `CommandSeparator` | function | `frontend/src/components/ui/command.tsx:129` |
 | `CommandShortcut` | function | `frontend/src/components/ui/command.tsx:158` |
 | `CompanyPage` | function | `frontend/src/app/(dashboard)/dashboard/company/page.tsx:65` |
-| `CompanySettings` | model | `backend/prisma/schema.prisma:1809` |
-| `Complaint` | model | `backend/prisma/schema.prisma:2589` |
+| `CompanySettings` | model | `backend/prisma/schema.prisma:1813` |
+| `Complaint` | model | `backend/prisma/schema.prisma:2593` |
 | `Complaint` | type | `frontend/src/lib/complaints.ts:43` |
 | `COMPLAINT_ATTACHMENT_KINDS` | const | `backend/src/complaints/dto/complaint-constants.ts:37` |
 | `COMPLAINT_OUTCOMES` | const | `backend/src/complaints/dto/complaint-constants.ts:22` |
@@ -594,7 +594,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ComplaintAnalyticsService.round` | method | `backend/src/complaints/complaint-analytics.service.ts:407` |
 | `ComplaintAnalyticsService.summary` | method | `backend/src/complaints/complaint-analytics.service.ts:44` |
 | `ComplaintAnalyticsService.toSlices` | method | `backend/src/complaints/complaint-analytics.service.ts:385` |
-| `ComplaintAttachment` | model | `backend/prisma/schema.prisma:2678` |
+| `ComplaintAttachment` | model | `backend/prisma/schema.prisma:2682` |
 | `ComplaintAttachment` | type | `frontend/src/lib/complaints.ts:111` |
 | `ComplaintCategoriesController` | class | `backend/src/complaints/complaint-categories.controller.ts:23` |
 | `ComplaintCategoriesController.create` | method | `backend/src/complaints/complaint-categories.controller.ts:42` |
@@ -609,10 +609,10 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ComplaintCategoriesService.findOne` | method | `backend/src/complaints/complaint-categories.service.ts:20` |
 | `ComplaintCategoriesService.remove` | method | `backend/src/complaints/complaint-categories.service.ts:62` |
 | `ComplaintCategoriesService.update` | method | `backend/src/complaints/complaint-categories.service.ts:43` |
-| `ComplaintCategory` | model | `backend/prisma/schema.prisma:2545` |
+| `ComplaintCategory` | model | `backend/prisma/schema.prisma:2549` |
 | `ComplaintCategory` | type | `frontend/src/lib/complaints.ts:33` |
-| `ComplaintCategoryLink` | model | `backend/prisma/schema.prisma:2576` |
-| `ComplaintCharge` | model | `backend/prisma/schema.prisma:2733` |
+| `ComplaintCategoryLink` | model | `backend/prisma/schema.prisma:2580` |
+| `ComplaintCharge` | model | `backend/prisma/schema.prisma:2737` |
 | `ComplaintCharge` | type | `frontend/src/lib/complaints.ts:124` |
 | `ComplaintChargePanel` | function | `frontend/src/components/complaints/complaint-charge-panel.tsx:60` |
 | `ComplaintChargesController` | class | `backend/src/complaints/complaint-charges.controller.ts:36` |
@@ -640,7 +640,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ComplaintChargeStatus` | type | `frontend/src/lib/complaints.ts:122` |
 | `ComplaintDetailDialog` | function | `frontend/src/components/complaints/complaint-detail-dialog.tsx:95` |
 | `ComplaintFormDialog` | function | `frontend/src/components/complaints/complaint-form-dialog.tsx:102` |
-| `ComplaintMessage` | model | `backend/prisma/schema.prisma:2703` |
+| `ComplaintMessage` | model | `backend/prisma/schema.prisma:2707` |
 | `ComplaintOutcome` | type | `frontend/src/lib/complaints.ts:18` |
 | `ComplaintOutcomeRadios` | function | `frontend/src/components/complaints/complaint-outcome-radios.tsx:23` |
 | `ComplaintParty` | type | `frontend/src/lib/complaints.ts:22` |
@@ -720,14 +720,14 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `ComplaintThreadService.summaries` | method | `backend/src/complaints/complaint-thread.service.ts:96` |
 | `ComplaintThreadService.threadsForStaff` | method | `backend/src/complaints/complaint-thread.service.ts:372` |
 | `ComplaintThreadService.toMessage` | method | `backend/src/complaints/complaint-thread.service.ts:189` |
-| `CompletedEvidence` | model | `backend/prisma/schema.prisma:2065` |
+| `CompletedEvidence` | model | `backend/prisma/schema.prisma:2069` |
 | `CompletedEvidenceDialog` | function | `frontend/src/components/completed-evidence-dialog.tsx:47` |
 | `completeGate` | function | `mobile/apps/driver/src/lib/job-rules.ts:40` |
 | `compressImage` | function | `frontend/src/lib/compress-image.ts:11` |
 | `compressImages` | function | `frontend/src/lib/compress-image.ts:45` |
 | `configureApi` | function | `mobile/packages/shared/src/config.ts:10` |
 | `ConfirmationScreen` | function | `mobile/apps/guest/src/screens/ConfirmationScreen.tsx:25` |
-| `ContactMessage` | model | `backend/prisma/schema.prisma:2523` |
+| `ContactMessage` | model | `backend/prisma/schema.prisma:2527` |
 | `ContactMessagesAdminController` | class | `backend/src/contact-messages/contact-messages.admin.controller.ts:26` |
 | `ContactMessagesAdminController.list` | method | `backend/src/contact-messages/contact-messages.admin.controller.ts:30` |
 | `ContactMessagesAdminController.remove` | method | `backend/src/contact-messages/contact-messages.admin.controller.ts:45` |
@@ -774,7 +774,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `CreateVehicleDto` | class | `backend/src/vehicles/dto/create-vehicle.dto.ts:3` |
 | `CreateVehicleTypeDto` | class | `backend/src/vehicles/dto/create-vehicle-type.dto.ts:11` |
 | `CreateZoneDto` | class | `backend/src/locations/dto/create-zone.dto.ts:3` |
-| `CronRunLock` | model | `backend/prisma/schema.prisma:1491` |
+| `CronRunLock` | model | `backend/prisma/schema.prisma:1495` |
 | `CrudType` | type | `frontend/src/lib/permission-registry.ts:9` |
 | `CURRENCIES` | const | `backend/src/complaints/dto/complaint-constants.ts:39` |
 | `CURRENCIES` | const | `frontend/src/lib/complaints.ts:31` |
@@ -790,7 +790,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `CustomerPricingService` | class | `backend/src/job-pricing/customer-pricing.service.ts:37` |
 | `CustomerPricingService.quote` | method | `backend/src/job-pricing/customer-pricing.service.ts:81` |
 | `CustomerPricingService.syncJobPrice` | method | `backend/src/job-pricing/customer-pricing.service.ts:43` |
-| `CustomerRoutePrice` | model | `backend/prisma/schema.prisma:3057` |
+| `CustomerRoutePrice` | model | `backend/prisma/schema.prisma:3061` |
 | `CustomersController` | class | `backend/src/customers/customers.controller.ts:38` |
 | `CustomersController.bulkDelete` | method | `backend/src/customers/customers.controller.ts:127` |
 | `CustomersController.create` | method | `backend/src/customers/customers.controller.ts:100` |
@@ -880,7 +880,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `destinationSub` | function | `mobile/apps/rep/src/lib/job-rules.ts:84` |
 | `DetailSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:154` |
 | `deviceNameFromUA` | function | `backend/src/sessions/sessions.service.ts:13` |
-| `DeviceToken` | model | `backend/prisma/schema.prisma:2191` |
+| `DeviceToken` | model | `backend/prisma/schema.prisma:2195` |
 | `Dialog` | function | `frontend/src/components/ui/dialog.tsx:10` |
 | `Dialog` | function | `mobile/packages/ui/src/Dialog.tsx:14` |
 | `DialogButton` | type | `mobile/packages/shared/src/utils/dialog.ts:12` |
@@ -917,27 +917,27 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DispatchModule` | class | `backend/src/dispatch/dispatch.module.ts:17` |
 | `DispatchPage` | function | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx:1901` |
 | `DispatchService` | class | `backend/src/dispatch/dispatch.service.ts:26` |
-| `DispatchService.assignJob` | method | `backend/src/dispatch/dispatch.service.ts:140` |
-| `DispatchService.checkDispatcherTimelock` | method | `backend/src/dispatch/dispatch.service.ts:1160` |
-| `DispatchService.customerReport` | method | `backend/src/dispatch/dispatch.service.ts:792` |
-| `DispatchService.customerReportXlsx` | method | `backend/src/dispatch/dispatch.service.ts:847` |
-| `DispatchService.detectAssignmentConflicts` | method | `backend/src/dispatch/dispatch.service.ts:1216` |
-| `DispatchService.getAvailableDrivers` | method | `backend/src/dispatch/dispatch.service.ts:1005` |
-| `DispatchService.getAvailableReps` | method | `backend/src/dispatch/dispatch.service.ts:1030` |
-| `DispatchService.getAvailableSuppliers` | method | `backend/src/dispatch/dispatch.service.ts:966` |
-| `DispatchService.getAvailableVehicles` | method | `backend/src/dispatch/dispatch.service.ts:893` |
+| `DispatchService.assignJob` | method | `backend/src/dispatch/dispatch.service.ts:141` |
+| `DispatchService.checkDispatcherTimelock` | method | `backend/src/dispatch/dispatch.service.ts:1168` |
+| `DispatchService.customerReport` | method | `backend/src/dispatch/dispatch.service.ts:799` |
+| `DispatchService.customerReportXlsx` | method | `backend/src/dispatch/dispatch.service.ts:854` |
+| `DispatchService.detectAssignmentConflicts` | method | `backend/src/dispatch/dispatch.service.ts:1224` |
+| `DispatchService.getAvailableDrivers` | method | `backend/src/dispatch/dispatch.service.ts:1013` |
+| `DispatchService.getAvailableReps` | method | `backend/src/dispatch/dispatch.service.ts:1038` |
+| `DispatchService.getAvailableSuppliers` | method | `backend/src/dispatch/dispatch.service.ts:974` |
+| `DispatchService.getAvailableVehicles` | method | `backend/src/dispatch/dispatch.service.ts:900` |
 | `DispatchService.getDayView` | method | `backend/src/dispatch/dispatch.service.ts:44` |
-| `DispatchService.getJobReferenceTime` | method | `backend/src/dispatch/dispatch.service.ts:1185` |
-| `DispatchService.lockJob` | method | `backend/src/dispatch/dispatch.service.ts:1139` |
-| `DispatchService.mainDrivers` | method | `backend/src/dispatch/dispatch.service.ts:872` |
-| `DispatchService.reassignJob` | method | `backend/src/dispatch/dispatch.service.ts:433` |
-| `DispatchService.sendStaffAssignmentEmail` | method | `backend/src/dispatch/dispatch.service.ts:383` |
-| `DispatchService.setJobColors` | method | `backend/src/dispatch/dispatch.service.ts:773` |
-| `DispatchService.unassignJob` | method | `backend/src/dispatch/dispatch.service.ts:717` |
-| `DispatchService.unlockJob` | method | `backend/src/dispatch/dispatch.service.ts:1123` |
-| `DispatchService.validateDriverAvailability` | method | `backend/src/dispatch/dispatch.service.ts:1260` |
-| `DispatchService.validateRepAvailability` | method | `backend/src/dispatch/dispatch.service.ts:1280` |
-| `DispatchService.validateVehicleAvailability` | method | `backend/src/dispatch/dispatch.service.ts:1202` |
+| `DispatchService.getJobReferenceTime` | method | `backend/src/dispatch/dispatch.service.ts:1193` |
+| `DispatchService.lockJob` | method | `backend/src/dispatch/dispatch.service.ts:1147` |
+| `DispatchService.mainDrivers` | method | `backend/src/dispatch/dispatch.service.ts:879` |
+| `DispatchService.reassignJob` | method | `backend/src/dispatch/dispatch.service.ts:440` |
+| `DispatchService.sendStaffAssignmentEmail` | method | `backend/src/dispatch/dispatch.service.ts:390` |
+| `DispatchService.setJobColors` | method | `backend/src/dispatch/dispatch.service.ts:780` |
+| `DispatchService.unassignJob` | method | `backend/src/dispatch/dispatch.service.ts:724` |
+| `DispatchService.unlockJob` | method | `backend/src/dispatch/dispatch.service.ts:1131` |
+| `DispatchService.validateDriverAvailability` | method | `backend/src/dispatch/dispatch.service.ts:1268` |
+| `DispatchService.validateRepAvailability` | method | `backend/src/dispatch/dispatch.service.ts:1288` |
+| `DispatchService.validateVehicleAvailability` | method | `backend/src/dispatch/dispatch.service.ts:1210` |
 | `DispatchSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:281` |
 | `DocumentType` | type | `frontend/src/types/index.ts:10` |
 | `downloadBlob` | function | `frontend/src/lib/print-report.ts:56` |
@@ -955,9 +955,9 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DriverDetailPage` | function | `frontend/src/app/(dashboard)/dashboard/drivers/[id]/page.tsx:147` |
 | `DriverHistoryPage` | function | `frontend/src/app/(driver-portal)/driver/history/page.tsx:74` |
 | `DriverJobCard` | function | `mobile/apps/driver/src/components/DriverJobCard.tsx:21` |
-| `DriverJobScore` | model | `backend/prisma/schema.prisma:2165` |
+| `DriverJobScore` | model | `backend/prisma/schema.prisma:2169` |
 | `driverLine` | function | `mobile/apps/rep/src/lib/job-rules.ts:93` |
-| `DriverNotification` | model | `backend/prisma/schema.prisma:1979` |
+| `DriverNotification` | model | `backend/prisma/schema.prisma:1983` |
 | `driverPortalApi` | const | `mobile/packages/shared/src/api/endpoints/driver-portal.ts:15` |
 | `DriverPortalController` | class | `backend/src/driver-portal/driver-portal.controller.ts:85` |
 | `DriverPortalController.ackAlert` | method | `backend/src/driver-portal/driver-portal.controller.ts:111` |
@@ -1048,7 +1048,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DriversService.unassignVehicle` | method | `backend/src/drivers/drivers.service.ts:238` |
 | `DriversService.update` | method | `backend/src/drivers/drivers.service.ts:116` |
 | `DriversService.updateAttachment` | method | `backend/src/drivers/drivers.service.ts:173` |
-| `DriverTariffRate` | model | `backend/prisma/schema.prisma:1570` |
+| `DriverTariffRate` | model | `backend/prisma/schema.prisma:1574` |
 | `DriverTariffsController` | class | `backend/src/driver-tariffs/driver-tariffs.controller.ts:14` |
 | `DriverTariffsController.grid` | method | `backend/src/driver-tariffs/driver-tariffs.controller.ts:19` |
 | `DriverTariffsController.save` | method | `backend/src/driver-tariffs/driver-tariffs.controller.ts:25` |
@@ -1062,7 +1062,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DriverTariffsService.resolveJobTripFee` | method | `backend/src/driver-tariffs/driver-tariffs.service.ts:55` |
 | `DriverTariffsService.saveCells` | method | `backend/src/driver-tariffs/driver-tariffs.service.ts:25` |
 | `DriverTrackingPage` | function | `frontend/src/app/(dashboard)/dashboard/driver-tracking/page.tsx:6` |
-| `DriverTripFee` | model | `backend/prisma/schema.prisma:1537` |
+| `DriverTripFee` | model | `backend/prisma/schema.prisma:1541` |
 | `DriverVehicle` | model | `backend/prisma/schema.prisma:720` |
 | `DriverVehicle` | type | `frontend/src/types/index.ts:133` |
 | `DriverVehicle` | type | `mobile/packages/shared/src/types/index.ts:137` |
@@ -1122,7 +1122,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `EmailService.sendPaymentReceipt` | method | `backend/src/email/email.service.ts:271` |
 | `EmailService.sendStaffAssignment` | method | `backend/src/email/email.service.ts:423` |
 | `EmailService.sendTestEmail` | method | `backend/src/email/email.service.ts:516` |
-| `EmailSettings` | model | `backend/prisma/schema.prisma:1881` |
+| `EmailSettings` | model | `backend/prisma/schema.prisma:1885` |
 | `EmailSettingsPage` | function | `frontend/src/app/(dashboard)/dashboard/email-settings/page.tsx:33` |
 | `EmptyState` | function | `frontend/src/components/ui/empty-state.tsx:9` |
 | `EmptyState` | function | `mobile/packages/ui/src/EmptyState.tsx:17` |
@@ -1681,7 +1681,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `GoogleDriveService.testConnection` | method | `backend/src/google-drive/google-drive.service.ts:305` |
 | `GoogleDriveService.uploadFile` | method | `backend/src/google-drive/google-drive.service.ts:190` |
 | `GoogleDriveService.uploadToDrive` | method | `backend/src/google-drive/google-drive.service.ts:215` |
-| `GoogleDriveSettings` | model | `backend/prisma/schema.prisma:2295` |
+| `GoogleDriveSettings` | model | `backend/prisma/schema.prisma:2299` |
 | `googleMapsNavUrl` | function | `frontend/src/lib/maps-nav.ts:79` |
 | `googleMapsNavUrl` | function | `mobile/packages/shared/src/native/navigation.ts:75` |
 | `GooglePlacesAutocomplete` | function | `frontend/src/components/google-places-autocomplete.tsx:26` |
@@ -1707,7 +1707,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `GuestBookingsService.generateInternalRef` | method | `backend/src/guest-bookings/guest-bookings.service.ts:330` |
 | `GuestBookingStatus` | type | `mobile/packages/shared/src/types/index.ts:14` |
 | `GuestDetailsScreen` | function | `mobile/apps/guest/src/screens/GuestDetailsScreen.tsx:16` |
-| `GuestSurvey` | model | `backend/prisma/schema.prisma:2133` |
+| `GuestSurvey` | model | `backend/prisma/schema.prisma:2137` |
 | `GuestSurveyDialog` | function | `frontend/src/components/guest-survey-dialog.tsx:61` |
 | `GuestSurveyInput` | type | `mobile/packages/shared/src/types/index.ts:381` |
 | `GuestSurveyPayload` | type | `mobile/packages/shared/src/types/index.ts:397` |
@@ -1739,7 +1739,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | Symbol | Kind | Location |
 |---|---|---|
 | `Icon` | function | `mobile/packages/ui/src/Icon.tsx:19` |
-| `ImportNameAlias` | model | `backend/prisma/schema.prisma:2980` |
+| `ImportNameAlias` | model | `backend/prisma/schema.prisma:2984` |
 | `ImportTemplateManager` | function | `frontend/src/components/import-template-manager.tsx:59` |
 | `ImportTemplatesController` | class | `backend/src/import-templates/import-templates.controller.ts:46` |
 | `ImportTemplatesController.create` | method | `backend/src/import-templates/import-templates.controller.ts:72` |
@@ -1756,10 +1756,10 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `inEgypt` | function | `backend/src/common/utils/place-match.util.ts:82` |
 | `InfoLine` | function | `mobile/packages/ui/src/kit/kit.tsx:389` |
 | `initials` | function | `frontend/src/components/tracking/types.ts:80` |
-| `InPlaceEvidence` | model | `backend/prisma/schema.prisma:2044` |
+| `InPlaceEvidence` | model | `backend/prisma/schema.prisma:2048` |
 | `InPlaceEvidenceDialog` | function | `frontend/src/components/in-place-evidence-dialog.tsx:37` |
 | `inPlaceWindow` | function | `mobile/apps/rep/src/lib/job-rules.ts:30` |
-| `InProgressEvidence` | model | `backend/prisma/schema.prisma:2086` |
+| `InProgressEvidence` | model | `backend/prisma/schema.prisma:2090` |
 | `InProgressEvidenceDialog` | function | `frontend/src/components/in-progress-evidence-dialog.tsx:34` |
 | `Input` | function | `frontend/src/components/ui/input.tsx:5` |
 | `Input` | const | `mobile/packages/ui/src/Input.tsx:18` |
@@ -1774,7 +1774,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `InvoiceExportService.generateInvoicePdf` | method | `backend/src/finance/invoice-export.service.ts:106` |
 | `InvoiceExportService.sanitizeForPdf` | method | `backend/src/finance/invoice-export.service.ts:90` |
 | `InvoiceExportService.stripHtml` | method | `backend/src/finance/invoice-export.service.ts:84` |
-| `InvoiceLine` | model | `backend/prisma/schema.prisma:1685` |
+| `InvoiceLine` | model | `backend/prisma/schema.prisma:1689` |
 | `InvoiceLine` | type | `frontend/src/types/index.ts:320` |
 | `InvoiceLineDto` | class | `backend/src/finance/dto/create-invoice.dto.ts:16` |
 | `InvoiceSchedulerService` | class | `backend/src/finance/invoice-scheduler.service.ts:28` |
@@ -1811,7 +1811,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `JobAlarmsPublicController.ack` | method | `backend/src/common/services/job-alarms-public.controller.ts:24` |
 | `JobAlarmsPublicController.list` | method | `backend/src/common/services/job-alarms-public.controller.ts:17` |
 | `JobAlarmsPublicController.off` | method | `backend/src/common/services/job-alarms-public.controller.ts:31` |
-| `JobAlertAck` | model | `backend/prisma/schema.prisma:2954` |
+| `JobAlertAck` | model | `backend/prisma/schema.prisma:2958` |
 | `JobAlertsModule` | class | `backend/src/common/services/job-alerts.module.ts:10` |
 | `JobAlertsService` | class | `backend/src/common/services/job-alerts.service.ts:54` |
 | `JobAlertsService.acknowledge` | method | `backend/src/common/services/job-alerts.service.ts:168` |
@@ -1882,7 +1882,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `JobPricingModule` | class | `backend/src/job-pricing/job-pricing.module.ts:15` |
 | `JobPricingService` | class | `backend/src/job-pricing/job-pricing.service.ts:12` |
 | `JobPricingService.syncJob` | method | `backend/src/job-pricing/job-pricing.service.ts:18` |
-| `JobServiceType` | model | `backend/prisma/schema.prisma:1586` |
+| `JobServiceType` | model | `backend/prisma/schema.prisma:1590` |
 | `JobServiceTypesController` | class | `backend/src/job-service-types/job-service-types.controller.ts:16` |
 | `JobServiceTypesController.create` | method | `backend/src/job-service-types/job-service-types.controller.ts:60` |
 | `JobServiceTypesController.downloadTemplate` | method | `backend/src/job-service-types/job-service-types.controller.ts:36` |
@@ -1914,8 +1914,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `JobUpdateEmailData` | type | `backend/src/email/email.service.ts:114` |
 | `jobUpdateNotificationTemplate` | function | `backend/src/email/templates/index.ts:209` |
 | `JobUpdateScreen` | function | `mobile/apps/rep/src/screens/JobFormsScreens.tsx:135` |
-| `JournalEntry` | model | `backend/prisma/schema.prisma:1745` |
-| `JournalLine` | model | `backend/prisma/schema.prisma:1762` |
+| `JournalEntry` | model | `backend/prisma/schema.prisma:1749` |
+| `JournalLine` | model | `backend/prisma/schema.prisma:1766` |
 | `judgePlaceMatch` | function | `backend/src/common/utils/place-match.util.ts:98` |
 | `JwtAuthGuard` | class | `backend/src/common/guards/jwt-auth.guard.ts:7` |
 | `JwtAuthGuard.canActivate` | method | `backend/src/common/guards/jwt-auth.guard.ts:12` |
@@ -2121,7 +2121,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `NoShowDisputeService.embedImages` | method | `backend/src/driver-portal/no-show-dispute.service.ts:341` |
 | `NoShowDisputeService.generateAndSendDisputeReport` | method | `backend/src/driver-portal/no-show-dispute.service.ts:18` |
 | `NoShowDisputeService.sanitize` | method | `backend/src/driver-portal/no-show-dispute.service.ts:380` |
-| `NoShowEvidence` | model | `backend/prisma/schema.prisma:2023` |
+| `NoShowEvidence` | model | `backend/prisma/schema.prisma:2027` |
 | `NoShowEvidenceDialog` | function | `frontend/src/components/no-show-evidence-dialog.tsx:37` |
 | `noShowGate` | function | `mobile/apps/driver/src/lib/job-rules.ts:53` |
 | `noShowGate` | function | `mobile/apps/rep/src/lib/job-rules.ts:45` |
@@ -2191,8 +2191,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 |---|---|---|
 | `PageHeader` | function | `frontend/src/components/page-header.tsx:15` |
 | `PageHeaderSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:5` |
-| `PageSeo` | model | `backend/prisma/schema.prisma:2386` |
-| `PageSeoTranslation` | model | `backend/prisma/schema.prisma:2485` |
+| `PageSeo` | model | `backend/prisma/schema.prisma:2390` |
+| `PageSeoTranslation` | model | `backend/prisma/schema.prisma:2489` |
 | `PaginatedResponse` | class | `backend/src/common/dto/api-response.dto.ts:11` |
 | `PaginatedResponse` | type | `frontend/src/types/index.ts:345` |
 | `PaginatedResponse` | type | `mobile/packages/shared/src/types/index.ts:528` |
@@ -2294,7 +2294,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `PATCH /api/w-api/bookings/:ref` | endpoint | `backend/src/b2c/b2c.controller.ts:121` |
 | `PATCH /api/whatsapp-notifications/settings` | endpoint | `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:57` |
 | `PATCH /api/whatsapp-notifications/templates/:id` | endpoint | `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:87` |
-| `Payment` | model | `backend/prisma/schema.prisma:1707` |
+| `Payment` | model | `backend/prisma/schema.prisma:1711` |
 | `Payment` | type | `frontend/src/types/index.ts:332` |
 | `PaymentCustomer` | type | `backend/src/payments/gateways/gateway.interface.ts:12` |
 | `PaymentFailedData` | type | `backend/src/email/email.service.ts:51` |
@@ -2674,12 +2674,12 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `repEscortApplies` | function | `backend/src/common/geofence.util.ts:188` |
 | `RepEscortDialog` | function | `frontend/src/components/rep-escort-dialog.tsx:24` |
 | `RepEscortDto` | class | `backend/src/common/dto/job-alerts.dto.ts:25` |
-| `RepFee` | model | `backend/prisma/schema.prisma:1612` |
+| `RepFee` | model | `backend/prisma/schema.prisma:1616` |
 | `RepHistoryPage` | function | `frontend/src/app/(rep-portal)/rep/history/page.tsx:74` |
 | `RepJobCard` | function | `mobile/apps/rep/src/components/RepJobCard.tsx:21` |
-| `RepJobScore` | model | `backend/prisma/schema.prisma:2107` |
+| `RepJobScore` | model | `backend/prisma/schema.prisma:2111` |
 | `repLine` | function | `mobile/apps/driver/src/lib/job-rules.ts:92` |
-| `RepNotification` | model | `backend/prisma/schema.prisma:1957` |
+| `RepNotification` | model | `backend/prisma/schema.prisma:1961` |
 | `ReportsController` | class | `backend/src/reports/reports.controller.ts:214` |
 | `ReportsController.agentStatement` | method | `backend/src/reports/reports.controller.ts:254` |
 | `ReportsController.complaintsReport` | method | `backend/src/reports/reports.controller.ts:352` |
@@ -2842,7 +2842,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `responsibleParties` | function | `frontend/src/lib/complaints.ts:325` |
 | `RichTextEditor` | function | `frontend/src/components/rich-text-editor.tsx:73` |
 | `Role` | model | `backend/prisma/schema.prisma:278` |
-| `RolePermission` | model | `backend/prisma/schema.prisma:1938` |
+| `RolePermission` | model | `backend/prisma/schema.prisma:1942` |
 | `RolePermissionItemDto` | class | `backend/src/users/dto/update-role-permissions.dto.ts:12` |
 | `RolePermissionsService` | class | `backend/src/users/role-permissions.service.ts:44` |
 | `RolePermissionsService.bulkUpdate` | method | `backend/src/users/role-permissions.service.ts:72` |
@@ -3067,11 +3067,11 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `startGate` | function | `mobile/apps/driver/src/lib/job-rules.ts:31` |
 | `StatCardRowSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:32` |
 | `StatCardSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:18` |
-| `StaticPage` | model | `backend/prisma/schema.prisma:2403` |
-| `StaticPageTranslation` | model | `backend/prisma/schema.prisma:2503` |
+| `StaticPage` | model | `backend/prisma/schema.prisma:2407` |
+| `StaticPageTranslation` | model | `backend/prisma/schema.prisma:2507` |
 | `StatusBadge` | function | `frontend/src/components/ui/status-badge.tsx:43` |
 | `StatusBadge` | function | `mobile/packages/ui/src/StatusBadge.tsx:9` |
-| `StatusChangeLog` | model | `backend/prisma/schema.prisma:1472` |
+| `StatusChangeLog` | model | `backend/prisma/schema.prisma:1476` |
 | `statusColors` | const | `mobile/packages/shared/src/theme/colors.ts:93` |
 | `statusColors` | const | `mobile/packages/shared/src/theme/index.ts:33` |
 | `statusColorsDark` | const | `mobile/packages/shared/src/theme/colors.ts:104` |
@@ -3101,7 +3101,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `SupplierAutoCompleteService.autoCompleteJobs` | method | `backend/src/driver-portal/supplier-auto-complete.service.ts:28` |
 | `SupplierAutoCompleteService.autoCompleteSupplierDrivers` | method | `backend/src/driver-portal/supplier-auto-complete.service.ts:57` |
 | `SupplierCarType` | model | `backend/prisma/schema.prisma:1226` |
-| `SupplierCost` | model | `backend/prisma/schema.prisma:1631` |
+| `SupplierCost` | model | `backend/prisma/schema.prisma:1635` |
 | `SupplierCostingService` | class | `backend/src/supplier-price-lists/supplier-costing.service.ts:48` |
 | `SupplierCostingService.listOn` | method | `backend/src/supplier-price-lists/supplier-costing.service.ts:54` |
 | `SupplierCostingService.ownCarCostTotal` | method | `backend/src/supplier-price-lists/supplier-costing.service.ts:174` |
@@ -3126,9 +3126,9 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `SupplierPortalService.getMyJobs` | method | `backend/src/supplier-portal/supplier-portal.service.ts:50` |
 | `SupplierPortalService.getProfile` | method | `backend/src/supplier-portal/supplier-portal.service.ts:133` |
 | `SupplierPortalService.resolveSupplierId` | method | `backend/src/supplier-portal/supplier-portal.service.ts:40` |
-| `SupplierPriceList` | model | `backend/prisma/schema.prisma:2998` |
-| `SupplierPriceListAssignment` | model | `backend/prisma/schema.prisma:3019` |
-| `SupplierPriceListItem` | model | `backend/prisma/schema.prisma:3036` |
+| `SupplierPriceList` | model | `backend/prisma/schema.prisma:3002` |
+| `SupplierPriceListAssignment` | model | `backend/prisma/schema.prisma:3023` |
+| `SupplierPriceListItem` | model | `backend/prisma/schema.prisma:3040` |
 | `SupplierPriceListsController` | class | `backend/src/supplier-price-lists/supplier-price-lists.controller.ts:46` |
 | `SupplierPriceListsController.alerts` | method | `backend/src/supplier-price-lists/supplier-price-lists.controller.ts:58` |
 | `SupplierPriceListsController.create` | method | `backend/src/supplier-price-lists/supplier-price-lists.controller.ts:98` |
@@ -3214,12 +3214,12 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `SuppliersService.generateDriverImportTemplate` | method | `backend/src/suppliers/suppliers.service.ts:856` |
 | `SuppliersService.generateImportTemplate` | method | `backend/src/suppliers/suppliers.service.ts:532` |
 | `SuppliersService.generateVehicleImportTemplate` | method | `backend/src/suppliers/suppliers.service.ts:692` |
-| `SuppliersService.getCarTypes` | method | `backend/src/suppliers/suppliers.service.ts:931` |
+| `SuppliersService.getCarTypes` | method | `backend/src/suppliers/suppliers.service.ts:932` |
 | `SuppliersService.importDriversFromExcel` | method | `backend/src/suppliers/suppliers.service.ts:878` |
 | `SuppliersService.importFromExcel` | method | `backend/src/suppliers/suppliers.service.ts:589` |
 | `SuppliersService.importVehiclesFromExcel` | method | `backend/src/suppliers/suppliers.service.ts:732` |
 | `SuppliersService.resetPassword` | method | `backend/src/suppliers/suppliers.service.ts:475` |
-| `SuppliersService.setCarTypes` | method | `backend/src/suppliers/suppliers.service.ts:940` |
+| `SuppliersService.setCarTypes` | method | `backend/src/suppliers/suppliers.service.ts:946` |
 | `SuppliersService.toggleDriverStatus` | method | `backend/src/suppliers/suppliers.service.ts:410` |
 | `SuppliersService.toggleStatus` | method | `backend/src/suppliers/suppliers.service.ts:133` |
 | `SuppliersService.toggleVehicleStatus` | method | `backend/src/suppliers/suppliers.service.ts:299` |
@@ -3230,7 +3230,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `Surface` | function | `mobile/packages/ui/src/kit/kit.tsx:113` |
 | `SurveyScreen` | function | `mobile/apps/rep/src/screens/JobFormsScreens.tsx:217` |
 | `Switch` | function | `frontend/src/components/ui/switch.tsx:8` |
-| `SystemSettings` | model | `backend/prisma/schema.prisma:1787` |
+| `SystemSettings` | model | `backend/prisma/schema.prisma:1791` |
 
 ## T
 
@@ -3302,13 +3302,13 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `TrackingService.record` | method | `backend/src/tracking/tracking.service.ts:65` |
 | `TrackingService.todayDate` | method | `backend/src/tracking/tracking.service.ts:173` |
 | `TrackingView` | function | `frontend/src/components/tracking/tracking-view.tsx:89` |
-| `TrafficAssignment` | model | `backend/prisma/schema.prisma:1428` |
+| `TrafficAssignment` | model | `backend/prisma/schema.prisma:1430` |
 | `TrafficAssignment` | type | `frontend/src/types/index.ts:284` |
 | `TrafficAssignment` | type | `mobile/packages/shared/src/types/index.ts:208` |
-| `TrafficFlight` | model | `backend/prisma/schema.prisma:1412` |
+| `TrafficFlight` | model | `backend/prisma/schema.prisma:1414` |
 | `TrafficFlight` | type | `frontend/src/types/index.ts:274` |
 | `TrafficFlight` | type | `mobile/packages/shared/src/types/index.ts:198` |
-| `TrafficJob` | model | `backend/prisma/schema.prisma:1244` |
+| `TrafficJob` | model | `backend/prisma/schema.prisma:1246` |
 | `TrafficJob` | type | `frontend/src/types/index.ts:225` |
 | `TrafficJob` | type | `mobile/packages/shared/src/types/index.ts:221` |
 | `TrafficJobExtra` | model | `backend/prisma/schema.prisma:1035` |
@@ -3368,7 +3368,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `TripKmService.summary` | method | `backend/src/trip-km/trip-km.service.ts:350` |
 | `TripKmService.yesterday` | method | `backend/src/trip-km/trip-km.service.ts:373` |
 | `TripKmTable` | function | `frontend/src/components/trip-km-table.tsx:96` |
-| `TripOdometer` | model | `backend/prisma/schema.prisma:3079` |
+| `TripOdometer` | model | `backend/prisma/schema.prisma:3083` |
 | `turnOffAlarmsOnPhone` | function | `mobile/packages/shared/src/native/job-alerts.ts:425` |
 | `turnOffJobAlarms` | function | `mobile/packages/shared/src/native/background-sync.ts:471` |
 | `TwoFactorChallenge` | type | `backend/src/auth/auth.service.ts:26` |
@@ -3449,7 +3449,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `User` | model | `backend/prisma/schema.prisma:311` |
 | `useRefresh` | function | `mobile/packages/shared/src/hooks/use-refresh.ts:3` |
 | `UserLocation` | model | `backend/prisma/schema.prisma:375` |
-| `UserNotification` | model | `backend/prisma/schema.prisma:2001` |
+| `UserNotification` | model | `backend/prisma/schema.prisma:2005` |
 | `UserPreference` | model | `backend/prisma/schema.prisma:423` |
 | `UserPreferencesController` | class | `backend/src/user-preferences/user-preferences.controller.ts:7` |
 | `UserPreferencesController.get` | method | `backend/src/user-preferences/user-preferences.controller.ts:11` |
@@ -3595,10 +3595,10 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `WebPushService.sendToUser` | method | `backend/src/push-notifications/web-push.service.ts:79` |
 | `WebPushService.subscribe` | method | `backend/src/push-notifications/web-push.service.ts:56` |
 | `WebPushService.unsubscribe` | method | `backend/src/push-notifications/web-push.service.ts:74` |
-| `WebPushSubscription` | model | `backend/prisma/schema.prisma:2933` |
-| `WebsiteSettings` | model | `backend/prisma/schema.prisma:2210` |
+| `WebPushSubscription` | model | `backend/prisma/schema.prisma:2937` |
+| `WebsiteSettings` | model | `backend/prisma/schema.prisma:2214` |
 | `WeekStrip` | function | `mobile/packages/ui/src/kit/WeekStrip.tsx:45` |
-| `WhatsappNotificationLog` | model | `backend/prisma/schema.prisma:1913` |
+| `WhatsappNotificationLog` | model | `backend/prisma/schema.prisma:1917` |
 | `WhatsappNotificationsController` | class | `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:44` |
 | `WhatsappNotificationsController.getLogs` | method | `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:63` |
 | `WhatsappNotificationsController.getSettings` | method | `backend/src/whatsapp-notifications/whatsapp-notifications.controller.ts:51` |
@@ -3625,8 +3625,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `WhatsappNotificationsService.updateSettings` | method | `backend/src/whatsapp-notifications/whatsapp-notifications.service.ts:76` |
 | `WhatsappNotificationsService.updateTemplate` | method | `backend/src/whatsapp-notifications/whatsapp-notifications.service.ts:116` |
 | `WhatsAppPage` | function | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx:341` |
-| `WhatsappSettings` | model | `backend/prisma/schema.prisma:1864` |
-| `WhatsappTemplate` | model | `backend/prisma/schema.prisma:1847` |
+| `WhatsappSettings` | model | `backend/prisma/schema.prisma:1868` |
+| `WhatsappTemplate` | model | `backend/prisma/schema.prisma:1851` |
 | `windowLabel` | function | `backend/src/activity-logs/activity-log-format.ts:40` |
 
 ## Z

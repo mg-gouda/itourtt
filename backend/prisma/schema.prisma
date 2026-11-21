@@ -1227,6 +1227,8 @@ model SupplierCarType {
   id            String   @id @default(uuid())
   supplierId    String   @map("supplier_id")
   vehicleTypeId String   @map("vehicle_type_id")
+  /// Cars of this type the supplier agreed to provide (Car Dispatch: up to this many cards a day).
+  quantity      Int      @default(1)
   createdAt     DateTime @default(now()) @map("created_at")
 
   supplier    Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
@@ -1433,6 +1435,8 @@ model TrafficAssignment {
   repId               String?         @map("rep_id")
   supplierId          String?         @map("supplier_id")
   supplierCarTypeId   String?         @map("supplier_car_type_id")
+  /// Which of the supplier's agreed cars of that type (1..quantity) — the Car Dispatch card.
+  supplierCarNo       Int?            @map("supplier_car_no")
   assignedById        String          @map("assigned_by_id")
   driverStatus        PortalJobStatus @default(PENDING) @map("driver_status")
   repStatus           PortalJobStatus @default(PENDING) @map("rep_status")

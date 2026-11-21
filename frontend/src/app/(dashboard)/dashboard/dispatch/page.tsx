@@ -2099,7 +2099,14 @@ export default function DispatchPage() {
       }
       if (vRes.status === "fulfilled") {
         const v = vRes.value.data?.data || vRes.value.data;
-        setVehicles(Array.isArray(v) ? v : []);
+        // Supplier car types read "Hi Ace ×3": the number of cars the supplier agreed to provide.
+        setVehicles(
+          Array.isArray(v)
+            ? v.map((x: VehicleResource & { quantity?: number }) =>
+                x.isCarType && x.quantity ? { ...x, plateNumber: `${x.plateNumber} ×${x.quantity}` } : x,
+              )
+            : [],
+        );
       }
       if (dRes.status === "fulfilled") {
         const d = dRes.value.data?.data || dRes.value.data;

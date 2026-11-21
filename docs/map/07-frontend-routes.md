@@ -13,14 +13,14 @@
 | `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 762 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
 | `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1391 | 10 | 13 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
 | `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | One agent's detail — credit status, documents and price list. |
-| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1889 | 15 | 1 | Car-centric dispatch view — the day organised by vehicle rather than by job. |
+| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1968 | 15 | 1 | Car-centric dispatch view — the day organised by vehicle rather than by job. |
 | `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 539 | 7 | 3 | Company identity and branding (logo, favicon) used on invoices and reference prefixes. |
 | `/dashboard/complaint-categories` | `frontend/src/app/(dashboard)/dashboard/complaint-categories/page.tsx` | 354 | 4 | 3 | Complaint category catalog CRUD, including the pay-affecting default score penalty. |
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 580 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
 | `/dashboard/complaints/analytics` | `frontend/src/app/(dashboard)/dashboard/complaints/analytics/page.tsx` | 800 | 1 | 1 | Complaint Analytics screen: filters, headline KPIs, reply-window split, monthly trend, breakdowns and the money panel. |
 | `/dashboard/customers` | `frontend/src/app/(dashboard)/dashboard/customers/page.tsx` | 1183 | 9 | 12 | B2B customer management with price grids and import templates. |
 | `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 270 | 5 | 2 | One customer's detail, price list and stored import templates. |
-| `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3211 | 11 | 5 | ★ The dispatch console. One window per day, ARR left and DEP right, Excel-like grid with inline editing, keyboard navigation and live conflict warnings. Assignment order is Vehicle → Driver → Rep. |
+| `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3218 | 11 | 5 | ★ The dispatch console. One window per day, ARR left and DEP right, Excel-like grid with inline editing, keyboard navigation and live conflict warnings. Assignment order is Vehicle → Driver → Rep. |
 | `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 164 | 5 | 1 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
 | `/dashboard/driver-tracking` | `frontend/src/app/(dashboard)/dashboard/driver-tracking/page.tsx` | 9 | — | — | Driver Tracking page — map of every active driver's last-known position with name search. |
 | `/dashboard/drivers` | `frontend/src/app/(dashboard)/dashboard/drivers/page.tsx` | 1089 | 11 | 14 | Driver management: records, vehicle links, portal accounts, trip fees and Excel pipelines. |
@@ -47,7 +47,7 @@
 | `/dashboard/routes` | `frontend/src/app/(dashboard)/dashboard/routes/page.tsx` | 399 | 8 | 2 | System Parameters › Routes: search, add, edit (English \| Arabic, default type, From/To), deactivate, delete unused routes |
 | `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 578 | — | — | Theme and appearance settings. |
 | `/dashboard/supplier-price-lists` | `frontend/src/app/(dashboard)/dashboard/supplier-price-lists/page.tsx` | 431 | 11 | 2 | Supplier Price Lists page: list tabs, flags, route × car-type price grid, Excel import/export. |
-| `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1340 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
+| `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1363 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
 | `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 313 | 4 | 2 | One supplier's detail. |
 | `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | Traffic jobs landing page with the shared filters. |
 | `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1373 | 15 | 15 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |

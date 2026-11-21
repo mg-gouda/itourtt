@@ -395,10 +395,10 @@ export class SuppliersController {
   @Permissions('suppliers.table.editButton')
   async setCarTypes(
     @Param('id') id: string,
-    @Body() body: { vehicleTypeIds: string[] },
+    @Body() body: { vehicleTypeIds: string[]; quantities?: Record<string, number> },
   ) {
     return new ApiResponse(
-      await this.suppliersService.setCarTypes(id, body.vehicleTypeIds),
+      await this.suppliersService.setCarTypes(id, body.vehicleTypeIds, body.quantities ?? {}),
     );
   }
 }

@@ -171,6 +171,8 @@ export default function SuppliersPage() {
   // Car types
   const [vehicleTypes, setVehicleTypes] = useState<{ id: string; name: string; seatCapacity: number }[]>([]);
   const [selectedCarTypeIds, setSelectedCarTypeIds] = useState<Set<string>>(new Set());
+  // Cars of each type the supplier agreed to provide (vehicle type id → number; default 1)
+  const [carTypeQty, setCarTypeQty] = useState<Record<string, number>>({});
 
   const fetchSuppliers = useCallback(async (p = page) => {
     try {
@@ -296,7 +298,11 @@ export default function SuppliersPage() {
     api.get(`/suppliers/${supplier.id}/car-types`).then((res) => {
       const types = res.data.data || res.data || [];
       setSelectedCarTypeIds(new Set(types.map((t: { id: string }) => t.id)));
-    }).catch(() => setSelectedCarTypeIds(new Set()));
+      setCarTypeQty(Object.fromEntries(types.map((t: { id: string; quantity?: number }) => [t.id, t.quantity ?? 1])));
+    }).catch(() => {
+      setSelectedCarTypeIds(new Set());
+      setCarTypeQty({});
+    });
     setEditDialogOpen(true);
   }
 
@@ -322,6 +328,7 @@ export default function SuppliersPage() {
         }),
         api.put(`/suppliers/${editingSupplier.id}/car-types`, {
           vehicleTypeIds: Array.from(selectedCarTypeIds),
+          quantities: Object.fromEntries(Array.from(selectedCarTypeIds).map((id) => [id, carTypeQty[id] ?? 1])),
         }),
       ]);
       toast.success(t("suppliers.updated"));
@@ -1208,6 +1215,22 @@ export default function SuppliersPage() {
                         className="h-4 w-4"
                       />
                       <span className="text-sm">{vt.name} <span className="text-muted-foreground">({vt.seatCapacity} seats)</span></span>
+                      {selectedCarTypeIds.has(vt.id) && (
+                        <span className="ml-auto flex items-center gap-1" onClick={(e) => e.preventDefault()}>
+                          <span className="text-[11px] text-muted-foreground">cars</span>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            title="Number of cars of this type the supplier agreed to provide"
+                            value={carTypeQty[vt.id] ?? 1}
+                            onChange={(e) =>
+                              setCarTypeQty((q) => ({ ...q, [vt.id]: Math.max(1, Math.min(99, Number(e.target.value) || 1)) }))
+                            }
+                            className="h-7 w-16 px-1 text-center text-sm"
+                          />
+                        </span>
+                      )}
                     </label>
                   ))
                 )}

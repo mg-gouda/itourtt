@@ -598,6 +598,21 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Supplier agreed cars (2026-11-21)
+
+Supplier page › Car Types: next to each ticked type, the **number of cars** the supplier agreed to
+provide (`supplier_car_types.quantity`, 1–99, default 1).
+- **Car Dispatch:** *Add Supplier Car* can add that supplier type up to that many cards a day —
+  "Supplier · 1/3", "2/3", "3/3"; the dialog shows how many are on the board; a 4th is refused.
+  Saving a row on a supplier card now **assigns** the job to that supplier car type and car number
+  (`traffic_assignments.supplier_car_no`), so after a reload the jobs come back on the same cards
+  (supplier jobs assigned on Dispatch show on card 1). The server refuses a car number above the
+  agreed quantity.
+- **Dispatch:** supplier car choices read "Hi Ace ×3" (information).
+- Saving a supplier's car types keeps the existing rows (jobs point at them). It used to delete and
+  recreate them, which cleared the car type on every job using them (FK on delete SET NULL). A type
+  that jobs use can no longer be removed.
+
 ## Car Dispatch highlight colours (2026-11-21)
 
 Each car card has a colour picker (palette button in the header): select a cell in that card, pick a
