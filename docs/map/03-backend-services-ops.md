@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**27 classes**, **398 methods**.
+**27 classes**, **404 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -110,7 +110,7 @@ Customers (the B2B booking channel counterparties) and their price lists. Also o
 
 ### DispatchController
 
-`backend/src/dispatch/dispatch.controller.ts:26` · controller · 10 methods
+`backend/src/dispatch/dispatch.controller.ts:26` · controller · 11 methods
 
 REST surface for the dispatch console — day view, assign/reassign/unassign, availability lookups and per-job lock control.
 
@@ -121,15 +121,16 @@ REST surface for the dispatch console — day view, assign/reassign/unassign, av
 | `reassignJob` | pub | 51 | `dispatchService.reassignJob` | Changes an existing assignment. |
 | `unassignJob` | pub | 64 | `dispatchService.unassignJob` | Clears a job's assignment. |
 | `getAvailableSuppliers` | pub | 75 | `dispatchService.getAvailableSuppliers` | Suppliers that can source a car for a job. |
-| `getAvailableVehicles` | pub | 81 | `dispatchService.getAvailableVehicles` | Own vehicles plus supplier car types eligible for a job. |
-| `getAvailableDrivers` | pub | 91 | `dispatchService.getAvailableDrivers` | Drivers eligible for assignment. |
-| `getAvailableReps` | pub | 102 | `dispatchService.getAvailableReps` | Reps eligible for assignment (zone-covered only). |
-| `unlockJob` | pub | 113 | `dispatchService.unlockJob` | Frees a dispatcher from the 48h timelock on one job. |
-| `lockJob` | pub | 123 | `dispatchService.lockJob` | Restores the dispatcher timelock on one job. |
+| `mainDrivers` | pub | 82 | `dispatchService.mainDrivers` | GET /dispatch/main-drivers |
+| `getAvailableVehicles` | pub | 87 | `dispatchService.getAvailableVehicles` | Own vehicles plus supplier car types eligible for a job. |
+| `getAvailableDrivers` | pub | 97 | `dispatchService.getAvailableDrivers` | Drivers eligible for assignment. |
+| `getAvailableReps` | pub | 108 | `dispatchService.getAvailableReps` | Reps eligible for assignment (zone-covered only). |
+| `unlockJob` | pub | 119 | `dispatchService.unlockJob` | Frees a dispatcher from the 48h timelock on one job. |
+| `lockJob` | pub | 129 | `dispatchService.lockJob` | Restores the dispatcher timelock on one job. |
 
 ### DispatchService
 
-`backend/src/dispatch/dispatch.service.ts:24` · service · 17 methods
+`backend/src/dispatch/dispatch.service.ts:24` · service · 18 methods
 
 The dispatch console backend: the day view and all assignment logic. Assignment order is Vehicle → Driver → Rep, each gated by its own permission key. Vehicle and driver double-booking is a NON-blocking warning; rep double-booking is a hard conflict.
 
@@ -140,18 +141,19 @@ The dispatch console backend: the day view and all assignment logic. Assignment 
 | `sendStaffAssignmentEmail` | priv | 381 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
 | `reassignJob` | pub | 431 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +3 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
 | `unassignJob` | pub | 715 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
-| `getAvailableVehicles` | pub | 768 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
-| `getAvailableSuppliers` | pub | 841 | `supplier` | Suppliers that can source a car for this job. |
-| `getAvailableDrivers` | pub | 880 | `driver` | Active drivers offered for assignment. |
-| `getAvailableReps` | pub | 905 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
-| `unlockJob` | pub | 998 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
-| `lockJob` | pub | 1014 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
-| `checkDispatcherTimelock` | priv | 1035 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
-| `getJobReferenceTime` | priv | 1060 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
-| `validateVehicleAvailability` | priv | 1077 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
-| `detectAssignmentConflicts` | priv | 1091 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
-| `validateDriverAvailability` | priv | 1135 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
-| `validateRepAvailability` | priv | 1155 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
+| `mainDrivers` | pub | 772 | `driverVehicle` | Main driver of every active car, for Dispatch / Car Dispatch suggestions |
+| `getAvailableVehicles` | pub | 793 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
+| `getAvailableSuppliers` | pub | 866 | `supplier` | Suppliers that can source a car for this job. |
+| `getAvailableDrivers` | pub | 905 | `driver` | Active drivers offered for assignment. |
+| `getAvailableReps` | pub | 930 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
+| `unlockJob` | pub | 1023 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
+| `lockJob` | pub | 1039 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
+| `checkDispatcherTimelock` | priv | 1060 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
+| `getJobReferenceTime` | priv | 1085 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
+| `validateVehicleAvailability` | priv | 1102 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
+| `detectAssignmentConflicts` | priv | 1116 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
+| `validateDriverAvailability` | priv | 1160 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
+| `validateRepAvailability` | priv | 1180 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
 
 ## `drivers`
 
@@ -195,14 +197,14 @@ Driver records, their vehicle links, portal user accounts and trip-fee history. 
 | `loginChanges` | priv | 143 | `user` | Login fields (name, phone, portal email) to sync on a driver edit; 409 if another login holds the new mobile |
 | `updateAttachment` | pub | 173 | `driver` | Attaches or replaces a driver document (licence, ID). |
 | `assignVehicle` | pub | 181 | `vehicle` `driverVehicle` | Links a vehicle to a driver via `DriverVehicle`. |
-| `unassignVehicle` | pub | 224 | `driverVehicle` | Removes a driver-vehicle link. |
-| `createUserAccount` | pub | 245 | `user` `driver` | Creates the driver's portal login and links it to the Driver row — `resolveDriverId` depends on this link existing. |
-| `toggleStatus` | pub | 295 | `driver` `user` | Activates/deactivates the driver and their user account together. |
-| `softDelete` | pub | 322 | `user` `driver` | Soft-deletes the driver and disables their account. |
-| `resetPassword` | pub | 339 | `user` | Admin password reset. Also clears the stored session, so a locked-out driver can sign in again immediately. |
-| `exportToExcel` | pub | 370 | `driver` | Exports drivers to xlsx. |
-| `generateImportTemplate` | pub | 410 | `supplier` | Blank driver import workbook, pre-filled with valid suppliers. |
-| `importFromExcel` | pub | 507 | `supplier` `driver` | Bulk-imports drivers, resolving supplier names to ids. |
+| `unassignVehicle` | pub | 238 | `driverVehicle` | Removes a driver-vehicle link. |
+| `createUserAccount` | pub | 259 | `user` `driver` | Creates the driver's portal login and links it to the Driver row — `resolveDriverId` depends on this link existing. |
+| `toggleStatus` | pub | 309 | `driver` `user` | Activates/deactivates the driver and their user account together. |
+| `softDelete` | pub | 336 | `user` `driver` | Soft-deletes the driver and disables their account. |
+| `resetPassword` | pub | 353 | `user` | Admin password reset. Also clears the stored session, so a locked-out driver can sign in again immediately. |
+| `exportToExcel` | pub | 384 | `driver` | Exports drivers to xlsx. |
+| `generateImportTemplate` | pub | 424 | `supplier` | Blank driver import workbook, pre-filled with valid suppliers. |
+| `importFromExcel` | pub | 521 | `supplier` `driver` | Bulk-imports drivers, resolving supplier names to ids. |
 
 ## `extras`
 
@@ -619,7 +621,7 @@ The core job entity: creation, editing, status transitions and admin Force Contr
 
 ### VehiclesController
 
-`backend/src/vehicles/vehicles.controller.ts:52` · controller · 21 methods
+`backend/src/vehicles/vehicles.controller.ts:52` · controller · 23 methods
 
 REST surface for vehicle types, the fleet, compliance documents and deposit payments.
 
@@ -642,38 +644,42 @@ REST surface for vehicle types, the fleet, compliance documents and deposit paym
 | `listDeposits` | pub | 219 | `vehiclesService.listDepositPayments` | Deposit payment history. |
 | `addDeposit` | pub | 227 | `vehiclesService.addDepositPayment` | Records a deposit payment. |
 | `removeDeposit` | pub | 239 | `vehiclesService.removeDepositPayment` | Deletes a deposit payment. |
-| `findVehicleById` | pub | 249 | `vehiclesService.findVehicleById` | One vehicle's detail. |
-| `updateVehicle` | pub | 256 | `vehiclesService.updateVehicle` | Edits a vehicle. |
-| `toggleStatus` | pub | 266 | `vehiclesService.toggleStatus` | Activates/deactivates a vehicle. |
-| `softDelete` | pub | 274 | `vehiclesService.softDelete` | Soft-deletes a vehicle. |
+| `getMainDriver` | pub | 250 | `vehiclesService.getMainDriver` | GET /vehicles/:id/main-driver |
+| `setMainDriver` | pub | 258 | `vehiclesService.setMainDriver` | PATCH /vehicles/:id/main-driver { driverId \| null } |
+| `findVehicleById` | pub | 264 | `vehiclesService.findVehicleById` | One vehicle's detail. |
+| `updateVehicle` | pub | 271 | `vehiclesService.updateVehicle` | Edits a vehicle. |
+| `toggleStatus` | pub | 281 | `vehiclesService.toggleStatus` | Activates/deactivates a vehicle. |
+| `softDelete` | pub | 289 | `vehiclesService.softDelete` | Soft-deletes a vehicle. |
 
 ### VehiclesService
 
-`backend/src/vehicles/vehicles.service.ts:12` · service · 19 methods
+`backend/src/vehicles/vehicles.service.ts:12` · service · 21 methods
 
 Vehicle types, the owned fleet, and per-vehicle compliance records (licences, insurance, deposits). `seatCapacity` on the type is what enforces the pax-never-exceeds-capacity rule at assignment time.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAllVehicleTypes` | pub | 17 | `vehicleType` | Lists vehicle types with their seat capacities. |
-| `createVehicleType` | pub | 23 | `vehicleType` | Creates a vehicle type. |
-| `updateVehicleType` | pub | 39 | `vehicleType` | Edits a vehicle type. Changing seat capacity affects which jobs the type can serve. |
-| `findAllVehicles` | pub | 60 | `vehicle` | Filterable fleet list, split Active/Inactive. |
-| `findVehicleById` | pub | 93 | `vehicle` | One vehicle with type, supplier and compliance detail. |
-| `createVehicle` | pub | 106 | `vehicleType` `vehicle` | Adds a vehicle, validating its type exists. |
-| `toggleStatus` | pub | 130 | `vehicle` | Activates/deactivates a vehicle; inactive vehicles disappear from dispatch availability. |
-| `softDelete` | pub | 144 | `vehicle` | Soft-deletes a vehicle. |
-| `updateVehicle` | pub | 158 | `vehicle` `vehicleType` | Edits a vehicle's details or type. |
-| `exportToExcel` | pub | 194 | `vehicle` | Exports the fleet to xlsx. |
-| `generateImportTemplate` | pub | 249 | `vehicleType` | Blank fleet import workbook, pre-filled with the valid vehicle types. |
-| `importFromExcel` | pub | 436 | `vehicleType` `vehicle` `vehicleCompliance` | Bulk-imports vehicles and their compliance rows. |
-| `getCompliance` | pub | 765 | `vehicleCompliance` | Compliance record for one vehicle (documents and expiry dates). |
-| `upsertCompliance` | pub | 773 | `vehicleCompliance` | Creates or updates a vehicle's compliance record. |
-| `updateComplianceFile` | pub | 797 | `vehicleCompliance` | Attaches or replaces a compliance document file. |
-| `getComplianceReport` | pub | 810 | `vehicle` | Fleet-wide compliance view highlighting expired or expiring documents. |
-| `addDepositPayment` | pub | 862 | `vehicleCompliance` `user` `vehicleDepositPayment` | Records a deposit payment against a vehicle's compliance record. |
-| `removeDepositPayment` | pub | 889 | `vehicleDepositPayment` | Deletes a deposit payment row. |
-| `listDepositPayments` | pub | 906 | `vehicleCompliance` `vehicleDepositPayment` | Deposit payment history for a vehicle. |
+| `getMainDriver` | pub | 16 | `driverVehicle` | The car's main driver (driver_vehicles.is_primary), or null |
+| `setMainDriver` | pub | 30 | `vehicle` `driver` `driverVehicle` | Sets the car's one main driver; clears the previous main and the driver's other primary car |
+| `findAllVehicleTypes` | pub | 64 | `vehicleType` | Lists vehicle types with their seat capacities. |
+| `createVehicleType` | pub | 70 | `vehicleType` | Creates a vehicle type. |
+| `updateVehicleType` | pub | 86 | `vehicleType` | Edits a vehicle type. Changing seat capacity affects which jobs the type can serve. |
+| `findAllVehicles` | pub | 107 | `vehicle` | Filterable fleet list, split Active/Inactive. |
+| `findVehicleById` | pub | 140 | `vehicle` | One vehicle with type, supplier and compliance detail. |
+| `createVehicle` | pub | 153 | `vehicleType` `vehicle` | Adds a vehicle, validating its type exists. |
+| `toggleStatus` | pub | 177 | `vehicle` | Activates/deactivates a vehicle; inactive vehicles disappear from dispatch availability. |
+| `softDelete` | pub | 191 | `vehicle` | Soft-deletes a vehicle. |
+| `updateVehicle` | pub | 205 | `vehicle` `vehicleType` | Edits a vehicle's details or type. |
+| `exportToExcel` | pub | 241 | `vehicle` | Exports the fleet to xlsx. |
+| `generateImportTemplate` | pub | 296 | `vehicleType` | Blank fleet import workbook, pre-filled with the valid vehicle types. |
+| `importFromExcel` | pub | 483 | `vehicleType` `vehicle` `vehicleCompliance` | Bulk-imports vehicles and their compliance rows. |
+| `getCompliance` | pub | 812 | `vehicleCompliance` | Compliance record for one vehicle (documents and expiry dates). |
+| `upsertCompliance` | pub | 820 | `vehicleCompliance` | Creates or updates a vehicle's compliance record. |
+| `updateComplianceFile` | pub | 844 | `vehicleCompliance` | Attaches or replaces a compliance document file. |
+| `getComplianceReport` | pub | 857 | `vehicle` | Fleet-wide compliance view highlighting expired or expiring documents. |
+| `addDepositPayment` | pub | 909 | `vehicleCompliance` `user` `vehicleDepositPayment` | Records a deposit payment against a vehicle's compliance record. |
+| `removeDepositPayment` | pub | 936 | `vehicleDepositPayment` | Deletes a deposit payment row. |
+| `listDepositPayments` | pub | 953 | `vehicleCompliance` `vehicleDepositPayment` | Deposit payment history for a vehicle. |
 
 ## Standalone exports
 

@@ -60,6 +60,12 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
   const canLuggageCapacity = usePermission("vehicles.form.luggageCapacity");
   const canOwnership = usePermission("vehicles.form.ownership");
   const canTripKm = usePermission("trip-km");
+  const canEditVehicle = usePermission("vehicles.table.editButton");
+
+  // Main driver (one per car): suggested on Dispatch / Car Dispatch. Saved on change.
+  const [mainDriverId, setMainDriverId] = useState("");
+  const [driverChoices, setDriverChoices] = useState<{ id: string; name: string; mobileNumber?: string }[] | null>(null);
+  const [mainDriverSaving, setMainDriverSaving] = useState(false);
 
   const [types, setTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,6 +185,35 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Main driver + the drivers to choose from (hidden when the role can't list drivers)
+  useEffect(() => {
+    api
+      .get(`/vehicles/${id}/main-driver`)
+      .then(({ data }) => setMainDriverId((data?.data ?? data)?.id ?? ""))
+      .catch(() => setMainDriverId(""));
+    api
+      .get("/drivers", { params: { limit: 500, isActive: true } })
+      .then(({ data }) => {
+        const list = data?.data ?? data;
+        setDriverChoices(Array.isArray(list) ? list.filter((d: { isActive?: boolean; supplierId?: string | null }) => d.isActive !== false && !d.supplierId) : []);
+      })
+      .catch(() => setDriverChoices(null));
+  }, [id]);
+
+  const saveMainDriver = async (value: string) => {
+    const driverId = value === "__none__" ? null : value;
+    setMainDriverSaving(true);
+    try {
+      await api.patch(`/vehicles/${id}/main-driver`, { driverId });
+      setMainDriverId(driverId ?? "");
+      toast.success(driverId ? "Main driver updated" : "Main driver removed");
+    } catch {
+      toast.error("Could not update the main driver");
+    } finally {
+      setMainDriverSaving(false);
+    }
+  };
 
   // Load compliance data
   const loadCompliance = useCallback(async () => {
@@ -408,6 +443,25 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                     <SelectItem value="CONTRACTED" className="focus:bg-accent focus:text-accent-foreground">{t("vehicles.contracted")}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              )}
+              {driverChoices && (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Main driver</Label>
+                <Select value={mainDriverId || "__none__"} onValueChange={saveMainDriver} disabled={!canEditVehicle || mainDriverSaving}>
+                  <SelectTrigger className="border-border bg-card text-foreground"><SelectValue placeholder="No main driver" /></SelectTrigger>
+                  <SelectContent className="border-border bg-popover text-foreground">
+                    <SelectItem value="__none__" className="focus:bg-accent focus:text-accent-foreground">No main driver</SelectItem>
+                    {driverChoices.map((d) => (
+                      <SelectItem key={d.id} value={d.id} className="focus:bg-accent focus:text-accent-foreground">
+                        {d.name}{d.mobileNumber ? ` · ${d.mobileNumber}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Saved straight away. Dispatch and Car Dispatch suggest this driver for the car; any driver can still be picked per job.
+                </p>
               </div>
               )}
               {canColor && (

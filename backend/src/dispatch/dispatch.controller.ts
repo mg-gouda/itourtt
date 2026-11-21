@@ -77,6 +77,12 @@ export class DispatchController {
     return new ApiResponse(suppliers);
   }
 
+  /** GET /dispatch/main-drivers — each car's main driver (suggestions on both boards). */
+  @Get('main-drivers')
+  async mainDrivers() {
+    return this.dispatchService.mainDrivers();
+  }
+
   @Get('available-vehicles')
   async getAvailableVehicles(
     @Query() query: DispatchDayDto,

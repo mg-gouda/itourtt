@@ -765,6 +765,31 @@ export class DispatchService {
   // AVAILABLE RESOURCES
   // ─────────────────────────────────────────────
 
+  /**
+   * Main driver of every active car (driver_vehicles.is_primary) — Dispatch / Car Dispatch use it to
+   * suggest the car's driver and the driver's car. One row per car (latest link wins).
+   */
+  async mainDrivers() {
+    const links = await this.prisma.driverVehicle.findMany({
+      where: {
+        isPrimary: true,
+        unassignedAt: null,
+        driver: { deletedAt: null, isActive: true },
+        vehicle: { deletedAt: null, isActive: true },
+      },
+      orderBy: { assignedAt: 'desc' },
+      select: { vehicleId: true, driver: { select: { id: true, name: true, mobileNumber: true } } },
+    });
+    const seen = new Set<string>();
+    const out: { vehicleId: string; driverId: string; driverName: string; driverMobile: string | null }[] = [];
+    for (const l of links) {
+      if (seen.has(l.vehicleId)) continue;
+      seen.add(l.vehicleId);
+      out.push({ vehicleId: l.vehicleId, driverId: l.driver.id, driverName: l.driver.name, driverMobile: l.driver.mobileNumber ?? null });
+    }
+    return out;
+  }
+
   async getAvailableVehicles(date: string, supplierId?: string, q?: string) {
     const jobDate = new Date(date);
 

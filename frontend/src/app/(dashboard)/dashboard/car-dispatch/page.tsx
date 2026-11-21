@@ -45,6 +45,7 @@ import {
   Columns3,
   Ban,
   ArrowRightLeft,
+  UserRound,
 } from "lucide-react";
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
@@ -146,6 +147,14 @@ interface CarCard {
   vehicle: Vehicle;
   jobs: JobRow[];
   isSupplier: boolean;
+}
+
+/** GET /dispatch/main-drivers — a car's main driver (driver page / vehicle page). */
+interface MainDriverLink {
+  vehicleId: string;
+  driverId: string;
+  driverName: string;
+  driverMobile: string | null;
 }
 
 const CURRENCIES = ["EGP", "USD", "EUR", "GBP", "SAR"];
@@ -393,10 +402,9 @@ function CarDispatchContent() {
 
   // State
   const [cards, setCards] = useState<CarCard[]>([]);
-  const [jobDate, setJobDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
+  const [jobDate, setJobDate] = useState(() => new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" }));
+  // Each owned car's main driver: shown in the card header and pre-filled on new rows.
+  const [mainDrivers, setMainDrivers] = useState<Map<string, MainDriverLink>>(new Map());
   const [loading, setLoading] = useState(true);
   const { view, update: updateView } = useBoardView();
   const [selectedOwnedIds, setSelectedOwnedIds] = useState<Set<string>>(new Set());
@@ -433,6 +441,13 @@ function CarDispatchContent() {
       );
       setSuppliers(supRes.data.data || supRes.data || []);
       setVehicleTypes(typRes.data.data || typRes.data || []);
+      api
+        .get("/dispatch/main-drivers")
+        .then(({ data }) => {
+          const list: MainDriverLink[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+          setMainDrivers(new Map(list.map((m) => [m.vehicleId, m])));
+        })
+        .catch(() => setMainDrivers(new Map()));
       // Routes: a role without route access (e.g. Viewer) still gets the board.
       api.get("/job-service-types").then(
         (r) => setRoutes(r.data.data || r.data || []),
@@ -616,7 +631,7 @@ function CarDispatchContent() {
     setCards((prev) =>
       prev.map((c) =>
         c.vehicle.id === vehicleId
-          ? { ...c, jobs: [...c.jobs, newJobRow()] }
+          ? { ...c, jobs: [...c.jobs, { ...newJobRow(), driverId: c.isSupplier ? "" : mainDrivers.get(vehicleId)?.driverId ?? "" }] }
           : c
       )
     );
@@ -657,6 +672,7 @@ function CarDispatchContent() {
             const value = field === "pickUpTime" ? normTime(raw) : raw;
             row = { ...row, [field]: value, ...(field === "jobServiceTypeId" ? routeEnds(routes, value) : {}) };
           }
+          if (!row.driverId && !c.isSupplier) row = { ...row, driverId: mainDrivers.get(vehicleId)?.driverId ?? "" };
           return row;
         });
         return { ...c, jobs: [...c.jobs, ...created] };
@@ -1003,6 +1019,7 @@ function CarDispatchContent() {
             onViewChange={updateView}
             customerOptions={customerOptions}
             driverOptions={driverOptions}
+            mainDriver={card.isSupplier ? undefined : mainDrivers.get(card.vehicle.id)}
             routeOptions={routes}
             onAddJob={() => addJobRow(card.vehicle.id)}
             onCreateRows={(values) => createJobRows(card.vehicle.id, values)}
@@ -1374,6 +1391,7 @@ function VehicleCard({
   onViewChange,
   customerOptions,
   driverOptions,
+  mainDriver,
   routeOptions,
   onAddJob,
   onCreateRows,
@@ -1392,6 +1410,7 @@ function VehicleCard({
   onViewChange: (patch: Partial<BoardView>, persist?: boolean) => void;
   customerOptions: { value: string; label: string }[];
   driverOptions: { value: string; label: string }[];
+  mainDriver?: MainDriverLink;
   routeOptions: RouteOption[];
   onAddJob: () => void;
   onCreateRows: (values: Record<string, string>[]) => void;
@@ -1409,6 +1428,13 @@ function VehicleCard({
   onMoveJob?: (job: JobRow, toVehicleId: string) => void;
 }) {
   const { vehicle, jobs, isSupplier } = card;
+  const asNamePhone = (label: string) => label.replace(/ \(([^)]*)\)$/, " · $1");
+  const otherDrivers = isSupplier
+    ? []
+    : [...new Set(jobs.map((j) => j.driverId).filter((id) => id && id !== mainDriver?.driverId))]
+        .map((id) => driverOptions.find((o) => o.value === id)?.label)
+        .filter((l): l is string => !!l)
+        .map(asNamePhone);
   const unsavedCount = jobs.filter((j) => !j.saved).length;
   const columns = JOB_COLUMNS.filter((c) => c.fixed || !view.hidden.includes(c.key));
   const widthOf = (c: (typeof JOB_COLUMNS)[number]) => view.widths[c.key] ?? c.width;
@@ -1446,7 +1472,22 @@ function VehicleCard({
       case "driver":
         return isSupplier
           ? { ...base, type: "readonly", get: () => "", display: () => <span className="italic">External</span> }
-          : { ...base, type: "select", options: driverOptions, get: (j) => j.driverId, editable: assignable };
+          : {
+              ...base,
+              type: "select",
+              options: driverOptions,
+              get: (j) => j.driverId,
+              editable: assignable,
+              display: (j) => {
+                const label = driverOptions.find((o) => o.value === j.driverId)?.label ?? "";
+                if (!mainDriver || !j.driverId || j.driverId === mainDriver.driverId) return label;
+                return (
+                  <span title={`Main driver: ${mainDriver.driverName}`}>
+                    {label} <span className="text-amber-600">(main: {mainDriver.driverName})</span>
+                  </span>
+                );
+              },
+            };
       case "type":
         return { ...base, type: "select", options: typeOptions, get: (j) => j.serviceType, editable: open };
       case "pax":
@@ -1527,6 +1568,29 @@ function VehicleCard({
                   .filter(Boolean)
                   .join(" ")}
               </p>
+            )}
+            {!isSupplier && (
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                <span className="inline-flex items-center gap-1" title="Main driver (driver page / vehicle page)">
+                  <UserRound className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-muted-foreground">Main:</span>
+                  {mainDriver ? (
+                    <span className="font-medium">
+                      {mainDriver.driverName}
+                      {mainDriver.driverMobile ? <span className="font-normal text-muted-foreground"> · {mainDriver.driverMobile}</span> : null}
+                    </span>
+                  ) : (
+                    <span className="italic text-muted-foreground">none</span>
+                  )}
+                </span>
+                {otherDrivers.length > 0 && (
+                  <span className="inline-flex flex-wrap items-center gap-1" title="Other drivers on this car's jobs">
+                    <ArrowRightLeft className="h-3 w-3 text-amber-600" />
+                    <span className="text-muted-foreground">Also:</span>
+                    <span className="font-medium">{otherDrivers.join(", ")}</span>
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>

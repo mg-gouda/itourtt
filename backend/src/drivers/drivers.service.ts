@@ -201,11 +201,25 @@ export class DriversService {
       throw new ConflictException('This vehicle is already assigned to this driver');
     }
 
-    // If isPrimary requested, unset any existing primary for this driver
+    // Primary = this car's main driver: the driver's other primary car and the car's other main
+    // driver both lose the mark (one main driver per car, one primary car per driver).
     if (dto.isPrimary) {
       await this.prisma.driverVehicle.updateMany({
-        where: { driverId, isPrimary: true, unassignedAt: null },
+        where: { isPrimary: true, OR: [{ driverId }, { vehicleId: dto.vehicleId }] },
         data: { isPrimary: false },
+      });
+    }
+
+    // An old, unassigned link for the same pair is re-activated (driver_id + vehicle_id is unique,
+    // so inserting again would fail).
+    const previous = await this.prisma.driverVehicle.findUnique({
+      where: { driverId_vehicleId: { driverId, vehicleId: dto.vehicleId } },
+    });
+    if (previous) {
+      return this.prisma.driverVehicle.update({
+        where: { id: previous.id },
+        data: { unassignedAt: null, assignedAt: new Date(), isPrimary: dto.isPrimary ?? false },
+        include: { vehicle: { include: { vehicleType: true } } },
       });
     }
 

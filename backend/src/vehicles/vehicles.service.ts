@@ -10,6 +10,53 @@ import { CreateDepositPaymentDto } from './dto/create-deposit-payment.dto.js';
 
 @Injectable()
 export class VehiclesService {
+  // ── Main driver (driver_vehicles.is_primary): at most one per car and one per driver ──
+
+  /** The car's main driver, or null. */
+  async getMainDriver(vehicleId: string) {
+    const dv = await this.prisma.driverVehicle.findFirst({
+      where: { vehicleId, isPrimary: true, unassignedAt: null, driver: { deletedAt: null } },
+      orderBy: { assignedAt: 'desc' },
+      select: { driver: { select: { id: true, name: true, mobileNumber: true, isActive: true } } },
+    });
+    return dv?.driver ?? null;
+  }
+
+  /**
+   * Makes `driverId` the car's main driver (null = none). The car's previous main driver loses the
+   * mark; so does the driver's previous primary car. Links the driver to the car if needed
+   * (re-activating an old, unassigned link rather than inserting a duplicate).
+   */
+  async setMainDriver(vehicleId: string, driverId: string | null) {
+    const vehicle = await this.prisma.vehicle.findFirst({ where: { id: vehicleId, deletedAt: null }, select: { id: true } });
+    if (!vehicle) throw new NotFoundException(`Vehicle with ID "${vehicleId}" not found`);
+    if (driverId) {
+      const driver = await this.prisma.driver.findFirst({ where: { id: driverId, deletedAt: null }, select: { id: true } });
+      if (!driver) throw new NotFoundException(`Driver with ID "${driverId}" not found`);
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.driverVehicle.updateMany({
+        where: { vehicleId, isPrimary: true, ...(driverId ? { driverId: { not: driverId } } : {}) },
+        data: { isPrimary: false },
+      });
+      if (!driverId) return;
+      await tx.driverVehicle.updateMany({
+        where: { driverId, isPrimary: true, vehicleId: { not: vehicleId } },
+        data: { isPrimary: false },
+      });
+      const link = await tx.driverVehicle.findUnique({ where: { driverId_vehicleId: { driverId, vehicleId } } });
+      if (link) {
+        await tx.driverVehicle.update({
+          where: { id: link.id },
+          data: { isPrimary: true, unassignedAt: null, ...(link.unassignedAt ? { assignedAt: new Date() } : {}) },
+        });
+      } else {
+        await tx.driverVehicle.create({ data: { driverId, vehicleId, isPrimary: true } });
+      }
+    });
+    return this.getMainDriver(vehicleId);
+  }
+
   constructor(private readonly prisma: PrismaService) {}
 
   // ─── Vehicle Types ────────────────────────────────────────

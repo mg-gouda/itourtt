@@ -244,6 +244,21 @@ export class VehiclesController {
     return new ApiResponse(null, 'Deposit payment removed');
   }
 
+  /** GET /vehicles/:id/main-driver — the car's main driver (or null). */
+  @Get(':id/main-driver')
+  @Permissions('vehicles')
+  async getMainDriver(@Param('id') id: string) {
+    return new ApiResponse(await this.vehiclesService.getMainDriver(id));
+  }
+
+  /** PATCH /vehicles/:id/main-driver { driverId | null } — one main driver per car. */
+  @Patch(':id/main-driver')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.table.editButton')
+  async setMainDriver(@Param('id') id: string, @Body() body: { driverId?: string | null }) {
+    return new ApiResponse(await this.vehiclesService.setMainDriver(id, body?.driverId || null), 'Main driver updated');
+  }
+
   @Get(':id')
   @Permissions('vehicles')
   findVehicleById(@Param('id') id: string) {

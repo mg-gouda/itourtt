@@ -179,6 +179,14 @@ interface PersonResource {
 
 type EditField = "source" | "vehicle" | "driver" | "rep" | "remarks";
 
+/** GET /dispatch/main-drivers — a car's main driver. */
+interface MainDriverLink {
+  vehicleId: string;
+  driverId: string;
+  driverName: string;
+  driverMobile: string | null;
+}
+
 interface ActiveCell {
   jobId: string;
   field: EditField;
@@ -1907,6 +1915,11 @@ export default function DispatchPage() {
   const [vehicles, setVehicles] = useState<VehicleResource[]>([]);
   const [drivers, setDrivers] = useState<PersonResource[]>([]);
   const [reps, setReps] = useState<PersonResource[]>([]);
+  // Each car's main driver (driver page / vehicle page): picking a car fills its main driver,
+  // picking a driver offers their main car. Suggestions only — never overwrites a chosen driver.
+  const [mainDrivers, setMainDrivers] = useState<MainDriverLink[]>([]);
+  const mainByVehicle = useMemo(() => new Map(mainDrivers.map((m) => [m.vehicleId, m])), [mainDrivers]);
+  const carByDriver = useMemo(() => new Map(mainDrivers.map((m) => [m.driverId, m.vehicleId])), [mainDrivers]);
 
   // Inline editing state
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
@@ -2051,13 +2064,18 @@ export default function DispatchPage() {
     setLoading(true);
     const dateStr = fmtDate(date);
     try {
-      const [dayRes, sRes, vRes, dRes, rRes] = await Promise.allSettled([
+      const [dayRes, sRes, vRes, dRes, rRes, mRes] = await Promise.allSettled([
         api.get(`/dispatch/day?date=${dateStr}`),
         api.get(`/dispatch/available-suppliers`),
         api.get(`/dispatch/available-vehicles?date=${dateStr}`),
         api.get(`/dispatch/available-drivers?date=${dateStr}`),
         api.get(`/dispatch/available-reps?date=${dateStr}`),
+        api.get(`/dispatch/main-drivers`),
       ]);
+      if (mRes.status === "fulfilled") {
+        const m = mRes.value.data?.data || mRes.value.data;
+        setMainDrivers(Array.isArray(m) ? m : []);
+      }
 
       if (dayRes.status === "fulfilled") {
         const d = dayRes.value.data?.data || dayRes.value.data;
@@ -2232,6 +2250,7 @@ export default function DispatchPage() {
 
       const vehicleRes = vehicles.find((v) => v.id === actualValue);
       const isCarType = vehicleRes?.isCarType === true;
+      const mainDriver = isCarType ? undefined : mainByVehicle.get(actualValue);
 
       // Optimistic: create placeholder assignment
       const found = findJobList(job.id);
@@ -2244,7 +2263,7 @@ export default function DispatchPage() {
             vehicleId: isCarType ? null : actualValue,
             supplierCarTypeId: isCarType ? actualValue : null,
             supplierId: isCarType ? (vehicleRes?.supplierId ?? null) : null,
-            driverId: null,
+            driverId: mainDriver?.driverId ?? null,
             repId: null,
             vehicle: !isCarType && vehicleRes
               ? { plateNumber: vehicleRes.plateNumber, vehicleType: vehicleRes.vehicleType }
@@ -2252,7 +2271,7 @@ export default function DispatchPage() {
             supplierCarType: isCarType && vehicleRes
               ? { vehicleType: vehicleRes.vehicleType }
               : undefined,
-            driver: undefined,
+            driver: mainDriver ? { name: mainDriver.driverName, mobileNumber: mainDriver.driverMobile ?? undefined } : undefined,
             rep: undefined,
           },
         }));
@@ -2260,11 +2279,13 @@ export default function DispatchPage() {
 
       const assignPayload = isCarType
         ? { trafficJobId: job.id, supplierCarTypeId: actualValue, supplierId: vehicleRes?.supplierId }
-        : { trafficJobId: job.id, vehicleId: actualValue };
+        : { trafficJobId: job.id, vehicleId: actualValue, ...(mainDriver ? { driverId: mainDriver.driverId } : {}) };
 
       try {
         await api.post("/dispatch/assign", assignPayload);
-        toast.success(t("dispatch.vehicleAssigned"));
+        toast.success(
+          mainDriver ? `${t("dispatch.vehicleAssigned")} · main driver ${mainDriver.driverName}` : t("dispatch.vehicleAssigned"),
+        );
         showSavedFlash(job.id);
         fetchDay(); // refresh to get full assignment data
       } catch (err: unknown) {
@@ -2276,6 +2297,7 @@ export default function DispatchPage() {
               await api.post("/dispatch/assign", {
                 trafficJobId: job.id,
                 vehicleId: actualValue,
+                ...(mainDriver ? { driverId: mainDriver.driverId } : {}),
                 allowTypeMismatch: true,
               });
               toast.success(t("dispatch.vehicleAssigned"));
@@ -2377,13 +2399,53 @@ export default function DispatchPage() {
       if (field === "rep") payload.repId = actualValue;
       if (field === "remarks") payload.remarks = actualValue;
 
+      // New car on a job with no driver yet: its main driver comes with it.
+      const fillDriver =
+        field === "vehicle" && actualValue && !vehicles.find((v) => v.id === actualValue)?.isCarType &&
+        !job.assignment.driverId && !job.assignment.externalDriverName
+          ? mainByVehicle.get(actualValue)
+          : undefined;
+      if (fillDriver) {
+        payload.driverId = fillDriver.driverId;
+        if (found) {
+          updateJobInList(found[1], job.id, (j) =>
+            j.assignment
+              ? {
+                  ...j,
+                  assignment: {
+                    ...j.assignment,
+                    driverId: fillDriver.driverId,
+                    driver: { name: fillDriver.driverName, mobileNumber: fillDriver.driverMobile ?? undefined },
+                  },
+                }
+              : j,
+          );
+        }
+      }
+
       try {
         await api.patch(
           `/dispatch/assignments/${job.assignment.id}`,
           payload
         );
-        toast.success(t(`dispatch.${field === "remarks" ? "remarks" : field}Updated`));
+        toast.success(
+          fillDriver
+            ? `${t("dispatch.vehicleUpdated")} · main driver ${fillDriver.driverName}`
+            : t(`dispatch.${field === "remarks" ? "remarks" : field}Updated`),
+        );
         showSavedFlash(job.id);
+        if (field === "driver" && actualValue && !isExternalDriver) {
+          const carId = carByDriver.get(actualValue);
+          const car = carId && carId !== job.assignment.vehicleId ? vehicles.find((v) => v.id === carId) : undefined;
+          if (car) {
+            const who = drivers.find((d) => d.id === actualValue)?.name ?? "This driver";
+            const withDriver = { ...job, assignment: { ...job.assignment, driverId: actualValue } };
+            toast.info(`${who}'s main car is ${car.plateNumber}`, {
+              duration: 10000,
+              action: { label: `Use ${car.plateNumber}`, onClick: () => handleInlineAssign(withDriver, "vehicle", car.id) },
+            });
+          }
+        }
       } catch (err: unknown) {
         const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
         if (resp?.status === 409 && resp?.data?.message?.includes("Vehicle type mismatch")) {

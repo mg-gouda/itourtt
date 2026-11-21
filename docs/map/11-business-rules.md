@@ -598,6 +598,22 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Main driver of a car (dispatch suggestions, 2026-11-21)
+
+Owner rule: a car can have **one main driver** (`driver_vehicles.is_primary`), set on the driver page
+(assign a car as *primary*) or on the vehicle page (**Main driver**, saved straight away; `PATCH
+/vehicles/:id/main-driver`). Making someone the main driver takes the mark off the car's previous main
+driver and off that driver's previous primary car. Drivers and cars stay freely paired — this only
+*suggests*.
+- **Dispatch:** picking a car for a job with no driver fills the car's main driver (saved with the car).
+  Picking a driver whose main car is a different car shows "X's main car is … · Use …" (one click).
+  A chosen driver is never overwritten.
+- **Car Dispatch:** the card header shows "Main: name · mobile" and, when other drivers work that car's
+  jobs, "Also: name · mobile" (no job refs). New rows start with the main driver; a row driven by
+  someone else reads "Driver (main: X)". The board opens on today's **Cairo** date.
+- Source for both boards: `GET /dispatch/main-drivers` (active drivers and cars only).
+- Re-linking a car that was unlinked from a driver re-activates the old link (the pair is unique).
+
 ## Job alarms ring like an alarm clock (apps, 2026-11-20)
 
 Owner rule: the 1 h / 30 min start alarms must ring **with the screen off, in standby, and after the
