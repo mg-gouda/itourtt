@@ -1318,7 +1318,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `FinanceService.updateInvoiceLines` | method | `backend/src/finance/finance.service.ts:461` |
 | `FinanceService.updateInvoiceStatus` | method | `backend/src/finance/finance.service.ts:536` |
 | `FinanceSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:262` |
-| `findMarsaAlamHotel` | function | `frontend/src/lib/marsa-alam-hotels.ts:76` |
+| `findMarsaAlamHotel` | function | `frontend/src/lib/marsa-alam-hotels.ts:80` |
 | `findNode` | function | `frontend/src/lib/permission-registry.ts:907` |
 | `findSheet` | function | `backend/src/common/utils/route-price-sheet.util.ts:82` |
 | `FleetOverview` | function | `mobile/apps/supplier/src/components/FleetOverview.tsx:10` |
@@ -1933,7 +1933,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `LANGUAGES` | const | `frontend/src/lib/website-i18n.tsx:23` |
 | `LEGACY_SERVICE_TYPES` | const | `backend/src/common/utils/service-type.util.ts:28` |
 | `LEGACY_SERVICE_TYPES` | const | `frontend/src/lib/service-types.ts:30` |
-| `legOf` | function | `frontend/src/lib/marsa-alam-hotels.ts:87` |
+| `legOf` | function | `frontend/src/lib/marsa-alam-hotels.ts:91` |
 | `LicenseGate` | function | `frontend/src/components/license-gate.tsx:60` |
 | `LicenseHeartbeatService` | class | `backend/src/settings/license-heartbeat.service.ts:8` |
 | `LicenseHeartbeatService.beat` | method | `backend/src/settings/license-heartbeat.service.ts:14` |
@@ -2081,7 +2081,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `mapsUrl` | const | `frontend/src/lib/chat.ts:231` |
 | `MARSA_ALAM_HOTELS` | const | `frontend/src/lib/marsa-alam-hotels.ts:13` |
 | `MarsaAlamArea` | type | `frontend/src/lib/marsa-alam-hotels.ts:9` |
-| `marsaAlamRoute` | function | `frontend/src/lib/marsa-alam-hotels.ts:103` |
+| `marsaAlamRoute` | function | `frontend/src/lib/marsa-alam-hotels.ts:107` |
 | `messageAttachmentPath` | const | `frontend/src/lib/chat.ts:176` |
 | `MessagesQueryDto` | class | `backend/src/chat/dto/chat.dto.ts:41` |
 | `metadata` | const | `frontend/src/app/layout.tsx:16` |

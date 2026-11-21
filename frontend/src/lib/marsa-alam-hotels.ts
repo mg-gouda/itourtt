@@ -32,6 +32,7 @@ export const MARSA_ALAM_HOTELS = [
   H("NORTH-MARSA ALAM", "Alaya", /\balaya\b/),
   H("NORTH-MARSA ALAM", "Lamaya", /lamaya/),
   H("NORTH-MARSA ALAM", "Jaz Solaya", /solaya/),
+  H("NORTH-MARSA ALAM", "Jaz Maraya", /maraya/), // not on the list: Coraya Bay, ~7 km from RMF (web, 2026-11-21)
   H("NORTH-MARSA ALAM", "Jaz Dar El Madina", /dar ?el ?madina|dar elmadina/),
   H("NORTH-MARSA ALAM", "Jaz New Reef", /new reef/),
   H("NORTH-MARSA ALAM", "Jaz Grand Marsa", /grand marsa/),
@@ -59,7 +60,7 @@ export const MARSA_ALAM_HOTELS = [
   H("SOUTH MARSA ALAM", "Crystal Beach", /crystal beach/),
   H("SOUTH MARSA ALAM", "Amarina Queen", /amarina queen/),
   H("SOUTH MARSA ALAM", "Brayka Bay", /brayka/),
-  H("SOUTH MARSA ALAM", "Aurora", /aurora/),
+  H("SOUTH MARSA ALAM", "Aurora Bay / Sunrise Cardina", /aurora|cardina/), // Aurora Bay was renamed Sunrise Cardina
   H("SOUTH MARSA ALAM", "Beach Safari", /beach safari|besch safari/),
   // ── Deep south (beyond Marsa Alam town) ──
   H("SHAMS ALAM", "True Beach", /true beach/),
@@ -69,6 +70,9 @@ export const MARSA_ALAM_HOTELS = [
   H("SHAMS ALAM", "Fantazia", /fant[a]?zia/),
   H("SHAMS ALAM", "Gorgonia", /gorgonia/),
   H("SHAMS ALAM", "Shams Alam", /shams ?alam/),
+  // Not on the list; placed by distance from RMF found on the web (2026-11-21):
+  H("SHAMS ALAM", "Sentido Reef Oasis Suakin", /suakin/), // ~80 km south of RMF, past Marsa Alam town
+  H("SHAMS ALAM", "Sirena Beach", /sirena beach/), // ~85 km south of RMF, 24 km past Marsa Alam town
   H("WADI LAHMI", "Azur Wadi Lahmy", /wadi ?lahm/),
 ];
 
