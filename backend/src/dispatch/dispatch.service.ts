@@ -8,6 +8,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import ExcelJS from 'exceljs';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PushNotificationsService } from '../push-notifications/push-notifications.service.js';
@@ -764,6 +765,88 @@ export class DispatchService {
   // ─────────────────────────────────────────────
   // AVAILABLE RESOURCES
   // ─────────────────────────────────────────────
+
+  // ── Customer report (Car Dispatch › customer + date › PDF / Excel) ──────────
+
+  /**
+   * One customer's jobs on one date, cancelled left out, by time: Customer Job ID, Route, Time,
+   * Driver Name / Number, Car Number, Extra Driver (if any), Notes.
+   */
+  async customerReport(date: string, customerId: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) throw new BadRequestException('date must be YYYY-MM-DD');
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: customerId, deletedAt: null },
+      select: { id: true, legalName: true, tradeName: true },
+    });
+    if (!customer) throw new NotFoundException('Customer not found');
+    const jobs = await this.prisma.trafficJob.findMany({
+      where: { customerId, jobDate: new Date(date), deletedAt: null, status: { not: 'CANCELLED' as JobStatus } },
+      select: {
+        internalRef: true,
+        customerJobId: true,
+        serviceType: true,
+        pickUpTime: true,
+        notes: true,
+        flight: { select: { arrivalTime: true, departureTime: true } },
+        jobServiceType: { select: { name: true } },
+        assignment: {
+          select: {
+            externalDriverName: true,
+            externalDriverPhone: true,
+            driver: { select: { name: true, mobileNumber: true } },
+            vehicle: { select: { plateNumber: true } },
+            supplierCarType: { select: { vehicleType: { select: { name: true } } } },
+            supplier: { select: { legalName: true, tradeName: true } },
+          },
+        },
+      },
+    });
+    const hhmm = (d: Date | null) =>
+      d ? d.toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+    const rows = jobs
+      .map((j) => {
+        const t = this.getJobReferenceTime(j);
+        const a = j.assignment;
+        const supplierCar = a?.supplierCarType
+          ? `${a.supplier?.tradeName || a.supplier?.legalName || 'Supplier'} · ${a.supplierCarType.vehicleType.name}`
+          : '';
+        return {
+          sortKey: t ? t.getTime() : Number.MAX_SAFE_INTEGER,
+          customerJobId: j.customerJobId || j.internalRef,
+          route: j.jobServiceType?.name ?? '',
+          time: hhmm(t),
+          driverName: a?.driver?.name ?? '',
+          driverNumber: a?.driver?.mobileNumber ?? '',
+          carNumber: a?.vehicle?.plateNumber ?? supplierCar,
+          extraDriver: [a?.externalDriverName, a?.externalDriverPhone].filter(Boolean).join(' · '),
+          notes: j.notes ?? '',
+        };
+      })
+      .sort((x, y) => x.sortKey - y.sortKey)
+      .map(({ sortKey: _s, ...r }) => r);
+    return { customerName: customer.tradeName || customer.legalName, date, rows };
+  }
+
+  async customerReportXlsx(date: string, customerId: string) {
+    const rep = await this.customerReport(date, customerId);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Jobs');
+    ws.addRow([rep.customerName]).font = { bold: true, size: 14 };
+    ws.addRow([`Date: ${rep.date}`]);
+    ws.addRow([]);
+    const header = ws.addRow(['Customer Job ID', 'Route', 'Time', 'Driver Name', 'Driver Number', 'Car Number', 'Extra Driver', 'Notes']);
+    header.font = { bold: true };
+    header.eachCell((c) => {
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+      c.border = { bottom: { style: 'thin' } };
+    });
+    for (const r of rep.rows) {
+      ws.addRow([r.customerJobId, r.route, r.time, r.driverName, r.driverNumber, r.carNumber, r.extraDriver, r.notes]);
+    }
+    [18, 34, 8, 22, 16, 22, 26, 40].forEach((w, i) => (ws.getColumn(i + 1).width = w));
+    const safe = rep.customerName.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') || 'customer';
+    return { buffer: Buffer.from(await wb.xlsx.writeBuffer()), filename: `${safe}-${rep.date}.xlsx` };
+  }
 
   /**
    * Main driver of every active car (driver_vehicles.is_primary) — Dispatch / Car Dispatch use it to

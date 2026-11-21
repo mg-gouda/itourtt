@@ -9,7 +9,9 @@ import {
   Query,
   UseGuards,
   ParseUUIDPipe,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { DispatchService } from './dispatch.service.js';
 import { DispatchDayDto } from './dto/dispatch-day.dto.js';
 import { AssignJobDto } from './dto/assign-job.dto.js';
@@ -75,6 +77,27 @@ export class DispatchController {
   async getAvailableSuppliers() {
     const suppliers = await this.dispatchService.getAvailableSuppliers();
     return new ApiResponse(suppliers);
+  }
+
+  /** GET /dispatch/customer-report?date=&customerId= — one customer's jobs on a date (Car Dispatch PDF). */
+  @Get('customer-report')
+  async customerReport(@Query('date') date: string, @Query('customerId', ParseUUIDPipe) customerId: string) {
+    return this.dispatchService.customerReport(date, customerId);
+  }
+
+  /** GET /dispatch/customer-report/xlsx?date=&customerId= — the same as Excel. */
+  @Get('customer-report/xlsx')
+  async customerReportXlsx(
+    @Query('date') date: string,
+    @Query('customerId', ParseUUIDPipe) customerId: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.dispatchService.customerReportXlsx(date, customerId);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    res.send(buffer);
   }
 
   /** GET /dispatch/main-drivers — each car's main driver (suggestions on both boards). */

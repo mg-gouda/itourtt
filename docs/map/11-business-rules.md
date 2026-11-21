@@ -598,6 +598,16 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Car Dispatch customer report (2026-11-21)
+
+Under the date on Car Dispatch: **Customer report** — a searchable customer box, then **PDF** (the branded
+print view, save as PDF) and **Excel**. For the chosen customer on the board's date, cancelled jobs left
+out, sorted by time: the customer's name once, then Customer Job ID (the customer's own ref, else our
+booking no.), Route, Time (Cairo; ARR = flight arrival), Driver Name, Driver Number, Car Number
+(plate, or "Supplier · type"), Extra Driver (name · phone, if any), Notes.
+`GET /dispatch/customer-report` (JSON) and `/dispatch/customer-report/xlsx`; dispatch permission.
+The data loads when the customer is picked so the PDF window opens straight from the click.
+
 ## Car Dispatch card colours (2026-11-21)
 
 Each car card's header has a fixed colour so cars are told apart at a glance: chosen per car on the

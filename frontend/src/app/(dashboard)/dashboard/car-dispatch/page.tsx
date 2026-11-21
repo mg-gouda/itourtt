@@ -46,12 +46,17 @@ import {
   Ban,
   ArrowRightLeft,
   UserRound,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
 import { DataSheet, type DSColumn } from "@/components/data-sheet";
 import { cardColorOf } from "@/lib/card-color";
+import { printReport, downloadBlob } from "@/lib/print-report";
+import { useAuthStore } from "@/stores/auth-store";
+import { useCompanyStore } from "@/stores/company-store";
 
 /* ────────────────────────────── Types ────────────────────────────── */
 
@@ -426,7 +431,7 @@ function CarDispatchContent() {
     try {
       const [vehRes, custRes, drvRes, supRes, typRes, zoneRes] = await Promise.all([
         api.get("/vehicles", { params: { limit: 100 } }),
-        api.get("/customers", { params: { limit: 100 } }),
+        api.get("/customers", { params: { limit: 1000 } }),
         api.get("/drivers", { params: { limit: 100, isActive: true } }),
         api.get("/dispatch/available-suppliers"),
         api.get("/vehicles/types"),
@@ -980,6 +985,9 @@ function CarDispatchContent() {
         </div>
       </div>
 
+      {/* ─── Customer report: customer + the date above → PDF / Excel ─── */}
+      <CustomerReportBar customerOptions={customerOptions} jobDate={jobDate} />
+
       <Separator />
 
       {/* ─── Owned Car Multi-Select ─── */}
@@ -1343,6 +1351,116 @@ function ColorLegend() {
           {l.label}
         </span>
       ))}
+    </div>
+  );
+}
+
+/* ───────────────────── Customer report ───────────────────── */
+
+interface CustomerReport {
+  customerName: string;
+  date: string;
+  rows: {
+    customerJobId: string;
+    route: string;
+    time: string;
+    driverName: string;
+    driverNumber: string;
+    carNumber: string;
+    extraDriver: string;
+    notes: string;
+  }[];
+}
+
+const esc = (v: string) =>
+  v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/**
+ * One customer's jobs on the board's date (cancelled left out, by time): the customer's name once,
+ * then Customer Job ID / Route / Time / Driver Name / Driver Number / Car Number / Extra Driver / Notes.
+ * The report is loaded when the customer (or date) is picked, so PDF opens the print view straight
+ * from the click (a window opened after a wait is blocked as a pop-up).
+ */
+function CustomerReportBar({ customerOptions, jobDate }: { customerOptions: { value: string; label: string }[]; jobDate: string }) {
+  const { user } = useAuthStore();
+  const { logoUrl, companyName } = useCompanyStore();
+  const [customerId, setCustomerId] = useState("");
+  const [report, setReport] = useState<CustomerReport | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [excelBusy, setExcelBusy] = useState(false);
+
+  useEffect(() => {
+    if (!customerId) {
+      setReport(null);
+      return;
+    }
+    let live = true;
+    setLoading(true);
+    api
+      .get("/dispatch/customer-report", { params: { date: jobDate, customerId } })
+      .then(({ data }) => live && setReport((data?.data ?? data) as CustomerReport))
+      .catch(() => {
+        if (!live) return;
+        setReport(null);
+        toast.error("Could not load the customer's jobs");
+      })
+      .finally(() => live && setLoading(false));
+    return () => {
+      live = false;
+    };
+  }, [customerId, jobDate]);
+
+  const exportPdf = () => {
+    if (!report) return;
+    const head = ["Customer Job ID", "Route", "Time", "Driver Name", "Driver Number", "Car Number", "Extra Driver", "Notes"];
+    const body = report.rows.length
+      ? report.rows
+          .map(
+            (r) =>
+              `<tr>${[r.customerJobId, r.route, r.time, r.driverName, r.driverNumber, r.carNumber, r.extraDriver, r.notes]
+                .map((v) => `<td>${esc(v || "")}</td>`)
+                .join("")}</tr>`,
+          )
+          .join("")
+      : `<tr><td colspan="8">No jobs for this customer on this date.</td></tr>`;
+    const html = `<h1>${esc(report.customerName)}</h1><h2>${esc(report.date)} · ${report.rows.length} job(s)</h2>
+      <table><thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table>`;
+    if (!printReport({ title: `${report.customerName} — ${report.date}`, html, userName: user?.name, logoUrl, companyName })) {
+      toast.error("Allow pop-ups for this site to open the PDF");
+    }
+  };
+
+  const exportExcel = async () => {
+    if (!customerId) return;
+    setExcelBusy(true);
+    try {
+      const res = await api.get("/dispatch/customer-report/xlsx", { params: { date: jobDate, customerId }, responseType: "blob" });
+      const name = (report?.customerName || "customer").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-");
+      downloadBlob(res.data as Blob, `${name}-${jobDate}.xlsx`);
+    } catch {
+      toast.error("Could not export the Excel file");
+    } finally {
+      setExcelBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Label className="text-sm font-medium">Customer report:</Label>
+      <ComboSelect options={customerOptions} value={customerId} onChange={setCustomerId} placeholder="Search customer…" className="h-9 w-[260px]" />
+      <Button size="sm" variant="outline" className="gap-1.5" disabled={!report || loading} onClick={exportPdf}>
+        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+        PDF
+      </Button>
+      <Button size="sm" variant="outline" className="gap-1.5" disabled={!customerId || excelBusy} onClick={exportExcel}>
+        {excelBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+        Excel
+      </Button>
+      {report && !loading && (
+        <span className="text-xs text-muted-foreground">
+          {report.rows.length} job(s) on {jobDate}
+        </span>
+      )}
     </div>
   );
 }
