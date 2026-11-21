@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
+import { CARD_COLORS, autoCardColor } from "@/lib/card-color";
 
 interface VehicleType {
   id: string;
@@ -66,6 +67,9 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
   const [mainDriverId, setMainDriverId] = useState("");
   const [driverChoices, setDriverChoices] = useState<{ id: string; name: string; mobileNumber?: string }[] | null>(null);
   const [mainDriverSaving, setMainDriverSaving] = useState(false);
+  // Car Dispatch card colour ("" = automatic)
+  const [cardColor, setCardColor] = useState("");
+  const [cardColorSaving, setCardColorSaving] = useState(false);
 
   const [types, setTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,6 +181,7 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
       setCarModel(v.carModel || "");
       setMakeYear(v.makeYear != null ? String(v.makeYear) : "");
       setLuggageCapacity(v.luggageCapacity != null ? String(v.luggageCapacity) : "");
+      setCardColor(v.cardColor || "");
     } catch {
       toast.error(t("vehicles.failedLoadVehicles"));
       router.push("/dashboard/vehicles");
@@ -200,6 +205,19 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
       })
       .catch(() => setDriverChoices(null));
   }, [id]);
+
+  const saveCardColor = async (value: string | null) => {
+    setCardColorSaving(true);
+    try {
+      await api.patch(`/vehicles/${id}/card-color`, { cardColor: value });
+      setCardColor(value ?? "");
+      toast.success("Card colour saved");
+    } catch {
+      toast.error("Could not save the card colour");
+    } finally {
+      setCardColorSaving(false);
+    }
+  };
 
   const saveMainDriver = async (value: string) => {
     const driverId = value === "__none__" ? null : value;
@@ -445,6 +463,44 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                 </Select>
               </div>
               )}
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Car Dispatch card colour</Label>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {CARD_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      title={c}
+                      disabled={!canEditVehicle || cardColorSaving}
+                      onClick={() => saveCardColor(c)}
+                      className={`h-7 w-7 rounded-md border-2 transition ${cardColor === c ? "border-foreground scale-110" : "border-transparent"}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    title="Custom colour"
+                    disabled={!canEditVehicle || cardColorSaving}
+                    value={cardColor || autoCardColor(id)}
+                    onChange={(e) => setCardColor(e.target.value)}
+                    onBlur={(e) => e.target.value !== cardColor && saveCardColor(e.target.value)}
+                    className="h-7 w-9 cursor-pointer rounded border border-border bg-transparent p-0"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    disabled={!canEditVehicle || cardColorSaving || !cardColor}
+                    onClick={() => saveCardColor(null)}
+                  >
+                    Automatic
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {cardColor ? "Chosen colour" : "Automatic colour"} — fixed for this car on the Car Dispatch board. Saved straight away.
+                </p>
+              </div>
               {driverChoices && (
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Main driver</Label>

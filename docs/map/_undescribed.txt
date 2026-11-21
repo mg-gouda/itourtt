@@ -1,3 +1,8 @@
 # Symbols with no description yet — regenerate to refresh.
-# 3039/3039 described.
-
+# 3039/3045 described.
+backend/src/vehicles/vehicles.controller.ts#VehiclesController.setCardColor
+backend/src/vehicles/vehicles.service.ts#VehiclesService.setCardColor
+frontend/src/lib/card-color.ts#CARD_COLORS
+frontend/src/lib/card-color.ts#__file__
+frontend/src/lib/card-color.ts#autoCardColor
+frontend/src/lib/card-color.ts#cardColorOf

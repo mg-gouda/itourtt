@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**122 files**, **421 exported symbols**.
+**123 files**, **424 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -1176,6 +1176,16 @@ Per-user column visibility, persisted alongside column order.
 |---|---|---|---|
 | `api` | const | 7 | The configured axios instance. Import this rather than calling fetch — it attaches the bearer token and handles 401 refresh with request queueing. |
 | `backgroundPoll` | const | 17 | Axios config marking a timer-driven poll as background so it never keeps a rep/driver session active. |
+
+### `card-color.ts`
+
+`frontend/src/lib/card-color.ts` · 19 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `CARD_COLORS` | const | 5 | _—_ |
+| `autoCardColor` | function | 10 | _—_ |
+| `cardColorOf` | function | 16 | _—_ |
 
 ### `chat.ts`
 

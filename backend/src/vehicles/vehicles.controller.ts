@@ -244,6 +244,14 @@ export class VehiclesController {
     return new ApiResponse(null, 'Deposit payment removed');
   }
 
+  /** PATCH /vehicles/:id/card-color { cardColor: '#RRGGBB' | null } — Car Dispatch card colour. */
+  @Patch(':id/card-color')
+  @Roles('ADMIN', 'DISPATCHER')
+  @Permissions('vehicles.table.editButton')
+  async setCardColor(@Param('id') id: string, @Body() body: { cardColor?: string | null }) {
+    return new ApiResponse(await this.vehiclesService.setCardColor(id, body?.cardColor || null), 'Card colour updated');
+  }
+
   /** GET /vehicles/:id/main-driver — the car's main driver (or null). */
   @Get(':id/main-driver')
   @Permissions('vehicles')

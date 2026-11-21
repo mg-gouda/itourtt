@@ -13,7 +13,7 @@
 | `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 762 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
 | `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1391 | 10 | 13 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
 | `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | One agent's detail — credit status, documents and price list. |
-| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1661 | 13 | 1 | Car-centric dispatch view — the day organised by vehicle rather than by job. |
+| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 1669 | 13 | 1 | Car-centric dispatch view — the day organised by vehicle rather than by job. |
 | `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 539 | 7 | 3 | Company identity and branding (logo, favicon) used on invoices and reference prefixes. |
 | `/dashboard/complaint-categories` | `frontend/src/app/(dashboard)/dashboard/complaint-categories/page.tsx` | 354 | 4 | 3 | Complaint category catalog CRUD, including the pay-affecting default score penalty. |
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 580 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
@@ -55,7 +55,7 @@
 | `/dashboard/trip-km` | `frontend/src/app/(dashboard)/dashboard/trip-km/page.tsx` | 34 | — | — | Fleet › Trip Kilometers: all cars' odometer readings and Odoo export |
 | `/dashboard/users` | `frontend/src/app/(dashboard)/dashboard/users/page.tsx` | 818 | 14 | 8 | Staff user administration and role assignment. |
 | `/dashboard/vehicles` | `frontend/src/app/(dashboard)/dashboard/vehicles/page.tsx` | 1095 | 10 | 9 | Fleet list with compliance status. |
-| `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 761 | 9 | 10 | Edit a vehicle, its compliance documents and deposit payments. |
+| `/dashboard/vehicles/[id]/edit` | `frontend/src/app/(dashboard)/dashboard/vehicles/[id]/edit/page.tsx` | 817 | 10 | 10 | Edit a vehicle, its compliance documents and deposit payments. |
 | `/dashboard/vehicles/new` | `frontend/src/app/(dashboard)/dashboard/vehicles/new/page.tsx` | 300 | 2 | 8 | Add a vehicle. |
 | `/dashboard/whatsapp` | `frontend/src/app/(dashboard)/dashboard/whatsapp/page.tsx` | 713 | 7 | 3 | WhatsApp settings, templates, media and delivery logs. |
 | `/driver` | `frontend/src/app/(driver-portal)/driver/page.tsx` | 811 | 6 | — | Driver portal home: today's assigned jobs as cards with GPS-stamped status actions, the collection banner, and evidence upload. Complete is disabled client-side until collection is settled and the 15-minute window has passed. |
@@ -264,7 +264,7 @@
 
 **`/dashboard/vehicles/[id]/edit`**
 
-- calls: `GET /vehicles/types`, `GET /vehicles/:x`, `PATCH /vehicles/:x/main-driver`, `GET /vehicles/:x/compliance`, `PATCH /vehicles/:x`, `PATCH /vehicles/:x/compliance`, `POST /vehicles/:x/compliance/:x`, `POST /vehicles/:x/deposits`, `DELETE /vehicles/:x/deposits/:x`
+- calls: `GET /vehicles/types`, `GET /vehicles/:x`, `PATCH /vehicles/:x/card-color`, `PATCH /vehicles/:x/main-driver`, `GET /vehicles/:x/compliance`, `PATCH /vehicles/:x`, `PATCH /vehicles/:x/compliance`, `POST /vehicles/:x/compliance/:x`, `POST /vehicles/:x/deposits`, `DELETE /vehicles/:x/deposits/:x`
 - perms: `vehicles.form.plateNumber`, `vehicles.form.vehicleType`, `vehicles.form.color`, `vehicles.form.brand`, `vehicles.form.model`, `vehicles.form.makeYear`, `vehicles.form.luggageCapacity`, `vehicles.form.ownership`, `trip-km`, `vehicles.table.editButton`
 
 **`/dashboard/vehicles/new`**

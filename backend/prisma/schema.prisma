@@ -619,6 +619,8 @@ model Vehicle {
   carModel        String?          @map("car_model")
   makeYear        Int?             @map("make_year")
   luggageCapacity Int?             @map("luggage_capacity")
+  /// Car Dispatch card header colour (#RRGGBB), chosen on the vehicle page. Null = automatic.
+  cardColor       String?          @map("card_color") @db.VarChar(7)
   supplierId      String?          @map("supplier_id")
   isActive        Boolean          @default(true) @map("is_active")
   createdAt       DateTime         @default(now()) @map("created_at")

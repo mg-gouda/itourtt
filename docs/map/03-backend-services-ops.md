@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**27 classes**, **404 methods**.
+**27 classes**, **406 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -621,7 +621,7 @@ The core job entity: creation, editing, status transitions and admin Force Contr
 
 ### VehiclesController
 
-`backend/src/vehicles/vehicles.controller.ts:52` · controller · 23 methods
+`backend/src/vehicles/vehicles.controller.ts:52` · controller · 24 methods
 
 REST surface for vehicle types, the fleet, compliance documents and deposit payments.
 
@@ -644,42 +644,44 @@ REST surface for vehicle types, the fleet, compliance documents and deposit paym
 | `listDeposits` | pub | 219 | `vehiclesService.listDepositPayments` | Deposit payment history. |
 | `addDeposit` | pub | 227 | `vehiclesService.addDepositPayment` | Records a deposit payment. |
 | `removeDeposit` | pub | 239 | `vehiclesService.removeDepositPayment` | Deletes a deposit payment. |
-| `getMainDriver` | pub | 250 | `vehiclesService.getMainDriver` | GET /vehicles/:id/main-driver |
-| `setMainDriver` | pub | 258 | `vehiclesService.setMainDriver` | PATCH /vehicles/:id/main-driver { driverId \| null } |
-| `findVehicleById` | pub | 264 | `vehiclesService.findVehicleById` | One vehicle's detail. |
-| `updateVehicle` | pub | 271 | `vehiclesService.updateVehicle` | Edits a vehicle. |
-| `toggleStatus` | pub | 281 | `vehiclesService.toggleStatus` | Activates/deactivates a vehicle. |
-| `softDelete` | pub | 289 | `vehiclesService.softDelete` | Soft-deletes a vehicle. |
+| `setCardColor` | pub | 251 | `vehiclesService.setCardColor` | _—_ |
+| `getMainDriver` | pub | 258 | `vehiclesService.getMainDriver` | GET /vehicles/:id/main-driver |
+| `setMainDriver` | pub | 266 | `vehiclesService.setMainDriver` | PATCH /vehicles/:id/main-driver { driverId \| null } |
+| `findVehicleById` | pub | 272 | `vehiclesService.findVehicleById` | One vehicle's detail. |
+| `updateVehicle` | pub | 279 | `vehiclesService.updateVehicle` | Edits a vehicle. |
+| `toggleStatus` | pub | 289 | `vehiclesService.toggleStatus` | Activates/deactivates a vehicle. |
+| `softDelete` | pub | 297 | `vehiclesService.softDelete` | Soft-deletes a vehicle. |
 
 ### VehiclesService
 
-`backend/src/vehicles/vehicles.service.ts:12` · service · 21 methods
+`backend/src/vehicles/vehicles.service.ts:12` · service · 22 methods
 
 Vehicle types, the owned fleet, and per-vehicle compliance records (licences, insurance, deposits). `seatCapacity` on the type is what enforces the pax-never-exceeds-capacity rule at assignment time.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getMainDriver` | pub | 16 | `driverVehicle` | The car's main driver (driver_vehicles.is_primary), or null |
-| `setMainDriver` | pub | 30 | `vehicle` `driver` `driverVehicle` | Sets the car's one main driver; clears the previous main and the driver's other primary car |
-| `findAllVehicleTypes` | pub | 64 | `vehicleType` | Lists vehicle types with their seat capacities. |
-| `createVehicleType` | pub | 70 | `vehicleType` | Creates a vehicle type. |
-| `updateVehicleType` | pub | 86 | `vehicleType` | Edits a vehicle type. Changing seat capacity affects which jobs the type can serve. |
-| `findAllVehicles` | pub | 107 | `vehicle` | Filterable fleet list, split Active/Inactive. |
-| `findVehicleById` | pub | 140 | `vehicle` | One vehicle with type, supplier and compliance detail. |
-| `createVehicle` | pub | 153 | `vehicleType` `vehicle` | Adds a vehicle, validating its type exists. |
-| `toggleStatus` | pub | 177 | `vehicle` | Activates/deactivates a vehicle; inactive vehicles disappear from dispatch availability. |
-| `softDelete` | pub | 191 | `vehicle` | Soft-deletes a vehicle. |
-| `updateVehicle` | pub | 205 | `vehicle` `vehicleType` | Edits a vehicle's details or type. |
-| `exportToExcel` | pub | 241 | `vehicle` | Exports the fleet to xlsx. |
-| `generateImportTemplate` | pub | 296 | `vehicleType` | Blank fleet import workbook, pre-filled with the valid vehicle types. |
-| `importFromExcel` | pub | 483 | `vehicleType` `vehicle` `vehicleCompliance` | Bulk-imports vehicles and their compliance rows. |
-| `getCompliance` | pub | 812 | `vehicleCompliance` | Compliance record for one vehicle (documents and expiry dates). |
-| `upsertCompliance` | pub | 820 | `vehicleCompliance` | Creates or updates a vehicle's compliance record. |
-| `updateComplianceFile` | pub | 844 | `vehicleCompliance` | Attaches or replaces a compliance document file. |
-| `getComplianceReport` | pub | 857 | `vehicle` | Fleet-wide compliance view highlighting expired or expiring documents. |
-| `addDepositPayment` | pub | 909 | `vehicleCompliance` `user` `vehicleDepositPayment` | Records a deposit payment against a vehicle's compliance record. |
-| `removeDepositPayment` | pub | 936 | `vehicleDepositPayment` | Deletes a deposit payment row. |
-| `listDepositPayments` | pub | 953 | `vehicleCompliance` `vehicleDepositPayment` | Deposit payment history for a vehicle. |
+| `setCardColor` | pub | 16 | `vehicle` | _—_ |
+| `getMainDriver` | pub | 28 | `driverVehicle` | The car's main driver (driver_vehicles.is_primary), or null |
+| `setMainDriver` | pub | 42 | `vehicle` `driver` `driverVehicle` | Sets the car's one main driver; clears the previous main and the driver's other primary car |
+| `findAllVehicleTypes` | pub | 76 | `vehicleType` | Lists vehicle types with their seat capacities. |
+| `createVehicleType` | pub | 82 | `vehicleType` | Creates a vehicle type. |
+| `updateVehicleType` | pub | 98 | `vehicleType` | Edits a vehicle type. Changing seat capacity affects which jobs the type can serve. |
+| `findAllVehicles` | pub | 119 | `vehicle` | Filterable fleet list, split Active/Inactive. |
+| `findVehicleById` | pub | 152 | `vehicle` | One vehicle with type, supplier and compliance detail. |
+| `createVehicle` | pub | 165 | `vehicleType` `vehicle` | Adds a vehicle, validating its type exists. |
+| `toggleStatus` | pub | 189 | `vehicle` | Activates/deactivates a vehicle; inactive vehicles disappear from dispatch availability. |
+| `softDelete` | pub | 203 | `vehicle` | Soft-deletes a vehicle. |
+| `updateVehicle` | pub | 217 | `vehicle` `vehicleType` | Edits a vehicle's details or type. |
+| `exportToExcel` | pub | 253 | `vehicle` | Exports the fleet to xlsx. |
+| `generateImportTemplate` | pub | 308 | `vehicleType` | Blank fleet import workbook, pre-filled with the valid vehicle types. |
+| `importFromExcel` | pub | 495 | `vehicleType` `vehicle` `vehicleCompliance` | Bulk-imports vehicles and their compliance rows. |
+| `getCompliance` | pub | 824 | `vehicleCompliance` | Compliance record for one vehicle (documents and expiry dates). |
+| `upsertCompliance` | pub | 832 | `vehicleCompliance` | Creates or updates a vehicle's compliance record. |
+| `updateComplianceFile` | pub | 856 | `vehicleCompliance` | Attaches or replaces a compliance document file. |
+| `getComplianceReport` | pub | 869 | `vehicle` | Fleet-wide compliance view highlighting expired or expiring documents. |
+| `addDepositPayment` | pub | 921 | `vehicleCompliance` `user` `vehicleDepositPayment` | Records a deposit payment against a vehicle's compliance record. |
+| `removeDepositPayment` | pub | 948 | `vehicleDepositPayment` | Deletes a deposit payment row. |
+| `listDepositPayments` | pub | 965 | `vehicleCompliance` `vehicleDepositPayment` | Deposit payment history for a vehicle. |
 
 ## Standalone exports
 

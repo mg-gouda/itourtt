@@ -12,6 +12,18 @@ import { CreateDepositPaymentDto } from './dto/create-deposit-payment.dto.js';
 export class VehiclesService {
   // ── Main driver (driver_vehicles.is_primary): at most one per car and one per driver ──
 
+  /** Car Dispatch card colour (#RRGGBB) or null for automatic. */
+  async setCardColor(vehicleId: string, cardColor: string | null) {
+    if (cardColor !== null && !/^#[0-9a-fA-F]{6}$/.test(cardColor)) throw new BadRequestException('Colour must be #RRGGBB');
+    const vehicle = await this.prisma.vehicle.findFirst({ where: { id: vehicleId, deletedAt: null }, select: { id: true } });
+    if (!vehicle) throw new NotFoundException(`Vehicle with ID "${vehicleId}" not found`);
+    return this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { cardColor: cardColor ? cardColor.toLowerCase() : null },
+      select: { id: true, cardColor: true },
+    });
+  }
+
   /** The car's main driver, or null. */
   async getMainDriver(vehicleId: string) {
     const dv = await this.prisma.driverVehicle.findFirst({

@@ -51,6 +51,7 @@ import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
 import { DataSheet, type DSColumn } from "@/components/data-sheet";
+import { cardColorOf } from "@/lib/card-color";
 
 /* ────────────────────────────── Types ────────────────────────────── */
 
@@ -70,6 +71,8 @@ interface Vehicle {
   isActive: boolean;
   carBrand?: string | null;
   carModel?: string | null;
+  /** Card header colour chosen on the vehicle page (null = automatic). */
+  cardColor?: string | null;
 }
 
 interface Customer {
@@ -1428,6 +1431,8 @@ function VehicleCard({
   onMoveJob?: (job: JobRow, toVehicleId: string) => void;
 }) {
   const { vehicle, jobs, isSupplier } = card;
+  // Fixed per car (vehicle page › Card colour, or automatic) so cars are told apart at a glance.
+  const cardColor = cardColorOf(vehicle);
   const asNamePhone = (label: string) => label.replace(/ \(([^)]*)\)$/, " · $1");
   const otherDrivers = isSupplier
     ? []
@@ -1537,10 +1542,13 @@ function VehicleCard({
       )}
     >
       {/* ─── Card Header: Plate + Type ─── */}
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
+      <CardHeader
+        className="flex flex-row flex-wrap items-center justify-between gap-2 border-b px-3 py-2"
+        style={{ backgroundColor: `${cardColor}2e`, borderLeft: `6px solid ${cardColor}` }}
+      >
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Car className="h-5 w-5 text-primary" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: cardColor }}>
+            <Car className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">

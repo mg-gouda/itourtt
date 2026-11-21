@@ -598,6 +598,13 @@ PDF for the customer; there is no decision step to report).
 - The visible version (`APP_VERSION`) now comes from the APK itself, so it cannot drift from
   `build.gradle` again.
 
+## Car Dispatch card colours (2026-11-21)
+
+Each car card's header has a fixed colour so cars are told apart at a glance: chosen per car on the
+vehicle page (**Car Dispatch card colour**, `vehicles.card_color`, `PATCH /vehicles/:id/card-color`,
+saved straight away) or, when none is chosen, an automatic colour from the car's id
+(`frontend/src/lib/card-color.ts`) — it never changes. Supplier cards always use the automatic colour.
+
 ## Main driver of a car (dispatch suggestions, 2026-11-21)
 
 Owner rule: a car can have **one main driver** (`driver_vehicles.is_primary`), set on the driver page
