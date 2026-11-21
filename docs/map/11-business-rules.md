@@ -612,6 +612,8 @@ provide (`supplier_car_types.quantity`, 1–99, default 1).
 - Saving a supplier's car types keeps the existing rows (jobs point at them). It used to delete and
   recreate them, which cleared the car type on every job using them (FK on delete SET NULL). A type
   that jobs use can no longer be removed.
+- The database enforces it too: `traffic_assignments.supplier_car_type_id` is ON DELETE RESTRICT
+  (set live 2026-11-21 after 214 jobs' car types were restored from backups; 9 lost before 14 Nov).
 
 ## Car Dispatch highlight colours (2026-11-21)
 

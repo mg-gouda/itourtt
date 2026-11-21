@@ -1458,7 +1458,7 @@ model TrafficAssignment {
   driver           Driver?           @relation(fields: [driverId], references: [id])
   rep              Rep?              @relation(fields: [repId], references: [id])
   supplier         Supplier?         @relation("AssignmentSupplier", fields: [supplierId], references: [id])
-  supplierCarType  SupplierCarType?  @relation(fields: [supplierCarTypeId], references: [id])
+  supplierCarType  SupplierCarType?  @relation(fields: [supplierCarTypeId], references: [id], onDelete: Restrict)
   assignedBy       User              @relation("AssignedBy", fields: [assignedById], references: [id])
   statusChangeLogs StatusChangeLog[]
 
