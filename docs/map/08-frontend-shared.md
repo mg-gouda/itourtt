@@ -64,16 +64,16 @@ Capture-and-upload dialog for completion evidence: photos plus a mandatory GPS f
 
 ### `data-sheet.tsx`
 
-`frontend/src/components/data-sheet.tsx` · 628 lines
+`frontend/src/components/data-sheet.tsx` · 654 lines
 
 Access-style datasheet: keyboard cell navigation, in-cell editing, ✱ new-record row, Excel copy/paste, row saves on leave
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `DSOption` | type | 24 | Option of a DataSheet select column (value + label) |
-| `DSColumn` | type | 29 | DataSheet column: key, title, width, type (text/number/select/readonly), value getter, display, editability, cell class |
-| `DataSheetProps` | type | 45 | DataSheet props: rows, columns, onChange, onCreateRows, onRowLeave (save), onDeleteRows, dirty/error markers, resize |
-| `DataSheet` | function | 99 | Controlled Access-style editing grid shared by every tabular editing screen |
+| `DSOption` | type | 25 | Option of a DataSheet select column (value + label) |
+| `DSColumn` | type | 30 | DataSheet column: key, title, width, type (text/number/select/readonly), value getter, display, editability, cell class |
+| `DataSheetProps` | type | 46 | DataSheet props: rows, columns, onChange, onCreateRows, onRowLeave (save), onDeleteRows, dirty/error markers, resize |
+| `DataSheet` | function | 100 | Controlled Access-style editing grid shared by every tabular editing screen |
 
 ### `error-screen.tsx`
 

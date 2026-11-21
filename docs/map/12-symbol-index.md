@@ -826,8 +826,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DashboardPage` | function | `frontend/src/app/(dashboard)/dashboard/page.tsx:128` |
 | `DashboardScreen` | function | `mobile/apps/supplier/src/screens/DashboardScreen.tsx:17` |
 | `DashboardSkeleton` | function | `frontend/src/components/ui/skeletons.tsx:196` |
-| `DataSheet` | function | `frontend/src/components/data-sheet.tsx:99` |
-| `DataSheetProps` | type | `frontend/src/components/data-sheet.tsx:45` |
+| `DataSheet` | function | `frontend/src/components/data-sheet.tsx:100` |
+| `DataSheetProps` | type | `frontend/src/components/data-sheet.tsx:46` |
 | `DateNavigator` | function | `mobile/packages/ui/src/DateNavigator.tsx:10` |
 | `DatePickerModal` | function | `mobile/packages/ui/src/kit/DatePickerModal.tsx:24` |
 | `dateStrCairo` | function | `frontend/src/lib/utils.ts:33` |
@@ -1082,8 +1082,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DropdownMenuSubTrigger` | function | `frontend/src/components/ui/dropdown-menu.tsx:201` |
 | `DropdownMenuTrigger` | function | `frontend/src/components/ui/dropdown-menu.tsx:23` |
 | `dropPushSubscription` | function | `frontend/src/lib/web-push.ts:92` |
-| `DSColumn` | type | `frontend/src/components/data-sheet.tsx:29` |
-| `DSOption` | type | `frontend/src/components/data-sheet.tsx:24` |
+| `DSColumn` | type | `frontend/src/components/data-sheet.tsx:30` |
+| `DSOption` | type | `frontend/src/components/data-sheet.tsx:25` |
 | `DubaiBankGateway` | class | `backend/src/payments/gateways/dubai-bank.gateway.ts:9` |
 | `DubaiBankGateway.createSession` | method | `backend/src/payments/gateways/dubai-bank.gateway.ts:10` |
 | `DubaiBankGateway.refund` | method | `backend/src/payments/gateways/dubai-bank.gateway.ts:28` |

@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 export interface DSOption {
@@ -222,6 +223,20 @@ export function DataSheet<R>({
     },
     [active, columns, rows, editableAt],
   );
+
+  useEffect(() => {
+    if (!editing || !active) return;
+    const place = () => {
+      const el = wrapRef.current?.querySelector<HTMLElement>(`[data-cell="${active.r}:${active.c}"]`);
+      if (el) setDropRect(el.getBoundingClientRect());
+    };
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [editing, active]);
 
   useEffect(() => {
     if (editing) {
@@ -551,7 +566,7 @@ export function DataSheet<R>({
                         ro && !isNewRow(r) && !extra && "text-muted-foreground",
                         inRange(r, c) && !isActive && !extra && "bg-primary/10",
                         extra,
-                        isActive && "outline outline-2 -outline-offset-2 outline-primary",
+                        isActive && "outline outline-2 -outline-offset-2 outline-sky-500 dark:outline-sky-400",
                       )}
                     >
                       {isActive && editing ? (
@@ -595,11 +610,20 @@ export function DataSheet<R>({
         </tbody>
       </table>
 
-      {/* Select editor: the option list under the cell (inside the grid, so focus stays here). */}
-      {editing && activeCol?.type === "select" && dropRect && (
+      {/* Select editor: the option list under the cell (above it when there is no room below). It is
+          portalled to <body> — a Card's backdrop-filter would otherwise offset position:fixed. Option
+          clicks preventDefault, so focus stays in the cell input. */}
+      {editing && activeCol?.type === "select" && dropRect && typeof document !== "undefined" &&
+        createPortal(
         <div
-          className="fixed z-50 max-h-56 min-w-[180px] overflow-y-auto rounded-md border border-border bg-popover py-1 text-popover-foreground shadow-md"
-          style={{ top: dropRect.bottom + 2, left: dropRect.left, width: Math.max(dropRect.width, 220) }}
+          className="fixed z-[100] max-h-56 min-w-[180px] overflow-y-auto rounded-md border border-border bg-popover py-1 text-xs text-popover-foreground shadow-md"
+          style={{
+            ...(window.innerHeight - dropRect.bottom < 232 && dropRect.top > window.innerHeight - dropRect.bottom
+              ? { bottom: window.innerHeight - dropRect.top + 2 }
+              : { top: dropRect.bottom + 2 }),
+            left: Math.max(4, Math.min(dropRect.left, window.innerWidth - Math.max(dropRect.width, 220) - 4)),
+            width: Math.max(dropRect.width, 220),
+          }}
         >
           {filteredOpts.length === 0 ? (
             <div className="px-2 py-1.5 text-muted-foreground">No match</div>
@@ -613,6 +637,7 @@ export function DataSheet<R>({
                   if (active) writeCell(active, o.value);
                   setEditing(false);
                 }}
+                ref={i === optIndex ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
                 className={cn("cursor-pointer truncate px-2 py-1", i === optIndex ? "bg-accent text-accent-foreground" : "hover:bg-muted")}
                 dir="auto"
               >
@@ -620,7 +645,8 @@ export function DataSheet<R>({
               </div>
             ))
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
