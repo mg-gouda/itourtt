@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**123 files**, **424 exported symbols**.
+**124 files**, **429 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -1322,6 +1322,18 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 | `navTarget` | function | 60 | Resolves lat,lng or search text: exact point → airport → hotel → zone → from/to zone. |
 | `googleMapsNavUrl` | function | 79 | Universal google.com/maps/dir link with driving mode and dir_action=navigate. |
 | `jobNavUrl` | function | 90 | Navigation URL for one end of a job, or null when there is nowhere to go. |
+
+### `marsa-alam-hotels.ts`
+
+`frontend/src/lib/marsa-alam-hotels.ts` · 107 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `MarsaAlamArea` | type | 9 | _—_ |
+| `MARSA_ALAM_HOTELS` | const | 13 | _—_ |
+| `findMarsaAlamHotel` | function | 76 | _—_ |
+| `legOf` | function | 87 | _—_ |
+| `marsaAlamRoute` | function | 103 | _—_ |
 
 ### `permission-registry.ts`
 

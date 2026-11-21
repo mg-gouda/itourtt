@@ -1,5 +1,5 @@
 # Symbols with no description yet — regenerate to refresh.
-# 3039/3051 described.
+# 3039/3057 described.
 backend/src/dispatch/dispatch.controller.ts#DispatchController.customerReport
 backend/src/dispatch/dispatch.controller.ts#DispatchController.customerReportXlsx
 backend/src/dispatch/dispatch.controller.ts#DispatchController.setJobColors
@@ -12,3 +12,9 @@ frontend/src/lib/card-color.ts#CARD_COLORS
 frontend/src/lib/card-color.ts#__file__
 frontend/src/lib/card-color.ts#autoCardColor
 frontend/src/lib/card-color.ts#cardColorOf
+frontend/src/lib/marsa-alam-hotels.ts#MARSA_ALAM_HOTELS
+frontend/src/lib/marsa-alam-hotels.ts#MarsaAlamArea
+frontend/src/lib/marsa-alam-hotels.ts#__file__
+frontend/src/lib/marsa-alam-hotels.ts#findMarsaAlamHotel
+frontend/src/lib/marsa-alam-hotels.ts#legOf
+frontend/src/lib/marsa-alam-hotels.ts#marsaAlamRoute

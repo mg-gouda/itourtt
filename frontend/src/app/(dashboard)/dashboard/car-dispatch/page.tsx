@@ -55,6 +55,7 @@ import { type JobExtra } from "@/components/job-extras-editor";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
 import { DataSheet, type DSColumn } from "@/components/data-sheet";
 import { cardColorOf } from "@/lib/card-color";
+import { findMarsaAlamHotel, legOf, marsaAlamRoute } from "@/lib/marsa-alam-hotels";
 import { printReport, downloadBlob } from "@/lib/print-report";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCompanyStore } from "@/stores/company-store";
@@ -151,6 +152,8 @@ interface JobRow {
   collectionCurrency: string;
   custRepName: string;
   custRepMobile: string;
+  /** Free notes (often the hotel); a Marsa Alam hotel named here sets the route. */
+  notes: string;
   extraDriverName: string;
   extraDriverPhone: string;
   serviceType: string;
@@ -226,6 +229,7 @@ function newJobRow(): JobRow {
     collectionCurrency: "EGP",
     custRepName: "",
     custRepMobile: "",
+    notes: "",
     extraDriverName: "",
     extraDriverPhone: "",
     serviceType: "ARR",
@@ -618,6 +622,7 @@ function CarDispatchContent() {
         collectionCurrency: j.collectionCurrency || "EGP",
         custRepName: j.custRepName || "",
         custRepMobile: j.custRepMobile || "",
+        notes: j.notes || "",
         extraDriverName: j.assignment?.externalDriverName || "",
         extraDriverPhone: j.assignment?.externalDriverPhone || "",
         serviceType: j.serviceType || "ARR",
@@ -729,6 +734,21 @@ function CarDispatchContent() {
     }
   };
 
+  /**
+   * Notes → route (owner's Marsa Alam hotel list, lib/marsa-alam-hotels): when the notes name a
+   * Marsa Alam hotel, the row gets that area's route for its leg (ARR / DEP / going / return —
+   * from the current route, or from Type when Type was just changed). {} when nothing applies.
+   */
+  const notesRoute = (row: JobRow, byType: boolean): Partial<JobRow> & { _hotel?: string } => {
+    const hotel = findMarsaAlamHotel(row.notes);
+    if (!hotel) return {};
+    const current = routes.find((r) => r.id === row.jobServiceTypeId);
+    const leg = legOf(byType ? undefined : current?.name, row.serviceType);
+    const target = leg ? marsaAlamRoute(routes, leg, hotel.area) : undefined;
+    if (!target || target.id === row.jobServiceTypeId) return {};
+    return { jobServiceTypeId: target.id, ...routeEnds(routes, target.id), ...(byType ? { serviceType: row.serviceType } : {}), _hotel: hotel.name };
+  };
+
   const updateJobField = (
     vehicleId: string,
     uid: string,
@@ -737,13 +757,23 @@ function CarDispatchContent() {
   ) => {
     // A route carries its default type and both ends (System Parameters › Routes).
     const routeFill = (): Partial<JobRow> => (field === "jobServiceTypeId" ? routeEnds(routes, String(value)) : {});
+    const row = cards.find((c) => c.vehicle.id === vehicleId)?.jobs.find((j) => j.uid === uid);
+    let auto: Partial<JobRow> = {};
+    if (row && (field === "notes" || field === "serviceType")) {
+      const { _hotel, ...fill } = notesRoute({ ...row, [field]: value } as JobRow, field === "serviceType");
+      if (_hotel && fill.jobServiceTypeId) {
+        auto = fill;
+        const name = routes.find((r) => r.id === fill.jobServiceTypeId)?.name.split(" | ")[0];
+        toast.info(`Route set to ${name} — ${_hotel} (Marsa Alam hotel list)`);
+      }
+    }
     setCards((prev) =>
       prev.map((c) =>
         c.vehicle.id === vehicleId
           ? {
               ...c,
               jobs: c.jobs.map((j) =>
-                j.uid === uid ? { ...j, [field]: value, ...routeFill() } : j
+                j.uid === uid ? { ...j, [field]: value, ...routeFill(), ...auto } : j
               ),
             }
           : c
@@ -765,6 +795,10 @@ function CarDispatchContent() {
             row = { ...row, [field]: value, ...(field === "jobServiceTypeId" ? routeEnds(routes, value) : {}) };
           }
           if (!row.driverId && !c.isSupplier) row = { ...row, driverId: mainDrivers.get(vehicleId)?.driverId ?? "" };
+          if (row.notes) {
+            const { _hotel, ...fill } = notesRoute(row, false);
+            if (_hotel) row = { ...row, ...fill };
+          }
           return row;
         });
         return { ...c, jobs: [...c.jobs, ...created] };
@@ -846,6 +880,7 @@ function CarDispatchContent() {
         customerJobId: job.customerJobId?.trim() || undefined,
         custRepName: job.custRepName || undefined,
         custRepMobile: job.custRepMobile || undefined,
+        notes: job.notes?.trim() || undefined,
         extras: job.extras
           .filter((e) => e.name && e.qty > 0)
           .map((e) => ({
@@ -1270,7 +1305,7 @@ function CarDispatchContent() {
 
 type ColKey =
   | "customer" | "booking" | "custJobId" | "route" | "time" | "driver"
-  | "custRepName" | "custRepMobile" | "extraDriverName" | "extraDriverPhone" | "type" | "pax" | "actions";
+  | "custRepName" | "custRepMobile" | "extraDriverName" | "extraDriverPhone" | "type" | "pax" | "notes" | "actions";
 
 /** Datasheet column → JobRow field. */
 const COLUMN_FIELD: Partial<Record<ColKey, keyof JobRow>> = {
@@ -1285,6 +1320,7 @@ const COLUMN_FIELD: Partial<Record<ColKey, keyof JobRow>> = {
   extraDriverPhone: "extraDriverPhone",
   type: "serviceType",
   pax: "paxCount",
+  notes: "notes",
 };
 
 /** "930" / "0930" / "9:30" → "09:30". */
@@ -1388,6 +1424,7 @@ const JOB_COLUMNS: { key: ColKey; label: string; width: number; center?: boolean
   { key: "extraDriverPhone", label: "Driver Phone", width: 96 },
   { key: "type", label: "Type", width: 90 },
   { key: "pax", label: "Pax", width: 44, center: true },
+  { key: "notes", label: "Notes", width: 180 },
   { key: "actions", label: "Act", width: 64, center: true, fixed: true },
 ];
 
@@ -1739,6 +1776,14 @@ function VehicleCard({
             };
       case "type":
         return { ...base, type: "select", options: typeOptions, get: (j) => j.serviceType, editable: open };
+      case "notes":
+        return {
+          ...base,
+          get: (j) => j.notes,
+          editable: open,
+          placeholder: "Hotel / notes",
+          display: (j) => <span title={j.notes}>{j.notes}</span>,
+        };
       case "pax":
         return { ...base, type: "number", get: (j) => j.paxCount, editable: open };
       case "actions":

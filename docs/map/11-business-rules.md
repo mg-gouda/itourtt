@@ -615,6 +615,22 @@ provide (`supplier_car_types.quantity`, 1–99, default 1).
 - The database enforces it too: `traffic_assignments.supplier_car_type_id` is ON DELETE RESTRICT
   (set live 2026-11-21 after 214 jobs' car types were restored from backups; 9 lost before 14 Nov).
 
+## Car Dispatch notes → Marsa Alam route (2026-11-21)
+
+Car Dispatch has a **Notes** column, saved as the job's notes; the customer report prints it. When the notes name
+a hotel from the owner's Marsa Alam list (`frontend/src/lib/marsa-alam-hotels.ts`, from "RMF HOTEL NEAMS.xlsx"),
+the row's route is set to that area's route for the row's leg:
+- **Areas:** north of RMF airport = NORTH-MARSA ALAM; south of RMF up to Marsa Alam town, including Port Ghalib,
+  = SOUTH MARSA ALAM; the deep south beyond the town = SHAMS ALAM; Azur Wadi Lahmy = WADI LAHMI.
+- **Leg:** ARR / DEP / GOING TRIP / RETURN TRIP, taken from the current route. When Type was just changed, it comes
+  from Type: ONE_WAY_TRANSFER = going, RETURN = return.
+- **When it applies:** on unsaved rows, when the notes or the Type change, and on Excel paste. A toast names the
+  route and hotel.
+- **Overriding:** pick another route afterwards to override it; the notes are not re-read until they change.
+- **No match:** Wadi Lahmi has no going or return routes, so nothing changes there.
+- **Look-alikes:** chain names that also exist elsewhere (Movenpick, Novotel, Three Corners, Sea World, Shams, Azur)
+  need their Marsa Alam part.
+
 ## Car Dispatch highlight colours (2026-11-21)
 
 Each car card has a colour picker (palette button in the header): select a cell in that card, pick a
