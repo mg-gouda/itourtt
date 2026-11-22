@@ -9,7 +9,6 @@ import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { LicenseGate } from "@/components/license-gate";
-import { SessionConflictModal } from "@/components/session-conflict-modal";
 import { StaffOnlyWarning } from "@/components/staff-only-warning";
 import { ChatWidget } from "@/components/chat/chat-widget";
 import { TripKmReminder } from "@/components/trip-km-reminder";
@@ -88,7 +87,6 @@ export default function DashboardLayout({
           </div>
           <div className="flex flex-1 flex-col overflow-hidden">
             <Header />
-            <SessionConflictModal />
             <ChatWidget />
             <TripKmReminder />
             <main className="flex-1 overflow-y-auto p-3 pb-10 md:p-6 md:pb-10">{children}</main>

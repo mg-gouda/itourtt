@@ -1007,11 +1007,21 @@ DataSheets.
   2026-11-16 the driver, rep and supplier portal controllers used `RolesGuard` alone and any staff
   token could call them (the services then 403'd for want of a linked profile).
 - The partner API authenticates by **shared API key**, not JWT — the only controller that does.
-- REP/DRIVER logins are **single-device**: a second device gets 409 and **only the super-admin
-  (`mggouda@gmail.com`, `common/utils/super-admin.util.ts`) is notified** — the blocked-login alert is
-  hidden from every other admin, role and user, in the backend recipient list and the frontend popup.
-  Sessions free themselves after `SESSION_IDLE_MINUTES` (default 30) of *no requests at all*; admin
-  **Clear** is the manual fix.
+- REP/DRIVER logins are **single-device with takeover** (since 5.4.0, 2026-11-22). If another
+  device or the web portal still holds an active session, `POST /auth/login` answers **409** with
+  `code: SESSION_ACTIVE_ELSEWHERE` and `details: { deviceName, lastSeenAt }` (the exception filter
+  passes `code`/`details` through). The web login page and the rep/driver apps (1.3.0) then ask
+  "Continue here?" and retry with `takeover: true`; `issueSession` replaces `user.sessionId` (old
+  tokens answer `SESSION_DISPLACED`) and ends **every** other open session with
+  `endReason = TAKEOVER`. Nobody is notified — the super-admin blocked-login alert
+  (`REP_LOGIN_CONFLICT`, `SessionConflictModal`, `super-admin.util.ts`) was removed on purpose.
+  App builds older than 1.3.0 can't send `takeover`, so they just show the 409 message (EN + AR,
+  "update the app or log out there"). Admin **Clear** still exists but should rarely be needed.
+- **Real client IPs:** Traefik runs with `externalTrafficPolicy: Local` (`k8s/traefik-config.yaml`,
+  copied into `/var/lib/rancher/k3s/server/manifests/`) and `main.ts` sets Express `trust proxy` to
+  the private ranges, so `req.ip` (sessions, activity log, per-IP throttles) is the phone's address.
+  Before this every request looked like `10.42.0.x`, and the 10/min login throttle was shared by
+  all users.
 - **REP/DRIVER are logged out after 3 hours of inactivity** (`SESSION_INACTIVITY_MINUTES`, default
   180). The catch: the portals poll their notification badge every 30s, so "any request" never goes
   idle while the app is open. `UserSession.lastActivityAt` is therefore separate from `lastSeenAt`:

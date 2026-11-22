@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**131 files**, **388 exported symbols**.
+**131 files**, **390 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -176,13 +176,13 @@ Driver's jobs for a day, sorted by effective start time.
 
 ### `LoginScreen.tsx`
 
-`mobile/apps/driver/src/screens/LoginScreen.tsx` · 209 lines
+`mobile/apps/driver/src/screens/LoginScreen.tsx` · 226 lines
 
 Driver login. A 409 here means another device holds the session.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoginScreen` | function | 22 | Driver login. A 409 here means another device holds the session. |
+| `LoginScreen` | function | 23 | Driver login. A 409 here means another device holds the session. |
 
 ### `NotificationsScreen.tsx`
 
@@ -559,13 +559,13 @@ Rep Jobs tab (day list).
 
 ### `LoginScreen.tsx`
 
-`mobile/apps/rep/src/screens/LoginScreen.tsx` · 209 lines
+`mobile/apps/rep/src/screens/LoginScreen.tsx` · 226 lines
 
 Rep login. A 409 here means another device holds the session.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LoginScreen` | function | 22 | Rep login. A 409 here means another device holds the session. |
+| `LoginScreen` | function | 23 | Rep login. A 409 here means another device holds the session. |
 
 ### `NotificationsScreen.tsx`
 
@@ -782,14 +782,16 @@ Typed wrappers over `/api/supplier-portal`.
 
 ### `auth-store.ts`
 
-`mobile/packages/shared/src/auth/auth-store.ts` · 69 lines
+`mobile/packages/shared/src/auth/auth-store.ts` · 93 lines
 
 Session state for the mobile apps, backed by encrypted storage.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useAuthStore` | const | 16 | Session state for the mobile apps, backed by encrypted storage (`useAuthStore`). |
-| `validateRole` | function | 66 | Session state for the mobile apps, backed by encrypted storage (`validateRole`). |
+| `SessionConflict` | type | 7 | The other device/portal holding a REP/DRIVER session (login 409 SESSION_ACTIVE_ELSEWHERE details). |
+| `sessionConflictOf` | function | 13 | Extract the session conflict from a failed login error (409 SESSION_ACTIVE_ELSEWHERE), or null for any other error. |
+| `useAuthStore` | const | 34 | Session state for the mobile apps, backed by encrypted storage (`useAuthStore`). |
+| `validateRole` | function | 90 | Session state for the mobile apps, backed by encrypted storage (`validateRole`). |
 
 ### `secure-storage.ts`
 
@@ -851,7 +853,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 517 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 521 lines
 
 Arabic strings for all four apps.
 
@@ -861,14 +863,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 517 lines
+`mobile/packages/shared/src/i18n/en.ts` · 521 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 516 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 520 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -1133,7 +1135,7 @@ Type scale.
 
 ### `index.ts`
 
-`mobile/packages/shared/src/types/index.ts` · 572 lines
+`mobile/packages/shared/src/types/index.ts` · 574 lines
 
 Shared TypeScript types for API payloads across the apps.
 
@@ -1155,43 +1157,43 @@ Shared TypeScript types for API payloads across the apps.
 | `AuthUser` | type | 18 | Shared TypeScript types for API payloads across the apps (`AuthUser`). |
 | `AuthResponse` | type | 30 | Shared TypeScript types for API payloads across the apps (`AuthResponse`). |
 | `LoginPayload` | type | 36 | Shared TypeScript types for API payloads across the apps (`LoginPayload`). |
-| `Country` | type | 42 | Shared TypeScript types for API payloads across the apps (`Country`). |
-| `Airport` | type | 50 | Shared TypeScript types for API payloads across the apps (`Airport`). |
-| `City` | type | 60 | Shared TypeScript types for API payloads across the apps (`City`). |
-| `Zone` | type | 69 | Shared TypeScript types for API payloads across the apps (`Zone`). |
-| `Hotel` | type | 78 | Shared TypeScript types for API payloads across the apps (`Hotel`). |
-| `LocationTree` | type | 87 | Shared TypeScript types for API payloads across the apps (`LocationTree`). |
-| `VehicleType` | type | 100 | Shared TypeScript types for API payloads across the apps (`VehicleType`). |
-| `Vehicle` | type | 108 | Shared TypeScript types for API payloads across the apps (`Vehicle`). |
-| `Driver` | type | 127 | Shared TypeScript types for API payloads across the apps (`Driver`). |
-| `DriverVehicle` | type | 137 | Shared TypeScript types for API payloads across the apps (`DriverVehicle`). |
-| `Rep` | type | 149 | Shared TypeScript types for API payloads across the apps (`Rep`). |
-| `Agent` | type | 160 | Shared TypeScript types for API payloads across the apps (`Agent`). |
-| `Customer` | type | 174 | Shared TypeScript types for API payloads across the apps (`Customer`). |
-| `Supplier` | type | 186 | Shared TypeScript types for API payloads across the apps (`Supplier`). |
-| `TrafficFlight` | type | 198 | Shared TypeScript types for API payloads across the apps (`TrafficFlight`). |
-| `TrafficAssignment` | type | 208 | Shared TypeScript types for API payloads across the apps (`TrafficAssignment`). |
-| `TrafficJob` | type | 221 | Shared TypeScript types for API payloads across the apps (`TrafficJob`). |
-| `PortalLocationCoords` | type | 275 | Optional latitude/longitude/address the portal APIs return on job locations. |
-| `PortalJob` | type | 281 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
-| `DriverPortalJob` | type | 318 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
-| `RepPortalJob` | type | 336 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
-| `SupplierPortalJob` | type | 361 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
-| `PortalNotification` | type | 367 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
-| `GuestSurveyInput` | type | 381 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
-| `GuestSurveyPayload` | type | 397 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
-| `PortalComplaint` | type | 408 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
-| `PortalDeduction` | type | 432 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
-| `BookingExtras` | type | 448 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
-| `QuoteRequest` | type | 454 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
-| `QuoteResponse` | type | 466 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
-| `CreateGuestBooking` | type | 472 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
-| `GuestBooking` | type | 497 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
-| `ApiResponse` | type | 523 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
-| `PaginatedResponse` | type | 528 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
-| `DriverProfile` | type | 536 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
-| `RepProfile` | type | 549 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
-| `SupplierProfile` | type | 563 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
+| `Country` | type | 44 | Shared TypeScript types for API payloads across the apps (`Country`). |
+| `Airport` | type | 52 | Shared TypeScript types for API payloads across the apps (`Airport`). |
+| `City` | type | 62 | Shared TypeScript types for API payloads across the apps (`City`). |
+| `Zone` | type | 71 | Shared TypeScript types for API payloads across the apps (`Zone`). |
+| `Hotel` | type | 80 | Shared TypeScript types for API payloads across the apps (`Hotel`). |
+| `LocationTree` | type | 89 | Shared TypeScript types for API payloads across the apps (`LocationTree`). |
+| `VehicleType` | type | 102 | Shared TypeScript types for API payloads across the apps (`VehicleType`). |
+| `Vehicle` | type | 110 | Shared TypeScript types for API payloads across the apps (`Vehicle`). |
+| `Driver` | type | 129 | Shared TypeScript types for API payloads across the apps (`Driver`). |
+| `DriverVehicle` | type | 139 | Shared TypeScript types for API payloads across the apps (`DriverVehicle`). |
+| `Rep` | type | 151 | Shared TypeScript types for API payloads across the apps (`Rep`). |
+| `Agent` | type | 162 | Shared TypeScript types for API payloads across the apps (`Agent`). |
+| `Customer` | type | 176 | Shared TypeScript types for API payloads across the apps (`Customer`). |
+| `Supplier` | type | 188 | Shared TypeScript types for API payloads across the apps (`Supplier`). |
+| `TrafficFlight` | type | 200 | Shared TypeScript types for API payloads across the apps (`TrafficFlight`). |
+| `TrafficAssignment` | type | 210 | Shared TypeScript types for API payloads across the apps (`TrafficAssignment`). |
+| `TrafficJob` | type | 223 | Shared TypeScript types for API payloads across the apps (`TrafficJob`). |
+| `PortalLocationCoords` | type | 277 | Optional latitude/longitude/address the portal APIs return on job locations. |
+| `PortalJob` | type | 283 | Shared TypeScript types for API payloads across the apps (`PortalJob`). |
+| `DriverPortalJob` | type | 320 | Shared TypeScript types for API payloads across the apps (`DriverPortalJob`). |
+| `RepPortalJob` | type | 338 | Shared TypeScript types for API payloads across the apps (`RepPortalJob`). |
+| `SupplierPortalJob` | type | 363 | Shared TypeScript types for API payloads across the apps (`SupplierPortalJob`). |
+| `PortalNotification` | type | 369 | Shared TypeScript types for API payloads across the apps (`PortalNotification`). |
+| `GuestSurveyInput` | type | 383 | Arrival guest survey body; mirrors the backend GuestSurveyDto. |
+| `GuestSurveyPayload` | type | 399 | GET survey response: the saved survey or prefill (flight, hotel, pax). |
+| `PortalComplaint` | type | 410 | A settled complaint shown in a rep or driver portal: outcome, category, job, score penalty and any posted charge. |
+| `PortalDeduction` | type | 434 | A posted deduction against the signed-in rep/driver: amount, currency, reason, job and complaint info. |
+| `BookingExtras` | type | 450 | Shared TypeScript types for API payloads across the apps (`BookingExtras`). |
+| `QuoteRequest` | type | 456 | Shared TypeScript types for API payloads across the apps (`QuoteRequest`). |
+| `QuoteResponse` | type | 468 | Shared TypeScript types for API payloads across the apps (`QuoteResponse`). |
+| `CreateGuestBooking` | type | 474 | Shared TypeScript types for API payloads across the apps (`CreateGuestBooking`). |
+| `GuestBooking` | type | 499 | Shared TypeScript types for API payloads across the apps (`GuestBooking`). |
+| `ApiResponse` | type | 525 | Shared TypeScript types for API payloads across the apps (`ApiResponse`). |
+| `PaginatedResponse` | type | 530 | Shared TypeScript types for API payloads across the apps (`PaginatedResponse`). |
+| `DriverProfile` | type | 538 | Shared TypeScript types for API payloads across the apps (`DriverProfile`). |
+| `RepProfile` | type | 551 | Shared TypeScript types for API payloads across the apps (`RepProfile`). |
+| `SupplierProfile` | type | 565 | Shared TypeScript types for API payloads across the apps (`SupplierProfile`). |
 
 ## `mobile/packages/shared/src/utils/`
 

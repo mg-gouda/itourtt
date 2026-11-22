@@ -22,6 +22,10 @@ export const en = {
     password: 'Password',
     loginFailed: 'Login failed',
     invalidRole: 'Your account does not have access to this app',
+    takeoverTitle: 'Signed in elsewhere',
+    takeoverMessage: 'You are already signed in on another device or the web portal ({device}). Continue here? The other device will be signed out.',
+    takeoverConfirm: 'Continue here',
+    cancel: 'Cancel',
   },
   jobs: {
     myJobs: 'My Jobs',

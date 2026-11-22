@@ -13,7 +13,11 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
-import { SessionsService, type SessionContext } from '../sessions/sessions.service.js';
+import {
+  SessionsService,
+  SINGLE_DEVICE_ROLES,
+  type SessionContext,
+} from '../sessions/sessions.service.js';
 import type { AuthResponseDto } from './dto/auth-response.dto.js';
 import type { User } from '../../generated/prisma/client.js';
 import {
@@ -47,37 +51,37 @@ export class AuthService {
   /**
    * Authenticate a user by email/phone and password, returning tokens and user info.
    *
-   * REP and DRIVER are single-device: a new device is blocked (409) while another
-   * device has an active session (seen within SESSION_IDLE_MINUTES). Idle/ended
-   * sessions free up automatically (and a session with no user activity for
-   * SESSION_INACTIVITY_MINUTES, default 3h, is logged out) and an admin can
-   * force-logout a stuck device; only the super-admin is alerted, the user is
-   * not. Office roles are multi-device (no such restriction).
+   * REP and DRIVER are single-device. When another device (or the web portal)
+   * still has an active session, login answers 409 `SESSION_ACTIVE_ELSEWHERE`
+   * with that device's name; the client asks the user to take over and retries
+   * with `takeover: true`, which signs every other session out (issueSession).
+   * Office roles are multi-device.
    */
   async login(
     identifier: string,
     password: string,
     ctx: SessionContext = {},
+    takeover = false,
   ): Promise<AuthResponseDto | TwoFactorChallenge> {
     const user = await this.validateUser(identifier, password);
 
-    // ── Single-device lock (REP & DRIVER only) ───────────────────────────────
-    // A new device cannot sign in while another device has an active (recently
-    // seen) session. Idle/ended sessions free up on their own, and an admin can
-    // force-logout a stuck device. Managers are alerted; the user is not.
-    const guardedRoles = ['REP', 'DRIVER'];
-    if (guardedRoles.includes(user.role)) {
+    // ── Single-device takeover (REP & DRIVER only) ───────────────────────────
+    const singleDevice: readonly string[] = SINGLE_DEVICE_ROLES;
+    if (singleDevice.includes(user.role) && !takeover) {
       const active = await this.sessions.findActive(user.id);
       if (active) {
-        await this.sessions.notifyManagersOfConflict(
-          { id: user.id, name: user.name, role: user.role },
-          ctx,
-        );
-        this.logger.warn(
-          `Blocked concurrent login for ${user.role} ${user.id} — active session on another device.`,
-        );
         throw new HttpException(
-          'You are already signed in on another device. Please log out there first, or contact an administrator.',
+          {
+            code: 'SESSION_ACTIVE_ELSEWHERE',
+            // Shown as-is by app builds that predate the takeover prompt.
+            message:
+              'You are signed in on another device or the portal. Update the app to take over here, or log out there first.\n' +
+              'أنت مسجل الدخول على جهاز آخر أو على البوابة. حدّث التطبيق للمتابعة هنا، أو سجّل الخروج من هناك أولاً.',
+            details: {
+              deviceName: active.deviceName ?? 'Unknown device',
+              lastSeenAt: active.lastSeenAt.toISOString(),
+            },
+          },
           HttpStatus.CONFLICT, // 409
         );
       }
@@ -128,7 +132,15 @@ export class AuthService {
       },
     });
 
-    // Log this device session (powers the admin Active-Sessions view + the lock).
+    // Single-device roles: this login takes over — every other open session is
+    // ended (TAKEOVER). Their tokens already stopped working when user.sessionId
+    // was replaced above; this closes the session rows too.
+    const singleDevice: readonly string[] = SINGLE_DEVICE_ROLES;
+    if (singleDevice.includes(user.role)) {
+      await this.sessions.endAllForUser(user.id, 'TAKEOVER');
+    }
+
+    // Log this device session (powers the admin Active-Sessions view).
     await this.sessions.start(user.id, sessionId, ctx);
 
     // If user is a REP, resolve their repId

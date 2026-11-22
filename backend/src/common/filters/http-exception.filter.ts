@@ -19,6 +19,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let status: number;
     let message: string | object;
+    // Machine-readable extras an HttpException may carry (e.g. login's 409
+    // SESSION_ACTIVE_ELSEWHERE + the other device's name).
+    let extra: { code?: string; details?: unknown } = {};
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       // Handle known Prisma errors
@@ -56,6 +59,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.getStatus();
       const res = exception.getResponse();
       message = typeof res === 'string' ? res : (res as any).message || res;
+      if (typeof res === 'object' && res && typeof (res as any).code === 'string') {
+        extra = { code: (res as any).code, details: (res as any).details };
+      }
     } else {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Internal server error';
@@ -69,6 +75,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     response.status(status).json({
       statusCode: status,
       message,
+      ...extra,
       timestamp: new Date().toISOString(),
     });
   }

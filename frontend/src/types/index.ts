@@ -32,6 +32,8 @@ export interface AuthResponse {
 export interface LoginPayload {
   identifier: string;
   password: string;
+  /** REP/DRIVER: take over a session open on another device or the portal. */
+  takeover?: boolean;
 }
 
 // ─── Locations ──────────────────────────────────────────────────

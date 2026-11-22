@@ -1,0 +1,16 @@
+# k3s Traefik override — keep the real client IP.
+# With externalTrafficPolicy: Cluster (the default) kube-proxy SNATs every
+# request, so Traefik (and the backend's X-Forwarded-For) only ever saw the
+# internal 10.42.0.1. Local preserves the phone's public IP. Safe on our
+# single-node cluster (the node always runs the Traefik pod).
+# Applied by copying to /var/lib/rancher/k3s/server/manifests/ (k3s auto-applies).
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    service:
+      spec:
+        externalTrafficPolicy: Local

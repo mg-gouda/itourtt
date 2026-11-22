@@ -410,7 +410,7 @@ model UserSession {
   /// SESSION_INACTIVITY_MINUTES (default 180) are ended and logged out.
   lastActivityAt DateTime  @default(now()) @map("last_activity_at")
   endedAt        DateTime? @map("ended_at")
-  /// Why the session ended: LOGOUT | FORCED | IDLE_TIMEOUT (null while open).
+  /// Why the session ended: LOGOUT | FORCED | IDLE_TIMEOUT | TAKEOVER (null while open).
   endReason      String?   @map("end_reason")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

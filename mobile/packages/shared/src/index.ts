@@ -6,7 +6,8 @@ export { authApi, driverPortalApi, repPortalApi, supplierPortalApi, publicApi, c
 export type * from './api/endpoints/chat';
 
 // Auth
-export { useAuthStore, validateRole } from './auth/auth-store';
+export { useAuthStore, validateRole, sessionConflictOf } from './auth/auth-store';
+export type { SessionConflict } from './auth/auth-store';
 export { secureStorage } from './auth/secure-storage';
 
 // Types

@@ -103,42 +103,42 @@ Public auth surface: login, 2FA, refresh, password reset, logout and mobile devi
 |---|---|---|---|---|
 | `getLoginConfig` | pub | 41 | `systemSettings` | Public branding for the login screen (logo, background) so it renders before anyone authenticates. |
 | `login` | pub | 55 | `authService.login` | Credentials in, session or 2FA challenge out. Returns 409 for a REP/DRIVER already signed in elsewhere. |
-| `sessionCtx` | priv | 72 | — | Extracts ip and User-Agent from the request to stamp the device session. |
+| `sessionCtx` | priv | 73 | — | Extracts ip and User-Agent from the request to stamp the device session. |
 | `setUploadsCookie` | priv | 79 | `authService.signUploadsToken` | Sets the httpOnly uploads cookie so `<img>` tags can fetch private evidence files. |
 | `verifyTwoFactor` | pub | 94 | `authService.verifyTwoFactor` | Exchanges the 2FA challenge plus a code for a real session. |
-| `setupTwoFactor` | pub | 113 | `authService.setupTwoFactor` | Starts 2FA enrolment, returning the secret and QR URI. |
-| `enableTwoFactor` | pub | 120 | `authService.enableTwoFactor` | Confirms enrolment and returns recovery codes. |
-| `disableTwoFactor` | pub | 130 | `authService.disableTwoFactor` | Turns 2FA off. |
-| `refresh` | pub | 141 | `authService.refresh` | Rotates the token pair without disturbing the device session. |
-| `forgotPassword` | pub | 154 | `authService.forgotPassword` | Starts a password reset; deliberately does not reveal whether the address exists. |
-| `resetPassword` | pub | 163 | `authService.resetPassword` | Completes a password reset with a valid token. |
-| `logout` | pub | 171 | `authService.logout` | Ends the device session and revokes the refresh token. |
-| `registerDeviceToken` | pub | 184 | `deviceToken` | Registers an FCM device token so the mobile apps can receive push. |
-| `removeDeviceToken` | pub | 207 | `deviceToken` | Removes a device token on logout or uninstall. |
+| `setupTwoFactor` | pub | 112 | `authService.setupTwoFactor` | Starts 2FA enrolment, returning the secret and QR URI. |
+| `enableTwoFactor` | pub | 119 | `authService.enableTwoFactor` | Confirms enrolment and returns recovery codes. |
+| `disableTwoFactor` | pub | 129 | `authService.disableTwoFactor` | Turns 2FA off. |
+| `refresh` | pub | 140 | `authService.refresh` | Rotates the token pair without disturbing the device session. |
+| `forgotPassword` | pub | 153 | `authService.forgotPassword` | Starts a password reset; deliberately does not reveal whether the address exists. |
+| `resetPassword` | pub | 162 | `authService.resetPassword` | Completes a password reset with a valid token. |
+| `logout` | pub | 170 | `authService.logout` | Ends the device session and revokes the refresh token. |
+| `registerDeviceToken` | pub | 183 | `deviceToken` | Registers an FCM device token so the mobile apps can receive push. |
+| `removeDeviceToken` | pub | 206 | `deviceToken` | Removes a device token on logout or uninstall. |
 
 ### AuthService
 
-`backend/src/auth/auth.service.ts:36` · service · 15 methods
+`backend/src/auth/auth.service.ts:40` · service · 15 methods
 
 JWT + refresh-token auth, 2FA step-up, password reset, and the single-device lock for REP/DRIVER. Access tokens carry `sessionId`; `JwtStrategy` re-checks it for REP/DRIVER so a force-logout invalidates a live token.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `login` | pub | 57 | `jwtService.signAsync` | Validates credentials, then applies the single-device lock: a REP or DRIVER with an ACTIVE session elsewhere is rejected with 409 and managers are notified (the user is not told who). Active means not ended and seen within `SESSION_IDLE_MINUTES` (default 30), so a dead device frees itself. If 2FA is on, returns a 5-minute challenge instead of a session. |
-| `issueSession` | priv | 102 | `user` `rep` `driver` `supplier` | Mints the token pair, stores the hashed refresh token plus a fresh `sessionId`, records the device session, and resolves the caller's repId/driverId/supplierId into the response. Shared by login and 2FA verify. |
-| `signUploadsToken` | pub | 186 | `jwtService.signAsync` | Short-lived token delivered as an httpOnly cookie so `<img>` tags — which cannot send an Authorization header — can load private `/uploads` files. Carries `typ:'uploads'`. |
-| `setupTwoFactor` | pub | 196 | `user` | Generates a TOTP secret and otpauth URI for enrolment; does not enable 2FA yet. |
-| `enableTwoFactor` | pub | 208 | `user` | Confirms enrolment with a valid code and switches 2FA on, returning recovery codes. |
-| `disableTwoFactor` | pub | 226 | `user` | Turns 2FA off after re-verification. |
-| `verifyTwoFactor` | pub | 250 | `user` `jwtService.verifyAsync` | Exchanges the login challenge token plus a TOTP or recovery code for a real session. |
-| `refresh` | pub | 293 | `user` `jwtService.verify` | Rotates the token pair. Compares the presented refresh token against the stored hash, KEEPS the existing `sessionId` and extends its expiry — so refreshing never trips the single-device lock. |
-| `logout` | pub | 373 | `userSession` `user` | Ends the device session and clears the stored refresh token. |
-| `validateUser` | pub | 396 | `user` | Looks up by email or username and verifies the password; rejects inactive or soft-deleted users. |
-| `hashPassword` | pub | 431 | — | bcrypt hash — used for passwords AND for refresh tokens at rest. |
-| `comparePassword` | pub | 439 | — | bcrypt comparison. |
-| `forgotPassword` | pub | 447 | `user` | Issues a reset token and emails it. Always succeeds outwardly, so it cannot be used to probe which emails exist. |
-| `resetPassword` | pub | 486 | `user` | Consumes a valid reset token and sets the new password. |
-| `generateTokens` | pub | 524 | `jwtService.signAsync` | Signs the access/refresh pair with their separate secrets. |
+| `login` | pub | 60 | `jwtService.signAsync` | Validates credentials, then applies the single-device lock: a REP or DRIVER with an ACTIVE session elsewhere is rejected with 409 and managers are notified (the user is not told who). Active means not ended and seen within `SESSION_IDLE_MINUTES` (default 30), so a dead device frees itself. If 2FA is on, returns a 5-minute challenge instead of a session. |
+| `issueSession` | priv | 106 | `user` `rep` `driver` `supplier` | Mints the token pair, stores the hashed refresh token plus a fresh `sessionId`, records the device session, and resolves the caller's repId/driverId/supplierId into the response. Shared by login and 2FA verify. |
+| `signUploadsToken` | pub | 198 | `jwtService.signAsync` | Short-lived token delivered as an httpOnly cookie so `<img>` tags — which cannot send an Authorization header — can load private `/uploads` files. Carries `typ:'uploads'`. |
+| `setupTwoFactor` | pub | 208 | `user` | Generates a TOTP secret and otpauth URI for enrolment; does not enable 2FA yet. |
+| `enableTwoFactor` | pub | 220 | `user` | Confirms enrolment with a valid code and switches 2FA on, returning recovery codes. |
+| `disableTwoFactor` | pub | 238 | `user` | Turns 2FA off after re-verification. |
+| `verifyTwoFactor` | pub | 262 | `user` `jwtService.verifyAsync` | Exchanges the login challenge token plus a TOTP or recovery code for a real session. |
+| `refresh` | pub | 305 | `user` `jwtService.verify` | Rotates the token pair. Compares the presented refresh token against the stored hash, KEEPS the existing `sessionId` and extends its expiry — so refreshing never trips the single-device lock. |
+| `logout` | pub | 385 | `userSession` `user` | Ends the device session and clears the stored refresh token. |
+| `validateUser` | pub | 408 | `user` | Looks up by email or username and verifies the password; rejects inactive or soft-deleted users. |
+| `hashPassword` | pub | 443 | — | bcrypt hash — used for passwords AND for refresh tokens at rest. |
+| `comparePassword` | pub | 451 | — | bcrypt comparison. |
+| `forgotPassword` | pub | 459 | `user` | Issues a reset token and emails it. Always succeeds outwardly, so it cannot be used to probe which emails exist. |
+| `resetPassword` | pub | 498 | `user` | Consumes a valid reset token and sets the new password. |
+| `generateTokens` | pub | 536 | `jwtService.signAsync` | Signs the access/refresh pair with their separate secrets. |
 
 ### JwtStrategy
 
@@ -930,23 +930,23 @@ Admin surface for viewing and killing device sessions.
 
 ### SessionsService
 
-`backend/src/sessions/sessions.service.ts:69` · service · 11 methods
+`backend/src/sessions/sessions.service.ts:68` · service · 11 methods
 
 Device-session tracking that powers the admin Active-Sessions view and the REP/DRIVER single-device lock. Idle sessions expire on their own after `SESSION_IDLE_MINUTES` (default 30) so a dead phone cannot lock a rep out permanently.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `start` | pub | 83 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
-| `findActive` | pub | 100 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
-| `touch` | pub | 115 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
-| `end` | pub | 133 | `userSession` | Marks a session ended on logout. |
-| `endReasonOf` | pub | 141 | `userSession` | Reads a session's endReason so JwtStrategy can answer SESSION_IDLE_TIMEOUT vs SESSION_DISPLACED. |
-| `expireInactive` | pub | 155 | `userSession` `user` | Ends REP/DRIVER sessions with no user activity past SESSION_INACTIVITY_MINUTES (default 180) and clears the login's sessionId + refresh token. |
-| `sweepInactive` | pub | 184 | — | 5-minute cron running expireInactive for everyone; idempotent so deliberately not behind CronRunLock. |
-| `listForUser` | pub | 194 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
-| `forceLogout` | pub | 211 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
-| `clear` | pub | 225 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
-| `notifyManagersOfConflict` | pub | 235 | `user` `userNotification` | Notifies Admin / Dispatch Manager / Online Manager when a rep or driver login is blocked by the lock. |
+| `start` | pub | 82 | `userSession` | Records a new device session at login, deriving a friendly device name from the User-Agent. |
+| `findActive` | pub | 99 | `userSession` | The user's live session on another device: not ended AND seen inside the idle window. This is the query the login lock consults. |
+| `touch` | pub | 114 | `userSession` | Heartbeat refreshing `lastSeenAt`, throttled to once per 60s per session. |
+| `end` | pub | 132 | `userSession` | Marks a session ended on logout. |
+| `endAllForUser` | pub | 140 | `userSession` | End every open session of a user with a reason (a takeover login signs the other devices out). |
+| `endReasonOf` | pub | 148 | `userSession` | Reads a session's endReason so JwtStrategy can answer SESSION_IDLE_TIMEOUT vs SESSION_DISPLACED. |
+| `expireInactive` | pub | 162 | `userSession` `user` | Ends REP/DRIVER sessions with no user activity past SESSION_INACTIVITY_MINUTES (default 180) and clears the login's sessionId + refresh token. |
+| `sweepInactive` | pub | 191 | — | 5-minute cron running expireInactive for everyone; idempotent so deliberately not behind CronRunLock. |
+| `listForUser` | pub | 201 | `userSession` | Admin view of a user's last 50 sessions, each flagged active/inactive against the idle cutoff. |
+| `forceLogout` | pub | 218 | `user` | Ends a session AND clears the user's live `sessionId`/refresh token, so the outstanding access token stops validating. |
+| `clear` | pub | 232 | `userSession` | Force-logout plus deletion of the session row — works on already-ended rows too. This is the one-click fix for a locked-out rep or driver. |
 
 ## `settings`
 
@@ -1295,7 +1295,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-197 free functions, constants and types in these modules.
+195 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1326,7 +1326,7 @@ JWT/refresh auth, 2FA, password reset and the REP/DRIVER single-device lock.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TwoFactorChallenge` | type | 26 | `{twoFactorRequired, challengeToken}` — returned by login instead of a session when 2FA is enabled. |
+| `TwoFactorChallenge` | type | 30 | `{twoFactorRequired, challengeToken}` — returned by login instead of a session when 2FA is enabled. |
 
 ### `backend/src/auth/strategies/jwt.strategy.ts`
 
@@ -1599,15 +1599,6 @@ Server-side evidence photo stamping, so the overlay cannot be forged by the clie
 | `formatStampDate` | function | 14 | Evidence stamp date line in Cairo time, e.g. "November, 18-2026  14:05:33" (built from Intl parts). |
 | `stampEvidenceImage` | function | 40 | Burns job reference, submitter name, status and timestamp into an evidence photo server-side before upload, so the stamp cannot be forged client-side. |
 
-### `backend/src/common/utils/super-admin.util.ts`
-
-The single super-admin account identity; login/session alerts go only to this user.
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `SUPER_ADMIN_EMAIL` | const | 5 | Email of the one super-admin who alone receives blocked-login (REP_LOGIN_CONFLICT) alerts. |
-| `isSuperAdminEmail` | function | 8 | Case-insensitive check that an email belongs to the super-admin account. |
-
 ### `backend/src/common/utils/survey-normalize.util.ts`
 
 Folds free-text guest survey answers for analytics: nationality spellings, stay length in days, comment words
@@ -1798,12 +1789,12 @@ Device-session tracking behind the admin Active-Sessions view and the single-dev
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `SessionContext` | type | 7 | Request context captured with a session: ip and userAgent. |
-| `deviceNameFromUA` | function | 13 | Best-effort friendly device label (e.g. "Chrome · Android", "Mobile app") from a User-Agent string. |
-| `SINGLE_DEVICE_ROLES` | const | 33 | REP and DRIVER — the single-device roles subject to the login lock and the 3h inactivity logout. |
-| `SessionEndReason` | type | 35 | Why a session ended: LOGOUT, FORCED (admin) or IDLE_TIMEOUT (inactivity sweep). |
-| `BACKGROUND_POLL_HEADER` | const | 51 | Header (x-background-poll: 1) a client sets on timer-driven requests so they don't count as user activity. |
-| `isBackgroundRequest` | function | 54 | True for background polls (GET notification endpoints or X-Background-Poll header) — they refresh lastSeenAt but not lastActivityAt. |
+| `SessionContext` | type | 6 | Request context captured with a session: ip and userAgent. |
+| `deviceNameFromUA` | function | 12 | Best-effort friendly device label (e.g. "Chrome · Android", "Mobile app") from a User-Agent string. |
+| `SINGLE_DEVICE_ROLES` | const | 32 | REP and DRIVER — the single-device roles subject to the login lock and the 3h inactivity logout. |
+| `SessionEndReason` | type | 34 | Why a session ended: LOGOUT, FORCED (admin) or IDLE_TIMEOUT (inactivity sweep). |
+| `BACKGROUND_POLL_HEADER` | const | 50 | Header (x-background-poll: 1) a client sets on timer-driven requests so they don't count as user activity. |
+| `isBackgroundRequest` | function | 53 | True for background polls (GET notification endpoints or X-Background-Poll header) — they refresh lastSeenAt but not lastActivityAt. |
 
 ### `backend/src/supplier-price-lists/supplier-costing.service.ts`
 

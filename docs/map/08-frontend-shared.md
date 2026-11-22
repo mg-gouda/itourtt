@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**125 files**, **433 exported symbols**.
+**124 files**, **433 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -396,16 +396,6 @@ Generic searchable select, used for large lists such as the car source.
 |---|---|---|---|
 | `ComboboxItem` | type | 21 | One option in a searchable combobox. |
 | `SearchableCombobox` | function | 49 | Generic searchable select for long lists. |
-
-### `session-conflict-modal.tsx`
-
-`frontend/src/components/session-conflict-modal.tsx` · 120 lines
-
-Shown when a rep/driver login is refused because another device holds an active session.
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `SessionConflictModal` | function | 41 | Explains a 409 login refusal when another device holds the session. |
 
 ### `sidebar.tsx`
 
@@ -1495,13 +1485,14 @@ Public/B2C-facing translations, separate from the dashboard's so marketing copy 
 
 ### `auth-store.ts`
 
-`frontend/src/stores/auth-store.ts` · 124 lines
+`frontend/src/stores/auth-store.ts` · 164 lines
 
 Zustand store holding the session, tokens and the current user.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useAuthStore` | const | 27 | Session state and login/logout actions. |
+| `SessionConflict` | type | 28 | The other device holding a REP/DRIVER session, from login's 409 SESSION_ACTIVE_ELSEWHERE; drives the login page's 'Continue here?' prompt. |
+| `useAuthStore` | const | 40 | Session state and login/logout actions. |
 
 ### `booking-store.ts`
 
@@ -1537,7 +1528,7 @@ Zustand store caching the user's effective permission keys, fetched once after l
 
 ### `index.ts`
 
-`frontend/src/types/index.ts` · 359 lines
+`frontend/src/types/index.ts` · 361 lines
 
 Client-side TypeScript mirrors of the API payloads. These track the Prisma models but are hand-maintained — when a model changes, update this file or the UI silently drifts from the API. Canonical field detail lives in `docs/map/01-data-model.md`.
 
@@ -1555,29 +1546,29 @@ Client-side TypeScript mirrors of the API payloads. These track the Prisma model
 | `AuthUser` | type | 14 | The signed-in user as the frontend sees them, carrying both the legacy `role` and RBAC v2 `roleId`/`roleSlug`. |
 | `AuthResponse` | type | 26 | Login response: access token, refresh token and the user, including any resolved repId/driverId/supplierId. |
 | `LoginPayload` | type | 32 | Credentials sent to `/auth/login`. |
-| `Country` | type | 38 | Client-side shape of the `Country` API payload; see `docs/map/01-data-model.md#country` for the authoritative fields. |
-| `Airport` | type | 46 | Client-side shape of the `Airport` API payload; see `docs/map/01-data-model.md#airport` for the authoritative fields. |
-| `City` | type | 56 | Client-side shape of the `City` API payload; see `docs/map/01-data-model.md#city` for the authoritative fields. |
-| `Zone` | type | 65 | Client-side shape of the `Zone` API payload; see `docs/map/01-data-model.md#zone` for the authoritative fields. |
-| `Hotel` | type | 74 | Client-side shape of the `Hotel` API payload; see `docs/map/01-data-model.md#hotel` for the authoritative fields. |
-| `LocationTree` | type | 83 | Nested Country→Airport→City→Zone→Hotel tree used by the cascading pickers. |
-| `VehicleType` | type | 96 | Client-side shape of the `VehicleType` API payload; see `docs/map/01-data-model.md#vehicletype` for the authoritative fields. |
-| `Vehicle` | type | 104 | Client-side shape of the `Vehicle` API payload; see `docs/map/01-data-model.md#vehicle` for the authoritative fields. |
-| `Driver` | type | 123 | Client-side shape of the `Driver` API payload; see `docs/map/01-data-model.md#driver` for the authoritative fields. |
-| `DriverVehicle` | type | 133 | Client-side shape of the `DriverVehicle` API payload; see `docs/map/01-data-model.md#drivervehicle` for the authoritative fields. |
-| `Rep` | type | 145 | Client-side shape of the `Rep` API payload; see `docs/map/01-data-model.md#rep` for the authoritative fields. |
-| `Agent` | type | 158 | Client-side shape of the `Agent` API payload; see `docs/map/01-data-model.md#agent` for the authoritative fields. |
-| `AgentCreditTerms` | type | 177 | Client-side shape of the `AgentCreditTerms` API payload; see `docs/map/01-data-model.md#agentcreditterms` for the authoritative fields. |
-| `AgentInvoiceCycle` | type | 184 | Client-side shape of the `AgentInvoiceCycle` API payload; see `docs/map/01-data-model.md#agentinvoicecycle` for the authoritative fields. |
-| `AgentDocument` | type | 192 | Client-side shape of the `AgentDocument` API payload; see `docs/map/01-data-model.md#agentdocument` for the authoritative fields. |
-| `Supplier` | type | 203 | Client-side shape of the `Supplier` API payload; see `docs/map/01-data-model.md#supplier` for the authoritative fields. |
-| `SupplierWithVehicles` | type | 220 | A supplier joined with its vehicles, for the supplier detail screen. |
-| `TrafficJob` | type | 225 | Client-side shape of the `TrafficJob` API payload; see `docs/map/01-data-model.md#trafficjob` for the authoritative fields. |
-| `Customer` | type | 263 | Client-side shape of the `Customer` API payload; see `docs/map/01-data-model.md#customer` for the authoritative fields. |
-| `TrafficFlight` | type | 274 | Client-side shape of the `TrafficFlight` API payload; see `docs/map/01-data-model.md#trafficflight` for the authoritative fields. |
-| `TrafficAssignment` | type | 284 | Client-side shape of the `TrafficAssignment` API payload; see `docs/map/01-data-model.md#trafficassignment` for the authoritative fields. |
-| `AgentInvoice` | type | 298 | Client-side shape of the `AgentInvoice` API payload; see `docs/map/01-data-model.md#agentinvoice` for the authoritative fields. |
-| `InvoiceLine` | type | 320 | Client-side shape of the `InvoiceLine` API payload; see `docs/map/01-data-model.md#invoiceline` for the authoritative fields. |
-| `Payment` | type | 332 | Client-side shape of the `Payment` API payload; see `docs/map/01-data-model.md#payment` for the authoritative fields. |
-| `PaginatedResponse` | type | 345 | The standard `{items, page, total}` envelope every list endpoint returns. |
-| `DispatchDayView` | type | 353 | The dispatch console day payload — jobs plus everything the grid renders. |
+| `Country` | type | 40 | Client-side shape of the `Country` API payload; see `docs/map/01-data-model.md#country` for the authoritative fields. |
+| `Airport` | type | 48 | Client-side shape of the `Airport` API payload; see `docs/map/01-data-model.md#airport` for the authoritative fields. |
+| `City` | type | 58 | Client-side shape of the `City` API payload; see `docs/map/01-data-model.md#city` for the authoritative fields. |
+| `Zone` | type | 67 | Client-side shape of the `Zone` API payload; see `docs/map/01-data-model.md#zone` for the authoritative fields. |
+| `Hotel` | type | 76 | Client-side shape of the `Hotel` API payload; see `docs/map/01-data-model.md#hotel` for the authoritative fields. |
+| `LocationTree` | type | 85 | Nested Country→Airport→City→Zone→Hotel tree used by the cascading pickers. |
+| `VehicleType` | type | 98 | Client-side shape of the `VehicleType` API payload; see `docs/map/01-data-model.md#vehicletype` for the authoritative fields. |
+| `Vehicle` | type | 106 | Client-side shape of the `Vehicle` API payload; see `docs/map/01-data-model.md#vehicle` for the authoritative fields. |
+| `Driver` | type | 125 | Client-side shape of the `Driver` API payload; see `docs/map/01-data-model.md#driver` for the authoritative fields. |
+| `DriverVehicle` | type | 135 | Client-side shape of the `DriverVehicle` API payload; see `docs/map/01-data-model.md#drivervehicle` for the authoritative fields. |
+| `Rep` | type | 147 | Client-side shape of the `Rep` API payload; see `docs/map/01-data-model.md#rep` for the authoritative fields. |
+| `Agent` | type | 160 | Client-side shape of the `Agent` API payload; see `docs/map/01-data-model.md#agent` for the authoritative fields. |
+| `AgentCreditTerms` | type | 179 | Client-side shape of the `AgentCreditTerms` API payload; see `docs/map/01-data-model.md#agentcreditterms` for the authoritative fields. |
+| `AgentInvoiceCycle` | type | 186 | Client-side shape of the `AgentInvoiceCycle` API payload; see `docs/map/01-data-model.md#agentinvoicecycle` for the authoritative fields. |
+| `AgentDocument` | type | 194 | Client-side shape of the `AgentDocument` API payload; see `docs/map/01-data-model.md#agentdocument` for the authoritative fields. |
+| `Supplier` | type | 205 | Client-side shape of the `Supplier` API payload; see `docs/map/01-data-model.md#supplier` for the authoritative fields. |
+| `SupplierWithVehicles` | type | 222 | A supplier joined with its vehicles, for the supplier detail screen. |
+| `TrafficJob` | type | 227 | Client-side shape of the `TrafficJob` API payload; see `docs/map/01-data-model.md#trafficjob` for the authoritative fields. |
+| `Customer` | type | 265 | Client-side shape of the `Customer` API payload; see `docs/map/01-data-model.md#customer` for the authoritative fields. |
+| `TrafficFlight` | type | 276 | Client-side shape of the `TrafficFlight` API payload; see `docs/map/01-data-model.md#trafficflight` for the authoritative fields. |
+| `TrafficAssignment` | type | 286 | Client-side shape of the `TrafficAssignment` API payload; see `docs/map/01-data-model.md#trafficassignment` for the authoritative fields. |
+| `AgentInvoice` | type | 300 | Client-side shape of the `AgentInvoice` API payload; see `docs/map/01-data-model.md#agentinvoice` for the authoritative fields. |
+| `InvoiceLine` | type | 322 | Client-side shape of the `InvoiceLine` API payload; see `docs/map/01-data-model.md#invoiceline` for the authoritative fields. |
+| `Payment` | type | 334 | Client-side shape of the `Payment` API payload; see `docs/map/01-data-model.md#payment` for the authoritative fields. |
+| `PaginatedResponse` | type | 347 | The standard `{items, page, total}` envelope every list endpoint returns. |
+| `DispatchDayView` | type | 355 | The dispatch console day payload — jobs plus everything the grid renders. |

@@ -132,18 +132,18 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| POST | `/api/auth/2fa/disable` | `disableTwoFactor`:130 | `authed` | `authService.disableTwoFactor` | Turns 2FA off. |
-| POST | `/api/auth/2fa/enable` | `enableTwoFactor`:120 | `authed` | `authService.enableTwoFactor` | Confirms enrolment and returns recovery codes. |
-| POST | `/api/auth/2fa/setup` | `setupTwoFactor`:113 | `authed` | `authService.setupTwoFactor` | Starts 2FA enrolment, returning the secret and QR URI. |
+| POST | `/api/auth/2fa/disable` | `disableTwoFactor`:129 | `authed` | `authService.disableTwoFactor` | Turns 2FA off. |
+| POST | `/api/auth/2fa/enable` | `enableTwoFactor`:119 | `authed` | `authService.enableTwoFactor` | Confirms enrolment and returns recovery codes. |
+| POST | `/api/auth/2fa/setup` | `setupTwoFactor`:112 | `authed` | `authService.setupTwoFactor` | Starts 2FA enrolment, returning the secret and QR URI. |
 | POST | `/api/auth/2fa/verify` | `verifyTwoFactor`:94 | `public` | `authService.verifyTwoFactor` | Exchanges the 2FA challenge plus a code for a real session. |
-| POST | `/api/auth/device-token` | `registerDeviceToken`:184 | `authed` | — | Registers an FCM device token so the mobile apps can receive push. |
-| DELETE | `/api/auth/device-token` | `removeDeviceToken`:207 | `authed` | — | Removes a device token on logout or uninstall. |
-| POST | `/api/auth/forgot-password` | `forgotPassword`:154 | `public` | `authService.forgotPassword` | Starts a password reset; deliberately does not reveal whether the address exists. |
+| POST | `/api/auth/device-token` | `registerDeviceToken`:183 | `authed` | — | Registers an FCM device token so the mobile apps can receive push. |
+| DELETE | `/api/auth/device-token` | `removeDeviceToken`:206 | `authed` | — | Removes a device token on logout or uninstall. |
+| POST | `/api/auth/forgot-password` | `forgotPassword`:153 | `public` | `authService.forgotPassword` | Starts a password reset; deliberately does not reveal whether the address exists. |
 | POST | `/api/auth/login` | `login`:55 | `public` | `authService.login` | Credentials in, session or 2FA challenge out. Returns 409 for a REP/DRIVER already signed in elsewhere. |
 | GET | `/api/auth/login-config` | `getLoginConfig`:41 | `public` | — | Public branding for the login screen (logo, background) so it renders before anyone authenticates. |
-| POST | `/api/auth/logout` | `logout`:171 | `authed` | `authService.logout` | Ends the device session and revokes the refresh token. |
-| POST | `/api/auth/refresh` | `refresh`:141 | `public` | `authService.refresh` | Rotates the token pair without disturbing the device session. |
-| POST | `/api/auth/reset-password` | `resetPassword`:163 | `public` | `authService.resetPassword` | Completes a password reset with a valid token. |
+| POST | `/api/auth/logout` | `logout`:170 | `authed` | `authService.logout` | Ends the device session and revokes the refresh token. |
+| POST | `/api/auth/refresh` | `refresh`:140 | `public` | `authService.refresh` | Rotates the token pair without disturbing the device session. |
+| POST | `/api/auth/reset-password` | `resetPassword`:162 | `public` | `authService.resetPassword` | Completes a password reset with a valid token. |
 
 ### B2CController
 

@@ -57,21 +57,21 @@ export class AuthController {
     @Ip() ip: string,
     @Res({ passthrough: true }) res: Response,
     @Headers('user-agent') userAgent?: string,
-    @Headers('x-forwarded-for') forwardedFor?: string,
   ): Promise<AuthResponseDto | { twoFactorRequired: true; challengeToken: string }> {
     const result = await this.authService.login(
       loginDto.identifier,
       loginDto.password,
-      this.sessionCtx(ip, userAgent, forwardedFor),
+      this.sessionCtx(ip, userAgent),
+      loginDto.takeover === true,
     );
     if ('accessToken' in result) await this.setUploadsCookie(res, result.user.id);
     return result;
   }
 
-  // Real client IP behind Traefik/nginx is the first X-Forwarded-For hop.
-  private sessionCtx(ip: string, userAgent?: string, forwardedFor?: string): SessionContext {
-    const realIp = forwardedFor?.split(',')[0]?.trim() || ip || null;
-    return { ip: realIp, userAgent: userAgent ?? null };
+  // `ip` is already the phone's real address: main.ts trusts the in-cluster
+  // proxy hops (Traefik) and Traefik runs with externalTrafficPolicy: Local.
+  private sessionCtx(ip: string, userAgent?: string): SessionContext {
+    return { ip: ip?.replace(/^::ffff:/, '') || null, userAgent: userAgent ?? null };
   }
 
   // httpOnly cookie so <img src="/uploads/…"> requests carry auth (a Bearer
@@ -96,12 +96,11 @@ export class AuthController {
     @Ip() ip: string,
     @Res({ passthrough: true }) res: Response,
     @Headers('user-agent') userAgent?: string,
-    @Headers('x-forwarded-for') forwardedFor?: string,
   ) {
     const result = await this.authService.verifyTwoFactor(
       body.challengeToken,
       body.code,
-      this.sessionCtx(ip, userAgent, forwardedFor),
+      this.sessionCtx(ip, userAgent),
     );
     await this.setUploadsCookie(res, result.user.id);
     return result;

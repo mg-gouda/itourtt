@@ -13,12 +13,13 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { t, useAuthStore, useColors, validateRole, appAlert } from '@itour/shared';
+import { t, tf, useAuthStore, useColors, validateRole, appAlert, sessionConflictOf } from '@itour/shared';
 import { AlarmsOnPhone, Icon, logoBadge } from '@itour/ui';
 import { ActionButton } from '@itour/ui';
 import { APP_VERSION } from '../lib/version';
 
-/** Rep sign-in. A 409 from the server means another device holds the session. */
+/** Rep sign-in. If the account is open on another device or the
+ * web portal, the user is asked to take over (which signs that device out). */
 export function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -29,17 +30,33 @@ export function LoginScreen() {
   const [focus, setFocus] = useState<'id' | 'pw' | null>(null);
   const pwRef = useRef<TextInput>(null);
 
-  const handleLogin = async () => {
-    if (!identifier.trim() || !password.trim()) return;
+  const signIn = async (takeover: boolean) => {
     try {
-      const user = await login({ identifier: identifier.trim(), password });
+      const user = await login({ identifier: identifier.trim(), password, takeover });
       if (!validateRole(user, ['REP'])) {
         appAlert(t('common.error'), t('auth.invalidRole'), undefined, { tone: 'danger' });
         useAuthStore.getState().logout();
       }
-    } catch {
-      // surfaced via the store's error
+    } catch (err) {
+      const conflict = sessionConflictOf(err);
+      if (conflict && !takeover) {
+        appAlert(
+          t('auth.takeoverTitle'),
+          tf('auth.takeoverMessage', { device: conflict.deviceName }),
+          [
+            { text: t('auth.cancel'), style: 'cancel' },
+            { text: t('auth.takeoverConfirm'), onPress: () => void signIn(true) },
+          ],
+          { tone: 'warning', icon: 'phone-portrait-outline' },
+        );
+      }
+      // any other error is surfaced via the store's error
     }
+  };
+
+  const handleLogin = () => {
+    if (!identifier.trim() || !password.trim()) return;
+    void signIn(false);
   };
 
   const inputBox = (active: boolean) => [

@@ -20,6 +20,15 @@ async function bootstrap() {
   });
   const logger = new Logger('Bootstrap');
 
+  // Behind Traefik: trust the private-network proxy hops so req.ip (activity
+  // log, sessions, per-IP rate limits) is the phone's real public IP instead of
+  // the Traefik pod. Only private ranges are trusted, so a client-sent
+  // X-Forwarded-For can't spoof it.
+  (app.getHttpAdapter().getInstance() as { set: (k: string, v: unknown) => void }).set(
+    'trust proxy',
+    'loopback, linklocal, uniquelocal',
+  );
+
   // Compress all responses (gzip) — reduces payload 70-90% for large JSON
   app.use(compression());
 

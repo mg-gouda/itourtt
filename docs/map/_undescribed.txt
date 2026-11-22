@@ -1,5 +1,5 @@
 # Symbols with no description yet — regenerate to refresh.
-# 3064/3076 described.
+# 3062/3074 described.
 
 # STALE (description exists, symbol gone):
 ! frontend/src/lib/marsa-alam-hotels.ts#MARSA_ALAM_HOTELS

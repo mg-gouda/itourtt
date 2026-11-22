@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SUPER_ADMIN_EMAIL } from '../common/utils/super-admin.util.js';
 
 export interface SessionContext {
   ip?: string | null;
@@ -32,7 +31,7 @@ export function deviceNameFromUA(ua?: string | null): string {
 /** Roles whose logins are single-device and subject to the inactivity logout. */
 export const SINGLE_DEVICE_ROLES = ['REP', 'DRIVER'] as const;
 
-export type SessionEndReason = 'LOGOUT' | 'FORCED' | 'IDLE_TIMEOUT';
+export type SessionEndReason = 'LOGOUT' | 'FORCED' | 'IDLE_TIMEOUT' | 'TAKEOVER';
 
 /**
  * Requests that a portal fires on a timer, not because the user did anything.
@@ -137,6 +136,14 @@ export class SessionsService {
     });
   }
 
+  /** End every open session of a user (a takeover login signs the others out). */
+  async endAllForUser(userId: string, reason: SessionEndReason) {
+    await this.prisma.userSession.updateMany({
+      where: { userId, endedAt: null },
+      data: { endedAt: new Date(), endReason: reason },
+    });
+  }
+
   /** Why a session ended, or null if it is open / unknown. */
   async endReasonOf(sessionId: string): Promise<string | null> {
     const row = await this.prisma.userSession.findUnique({
@@ -226,41 +233,5 @@ export class SessionsService {
     await this.forceLogout(userId, sessionId);
     await this.prisma.userSession.deleteMany({ where: { userId, sessionId } });
     return { success: true };
-  }
-
-  /**
-   * Notify the super-admin (and nobody else) of a blocked rep/driver login.
-   * Login/session alerts are deliberately hidden from every other role and user.
-   */
-  async notifyManagersOfConflict(subject: {
-    id: string;
-    name: string;
-    role: string;
-  }, ctx: SessionContext) {
-    const managers = await this.prisma.user.findMany({
-      where: {
-        isActive: true,
-        deletedAt: null,
-        email: { equals: SUPER_ADMIN_EMAIL, mode: 'insensitive' },
-      },
-      select: { id: true },
-    });
-    if (managers.length === 0) return;
-    const device = deviceNameFromUA(ctx.userAgent);
-    await this.prisma.userNotification.createMany({
-      data: managers.map((m) => ({
-        userId: m.id,
-        title: 'Blocked login attempt',
-        message: `A new login was blocked for ${subject.name} (${subject.role}) — a session is already active on another device.`,
-        metadata: {
-          kind: 'REP_LOGIN_CONFLICT',
-          subjectUserId: subject.id,
-          subjectName: subject.name,
-          subjectRole: subject.role,
-          ipAddress: ctx.ip ?? null,
-          deviceName: device,
-        },
-      })),
-    });
   }
 }

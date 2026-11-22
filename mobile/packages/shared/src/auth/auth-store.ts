@@ -3,6 +3,24 @@ import api from '../api/client';
 import { secureStorage } from './secure-storage';
 import type { AuthUser, AuthResponse, LoginPayload, UserRole } from '../types';
 
+/** The other device holding a REP/DRIVER session (login answered 409). */
+export interface SessionConflict {
+  deviceName: string;
+  lastSeenAt: string;
+}
+
+/** The session conflict carried by a failed login, or null for any other error. */
+export function sessionConflictOf(err: unknown): SessionConflict | null {
+  const res = (err as {
+    response?: { status?: number; data?: { code?: string; details?: Partial<SessionConflict> } };
+  })?.response;
+  if (res?.status !== 409 || res.data?.code !== 'SESSION_ACTIVE_ELSEWHERE') return null;
+  return {
+    deviceName: res.data.details?.deviceName ?? 'Unknown device',
+    lastSeenAt: res.data.details?.lastSeenAt ?? new Date().toISOString(),
+  };
+}
+
 interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -28,6 +46,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: data.user, isAuthenticated: true, isLoading: false });
       return data.user;
     } catch (err: unknown) {
+      // A session open elsewhere is a question for the user, not an error —
+      // the login screen asks them to take over (see sessionConflictOf).
+      if (sessionConflictOf(err)) {
+        set({ isLoading: false });
+        throw err;
+      }
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Login failed';

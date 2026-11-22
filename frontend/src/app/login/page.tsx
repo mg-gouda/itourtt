@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import Image from "next/image";
-import { Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldAlert, ShieldCheck, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, verifyTwoFactor, cancelTwoFactor, twoFactorChallenge, isLoading, error, isAccountLocked, isAuthenticated, hydrate } = useAuthStore();
+  const { login, verifyTwoFactor, cancelTwoFactor, twoFactorChallenge, sessionConflict, takeOver, cancelTakeover, isLoading, error, isAccountLocked, isAuthenticated, hydrate } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [code, setCode] = useState("");
   const [loginBgUrl, setLoginBgUrl] = useState<string | null>(null);
@@ -71,6 +71,19 @@ function LoginForm() {
     try {
       await login(data);
       // If the account has 2FA, login withheld the session — show the code step.
+      if (useAuthStore.getState().twoFactorChallenge) {
+        setCode("");
+        return;
+      }
+      router.replace(routeForRole(useAuthStore.getState().user?.role));
+    } catch {
+      // error is already set in the store
+    }
+  };
+
+  const onTakeOver = async () => {
+    try {
+      await takeOver();
       if (useAuthStore.getState().twoFactorChallenge) {
         setCode("");
         return;
@@ -138,7 +151,9 @@ function LoginForm() {
             <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex gap-2 items-start">
               <ShieldAlert className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
               <p className="text-xs text-amber-300 leading-relaxed">
-                Someone logged in with your credentials on another device. Please log in again. If this was not you, contact your administrator immediately.
+                You were signed out because your account was opened on another device or in the app. If that wasn&apos;t you, contact your administrator immediately.
+                <br />
+                <span dir="rtl">تم تسجيل خروجك لأن حسابك فُتح على جهاز آخر أو في التطبيق. إذا لم تكن أنت، تواصل مع المسؤول فوراً.</span>
               </p>
             </div>
           )}
@@ -153,8 +168,45 @@ function LoginForm() {
             </div>
           )}
 
-          {/* Form */}
-          {!twoFactorChallenge ? (
+          {/* Takeover prompt: this REP/DRIVER account is open elsewhere */}
+          {sessionConflict && !twoFactorChallenge ? (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+                <div className="space-y-2 text-xs leading-relaxed text-amber-100">
+                  <p>
+                    You are already signed in on another device or the app
+                    {" "}(<span className="font-semibold">{sessionConflict.deviceName}</span>,
+                    {" "}last active {new Date(sessionConflict.lastSeenAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Cairo" })}).
+                    {" "}Continue here? The other device will be signed out.
+                  </p>
+                  <p dir="rtl">
+                    أنت مسجل الدخول بالفعل على جهاز آخر أو في التطبيق ({sessionConflict.deviceName}).
+                    هل تريد المتابعة هنا؟ سيتم تسجيل الخروج من الجهاز الآخر.
+                  </p>
+                </div>
+              </div>
+              {error && <p className="text-center text-sm text-red-400">{error}</p>}
+              <Button
+                type="button"
+                onClick={onTakeOver}
+                disabled={isLoading}
+                className="w-full bg-white text-black hover:bg-white/90"
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Continue here · المتابعة هنا
+              </Button>
+              <button
+                type="button"
+                onClick={cancelTakeover}
+                className="w-full text-center text-xs text-white/40 transition-colors hover:text-white/70"
+              >
+                Cancel · إلغاء
+              </button>
+            </div>
+          ) : !twoFactorChallenge ? (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="identifier" className="text-sm text-white/70">

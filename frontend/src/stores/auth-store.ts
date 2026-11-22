@@ -13,12 +13,25 @@ interface AuthState {
   error: string | null;
   isAccountLocked: boolean;
   twoFactorChallenge: string | null;
+  /** Set when a REP/DRIVER login hit a session open elsewhere (409). */
+  sessionConflict: SessionConflict | null;
   login: (payload: LoginPayload) => Promise<void>;
   verifyTwoFactor: (code: string) => Promise<void>;
   cancelTwoFactor: () => void;
+  /** Retry the blocked login with takeover — signs the other device out. */
+  takeOver: () => Promise<void>;
+  cancelTakeover: () => void;
   logout: () => Promise<void>;
   hydrate: () => void;
 }
+
+export interface SessionConflict {
+  deviceName: string;
+  lastSeenAt: string;
+}
+
+// Credentials held only in memory between the 409 and the takeover answer.
+let pendingLogin: LoginPayload | null = null;
 
 type LoginResult =
   | AuthResponse
@@ -31,9 +44,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
   isAccountLocked: false,
   twoFactorChallenge: null,
+  sessionConflict: null,
 
   login: async (payload: LoginPayload) => {
-    set({ isLoading: true, error: null, isAccountLocked: false, twoFactorChallenge: null });
+    set({ isLoading: true, error: null, isAccountLocked: false, twoFactorChallenge: null, sessionConflict: null });
+    pendingLogin = null;
     try {
       const { data } = await api.post<LoginResult>('/auth/login', payload);
       // 2FA step-up: the server withheld a session and returned a challenge.
@@ -50,11 +65,22 @@ export const useAuthStore = create<AuthState>((set) => ({
       usePermissionsStore.getState().loadPermissions();
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Login failed';
+      const body = (err as {
+        response?: { data?: { message?: string; code?: string; details?: SessionConflict } };
+      })?.response?.data;
+      const message = body?.message || 'Login failed';
 
-      if (status === 423) {
+      if (status === 409 && body?.code === 'SESSION_ACTIVE_ELSEWHERE') {
+        // Ask the user to take over instead of showing an error.
+        pendingLogin = { identifier: payload.identifier, password: payload.password };
+        set({
+          isLoading: false,
+          sessionConflict: {
+            deviceName: body.details?.deviceName ?? 'Unknown device',
+            lastSeenAt: body.details?.lastSeenAt ?? new Date().toISOString(),
+          },
+        });
+      } else if (status === 423) {
         // Account locked due to concurrent login
         set({ error: message, isLoading: false, isAccountLocked: true });
       } else {
@@ -86,6 +112,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   cancelTwoFactor: () => set({ twoFactorChallenge: null, error: null }),
+
+  takeOver: async () => {
+    const payload = pendingLogin;
+    if (!payload) {
+      set({ sessionConflict: null });
+      throw new Error('No login waiting for takeover');
+    }
+    await useAuthStore.getState().login({ ...payload, takeover: true });
+  },
+
+  cancelTakeover: () => {
+    pendingLogin = null;
+    set({ sessionConflict: null, error: null });
+  },
 
   logout: async () => {
     // Stop this browser receiving the user's push notifications (shared
