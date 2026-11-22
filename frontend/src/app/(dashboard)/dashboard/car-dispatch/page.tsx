@@ -55,7 +55,7 @@ import { type JobExtra } from "@/components/job-extras-editor";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
 import { DataSheet, type DSColumn } from "@/components/data-sheet";
 import { cardColorOf } from "@/lib/card-color";
-import { findMarsaAlamHotel, legOf, marsaAlamRoute } from "@/lib/marsa-alam-hotels";
+import { findRmfHotel, legOf, areaRoute, type RmfHotel } from "@/lib/rmf-hotel-match";
 import { printReport, downloadBlob } from "@/lib/print-report";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCompanyStore } from "@/stores/company-store";
@@ -455,6 +455,14 @@ function CarDispatchContent() {
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [zones, setZones] = useState<LocationOption[]>([]);
   const [routes, setRoutes] = useState<RouteOption[]>([]);
+  // RMF hotel list (System Parameters › Routes › RMF Hotels): Notes naming one set the row's route.
+  const [rmfHotels, setRmfHotels] = useState<RmfHotel[]>([]);
+  useEffect(() => {
+    api.get("/rmf-hotels").then(
+      (r) => setRmfHotels(r.data.data || []),
+      () => setRmfHotels([])
+    );
+  }, []);
 
   // State
   const [cards, setCards] = useState<CarCard[]>([]);
@@ -735,16 +743,16 @@ function CarDispatchContent() {
   };
 
   /**
-   * Notes → route (owner's Marsa Alam hotel list, lib/marsa-alam-hotels): when the notes name a
-   * Marsa Alam hotel, the row gets that area's route for its leg (ARR / DEP / going / return —
+   * Notes → route (Routes › RMF Hotels list, lib/rmf-hotel-match): when the notes name an RMF
+   * hotel, the row gets that hotel's area route for its leg (ARR / DEP / going / return —
    * from the current route, or from Type when Type was just changed). {} when nothing applies.
    */
   const notesRoute = (row: JobRow, byType: boolean): Partial<JobRow> & { _hotel?: string } => {
-    const hotel = findMarsaAlamHotel(row.notes);
+    const hotel = findRmfHotel(row.notes, rmfHotels);
     if (!hotel) return {};
     const current = routes.find((r) => r.id === row.jobServiceTypeId);
     const leg = legOf(byType ? undefined : current?.name, row.serviceType);
-    const target = leg ? marsaAlamRoute(routes, leg, hotel.area) : undefined;
+    const target = leg ? areaRoute(routes, leg, hotel.routeArea) : undefined;
     if (!target || target.id === row.jobServiceTypeId) return {};
     return { jobServiceTypeId: target.id, ...routeEnds(routes, target.id), ...(byType ? { serviceType: row.serviceType } : {}), _hotel: hotel.name };
   };
@@ -764,7 +772,7 @@ function CarDispatchContent() {
       if (_hotel && fill.jobServiceTypeId) {
         auto = fill;
         const name = routes.find((r) => r.id === fill.jobServiceTypeId)?.name.split(" | ")[0];
-        toast.info(`Route set to ${name} — ${_hotel} (Marsa Alam hotel list)`);
+        toast.info(`Route set to ${name} — ${_hotel} (RMF hotel list)`);
       }
     }
     setCards((prev) =>

@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**124 files**, **429 exported symbols**.
+**125 files**, **433 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -352,6 +352,16 @@ Rich text editor for CMS and notes fields.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `RichTextEditor` | function | 73 | Rich text editor for CMS and note fields. |
+
+### `rmf-hotels-tab.tsx`
+
+`frontend/src/components/rmf-hotels-tab.tsx` · 197 lines
+
+Routes page › RMF Hotels tab: one datasheet per section to add and edit Marsa Alam hotels, with a notes test box
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RmfHotelsTab` | function | 27 | The RMF Hotels tab: loads /rmf-hotels, saves rows on leave, deletes selected rows |
 
 ### `route-nav-link.tsx`
 
@@ -1323,20 +1333,6 @@ Builds Google Maps navigation links for a job's origin/destination (web portals)
 | `googleMapsNavUrl` | function | 79 | Universal google.com/maps/dir link with driving mode and dir_action=navigate. |
 | `jobNavUrl` | function | 90 | Navigation URL for one end of a job, or null when there is nowhere to go. |
 
-### `marsa-alam-hotels.ts`
-
-`frontend/src/lib/marsa-alam-hotels.ts` · 111 lines
-
-The owner's Marsa Alam hotel list (north / south of RMF, deep south) and the matcher that turns hotel notes into a route
-
-| Export | Kind | Line | Purpose |
-|---|---|---|---|
-| `MarsaAlamArea` | type | 9 | Route area of a Marsa Alam hotel: NORTH-MARSA ALAM, SOUTH MARSA ALAM, SHAMS ALAM or WADI LAHMI |
-| `MARSA_ALAM_HOTELS` | const | 13 | Marsa Alam hotels from RMF HOTEL NEAMS.xlsx with their area and a lower-case name pattern |
-| `findMarsaAlamHotel` | function | 80 | First Marsa Alam hotel named in free text (job notes), or null |
-| `legOf` | function | 91 | A row's leg (ARR / DEP / going / return) from its route prefix, else its service type |
-| `marsaAlamRoute` | function | 107 | The system route for a leg to a Marsa Alam area, matched on the compacted English route name |
-
 ### `permission-registry.ts`
 
 `frontend/src/lib/permission-registry.ts` · 920 lines
@@ -1364,6 +1360,23 @@ Shared printable-report window and blob download for report pages
 |---|---|---|---|
 | `printReport` | function | 4 | Opens a print window with company header, report HTML and issued-by footer |
 | `downloadBlob` | function | 56 | Saves a blob under a file name |
+
+### `rmf-hotel-match.ts`
+
+`frontend/src/lib/rmf-hotel-match.ts` · 87 lines
+
+Matches job notes against the RMF hotel list and picks the area route for a row's leg (Traffic Cover)
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RmfSection` | type | 6 | RMF hotel section: NORTH, SOUTH or DEEP_SOUTH |
+| `RmfHotel` | type | 8 | An RMF hotel as returned by /rmf-hotels |
+| `RMF_SECTIONS` | const | 22 | The three sections with their labels and default route areas |
+| `RMF_AREAS` | const | 28 | Route areas offered for an RMF hotel |
+| `normText` | function | 31 | Lower-cases text and removes accents and punctuation for matching |
+| `findRmfHotel` | function | 49 | First active RMF hotel named in free text (match words, exclude words), or null |
+| `legOf` | function | 67 | A row's leg (ARR / DEP / going / return) from its route prefix, else its service type |
+| `areaRoute` | function | 83 | The system route for a leg to an area, matched on the compacted English route name |
 
 ### `role-home.ts`
 

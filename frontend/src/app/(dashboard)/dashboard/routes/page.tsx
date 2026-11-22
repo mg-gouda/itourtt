@@ -2,7 +2,8 @@
 
 // System Parameters › Routes — the "EN | AR" routes (JobServiceType) used by B2B jobs, the B2B Excel
 // import, customer / supplier price lists and driver tariffs. Rules: docs/map/11-business-rules.md ›
-// Routes. An Access-style datasheet: type in the ✱ row (or press Down on the last row) to add a route,
+// Routes; the RMF Hotels tab keeps the Marsa Alam hotel list (components/rmf-hotels-tab).
+// An Access-style datasheet: type in the ✱ row (or press Down on the last row) to add a route,
 // a row saves when you leave it, Save saves everything pending.
 //  - A route in use (jobs, tariffs or prices) can't be deleted — deleting would strip it from those
 //    jobs and wipe its prices. It is deactivated instead: hidden from dropdowns, history kept.
@@ -14,6 +15,8 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataSheet, type DSColumn } from "@/components/data-sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RmfHotelsTab } from "@/components/rmf-hotels-tab";
 import api from "@/lib/api";
 import { usePermission } from "@/hooks/use-permission";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
@@ -329,6 +332,12 @@ export default function RoutesPage() {
         </div>
       </div>
 
+      <Tabs defaultValue="routes" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="routes">Routes</TabsTrigger>
+          <TabsTrigger value="rmf">RMF Hotels</TabsTrigger>
+        </TabsList>
+        <TabsContent value="routes" className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -393,6 +402,11 @@ export default function RoutesPage() {
           emptyText="No routes match"
         />
       )}
+        </TabsContent>
+        <TabsContent value="rmf">
+          <RmfHotelsTab canEdit={canUpsert} canDelete={canDelete} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

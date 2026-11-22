@@ -615,23 +615,34 @@ provide (`supplier_car_types.quantity`, 1–99, default 1).
 - The database enforces it too: `traffic_assignments.supplier_car_type_id` is ON DELETE RESTRICT
   (set live 2026-11-21 after 214 jobs' car types were restored from backups; 9 lost before 14 Nov).
 
-## Car Dispatch notes → Marsa Alam route (2026-11-21)
+## Traffic Cover notes → Marsa Alam route (2026-11-21, list in the database since 2026-11-22)
 
-Car Dispatch has a **Notes** column, saved as the job's notes; the customer report prints it. When the notes name
-a hotel from the owner's Marsa Alam list (`frontend/src/lib/marsa-alam-hotels.ts`, from "RMF HOTEL NEAMS.xlsx"),
-the row's route is set to that area's route for the row's leg:
-- **Areas:** north of RMF airport = NORTH-MARSA ALAM; south of RMF up to Marsa Alam town, including Port Ghalib,
-  = SOUTH MARSA ALAM; the deep south beyond the town = SHAMS ALAM; Azur Wadi Lahmy = WADI LAHMI.
-- **Leg:** ARR / DEP / GOING TRIP / RETURN TRIP, taken from the current route. When Type was just changed, it comes
-  from Type: ONE_WAY_TRANSFER = going, RETURN = return.
-- **When it applies:** on unsaved rows, when the notes or the Type change, and on Excel paste. A toast names the
-  route and hotel.
-- **Overriding:** pick another route afterwards to override it; the notes are not re-read until they change.
-- **No match:** Wadi Lahmi has no going or return routes, so nothing changes there.
-- **Look-alikes:** chain names that also exist elsewhere (Movenpick, Novotel, Three Corners, Sea World, Shams, Azur)
-  need their Marsa Alam part.
+Traffic Cover (formerly Car Dispatch) has a **Notes** column, saved as the job's notes and printed on the
+customer report. The **RMF hotel list** lives in System Parameters › Routes › **RMF Hotels** (table `rmf_hotels`).
+It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web. It has three sections:
+- **North of RMF** → NORTH-MARSA ALAM.
+- **South of RMF** up to Marsa Alam town, including Port Ghalib → SOUTH MARSA ALAM.
+- **Deep South**, beyond the town → SHAMS ALAM. Azur Wadi Lahmy → WADI LAHMI (its route area).
 
-## Car Dispatch highlight colours (2026-11-21)
+**Matching** (`frontend/src/lib/rmf-hotel-match.ts`):
+- The notes are lower-cased, with accents and punctuation removed.
+- *Match words* are comma-separated alternatives. An alternative matches when each of its words starts a word
+  of the notes, in any order: "movenpick quseir" needs both words.
+- *Not when notes say* blocks a match; for example, Sea World is blocked by "aqua blu, hurghada, sahl".
+- The first active hotel in the order section → sort order wins.
+
+**How the route is set:**
+- A matched hotel sets the row's route to `<leg>-<route area>`. The leg (ARR / DEP / GOING TRIP / RETURN TRIP)
+  comes from the current route, or from Type when Type was just changed.
+- It applies only to unsaved rows: when the notes or the Type change, and on Excel paste. A toast names the
+  route and the hotel.
+- Picking another route afterwards overrides it.
+- Wadi Lahmi has no going or return routes, so nothing is set for those legs.
+
+**Who can change the list:** reading needs `driver-tariffs` or `dispatch`. Adding and editing need
+`driver-tariffs.upsert`; deleting needs `driver-tariffs.delete`.
+
+## Traffic Cover (Car Dispatch) highlight colours (2026-11-21)
 
 Each car card has a colour picker (palette button in the header): select a cell in that card, pick a
 swatch (or a custom colour), then **Colour cell** / **Colour row** / **Clear cell** / **Clear row**. A

@@ -13,7 +13,7 @@
 | `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 762 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
 | `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1391 | 10 | 13 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
 | `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | One agent's detail — credit status, documents and price list. |
-| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 2013 | 15 | 1 | Car-centric dispatch view — the day organised by vehicle rather than by job. |
+| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 2021 | 16 | 1 | Car-centric dispatch view — the day organised by vehicle rather than by job. |
 | `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 539 | 7 | 3 | Company identity and branding (logo, favicon) used on invoices and reference prefixes. |
 | `/dashboard/complaint-categories` | `frontend/src/app/(dashboard)/dashboard/complaint-categories/page.tsx` | 354 | 4 | 3 | Complaint category catalog CRUD, including the pay-affecting default score penalty. |
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 580 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
@@ -44,7 +44,7 @@
 | `/dashboard/reports` | `frontend/src/app/(dashboard)/dashboard/reports/page.tsx` | 6420 | 45 | 20 | ★ Every report in one screen (5,882 lines, 41 API calls, 18 permission keys) — dispatch, driver trips, rep and driver scores, guest surveys, revenue, evidence, job status, visa, sales, departures, flight delays and reviews. Each tab has a matching xlsx export. The largest file in the frontend; navigate it via the symbol index rather than reading it end to end. |
 | `/dashboard/reps` | `frontend/src/app/(dashboard)/dashboard/reps/page.tsx` | 954 | 11 | 13 | Rep management: records, zone coverage, portal accounts and fees. A rep with no zone never appears in dispatch. |
 | `/dashboard/reps/[id]` | `frontend/src/app/(dashboard)/dashboard/reps/[id]/page.tsx` | 771 | 9 | — | One rep's detail, zones and fee history. |
-| `/dashboard/routes` | `frontend/src/app/(dashboard)/dashboard/routes/page.tsx` | 399 | 8 | 2 | System Parameters › Routes: search, add, edit (English \| Arabic, default type, From/To), deactivate, delete unused routes |
+| `/dashboard/routes` | `frontend/src/app/(dashboard)/dashboard/routes/page.tsx` | 413 | 8 | 2 | System Parameters › Routes: search, add, edit (English \| Arabic, default type, From/To), deactivate, delete unused routes |
 | `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 578 | — | — | Theme and appearance settings. |
 | `/dashboard/supplier-price-lists` | `frontend/src/app/(dashboard)/dashboard/supplier-price-lists/page.tsx` | 431 | 11 | 2 | Supplier Price Lists page: list tabs, flags, route × car-type price grid, Excel import/export. |
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1363 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
@@ -96,7 +96,7 @@
 
 **`/dashboard/car-dispatch`**
 
-- calls: `GET /vehicles`, `GET /customers`, `GET /drivers`, `GET /dispatch/available-suppliers`, `GET /vehicles/types`, `GET /locations/zones`, `GET /job-service-types`, `GET /dispatch/day`, `PATCH /dispatch/jobs/:x/colors`, `POST /traffic-jobs`, `POST /dispatch/assign`, `PATCH /traffic-jobs/:x/status`, `PATCH /dispatch/assignments/:x`, `PUT /user-preferences/:x`, `GET /dispatch/customer-report/xlsx`
+- calls: `GET /rmf-hotels`, `GET /vehicles`, `GET /customers`, `GET /drivers`, `GET /dispatch/available-suppliers`, `GET /vehicles/types`, `GET /locations/zones`, `GET /job-service-types`, `GET /dispatch/day`, `PATCH /dispatch/jobs/:x/colors`, `POST /traffic-jobs`, `POST /dispatch/assign`, `PATCH /traffic-jobs/:x/status`, `PATCH /dispatch/assignments/:x`, `PUT /user-preferences/:x`, `GET /dispatch/customer-report/xlsx`
 - perms: `traffic-jobs.online.table.statusFilter`
 
 **`/dashboard/company`**

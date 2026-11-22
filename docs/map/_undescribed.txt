@@ -1,5 +1,14 @@
 # Symbols with no description yet — regenerate to refresh.
-# 3045/3057 described.
+# 3064/3076 described.
+
+# STALE (description exists, symbol gone):
+! frontend/src/lib/marsa-alam-hotels.ts#MARSA_ALAM_HOTELS
+! frontend/src/lib/marsa-alam-hotels.ts#MarsaAlamArea
+! frontend/src/lib/marsa-alam-hotels.ts#__file__
+! frontend/src/lib/marsa-alam-hotels.ts#findMarsaAlamHotel
+! frontend/src/lib/marsa-alam-hotels.ts#legOf
+! frontend/src/lib/marsa-alam-hotels.ts#marsaAlamRoute
+
 backend/src/dispatch/dispatch.controller.ts#DispatchController.customerReport
 backend/src/dispatch/dispatch.controller.ts#DispatchController.customerReportXlsx
 backend/src/dispatch/dispatch.controller.ts#DispatchController.setJobColors

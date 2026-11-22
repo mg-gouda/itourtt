@@ -3125,3 +3125,33 @@ model AlarmDevice {
   @@index([userId])
   @@map("alarm_devices")
 }
+
+// ─────────────────────────────────────────────
+// RMF HOTELS (System Parameters › Routes › RMF Hotels)
+// ─────────────────────────────────────────────
+
+/// Where a Marsa Alam hotel lies from RMF airport (owner's list).
+enum RmfSection {
+  NORTH
+  SOUTH
+  DEEP_SOUTH
+}
+
+/// A Marsa Alam hotel. Traffic Cover sets a row's route from its Notes when they name one:
+/// the route of `routeArea` (NORTH-MARSA ALAM / SOUTH MARSA ALAM / SHAMS ALAM / WADI LAHMI) for the
+/// row's leg. matchWords: comma-separated alternatives, each word must start a word of the notes.
+model RmfHotel {
+  id           String     @id @default(uuid())
+  name         String
+  section      RmfSection
+  routeArea    String     @map("route_area")
+  matchWords   String     @map("match_words")
+  excludeWords String?    @map("exclude_words")
+  sortOrder    Int        @default(0) @map("sort_order")
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@index([section, sortOrder])
+  @@map("rmf_hotels")
+}

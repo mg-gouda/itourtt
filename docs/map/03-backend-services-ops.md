@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**27 classes**, **412 methods**.
+**29 classes**, **420 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -359,6 +359,32 @@ Named service-type variants attached to jobs (distinct from the fixed ARR/DEP/�
 | `importFromExcel` | pub | 146 | `zone` `jobServiceType` | Bulk-imports service types, resolving zone names. |
 | `generateTemplate` | pub | 208 | `zone` | Blank import workbook pre-filled with real zones. |
 
+### RmfHotelsController
+
+`backend/src/job-service-types/rmf-hotels.controller.ts:12` · controller · 4 methods
+
+REST /rmf-hotels: list (Routes page, Traffic Cover), add, edit, delete RMF hotels
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `findAll` | pub | 18 | — | GET /rmf-hotels — every RMF hotel (needs driver-tariffs or dispatch) |
+| `create` | pub | 24 | — | POST /rmf-hotels — add a hotel to a section |
+| `update` | pub | 30 | — | PATCH /rmf-hotels/:id — edit a hotel (name, section, area, match words, status) |
+| `remove` | pub | 36 | — | DELETE /rmf-hotels/:id — remove a hotel from the list |
+
+### RmfHotelsService
+
+`backend/src/job-service-types/rmf-hotels.service.ts:13` · service · 4 methods
+
+RMF hotel list CRUD; area and match words default from the section and the name
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `findAll` | pub | 17 | `rmfHotel` | All RMF hotels ordered by section, sort order, name |
+| `create` | pub | 21 | `rmfHotel` | Adds a hotel at the end of its section; area defaults from the section, match words from the name |
+| `update` | pub | 36 | `rmfHotel` | Edits a hotel; moving it to another section moves its route area unless one is given |
+| `remove` | pub | 59 | `rmfHotel` | Deletes a hotel from the RMF list |
+
 ## `locations`
 
 ### LocationsController
@@ -691,7 +717,7 @@ Vehicle types, the owned fleet, and per-vehicle compliance records (licences, in
 
 ## Standalone exports
 
-4 free functions, constants and types in these modules.
+6 free functions, constants and types in these modules.
 
 ### `backend/src/agents/dto/agent-price-list.dto.ts`
 
@@ -700,6 +726,15 @@ DTOs for the agent price-grid bulk save.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `ServiceTypeEnum` | type | 13 | Service types accepted on an agent price row. |
+
+### `backend/src/job-service-types/dto/rmf-hotel.dto.ts`
+
+Validation for adding or editing an RMF hotel (System Parameters › Routes › RMF Hotels)
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RMF_SECTIONS` | const | 3 | The three RMF hotel sections: NORTH, SOUTH, DEEP_SOUTH |
+| `RMF_ROUTE_AREAS` | const | 4 | Route areas an RMF hotel can map to: North / South Marsa Alam, Shams Alam, Wadi Lahmi |
 
 ### `backend/src/locations/pin-verifier.service.ts`
 
