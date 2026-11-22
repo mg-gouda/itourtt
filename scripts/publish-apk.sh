@@ -17,10 +17,10 @@ APK="$ROOT/mobile/apps/$APP/android/app/build/outputs/apk/release/app-release.ap
 # newer versionCode would make every phone "update" forever without ever catching up.
 AAPT=$(ls /opt/android-sdk/build-tools/*/aapt 2>/dev/null | sort -V | tail -1)
 [[ -x "$AAPT" ]] || { echo "aapt not found under /opt/android-sdk/build-tools"; exit 1; }
-BADGE=$("$AAPT" dump badging "$APK" | head -1)
+BADGE=$("$AAPT" dump badging "$APK" | awk 'NR==1')  # awk, not head: head SIGPIPEs aapt under pipefail
 NAME=$(grep -oP "versionName='\K[^']+" <<<"$BADGE")
 CODE=$(grep -oP "versionCode='\K[0-9]+" <<<"$BADGE")
-PKG=$(grep -oP "name='\K[^']+" <<<"$BADGE")
+PKG=$(grep -oP "^package: name='\K[^']+" <<<"$BADGE")
 [[ "$PKG" == "com.itour.$APP" ]] || { echo "APK is $PKG, not com.itour.$APP"; exit 1; }
 GCODE=$(grep -oP 'versionCode \K[0-9]+' "$GRADLE")
 [[ "$CODE" == "$GCODE" ]] || { echo "APK versionCode $CODE != build.gradle $GCODE — rebuild the APK first"; exit 1; }
