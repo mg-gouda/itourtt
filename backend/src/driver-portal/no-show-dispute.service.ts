@@ -115,7 +115,7 @@ export class NoShowDisputeService {
     );
     const body = resolve(
       emailConfig?.disputeBody ||
-        'Dear Partner,\n\nPlease see attached evidence for {AgentRef} as the job {JobStatus}.\n\nRegards,\niTour Transport & Traffic',
+        'Dear Partner,\n\nPlease see attached evidence for {AgentRef} as the job {JobStatus}.\n\nRegards,\nOperations Team',
     );
 
     const pdfBuffer = await this.buildPdf(job, agentRef, agentName);

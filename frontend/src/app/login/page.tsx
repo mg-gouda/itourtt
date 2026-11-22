@@ -108,15 +108,19 @@ function LoginForm() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-black">
-      {/* Background image */}
+      {/* Background: the image uploaded in Styling, else plain iTour ink (no bundled fallback photo). */}
       <div
         className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: loginBgUrl ? `url('${loginBgUrl}')` : "url('/login-bg.webp')",
-          backgroundSize: "cover",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center",
-        }}
+        style={
+          loginBgUrl
+            ? {
+                backgroundImage: `url('${loginBgUrl}')`,
+                backgroundSize: "cover",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "center",
+              }
+            : { background: "radial-gradient(circle at 50% 30%, #1B2A40 0%, #0E1A2B 65%)" }
+        }
       />
 
       {/* Login card – glass effect */}
@@ -124,13 +128,15 @@ function LoginForm() {
         <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-2xl backdrop-blur-xl">
           {/* Logo / Brand */}
           <div className="mb-6 flex flex-col items-center gap-3">
-            <Image
-              src={loginLogoUrl ?? "/favicon.svg"}
-              alt="iTourTT"
-              width={56}
-              height={56}
-            />
-            <h1 className="text-xl font-semibold text-white">{t("sidebar.brand")}</h1>
+            {loginLogoUrl ? (
+              <>
+                <Image src={loginLogoUrl} alt="iTour GO" width={56} height={56} />
+                <h1 className="text-xl font-semibold text-white">{t("sidebar.brand")}</h1>
+              </>
+            ) : (
+              /* iTour Ground Operations lockup: icon + wordmark + "Ground Operations" (dark-background version). */
+              <Image src="/brand/itour-lockup-dark.svg" alt="iTour Ground Operations" width={240} height={82} priority />
+            )}
             <p className="text-sm text-white/50">{t("login.system")}</p>
           </div>
 
@@ -316,7 +322,7 @@ function LoginForm() {
         </div>
 
         <p className="mt-4 text-center text-xs text-white/30">
-          iTour Transport &amp; Traffic v{process.env.NEXT_PUBLIC_APP_VERSION}
+          iTour Ground Operations v{process.env.NEXT_PUBLIC_APP_VERSION}
         </p>
       </div>
     </div>

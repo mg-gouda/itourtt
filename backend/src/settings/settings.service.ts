@@ -47,7 +47,7 @@ const EMAIL_DEFAULTS = {
 };
 
 const COMPANY_DEFAULTS = {
-  companyName: 'iTour TT',
+  companyName: 'iTour GO',
   logoUrl: null,
   faviconUrl: null,
   reportHeaderHtml: null,

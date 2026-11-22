@@ -222,7 +222,7 @@ export function LicenseGate({ children }: { children: React.ReactNode }) {
                 License expires in {days} day{days !== 1 ? 's' : ''}
               </h2>
               <p className="text-sm text-muted-foreground mb-5">
-                Your iTourTT license will expire within {months}. Please renew before it expires to avoid service interruption.
+                Your iTour GO license will expire within {months}. Please renew before it expires to avoid service interruption.
               </p>
 
               <div className="flex items-center gap-3">

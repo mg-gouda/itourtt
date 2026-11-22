@@ -149,7 +149,7 @@ export class WhatsappNotificationsService {
     }
     const client = twilio(settings.twilioAccountSid, settings.twilioAuthToken);
     const msgOptions: Record<string, unknown> = {
-      body: 'This is a test message from iTour TT WhatsApp Notifications.',
+      body: 'This is a test message from iTour GO WhatsApp Notifications.',
       from: `whatsapp:${settings.whatsappFrom}`,
       to: `whatsapp:${phone}`,
     };

@@ -212,7 +212,7 @@ export class JobServiceTypesService {
     });
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'iTour Transport';
+    workbook.creator = 'iTour GO';
 
     const inst = workbook.addWorksheet('Instructions');
     inst.columns = [{ width: 80 }];

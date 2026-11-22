@@ -260,7 +260,18 @@ export default function B2BJobPage() {
   const [search, setSearch] = useState("");
   const [form, setForm] = useState<FormState>({ ...defaultForm });
   const [suppliers, setSuppliers] = useState<SupplierResource[]>([]);
-  const [jobServiceTypes, setJobServiceTypes] = useState<{ id: string; name: string }[]>([]);
+  // Routes carry their default type and both ends (System Parameters › Routes): picking one fills them.
+  const [jobServiceTypes, setJobServiceTypes] = useState<
+    {
+      id: string;
+      name: string;
+      defaultServiceType?: string | null;
+      fromZone?: { id: string } | null;
+      toZone?: { id: string } | null;
+      fromAirport?: { id: string } | null;
+      toAirport?: { id: string } | null;
+    }[]
+  >([]);
   const [vehicles, setVehicles] = useState<VehicleResource[]>([]);
   const [drivers, setDrivers] = useState<PersonResource[]>([]);
   const [reps, setReps] = useState<PersonResource[]>([]);
@@ -334,7 +345,8 @@ export default function B2BJobPage() {
     autoEditLoadedRef.current = true;
     api.get(`/traffic-jobs/${editParam}`)
       .then(({ data }) => {
-        handleSelectJob(data);
+        // GET /traffic-jobs/:id answers { data: job }.
+        handleSelectJob(data?.data ?? data);
         setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
       })
       .catch(() => toast.error("Job not found"));
@@ -410,10 +422,15 @@ export default function B2BJobPage() {
       return;
     }
 
+    // From / To come from the route (System Parameters › Routes).
     const hasOrigin = form.originAirportId || form.originZoneId || form.originHotelId;
     const hasDest = form.destinationAirportId || form.destinationZoneId || form.destinationHotelId;
+    if (!form.jobServiceTypeId && (!hasOrigin || !hasDest)) {
+      toast.error("Route is required");
+      return;
+    }
     if (!hasOrigin || !hasDest) {
-      toast.error(t("jobs.originDestRequired"));
+      toast.error("This route has no From / To — set them in System Parameters › Routes");
       return;
     }
 
@@ -463,27 +480,6 @@ export default function B2BJobPage() {
         };
       }
 
-      // Build assignment payload based on source type
-      const buildAssignPayload = (): Record<string, string | boolean> | null => {
-        const ap: Record<string, string | boolean> = {};
-        const supplierMode = form.assignSource !== "owned";
-
-        if (supplierMode) {
-          // Supplier: external driver name/phone, no vehicleId/driverId
-          if (form.externalDriverName.trim()) ap.externalDriverName = form.externalDriverName.trim();
-          if (form.externalDriverMobile.trim()) ap.externalDriverPhone = form.externalDriverMobile.trim();
-        } else {
-          // Owned: select from company vehicles/drivers
-          if (form.assignVehicleId) ap.vehicleId = form.assignVehicleId;
-          if (form.assignDriverId) ap.driverId = form.assignDriverId;
-        }
-
-        // Rep — skip if "N/A"
-        if (form.assignRepId && form.assignRepId !== "__NA__") ap.repId = form.assignRepId;
-
-        return Object.keys(ap).length > 0 ? ap : null;
-      };
-
       if (editingJobId) {
         const { bookingChannel, ...updatePayload } = payload;
         await api.patch(`/traffic-jobs/${editingJobId}`, updatePayload);
@@ -495,33 +491,10 @@ export default function B2BJobPage() {
             // Job may already be in a terminal state — booking status still saved
           }
         }
-        // Update assignment if changed
-        const assignPayload = buildAssignPayload();
-        if (assignPayload) {
-          const job = jobs.find((j) => j.id === editingJobId);
-          try {
-            if (job?.assignment) {
-              await api.patch(`/dispatch/assignments/${job.assignment.id}`, assignPayload);
-            } else {
-              await api.post("/dispatch/assign", { trafficJobId: editingJobId, ...assignPayload });
-            }
-          } catch {
-            // Assignment update failed but job was saved — non-blocking
-          }
-        }
         toast.success(t("jobs.updated") || "Job updated successfully");
       } else {
         const { bookingStatus, ...createPayload } = payload;
-        const { data: newJob } = await api.post("/traffic-jobs", createPayload);
-        // Assign vehicle/driver/rep if selected
-        const assignPayload = buildAssignPayload();
-        if (assignPayload && newJob?.id) {
-          try {
-            await api.post("/dispatch/assign", { trafficJobId: newJob.id, ...assignPayload });
-          } catch {
-            // Assignment failed but job was created — non-blocking
-          }
-        }
+        await api.post("/traffic-jobs", createPayload);
         toast.success(t("jobs.created"));
       }
 
@@ -835,7 +808,30 @@ export default function B2BJobPage() {
               <SearchableCombobox
                 items={jobServiceTypes.map((s) => ({ value: s.id, label: s.name }))}
                 value={form.jobServiceTypeId}
-                onChange={(v) => updateForm({ jobServiceTypeId: v })}
+                onChange={(v) => {
+                  // The route sets the job's type and its From / To (no separate origin / destination boxes).
+                  const r = jobServiceTypes.find((s) => s.id === v);
+                  const origin = r?.fromAirport?.id ?? r?.fromZone?.id ?? "";
+                  const dest = r?.toAirport?.id ?? r?.toZone?.id ?? "";
+                  updateForm({
+                    jobServiceTypeId: v,
+                    ...(r?.defaultServiceType
+                      ? r.defaultServiceType === "ARR"
+                        ? { serviceType: "ARR", departureTime: "" }
+                        : r.defaultServiceType === "DEP"
+                          ? { serviceType: "DEP", arrivalTime: "" }
+                          : { serviceType: r.defaultServiceType, arrivalTime: "", departureTime: "" }
+                      : {}),
+                    originAirportId: r?.fromAirport?.id ?? "",
+                    originZoneId: r?.fromAirport ? "" : r?.fromZone?.id ?? "",
+                    originHotelId: "",
+                    originSelectedId: origin,
+                    destinationAirportId: r?.toAirport?.id ?? "",
+                    destinationZoneId: r?.toAirport ? "" : r?.toZone?.id ?? "",
+                    destinationHotelId: "",
+                    destinationSelectedId: dest,
+                  });
+                }}
                 placeholder="Select route…"
                 searchPlaceholder="Search routes…"
                 emptyText="No routes found."
@@ -916,45 +912,16 @@ export default function B2BJobPage() {
             )}
           </div>
 
-          {/* ── Route & Flight ── */}
+          {/* ── Flight (arrivals / departures). From / To come from the route above. ── */}
+          {canB2BFlightInfo && showFlightFields && (
+          <>
           <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Route &amp; Flight</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Flight</span>
             <hr className="flex-1 border-border" />
           </div>
 
-          {/* Row 2: Origin + Destination + Flight Info + Arrival/Departure Time */}
-          <div className={`grid gap-3 ${showFlightFields ? "grid-cols-5" : "grid-cols-2"}`}>
-            {canB2BRoute && (
-            <>
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.origin")}</Label>
-              <LocationCombobox
-                value={form.originSelectedId}
-                onChange={(id, type) => {
-                  const clear = { originAirportId: "", originZoneId: "", originHotelId: "", originSelectedId: id };
-                  if (type === "AIRPORT") updateForm({ ...clear, originAirportId: id });
-                  else if (type === "ZONE") updateForm({ ...clear, originZoneId: id });
-                  else if (type === "HOTEL") updateForm({ ...clear, originHotelId: id });
-                }}
-                placeholder={t("jobs.searchOrigin")}
-              />
-            </div>
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.destination")}</Label>
-              <LocationCombobox
-                value={form.destinationSelectedId}
-                onChange={(id, type) => {
-                  const clear = { destinationAirportId: "", destinationZoneId: "", destinationHotelId: "", destinationSelectedId: id };
-                  if (type === "AIRPORT") updateForm({ ...clear, destinationAirportId: id });
-                  else if (type === "ZONE") updateForm({ ...clear, destinationZoneId: id });
-                  else if (type === "HOTEL") updateForm({ ...clear, destinationHotelId: id });
-                }}
-                placeholder={t("jobs.searchDestination")}
-              />
-            </div>
-            </>
-            )}
-            {canB2BFlightInfo && showFlightFields && (
+          {/* Row 2: Flight No + Terminal + Arrival/Departure Time */}
+          <div className="grid grid-cols-3 gap-3">
               <>
                 <div className="min-w-0 space-y-1.5">
                   <Label className="text-muted-foreground text-xs">{t("jobs.flightNo")}</Label>
@@ -993,17 +960,18 @@ export default function B2BJobPage() {
                   />
                 </div>
               </>
-            )}
           </div>
+          </>
+          )}
 
-          {/* ── Pricing & Meeting ── */}
+          {/* ── Pricing & Customer Rep ── */}
           <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Pricing &amp; Meeting</span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Pricing &amp; Customer Rep</span>
             <hr className="flex-1 border-border" />
           </div>
 
-          {/* Row 4: Price + Customer Rep Meeting Fields */}
-          <div className="grid grid-cols-6 gap-3">
+          {/* Row 4: Price + Customer Rep name / mobile */}
+          <div className="grid grid-cols-3 gap-3">
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">{t("jobs.price") || "Price"}</Label>
               <div className="flex gap-1">
@@ -1050,166 +1018,11 @@ export default function B2BJobPage() {
                 className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
               />
             </div>
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.custRepMeetingPoint")}</Label>
-              <Input
-                value={form.custRepMeetingPoint}
-                onChange={(e) => updateForm({ custRepMeetingPoint: e.target.value })}
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
-              />
-            </div>
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.custRepMeetingTime")}</Label>
-              <Input
-                value={form.custRepMeetingTime}
-                onChange={(e) => {
-                  let v = e.target.value.replace(/[^0-9:]/g, "");
-                  if (v.length === 2 && !v.includes(":") && form.custRepMeetingTime.length < v.length) v += ":";
-                  if (v.length > 5) v = v.slice(0, 5);
-                  updateForm({ custRepMeetingTime: v });
-                }}
-                placeholder="HH:MM"
-                maxLength={5}
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 font-mono"
-              />
-            </div>
             </>
             )}
           </div>
 
-          {/* ── Assignment ── */}
-          {canAssign && (
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Assignment</span>
-            <hr className="flex-1 border-border" />
-          </div>
-          )}
-
-          {/* Row 5: Assignment — Source, Vehicle, Driver, Rep */}
-          {canAssign && (
-            <div className={`grid gap-3 ${isSupplierSource ? "grid-cols-5" : "grid-cols-4"}`}>
-              {canAssignVehicle && (
-                <div className="min-w-0 space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{t("dispatch.source") || "Car Source"}</Label>
-                  <Select value={form.assignSource} onValueChange={(v) => updateForm({ assignSource: v, assignVehicleId: "", assignDriverId: "", externalVehicleType: "", externalDriverName: "", externalDriverMobile: "" })}>
-                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-foreground">
-                      <SelectItem value="owned">Owned ({vehicles.filter((v) => !v.supplierId).length})</SelectItem>
-                      {suppliers.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.tradeName || s.legalName} ({s.vehicleCount})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* ── Owned: Vehicle select ── */}
-              {canAssignVehicle && !isSupplierSource && (
-                <div className="min-w-0 space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{t("dispatch.vehicle") || "Vehicle"}</Label>
-                  <Select value={form.assignVehicleId} onValueChange={(v) => updateForm({ assignVehicleId: v })}>
-                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
-                      <SelectValue placeholder="Select vehicle..." />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-foreground">
-                      {getFilteredVehicles("owned").map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.plateNumber} {v.vehicleType?.name ? `(${v.vehicleType.name})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* ── Supplier: Car type select ── */}
-              {canAssignVehicle && isSupplierSource && (
-                <div className="min-w-0 space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{t("dispatch.carType") || "Car Type"}</Label>
-                  <Select value={form.externalVehicleType} onValueChange={(v) => updateForm({ externalVehicleType: v })}>
-                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
-                      <SelectValue placeholder={t("dispatch.carType") || "Car Type"} />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-foreground">
-                      {vehicleTypes.map((vt) => (
-                        <SelectItem key={vt.id} value={vt.name}>
-                          {vt.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* ── Owned: Driver select ── */}
-              {canAssignDriver && !isSupplierSource && (
-                <div className="min-w-0 space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{t("dispatch.driver") || "Driver"}</Label>
-                  <Select value={form.assignDriverId} onValueChange={(v) => updateForm({ assignDriverId: v })}>
-                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
-                      <SelectValue placeholder="Select driver..." />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-foreground">
-                      {getFilteredDrivers().map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* ── Supplier: Driver name + mobile text fields ── */}
-              {canAssignDriver && isSupplierSource && (
-                <>
-                  <div className="min-w-0 space-y-1.5">
-                    <Label className="text-muted-foreground text-xs">{t("dispatch.driverName") || "Driver Name"}</Label>
-                    <Input
-                      value={form.externalDriverName}
-                      onChange={(e) => updateForm({ externalDriverName: e.target.value })}
-                      placeholder="Driver name..."
-                      className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
-                    />
-                  </div>
-                  <div className="min-w-0 space-y-1.5">
-                    <Label className="text-muted-foreground text-xs">{t("dispatch.driverMobile") || "Driver Mobile"}</Label>
-                    <Input
-                      type="tel"
-                      value={form.externalDriverMobile}
-                      onChange={(e) => updateForm({ externalDriverMobile: e.target.value })}
-                      placeholder="+20 xxx xxx xxxx"
-                      className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* ── Rep (both modes): with N/A option ── */}
-              {canAssignRep && (
-                <div className="min-w-0 space-y-1.5">
-                  <Label className="text-muted-foreground text-xs">{t("dispatch.rep") || "Rep"}</Label>
-                  <Select value={form.assignRepId} onValueChange={(v) => updateForm({ assignRepId: v })}>
-                    <SelectTrigger className="w-full border-border bg-card text-foreground h-9 min-w-0">
-                      <SelectValue placeholder="Select rep..." />
-                    </SelectTrigger>
-                    <SelectContent className="border-border bg-popover text-foreground">
-                      <SelectItem value="__NA__">N/A</SelectItem>
-                      {reps.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Car, driver and rep are set on Traffic Cover: new jobs wait in its job pool. */}
 
           {/* ── Notes ── */}
           <div className="flex items-center gap-2 pt-1">

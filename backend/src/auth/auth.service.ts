@@ -481,11 +481,11 @@ export class AuthService {
       <p>You requested a password reset. Click the link below to set a new password. This link expires in ${RESET_TOKEN_EXPIRY_MINUTES} minutes.</p>
       <p><a href="${resetLink}" style="background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;">Reset Password</a></p>
       <p>If you didn't request this, please ignore this email.</p>
-      <p style="color:#888;font-size:12px;">iTourTT — Transport & Traffic Management</p>
+      <p style="color:#888;font-size:12px;">iTour Ground Operations</p>
     `;
 
     try {
-      await (this.emailService as any).send(email, 'Password Reset — iTourTT', html);
+      await (this.emailService as any).send(email, 'Password Reset — iTour GO', html);
     } catch (err) {
       this.logger.error(`Failed to send password reset email to ${email}: ${(err as Error).message}`);
     }

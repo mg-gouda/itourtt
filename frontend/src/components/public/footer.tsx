@@ -61,7 +61,7 @@ export function PublicFooter() {
 
         {/* Copyright */}
         <div className="mt-10 border-t border-white/10 pt-6 text-center text-xs text-white/40">
-          &copy; {new Date().getFullYear()} iTour Transport &amp; Traffic. All rights reserved.
+          &copy; {new Date().getFullYear()} iTour Ground Operations. All rights reserved.
         </div>
       </div>
     </footer>

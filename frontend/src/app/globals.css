@@ -52,7 +52,7 @@
   --radius: 0.625rem;
   /* Light mode — owner palette 2026-11-20, 60 / 30 / 10:
        #F7F2EA warm ivory  (main, 60%)  → page, cards, inputs, surfaces
-       #1C2B5A navy        (second, 30%) → sidebar rail, primary buttons, headings
+       #0E1A2B iTour ink   (second, 30%) → sidebar rail, primary buttons, headings
        #FF7A1A orange      (loud, 10%)   → active item, focus ring, highlights only
      Text is pure black (#000000) — owner's choice, 2026-11-19. */
   --background: #f7f2ea;
@@ -61,7 +61,7 @@
   --card-foreground: #000000;
   --popover: #fdfaf5;
   --popover-foreground: #000000;
-  --primary: #1c2b5a;
+  --primary: #0e1a2b;
   --primary-foreground: #ffffff;
   --secondary: #efe7da;
   --secondary-foreground: #000000;
@@ -75,59 +75,59 @@
   --ring: #ff7a1a;
   --loud: #ff7a1a;
   --loud-foreground: #000000;
-  --chart-1: #1c2b5a;
+  --chart-1: #0e1a2b;
   --chart-2: #ff7a1a;
   --chart-3: #4f6bb3;
   --chart-4: #f2b27a;
   --chart-5: #8a93ad;
-  /* Navy rail with white text; the active item is the loud orange. */
-  --sidebar: #1c2b5a;
+  /* Ink rail with white text; the active item is the loud orange (iTour GO brand, 2026-11-22). */
+  --sidebar: #0e1a2b;
   --sidebar-foreground: #ffffff;
   --sidebar-primary: #ff7a1a;
   --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #2a3d78;
+  --sidebar-accent: #1b2a40;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2e3f70;
+  --sidebar-border: #24344d;
   --sidebar-ring: #ff7a1a;
-  /* Table row hover: a navy wash over the ivory surface */
-  --row-hover-overlay: rgb(28 43 90 / 0.08);
+  /* Table row hover: an ink wash over the ivory surface */
+  --row-hover-overlay: rgb(14 26 43 / 0.08);
 }
 
 .dark {
   --loud: #ff7a1a;
   --loud-foreground: #000000;
-  /* iTour Reservations LITE — slate-950/900 with sky/cyan accent */
+  /* iTour GO brand (2026-11-22): ink surfaces with the iTour orange accent */
   --background: hsl(222 47% 8%);
   --foreground: hsl(210 40% 96%);
   --card: hsl(222 44% 12%);
   --card-foreground: hsl(210 40% 96%);
   --popover: hsl(222 44% 12%);
   --popover-foreground: hsl(210 40% 96%);
-  --primary: hsl(199 89% 52%);
-  --primary-foreground: hsl(222 47% 8%);
+  --primary: #ff7a1a;
+  --primary-foreground: #0e1a2b;
   --secondary: hsl(217 33% 18%);
   --secondary-foreground: hsl(210 40% 96%);
   --muted: hsl(217 33% 17%);
   --muted-foreground: hsl(215 20% 65%);
-  --accent: hsl(188 94% 43%);
-  --accent-foreground: hsl(222 47% 8%);
+  --accent: #24344d;
+  --accent-foreground: hsl(210 40% 96%);
   --destructive: oklch(0.704 0.191 22.216);
   --border: hsl(217 33% 20%);
   --input: hsl(217 33% 20%);
-  --ring: hsl(199 89% 52%);
+  --ring: #ff7a1a;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #0f172a;
+  --sidebar: #0e1a2b;
   --sidebar-foreground: hsl(210 40% 96%);
-  --sidebar-primary: hsl(199 89% 52%);
-  --sidebar-primary-foreground: hsl(222 47% 8%);
+  --sidebar-primary: #ff7a1a;
+  --sidebar-primary-foreground: #0e1a2b;
   --sidebar-accent: hsl(217 33% 20%);
   --sidebar-accent-foreground: hsl(210 40% 96%);
   --sidebar-border: hsl(217 33% 18%);
-  --sidebar-ring: hsl(199 89% 52%);
+  --sidebar-ring: #ff7a1a;
   /* Table row hover: a light wash over the dark surface */
   --row-hover-overlay: hsl(210 40% 96% / 0.1);
 }

@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**124 files**, **433 exported symbols**.
+**125 files**, **440 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -220,7 +220,7 @@ Mobile-optimised profile screen shared by the portals.
 
 ### `mobile-sidebar.tsx`
 
-`frontend/src/components/mobile-sidebar.tsx` · 220 lines
+`frontend/src/components/mobile-sidebar.tsx` · 221 lines
 
 Mobile-width navigation drawer.
 
@@ -399,7 +399,7 @@ Generic searchable select, used for large lists such as the car source.
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 452 lines
+`frontend/src/components/sidebar.tsx` · 454 lines
 
 Main dashboard navigation, filtered by permission.
 
@@ -734,6 +734,24 @@ Types and helpers for the tracking maps.
 | `cairoDateTime` | function | 62 | Date+time in Africa/Cairo regardless of device timezone. |
 | `cairoTime` | function | 72 | Time in Africa/Cairo regardless of device timezone. |
 | `initials` | function | 80 | Up to two initials for a marker label. |
+
+## `frontend/src/components/traffic-cover/`
+
+### `job-pool.tsx`
+
+`frontend/src/components/traffic-cover/job-pool.tsx` · 218 lines
+
+Traffic Cover job pool: the day's B2B/Online jobs with no car, in Arrivals / Departures / Other tables, multi-select and drag onto a car card (5.5.0).
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `JOBS_MIME` | const | 14 | Custom dataTransfer MIME type used for job drags, so other drags (text, files) are ignored by drop zones. |
+| `DragJobsPayload` | type | 17 | What a drag carries between pool and cards: source (pool/card), the jobs (jobId, assignmentId?, ref) and the car they came from. |
+| `setDragJobs` | function | 23 | Writes a DragJobsPayload into a drag event's dataTransfer under JOBS_MIME. |
+| `readDragJobs` | function | 29 | Reads the DragJobsPayload from a drop event, or null when the drag isn't a job drag. |
+| `isJobsDrag` | const | 38 | True while a drag carries jobs (checks the MIME type, since the payload is unreadable during dragover). |
+| `PoolJob` | type | 40 | One unassigned job as shown in the pool: ref, customer job id, customer, channel, service type, route, time, pax, flight, notes, car type, optional assignmentId. |
+| `JobPool` | function | 64 | Renders the three pool tables (sorted by time) with tick boxes and draggable rows; the whole section is a drop zone that sends card jobs back to the pool. |
 
 ## `frontend/src/components/ui/`
 
@@ -1181,11 +1199,13 @@ Per-user column visibility, persisted alongside column order.
 
 `frontend/src/lib/card-color.ts` · 19 lines
 
+Traffic Cover car-card colours: the palette, the automatic colour per car and the saved-colour lookup.
+
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `CARD_COLORS` | const | 5 | _—_ |
-| `autoCardColor` | function | 10 | _—_ |
-| `cardColorOf` | function | 16 | _—_ |
+| `CARD_COLORS` | const | 5 | Palette of selectable car-card colours on Traffic Cover / vehicle page. |
+| `autoCardColor` | function | 10 | Stable automatic colour for a car with no saved colour (hash of its id into CARD_COLORS). |
+| `cardColorOf` | function | 16 | A car's card colour: its saved cardColor, else autoCardColor. |
 
 ### `chat.ts`
 

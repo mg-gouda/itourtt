@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsBoolean, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsInt, Min, Max, ValidateIf } from 'class-validator';
 
 export class ReassignJobDto {
   @IsOptional()
@@ -32,6 +32,13 @@ export class ReassignJobDto {
   @IsOptional()
   @IsString()
   supplierCarTypeId?: string;
+
+  /** Which of the supplier's agreed cars of that type (1..quantity) — a Traffic Cover card. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  supplierCarNo?: number;
 
   @IsOptional()
   @IsBoolean()

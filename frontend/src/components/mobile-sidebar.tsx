@@ -95,12 +95,13 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
           {logoUrl ? (
             <img
               src={logoUrl}
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/brand/itour-logo-dark.svg"; }}
               alt={t("sidebar.brand")}
               className="h-11 w-full object-contain"
             />
           ) : (
             <Image
-              src="/itourtt-logo.svg"
+              src="/brand/itour-logo-dark.svg"
               alt={t("sidebar.brand")}
               width={200}
               height={44}

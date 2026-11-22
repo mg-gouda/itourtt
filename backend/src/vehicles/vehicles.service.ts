@@ -311,7 +311,7 @@ export class VehiclesService {
     });
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'iTour Transport';
+    workbook.creator = 'iTour GO';
     workbook.created = new Date();
 
     // Instructions sheet

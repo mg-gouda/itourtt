@@ -24,10 +24,10 @@ interface SystemSettings {
 
 const DEFAULTS: SystemSettings = {
   theme: "dark",
-  // iTour Reservations LITE brand — sky primary, cyan accent, slate sidebar.
-  primaryColor: "#0ea5e9",
-  accentColor: "#06b6d4",
-  sidebarColor: "#0f172a",
+  // iTour GO brand (logo kit, 2026-11-22): orange primary, slate accent, ink sidebar.
+  primaryColor: "#FF7A1A",
+  accentColor: "#9FB0C6",
+  sidebarColor: "#0E1A2B",
   fontFamily: "Geist",
   language: "en",
   innerBgImageUrl: null,

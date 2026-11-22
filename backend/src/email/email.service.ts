@@ -372,7 +372,7 @@ export class EmailService {
             ${row('Notes', data.notes)}
           </table>
         </div>
-        <p style="color:#999;font-size:12px;margin-top:12px;">Automated operations notification · iTour Transport &amp; Traffic</p>
+        <p style="color:#999;font-size:12px;margin-top:12px;">Automated operations notification · iTour Ground Operations</p>
       </div>
     `;
 
@@ -411,7 +411,7 @@ export class EmailService {
             ${row('Email', data.guestEmail)}
           </table>
         </div>
-        <p style="color:#999;font-size:12px;margin-top:12px;">Automated finance notification · iTour Transport &amp; Traffic</p>
+        <p style="color:#999;font-size:12px;margin-top:12px;">Automated finance notification · iTour Ground Operations</p>
       </div>
     `;
 
@@ -481,7 +481,7 @@ export class EmailService {
       <div style="font-family:Arial,sans-serif;padding:20px;color:#333;">
         <p>${body.replace(/\n/g, '<br/>')}</p>
         <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
-        <p style="color:#999;font-size:12px;">iTour Transport &amp; Traffic</p>
+        <p style="color:#999;font-size:12px;">iTour Ground Operations</p>
       </div>
     `;
 
@@ -522,7 +522,7 @@ export class EmailService {
 
     const html = `
       <div style="font-family:Arial,sans-serif;padding:20px;">
-        <h2 style="color:#333;">iTour TT — Test Email</h2>
+        <h2 style="color:#333;">iTour GO — Test Email</h2>
         <p>This is a test email to verify your SMTP configuration.</p>
         <p>If you received this email, your settings are working correctly.</p>
         <hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />
@@ -535,7 +535,7 @@ export class EmailService {
     await this.transporter.sendMail({
       from: this.fromAddress,
       to,
-      subject: 'iTour TT — SMTP Test',
+      subject: 'iTour GO — SMTP Test',
       html,
     });
     this.logger.log(`Test email sent to ${to}`);

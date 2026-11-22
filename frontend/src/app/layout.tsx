@@ -14,10 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "iTourTT",
-  description: "Enterprise transport, traffic, and accounting system",
+  title: "iTour GO",
+  description: "iTour Ground Operations: transport, traffic and excursions",
   icons: {
     icon: "/favicon.svg",
+    apple: "/apple-touch-icon.png",
   },
 };
 

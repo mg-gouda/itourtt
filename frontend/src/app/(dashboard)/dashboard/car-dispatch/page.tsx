@@ -49,7 +49,11 @@ import {
   FileText,
   FileSpreadsheet,
   Palette,
+  GripVertical,
+  Undo2,
+  EyeOff,
 } from "lucide-react";
+import { JobPool, setDragJobs, readDragJobs, isJobsDrag, type PoolJob, type DragJobsPayload } from "@/components/traffic-cover/job-pool";
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
 import { SERVICE_TYPE_DROPDOWN_OPTIONS } from "@/lib/service-types";
@@ -519,6 +523,9 @@ function CarDispatchContent() {
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [zones, setZones] = useState<LocationOption[]>([]);
   const [routes, setRoutes] = useState<RouteOption[]>([]);
+  // Job pool (B2B / Online jobs of the day without a car) and the ticked pool rows.
+  const [pool, setPool] = useState<PoolJob[]>([]);
+  const [poolSel, setPoolSel] = useState<Set<string>>(new Set());
   // RMF hotel list (System Parameters › Routes › RMF Hotels): Notes naming one set the row's route.
   const [rmfHotels, setRmfHotels] = useState<RmfHotel[]>([]);
   useEffect(() => {
@@ -644,8 +651,32 @@ function CarDispatchContent() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const jobsByVehicle: Record<string, any[]> = {};
       const supplierVehicles: Record<string, Vehicle> = {};
+      // Job pool: B2B / Online jobs of the day with no car (own or supplier) yet, not cancelled.
+      const poolJobs: PoolJob[] = [];
       for (const j of allJobs) {
         const a = j.assignment;
+        if (!a?.vehicleId && !a?.supplierCarTypeId) {
+          if (["B2B", "ONLINE"].includes(j.bookingChannel) && !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(j.status)) {
+            const flightAt = j.serviceType === "DEP" ? j.flight?.departureTime : j.flight?.arrivalTime;
+            const at = j.pickUpTime || flightAt;
+            poolJobs.push({
+              id: j.id,
+              ref: j.internalRef || "",
+              customerJobId: j.customerJobId || "",
+              customer: j.customer?.tradeName || j.customer?.legalName || j.agent?.tradeName || j.agent?.legalName || "",
+              channel: j.bookingChannel,
+              serviceType: j.serviceType,
+              route: j.jobServiceType?.name || "",
+              time: at ? new Date(at).toTimeString().slice(0, 5) : "",
+              pax: j.paxCount || 1,
+              flightNo: j.flight?.flightNo || "",
+              notes: j.notes || "",
+              carType: j.requestedVehicleType?.name || "",
+              assignmentId: a?.id,
+            });
+          }
+          continue;
+        }
         let vId: string | undefined = a?.vehicleId;
         if (!vId && a?.supplierCarTypeId && a.supplierCarType && a.supplierId) {
           const type: VehicleType = {
@@ -669,6 +700,9 @@ function CarDispatchContent() {
         if (!jobsByVehicle[vId]) jobsByVehicle[vId] = [];
         jobsByVehicle[vId].push(j);
       }
+
+      setPool(poolJobs);
+      setPoolSel((prev) => new Set([...prev].filter((id) => poolJobs.some((p) => p.id === id))));
 
       // Map API jobs to JobRow format
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1124,6 +1158,77 @@ function CarDispatchContent() {
     void vehicleId;
   };
 
+  // ─── Job pool ⇄ car cards (drag & drop, Move menu) ───
+  const apiError = (err: unknown, fallback: string) => {
+    const msg = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+    return Array.isArray(msg) ? msg.join(", ") : msg || fallback;
+  };
+
+  /**
+   * Jobs dropped on a car card. Pool jobs are assigned to the car with its main driver; a job
+   * dragged from another card moves to this car (and its main driver). A car type different from
+   * the requested one asks first (the server refuses it otherwise).
+   */
+  const dropOnCar = async (card: CarCard, payload: DragJobsPayload) => {
+    if (payload.source === "card" && payload.fromVehicleId === card.vehicle.id) return;
+    if (card.isSupplier && !card.vehicle.supplierCarTypeId) return;
+    const mainDriverId = card.isSupplier ? undefined : mainDrivers.get(card.vehicle.id)?.driverId;
+    const target: Record<string, unknown> = card.isSupplier
+      ? { supplierId: card.vehicle.supplierId, supplierCarTypeId: card.vehicle.supplierCarTypeId, supplierCarNo: card.vehicle.supplierCarNo ?? 1 }
+      : { vehicleId: card.vehicle.id, ...(mainDriverId ? { driverId: mainDriverId } : {}) };
+    let done = 0;
+    const failed: string[] = [];
+    for (const j of payload.jobs) {
+      const send = (allowTypeMismatch?: boolean) => {
+        const body = { ...target, ...(allowTypeMismatch ? { allowTypeMismatch: true } : {}) };
+        return j.assignmentId
+          ? api.patch(`/dispatch/assignments/${j.assignmentId}`, body)
+          : api.post("/dispatch/assign", { trafficJobId: j.jobId, ...body });
+      };
+      try {
+        await send();
+        done++;
+      } catch (err) {
+        const msg = apiError(err, "Could not assign");
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 409 && /type/i.test(msg) && window.confirm(`${j.ref}: ${msg}\n\nAssign it to ${card.vehicle.plateNumber} anyway?`)) {
+          try {
+            await send(true);
+            done++;
+            continue;
+          } catch (err2) {
+            failed.push(`${j.ref}: ${apiError(err2, "Could not assign")}`);
+            continue;
+          }
+        }
+        failed.push(`${j.ref}: ${msg}`);
+      }
+    }
+    if (done) toast.success(`${done} job${done > 1 ? "s" : ""} → ${card.vehicle.plateNumber}`);
+    if (failed.length) toast.error(failed.join("\n"));
+    if (!card.isSupplier) setSelectedOwnedIds((prev) => new Set(prev).add(card.vehicle.id));
+    setPoolSel(new Set());
+    await loadJobsForDate();
+  };
+
+  /** Jobs taken off their car (dropped on the pool, or Move › Back to pool): the job returns to the pool. */
+  const backToPool = async (jobs: { assignmentId?: string; ref: string }[]) => {
+    let done = 0;
+    const failed: string[] = [];
+    for (const j of jobs) {
+      if (!j.assignmentId) continue;
+      try {
+        await api.delete(`/dispatch/assignments/${j.assignmentId}`);
+        done++;
+      } catch (err) {
+        failed.push(`${j.ref}: ${apiError(err, "Could not take it off the car")}`);
+      }
+    }
+    if (done) toast.success(`${done} job${done > 1 ? "s" : ""} back in the pool`);
+    if (failed.length) toast.error(failed.join("\n"));
+    await loadJobsForDate();
+  };
+
   // ─── Save all unsaved jobs on a card ───
   const saveAllJobs = async (vehicleId: string) => {
     const card = cards.find((c) => c.vehicle.id === vehicleId);
@@ -1152,6 +1257,15 @@ function CarDispatchContent() {
   }));
 
 
+  // Own cars taken out of the selection that still carry saved, live jobs this day.
+  const hiddenWithJobs = (() => {
+    const hidden = cards.filter(
+      (c) => !c.isSupplier && !selectedOwnedIds.has(c.vehicle.id) && c.jobs.some((j) => j.saved && j.status !== "CANCELLED"),
+    );
+    const jobs = hidden.reduce((n, c) => n + c.jobs.filter((j) => j.saved && j.status !== "CANCELLED").length, 0);
+    return { cars: hidden, jobs };
+  })();
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -1162,15 +1276,17 @@ function CarDispatchContent() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* ─── Page Header ─── */}
-      <div className="flex items-center justify-between">
+      {/* ─── Pinned top: header, selectors and job pool stay put while the car cards scroll ─── */}
+      <div className="sticky -top-3 z-30 -mx-4 -mt-4 flex flex-col gap-3 border-b bg-background px-4 pb-3 pt-4 shadow-sm md:-top-6">
+      {/* ─── Page Header: title, date on the right ─── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Traffic Cover</h1>
           <p className="text-sm text-muted-foreground">
-            Assign jobs to vehicles — jobs are posted to B2B pool on save
+            Drag jobs from the pool onto a car — or type new ones in a car card
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Label className="text-sm font-medium">Date:</Label>
             <Input
@@ -1193,19 +1309,51 @@ function CarDispatchContent() {
         </div>
       </div>
 
-      {/* ─── Customer report: customer + the date above → PDF / Excel ─── */}
-      <CustomerReportBar customerOptions={customerOptions} jobDate={jobDate} />
+      {/* ─── One row: car type + car selectors, customer report (customer + the date above → PDF / Excel) ─── */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        {ownedVehicles.length > 0 && (
+          <MultiSelectCars
+            vehicles={ownedVehicles}
+            selected={selectedOwnedIds}
+            onChange={setSelectedOwnedIds}
+          />
+        )}
+        {/* Cars taken out of the selection still keep their jobs — say so, with a way back. */}
+        {hiddenWithJobs.cars.length > 0 && (
+          <div className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-700 dark:text-amber-300">
+            <EyeOff className="h-3.5 w-3.5" />
+            <span>
+              {hiddenWithJobs.cars.length} hidden {hiddenWithJobs.cars.length === 1 ? "car has" : "cars have"}{" "}
+              {hiddenWithJobs.jobs} {hiddenWithJobs.jobs === 1 ? "job" : "jobs"}
+            </span>
+            <button
+              type="button"
+              className="font-semibold underline underline-offset-2"
+              onClick={() =>
+                setSelectedOwnedIds((prev) => {
+                  const next = new Set(prev);
+                  for (const c of hiddenWithJobs.cars) next.add(c.vehicle.id);
+                  return next;
+                })
+              }
+            >
+              Show
+            </button>
+          </div>
+        )}
+        <CustomerReportBar customerOptions={customerOptions} jobDate={jobDate} />
+      </div>
 
       <Separator />
 
-      {/* ─── Owned Car Multi-Select ─── */}
-      {ownedVehicles.length > 0 && (
-        <MultiSelectCars
-          vehicles={ownedVehicles}
-          selected={selectedOwnedIds}
-          onChange={setSelectedOwnedIds}
-        />
-      )}
+      {/* ─── Job pool: B2B / Online jobs of the day without a car — drag onto a card ─── */}
+      <JobPool
+        jobs={pool}
+        selected={poolSel}
+        onSelectedChange={setPoolSel}
+        onDropFromCar={(p) => void backToPool(p.jobs)}
+      />
+      </div>
 
       {/* ─── Board toolbar: legend + cards per row ─── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1264,6 +1412,8 @@ function CarDispatchContent() {
               .filter((c) => !c.isSupplier && c.vehicle.id !== card.vehicle.id)
               .map((c) => ({ id: c.vehicle.id, label: `${c.vehicle.plateNumber}${c.vehicle.vehicleType?.name ? ` · ${c.vehicle.vehicleType.name}` : ""}` }))}
             onMoveJob={(job, toVehicleId) => reassignSaved(card.vehicle.id, job, { vehicleId: toVehicleId })}
+            onBackToPool={(job) => void backToPool([{ assignmentId: job.assignmentId, ref: job.bookingNumber }])}
+            onDropJobs={(p) => void dropOnCar(card, p)}
             onSaveJob={(uid) => saveJobRow(card.vehicle.id, uid)}
             onSaveAll={() => saveAllJobs(card.vehicle.id)}
             onCancelJob={
@@ -1404,10 +1554,13 @@ function MoveToCarMenu({
   bookingNumber,
   targets,
   onMove,
+  onBackToPool,
 }: {
   bookingNumber: string;
   targets: { id: string; label: string }[];
   onMove: (carId: string) => void;
+  /** Take the job off its car, back to the Traffic Cover job pool. */
+  onBackToPool?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -1433,6 +1586,19 @@ function MoveToCarMenu({
         style={{ maxHeight: "min(22rem, var(--radix-popover-content-available-height))" }}
       >
         <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground">Move {bookingNumber} to car</div>
+        {onBackToPool && (
+          <button
+            type="button"
+            className="mb-1 flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-xs font-medium hover:bg-muted"
+            onClick={() => {
+              setOpen(false);
+              setQ("");
+              onBackToPool();
+            }}
+          >
+            <Undo2 className="h-3.5 w-3.5" /> Back to the job pool
+          </button>
+        )}
         <Input
           autoFocus
           value={q}
@@ -1742,6 +1908,8 @@ function VehicleCard({
   onReassign,
   moveTargets = [],
   onMoveJob,
+  onBackToPool,
+  onDropJobs,
 }: {
   card: CarCard;
   view: BoardView;
@@ -1765,8 +1933,13 @@ function VehicleCard({
   /** Other owned cars on the board a saved job can move to. */
   moveTargets?: { id: string; label: string }[];
   onMoveJob?: (job: JobRow, toVehicleId: string) => void;
+  /** Saved job: take it off this car, back to the job pool. */
+  onBackToPool?: (job: JobRow) => void;
+  /** Jobs dropped on this card (from the pool or another card). */
+  onDropJobs?: (payload: DragJobsPayload) => void;
 }) {
   const { vehicle, jobs, isSupplier } = card;
+  const [dropOver, setDropOver] = useState(false);
   // Fixed per car (vehicle page › Card colour, or automatic) so cars are told apart at a glance.
   const cardColor = cardColorOf(vehicle);
   // Last selected cell in this card's grid (kept while the colour picker is open).
@@ -1865,6 +2038,23 @@ function VehicleCard({
           get: () => "",
           display: (j) => (
             <span className="flex items-center justify-center gap-1">
+              {live(j) && onDropJobs && (
+                <button
+                  type="button"
+                  draggable
+                  title="Drag to another car, or back to the job pool"
+                  onDragStart={(e) =>
+                    setDragJobs(e, {
+                      source: "card",
+                      fromVehicleId: vehicle.id,
+                      jobs: [{ jobId: j.savedJobId ?? j.uid, assignmentId: j.assignmentId, ref: j.bookingNumber || j.customerJobId }],
+                    })
+                  }
+                  className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+                >
+                  <GripVertical className="h-3.5 w-3.5" />
+                </button>
+              )}
               {j.saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : j.saved ? (
@@ -1876,8 +2066,13 @@ function VehicleCard({
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               )}
-              {live(j) && onMoveJob && moveTargets.length > 0 && (
-                <MoveToCarMenu bookingNumber={j.bookingNumber} targets={moveTargets} onMove={(carId) => onMoveJob(j, carId)} />
+              {live(j) && onMoveJob && (moveTargets.length > 0 || onBackToPool) && (
+                <MoveToCarMenu
+                  bookingNumber={j.bookingNumber}
+                  targets={moveTargets}
+                  onMove={(carId) => onMoveJob(j, carId)}
+                  onBackToPool={onBackToPool ? () => onBackToPool(j) : undefined}
+                />
               )}
               {j.saved && j.savedJobId && onCancelJob && !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(j.status ?? "") && (
                 <button type="button" title="Cancel job" onClick={() => onCancelJob(j)} className="text-destructive hover:opacity-70">
@@ -1897,9 +2092,26 @@ function VehicleCard({
 
   return (
     <Card
+      onDragOver={(e) => {
+        if (!onDropJobs || !isJobsDrag(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (!dropOver) setDropOver(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropOver(false);
+      }}
+      onDrop={(e) => {
+        setDropOver(false);
+        const p = readDragJobs(e);
+        if (!p || !onDropJobs) return;
+        e.preventDefault();
+        onDropJobs(p);
+      }}
       className={cn(
         "min-w-0 gap-0 overflow-hidden py-0 text-[11px] [&_*]:text-[11px]",
-        isSupplier && "border-amber-300 dark:border-amber-700"
+        isSupplier && "border-amber-300 dark:border-amber-700",
+        dropOver && "ring-2 ring-primary ring-offset-2"
       )}
     >
       {/* ─── Card Header: Plate + Type ─── */}

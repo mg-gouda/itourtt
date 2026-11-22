@@ -121,9 +121,9 @@ REST surface for the dispatch console — day view, assign/reassign/unassign, av
 | `reassignJob` | pub | 53 | `dispatchService.reassignJob` | Changes an existing assignment. |
 | `unassignJob` | pub | 66 | `dispatchService.unassignJob` | Clears a job's assignment. |
 | `getAvailableSuppliers` | pub | 77 | `dispatchService.getAvailableSuppliers` | Suppliers that can source a car for a job. |
-| `setJobColors` | pub | 84 | `dispatchService.setJobColors` | _—_ |
-| `customerReport` | pub | 93 | `dispatchService.customerReport` | _—_ |
-| `customerReportXlsx` | pub | 99 | `dispatchService.customerReportXlsx` | _—_ |
+| `setJobColors` | pub | 84 | `dispatchService.setJobColors` | PATCH a job's Traffic Cover highlight colours (row / cells), shared by all users. |
+| `customerReport` | pub | 93 | `dispatchService.customerReport` | GET customer jobs report for a day (Traffic Cover customer report, PDF data). |
+| `customerReportXlsx` | pub | 99 | `dispatchService.customerReportXlsx` | GET customer jobs report for a day as an Excel download. |
 | `mainDrivers` | pub | 114 | `dispatchService.mainDrivers` | GET /dispatch/main-drivers |
 | `getAvailableVehicles` | pub | 119 | `dispatchService.getAvailableVehicles` | Own vehicles plus supplier car types eligible for a job. |
 | `getAvailableDrivers` | pub | 129 | `dispatchService.getAvailableDrivers` | Drivers eligible for assignment. |
@@ -143,23 +143,23 @@ The dispatch console backend: the day view and all assignment logic. Assignment 
 | `assignJob` | pub | 141 | `trafficJob` `vehicle` `vehicleType` `driver` `rep` +4 | First assignment for a job. Checks per-field permissions (`dispatch.assignment.assignVehicle\|assignDriver\|assignRep`), the dispatcher 48h timelock, that the job is not cancelled, and that no assignment exists yet — a second call must use `reassignJob`. Requires at least a vehicle, supplier car type, or rep. |
 | `sendStaffAssignmentEmail` | priv | 390 | `guestBooking` `emailService.sendStaffAssignment` | Emails the newly assigned driver/rep, and notifies the guest for B2C bookings. |
 | `reassignJob` | pub | 440 | `trafficAssignment` `vehicle` `vehicleType` `driver` `rep` +3 | Changes an existing assignment, re-running every availability and conflict check with the current assignment excluded. |
-| `unassignJob` | pub | 724 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
-| `setJobColors` | pub | 780 | `trafficJob` | _—_ |
-| `customerReport` | pub | 799 | `customer` `trafficJob` | _—_ |
-| `customerReportXlsx` | pub | 854 | — | _—_ |
-| `mainDrivers` | pub | 879 | `driverVehicle` | Main driver of every active car, for Dispatch / Car Dispatch suggestions |
-| `getAvailableVehicles` | pub | 900 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
-| `getAvailableSuppliers` | pub | 974 | `supplier` | Suppliers that can source a car for this job. |
-| `getAvailableDrivers` | pub | 1013 | `driver` | Active drivers offered for assignment. |
-| `getAvailableReps` | pub | 1038 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
-| `unlockJob` | pub | 1131 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
-| `lockJob` | pub | 1147 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
-| `checkDispatcherTimelock` | priv | 1168 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
-| `getJobReferenceTime` | priv | 1193 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
-| `validateVehicleAvailability` | priv | 1210 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
-| `detectAssignmentConflicts` | priv | 1224 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
-| `validateDriverAvailability` | priv | 1268 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
-| `validateRepAvailability` | priv | 1288 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
+| `unassignJob` | pub | 728 | `trafficAssignment` `trafficJob` `notificationsService.notifyDispatchAction` | Removes the assignment and notifies dispatch. |
+| `setJobColors` | pub | 784 | `trafficJob` | Saves the dispatchColors JSON (row / cells) on a traffic job. |
+| `customerReport` | pub | 803 | `customer` `trafficJob` | Builds one customer's jobs for a date (times, routes, cars, drivers) for the customer report. |
+| `customerReportXlsx` | pub | 858 | — | Renders the customer report rows into an .xlsx buffer. |
+| `mainDrivers` | pub | 883 | `driverVehicle` | Main driver of every active car, for Dispatch / Car Dispatch suggestions |
+| `getAvailableVehicles` | pub | 904 | `trafficAssignment` `vehicle` `supplierCarType` | Own vehicles plus supplier car types offered for a job, filtered by capacity against pax count. |
+| `getAvailableSuppliers` | pub | 978 | `supplier` | Suppliers that can source a car for this job. |
+| `getAvailableDrivers` | pub | 1017 | `driver` | Active drivers offered for assignment. |
+| `getAvailableReps` | pub | 1042 | `rep` `trafficJob` `trafficAssignment` | Reps offered for assignment — a rep must have at least one zone assigned to appear here at all. |
+| `unlockJob` | pub | 1135 | `trafficJob` | Sets `dispatchUnlockedAt`, freeing a dispatcher from the 48h timelock for this job. |
+| `lockJob` | pub | 1151 | `trafficJob` | Clears `dispatchUnlockedAt`, restoring the timelock. |
+| `checkDispatcherTimelock` | priv | 1172 | — | 48h post-service cut-off that applies ONLY to the DISPATCHER role — admins and managers are unaffected — and is skipped when `dispatchUnlockedAt` is set. |
+| `getJobReferenceTime` | priv | 1197 | — | The job's comparison time: ARR → flight arrival, DEP → pickUpTime else departure, everything else → pickUpTime. |
+| `validateVehicleAvailability` | priv | 1214 | — | Intentionally a no-op — vehicles have no time restriction and may be freely assigned. Kept as a hook. |
+| `detectAssignmentConflicts` | priv | 1228 | `trafficAssignment` | Non-blocking double-booking detection for vehicles and drivers at the same reference time (same flight excepted). Returns warnings; a car doing ARR then DEP the same day is legitimate. |
+| `validateDriverAvailability` | priv | 1272 | — | Intentionally a no-op — driver overlap is surfaced as a warning by `detectAssignmentConflicts`, not blocked. |
+| `validateRepAvailability` | priv | 1292 | `trafficAssignment` | The one HARD availability rule. Flight jobs: same flight number at the same reference time is allowed (one rep, many pax); a different flight at the same time conflicts. Non-flight jobs: the same `pickUpTime` conflicts. |
 
 ## `drivers`
 
@@ -676,7 +676,7 @@ REST surface for vehicle types, the fleet, compliance documents and deposit paym
 | `listDeposits` | pub | 219 | `vehiclesService.listDepositPayments` | Deposit payment history. |
 | `addDeposit` | pub | 227 | `vehiclesService.addDepositPayment` | Records a deposit payment. |
 | `removeDeposit` | pub | 239 | `vehiclesService.removeDepositPayment` | Deletes a deposit payment. |
-| `setCardColor` | pub | 251 | `vehiclesService.setCardColor` | _—_ |
+| `setCardColor` | pub | 251 | `vehiclesService.setCardColor` | PATCH a car's Traffic Cover card colour. |
 | `getMainDriver` | pub | 258 | `vehiclesService.getMainDriver` | GET /vehicles/:id/main-driver |
 | `setMainDriver` | pub | 266 | `vehiclesService.setMainDriver` | PATCH /vehicles/:id/main-driver { driverId \| null } |
 | `findVehicleById` | pub | 272 | `vehiclesService.findVehicleById` | One vehicle's detail. |
@@ -692,7 +692,7 @@ Vehicle types, the owned fleet, and per-vehicle compliance records (licences, in
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `setCardColor` | pub | 16 | `vehicle` | _—_ |
+| `setCardColor` | pub | 16 | `vehicle` | Saves a vehicle's cardColor (null resets to the automatic colour). |
 | `getMainDriver` | pub | 28 | `driverVehicle` | The car's main driver (driver_vehicles.is_primary), or null |
 | `setMainDriver` | pub | 42 | `vehicle` `driver` `driverVehicle` | Sets the car's one main driver; clears the previous main and the driver's other primary car |
 | `findAllVehicleTypes` | pub | 76 | `vehicleType` | Lists vehicle types with their seat capacities. |

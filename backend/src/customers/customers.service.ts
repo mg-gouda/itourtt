@@ -172,7 +172,7 @@ export class CustomersService {
 
   async generateImportTemplate(): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'iTour Transport';
+    workbook.creator = 'iTour GO';
     workbook.created = new Date();
 
     const instructionsSheet = workbook.addWorksheet('Instructions');

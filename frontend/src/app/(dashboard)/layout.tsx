@@ -91,7 +91,7 @@ export default function DashboardLayout({
             <TripKmReminder />
             <main className="flex-1 overflow-y-auto p-3 pb-10 md:p-6 md:pb-10">{children}</main>
             <footer className="flex h-14 shrink-0 flex-wrap items-center justify-end gap-3 border-t border-border bg-secondary/95 dark:bg-card/95 px-5 text-xs text-muted-foreground backdrop-blur-sm">
-              <span>iTour Transport &amp; Traffic</span>
+              <span>iTour Ground Operations</span>
               <span className="text-border">|</span>
               <span>
                 Developed by{" "}

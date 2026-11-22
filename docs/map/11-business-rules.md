@@ -657,6 +657,42 @@ It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web
 **Who can change the list:** reading needs `driver-tariffs` or `dispatch`. Adding and editing need
 `driver-tariffs.upsert`; deleting needs `driver-tariffs.delete`.
 
+## Traffic Cover job pool (5.5.0, 2026-11-22)
+
+- **What's in the pool:** the day's B2B and Online jobs with no car (no `assignment.vehicleId` and no
+  supplier car type), except CANCELLED, COMPLETED and NO_SHOW. Three tables: Arrivals, Departures,
+  Other (transfers, trips, tours), each sorted by pick-up time (else flight time).
+- **Assigning:** tick one or more jobs (any table) and drag them onto a car card.
+  - Own car: the job goes to that car with the car's **main driver**.
+  - Supplier card: supplier, car type and car no. are set.
+  - A job already assigned is re-assigned (PATCH), otherwise created (POST).
+  - A car-type mismatch asks first, then retries with `allowTypeMismatch`.
+  - The car is added to the visible selection.
+- **Taking a job off a car:** drag it by its ⋮⋮ handle back onto the pool, or use Move › *Back to the
+  job pool*. The assignment is deleted, so the job returns to PENDING and the driver is notified.
+  Dragging it onto another car re-assigns it.
+- **Hidden cars:** the car / car-type selectors only change which cards show; jobs stay assigned.
+  When hidden own cars still carry live jobs, an amber note "N hidden cars have M jobs · Show"
+  brings them back. Every reload also re-adds cars with jobs that day.
+- The page header, selectors and pool stay pinned while the car cards scroll.
+- **B2B job form:** no Origin/Destination (the route fills them), no rep meeting point/time and no
+  car/driver/rep section. New B2B jobs wait in the pool, and editing a job no longer re-sends its
+  assignment.
+
+## Brand: iTour GO vs the company brand (5.5.0, 2026-11-22)
+
+- The product is **iTour Ground Operations (iTour GO)**. Logo kit: `frontend/public/brand/`.
+  Colours: ink `#0E1A2B`, orange `#FF7A1A`, slate `#9FB0C6`.
+- **Anything a guest or customer receives** (invoices, PDFs, the future excursion ticket, guest
+  emails) carries the **company** logo and name from Company settings, never the app logo. Partner
+  emails sign off as "Operations Team", not the product name.
+- Staff-facing places use iTour GO: login, favicon / app icons, window title, footers, staff
+  emails, 2FA label, Excel metadata.
+- **Styling settings win:** colours and the login logo/background saved in System Parameters ›
+  Styling override the built-in defaults. With nothing saved, the login page shows the iTour GO
+  lockup on a plain ink background (there is no bundled background photo any more).
+- If the company logo file can't load, the sidebar falls back to the iTour GO logo.
+
 ## Traffic Cover (Car Dispatch) highlight colours (2026-11-21)
 
 Each car card has a colour picker (palette button in the header): select a cell in that card, pick a

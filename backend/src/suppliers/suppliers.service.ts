@@ -531,7 +531,7 @@ export class SuppliersService {
 
   async generateImportTemplate(): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'iTour Transport';
+    workbook.creator = 'iTour GO';
     workbook.created = new Date();
 
     const instructionsSheet = workbook.addWorksheet('Instructions');
@@ -695,7 +695,7 @@ export class SuppliersService {
     const vehicleTypes = await this.prisma.vehicleType.findMany({ orderBy: { name: 'asc' } });
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'iTour Transport';
+    workbook.creator = 'iTour GO';
 
     const sheet = workbook.addWorksheet('Vehicles');
     sheet.columns = [
@@ -857,7 +857,7 @@ export class SuppliersService {
     await this.findOne(supplierId);
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'iTour Transport';
+    workbook.creator = 'iTour GO';
 
     const sheet = workbook.addWorksheet('Drivers');
     sheet.columns = [

@@ -13,7 +13,7 @@
 | `/dashboard/activity-log` | `frontend/src/app/(dashboard)/dashboard/activity-log/page.tsx` | 762 | 5 | 1 | Audit trail viewer with filters and xlsx export; shows the field-level diff per entry. |
 | `/dashboard/agents` | `frontend/src/app/(dashboard)/dashboard/agents/page.tsx` | 1391 | 10 | 13 | Agent management: profiles, credit terms, invoice cycles, documents, price grid and Excel import/export. |
 | `/dashboard/agents/[id]` | `frontend/src/app/(dashboard)/dashboard/agents/[id]/page.tsx` | 327 | 5 | — | One agent's detail — credit status, documents and price list. |
-| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 2085 | 16 | 1 | Car-centric dispatch view — the day organised by vehicle rather than by job. |
+| `/dashboard/car-dispatch` | `frontend/src/app/(dashboard)/dashboard/car-dispatch/page.tsx` | 2297 | 17 | 1 | Car-centric dispatch view — the day organised by vehicle rather than by job. |
 | `/dashboard/company` | `frontend/src/app/(dashboard)/dashboard/company/page.tsx` | 539 | 7 | 3 | Company identity and branding (logo, favicon) used on invoices and reference prefixes. |
 | `/dashboard/complaint-categories` | `frontend/src/app/(dashboard)/dashboard/complaint-categories/page.tsx` | 354 | 4 | 3 | Complaint category catalog CRUD, including the pay-affecting default score penalty. |
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 580 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
@@ -50,8 +50,8 @@
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1396 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
 | `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 313 | 4 | 2 | One supplier's detail. |
 | `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | Traffic jobs landing page with the shared filters. |
-| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1373 | 15 | 15 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
-| `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1276 | 8 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
+| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1186 | 15 | 15 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
+| `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1277 | 8 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
 | `/dashboard/trip-km` | `frontend/src/app/(dashboard)/dashboard/trip-km/page.tsx` | 34 | — | — | Fleet › Trip Kilometers: all cars' odometer readings and Odoo export |
 | `/dashboard/users` | `frontend/src/app/(dashboard)/dashboard/users/page.tsx` | 818 | 14 | 8 | Staff user administration and role assignment. |
 | `/dashboard/vehicles` | `frontend/src/app/(dashboard)/dashboard/vehicles/page.tsx` | 1095 | 10 | 9 | Fleet list with compliance status. |
@@ -64,7 +64,7 @@
 | `/driver/history` | `frontend/src/app/(driver-portal)/driver/history/page.tsx` | 349 | 1 | — | Driver's completed/cancelled/no-show jobs with the fee earned per job. |
 | `/driver/profile` | `frontend/src/app/(driver-portal)/driver/profile/page.tsx` | 8 | — | — | Driver's own profile. |
 | `/forgot-password` | `frontend/src/app/forgot-password/page.tsx` | 99 | 1 | — | Requests a password-reset email. |
-| `/login` | `frontend/src/app/login/page.tsx` | 333 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
+| `/login` | `frontend/src/app/login/page.tsx` | 339 | — | — | Login screen (compact glass card over a blurred dark background). Pulls its branding from the public `auth/login-config` endpoint so it renders before authentication. |
 | `/rep` | `frontend/src/app/(rep-portal)/rep/page.tsx` | 964 | 6 | — | ★ Rep portal home: today's jobs with IN PLACE (window-gated on ARR), completion, the arrival guest survey, flight-delay reporting and free-text updates. |
 | `/rep/chat` | `frontend/src/app/(rep-portal)/rep/chat/page.tsx` | 9 | — | — | Rep portal chat page (PortalChat). |
 | `/rep/complaints` | `frontend/src/app/(rep-portal)/rep/complaints/page.tsx` | 9 | — | — | Rep portal › Complaints naming the rep, with answer thread |
@@ -96,7 +96,7 @@
 
 **`/dashboard/car-dispatch`**
 
-- calls: `GET /rmf-hotels`, `GET /vehicles`, `GET /customers`, `GET /drivers`, `GET /dispatch/available-suppliers`, `GET /vehicles/types`, `GET /locations/zones`, `GET /job-service-types`, `GET /dispatch/day`, `PATCH /dispatch/jobs/:x/colors`, `POST /traffic-jobs`, `POST /dispatch/assign`, `PATCH /traffic-jobs/:x/status`, `PATCH /dispatch/assignments/:x`, `PUT /user-preferences/:x`, `GET /dispatch/customer-report/xlsx`
+- calls: `GET /rmf-hotels`, `GET /vehicles`, `GET /customers`, `GET /drivers`, `GET /dispatch/available-suppliers`, `GET /vehicles/types`, `GET /locations/zones`, `GET /job-service-types`, `GET /dispatch/day`, `PATCH /dispatch/jobs/:x/colors`, `POST /traffic-jobs`, `POST /dispatch/assign`, `PATCH /traffic-jobs/:x/status`, `PATCH /dispatch/assignments/:x`, `DELETE /dispatch/assignments/:x`, `PUT /user-preferences/:x`, `GET /dispatch/customer-report/xlsx`
 - perms: `traffic-jobs.online.table.statusFilter`
 
 **`/dashboard/company`**
@@ -244,7 +244,7 @@
 
 **`/dashboard/traffic-jobs/b2b`**
 
-- calls: `GET /customers`, `GET /dispatch/available-suppliers`, `GET /dispatch/available-vehicles`, `GET /dispatch/available-drivers`, `GET /dispatch/available-reps`, `GET /vehicles/types`, `GET /job-service-types`, `GET /traffic-jobs`, `GET /traffic-jobs/:x`, `PATCH /traffic-jobs/:x`, `PATCH /traffic-jobs/:x/status`, `PATCH /dispatch/assignments/:x`, `POST /dispatch/assign`, `POST /traffic-jobs`, `DELETE /dispatch/assignments/:x`
+- calls: `GET /customers`, `GET /dispatch/available-suppliers`, `GET /dispatch/available-vehicles`, `GET /dispatch/available-drivers`, `GET /dispatch/available-reps`, `GET /vehicles/types`, `GET /job-service-types`, `GET /traffic-jobs`, `GET /traffic-jobs/:x`, `PATCH /traffic-jobs/:x`, `PATCH /traffic-jobs/:x/status`, `POST /traffic-jobs`, `PATCH /dispatch/assignments/:x`, `POST /dispatch/assign`, `DELETE /dispatch/assignments/:x`
 - perms: `dispatch.assignment.assignVehicle`, `dispatch.assignment.assignDriver`, `dispatch.assignment.assignRep`, `traffic-jobs.b2b.createJob`, `traffic-jobs.b2b.form.customer`, `traffic-jobs.b2b.form.serviceType`, `traffic-jobs.b2b.form.dateTime`, `traffic-jobs.b2b.form.paxCount`, `traffic-jobs.b2b.form.route`, `traffic-jobs.b2b.form.flightInfo`, `traffic-jobs.b2b.form.meetingInfo`, `traffic-jobs.b2b.form.notes`, `traffic-jobs.b2b.table.statusFilter`, `traffic-jobs.b2b.importJobs`, `traffic-jobs.b2b.importExcel`
 
 **`/dashboard/traffic-jobs/online`**

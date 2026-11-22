@@ -70,7 +70,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "role.DRIVER": "Driver",
 
     // ── Login ──
-    "login.title": "iTour Transport & Traffic",
+    "login.title": "iTour Ground Operations",
     "login.subtitle": "Sign in to your account",
     "login.identifier": "Email or Mobile Number",
     "login.identifierPlaceholder": "Email or mobile number",
@@ -80,7 +80,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "login.error": "Login failed",
 
     // ── Sidebar ──
-    "sidebar.brand": "iTourTT",
+    "sidebar.brand": "iTour GO",
     "sidebar.dashboard": "Dashboard",
     "sidebar.dispatch": "Dispatch",
     "sidebar.carDispatch": "Traffic Cover",
@@ -303,8 +303,8 @@ const translations: Record<Locale, Record<string, string>> = {
     "dashHome.invoicesPayments": "Invoices, payments & exports",
 
     // ── Login ──extra
-    "login.system": "Transport & Traffic System",
-    "login.version": "iTour Transport & Traffic v1.0",
+    "login.system": "Transport, Traffic & Excursions",
+    "login.version": "iTour Ground Operations v1.0",
     "login.forgotPassword": "Forgot password?",
 
     // ── Drivers ──
@@ -1276,7 +1276,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "emailSettings.disputeSubject": "Subject Template",
     "emailSettings.disputeSubjectPlaceholder": "{AgentRef} - {JobStatus}",
     "emailSettings.disputeBody": "Body Template",
-    "emailSettings.disputeBodyPlaceholder": "Dear Partner,\n\nPlease see attached evidence for {AgentRef} as the job {JobStatus}.\n\nRegards,\niTour Transport & Traffic",
+    "emailSettings.disputeBodyPlaceholder": "Dear Partner,\n\nPlease see attached evidence for {AgentRef} as the job {JobStatus}.\n\nRegards,\nOperations Team",
     "emailSettings.disputeTokensLabel": "Available tokens:",
 
     // ── Google Drive Integration ──
@@ -2287,7 +2287,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "dashHome.invoicesPayments": "\u0627\u0644\u0641\u0648\u0627\u062A\u064A\u0631 \u0648\u0627\u0644\u0645\u062F\u0641\u0648\u0639\u0627\u062A \u0648\u0627\u0644\u062A\u0635\u062F\u064A\u0631",
 
     // ── Login ──extra
-    "login.system": "\u0646\u0638\u0627\u0645 \u0627\u0644\u0646\u0642\u0644 \u0648\u0627\u0644\u0645\u0631\u0648\u0631",
+    "login.system": "\u0627\u0644\u0646\u0642\u0644 \u0648\u0627\u0644\u0645\u0631\u0648\u0631 \u0648\u0627\u0644\u0631\u062d\u0644\u0627\u062a",
     "login.version": "\u0622\u064A \u062A\u0648\u0631 \u0644\u0644\u0646\u0642\u0644 \u0648\u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u0625\u0635\u062F\u0627\u0631 1.0",
     "login.forgotPassword": "\u0647\u0644 \u0646\u0633\u064A\u062A \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631\u061F",
 

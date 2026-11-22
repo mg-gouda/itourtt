@@ -254,7 +254,8 @@ export function Sidebar() {
             faviconUrl ? (
               <img
                 src={faviconUrl}
-                alt="iTourTT"
+                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/favicon.svg"; }}
+                alt="iTour GO"
                 width={32}
                 height={32}
                 className="h-8 w-8 shrink-0 rounded object-contain"
@@ -262,7 +263,7 @@ export function Sidebar() {
             ) : (
               <Image
                 src="/favicon.svg"
-                alt="iTourTT"
+                alt="iTour GO"
                 width={32}
                 height={32}
                 className="shrink-0"
@@ -271,12 +272,13 @@ export function Sidebar() {
           ) : logoUrl ? (
             <img
               src={logoUrl}
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/brand/itour-logo-dark.svg"; }}
               alt={t("sidebar.brand")}
               className="h-11 w-full object-contain"
             />
           ) : (
             <Image
-              src="/itourtt-logo.svg"
+              src="/brand/itour-logo-dark.svg"
               alt={t("sidebar.brand")}
               width={200}
               height={44}

@@ -35,7 +35,7 @@ function toUploadUrl(urlOrPath: string | null): string | null {
 export const useCompanyStore = create<CompanyState>((set, get) => ({
   logoUrl: null,
   faviconUrl: null,
-  companyName: 'iTour TT',
+  companyName: 'iTour GO',
   isLoaded: false,
   isLoading: false,
 
@@ -47,7 +47,7 @@ export const useCompanyStore = create<CompanyState>((set, get) => ({
       set({
         logoUrl: toUploadUrl(data.logoUrl),
         faviconUrl: toUploadUrl(data.faviconUrl),
-        companyName: data.companyName || 'iTour TT',
+        companyName: data.companyName || 'iTour GO',
         isLoaded: true,
         isLoading: false,
       });

@@ -108,7 +108,7 @@ export function verifyTotp(
 export function otpauthUri(
   secretBase32: string,
   accountLabel: string,
-  issuer = 'iTourTT',
+  issuer = 'iTour GO',
 ): string {
   const label = encodeURIComponent(`${issuer}:${accountLabel}`);
   const params = new URLSearchParams({

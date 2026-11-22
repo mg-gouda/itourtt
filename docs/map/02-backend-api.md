@@ -286,12 +286,12 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 | GET | `/api/dispatch/available-reps` | `getAvailableReps`:140 | `perm:dispatch` | `dispatchService.getAvailableReps` | Reps eligible for assignment (zone-covered only). |
 | GET | `/api/dispatch/available-suppliers` | `getAvailableSuppliers`:77 | `perm:dispatch` | `dispatchService.getAvailableSuppliers` | Suppliers that can source a car for a job. |
 | GET | `/api/dispatch/available-vehicles` | `getAvailableVehicles`:119 | `perm:dispatch` | `dispatchService.getAvailableVehicles` | Own vehicles plus supplier car types eligible for a job. |
-| GET | `/api/dispatch/customer-report` | `customerReport`:93 | `perm:dispatch` | `dispatchService.customerReport` | _—_ |
-| GET | `/api/dispatch/customer-report/xlsx` | `customerReportXlsx`:99 | `perm:dispatch` | `dispatchService.customerReportXlsx` | _—_ |
+| GET | `/api/dispatch/customer-report` | `customerReport`:93 | `perm:dispatch` | `dispatchService.customerReport` | GET customer jobs report for a day (Traffic Cover customer report, PDF data). |
+| GET | `/api/dispatch/customer-report/xlsx` | `customerReportXlsx`:99 | `perm:dispatch` | `dispatchService.customerReportXlsx` | GET customer jobs report for a day as an Excel download. |
 | GET | `/api/dispatch/day` | `getDayView`:35 | `perm:dispatch` | `dispatchService.getDayView` | One day's dispatch grid. |
 | POST | `/api/dispatch/jobs/:id/lock` | `lockJob`:161 | `perm:dispatch` | `dispatchService.lockJob` | Restores the dispatcher timelock on one job. |
 | POST | `/api/dispatch/jobs/:id/unlock` | `unlockJob`:151 | `perm:dispatch` | `dispatchService.unlockJob` | Frees a dispatcher from the 48h timelock on one job. |
-| PATCH | `/api/dispatch/jobs/:jobId/colors` | `setJobColors`:84 | `perm:dispatch` | `dispatchService.setJobColors` | _—_ |
+| PATCH | `/api/dispatch/jobs/:jobId/colors` | `setJobColors`:84 | `perm:dispatch` | `dispatchService.setJobColors` | PATCH a job's Traffic Cover highlight colours (row / cells), shared by all users. |
 | GET | `/api/dispatch/main-drivers` | `mainDrivers`:114 | `perm:dispatch` | `dispatchService.mainDrivers` | GET /dispatch/main-drivers |
 
 ### DriverPortalController
@@ -926,7 +926,7 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 | GET | `/api/vehicles/:id` | `findVehicleById`:272 | `perm:vehicles` | `vehiclesService.findVehicleById` | One vehicle's detail. |
 | PATCH | `/api/vehicles/:id` | `updateVehicle`:279 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.updateVehicle` | Edits a vehicle. |
 | DELETE | `/api/vehicles/:id` | `softDelete`:297 | `ADMIN` `perm:vehicles.table.deleteButton` | `vehiclesService.softDelete` | Soft-deletes a vehicle. |
-| PATCH | `/api/vehicles/:id/card-color` | `setCardColor`:251 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.setCardColor` | _—_ |
+| PATCH | `/api/vehicles/:id/card-color` | `setCardColor`:251 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.setCardColor` | PATCH a car's Traffic Cover card colour. |
 | GET | `/api/vehicles/:id/compliance` | `getCompliance`:172 | `perm:vehicles` | `vehiclesService.getCompliance` | One vehicle's compliance record. |
 | PATCH | `/api/vehicles/:id/compliance` | `upsertCompliance`:180 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.upsertCompliance` | Creates or updates compliance data. |
 | POST | `/api/vehicles/:id/compliance/insurance` | `uploadInsuranceDoc`:205 | `ADMIN` `DISPATCHER` `perm:vehicles.table.editButton` | `vehiclesService.updateComplianceFile` | Uploads the insurance document. |

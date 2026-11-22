@@ -323,7 +323,8 @@ export default function OnlineJobPage() {
     autoEditLoadedRef.current = true;
     api.get(`/traffic-jobs/${editParam}`)
       .then(({ data }) => {
-        handleSelectJob(data);
+        // GET /traffic-jobs/:id answers { data: job }.
+        handleSelectJob(data?.data ?? data);
         setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
       })
       .catch(() => toast.error("Job not found"));

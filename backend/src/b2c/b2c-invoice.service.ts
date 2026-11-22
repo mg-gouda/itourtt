@@ -239,7 +239,7 @@ export class B2CInvoiceService {
       this.prisma.websiteSettings.findFirst(),
     ]);
     const brandName = this.s(website?.siteName || company?.companyName || 'Transfera');
-    const issuerName = this.s(company?.companyName || 'iTour Transport & Traffic');
+    const issuerName = this.s(company?.companyName || 'iTour Ground Operations');
 
     const b = invoice.guestBooking;
     const origin = b.originAirport?.name || b.fromZone?.name || '-';

@@ -573,6 +573,9 @@ export class DispatchService {
         );
       }
       reassignSupplierId = carType.supplierId;
+      if (dto.supplierCarNo !== undefined && dto.supplierCarNo > (carType.quantity ?? 1)) {
+        throw new BadRequestException(`This supplier agreed to ${carType.quantity ?? 1} car(s) of this type`);
+      }
     }
 
     const updateData: Record<string, unknown> = {};
@@ -583,6 +586,7 @@ export class DispatchService {
       // Switching to a supplier car type → clear own vehicle & own driver.
       updateData.supplierCarTypeId = dto.supplierCarTypeId;
       updateData.supplierId = reassignSupplierId ?? null;
+      updateData.supplierCarNo = dto.supplierCarNo ?? 1;
       updateData.vehicleId = null;
       if (existing.driverId) {
         updateData.driverId = null;
