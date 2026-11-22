@@ -1093,7 +1093,7 @@ function CarDispatchContent() {
       {/* ─── Page Header ─── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Car Dispatch</h1>
+          <h1 className="text-2xl font-bold">Traffic Cover</h1>
           <p className="text-sm text-muted-foreground">
             Assign jobs to vehicles — jobs are posted to B2B pool on save
           </p>
@@ -1826,13 +1826,13 @@ function VehicleCard({
   return (
     <Card
       className={cn(
-        "min-w-0 overflow-hidden text-[11px] [&_*]:text-[11px]",
+        "min-w-0 gap-0 overflow-hidden py-0 text-[11px] [&_*]:text-[11px]",
         isSupplier && "border-amber-300 dark:border-amber-700"
       )}
     >
       {/* ─── Card Header: Plate + Type ─── */}
       <CardHeader
-        className="flex flex-row flex-wrap items-center justify-between gap-2 border-b px-3 py-2"
+        className="flex flex-row flex-wrap items-center justify-between gap-2 border-b px-3 py-2 [.border-b]:pb-2"
         style={{ backgroundColor: `${cardColor}2e`, borderLeft: `6px solid ${cardColor}` }}
       >
         <div className="flex min-w-0 items-center gap-3">
