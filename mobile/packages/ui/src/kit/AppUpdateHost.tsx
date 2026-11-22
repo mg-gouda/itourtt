@@ -16,12 +16,17 @@ import { ActionButton } from './kit';
 
 const CHECK_EVERY_MS = 30 * 60_000;
 
-type Phase = 'offer' | 'downloading' | 'ready' | 'needPermission' | 'failed';
+type Phase = 'offer' | 'downloading' | 'ready' | 'needPermission' | 'failed' | 'wrongFile' | 'notInstalled';
 
 /**
  * Mount once in App.tsx. Checks /api/public/apps/latest on start, whenever the app comes back
  * to the foreground (at most every 30 min) — and offers the newer APK: download with progress,
  * then the Android installer. A required update (minVersionCode) cannot be dismissed.
+ *
+ * Order matters: the "install unknown apps" permission is asked BEFORE downloading, because
+ * Android 11+ kills the app when it is switched on. A finished download is remembered natively,
+ * so a restart goes straight to Install instead of starting over (that restart-and-start-over
+ * looked to reps like an endless "update again" loop in 1.2.8 → 1.3.0).
  */
 export function AppUpdateHost({ app }: { app: UpdatableApp }) {
   const colors = useColors();
@@ -31,12 +36,21 @@ export function AppUpdateHost({ app }: { app: UpdatableApp }) {
   const [dismissedCode, setDismissedCode] = useState<number | null>(null);
   const downloadId = useRef<string | null>(null);
   const lastCheck = useRef(0);
+  const installerOpened = useRef(false);
 
   const check = useCallback(async () => {
     if (!appUpdate.available || Date.now() - lastCheck.current < CHECK_EVERY_MS) return;
     lastCheck.current = Date.now();
     try {
-      setUpdate(await checkForUpdate(app));
+      const found = await checkForUpdate(app);
+      if (found) {
+        const kept = await appUpdate.pendingDownload(found.versionCode);
+        if (kept) {
+          downloadId.current = kept;
+          setPhase('ready');
+        }
+      }
+      setUpdate(found);
     } catch {
       lastCheck.current = 0; // offline: try again on the next foreground
     }
@@ -44,35 +58,62 @@ export function AppUpdateHost({ app }: { app: UpdatableApp }) {
 
   useEffect(() => {
     check();
-    const sub = AppState.addEventListener('change', (s) => s === 'active' && check());
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active') return;
+      // Still running after the installer closed → it was cancelled or failed (a real update
+      // replaces this process). Say so instead of silently offering the same dialog again.
+      if (installerOpened.current) {
+        installerOpened.current = false;
+        setPhase((p) => (p === 'ready' ? 'notInstalled' : p));
+      }
+      check();
+    });
     return () => sub.remove();
   }, [check]);
 
-  // Back from the "install unknown apps" settings screen: try the install again.
-  useEffect(() => {
-    if (phase !== 'needPermission') return;
-    const sub = AppState.addEventListener('change', async (s) => {
-      if (s !== 'active' || !(await appUpdate.canInstall())) return;
-      setPhase('ready');
-    });
-    return () => sub.remove();
-  }, [phase]);
-
   const install = async () => {
-    if (!downloadId.current) return;
+    if (!downloadId.current || !update) return;
     if (!(await appUpdate.canInstall())) {
       setPhase('needPermission');
       return;
     }
+    if (!(await appUpdate.downloadIsVersion(update.versionCode))) {
+      downloadId.current = null;
+      setPhase('wrongFile');
+      return;
+    }
     try {
+      installerOpened.current = true;
       await appUpdate.install(downloadId.current);
     } catch {
+      installerOpened.current = false;
       setPhase('failed');
     }
   };
 
+  // Back from the "install unknown apps" settings screen (when Android did not close the app):
+  // carry on — install a finished download, otherwise start downloading.
+  useEffect(() => {
+    if (phase !== 'needPermission') return;
+    const sub = AppState.addEventListener('change', async (s) => {
+      if (s !== 'active' || !(await appUpdate.canInstall())) return;
+      if (downloadId.current) {
+        setPhase('ready');
+        install();
+      } else {
+        start();
+      }
+    });
+    return () => sub.remove();
+  });
+
   const start = async () => {
     if (!update) return;
+    // Ask first: switching the permission on can kill the app, which would waste the download.
+    if (!(await appUpdate.canInstall())) {
+      setPhase('needPermission');
+      return;
+    }
     setPhase('downloading');
     setProgress(0);
     try {
@@ -133,12 +174,14 @@ export function AppUpdateHost({ app }: { app: UpdatableApp }) {
           <Text style={[styles.hint, { color: colors.foreground }]}>{t('appUpdate.permissionHint')}</Text>
         ) : null}
         {phase === 'failed' ? <Text style={[styles.hint, { color: colors.destructive }]}>{t('appUpdate.failed')}</Text> : null}
+        {phase === 'wrongFile' ? <Text style={[styles.hint, { color: colors.destructive }]}>{t('appUpdate.wrongFile')}</Text> : null}
+        {phase === 'notInstalled' ? <Text style={[styles.hint, { color: colors.foreground }]}>{t('appUpdate.notInstalled')}</Text> : null}
 
         <View style={styles.actions}>
-          {phase === 'offer' || phase === 'failed' ? (
-            <ActionButton label={phase === 'failed' ? t('appUpdate.retry') : t('appUpdate.update')} icon="download-outline" onPress={start} />
+          {phase === 'offer' || phase === 'failed' || phase === 'wrongFile' ? (
+            <ActionButton label={phase === 'offer' ? t('appUpdate.update') : t('appUpdate.retry')} icon="download-outline" onPress={start} />
           ) : null}
-          {phase === 'ready' ? <ActionButton label={t('appUpdate.install')} icon="checkmark-circle-outline" onPress={install} /> : null}
+          {phase === 'ready' || phase === 'notInstalled' ? <ActionButton label={t('appUpdate.install')} icon="checkmark-circle-outline" onPress={install} /> : null}
           {phase === 'needPermission' ? (
             <ActionButton label={t('appUpdate.allow')} icon="settings-outline" onPress={() => appUpdate.openInstallSettings()} />
           ) : null}

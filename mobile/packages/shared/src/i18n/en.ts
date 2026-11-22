@@ -225,7 +225,9 @@ export const en = {
     allow: "Allow installs",
     retry: "Try again",
     failed: "The download failed. Check your connection and try again.",
-    permissionHint: "Allow this app to install updates (Install unknown apps), then come back.",
+    permissionHint: "Allow this app to install updates (Install unknown apps), then come back. If Android closes the app, just open it again — the update continues.",
+    wrongFile: "The downloaded file is not the new version. Tap Try again.",
+    notInstalled: "The update was not installed yet. Tap Install, then Update in the window that opens.",
     downloadTitle: "iTour update {version}",
   },
   alarm: {

@@ -592,6 +592,17 @@ PDF for the customer; there is no decision step to report).
   progress (Android DownloadManager, also shown in the tray) → the system installer. Android asks
   once to allow "install unknown apps" for the app; the installer always asks the user to confirm.
 - `--required` sets `minVersionCode` = this version: older installs get a dialog they cannot dismiss.
+- **Android 11+ kills the app when "Install unknown apps" is switched on.** The 1.2.8 / 1.2.7
+  updater downloaded first and asked for the permission after, so the kill threw the download away
+  and the reopened app showed the same required dialog — reps read it as an endless "update again"
+  loop (1.3.0 rollout, 2026-11-22). From 1.3.1 the permission is asked **before** downloading, the
+  native module remembers the finished download (`pendingDownload`, SharedPreferences) so a restart
+  goes straight to Install, the APK's own versionCode is checked before installing
+  (`downloadedVersionCode`), and returning from the installer still on the old version shows "not
+  installed yet" instead of silently re-offering.
+- `publish-apk.sh` reads `versionName`/`versionCode` from the APK (aapt), not `build.gradle`, and
+  refuses if they differ or the package is wrong — advertising a stale APK under a newer code would
+  make phones update forever.
 - Installs older than rep 1.2.8 / driver 1.2.7 have no updater — they need one manual install of the
   APK; every later version arrives in-app. Bump `versionCode` (+1) on every build or the update is
   not offered (see CLAUDE.md › version numbering).

@@ -4,6 +4,7 @@ import android.app.DownloadManager
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -34,6 +35,56 @@ class AppUpdateModule(private val reactContext: ReactApplicationContext) :
   private val dm: DownloadManager
     get() = reactContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
+  private val prefs
+    get() = reactContext.getSharedPreferences("app-update", Context.MODE_PRIVATE)
+
+  private fun apkFile() = File(reactContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), FILE_NAME)
+
+  /** versionCode of the downloaded APK, or -1 if it is missing, broken or another app's. */
+  private fun downloadedCode(): Long {
+    val f = apkFile()
+    if (!f.exists()) return -1L
+    @Suppress("DEPRECATION")
+    val info: PackageInfo = reactContext.packageManager.getPackageArchiveInfo(f.path, 0) ?: return -1L
+    if (info.packageName != reactContext.packageName) return -1L
+    @Suppress("DEPRECATION")
+    return if (Build.VERSION.SDK_INT >= 28) info.longVersionCode else info.versionCode.toLong()
+  }
+
+  /**
+   * A finished download that survived the app being closed — Android 11+ kills the app when
+   * "install unknown apps" is switched on, so the update must not start over after that.
+   * Resolves { id, versionCode } or null.
+   */
+  @ReactMethod
+  fun pendingDownload(promise: Promise) {
+    try {
+      val id = prefs.getLong(PREF_ID, -1L)
+      if (id < 0) return promise.resolve(null)
+      val done = dm.query(DownloadManager.Query().setFilterById(id)).use { c ->
+        c.moveToFirst() && c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL
+      }
+      val code = if (done) downloadedCode() else -1L
+      if (code < 0) return promise.resolve(null)
+      val out = Arguments.createMap()
+      out.putString("id", id.toString())
+      out.putDouble("versionCode", code.toDouble())
+      promise.resolve(out)
+    } catch (e: Exception) {
+      promise.resolve(null)
+    }
+  }
+
+  /** versionCode inside the downloaded APK (-1 when it cannot be read). */
+  @ReactMethod
+  fun downloadedVersionCode(promise: Promise) {
+    try {
+      promise.resolve(downloadedCode().toDouble())
+    } catch (e: Exception) {
+      promise.resolve(-1.0)
+    }
+  }
+
   @ReactMethod
   fun download(url: String, title: String, promise: Promise) {
     try {
@@ -44,7 +95,9 @@ class AppUpdateModule(private val reactContext: ReactApplicationContext) :
           .setMimeType(APK_MIME)
           .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
           .setDestinationInExternalFilesDir(reactContext, Environment.DIRECTORY_DOWNLOADS, FILE_NAME)
-      promise.resolve(dm.enqueue(req).toString())
+      val id = dm.enqueue(req)
+      prefs.edit().putLong(PREF_ID, id).apply()
+      promise.resolve(id.toString())
     } catch (e: Exception) {
       promise.reject("DOWNLOAD_FAILED", e.message, e)
     }
@@ -138,6 +191,7 @@ class AppUpdateModule(private val reactContext: ReactApplicationContext) :
 
   companion object {
     private const val FILE_NAME = "itour-update.apk"
+    private const val PREF_ID = "downloadId"
     private const val APK_MIME = "application/vnd.android.package-archive"
   }
 }

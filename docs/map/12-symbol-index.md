@@ -190,8 +190,8 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `AppModule` | class | `backend/src/app.module.ts:119` |
 | `AppService` | class | `backend/src/app.service.ts:4` |
 | `AppService.getHello` | method | `backend/src/app.service.ts:5` |
-| `appUpdate` | const | `mobile/packages/shared/src/native/app-update.ts:65` |
-| `AppUpdateHost` | function | `mobile/packages/ui/src/kit/AppUpdateHost.tsx:26` |
+| `appUpdate` | const | `mobile/packages/shared/src/native/app-update.ts:69` |
+| `AppUpdateHost` | function | `mobile/packages/ui/src/kit/AppUpdateHost.tsx:31` |
 | `ar` | const | `mobile/packages/shared/src/i18n/ar.ts:3` |
 | `ar` | const | `mobile/packages/shared/src/i18n/index.ts:124` |
 | `areaRoute` | function | `frontend/src/lib/rmf-hotel-match.ts:83` |
@@ -548,7 +548,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `Checkbox` | function | `frontend/src/components/ui/checkbox.tsx:9` |
 | `CheckConfig` | type | `backend/src/common/license-verify.ts:58` |
 | `checkDropoffs` | function | `mobile/packages/shared/src/native/job-alerts.ts:306` |
-| `checkForUpdate` | function | `mobile/packages/shared/src/native/app-update.ts:51` |
+| `checkForUpdate` | function | `mobile/packages/shared/src/native/app-update.ts:55` |
 | `checkLicense` | function | `backend/src/common/license-verify.ts:138` |
 | `checkNoShowWindow` | function | `backend/src/common/utils/no-show-window.util.ts:87` |
 | `CheckResult` | type | `backend/src/common/license-verify.ts:47` |
@@ -1767,7 +1767,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `InProgressEvidenceDialog` | function | `frontend/src/components/in-progress-evidence-dialog.tsx:34` |
 | `Input` | function | `frontend/src/components/ui/input.tsx:5` |
 | `Input` | const | `mobile/packages/ui/src/Input.tsx:18` |
-| `installedVersion` | function | `mobile/packages/shared/src/native/app-update.ts:46` |
+| `installedVersion` | function | `mobile/packages/shared/src/native/app-update.ts:50` |
 | `InvoiceCycleType` | type | `frontend/src/types/index.ts:11` |
 | `InvoiceExportService` | class | `backend/src/finance/invoice-export.service.ts:9` |
 | `InvoiceExportService.buildExtras` | method | `backend/src/finance/invoice-export.service.ts:72` |
@@ -3369,7 +3369,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `transcodeToAac` | function | `backend/src/chat/chat.constants.ts:56` |
 | `TRANSITION_PERMISSION` | const | `frontend/src/lib/complaints.ts:299` |
 | `TransitionComplaintDto` | class | `backend/src/complaints/dto/transition-complaint.dto.ts:15` |
-| `TranslationKeys` | type | `mobile/packages/shared/src/i18n/en.ts:520` |
+| `TranslationKeys` | type | `mobile/packages/shared/src/i18n/en.ts:522` |
 | `TripKmController` | class | `backend/src/trip-km/trip-km.controller.ts:14` |
 | `TripKmController.correct` | method | `backend/src/trip-km/trip-km.controller.ts:57` |
 | `TripKmController.list` | method | `backend/src/trip-km/trip-km.controller.ts:20` |

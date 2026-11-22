@@ -38,6 +38,10 @@ interface AppUpdateNative {
   canInstall(): Promise<boolean>;
   openInstallSettings(): void;
   install(id: string): Promise<boolean>;
+  /** Builds from 1.3.1: a finished download kept across app restarts. */
+  pendingDownload?(): Promise<{ id: string; versionCode: number } | null>;
+  /** Builds from 1.3.1: versionCode inside the downloaded APK, -1 if unreadable. */
+  downloadedVersionCode?(): Promise<number>;
 }
 
 const native: AppUpdateNative | undefined = Platform.OS === 'android' ? NativeModules.AppUpdate : undefined;
@@ -69,4 +73,14 @@ export const appUpdate = {
   canInstall: () => native!.canInstall(),
   openInstallSettings: () => native!.openInstallSettings(),
   install: (id: string) => native!.install(id),
+  /** A finished download of at least `versionCode` that survived an app restart, or null. */
+  async pendingDownload(versionCode: number): Promise<string | null> {
+    const p = await native?.pendingDownload?.().catch(() => null);
+    return p && Number(p.versionCode) >= versionCode ? p.id : null;
+  },
+  /** Is the downloaded APK really this version (or newer)? True on builds that cannot tell. */
+  async downloadIsVersion(versionCode: number): Promise<boolean> {
+    if (!native?.downloadedVersionCode) return true;
+    return Number(await native.downloadedVersionCode().catch(() => -1)) >= versionCode;
+  },
 };

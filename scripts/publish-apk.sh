@@ -13,8 +13,17 @@ ROOT=/opt/itour
 GRADLE="$ROOT/mobile/apps/$APP/android/app/build.gradle"
 APK="$ROOT/mobile/apps/$APP/android/app/build/outputs/apk/release/app-release.apk"
 [[ -f "$APK" ]] || { echo "no APK at $APK — build it first"; exit 1; }
-NAME=$(grep -oP 'versionName "\K[^"]+' "$GRADLE")
-CODE=$(grep -oP 'versionCode \K[0-9]+' "$GRADLE")
+# Read the version from the APK itself, never from build.gradle: a stale APK advertised under a
+# newer versionCode would make every phone "update" forever without ever catching up.
+AAPT=$(ls /opt/android-sdk/build-tools/*/aapt 2>/dev/null | sort -V | tail -1)
+[[ -x "$AAPT" ]] || { echo "aapt not found under /opt/android-sdk/build-tools"; exit 1; }
+BADGE=$("$AAPT" dump badging "$APK" | head -1)
+NAME=$(grep -oP "versionName='\K[^']+" <<<"$BADGE")
+CODE=$(grep -oP "versionCode='\K[0-9]+" <<<"$BADGE")
+PKG=$(grep -oP "name='\K[^']+" <<<"$BADGE")
+[[ "$PKG" == "com.itour.$APP" ]] || { echo "APK is $PKG, not com.itour.$APP"; exit 1; }
+GCODE=$(grep -oP 'versionCode \K[0-9]+' "$GRADLE")
+[[ "$CODE" == "$GCODE" ]] || { echo "APK versionCode $CODE != build.gradle $GCODE — rebuild the APK first"; exit 1; }
 NS=itour-production
 POD=$(kubectl -n $NS get pod -l app=backend -o jsonpath='{.items[0].metadata.name}')
 kubectl -n $NS cp "$APK" "$POD:/app/uploads/.apps/itour-$APP.apk.tmp"

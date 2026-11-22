@@ -853,7 +853,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 521 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 523 lines
 
 Arabic strings for all four apps.
 
@@ -863,14 +863,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 521 lines
+`mobile/packages/shared/src/i18n/en.ts` · 523 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 520 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 522 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -895,7 +895,7 @@ Translator and locale selection for the mobile apps.
 
 ### `app-update.ts`
 
-`mobile/packages/shared/src/native/app-update.ts` · 73 lines
+`mobile/packages/shared/src/native/app-update.ts` · 87 lines
 
 In-app updates for the sideloaded APKs: version check against the server, native download + install
 
@@ -905,9 +905,9 @@ In-app updates for the sideloaded APKs: version check against the server, native
 | `PublishedApp` | type | 12 | One app entry of versions.json |
 | `AvailableUpdate` | type | 22 | A newer published version, with download url and required flag |
 | `DownloadStatus` | type | 27 | DownloadManager progress of the update APK |
-| `installedVersion` | function | 46 | Installed APK versionName / versionCode from native BuildConfig |
-| `checkForUpdate` | function | 51 | Compares the installed versionCode with the published one; returns the update or null |
-| `appUpdate` | const | 65 | Native AppUpdate wrapper: download, status, install permission, install |
+| `installedVersion` | function | 50 | Installed APK versionName / versionCode from native BuildConfig |
+| `checkForUpdate` | function | 55 | Compares the installed versionCode with the published one; returns the update or null |
+| `appUpdate` | const | 69 | Native AppUpdate wrapper: download, status, install permission, install |
 
 ### `background-sync.ts`
 
@@ -1542,13 +1542,13 @@ Branded modal card (AppModal) and the DialogHost that replaces Alert.alert popup
 
 ### `AppUpdateHost.tsx`
 
-`mobile/packages/ui/src/kit/AppUpdateHost.tsx` · 165 lines
+`mobile/packages/ui/src/kit/AppUpdateHost.tsx` · 208 lines
 
 Update dialog shown when a newer APK is published
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AppUpdateHost` | function | 26 | Checks for updates on start / foreground; download with progress, then the Android installer |
+| `AppUpdateHost` | function | 31 | Checks for updates on start / foreground; download with progress, then the Android installer |
 
 ### `DatePickerModal.tsx`
 
