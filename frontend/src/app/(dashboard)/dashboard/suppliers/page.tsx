@@ -120,6 +120,9 @@ export default function SuppliersPage() {
   }>({ open: false, imported: 0, errors: [] });
 
   const [search, setSearch] = useState("");
+  // Active / Inactive tabs: the list loads one status at a time (server-side paging).
+  const [listTab, setListTab] = useState<"active" | "inactive">("active");
+  const [statusCounts, setStatusCounts] = useState({ active: 0, inactive: 0 });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -174,26 +177,39 @@ export default function SuppliersPage() {
   // Cars of each type the supplier agreed to provide (vehicle type id → number; default 1)
   const [carTypeQty, setCarTypeQty] = useState<Record<string, number>>({});
 
+  /** Number of active and inactive suppliers (tab labels). */
+  const fetchCounts = useCallback(async () => {
+    try {
+      const [a, i] = await Promise.all(
+        ["true", "false"].map((v) => api.get<SuppliersResponse>("/suppliers", { params: { page: 1, limit: 1, isActive: v } }))
+      );
+      setStatusCounts({ active: a.data.meta.total, inactive: i.data.meta.total });
+    } catch {
+      /* counts are informative only */
+    }
+  }, []);
+
   const fetchSuppliers = useCallback(async (p = page) => {
     try {
       setLoading(true);
       const { data } = await api.get<SuppliersResponse>("/suppliers", {
-        params: { page: p, limit: PAGE_SIZE },
+        params: { page: p, limit: PAGE_SIZE, isActive: listTab === "active" ? "true" : "false" },
       });
       setSuppliers(data.data);
       setTotalPages(data.meta.totalPages);
       setTotal(data.meta.total);
+      void fetchCounts();
     } catch {
       toast.error(t("suppliers.failedLoad"));
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, listTab, fetchCounts]);
 
   useEffect(() => {
     setSelectedIds(new Set());
     fetchSuppliers(page);
-  }, [page]);
+  }, [page, listTab]);
 
   // Fetch vehicle types once
   useEffect(() => {
@@ -205,9 +221,9 @@ export default function SuppliersPage() {
   async function handleToggleStatus(id: string) {
     try {
       await api.patch(`/suppliers/${id}/status`);
-      setSuppliers((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, isActive: !s.isActive } : s))
-      );
+      // The supplier moves to the other tab.
+      setSuppliers((prev) => prev.filter((s) => s.id !== id));
+      void fetchCounts();
       toast.success(t("common.statusUpdated"));
     } catch {
       toast.error(t("common.failedStatusUpdate"));
@@ -609,6 +625,23 @@ export default function SuppliersPage() {
         onChange={handleImportFile}
       />
 
+      <Tabs
+        value={listTab}
+        onValueChange={(v) => {
+          setListTab(v as "active" | "inactive");
+          setPage(1);
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="active">
+            {t("common.active")} ({statusCounts.active})
+          </TabsTrigger>
+          <TabsTrigger value="inactive">
+            {t("common.inactive")} ({statusCounts.inactive})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -617,8 +650,8 @@ export default function SuppliersPage() {
         <div className="flex flex-col items-center justify-center gap-4 py-20">
           <EmptyState
             icon={Truck}
-            heading="No suppliers yet"
-            description="Add your first supplier to get started."
+            heading={listTab === "inactive" ? "No inactive suppliers" : "No suppliers yet"}
+            description={listTab === "inactive" ? "Suppliers you switch off appear here." : "Add your first supplier to get started."}
           />
           {canAddSupplier && (
             <Button
