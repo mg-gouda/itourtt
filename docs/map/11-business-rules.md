@@ -603,6 +603,10 @@ PDF for the customer; there is no decision step to report).
 - `publish-apk.sh` reads `versionName`/`versionCode` from the APK (aapt), not `build.gradle`, and
   refuses if they differ or the package is wrong — advertising a stale APK under a newer code would
   make phones update forever.
+- **Gradle can ship a stale JS bundle.** `createBundleReleaseJsAndAssets` does not see changes in
+  the hoisted `mobile/packages/*`, so `assembleRelease` may reuse the old bundle. Before building a
+  release: `rm -rf apps/<app>/android/app/build/generated/{assets,res}/createBundleReleaseJsAndAssets`,
+  then check the APK (`unzip -p … assets/index.android.bundle | grep -a <new string>`).
 - Installs older than rep 1.2.8 / driver 1.2.7 have no updater — they need one manual install of the
   APK; every later version arrives in-app. Bump `versionCode` (+1) on every build or the update is
   not offered (see CLAUDE.md › version numbering).
