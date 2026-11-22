@@ -343,8 +343,72 @@ function MultiSelectCars({
 
   const selectedVehicles = vehicles.filter((v) => selected.has(v.id));
 
+  // Select cars by type / category: ticking a type selects all its cars, unticking removes them;
+  // the car list beside it still fine-tunes single cars.
+  const [typeOpen, setTypeOpen] = useState(false);
+  const carTypes = Object.values(
+    vehicles.reduce<Record<string, { id: string; name: string; ids: string[] }>>((acc, v) => {
+      const id = v.vehicleTypeId || "none";
+      (acc[id] ??= { id, name: v.vehicleType?.name || "No type", ids: [] }).ids.push(v.id);
+      return acc;
+    }, {})
+  ).sort((a, b) => a.name.localeCompare(b.name));
+  const toggleType = (ids: string[]) => {
+    const next = new Set(selected);
+    const all = ids.every((id) => next.has(id));
+    ids.forEach((id) => (all ? next.delete(id) : next.add(id)));
+    onChange(next);
+  };
+  const fullTypes = carTypes.filter((ct) => ct.ids.every((id) => selected.has(id)));
+  const typeLabel =
+    fullTypes.length === 0
+      ? "Car type..."
+      : fullTypes.length === carTypes.length
+        ? "All car types"
+        : fullTypes.map((ct) => ct.name).join(", ");
+
   return (
     <div className="flex items-center gap-2">
+      {/* Car type / category */}
+      <Popover open={typeOpen} onOpenChange={setTypeOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" role="combobox" className="h-9 w-[200px] justify-between px-3 text-sm font-normal">
+            <span className="truncate">{typeLabel}</span>
+            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[240px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Search car type..." className="h-9" />
+            <CommandList>
+              <CommandEmpty>No car types.</CommandEmpty>
+              <CommandGroup>
+                {carTypes.map((ct) => {
+                  const n = ct.ids.filter((id) => selected.has(id)).length;
+                  const all = n === ct.ids.length;
+                  return (
+                    <CommandItem key={ct.id} value={ct.name} onSelect={() => toggleType(ct.ids)}>
+                      <div
+                        className={cn(
+                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                          all ? "bg-primary text-primary-foreground" : n > 0 ? "bg-primary/30" : "opacity-50"
+                        )}
+                      >
+                        {all ? <Check className="h-3 w-3" /> : n > 0 ? <span className="h-0.5 w-2 rounded bg-primary" /> : null}
+                      </div>
+                      <span>{ct.name}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {n}/{ct.ids.length}
+                      </span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
