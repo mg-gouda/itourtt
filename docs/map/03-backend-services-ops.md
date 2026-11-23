@@ -544,43 +544,43 @@ Rep records, zone coverage, portal accounts and fee history. A rep must have at 
 
 ### SuppliersController
 
-`backend/src/suppliers/suppliers.controller.ts:34` · controller · 31 methods
+`backend/src/suppliers/suppliers.controller.ts:35` · controller · 31 methods
 
 REST surface for suppliers and everything nested under them: their vehicles, drivers, trip prices, car types, portal account, and four separate Excel import/export pipelines.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 39 | `suppliersService.findAll` | Supplier list (Active/Inactive tabs). |
-| `exportExcel` | pub | 54 | `suppliersService.exportToExcel` | Downloads suppliers as xlsx. |
-| `downloadTemplate` | pub | 68 | `suppliersService.generateImportTemplate` | Blank supplier import workbook. |
-| `importExcel` | pub | 82 | `suppliersService.importFromExcel` | Multipart bulk supplier import. |
-| `create` | pub | 96 | `suppliersService.create` | Creates a supplier. |
-| `findOne` | pub | 102 | `suppliersService.findOne` | One supplier's detail. |
-| `update` | pub | 108 | `suppliersService.update` | Edits a supplier. |
-| `toggleStatus` | pub | 118 | `suppliersService.toggleStatus` | Activates/deactivates a supplier. |
-| `bulkDelete` | pub | 126 | `suppliersService.bulkDelete` | Soft-deletes several suppliers. |
-| `delete` | pub | 134 | `suppliersService.delete` | Soft-deletes a supplier. |
-| `findVehicles` | pub | 145 | `suppliersService.findVehicles` | The supplier's vehicles. |
-| `createVehicle` | pub | 158 | `suppliersService.createVehicle` | Adds a supplier vehicle. |
-| `updateVehicle` | pub | 168 | `suppliersService.updateVehicle` | Edits a supplier vehicle. |
-| `deleteVehicle` | pub | 179 | `suppliersService.deleteVehicle` | Soft-deletes a supplier vehicle. |
-| `toggleVehicleStatus` | pub | 189 | `suppliersService.toggleVehicleStatus` | Activates/deactivates a supplier vehicle. |
-| `findDrivers` | pub | 201 | `suppliersService.findDrivers` | The supplier's drivers. |
-| `createDriver` | pub | 213 | `suppliersService.createDriver` | Adds a supplier driver. |
-| `updateDriver` | pub | 223 | `suppliersService.updateDriver` | Edits a supplier driver. |
-| `deleteDriver` | pub | 234 | `suppliersService.deleteDriver` | Soft-deletes a supplier driver. |
-| `toggleDriverStatus` | pub | 244 | `suppliersService.toggleDriverStatus` | Activates/deactivates a supplier driver. |
-| `exportVehicles` | pub | 258 | `suppliersService.exportVehiclesToExcel` | Downloads the supplier's vehicles as xlsx. |
-| `getVehicleTemplate` | pub | 272 | `suppliersService.generateVehicleImportTemplate` | Blank supplier-vehicle workbook. |
-| `importVehicles` | pub | 287 | `suppliersService.importVehiclesFromExcel` | Multipart supplier-vehicle import. |
-| `exportDrivers` | pub | 299 | `suppliersService.exportDriversToExcel` | Downloads the supplier's drivers as xlsx. |
-| `getDriverTemplate` | pub | 313 | `suppliersService.generateDriverImportTemplate` | Blank supplier-driver workbook. |
-| `importDrivers` | pub | 328 | `suppliersService.importDriversFromExcel` | Multipart supplier-driver import. |
-| `createAccount` | pub | 343 | `suppliersService.createUserAccount` | Creates the supplier's portal login. |
-| `resetPassword` | pub | 354 | `suppliersService.resetPassword` | Admin password reset; also clears the session. |
-| `uploadNationalId` | pub | 367 | `suppliersService.update` | Multipart upload of the supplier contact's national ID. |
-| `getCarTypes` | pub | 390 | `suppliersService.getCarTypes` | Car types this supplier can source. |
-| `setCarTypes` | pub | 396 | `suppliersService.setCarTypes` | Replaces the supplier's offered car types. |
+| `findAll` | pub | 40 | `suppliersService.findAll` | Supplier list (Active/Inactive tabs). |
+| `exportExcel` | pub | 52 | `suppliersService.exportToExcel` | Downloads suppliers as xlsx. |
+| `downloadTemplate` | pub | 66 | `suppliersService.generateImportTemplate` | Blank supplier import workbook. |
+| `importExcel` | pub | 80 | `suppliersService.importFromExcel` | Multipart bulk supplier import. |
+| `create` | pub | 94 | `suppliersService.create` | Creates a supplier. |
+| `findOne` | pub | 100 | `suppliersService.findOne` | One supplier's detail. |
+| `update` | pub | 106 | `suppliersService.update` | Edits a supplier. |
+| `toggleStatus` | pub | 116 | `suppliersService.toggleStatus` | Activates/deactivates a supplier. |
+| `bulkDelete` | pub | 124 | `suppliersService.bulkDelete` | Soft-deletes several suppliers. |
+| `delete` | pub | 132 | `suppliersService.delete` | Soft-deletes a supplier. |
+| `findVehicles` | pub | 143 | `suppliersService.findVehicles` | The supplier's vehicles. |
+| `createVehicle` | pub | 156 | `suppliersService.createVehicle` | Adds a supplier vehicle. |
+| `updateVehicle` | pub | 166 | `suppliersService.updateVehicle` | Edits a supplier vehicle. |
+| `deleteVehicle` | pub | 177 | `suppliersService.deleteVehicle` | Soft-deletes a supplier vehicle. |
+| `toggleVehicleStatus` | pub | 187 | `suppliersService.toggleVehicleStatus` | Activates/deactivates a supplier vehicle. |
+| `findDrivers` | pub | 199 | `suppliersService.findDrivers` | The supplier's drivers. |
+| `createDriver` | pub | 211 | `suppliersService.createDriver` | Adds a supplier driver. |
+| `updateDriver` | pub | 221 | `suppliersService.updateDriver` | Edits a supplier driver. |
+| `deleteDriver` | pub | 232 | `suppliersService.deleteDriver` | Soft-deletes a supplier driver. |
+| `toggleDriverStatus` | pub | 242 | `suppliersService.toggleDriverStatus` | Activates/deactivates a supplier driver. |
+| `exportVehicles` | pub | 256 | `suppliersService.exportVehiclesToExcel` | Downloads the supplier's vehicles as xlsx. |
+| `getVehicleTemplate` | pub | 270 | `suppliersService.generateVehicleImportTemplate` | Blank supplier-vehicle workbook. |
+| `importVehicles` | pub | 285 | `suppliersService.importVehiclesFromExcel` | Multipart supplier-vehicle import. |
+| `exportDrivers` | pub | 297 | `suppliersService.exportDriversToExcel` | Downloads the supplier's drivers as xlsx. |
+| `getDriverTemplate` | pub | 311 | `suppliersService.generateDriverImportTemplate` | Blank supplier-driver workbook. |
+| `importDrivers` | pub | 326 | `suppliersService.importDriversFromExcel` | Multipart supplier-driver import. |
+| `createAccount` | pub | 341 | `suppliersService.createUserAccount` | Creates the supplier's portal login. |
+| `resetPassword` | pub | 352 | `suppliersService.resetPassword` | Admin password reset; also clears the session. |
+| `uploadNationalId` | pub | 365 | `suppliersService.update` | Multipart upload of the supplier contact's national ID. |
+| `getCarTypes` | pub | 388 | `suppliersService.getCarTypes` | Car types this supplier can source. |
+| `setCarTypes` | pub | 394 | `suppliersService.setCarTypes` | Replaces the supplier's offered car types. |
 
 ### SuppliersService
 

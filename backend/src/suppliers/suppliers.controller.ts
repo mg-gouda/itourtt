@@ -27,6 +27,7 @@ import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { SupplierListQueryDto } from './dto/supplier-list-query.dto.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 
 @Controller('suppliers')
@@ -36,14 +37,11 @@ export class SuppliersController {
 
   @Get()
   @Permissions('suppliers')
-  async findAll(
-    @Query() pagination: PaginationDto,
-    @Query('isActive') isActive?: string,
-  ) {
-    const page = pagination.page ?? 1;
-    const limit = pagination.limit ?? 20;
+  async findAll(@Query() query: SupplierListQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     const active =
-      isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+      query.isActive === 'true' ? true : query.isActive === 'false' ? false : undefined;
 
     return this.suppliersService.findAll(page, limit, active);
   }

@@ -817,37 +817,37 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/suppliers` | `findAll`:39 | `perm:suppliers` | `suppliersService.findAll` | Supplier list (Active/Inactive tabs). |
-| POST | `/api/suppliers` | `create`:96 | `ADMIN` `perm:suppliers.addButton` | `suppliersService.create` | Creates a supplier. |
-| GET | `/api/suppliers/:id` | `findOne`:102 | `perm:suppliers` | `suppliersService.findOne` | One supplier's detail. |
-| PUT | `/api/suppliers/:id` | `update`:108 | `perm:suppliers.table.editButton` | `suppliersService.update` | Edits a supplier. |
-| DELETE | `/api/suppliers/:id` | `delete`:134 | `ADMIN` `perm:suppliers.table.deleteButton` | `suppliersService.delete` | Soft-deletes a supplier. |
-| POST | `/api/suppliers/:id/account` | `createAccount`:343 | `ADMIN` `perm:suppliers.table.createAccount` | `suppliersService.createUserAccount` | Creates the supplier's portal login. |
-| PATCH | `/api/suppliers/:id/account/password` | `resetPassword`:354 | `ADMIN` `perm:suppliers.table.resetPassword` | `suppliersService.resetPassword` | Admin password reset; also clears the session. |
-| GET | `/api/suppliers/:id/car-types` | `getCarTypes`:390 | `perm:suppliers` | `suppliersService.getCarTypes` | Car types this supplier can source. |
-| PUT | `/api/suppliers/:id/car-types` | `setCarTypes`:396 | `perm:suppliers.table.editButton` | `suppliersService.setCarTypes` | Replaces the supplier's offered car types. |
-| GET | `/api/suppliers/:id/drivers` | `findDrivers`:201 | `perm:suppliers` | `suppliersService.findDrivers` | The supplier's drivers. |
-| POST | `/api/suppliers/:id/drivers` | `createDriver`:213 | `perm:suppliers` | `suppliersService.createDriver` | Adds a supplier driver. |
-| PUT | `/api/suppliers/:id/drivers/:driverId` | `updateDriver`:223 | `perm:suppliers` | `suppliersService.updateDriver` | Edits a supplier driver. |
-| DELETE | `/api/suppliers/:id/drivers/:driverId` | `deleteDriver`:234 | `perm:suppliers` | `suppliersService.deleteDriver` | Soft-deletes a supplier driver. |
-| PATCH | `/api/suppliers/:id/drivers/:driverId/status` | `toggleDriverStatus`:244 | `perm:suppliers` | `suppliersService.toggleDriverStatus` | Activates/deactivates a supplier driver. |
-| GET | `/api/suppliers/:id/drivers/export` | `exportDrivers`:299 | `perm:suppliers` | `suppliersService.exportDriversToExcel` | Downloads the supplier's drivers as xlsx. |
-| POST | `/api/suppliers/:id/drivers/import` | `importDrivers`:328 | `perm:suppliers` | `suppliersService.importDriversFromExcel` | Multipart supplier-driver import. |
-| GET | `/api/suppliers/:id/drivers/template` | `getDriverTemplate`:313 | `perm:suppliers` | `suppliersService.generateDriverImportTemplate` | Blank supplier-driver workbook. |
-| POST | `/api/suppliers/:id/national-id` | `uploadNationalId`:367 | `perm:suppliers.table.editButton` | `suppliersService.update` | Multipart upload of the supplier contact's national ID. |
-| PATCH | `/api/suppliers/:id/status` | `toggleStatus`:118 | `ADMIN` `perm:suppliers.table.toggleStatus` | `suppliersService.toggleStatus` | Activates/deactivates a supplier. |
-| GET | `/api/suppliers/:id/vehicles` | `findVehicles`:145 | `perm:suppliers` | `suppliersService.findVehicles` | The supplier's vehicles. |
-| POST | `/api/suppliers/:id/vehicles` | `createVehicle`:158 | `perm:suppliers` | `suppliersService.createVehicle` | Adds a supplier vehicle. |
-| PUT | `/api/suppliers/:id/vehicles/:vehicleId` | `updateVehicle`:168 | `perm:suppliers` | `suppliersService.updateVehicle` | Edits a supplier vehicle. |
-| DELETE | `/api/suppliers/:id/vehicles/:vehicleId` | `deleteVehicle`:179 | `perm:suppliers` | `suppliersService.deleteVehicle` | Soft-deletes a supplier vehicle. |
-| PATCH | `/api/suppliers/:id/vehicles/:vehicleId/status` | `toggleVehicleStatus`:189 | `perm:suppliers` | `suppliersService.toggleVehicleStatus` | Activates/deactivates a supplier vehicle. |
-| GET | `/api/suppliers/:id/vehicles/export` | `exportVehicles`:258 | `perm:suppliers` | `suppliersService.exportVehiclesToExcel` | Downloads the supplier's vehicles as xlsx. |
-| POST | `/api/suppliers/:id/vehicles/import` | `importVehicles`:287 | `perm:suppliers` | `suppliersService.importVehiclesFromExcel` | Multipart supplier-vehicle import. |
-| GET | `/api/suppliers/:id/vehicles/template` | `getVehicleTemplate`:272 | `perm:suppliers` | `suppliersService.generateVehicleImportTemplate` | Blank supplier-vehicle workbook. |
-| DELETE | `/api/suppliers/bulk` | `bulkDelete`:126 | `ADMIN` `perm:suppliers.table.deleteButton` | `suppliersService.bulkDelete` | Soft-deletes several suppliers. |
-| GET | `/api/suppliers/export/excel` | `exportExcel`:54 | `ADMIN` `perm:suppliers.export` | `suppliersService.exportToExcel` | Downloads suppliers as xlsx. |
-| POST | `/api/suppliers/import/excel` | `importExcel`:82 | `ADMIN` `perm:suppliers.import` | `suppliersService.importFromExcel` | Multipart bulk supplier import. |
-| GET | `/api/suppliers/import/template` | `downloadTemplate`:68 | `ADMIN` `perm:suppliers.downloadTemplate` | `suppliersService.generateImportTemplate` | Blank supplier import workbook. |
+| GET | `/api/suppliers` | `findAll`:40 | `perm:suppliers` | `suppliersService.findAll` | Supplier list (Active/Inactive tabs). |
+| POST | `/api/suppliers` | `create`:94 | `ADMIN` `perm:suppliers.addButton` | `suppliersService.create` | Creates a supplier. |
+| GET | `/api/suppliers/:id` | `findOne`:100 | `perm:suppliers` | `suppliersService.findOne` | One supplier's detail. |
+| PUT | `/api/suppliers/:id` | `update`:106 | `perm:suppliers.table.editButton` | `suppliersService.update` | Edits a supplier. |
+| DELETE | `/api/suppliers/:id` | `delete`:132 | `ADMIN` `perm:suppliers.table.deleteButton` | `suppliersService.delete` | Soft-deletes a supplier. |
+| POST | `/api/suppliers/:id/account` | `createAccount`:341 | `ADMIN` `perm:suppliers.table.createAccount` | `suppliersService.createUserAccount` | Creates the supplier's portal login. |
+| PATCH | `/api/suppliers/:id/account/password` | `resetPassword`:352 | `ADMIN` `perm:suppliers.table.resetPassword` | `suppliersService.resetPassword` | Admin password reset; also clears the session. |
+| GET | `/api/suppliers/:id/car-types` | `getCarTypes`:388 | `perm:suppliers` | `suppliersService.getCarTypes` | Car types this supplier can source. |
+| PUT | `/api/suppliers/:id/car-types` | `setCarTypes`:394 | `perm:suppliers.table.editButton` | `suppliersService.setCarTypes` | Replaces the supplier's offered car types. |
+| GET | `/api/suppliers/:id/drivers` | `findDrivers`:199 | `perm:suppliers` | `suppliersService.findDrivers` | The supplier's drivers. |
+| POST | `/api/suppliers/:id/drivers` | `createDriver`:211 | `perm:suppliers` | `suppliersService.createDriver` | Adds a supplier driver. |
+| PUT | `/api/suppliers/:id/drivers/:driverId` | `updateDriver`:221 | `perm:suppliers` | `suppliersService.updateDriver` | Edits a supplier driver. |
+| DELETE | `/api/suppliers/:id/drivers/:driverId` | `deleteDriver`:232 | `perm:suppliers` | `suppliersService.deleteDriver` | Soft-deletes a supplier driver. |
+| PATCH | `/api/suppliers/:id/drivers/:driverId/status` | `toggleDriverStatus`:242 | `perm:suppliers` | `suppliersService.toggleDriverStatus` | Activates/deactivates a supplier driver. |
+| GET | `/api/suppliers/:id/drivers/export` | `exportDrivers`:297 | `perm:suppliers` | `suppliersService.exportDriversToExcel` | Downloads the supplier's drivers as xlsx. |
+| POST | `/api/suppliers/:id/drivers/import` | `importDrivers`:326 | `perm:suppliers` | `suppliersService.importDriversFromExcel` | Multipart supplier-driver import. |
+| GET | `/api/suppliers/:id/drivers/template` | `getDriverTemplate`:311 | `perm:suppliers` | `suppliersService.generateDriverImportTemplate` | Blank supplier-driver workbook. |
+| POST | `/api/suppliers/:id/national-id` | `uploadNationalId`:365 | `perm:suppliers.table.editButton` | `suppliersService.update` | Multipart upload of the supplier contact's national ID. |
+| PATCH | `/api/suppliers/:id/status` | `toggleStatus`:116 | `ADMIN` `perm:suppliers.table.toggleStatus` | `suppliersService.toggleStatus` | Activates/deactivates a supplier. |
+| GET | `/api/suppliers/:id/vehicles` | `findVehicles`:143 | `perm:suppliers` | `suppliersService.findVehicles` | The supplier's vehicles. |
+| POST | `/api/suppliers/:id/vehicles` | `createVehicle`:156 | `perm:suppliers` | `suppliersService.createVehicle` | Adds a supplier vehicle. |
+| PUT | `/api/suppliers/:id/vehicles/:vehicleId` | `updateVehicle`:166 | `perm:suppliers` | `suppliersService.updateVehicle` | Edits a supplier vehicle. |
+| DELETE | `/api/suppliers/:id/vehicles/:vehicleId` | `deleteVehicle`:177 | `perm:suppliers` | `suppliersService.deleteVehicle` | Soft-deletes a supplier vehicle. |
+| PATCH | `/api/suppliers/:id/vehicles/:vehicleId/status` | `toggleVehicleStatus`:187 | `perm:suppliers` | `suppliersService.toggleVehicleStatus` | Activates/deactivates a supplier vehicle. |
+| GET | `/api/suppliers/:id/vehicles/export` | `exportVehicles`:256 | `perm:suppliers` | `suppliersService.exportVehiclesToExcel` | Downloads the supplier's vehicles as xlsx. |
+| POST | `/api/suppliers/:id/vehicles/import` | `importVehicles`:285 | `perm:suppliers` | `suppliersService.importVehiclesFromExcel` | Multipart supplier-vehicle import. |
+| GET | `/api/suppliers/:id/vehicles/template` | `getVehicleTemplate`:270 | `perm:suppliers` | `suppliersService.generateVehicleImportTemplate` | Blank supplier-vehicle workbook. |
+| DELETE | `/api/suppliers/bulk` | `bulkDelete`:124 | `ADMIN` `perm:suppliers.table.deleteButton` | `suppliersService.bulkDelete` | Soft-deletes several suppliers. |
+| GET | `/api/suppliers/export/excel` | `exportExcel`:52 | `ADMIN` `perm:suppliers.export` | `suppliersService.exportToExcel` | Downloads suppliers as xlsx. |
+| POST | `/api/suppliers/import/excel` | `importExcel`:80 | `ADMIN` `perm:suppliers.import` | `suppliersService.importFromExcel` | Multipart bulk supplier import. |
+| GET | `/api/suppliers/import/template` | `downloadTemplate`:66 | `ADMIN` `perm:suppliers.downloadTemplate` | `suppliersService.generateImportTemplate` | Blank supplier import workbook. |
 
 ### TrackingController
 
