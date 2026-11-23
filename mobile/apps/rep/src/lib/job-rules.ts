@@ -26,6 +26,12 @@ export function jobTimeLabel(job: RepPortalJob): string {
   return formatTimeCairo(jobTimeIso(job));
 }
 
+/** Driver Time: when the driver must be ready — always 1 hour before the job time ('' when none). */
+export function driverTimeLabel(job: RepPortalJob): string {
+  const iso = jobTimeIso(job);
+  return iso ? formatTimeCairo(new Date(new Date(iso).getTime() - 60 * 60_000).toISOString()) : '';
+}
+
 /** IN PLACE is ARR-only windowed (arrival −10 → +80 min), bypassed by an admin unlock. */
 export function inPlaceWindow(job: RepPortalJob, now = new Date()): { open: boolean; hint: string } {
   if (job.serviceType !== 'ARR' || !job.flight?.arrivalTime || job.repUnlockedAt) return { open: true, hint: '' };

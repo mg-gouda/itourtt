@@ -45,6 +45,7 @@ import {
   isTerminal,
   jobDay,
   jobTimeLabel,
+  driverTimeLabel,
   noShowGate,
   originLabel,
   originSub,
@@ -191,6 +192,15 @@ export function JobDetailScreen({ route, navigation }: Props) {
               <Text style={styles.heroTimeLabel}>{isArr ? t('repApp.driverArrives') : t('repApp.pickup')}</Text>
               <Text style={styles.heroTime}>{jobTimeLabel(job)}</Text>
             </View>
+            {driverTimeLabel(job) ? (
+              <>
+                <View style={styles.heroDivider} />
+                <View>
+                  <Text style={styles.heroTimeLabel}>{t('repApp.driverTime')}</Text>
+                  <Text style={styles.heroTime}>{driverTimeLabel(job)}</Text>
+                </View>
+              </>
+            ) : null}
             <View style={styles.heroDivider} />
             <View>
               <Text style={styles.heroTimeLabel}>{t('jobs.pax')}</Text>

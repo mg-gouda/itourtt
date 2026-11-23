@@ -292,6 +292,8 @@ export const en = {
     loadFailed: "Couldn't load your jobs",
     driverArrives: "Arrival",
     pickup: "Pickup",
+    driverTime: "Driver Time",
+    driverShort: "Driver",
     pax: "pax",
     from: "From",
     to: "To",

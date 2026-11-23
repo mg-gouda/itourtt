@@ -294,6 +294,8 @@ export const ar: TranslationKeys = {
     loadFailed: "تعذر تحميل المهام",
     driverArrives: "الوصول",
     pickup: "الاستلام",
+    driverTime: "وقت السائق",
+    driverShort: "السائق",
     pax: "راكب",
     from: "من",
     to: "إلى",

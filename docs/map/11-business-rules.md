@@ -690,6 +690,14 @@ follows the job time whenever that changes (`lib/driver-time.ts`, `DRIVER_LEAD_M
 - **Dispatch:** a Driver Time column in the jobs table, and "Drv HH:MM" beside each trip in the
   fleet overview cards (per car). Job time = the page's existing rule: ARR → flight arrival, else
   pick-up; others → pick-up, else the flight time. Times are in Cairo time.
+- **Driver & rep apps (5.9.0):** on the job card, "Driver HH:MM" under the big time; on the job
+  detail screen, a Driver Time block beside the job time (`driverTimeLabel` in each app's
+  `job-rules.ts`). It ships with the next app release.
+- **Driver & rep web portals (5.9.0):** "Driver Time: HH:MM" beside the arrival / pick-up time on
+  each job.
+
+The same 1-hour rule applies to every channel (B2B, Online and B2C), because it is worked out from
+the job time alone.
 
 ## Chat unread counts (5.6.1, 2026-11-23)
 

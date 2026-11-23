@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**131 files**, **390 exported symbols**.
+**131 files**, **392 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -32,19 +32,19 @@ Cash collection card with the Mark Collected action — the gate that unblocks C
 
 ### `DriverJobCard.tsx`
 
-`mobile/apps/driver/src/components/DriverJobCard.tsx` · 203 lines
+`mobile/apps/driver/src/components/DriverJobCard.tsx` · 210 lines
 
 Driver day-list job card (same design as the rep card) with cash-collection strip.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `DriverJobCard` | function | 21 | Driver job card; CTA is Start Trip (from job time) or Complete Trip (+15 min, collected), mirroring the web driver portal. |
+| `DriverJobCard` | function | 22 | Driver job card; CTA is Start Trip (from job time) or Complete Trip (+15 min, collected), mirroring the web driver portal. |
 
 ## `mobile/apps/driver/src/lib/`
 
 ### `job-rules.ts`
 
-`mobile/apps/driver/src/lib/job-rules.ts` · 100 lines
+`mobile/apps/driver/src/lib/job-rules.ts` · 106 lines
 
 Driver leg gating mirrored from the web driver portal: start from job time, complete +15 min and collected, server NO SHOW unlock.
 
@@ -54,16 +54,17 @@ Driver leg gating mirrored from the web driver portal: start from job time, comp
 | `isTerminal` | function | 16 | True when the driver leg is closed. |
 | `jobTimeIso` | function | 21 | Job time: flight arrival for ARR, pickUpTime otherwise. |
 | `jobTimeLabel` | function | 26 | Job time as HH:mm Cairo. |
-| `startGate` | function | 31 | Start Trip is live from the job time onwards. |
-| `completeGate` | function | 40 | Complete gate: IN_PROGRESS, cash collected when required, ≥15 min after job time; returns hint text. |
-| `noShowGate` | function | 53 | NO SHOW gate from the server's noShowAvailableFrom. |
-| `originLabel` | function | 59 | Origin display name: airport (code) → hotel → zone → fromZone. |
-| `destinationLabel` | function | 69 | Destination display name: airport (code) → hotel → zone → toZone. |
-| `originSub` | function | 79 | The origin hotel's zone. |
-| `destinationSub` | function | 82 | The destination hotel's zone. |
-| `jobDay` | function | 87 | Service date as YYYY-MM-DD. |
-| `repLine` | function | 92 | The rep assigned on the same job (name, phone). |
-| `collectionAmount` | function | 97 | Collection amount as a number (Decimal arrives as a string). |
+| `driverTimeLabel` | function | 31 | Driver Time label: the job time (jobTimeIso) minus 1 hour, as Cairo HH:MM; '' when the job has no time. |
+| `startGate` | function | 37 | Start Trip is live from the job time onwards. |
+| `completeGate` | function | 46 | Complete gate: IN_PROGRESS, cash collected when required, ≥15 min after job time; returns hint text. |
+| `noShowGate` | function | 59 | NO SHOW gate from the server's noShowAvailableFrom. |
+| `originLabel` | function | 65 | Origin display name: airport (code) → hotel → zone → fromZone. |
+| `destinationLabel` | function | 75 | Destination display name: airport (code) → hotel → zone → toZone. |
+| `originSub` | function | 85 | The origin hotel's zone. |
+| `destinationSub` | function | 88 | The destination hotel's zone. |
+| `jobDay` | function | 93 | Service date as YYYY-MM-DD. |
+| `repLine` | function | 98 | The rep assigned on the same job (name, phone). |
+| `collectionAmount` | function | 103 | Collection amount as a number (Decimal arrives as a string). |
 
 ### `notifications-store.ts`
 
@@ -156,13 +157,13 @@ Driver's completed jobs and fees earned.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 474 lines
+`mobile/apps/driver/src/screens/JobDetailScreen.tsx` · 484 lines
 
 Driver job detail with the status actions. Complete is disabled until collection is settled — the same gate the backend enforces.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 86 | Driver job detail: progress stepper, collection card, Start/Complete CTA with gates, No Show / Call / Cancel tiles, route with navigation, guest, rep & vehicle. |
+| `JobDetailScreen` | function | 87 | Driver job detail: progress stepper, collection card, Start/Complete CTA with gates, No Show / Call / Cancel tiles, route with navigation, guest, rep & vehicle. |
 
 ### `JobsListScreen.tsx`
 
@@ -391,13 +392,13 @@ Rep app root.
 
 ### `RepJobCard.tsx`
 
-`mobile/apps/rep/src/components/RepJobCard.tsx` · 182 lines
+`mobile/apps/rep/src/components/RepJobCard.tsx` · 189 lines
 
 Rep app day-list job card: big job time, service + status pills, two-stop route, fact chips and the single next-step button.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RepJobCard` | function | 21 | One job on the rep's day list; the CTA is In Place (window-gated) or Complete, mirroring the web rep portal. |
+| `RepJobCard` | function | 22 | One job on the rep's day list; the CTA is In Place (window-gated) or Complete, mirroring the web rep portal. |
 
 ## `mobile/apps/rep/src/lib/`
 
@@ -414,7 +415,7 @@ Rep app escort question (after IN PLACE, before completing).
 
 ### `job-rules.ts`
 
-`mobile/apps/rep/src/lib/job-rules.ts` · 112 lines
+`mobile/apps/rep/src/lib/job-rules.ts` · 118 lines
 
 Rep leg gating mirrored from the web rep portal: PENDING → IN_PLACE (2 photos) → COMPLETED, server-stamped NO SHOW unlock, ARR IN PLACE window.
 
@@ -424,16 +425,17 @@ Rep leg gating mirrored from the web rep portal: PENDING → IN_PLACE (2 photos)
 | `isTerminal` | function | 15 | True when the rep leg is closed. |
 | `jobTimeIso` | function | 20 | Job time: flight arrival for ARR, pickUpTime otherwise. |
 | `jobTimeLabel` | function | 25 | Job time as HH:mm in Cairo time. |
-| `inPlaceWindow` | function | 30 | ARR-only IN PLACE window (arrival −10 → +80 min), bypassed by repUnlockedAt; returns open + the 'Opens hh:mm – hh:mm' hint. |
-| `noShowGate` | function | 45 | NO SHOW gate from the server's noShowAvailableFrom — never computed on the phone. |
-| `canOfferInPlace` | function | 52 | IN PLACE is offered on PENDING jobs of every service type except DEP (as on the web portal). |
-| `canComplete` | function | 56 | Complete is only offered from IN_PLACE — the server rejects PENDING → COMPLETED. |
-| `originLabel` | function | 60 | Origin display name: airport (code) → hotel → zone → fromZone. |
-| `destinationLabel` | function | 70 | Destination display name: airport (code) → hotel → zone → toZone. |
-| `originSub` | function | 81 | The origin hotel's zone, shown under the stop. |
-| `destinationSub` | function | 84 | The destination hotel's zone, shown under the stop. |
-| `jobDay` | function | 89 | The job's service date as YYYY-MM-DD (DATE stored at 00:00 UTC). |
-| `driverLine` | function | 93 | Driver name/phone for the rep: own driver, else the supplier's external driver with the supplier name. |
+| `driverTimeLabel` | function | 30 | Driver Time label: the job time (jobTimeIso) minus 1 hour, as Cairo HH:MM; '' when the job has no time. |
+| `inPlaceWindow` | function | 36 | ARR-only IN PLACE window (arrival −10 → +80 min), bypassed by repUnlockedAt; returns open + the 'Opens hh:mm – hh:mm' hint. |
+| `noShowGate` | function | 51 | NO SHOW gate from the server's noShowAvailableFrom — never computed on the phone. |
+| `canOfferInPlace` | function | 58 | IN PLACE is offered on PENDING jobs of every service type except DEP (as on the web portal). |
+| `canComplete` | function | 62 | Complete is only offered from IN_PLACE — the server rejects PENDING → COMPLETED. |
+| `originLabel` | function | 66 | Origin display name: airport (code) → hotel → zone → fromZone. |
+| `destinationLabel` | function | 76 | Destination display name: airport (code) → hotel → zone → toZone. |
+| `originSub` | function | 87 | The origin hotel's zone, shown under the stop. |
+| `destinationSub` | function | 90 | The destination hotel's zone, shown under the stop. |
+| `jobDay` | function | 95 | The job's service date as YYYY-MM-DD (DATE stored at 00:00 UTC). |
+| `driverLine` | function | 99 | Driver name/phone for the rep: own driver, else the supplier's external driver with the supplier name. |
 
 ### `notifications-store.ts`
 
@@ -526,13 +528,13 @@ Rep History tab.
 
 ### `JobDetailScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 512 lines
+`mobile/apps/rep/src/screens/JobDetailScreen.tsx` · 522 lines
 
 Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and flight-delay reporting.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailScreen` | function | 87 | Rep job detail: progress stepper, next-step CTA (In Place / Complete), No Show / Flight Delay / Survey / Update / Cancel tiles, route with navigation, guest, customer rep, driver. |
+| `JobDetailScreen` | function | 88 | Rep job detail: progress stepper, next-step CTA (In Place / Complete), No Show / Flight Delay / Survey / Update / Cancel tiles, route with navigation, guest, customer rep, driver. |
 
 ### `JobFormsScreens.tsx`
 
@@ -853,7 +855,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 523 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 525 lines
 
 Arabic strings for all four apps.
 
@@ -863,14 +865,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 523 lines
+`mobile/packages/shared/src/i18n/en.ts` · 525 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 522 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 524 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 

@@ -42,6 +42,7 @@ import JobDetailModal from "@/components/job-detail-modal";
 import { RouteNavLink } from "@/components/route-nav-link";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
+import { driverTimeFromDate } from "@/lib/driver-time";
 import { captureGPS } from "@/lib/gps";
 import { BookingChannelBadge } from "@/components/booking-channel-badge";
 import { SERVICE_TYPE_COLORS, useServiceTypeLabel } from "@/lib/service-types";
@@ -633,6 +634,19 @@ function DriverJobCard({
               {t("portal.pickUpTime") || "Pickup"}: {formatTime(job.pickUpTime)}
             </span>
           )}
+          {(() => {
+            // Driver Time: ready 1 hour before the job time (same rule as the apps).
+            const iso = job.serviceType === "ARR"
+              ? (job.flight?.arrivalTime ?? job.pickUpTime)
+              : (job.pickUpTime ?? job.flight?.departureTime ?? null);
+            const at = driverTimeFromDate(iso ? new Date(iso) : null);
+            return at ? (
+              <span className="flex items-center gap-1 font-semibold text-amber-500">
+                <Clock className="h-3.5 w-3.5" />
+                Driver Time: {formatTime(at.toISOString())}
+              </span>
+            ) : null;
+          })()}
           {job.flight && (
             <span className="flex items-center gap-1 text-muted-foreground">
               <Plane className="h-3.5 w-3.5" />

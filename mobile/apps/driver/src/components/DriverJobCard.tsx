@@ -10,6 +10,7 @@ import {
   destinationLabel,
   isTerminal,
   jobTimeLabel,
+  driverTimeLabel,
   originLabel,
 } from '../lib/job-rules';
 
@@ -49,6 +50,11 @@ export function DriverJobCard({
             <Text style={[styles.timeLabel, { color: tone.fg }]}>
               {isArr ? t('repApp.driverArrives') : t('repApp.pickup')}
             </Text>
+            {driverTimeLabel(job) ? (
+              <Text style={[styles.driverTime, { color: tone.fg }]}>
+                {t('repApp.driverShort')} {driverTimeLabel(job)}
+              </Text>
+            ) : null}
           </View>
           <View style={styles.topRight}>
             <View style={styles.pills}>
@@ -167,6 +173,7 @@ const styles = StyleSheet.create({
   timeBox: { width: 78, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
   time: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5, marginTop: 2 },
   timeLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.85 },
+  driverTime: { fontSize: 11, fontWeight: '800', marginTop: 3 },
   topRight: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 8 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   ref: { fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },

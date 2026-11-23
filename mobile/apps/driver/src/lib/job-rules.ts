@@ -27,6 +27,12 @@ export function jobTimeLabel(job: DriverPortalJob): string {
   return formatTimeCairo(jobTimeIso(job));
 }
 
+/** Driver Time: when the driver must be ready — always 1 hour before the job time ('' when none). */
+export function driverTimeLabel(job: DriverPortalJob): string {
+  const iso = jobTimeIso(job);
+  return iso ? formatTimeCairo(new Date(new Date(iso).getTime() - 60 * 60_000).toISOString()) : '';
+}
+
 /** Start is live from the job time onwards. */
 export function startGate(job: DriverPortalJob, now = new Date()): { open: boolean; hint: string } {
   const iso = jobTimeIso(job);
