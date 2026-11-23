@@ -83,7 +83,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "sidebar.brand": "iTour GO",
     "sidebar.dashboard": "Dashboard",
     "sidebar.dispatch": "Dispatch",
-    "sidebar.carDispatch": "Traffic Cover",
+    "sidebar.carDispatch": "Cover",
     "sidebar.trafficJobs": "Traffic Jobs",
     "sidebar.finance": "Finance",
     "sidebar.b2cInvoices": "B2C Invoices",
@@ -1898,10 +1898,10 @@ const translations: Record<Locale, Record<string, string>> = {
     "help.jobControl.steps": "Navigate to Job Control from the sidebar\nSelect the operation type from the available action cards\nFor status changes, use the filter controls to target specific jobs (date range, service type, current status)\nReview the affected jobs count before applying the operation\nConfirm the operation — a progress indicator shows completion\nCheck the Activity Log after bulk operations to verify the changes were applied correctly",
     "help.jobControl.tips": "Always preview the count of affected jobs before running a bulk operation\nBulk status changes are logged in the Activity Log for traceability\nUse the date range filter to limit the scope of any operation\nJob Control operations are restricted to Admin and Dispatch Manager roles",
 
-    "help.carDispatch.title": "Traffic Cover",
-    "help.carDispatch.overview": "Traffic Cover is a dedicated dispatch console for Fulvago-branded car transfer jobs. It operates independently from the main Dispatch Console with its own assignment workflow, job types, and reporting pipeline. The grid is searchable by vehicle and supports the same inline editing experience as the main dispatch.",
-    "help.carDispatch.steps": "Navigate to Traffic Cover from the sidebar\nSelect the target date using the date picker\nThe grid shows all traffic cover jobs for that day\nUse the vehicle filter dropdown (searchable) to narrow down to specific vehicles\nClick any cell to edit inline — assign vehicles and drivers\nUse keyboard navigation (Tab, Enter) for fast editing\nChanges save automatically when you leave a cell",
-    "help.carDispatch.tips": "Traffic Cover jobs are tracked separately from B2B and Online traffic jobs\nThe vehicle filter dropdown is searchable — type to narrow results quickly\nUse the Car Jobs report under Reports for financial analysis of traffic cover jobs\nPermissions for Traffic Cover are managed separately under the system roles",
+    "help.carDispatch.title": "Cover",
+    "help.carDispatch.overview": "Cover is a dedicated dispatch console for Fulvago-branded car transfer jobs. It operates independently from the main Dispatch Console with its own assignment workflow, job types, and reporting pipeline. The grid is searchable by vehicle and supports the same inline editing experience as the main dispatch.",
+    "help.carDispatch.steps": "Navigate to Cover from the sidebar\nSelect the target date using the date picker\nThe grid shows all traffic cover jobs for that day\nUse the vehicle filter dropdown (searchable) to narrow down to specific vehicles\nClick any cell to edit inline — assign vehicles and drivers\nUse keyboard navigation (Tab, Enter) for fast editing\nChanges save automatically when you leave a cell",
+    "help.carDispatch.tips": "Cover jobs are tracked separately from B2B and Online traffic jobs\nThe vehicle filter dropdown is searchable — type to narrow results quickly\nUse the Car Jobs report under Reports for financial analysis of traffic cover jobs\nPermissions for Cover are managed separately under the system roles",
 
     // ── Import Templates ──
     "importTemplates.title": "Import Templates",
@@ -2067,7 +2067,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "sidebar.brand": "\u0622\u064A \u062A\u0648\u0631",
     "sidebar.dashboard": "\u0644\u0648\u062D\u0629 \u0627\u0644\u062A\u062D\u0643\u0645",
     "sidebar.dispatch": "\u0627\u0644\u062A\u0648\u0632\u064A\u0639",
-    "sidebar.carDispatch": "تغطية الحركة",
+    "sidebar.carDispatch": "التغطية",
     "sidebar.trafficJobs": "تشغيلات النقل",
     "sidebar.finance": "\u0627\u0644\u0645\u0627\u0644\u064A\u0629",
     "sidebar.b2cInvoices": "\u0641\u0648\u0627\u062A\u064A\u0631 B2C",

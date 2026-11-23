@@ -63,11 +63,11 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
   const canTripKm = usePermission("trip-km");
   const canEditVehicle = usePermission("vehicles.table.editButton");
 
-  // Main driver (one per car): suggested on Dispatch / Traffic Cover. Saved on change.
+  // Main driver (one per car): suggested on Dispatch / Cover. Saved on change.
   const [mainDriverId, setMainDriverId] = useState("");
   const [driverChoices, setDriverChoices] = useState<{ id: string; name: string; mobileNumber?: string }[] | null>(null);
   const [mainDriverSaving, setMainDriverSaving] = useState(false);
-  // Traffic Cover card colour ("" = automatic)
+  // Cover card colour ("" = automatic)
   const [cardColor, setCardColor] = useState("");
   const [cardColorSaving, setCardColorSaving] = useState(false);
 
@@ -464,7 +464,7 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
               </div>
               )}
               <div className="space-y-2">
-                <Label className="text-muted-foreground">Traffic Cover card colour</Label>
+                <Label className="text-muted-foreground">Cover card colour</Label>
                 <div className="flex flex-wrap items-center gap-1.5">
                   {CARD_COLORS.map((c) => (
                     <button
@@ -498,7 +498,7 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {cardColor ? "Chosen colour" : "Automatic colour"} — fixed for this car on the Traffic Cover board. Saved straight away.
+                  {cardColor ? "Chosen colour" : "Automatic colour"} — fixed for this car on the Cover board. Saved straight away.
                 </p>
               </div>
               {driverChoices && (
@@ -516,7 +516,7 @@ export default function EditVehiclePage({ params }: { params: Promise<{ id: stri
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Saved straight away. Dispatch and Traffic Cover suggest this driver for the car; any driver can still be picked per job.
+                  Saved straight away. Dispatch and Cover suggest this driver for the car; any driver can still be picked per job.
                 </p>
               </div>
               )}

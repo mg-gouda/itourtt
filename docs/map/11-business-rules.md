@@ -679,6 +679,17 @@ It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web
   car/driver/rep section. New B2B jobs wait in the pool, and editing a job no longer re-sends its
   assignment.
 
+## Cover page (5.9.3, 2026-11-23)
+
+- **Rename:** "Traffic Cover" is now **Cover** (sidebar, breadcrumb, title, help; Arabic "التغطية").
+  The URL stays /dashboard/car-dispatch.
+- **Arrow next to the title:** folds away the selectors row and the job pool, so the car cards get
+  the room. The choice is remembered per browser (`cover_top_collapsed`).
+- **Customer / Agent column:** B2B jobs show the customer. Online / B2C jobs show the agent from the
+  job, in blue, with the channel on hover. New rows typed in a card still pick a customer.
+- **Time column:** the job time for every channel, i.e. the pick-up time, else the flight time
+  (departure for DEP, arrival otherwise). Driver Time uses the same rule.
+
 ## Route and origin / destination on every job line (5.9.2, 2026-11-23)
 
 - **Dispatch, jobs table:** the Route cell shows the route name (English part of "EN | AR"; "No

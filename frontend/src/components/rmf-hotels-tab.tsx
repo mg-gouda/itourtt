@@ -1,7 +1,7 @@
 "use client";
 
 // System Parameters › Routes › RMF Hotels — the Marsa Alam hotels north / south of RMF airport and
-// the deep south (table rmf_hotels). Traffic Cover reads this list: when a row's Notes name one of
+// the deep south (table rmf_hotels). Cover reads this list: when a row's Notes name one of
 // these hotels, the row's route becomes that hotel's area route for the row's leg.
 // One Access-style datasheet per section: type in the ✱ row to add a hotel, a row saves when you
 // leave it, select rows by their marker and press Delete to remove them.
@@ -123,7 +123,7 @@ export function RmfHotelsTab({ canEdit, canDelete }: { canEdit: boolean; canDele
   return (
     <div className="space-y-5">
       <p className="text-xs text-muted-foreground">
-        Marsa Alam hotels by where they lie from RMF airport. On Traffic Cover, when a row&apos;s Notes name one of these hotels, the
+        Marsa Alam hotels by where they lie from RMF airport. On Cover, when a row&apos;s Notes name one of these hotels, the
         route is set to its area (ARR / DEP / going / return). Match words: comma-separated alternatives; each word must start a word of
         the notes, in any order (&quot;movenpick quseir&quot; needs both). Type in the ✱ row to add a hotel; a row saves when you leave it.
       </p>

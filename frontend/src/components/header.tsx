@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 const SEGMENT_LABEL_MAP: Record<string, string> = {
   dashboard: "Dashboard",
   dispatch: "Dispatch",
-  "car-dispatch": "Traffic Cover",
+  "car-dispatch": "Cover",
   "traffic-jobs": "Traffic Jobs",
   b2b: "B2B",
   online: "Online",

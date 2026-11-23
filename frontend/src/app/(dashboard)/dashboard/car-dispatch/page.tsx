@@ -39,6 +39,7 @@ import {
   Save,
   Car,
   ChevronDown,
+  ChevronUp,
   Check,
   X,
   Loader2,
@@ -153,6 +154,9 @@ interface JobRow {
   pickUpTime: string; // HH:mm
   /** Saved jobs: the flight time (HH:mm), the Driver Time fallback when there is no pick-up time. */
   flightTime?: string;
+  /** Saved jobs: B2B / ONLINE / B2C, and the agent's name for ONLINE / B2C (shown in Customer / Agent). */
+  bookingChannel?: string;
+  agentName?: string;
   driverId: string;
   extras: JobExtra[];
   collectionAmount: string;
@@ -546,6 +550,14 @@ function CarDispatchContent() {
   const [loading, setLoading] = useState(true);
   const { view, update: updateView } = useBoardView();
   const [selectedOwnedIds, setSelectedOwnedIds] = useState<Set<string>>(new Set());
+  // Pinned top part folded away (arrow next to the title); remembered on this browser.
+  const [topCollapsed, setTopCollapsed] = useState(false);
+  useEffect(() => {
+    try { setTopCollapsed(localStorage.getItem("cover_top_collapsed") === "1"); } catch { /* private mode */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("cover_top_collapsed", topCollapsed ? "1" : "0"); } catch { /* private mode */ }
+  }, [topCollapsed]);
   const [addCarOpen, setAddCarOpen] = useState(false);
   // Cancel a saved job from its card (same action as the B2B / Online pages: PATCH status CANCELLED).
   const canCancelJobs = usePermission("traffic-jobs.online.table.statusFilter");
@@ -713,6 +725,8 @@ function CarDispatchContent() {
         uid: j.id,
         colors: (j.dispatchColors as JobColors | null) ?? undefined,
         customerId: j.customerId || "",
+        bookingChannel: j.bookingChannel || "",
+        agentName: j.agent?.tradeName || j.agent?.legalName || "",
         customerJobId: j.customerJobId || "",
         bookingNumber: j.internalRef || "",
         // Origin → destination for the From → To column (5.9.2): airport code, else hotel, else zone.
@@ -1292,10 +1306,27 @@ function CarDispatchContent() {
       {/* ─── Page Header: title, date on the right ─── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Traffic Cover</h1>
-          <p className="text-sm text-muted-foreground">
-            Drag jobs from the pool onto a car — or type new ones in a car card
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Cover</h1>
+            {/* Fold the pinned part (selectors + job pool) away to give the car cards more room. */}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setTopCollapsed((v) => !v)}
+              aria-expanded={!topCollapsed}
+              aria-label={topCollapsed ? "Show selectors and job pool" : "Hide selectors and job pool"}
+              title={topCollapsed ? "Show selectors and job pool" : "Hide selectors and job pool"}
+            >
+              {topCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+          </div>
+          {!topCollapsed && (
+            <p className="text-sm text-muted-foreground">
+              Drag jobs from the pool onto a car — or type new ones in a car card
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
@@ -1320,6 +1351,8 @@ function CarDispatchContent() {
         </div>
       </div>
 
+      {/* Selectors + job pool: folded away by the arrow next to the title. */}
+      <div className={cn("flex flex-col gap-3", topCollapsed && "hidden")}>
       {/* ─── One row: car type + car selectors, customer report (customer + the date above → PDF / Excel) ─── */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         {ownedVehicles.length > 0 && (
@@ -1364,6 +1397,7 @@ function CarDispatchContent() {
         onSelectedChange={setPoolSel}
         onDropFromCar={(p) => void backToPool(p.jobs)}
       />
+      </div>
       </div>
 
       {/* ─── Board toolbar: legend + cards per row ─── */}
@@ -1661,7 +1695,7 @@ function routeEnds(routes: RouteOption[], id: string): Partial<JobRow> {
 }
 
 const JOB_COLUMNS: { key: ColKey; label: string; width: number; center?: boolean; fixed?: boolean }[] = [
-  { key: "customer", label: "Customer", width: 140 },
+  { key: "customer", label: "Customer / Agent", width: 150 },
   { key: "booking", label: "Booking #", width: 80 },
   { key: "custJobId", label: "Cust. Job ID", width: 90 },
   { key: "route", label: "Route", width: 200 },
@@ -1995,7 +2029,28 @@ function VehicleCard({
     const base = { key: c.key, title: c.label, width: widthOf(c), align: c.center ? ("center" as const) : undefined };
     switch (c.key) {
       case "customer":
-        return { ...base, type: "select", options: customerOptions, get: (j) => j.customerId, editable: open };
+        // Customer (B2B) or agent (Online / B2C, taken from the job). New rows pick a customer.
+        return {
+          ...base,
+          type: "select",
+          options: customerOptions,
+          get: (j) => j.customerId,
+          editable: open,
+          display: (j) => {
+            if (j.saved && j.bookingChannel && j.bookingChannel !== "B2B") {
+              // Agent names are blue (customers stay plain), so the name keeps the column width.
+              return (
+                <span
+                  className="truncate text-sky-600 dark:text-sky-400"
+                  title={`${j.bookingChannel === "ONLINE" ? "Online" : j.bookingChannel} agent: ${j.agentName || "—"}`}
+                >
+                  {j.agentName || "—"}
+                </span>
+              );
+            }
+            return customerOptions.find((o) => o.value === j.customerId)?.label ?? "";
+          },
+        };
       case "booking":
         return { ...base, type: "readonly", get: (j) => j.bookingNumber, display: (j) => j.bookingNumber || <span className="italic">Auto</span> };
       case "custJobId":
@@ -2025,7 +2080,21 @@ function VehicleCard({
             ),
         };
       case "time":
-        return { ...base, get: (j) => j.pickUpTime, editable: open, placeholder: "HH:MM" };
+        // Job time for every channel: the pick-up time, else the flight time (Online arrivals often
+        // carry only the flight). New rows type a pick-up time.
+        return {
+          ...base,
+          get: (j) => j.pickUpTime,
+          editable: open,
+          placeholder: "HH:MM",
+          display: (j) =>
+            j.pickUpTime ||
+            (j.flightTime ? (
+              <span title={j.serviceType === "DEP" ? "Flight departure time" : "Flight arrival time"}>{j.flightTime}</span>
+            ) : (
+              ""
+            )),
+        };
       case "driverTime":
         // Driver ready time: always 1 h before the job time (pick-up, else the flight time). Never edited.
         return {
