@@ -54,7 +54,7 @@ export function Splash({
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity: out }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <LinearGradient colors={['#000F45', '#001E72', '#1B5FA8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fill}>
+      <LinearGradient colors={['#0E1A2B', '#13233A', '#1B2A40']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fill}>
         <View style={styles.center}>
           <View style={styles.logoWrap}>
             <Animated.View style={[styles.halo, { opacity: haloOpacity, transform: [{ scale: halo }] }]} />
@@ -84,7 +84,7 @@ export function Splash({
               />
             ))}
           </View>
-          <Text style={styles.footerText}>Travel Management System</Text>
+          <Text style={styles.footerText}>iTour Ground Operations</Text>
         </Animated.View>
       </LinearGradient>
     </Animated.View>
@@ -95,10 +95,10 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   logoWrap: { width: 220, height: 220, alignItems: 'center', justifyContent: 'center' },
-  halo: { ...StyleSheet.absoluteFillObject, borderRadius: 110, backgroundColor: '#278ACC' },
+  halo: { ...StyleSheet.absoluteFillObject, borderRadius: 110, backgroundColor: '#FF7A1A' },
   logo: { width: 144, height: 144 },
   title: { color: '#fff', fontSize: 34, fontWeight: '800', letterSpacing: -0.5, marginTop: 4 },
-  titleAccent: { color: '#7CC4F2' },
+  titleAccent: { color: '#FF7A1A' },
   tagline: { color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 6, letterSpacing: 0.3 },
   footer: { alignItems: 'center', paddingBottom: 48 },
   dots: { flexDirection: 'row', gap: 8, marginBottom: 14 },

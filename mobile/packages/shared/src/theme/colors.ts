@@ -1,6 +1,6 @@
 /**
- * iTour mobile palette — built from the iTour brand mark (navy #001E72,
- * sky #278ACC, green #72BA5A, amber #E89638). The keys above `brand` mirror
+ * iTour GO mobile palette (2026-11-23 rebrand): ink #0E1A2B + iTour orange #FF7A1A, with
+ * success / warning / info kept for state. The keys above `brand` mirror
  * the web app's shadcn tokens so every screen keeps compiling; the semantic
  * keys below them (success / warning / info + their soft tints) are what the
  * redesigned screens use for state.
@@ -8,7 +8,7 @@
 
 /**
  * Light theme — owner palette 2026-11-20 (same as the web light mode), 60 / 30 / 10:
- * #F7F2EA warm ivory (main) · #1C2B5A navy (second: headers, buttons, tab accents) ·
+ * #F7F2EA warm ivory (main) · #0E1A2B iTour ink (second: headers, buttons, tab accents) ·
  * #FF7A1A orange (loud: focus, highlights only). Text is black (#000000).
  */
 export const lightColors = {
@@ -18,24 +18,24 @@ export const lightColors = {
   cardForeground: '#000000',
   popover: '#FDFAF5',
   popoverForeground: '#000000',
-  primary: '#1C2B5A',
+  primary: '#0E1A2B',
   primaryForeground: '#FFFFFF',
   secondary: '#EFE7DA',
-  secondaryForeground: '#1C2B5A',
+  secondaryForeground: '#0E1A2B',
   muted: '#EFE7DA',
   mutedForeground: '#4A4F63',
   accent: '#F3E3D1',
-  accentForeground: '#1C2B5A',
+  accentForeground: '#0E1A2B',
   destructive: '#E5484D',
   border: '#E3D8C6',
   input: '#DDD1BD',
   ring: '#FF7A1A',
 
-  brand: '#1C2B5A',
-  brandDeep: '#121D3F',
+  brand: '#0E1A2B',
+  brandDeep: '#08111D',
   brandAccent: '#FF7A1A',
-  brandGradientEnd: '#2A3D78',
-  primarySoft: '#E4E7F0',
+  brandGradientEnd: '#1B2A40',
+  primarySoft: '#E5E8EC',
   success: '#16A34A',
   successSoft: '#E7F7EC',
   warning: '#D97706',
@@ -45,7 +45,7 @@ export const lightColors = {
   destructiveSoft: '#FDECEC',
   violet: '#7C3AED',
   violetSoft: '#F1EAFE',
-  shadow: '#1C2B5A',
+  shadow: '#0E1A2B',
   tabBar: '#FDFAF5',
 };
 
@@ -56,8 +56,8 @@ export const darkColors: typeof lightColors = {
   cardForeground: '#EEF2FA',
   popover: '#0E1730',
   popoverForeground: '#EEF2FA',
-  primary: '#5B9BEA',
-  primaryForeground: '#061233',
+  primary: '#FF7A1A',
+  primaryForeground: '#0E1A2B',
   secondary: '#18243F',
   secondaryForeground: '#EEF2FA',
   muted: '#152039',
@@ -67,13 +67,13 @@ export const darkColors: typeof lightColors = {
   destructive: '#F2555A',
   border: 'rgba(255, 255, 255, 0.08)',
   input: 'rgba(255, 255, 255, 0.14)',
-  ring: '#5B9BEA',
+  ring: '#FF7A1A',
 
-  brand: '#0A1F5C',
-  brandDeep: '#030A24',
-  brandGradientEnd: '#1B5FA8',
-  brandAccent: '#4BA3E0',
-  primarySoft: '#14264A',
+  brand: '#0E1A2B',
+  brandDeep: '#08111D',
+  brandGradientEnd: '#1B2A40',
+  brandAccent: '#FF7A1A',
+  primarySoft: '#2B1D12',
   success: '#34D399',
   successSoft: '#0C2A20',
   warning: '#F5A524',

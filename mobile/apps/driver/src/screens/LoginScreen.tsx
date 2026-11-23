@@ -70,7 +70,7 @@ export function LoginScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" bounces={false}>
           <LinearGradient
-            colors={['#000F45', '#001E72', '#1B5FA8']}
+            colors={['#0E1A2B', '#13233A', '#1B2A40']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.hero, { paddingTop: insets.top + 40 }]}
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   logo: { width: 108, height: 108 },
   brand: { color: '#fff', fontSize: 30, fontWeight: '800', marginTop: 16, letterSpacing: -0.4 },
-  brandAccent: { color: '#7CC4F2' },
+  brandAccent: { color: '#FF7A1A' },
   tagline: { color: 'rgba(255,255,255,0.72)', fontSize: 14, marginTop: 4 },
   card: {
     marginHorizontal: 20,

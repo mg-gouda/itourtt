@@ -158,7 +158,7 @@ export function JobsListScreen() {
                 <HeaderStat
                   value={stats.onTrip}
                   label={filterLabel.onTrip}
-                  accent="#7CC4F2"
+                  accent="#FF7A1A"
                   loading={loading}
                   active={filter === 'onTrip'}
                   onPress={() => toggle('onTrip')}
