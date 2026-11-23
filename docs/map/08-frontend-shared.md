@@ -445,14 +445,14 @@ Shared filter bar for the list screens.
 
 ### `theme-provider.tsx`
 
-`frontend/src/components/theme-provider.tsx` · 250 lines
+`frontend/src/components/theme-provider.tsx` · 272 lines
 
 Light/dark theme context.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `useTheme` | function | 52 | Reads and sets the active theme. |
-| `ThemeProvider` | function | 56 | Light/dark theme context provider. |
+| `useTheme` | function | 62 | Reads and sets the active theme. |
+| `ThemeProvider` | function | 66 | Light/dark theme context provider. |
 
 ### `trip-km-reminder.tsx`
 

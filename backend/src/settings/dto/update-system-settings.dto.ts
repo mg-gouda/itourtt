@@ -1,5 +1,7 @@
 import { IsIn, IsOptional, IsString, Matches } from 'class-validator';
 
+const UPLOAD_PATH = /^\/uploads\/[\w.\-]+$/;
+
 export class UpdateSystemSettingsDto {
   @IsOptional()
   @IsString()
@@ -32,4 +34,21 @@ export class UpdateSystemSettingsDto {
   @IsOptional()
   @IsString()
   googleMapsApiKey?: string;
+
+  // Styling images. Uploads go through their own POST endpoints; here they can
+  // only be cleared (null) or set back to an already-uploaded /uploads/ file.
+  @IsOptional()
+  @IsString()
+  @Matches(UPLOAD_PATH, { message: 'innerBgImageUrl must be null or an /uploads/ path' })
+  innerBgImageUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @Matches(UPLOAD_PATH, { message: 'loginBgImageUrl must be null or an /uploads/ path' })
+  loginBgImageUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @Matches(UPLOAD_PATH, { message: 'loginLogoUrl must be null or an /uploads/ path' })
+  loginLogoUrl?: string | null;
 }

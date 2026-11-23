@@ -1008,31 +1008,31 @@ All persisted configuration: system, company, email, website (B2C), Google Drive
 |---|---|---|---|---|
 | `getSystemSettings` | pub | 117 | `systemSettings` | Global system settings singleton. |
 | `updateSystemSettings` | pub | 125 | `systemSettings` | Updates the system settings singleton. |
-| `getCompanySettings` | pub | 160 | `companySettings` | Company identity and branding used on invoices, PDFs and the dashboard. |
-| `updateCompanySettings` | pub | 168 | `companySettings` | Updates company identity/branding. |
-| `getGeofenceSettings` | pub | 209 | — | Returns the geofence radii via getGeofenceRadii. |
-| `updateGeofenceSettings` | pub | 213 | `companySettings` | Writes geofenceAirportMeters/geofenceOtherMeters on the company_settings singleton (creating it if missing). |
-| `noKeyStatus` | priv | 233 | — | The licence status returned when no public key is configured at all. |
-| `evaluate` | priv | 245 | `companySettings` | Runs the licence check and normalises it into a status. Everything licence-related funnels through here. |
-| `getLicenseStatus` | pub | 285 | `companySettings` | Current licence status for the UI gate. An invalid licence hard-blocks every portal. |
-| `recheckLicense` | pub | 294 | `companySettings` | Forces a fresh licence check against the licence server. |
-| `activateLicense` | pub | 302 | `companySettings` | Stores a new licence token/key and re-evaluates. Production needs LICENSE_SERVER_URL plus LICENSE_PUBLIC_KEY. |
-| `updateLogo` | pub | 329 | `companySettings` | Replaces the company logo asset. |
-| `updateFavicon` | pub | 347 | `companySettings` | Replaces the company favicon. |
-| `getEmailSettings` | pub | 369 | `emailSettings` | SMTP settings with the password redacted — safe for the admin UI. |
-| `updateEmailSettings` | pub | 381 | `emailSettings` | Updates SMTP settings; must trigger `EmailService.reloadTransporter` or the old transport stays cached. |
-| `getEmailSettingsRaw` | pub | 431 | `emailSettings` | SMTP settings INCLUDING the password — server-side callers only, never return this to a client. |
-| `getWebsiteSettings` | pub | 440 | `websiteSettings` | B2C website settings: branding, hero content, notification recipients, feature toggles such as AI Mode. |
-| `updateWebsiteSettings` | pub | 448 | `websiteSettings` | Updates B2C website settings. |
-| `updateSiteLogo` | pub | 542 | `websiteSettings` | Replaces the B2C site logo. Must be raster — email clients do not render SVG. |
-| `updateSiteFavicon` | pub | 560 | `websiteSettings` | Replaces the B2C site favicon. |
-| `updateHeroImage` | pub | 578 | `websiteSettings` | Replaces the B2C homepage hero image. |
-| `updateInnerBgImage` | pub | 596 | `systemSettings` | Replaces the dashboard inner-page background. |
-| `updateLoginBgImage` | pub | 604 | `systemSettings` | Replaces the login screen background. |
-| `updateLoginLogoImage` | pub | 612 | `systemSettings` | Replaces the login screen logo. |
-| `getGoogleDriveSettings` | pub | 624 | `googleDriveSettings` | Drive integration status and folder configuration, without tokens. |
-| `disconnectGoogleDrive` | pub | 637 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
-| `updateGoogleDriveSettings` | pub | 646 | `googleDriveSettings` | Updates Drive folder configuration. |
+| `getCompanySettings` | pub | 164 | `companySettings` | Company identity and branding used on invoices, PDFs and the dashboard. |
+| `updateCompanySettings` | pub | 172 | `companySettings` | Updates company identity/branding. |
+| `getGeofenceSettings` | pub | 213 | — | Returns the geofence radii via getGeofenceRadii. |
+| `updateGeofenceSettings` | pub | 217 | `companySettings` | Writes geofenceAirportMeters/geofenceOtherMeters on the company_settings singleton (creating it if missing). |
+| `noKeyStatus` | priv | 237 | — | The licence status returned when no public key is configured at all. |
+| `evaluate` | priv | 249 | `companySettings` | Runs the licence check and normalises it into a status. Everything licence-related funnels through here. |
+| `getLicenseStatus` | pub | 289 | `companySettings` | Current licence status for the UI gate. An invalid licence hard-blocks every portal. |
+| `recheckLicense` | pub | 298 | `companySettings` | Forces a fresh licence check against the licence server. |
+| `activateLicense` | pub | 306 | `companySettings` | Stores a new licence token/key and re-evaluates. Production needs LICENSE_SERVER_URL plus LICENSE_PUBLIC_KEY. |
+| `updateLogo` | pub | 333 | `companySettings` | Replaces the company logo asset. |
+| `updateFavicon` | pub | 351 | `companySettings` | Replaces the company favicon. |
+| `getEmailSettings` | pub | 373 | `emailSettings` | SMTP settings with the password redacted — safe for the admin UI. |
+| `updateEmailSettings` | pub | 385 | `emailSettings` | Updates SMTP settings; must trigger `EmailService.reloadTransporter` or the old transport stays cached. |
+| `getEmailSettingsRaw` | pub | 435 | `emailSettings` | SMTP settings INCLUDING the password — server-side callers only, never return this to a client. |
+| `getWebsiteSettings` | pub | 444 | `websiteSettings` | B2C website settings: branding, hero content, notification recipients, feature toggles such as AI Mode. |
+| `updateWebsiteSettings` | pub | 452 | `websiteSettings` | Updates B2C website settings. |
+| `updateSiteLogo` | pub | 546 | `websiteSettings` | Replaces the B2C site logo. Must be raster — email clients do not render SVG. |
+| `updateSiteFavicon` | pub | 564 | `websiteSettings` | Replaces the B2C site favicon. |
+| `updateHeroImage` | pub | 582 | `websiteSettings` | Replaces the B2C homepage hero image. |
+| `updateInnerBgImage` | pub | 600 | `systemSettings` | Replaces the dashboard inner-page background. |
+| `updateLoginBgImage` | pub | 608 | `systemSettings` | Replaces the login screen background. |
+| `updateLoginLogoImage` | pub | 616 | `systemSettings` | Replaces the login screen logo. |
+| `getGoogleDriveSettings` | pub | 628 | `googleDriveSettings` | Drive integration status and folder configuration, without tokens. |
+| `disconnectGoogleDrive` | pub | 641 | `googleDriveSettings` | Clears stored Drive OAuth tokens, forcing an admin reconnect. |
+| `updateGoogleDriveSettings` | pub | 650 | `googleDriveSettings` | Updates Drive folder configuration. |
 
 ## `supplier-price-lists`
 

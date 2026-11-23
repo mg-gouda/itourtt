@@ -10,6 +10,16 @@ import {
 } from "react";
 import api from "@/lib/api";
 
+/** Ink or white text, whichever reads better on the given #RRGGBB background (WCAG luminance). */
+function readableOn(hex: string): string {
+  const lin = (i: number) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const L = 0.2126 * lin(1) + 0.7152 * lin(3) + 0.0722 * lin(5);
+  return L > 0.179 ? "#0E1A2B" : "#FFFFFF";
+}
+
 interface SystemSettings {
   theme: "light" | "dark";
   primaryColor: string;
@@ -204,12 +214,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // The configurable sidebar colour is the DARK rail only. In light mode the
     // sidebar follows the CSS light tokens (ResLite slate-200) — so clear the
     // inline override there instead of forcing the dark brand colour.
+    // Same rule for the Styling primary colour: in dark mode it drives buttons, focus
+    // rings and the active sidebar item (it used to be set only as --primary-hex, which
+    // nothing reads, so a saved colour never showed). Light mode keeps the owner's
+    // ivory / ink palette from globals.css.
+    const PRIMARY_VARS = ["--primary", "--ring", "--sidebar-primary", "--sidebar-ring"];
+    const PRIMARY_FG_VARS = ["--primary-foreground", "--sidebar-primary-foreground"];
     if (settings.theme === "dark") {
       root.style.setProperty("--sidebar", settings.sidebarColor);
       root.style.setProperty("--sidebar-gradient-end", settings.sidebarColor + "99");
+      if (/^#[0-9a-fA-F]{6}$/.test(settings.primaryColor)) {
+        const fg = readableOn(settings.primaryColor);
+        PRIMARY_VARS.forEach((v) => root.style.setProperty(v, settings.primaryColor));
+        PRIMARY_FG_VARS.forEach((v) => root.style.setProperty(v, fg));
+      }
     } else {
       root.style.removeProperty("--sidebar");
       root.style.removeProperty("--sidebar-gradient-end");
+      [...PRIMARY_VARS, ...PRIMARY_FG_VARS].forEach((v) => root.style.removeProperty(v));
     }
   }, [settings.primaryColor, settings.accentColor, settings.sidebarColor, settings.theme]);
 

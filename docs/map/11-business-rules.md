@@ -692,6 +692,11 @@ It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web
   Styling override the built-in defaults. With nothing saved, the login page shows the iTour GO
   lockup on a plain ink background (there is no bundled background photo any more).
 - If the company logo file can't load, the sidebar falls back to the iTour GO logo.
+- **Styling saves (5.5.1):** removing an image (dashboard background, login background, login
+  logo) saves at once (PATCH `/settings/system` with the field set to `null`); Save also sends
+  the current images. The API accepts only `null` or an existing `/uploads/` path for them.
+  In dark mode the saved Primary colour drives `--primary`, `--ring` and the active sidebar item,
+  with ink or white text picked by contrast; light mode keeps the ivory / ink palette.
 
 ## Traffic Cover (Car Dispatch) highlight colours (2026-11-21)
 

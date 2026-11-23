@@ -45,7 +45,7 @@
 | `/dashboard/reps` | `frontend/src/app/(dashboard)/dashboard/reps/page.tsx` | 954 | 11 | 13 | Rep management: records, zone coverage, portal accounts and fees. A rep with no zone never appears in dispatch. |
 | `/dashboard/reps/[id]` | `frontend/src/app/(dashboard)/dashboard/reps/[id]/page.tsx` | 771 | 9 | — | One rep's detail, zones and fee history. |
 | `/dashboard/routes` | `frontend/src/app/(dashboard)/dashboard/routes/page.tsx` | 413 | 8 | 2 | System Parameters › Routes: search, add, edit (English \| Arabic, default type, From/To), deactivate, delete unused routes |
-| `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 578 | — | — | Theme and appearance settings. |
+| `/dashboard/styling` | `frontend/src/app/(dashboard)/dashboard/styling/page.tsx` | 594 | — | — | Theme and appearance settings. |
 | `/dashboard/supplier-price-lists` | `frontend/src/app/(dashboard)/dashboard/supplier-price-lists/page.tsx` | 431 | 11 | 2 | Supplier Price Lists page: list tabs, flags, route × car-type price grid, Excel import/export. |
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1396 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
 | `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 313 | 4 | 2 | One supplier's detail. |

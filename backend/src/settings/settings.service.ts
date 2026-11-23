@@ -136,6 +136,10 @@ export class SettingsService {
           ...(dto.fontFamily !== undefined && { fontFamily: dto.fontFamily }),
           ...(dto.language !== undefined && { language: dto.language }),
           ...(dto.googleMapsApiKey !== undefined && { googleMapsApiKey: dto.googleMapsApiKey || null }),
+          // null clears the image (Styling › remove); undefined leaves it alone.
+          ...(dto.innerBgImageUrl !== undefined && { innerBgImageUrl: dto.innerBgImageUrl }),
+          ...(dto.loginBgImageUrl !== undefined && { loginBgImageUrl: dto.loginBgImageUrl }),
+          ...(dto.loginLogoUrl !== undefined && { loginLogoUrl: dto.loginLogoUrl }),
         },
       });
     }

@@ -400,6 +400,22 @@ export default function StylingPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  /** Removing an image saves at once (it used to clear only the screen, so it came back on reload). */
+  async function removeImage(
+    field: "innerBgImageUrl" | "loginBgImageUrl" | "loginLogoUrl",
+    previous: string | null,
+    set: (v: string | null) => void,
+  ) {
+    set(null);
+    try {
+      await updateSettings({ [field]: null });
+      toast.success("Image removed");
+    } catch {
+      set(previous);
+      toast.error("Could not remove the image");
+    }
+  }
+
   async function handleSave() {
     setSubmitting(true);
     try {
@@ -410,6 +426,9 @@ export default function StylingPage() {
         primaryColor,
         accentColor,
         sidebarColor,
+        innerBgImageUrl,
+        loginBgImageUrl,
+        loginLogoUrl,
       });
       toast.success(t("styling.settingsSaved"));
     } catch {
@@ -525,10 +544,7 @@ export default function StylingPage() {
                 setInnerBgImageUrl(url);
                 updateSettings({ innerBgImageUrl: url });
               }}
-              onRemoved={() => {
-                setInnerBgImageUrl(null);
-                updateSettings({ innerBgImageUrl: null as unknown as string });
-              }}
+              onRemoved={() => void removeImage("innerBgImageUrl", innerBgImageUrl, setInnerBgImageUrl)}
             />
 
             <ImageUploadRow
@@ -538,7 +554,7 @@ export default function StylingPage() {
               accept="image/png,image/jpeg,image/svg+xml"
               endpoint="/settings/system/login-bg"
               onUploaded={(url) => setLoginBgImageUrl(url)}
-              onRemoved={() => setLoginBgImageUrl(null)}
+              onRemoved={() => void removeImage("loginBgImageUrl", loginBgImageUrl, setLoginBgImageUrl)}
             />
 
             <ImageUploadRow
@@ -548,7 +564,7 @@ export default function StylingPage() {
               accept="image/png,image/jpeg,image/svg+xml"
               endpoint="/settings/system/login-logo"
               onUploaded={(url) => setLoginLogoUrl(url)}
-              onRemoved={() => setLoginLogoUrl(null)}
+              onRemoved={() => void removeImage("loginLogoUrl", loginLogoUrl, setLoginLogoUrl)}
             />
           </div>
 
