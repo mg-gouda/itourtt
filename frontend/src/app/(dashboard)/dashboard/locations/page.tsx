@@ -37,6 +37,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { SearchableCombobox } from "@/components/searchable-combobox";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
@@ -358,6 +359,9 @@ export default function LocationsPage() {
   const [editCode, setEditCode] = useState("");
   const [editPlace, setEditPlace] = useState<PlaceResult | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
+  // Zone "Counts as (for routes)" (5.7.0): "" = none. Loaded when a zone's edit dialog opens.
+  const [editRouteZoneId, setEditRouteZoneId] = useState("");
+  const [zoneOptions, setZoneOptions] = useState<{ value: string; label: string }[]>([]);
 
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -548,6 +552,22 @@ export default function LocationsPage() {
     setEditName(name);
     setEditCode(code || "");
     setEditPlace(null);
+    setEditRouteZoneId("");
+    if (level === "zone") {
+      api.get("/locations/zones")
+        .then(({ data }) => {
+          const zones: { id: string; name: string; city?: { name: string } | null; routeZoneId?: string | null }[] =
+            Array.isArray(data) ? data : data?.data ?? [];
+          setEditRouteZoneId(zones.find((z) => z.id === id)?.routeZoneId ?? "");
+          // Only zones that are not themselves mapped can be picked (one hop).
+          setZoneOptions(
+            zones
+              .filter((z) => z.id !== id && !z.routeZoneId)
+              .map((z) => ({ value: z.id, label: z.city?.name ? `${z.name} — ${z.city.name}` : z.name })),
+          );
+        })
+        .catch(() => setZoneOptions([]));
+    }
   }
 
   async function handleEditSubmit() {
@@ -572,6 +592,7 @@ export default function LocationsPage() {
         payload.longitude = editPlace.lng;
         payload.placeId = editPlace.placeId;
       }
+      if (editDialog.level === "zone") payload.routeZoneId = editRouteZoneId || null;
 
       await api.patch(`${config.endpoint}/${editDialog.id}`, payload);
       toast.success(`${t(config.label)} updated`);
@@ -1229,6 +1250,36 @@ export default function LocationsPage() {
                 </p>
               )}
             </div>
+
+            {editDialog.level === "zone" && (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">
+                  Counts as (for routes)
+                  <span className="ml-1 text-xs text-muted-foreground/60">(optional)</span>
+                </Label>
+                <div className="flex gap-2">
+                  <div className="min-w-0 flex-1">
+                    <SearchableCombobox
+                      items={zoneOptions}
+                      value={editRouteZoneId}
+                      onChange={setEditRouteZoneId}
+                      placeholder="This zone's own routes"
+                      searchPlaceholder="Search zones…"
+                      emptyText="No zones found."
+                      triggerClassName="border-border bg-card text-foreground"
+                    />
+                  </div>
+                  {editRouteZoneId && (
+                    <Button type="button" variant="outline" onClick={() => setEditRouteZoneId("")}>
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Jobs in this zone get the chosen zone&apos;s routes (e.g. Safaga → Safaga Center).
+                </p>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

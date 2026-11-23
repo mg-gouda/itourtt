@@ -395,10 +395,10 @@ Resolves a job's route from its ends + notes; used on job create/update, B2C con
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `loadRmf` | priv | 44 | `rmfHotel` | Loads active RMF hotels in section / sort order with the fields the matcher needs. |
-| `data` | priv | 53 | `jobServiceType` | Active routes + active RMF hotels, cached for 60 s. |
-| `resolve` | pub | 66 | `hotel` | Hotel → its zone; candidates = active routes with the job's default service type and matching From/To; one → it; several → RMF notes rule (notes + hotel names); else null. |
-| `backfill` | pub | 106 | `trafficJob` | Gives a route to online / B2C jobs from a date on that have none; returns checked / set / ambiguous / noMatch counts. |
+| `loadRmf` | priv | 50 | `rmfHotel` | Loads active RMF hotels in section / sort order with the fields the matcher needs. |
+| `data` | priv | 59 | `jobServiceType` `zone` | Active routes + active RMF hotels, cached for 60 s. |
+| `resolve` | pub | 74 | `hotel` | Hotel → its zone; candidates = active routes with the job's default service type and matching From/To; one → it; several → RMF notes rule (notes + hotel names); else null. |
+| `backfill` | pub | 116 | `trafficJob` | Gives a route to online / B2C jobs from a date on that have none; returns checked / set / ambiguous / noMatch counts. |
 
 ## `locations`
 
@@ -464,17 +464,17 @@ REST surface for the location tree — one create/update/delete trio per level, 
 | `updateAirport` | pub | 374 | `airport` `country` | Edits an airport, including moving it between countries. |
 | `updateCity` | pub | 397 | `city` `airport` | Edits a city, including re-parenting to another airport. |
 | `updateZone` | pub | 419 | `zone` `city` | Edits a zone, including re-parenting to another city. Changing a zone moves the pricing unit — check price lists. |
-| `updateHotel` | pub | 441 | `hotel` `zone` | Edits a hotel, including moving it to another zone (which changes its price). |
-| `deleteCountry` | pub | 477 | `country` | Soft-deletes a country. |
-| `deleteAirport` | pub | 489 | `airport` | Soft-deletes an airport. |
-| `deleteCity` | pub | 501 | `city` | Soft-deletes a city. |
-| `deleteZone` | pub | 513 | `zone` | Soft-deletes a zone. |
-| `deleteHotel` | pub | 525 | `hotel` | Soft-deletes a hotel. |
-| `exportToExcel` | pub | 537 | — | Exports the whole tree to xlsx. |
-| `generateImportTemplate` | pub | 612 | — | Produces the blank import workbook with the expected columns per level. |
-| `importFromExcel` | pub | 713 | `country` `airport` `city` `zone` `hotel` | Bulk-imports the tree, creating each level in hierarchy order and matching existing nodes rather than duplicating. |
-| `updateLocationCoordinates` | pub | 939 | `country` `airport` `city` `zone` `hotel` | Sets lat/lng on one node. These coordinates are what the driver and rep geofence targets resolve to — a node with no coordinates disables the check for that job. |
-| `batchGeocode` | pub | 972 | `airport` `city` `zone` `hotel` | Bulk-geocodes airports, cities, zones and hotels that are missing coordinates. |
+| `updateHotel` | pub | 452 | `hotel` `zone` | Edits a hotel, including moving it to another zone (which changes its price). |
+| `deleteCountry` | pub | 488 | `country` | Soft-deletes a country. |
+| `deleteAirport` | pub | 500 | `airport` | Soft-deletes an airport. |
+| `deleteCity` | pub | 512 | `city` | Soft-deletes a city. |
+| `deleteZone` | pub | 524 | `zone` | Soft-deletes a zone. |
+| `deleteHotel` | pub | 536 | `hotel` | Soft-deletes a hotel. |
+| `exportToExcel` | pub | 548 | — | Exports the whole tree to xlsx. |
+| `generateImportTemplate` | pub | 623 | — | Produces the blank import workbook with the expected columns per level. |
+| `importFromExcel` | pub | 724 | `country` `airport` `city` `zone` `hotel` | Bulk-imports the tree, creating each level in hierarchy order and matching existing nodes rather than duplicating. |
+| `updateLocationCoordinates` | pub | 950 | `country` `airport` `city` `zone` `hotel` | Sets lat/lng on one node. These coordinates are what the driver and rep geofence targets resolve to — a node with no coordinates disables the check for that job. |
+| `batchGeocode` | pub | 983 | `airport` `city` `zone` `hotel` | Bulk-geocodes airports, cities, zones and hotels that are missing coordinates. |
 
 ### PinVerifierService
 

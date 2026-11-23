@@ -538,6 +538,12 @@ model Zone {
   serviceTypesFrom  JobServiceType[]  @relation("ServiceTypeFromZone")
   serviceTypesTo    JobServiceType[]  @relation("ServiceTypeToZone")
 
+  /// "Counts as (for routes)": route lookup treats this zone as that one (e.g. Safaga → Safaga
+  /// Center, El Kawthar → Hurghada Center). Business rules › Route from origin / destination.
+  routeZoneId  String? @map("route_zone_id")
+  routeZone    Zone?   @relation("ZoneRouteZone", fields: [routeZoneId], references: [id], onDelete: SetNull)
+  routeAliases Zone[]  @relation("ZoneRouteZone")
+
   @@index([cityId])
   @@map("zones")
 }

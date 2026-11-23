@@ -37,7 +37,13 @@ type RouteRow = {
 @Injectable()
 export class RouteResolverService {
   private readonly logger = new Logger(RouteResolverService.name);
-  private cache: { at: number; routes: RouteRow[]; rmf: Awaited<ReturnType<RouteResolverService['loadRmf']>> } | null = null;
+  private cache: {
+    at: number;
+    routes: RouteRow[];
+    rmf: Awaited<ReturnType<RouteResolverService['loadRmf']>>;
+    /** zone → the zone it "counts as" for routes (5.7.0). */
+    routeZoneOf: Map<string, string>;
+  } | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -49,17 +55,19 @@ export class RouteResolverService {
     });
   }
 
-  /** Routes + RMF hotels, cached for a minute (route edits show up within that). */
+  /** Routes + RMF hotels + zone mappings, cached for a minute (edits show up within that). */
   private async data() {
     if (this.cache && Date.now() - this.cache.at < 60_000) return this.cache;
-    const [routes, rmf] = await Promise.all([
+    const [routes, rmf, mapped] = await Promise.all([
       this.prisma.jobServiceType.findMany({
         where: { isActive: true },
         select: { id: true, name: true, defaultServiceType: true, fromAirportId: true, fromZoneId: true, toAirportId: true, toZoneId: true },
       }),
       this.loadRmf(),
+      this.prisma.zone.findMany({ where: { routeZoneId: { not: null } }, select: { id: true, routeZoneId: true } }),
     ]);
-    this.cache = { at: Date.now(), routes: routes as RouteRow[], rmf };
+    const routeZoneOf = new Map(mapped.map((z) => [z.id, z.routeZoneId as string]));
+    this.cache = { at: Date.now(), routes: routes as RouteRow[], rmf, routeZoneOf };
     return this.cache;
   }
 
@@ -70,11 +78,13 @@ export class RouteResolverService {
       ? await this.prisma.hotel.findMany({ where: { id: { in: hotelIds } }, select: { id: true, name: true, zoneId: true } })
       : [];
     const hotel = (id?: string | null) => (id ? hotels.find((h) => h.id === id) : undefined);
-    const from = { airport: e.originAirportId || null, zone: e.originZoneId || hotel(e.originHotelId)?.zoneId || null };
-    const to = { airport: e.destinationAirportId || null, zone: e.destinationZoneId || hotel(e.destinationHotelId)?.zoneId || null };
+    const { routes, rmf, routeZoneOf } = await this.data();
+    // A zone mapped "counts as" another zone uses that zone's routes.
+    const asRouteZone = (z: string | null) => (z ? routeZoneOf.get(z) ?? z : null);
+    const from = { airport: e.originAirportId || null, zone: asRouteZone(e.originZoneId || hotel(e.originHotelId)?.zoneId || null) };
+    const to = { airport: e.destinationAirportId || null, zone: asRouteZone(e.destinationZoneId || hotel(e.destinationHotelId)?.zoneId || null) };
     if (!(from.airport || from.zone) || !(to.airport || to.zone)) return { routeId: null, routeName: null, how: 'none' };
 
-    const { routes, rmf } = await this.data();
     const endMatches = (airport: string | null, zone: string | null, end: { airport: string | null; zone: string | null }) =>
       airport ? airport === end.airport : zone ? zone === end.zone : false;
     const candidates = routes.filter(

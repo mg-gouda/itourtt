@@ -269,7 +269,7 @@ export class LocationsService {
     return this.prisma.zone.findMany({
       where: { deletedAt: null, ...(cityId ? { cityId } : {}) },
       orderBy: { name: 'asc' },
-      include: { city: true },
+      include: { city: true, routeZone: { select: { id: true, name: true } } },
     });
   }
 
@@ -425,6 +425,16 @@ export class LocationsService {
       if (!city) throw new NotFoundException(`City with id ${dto.cityId} not found`);
     }
 
+    // "Counts as (for routes)": one hop only — not itself, and not a zone that is itself mapped.
+    if (dto.routeZoneId) {
+      if (dto.routeZoneId === id) throw new BadRequestException('A zone cannot count as itself');
+      const target = await this.prisma.zone.findUnique({ where: { id: dto.routeZoneId, deletedAt: null } });
+      if (!target) throw new NotFoundException(`Zone with id ${dto.routeZoneId} not found`);
+      if (target.routeZoneId) {
+        throw new BadRequestException(`"${target.name}" itself counts as another zone — pick that zone instead`);
+      }
+    }
+
     return this.prisma.zone.update({
       where: { id },
       data: {
@@ -433,8 +443,9 @@ export class LocationsService {
         ...(dto.latitude !== undefined && { latitude: dto.latitude }),
         ...(dto.longitude !== undefined && { longitude: dto.longitude }),
         ...(dto.placeId !== undefined && { placeId: dto.placeId }),
+        ...(dto.routeZoneId !== undefined && { routeZoneId: dto.routeZoneId || null }),
       },
-      include: { city: true },
+      include: { city: true, routeZone: { select: { id: true, name: true } } },
     });
   }
 

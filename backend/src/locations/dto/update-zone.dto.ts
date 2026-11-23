@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsUUID } from 'class-validator';
 
 export class UpdateZoneDto {
   @IsOptional()
@@ -20,4 +20,9 @@ export class UpdateZoneDto {
   @IsOptional()
   @IsString()
   placeId?: string;
+
+  /** "Counts as (for routes)": another zone whose routes this zone uses; null clears it. */
+  @IsOptional()
+  @IsUUID()
+  routeZoneId?: string | null;
 }

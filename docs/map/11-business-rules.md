@@ -706,8 +706,18 @@ route so the job shows one in the Traffic Cover pool, lists and reports
 4. **Several** (e.g. RMF → Marsa Alam Center fits ARR-MARSA ALAM / NORTH / SOUTH): the **RMF notes
    rule** decides. If the job notes or the hotel name name an RMF hotel, the job gets that area's
    route for its leg. If nothing decides, there is no route, and staff pick it.
-5. Zones that no route uses get no route. For example, the duplicate "HURGHADA" / "Safaga" zones
-   next to "Hurghada Center" / "Safaga Center", or El Kawthar and Luxor as arrival ends.
+5. **Zone "Counts as (for routes)" (5.7.0):** a zone can point at another zone, set in Locations ›
+   edit zone. The lookup then uses that zone's routes, including for hotels in it. Owner's
+   mappings (2026-11-23):
+   - Safaga → Safaga Center
+   - Soma Bay → Safaga Center
+   - HURGHADA → Hurghada Center
+   - El Kawthar → Hurghada Center
+
+   It is one hop only: a zone can't count as itself or as a zone that is itself mapped. Mappings
+   take effect within a minute (the lookup cache).
+6. Zones still not covered get no route. For example, Luxor as an arrival end stays empty, by the
+   owner's choice, and staff pick TRANSFER-LUXOR or another route.
 
 **When it runs:**
 - **Saving a job without a route:** create, or an edit that doesn't send one. On an edit it runs
