@@ -679,6 +679,18 @@ It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web
   car/driver/rep section. New B2B jobs wait in the pool, and editing a job no longer re-sends its
   assignment.
 
+## Driver Time (5.8.0, 2026-11-23)
+
+**Driver Time** is when the driver must be ready for a job: always **1 hour before the job time**,
+for arrivals, departures and every other job. It is calculated, never stored or edited, so it
+follows the job time whenever that changes (`lib/driver-time.ts`, `DRIVER_LEAD_MINUTES = 60`).
+
+- **Traffic Cover:** a Driver Time column after Time in every car card. Job time = the row's pick-up
+  time, else its flight time (departure for DEP, arrival otherwise).
+- **Dispatch:** a Driver Time column in the jobs table, and "Drv HH:MM" beside each trip in the
+  fleet overview cards (per car). Job time = the page's existing rule: ARR → flight arrival, else
+  pick-up; others → pick-up, else the flight time. Times are in Cairo time.
+
 ## Chat unread counts (5.6.1, 2026-11-23)
 
 The chat badge, inbox rows and the Announcements row count **unread items only**:

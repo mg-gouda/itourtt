@@ -69,6 +69,7 @@ import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate, cn } from "@/lib/utils";
+import { driverTimeFromDate } from "@/lib/driver-time";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePermission } from "@/hooks/use-permission";
 import { SERVICE_TYPE_COLORS_SOLID, useServiceTypeLabel } from "@/lib/service-types";
@@ -1225,6 +1226,7 @@ function JobGrid({
             <TableHead className="text-muted-foreground text-xs w-24">{t("jobs.flightNumber")}</TableHead>
             <TableHead className="text-muted-foreground text-xs w-20">Flight Time</TableHead>
             {showPickUpTime && <TableHead className="text-muted-foreground text-xs w-20">{t("jobs.pickUpTime")}</TableHead>}
+            <TableHead className="text-muted-foreground text-xs w-20" title="When the driver must be ready: 1 hour before the job time">Driver Time</TableHead>
             <TableHead className="text-muted-foreground text-xs w-20">Terminal</TableHead>
             <TableHead className="text-muted-foreground text-xs w-36">{t("dispatch.carSource")}</TableHead>
             <TableHead className="text-muted-foreground text-xs w-36">{t("dispatch.vehicle")}</TableHead>
@@ -1344,6 +1346,9 @@ function JobGrid({
                     {fmtTime(job.pickUpTime ?? undefined, locale) || "—"}
                   </TableCell>
                 )}
+                <TableCell className="text-xs font-mono font-semibold text-amber-600 dark:text-amber-400">
+                  {fmtTime(driverTimeFromDate(getJobTime(job))?.toISOString(), locale) || "—"}
+                </TableCell>
                 <TableCell className="text-muted-foreground text-xs font-mono">
                   {job.flight?.terminal || "—"}
                 </TableCell>
@@ -1707,6 +1712,7 @@ function VehicleFleetOverview({
               <div className="space-y-1 border-t border-border pt-2">
                 {vjobs.map((job) => {
                   const jobTime = getJobTime(job);
+                  const driverAt = driverTimeFromDate(jobTime);
                   const jobDriver =
                     job.assignment?.driver?.name ?? job.assignment?.externalDriverName ?? null;
                   const deductible = canDeduct;
@@ -1727,8 +1733,18 @@ function VehicleFleetOverview({
                         >
                           {serviceTypeLabel(job.serviceType)}
                         </span>
-                        <span className="font-mono text-[10px] text-muted-foreground">
-                          {jobTime ? fmtTime(jobTime.toISOString(), locale) : "—"}
+                        <span className="flex items-center gap-1.5 font-mono text-[10px]">
+                          {driverAt && (
+                            <span
+                              className="font-semibold text-amber-600 dark:text-amber-400"
+                              title="Driver Time: ready 1 hour before the job"
+                            >
+                              Drv {fmtTime(driverAt.toISOString(), locale)}
+                            </span>
+                          )}
+                          <span className="text-muted-foreground">
+                            {jobTime ? fmtTime(jobTime.toISOString(), locale) : "—"}
+                          </span>
                         </span>
                       </div>
                       <div className="flex items-center justify-between">

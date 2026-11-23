@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**125 files**, **440 exported symbols**.
+**126 files**, **443 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -1303,6 +1303,18 @@ Browser-side photo shrink for the evidence dialogs so phone originals do not ove
 |---|---|---|---|
 | `compressImage` | function | 11 | Resizes one image to 1600px JPEG 0.82 with EXIF rotation applied; returns the original on any failure or if not smaller |
 | `compressImages` | function | 45 | compressImage over a list, in parallel |
+
+### `driver-time.ts`
+
+`frontend/src/lib/driver-time.ts` · 19 lines
+
+Driver Time (5.8.0): when the driver must be ready — the job time minus 1 hour; shown on Dispatch and Traffic Cover, never stored.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `DRIVER_LEAD_MINUTES` | const | 5 | How long before the job time the driver must be ready: 60 minutes. |
+| `driverTimeFromHHMM` | function | 8 | "HH:MM" job time → "HH:MM" driver time (minus the lead, wrapping past midnight); "" for no / bad input. |
+| `driverTimeFromDate` | function | 16 | Job instant → driver ready instant (minus the lead); null in, null out. |
 
 ### `gps.ts`
 

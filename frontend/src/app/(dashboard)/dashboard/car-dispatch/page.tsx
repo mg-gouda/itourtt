@@ -53,6 +53,7 @@ import {
   Undo2,
   EyeOff,
 } from "lucide-react";
+import { driverTimeFromHHMM } from "@/lib/driver-time";
 import { JobPool, setDragJobs, readDragJobs, isJobsDrag, type PoolJob, type DragJobsPayload } from "@/components/traffic-cover/job-pool";
 import { cn, isPastServiceDate } from "@/lib/utils";
 import { type JobExtra } from "@/components/job-extras-editor";
@@ -150,6 +151,8 @@ interface JobRow {
   bookingNumber: string; // auto-generated after save
   description: string; // origin → destination
   pickUpTime: string; // HH:mm
+  /** Saved jobs: the flight time (HH:mm), the Driver Time fallback when there is no pick-up time. */
+  flightTime?: string;
   driverId: string;
   extras: JobExtra[];
   collectionAmount: string;
@@ -714,6 +717,10 @@ function CarDispatchContent() {
         bookingNumber: j.internalRef || "",
         description: "",
         pickUpTime: j.pickUpTime ? new Date(j.pickUpTime).toTimeString().slice(0, 5) : "",
+        flightTime: (() => {
+          const at = j.serviceType === "DEP" ? j.flight?.departureTime : j.flight?.arrivalTime;
+          return at ? new Date(at).toTimeString().slice(0, 5) : "";
+        })(),
         driverId: j.assignment?.driverId || "",
         extras: ((j.jobExtras || []) as JobExtra[]).map((e) => ({
           id: e.id,
@@ -1526,7 +1533,7 @@ function CarDispatchContent() {
 // cards per row, hidden columns and column widths.
 
 type ColKey =
-  | "customer" | "booking" | "custJobId" | "route" | "time" | "driver"
+  | "customer" | "booking" | "custJobId" | "route" | "time" | "driverTime" | "driver"
   | "custRepName" | "custRepMobile" | "extraDriverName" | "extraDriverPhone" | "type" | "pax" | "notes" | "actions";
 
 /** Datasheet column → JobRow field. */
@@ -1655,6 +1662,7 @@ const JOB_COLUMNS: { key: ColKey; label: string; width: number; center?: boolean
   { key: "custJobId", label: "Cust. Job ID", width: 90 },
   { key: "route", label: "Route", width: 200 },
   { key: "time", label: "Time", width: 56 },
+  { key: "driverTime", label: "Driver Time", width: 64 },
   { key: "driver", label: "Driver", width: 130 },
   { key: "custRepName", label: "Cust. Rep", width: 100 },
   { key: "custRepMobile", label: "Rep Mobile", width: 96 },
@@ -2000,6 +2008,17 @@ function VehicleCard({
         return { ...base, type: "select", options: routeList, get: (j) => j.jobServiceTypeId, editable: open };
       case "time":
         return { ...base, get: (j) => j.pickUpTime, editable: open, placeholder: "HH:MM" };
+      case "driverTime":
+        // Driver ready time: always 1 h before the job time (pick-up, else the flight time). Never edited.
+        return {
+          ...base,
+          type: "readonly",
+          get: (j) => driverTimeFromHHMM(j.pickUpTime || j.flightTime),
+          display: (j) => {
+            const v = driverTimeFromHHMM(j.pickUpTime || j.flightTime);
+            return v ? <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">{v}</span> : "";
+          },
+        };
       case "driver":
         return isSupplier
           ? { ...base, type: "readonly", get: () => "", display: () => <span className="italic">External</span> }
