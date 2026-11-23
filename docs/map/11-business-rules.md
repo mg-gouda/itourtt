@@ -844,6 +844,34 @@ driver and off that driver's previous primary car. Drivers and cars stay freely 
 - Source for both boards: `GET /dispatch/main-drivers` (active drivers and cars only).
 - Re-linking a car that was unlinked from a driver re-activates the old link (the pair is unique).
 
+## 3-step job alarms and office alerts (6.0.0, 2026-11-23)
+
+Owner rules. These change *Rep escort question and job alarms* below.
+
+- **Three start alarms:** `START_90` / `START_60` / `START_30`, i.e. 1 h 30, 1 h and 30 min before
+  the job time (`jobStartsAt`). **All three ring.** Each rings in its own window, and answering one
+  no longer settles the others.
+- **"On the way":** the start-alarm button, in the apps, on the notification and in the web
+  portals.
+  - It sends the phone's current location: the apps read a fresh GPS fix (15 s, else the last
+    one); the web uses `getCurrentPosition`.
+  - On the notification it also **opens the app** (`launchActivity`).
+  - The signed-out alarm-key ack (`POST /api/public/alarms/jobs/:id/ack`) now takes a location too.
+- **Office alerts** go to admins plus users with the `traffic-jobs` or `dispatch` permission (the
+  same people as Flight Delay). They are `UserNotification`s shown by the header as blocking
+  popups (accept to close):
+  - `ON_THE_WAY`: one per "On the way" press (first ack per alarm). Who, phone, job start, press
+    time and a Google Maps link to the location.
+  - `ALARM_MISSED`: an alarm still unanswered **5 minutes** after it rang ("may be asleep, call").
+  - `ALARM_WARN_45`: **45 minutes before the job**, when the 1:30 and 1:00 alarms were both
+    unanswered.
+- **The check:** `JobAlertsService.escalateMissedAlarms` runs every minute, for each rep / driver
+  leg that is still PENDING.
+  - It only covers alarms that could ring, i.e. the person was assigned before the alarm time.
+  - Each alert is sent once per job + person + kind (table `job_alert_escalations`, unique; safe
+    with 2 backend pods).
+  - It only sends within 10 minutes of the alert falling due, so a restart never floods the office.
+
 ## Job alarms ring like an alarm clock (apps, 2026-11-20)
 
 Owner rule: the 1 h / 30 min start alarms must ring **with the screen off, in standby, and after the

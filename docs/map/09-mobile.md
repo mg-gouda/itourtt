@@ -855,7 +855,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 525 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 527 lines
 
 Arabic strings for all four apps.
 
@@ -865,14 +865,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 525 lines
+`mobile/packages/shared/src/i18n/en.ts` · 527 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 524 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 526 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -947,37 +947,37 @@ Camera and gallery access for evidence photos.
 
 ### `job-alerts.ts`
 
-`mobile/packages/shared/src/native/job-alerts.ts` · 481 lines
+`mobile/packages/shared/src/native/job-alerts.ts` · 494 lines
 
 Mobile job alarm engine: schedules start reminders, watches drop-off geofence, queues must-acknowledge modals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AlarmPortal` | type | 43 | rep or driver. |
-| `AlarmKind` | type | 44 | START_60 \| START_30 \| DROPOFF_ARRIVED \| DROPOFF_LEFT. |
-| `AlarmJob` | type | 46 | A job as GET /alerts returns it (start time, route, acked kinds, optional drop-off target). |
-| `PendingAlarm` | type | 60 | An alarm waiting for acknowledgement in the modal queue. |
-| `CHANNEL_ALARMS` | const | 68 | Android notification channel for job alarms (high importance, sound, vibration). |
-| `AlarmKeyInfo` | type | 74 | Stored alarm key with its portal and person |
-| `onAlarmsChange` | function | 97 | Subscribe to modal-queue changes; returns unsubscribe. |
-| `getPendingAlarms` | function | 104 | The current modal queue. |
-| `hasActiveDropoffs` | function | 109 | Whether a precise drop-off geofence is armed (the sync service reads GPS only then). |
-| `alarmTitle` | function | 113 | Localised title for an alarm kind. |
-| `alarmBody` | function | 126 | Notification body for an alarm (flight, time, route or drop-off text). |
-| `dueStartKind` | function | 194 | Which start reminder is due now (30-min supersedes 1-h). |
-| `evaluateDueAlarms` | function | 204 | Raise any start reminder due now (called every tick). |
-| `refreshJobAlerts` | function | 259 | Fetch GET /{portal}-portal/alerts, (re)schedule trigger notifications, raise due alarms. |
-| `checkDropoffs` | function | 306 | Compare a GPS fix with armed drop-off geofences; raise arrived / left alarms. |
-| `acknowledgeAlarm` | function | 322 | Close an alarm, cancel its notification and POST the acknowledgement. |
-| `handleAlarmNotificationAction` | function | 360 | I've seen it pressed on the alarm notification: acknowledge without opening the app |
-| `watchAlarmActions` | function | 379 | In-app listener for the alarm notification's I've seen it button |
-| `getAlarmKeyInfo` | function | 388 | Reads this phone's alarm key from encrypted storage |
-| `ensureAlarmKey` | function | 401 | After sign-in: get / replace this phone's alarm key |
-| `turnOffAlarmsOnPhone` | function | 425 | Forget the alarm key and cancel all scheduled alarms |
-| `missingAlarmPermission` | function | 437 | Which alarm permission is off: exact alarms or full-screen notifications |
-| `openAlarmPermissionSettings` | function | 454 | Opens the Android setting for the missing alarm permission |
-| `releaseSessionAlarms` | function | 463 | Sign-out with an alarm key: keep start reminders, drop the drop-off watch |
-| `resetJobAlerts` | function | 470 | Sign-out: clear state and cancel scheduled alarms. |
+| `AlarmPortal` | type | 45 | rep or driver. |
+| `AlarmKind` | type | 46 | START_60 \| START_30 \| DROPOFF_ARRIVED \| DROPOFF_LEFT. |
+| `AlarmJob` | type | 49 | A job as GET /alerts returns it (start time, route, acked kinds, optional drop-off target). |
+| `PendingAlarm` | type | 63 | An alarm waiting for acknowledgement in the modal queue. |
+| `CHANNEL_ALARMS` | const | 71 | Android notification channel for job alarms (high importance, sound, vibration). |
+| `AlarmKeyInfo` | type | 77 | Stored alarm key with its portal and person |
+| `onAlarmsChange` | function | 100 | Subscribe to modal-queue changes; returns unsubscribe. |
+| `getPendingAlarms` | function | 107 | The current modal queue. |
+| `hasActiveDropoffs` | function | 112 | Whether a precise drop-off geofence is armed (the sync service reads GPS only then). |
+| `alarmTitle` | function | 116 | Localised title for an alarm kind. |
+| `alarmBody` | function | 131 | Notification body for an alarm (flight, time, route or drop-off text). |
+| `dueStartKind` | function | 204 | Which start reminder is due now (30-min supersedes 1-h). |
+| `evaluateDueAlarms` | function | 215 | Raise any start reminder due now (called every tick). |
+| `refreshJobAlerts` | function | 271 | Fetch GET /{portal}-portal/alerts, (re)schedule trigger notifications, raise due alarms. |
+| `checkDropoffs` | function | 318 | Compare a GPS fix with armed drop-off geofences; raise arrived / left alarms. |
+| `acknowledgeAlarm` | function | 334 | Close an alarm, cancel its notification and POST the acknowledgement. |
+| `handleAlarmNotificationAction` | function | 374 | I've seen it pressed on the alarm notification: acknowledge without opening the app |
+| `watchAlarmActions` | function | 392 | In-app listener for the alarm notification's I've seen it button |
+| `getAlarmKeyInfo` | function | 401 | Reads this phone's alarm key from encrypted storage |
+| `ensureAlarmKey` | function | 414 | After sign-in: get / replace this phone's alarm key |
+| `turnOffAlarmsOnPhone` | function | 438 | Forget the alarm key and cancel all scheduled alarms |
+| `missingAlarmPermission` | function | 450 | Which alarm permission is off: exact alarms or full-screen notifications |
+| `openAlarmPermissionSettings` | function | 467 | Opens the Android setting for the missing alarm permission |
+| `releaseSessionAlarms` | function | 476 | Sign-out with an alarm key: keep start reminders, drop the drop-off watch |
+| `resetJobAlerts` | function | 483 | Sign-out: clear state and cancel scheduled alarms. |
 
 ### `location.ts`
 

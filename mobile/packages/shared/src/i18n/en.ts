@@ -231,6 +231,7 @@ export const en = {
     downloadTitle: "iTour update {version}",
   },
   alarm: {
+    startsIn90: "Job starts in 1 h 30 min",
     startsIn60: "Job starts in 1 hour",
     startsIn30: "Job starts in 30 minutes",
     startDesc: "Job {ref} is about to start. Confirm you have seen this reminder.",
@@ -245,6 +246,7 @@ export const en = {
     route: "Route",
     dropoff: "Drop-off",
     acknowledge: "I've seen it",
+    onTheWay: "On the way",
     serviceOn: "Job alarms are on",
     serviceOnBody: "Your job reminders ring on this phone even when you are signed out.",
     onForName: "Job alarms on this phone: {name}",

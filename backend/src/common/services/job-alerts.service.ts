@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
@@ -17,8 +19,24 @@ import {
 export type AlertRole = 'REP' | 'DRIVER';
 
 /** Start reminders (minutes before the job) and drop-off geofence alarms. */
-export const ALERT_KINDS = ['START_60', 'START_30', 'DROPOFF_ARRIVED', 'DROPOFF_LEFT'] as const;
+export const ALERT_KINDS = ['START_90', 'START_60', 'START_30', 'DROPOFF_ARRIVED', 'DROPOFF_LEFT'] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
+
+/** The 3 start alarms (5.10): minutes before the job time. Each is answered with "On the way". */
+export const START_ALARMS: { kind: 'START_90' | 'START_60' | 'START_30'; minutes: number; label: string }[] = [
+  { kind: 'START_90', minutes: 90, label: '1 h 30 min' },
+  { kind: 'START_60', minutes: 60, label: '1 hour' },
+  { kind: 'START_30', minutes: 30, label: '30 minutes' },
+];
+const isStartKind = (k: string) => START_ALARMS.some((a) => a.kind === k);
+/** The office is told an alarm went unanswered this long after it rang. */
+const MISSED_AFTER_MS = 5 * 60_000;
+/** Office warning when the 1:30 and 1:00 alarms are both unanswered: this long before the job. */
+const WARN_BEFORE_MS = 45 * 60_000;
+/** Escalations are only sent inside this window after they fall due (no flood after downtime). */
+const ESCALATION_WINDOW_MS = 10 * 60_000;
+const fmtCairo = (d: Date) =>
+  d.toLocaleString('en-GB', { timeZone: 'Africa/Cairo', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
 
 /** Reminders are offered for jobs starting within this window. */
 const LOOKAHEAD_MS = 26 * 60 * 60 * 1000;
@@ -52,6 +70,8 @@ export function jobStartsAt(job: {
  */
 @Injectable()
 export class JobAlertsService {
+  private readonly logger = new Logger(JobAlertsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   private async personId(userId: string, role: AlertRole): Promise<string> {
@@ -187,13 +207,183 @@ export class JobAlertsService {
       latitude: Number.isFinite(body.latitude) ? body.latitude : null,
       longitude: Number.isFinite(body.longitude) ? body.longitude : null,
     };
+    const key = { trafficJobId_userId_kind: { trafficJobId: jobId, userId, kind: body.kind } };
+    const existed = await this.prisma.jobAlertAck.findUnique({ where: key, select: { id: true } });
     const row = await this.prisma.jobAlertAck.upsert({
-      where: { trafficJobId_userId_kind: { trafficJobId: jobId, userId, kind: body.kind } },
+      where: key,
       create: { trafficJobId: jobId, userId, role, kind: body.kind, ...data },
       // Re-acknowledging keeps the first acknowledgement time.
       update: {},
     });
+    // "On the way" on a start alarm → the office gets date, time and the phone's location (once per alarm).
+    if (!existed && isStartKind(body.kind)) {
+      await this.notifyOnTheWay(jobId, userId, role, body.kind, row.acknowledgedAt, data.latitude ?? null, data.longitude ?? null)
+        .catch((e) => this.logger.warn(`On-the-way office alert failed: ${String(e)}`));
+    }
     return { jobId, kind: row.kind, acknowledgedAt: row.acknowledgedAt.toISOString() };
+  }
+
+  // ── Office alerts (5.10): on the way · no answer · 45-minute warning ────────────────
+
+  /** Office users who get job-alarm alerts: admins + Dispatch / Traffic Jobs (same as flight delay). */
+  private async officeRecipients(): Promise<string[]> {
+    const rows = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        OR: [
+          { roleRef: { permissions: { some: { permissionKey: { in: ['traffic-jobs', 'dispatch'] } } } } },
+          { role: 'ADMIN' },
+        ],
+      },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
+  private async notifyOffice(
+    type: 'ON_THE_WAY' | 'ALARM_MISSED' | 'ALARM_WARN_45',
+    jobId: string,
+    title: string,
+    message: string,
+    metadata: Record<string, unknown>,
+  ) {
+    const ids = await this.officeRecipients();
+    if (!ids.length) return;
+    await this.prisma.userNotification.createMany({
+      data: ids.map((userId) => ({ userId, title, message, type, trafficJobId: jobId, metadata: metadata as object })),
+    });
+  }
+
+  /** Name, phone and role label of the rep / driver behind a user account. */
+  private async person(userId: string, role: AlertRole) {
+    const p =
+      role === 'REP'
+        ? await this.prisma.rep.findFirst({ where: { userId }, select: { name: true, mobileNumber: true } })
+        : await this.prisma.driver.findFirst({ where: { userId }, select: { name: true, mobileNumber: true } });
+    return { name: p?.name ?? 'Unknown', phone: p?.mobileNumber ?? null, roleLabel: role === 'REP' ? 'Rep' : 'Driver' };
+  }
+
+  private async notifyOnTheWay(
+    jobId: string, userId: string, role: AlertRole, kind: string, at: Date,
+    lat: number | null, lng: number | null,
+  ) {
+    const [p, job] = await Promise.all([
+      this.person(userId, role),
+      this.prisma.trafficJob.findUnique({
+        where: { id: jobId },
+        select: { internalRef: true, serviceType: true, pickUpTime: true, flight: { select: { arrivalTime: true } } },
+      }),
+    ]);
+    if (!job) return;
+    const alarm = START_ALARMS.find((a) => a.kind === kind);
+    const startsAt = jobStartsAt(job);
+    const mapsUrl = lat != null && lng != null ? `https://www.google.com/maps?q=${lat},${lng}` : null;
+    await this.notifyOffice(
+      'ON_THE_WAY',
+      jobId,
+      `On the way: ${job.internalRef}`,
+      `${p.roleLabel} ${p.name} pressed "On the way" on the ${alarm?.label ?? ''} alarm at ${fmtCairo(at)}.` +
+        (mapsUrl ? ' Location attached.' : ' No location from the phone.'),
+      {
+        kind, role, personName: p.name, personPhone: p.phone, jobRef: job.internalRef,
+        startsAt: startsAt?.toISOString() ?? null, acknowledgedAt: at.toISOString(),
+        latitude: lat, longitude: lng, mapsUrl,
+      },
+    );
+  }
+
+  /**
+   * Every minute: for each rep / driver leg still PENDING, tell the office
+   * - **no answer** — an alarm not answered 5 minutes after it rang ("may be asleep, call"), and
+   * - **45-minute warning** — the 1:30 and 1:00 alarms both unanswered, 45 minutes before the job.
+   * Each goes out once (job_alert_escalations), only for alarms that could ring (assigned before
+   * the alarm time) and only inside a 10-minute window, so a restart never floods the office.
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async escalateMissedAlarms() {
+    const now = new Date();
+    const from = dateOnly(cairoDate(new Date(now.getTime() - 24 * 3600 * 1000)));
+    const to = dateOnly(cairoDate(new Date(now.getTime() + 24 * 3600 * 1000)));
+    const rows = await this.prisma.trafficAssignment.findMany({
+      where: {
+        OR: [{ repId: { not: null } }, { driverId: { not: null } }],
+        trafficJob: { deletedAt: null, jobDate: { gte: from, lte: to }, status: { notIn: ['CANCELLED', 'COMPLETED', 'NO_SHOW'] } },
+      },
+      select: {
+        createdAt: true,
+        repStatus: true,
+        driverStatus: true,
+        rep: { select: { userId: true } },
+        driver: { select: { userId: true } },
+        trafficJob: {
+          select: {
+            id: true, internalRef: true, serviceType: true, pickUpTime: true,
+            flight: { select: { arrivalTime: true } },
+            alertAcks: { select: { userId: true, kind: true } },
+          },
+        },
+      },
+    });
+
+    for (const a of rows) {
+      const job = a.trafficJob;
+      const startsAt = jobStartsAt(job);
+      if (!startsAt || startsAt.getTime() <= now.getTime()) continue;
+      const legs: { role: AlertRole; userId: string | null | undefined; status: string }[] = [
+        { role: 'REP', userId: a.rep?.userId, status: a.repStatus },
+        { role: 'DRIVER', userId: a.driver?.userId, status: a.driverStatus },
+      ];
+      for (const leg of legs) {
+        if (!leg.userId || leg.status !== 'PENDING') continue;
+        const acked = new Set(job.alertAcks.filter((k) => k.userId === leg.userId).map((k) => k.kind));
+        const rang = (m: number) => startsAt.getTime() - m * 60_000 >= a.createdAt.getTime();
+
+        for (const alarm of START_ALARMS) {
+          const due = startsAt.getTime() - alarm.minutes * 60_000 + MISSED_AFTER_MS;
+          if (!rang(alarm.minutes) || acked.has(alarm.kind)) continue;
+          if (now.getTime() < due || now.getTime() > due + ESCALATION_WINDOW_MS) continue;
+          await this.escalateOnce(job.id, leg.userId, `MISSED_${alarm.kind}`, async () => {
+            const p = await this.person(leg.userId!, leg.role);
+            await this.notifyOffice(
+              'ALARM_MISSED',
+              job.id,
+              `No answer: ${job.internalRef}`,
+              `${p.roleLabel} ${p.name} did not answer the ${alarm.label} alarm for ${job.internalRef} ` +
+                `(job at ${fmtCairo(startsAt)}). They may be asleep — please call${p.phone ? ` ${p.phone}` : ''}.`,
+              { kind: alarm.kind, role: leg.role, personName: p.name, personPhone: p.phone, jobRef: job.internalRef, startsAt: startsAt.toISOString() },
+            );
+          });
+        }
+
+        // 45 minutes before: the first two alarms both unanswered.
+        const warnAt = startsAt.getTime() - WARN_BEFORE_MS;
+        const firstTwoMissed = START_ALARMS.slice(0, 2).every((al) => rang(al.minutes) && !acked.has(al.kind));
+        if (firstTwoMissed && now.getTime() >= warnAt && now.getTime() <= warnAt + ESCALATION_WINDOW_MS) {
+          await this.escalateOnce(job.id, leg.userId, 'WARN_45', async () => {
+            const p = await this.person(leg.userId!, leg.role);
+            await this.notifyOffice(
+              'ALARM_WARN_45',
+              job.id,
+              `45 min to go, no answer: ${job.internalRef}`,
+              `${p.roleLabel} ${p.name} answered neither the 1 h 30 min nor the 1 hour alarm. ` +
+                `${job.internalRef} starts at ${fmtCairo(startsAt)} — call${p.phone ? ` ${p.phone}` : ''} or arrange cover.`,
+              { kind: 'WARN_45', role: leg.role, personName: p.name, personPhone: p.phone, jobRef: job.internalRef, startsAt: startsAt.toISOString() },
+            );
+          });
+        }
+      }
+    }
+  }
+
+  /** Runs `send` only if this escalation was not sent before (unique row claims it first). */
+  private async escalateOnce(jobId: string, userId: string, kind: string, send: () => Promise<void>) {
+    try {
+      await this.prisma.jobAlertEscalation.create({ data: { trafficJobId: jobId, userId, kind } });
+    } catch {
+      return; // already sent (unique violation) — e.g. the other backend pod got there first
+    }
+    await send().catch((e) => this.logger.warn(`Office alarm escalation ${kind} failed: ${String(e)}`));
   }
 
   // ── Alarms that survive sign-out (per-phone alarm key) ──────────────────────
@@ -238,10 +428,16 @@ export class JobAlertsService {
     return { serverTime: all.serverTime, role: d.role, reminders: all.reminders };
   }
 
-  async acknowledgeByKey(key: string | undefined, jobId: string, body: { kind: string; shownAt?: string }) {
+  async acknowledgeByKey(
+    key: string | undefined,
+    jobId: string,
+    body: { kind: string; shownAt?: string; latitude?: number; longitude?: number },
+  ) {
     const d = await this.alarmDevice(key);
-    if (body.kind !== 'START_60' && body.kind !== 'START_30') throw new BadRequestException('Only start reminders can be acknowledged here');
-    return this.acknowledge(d.userId, d.role, jobId, { kind: body.kind, shownAt: body.shownAt });
+    if (!isStartKind(body.kind)) throw new BadRequestException('Only start reminders can be acknowledged here');
+    return this.acknowledge(d.userId, d.role, jobId, {
+      kind: body.kind, shownAt: body.shownAt, latitude: body.latitude, longitude: body.longitude,
+    });
   }
 
   /** "Turn off alarms on this phone". */

@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, Controller, Get, Param, Post, Put, Res, UploadedFile, UseGuards, UseInterceptors,
+  BadRequestException, Body, Controller, Get, Param, Post, Put, Query, Res, UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -39,8 +39,10 @@ export class RoutePricesController {
 
   @Get('customers/export')
   @Permissions('customers.detail.priceList.downloadTemplate', 'customers.detail.priceList')
-  async exportCustomers(@Res() res: Response) {
-    xlsx(res, await this.service.exportCustomerPrices(), 'customer-prices.xlsx');
+  async exportCustomers(@Res() res: Response, @Query('customerId') customerId?: string) {
+    // ?customerId= → that customer only (the customer page's "Export customer price list").
+    if (customerId && !/^[0-9a-f-]{36}$/i.test(customerId)) throw new BadRequestException('Invalid customerId');
+    xlsx(res, await this.service.exportCustomerPrices(customerId), 'customer-prices.xlsx');
   }
 
   @Post('customers/import')

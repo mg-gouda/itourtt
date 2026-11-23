@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**74 classes**, **574 methods**.
+**74 classes**, **580 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -338,34 +338,40 @@ Google Places/Geocoding lookups behind the backend, used for pickup/dropoff coor
 
 ### JobAlarmsPublicController
 
-`backend/src/common/services/job-alarms-public.controller.ts:11` · controller · 3 methods
+`backend/src/common/services/job-alarms-public.controller.ts:12` · controller · 3 methods
 
 Job alarms for signed-out phones via X-Alarm-Key: list, ack, turn off
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `list` | pub | 17 | — | GET /public/alarms: the person's upcoming start reminders for the alarm key |
-| `ack` | pub | 24 | — | POST /public/alarms/jobs/:jobId/ack: acknowledge a start alarm with the alarm key |
-| `off` | pub | 31 | — | POST /public/alarms/off: revoke this phone's alarm key |
+| `list` | pub | 18 | — | GET /public/alarms: the person's upcoming start reminders for the alarm key |
+| `ack` | pub | 25 | — | POST /public/alarms/jobs/:jobId/ack: acknowledge a start alarm with the alarm key |
+| `off` | pub | 32 | — | POST /public/alarms/off: revoke this phone's alarm key |
 
 ### JobAlertsService
 
-`backend/src/common/services/job-alerts.service.ts:54` · service · 10 methods
+`backend/src/common/services/job-alerts.service.ts:72` · service · 16 methods
 
 Job alarms for rep/driver portals and apps: start reminders, drop-off geofence targets, acknowledgements, rep escort answer.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `personId` | priv | 57 | `rep` `driver` | Resolve the rep or driver profile id for a user. |
-| `getAlerts` | pub | 66 | `trafficAssignment` | Jobs starting in the next 26 h with a PENDING leg (reminders) and running legs with a drop-off geofence (driver IN_PROGRESS / escorting rep). |
-| `acknowledge` | pub | 168 | `trafficAssignment` `jobAlertAck` | Upsert a JobAlertAck for the user's assigned job (first ack wins); the POST is activity-logged. |
-| `hashKey` | priv | 201 | — | SHA-256 of an alarm key |
-| `registerAlarmDevice` | pub | 206 | `alarmDevice` | Issues a phone's alarm key at sign-in (keeps 3 per user) |
-| `alarmDevice` | priv | 221 | `alarmDevice` | Resolves an alarm key to its active rep / driver account |
-| `alarmsByKey` | pub | 235 | — | Start reminders for a signed-out phone (no drop-off alarms) |
-| `acknowledgeByKey` | pub | 241 | — | Acknowledge a start alarm from a signed-out phone |
-| `revokeAlarmKey` | pub | 248 | `alarmDevice` | Turns job alarms off for a phone |
-| `setRepEscort` | pub | 258 | `trafficAssignment` | Save the rep's escort answer (IN_PLACE only, not DEP); decides the COMPLETED geofence target. |
+| `personId` | priv | 77 | `rep` `driver` | Resolve the rep or driver profile id for a user. |
+| `getAlerts` | pub | 86 | `trafficAssignment` | Jobs starting in the next 26 h with a PENDING leg (reminders) and running legs with a drop-off geofence (driver IN_PROGRESS / escorting rep). |
+| `acknowledge` | pub | 188 | `trafficAssignment` `jobAlertAck` | Upsert a JobAlertAck for the user's assigned job (first ack wins); the POST is activity-logged. |
+| `officeRecipients` | priv | 229 | `user` | Office users for job-alarm alerts: admins + users with the traffic-jobs or dispatch permission (same as flight delay). |
+| `notifyOffice` | priv | 244 | `userNotification` | Creates an office UserNotification (ON_THE_WAY / ALARM_MISSED / ALARM_WARN_45) for every recipient. |
+| `person` | priv | 259 | `rep` `driver` | Name, phone and Rep/Driver label of the person behind a user account. |
+| `notifyOnTheWay` | priv | 267 | `trafficJob` | Office alert for an "On the way" press: who, phone, job start, press time and a Google Maps link to the phone's location. |
+| `escalateMissedAlarms` | pub | 304 | `trafficAssignment` | Every minute: office alert for an alarm unanswered 5 min after it rang, and a 45-min warning when the 1:30 and 1:00 alarms were both unanswered (PENDING legs, once each, 10-min window). |
+| `escalateOnce` | priv | 380 | `jobAlertEscalation` | Claims a job_alert_escalations row (unique) and only then sends — so an alert goes out once even with two backend pods. |
+| `hashKey` | priv | 391 | — | SHA-256 of an alarm key |
+| `registerAlarmDevice` | pub | 396 | `alarmDevice` | Issues a phone's alarm key at sign-in (keeps 3 per user) |
+| `alarmDevice` | priv | 411 | `alarmDevice` | Resolves an alarm key to its active rep / driver account |
+| `alarmsByKey` | pub | 425 | — | Start reminders for a signed-out phone (no drop-off alarms) |
+| `acknowledgeByKey` | pub | 431 | — | Acknowledge a start alarm from a signed-out phone |
+| `revokeAlarmKey` | pub | 444 | `alarmDevice` | Turns job alarms off for a phone |
+| `setRepEscort` | pub | 454 | `trafficAssignment` | Save the rep's escort answer (IN_PLACE only, not DEP); decides the COMPLETED geofence target. |
 
 ### JobCompletionService
 
@@ -730,9 +736,9 @@ Customer route prices and the global driver-tip table: grids, save, Excel import
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
 | `exportCustomers` | pub | 42 | — | All customer prices in the Customer Price List layout. |
-| `importCustomers` | pub | 49 | — | Imports a Customer Price List sheet. |
-| `customerGrid` | pub | 56 | — | A customer's route × car-type price grid. |
-| `saveCustomer` | pub | 62 | — | Saves edited customer price cells. |
+| `importCustomers` | pub | 51 | — | Imports a Customer Price List sheet. |
+| `customerGrid` | pub | 58 | — | A customer's route × car-type price grid. |
+| `saveCustomer` | pub | 64 | — | Saves edited customer price cells. |
 
 ### RoutePricesService
 
@@ -746,8 +752,8 @@ Grid, save, import and export for customer route prices and driver tips.
 | `routes` | priv | 28 | `jobServiceType` | Active routes ordered by name. |
 | `customerGrid` | pub | 34 | `customer` `customerRoutePrice` | Active routes, car columns and the customer's prices. |
 | `saveCustomerCells` | pub | 45 | `customerRoutePrice` | Upserts/clears a customer's price cells in one transaction. |
-| `exportCustomerPrices` | pub | 66 | `customer` | Every customer with prices, one Customer Price List sheet. |
-| `importCustomerPrices` | pub | 96 | `vehicleType` `customer` `importNameAlias` | Imports CUST × OPERATION rows; unknown customers/operations reported; empty cell clears. |
+| `exportCustomerPrices` | pub | 67 | `customer` | Every customer with prices, one Customer Price List sheet. |
+| `importCustomerPrices` | pub | 97 | `vehicleType` `customer` `importNameAlias` | Imports CUST × OPERATION rows; unknown customers/operations reported; empty cell clears. |
 
 ### RouteRateTable
 
@@ -1295,7 +1301,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-201 free functions, constants and types in these modules.
+202 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1473,10 +1479,11 @@ Job alarms + rep escort answer shared by the rep and driver portals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AlertRole` | type | 17 | REP or DRIVER — whose leg the alarms are for. |
-| `ALERT_KINDS` | const | 20 | The job alarm kinds: START_60, START_30, DROPOFF_ARRIVED, DROPOFF_LEFT. |
-| `AlertKind` | type | 21 | One of ALERT_KINDS. |
-| `jobStartsAt` | function | 33 | When a job starts: flight arrival for ARR, pickup time otherwise. |
+| `AlertRole` | type | 19 | REP or DRIVER — whose leg the alarms are for. |
+| `ALERT_KINDS` | const | 22 | The job alarm kinds: START_60, START_30, DROPOFF_ARRIVED, DROPOFF_LEFT. |
+| `AlertKind` | type | 23 | One of ALERT_KINDS. |
+| `START_ALARMS` | const | 26 | The 3 start alarms (6.0.0): START_90 / START_60 / START_30 with minutes before the job and a label; each answered with "On the way". |
+| `jobStartsAt` | function | 51 | When a job starts: flight arrival for ARR, pickup time otherwise. |
 
 ### `backend/src/common/services/job-completion.service.ts`
 

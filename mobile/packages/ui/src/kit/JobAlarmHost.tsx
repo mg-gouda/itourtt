@@ -59,7 +59,7 @@ export function JobAlarmHost({ portal, onOpenJob }: { portal: AlarmPortal; onOpe
 
   if (!current) return null;
   const { kind, job } = current;
-  const isStart = kind === 'START_60' || kind === 'START_30';
+  const isStart = kind === 'START_90' || kind === 'START_60' || kind === 'START_30';
   const left = kind === 'DROPOFF_LEFT';
   const fg = left ? colors.destructive : isStart ? colors.warning : colors.info;
   const bg = left ? colors.destructiveSoft : isStart ? colors.warningSoft : colors.infoSoft;
@@ -114,8 +114,8 @@ export function JobAlarmHost({ portal, onOpenJob }: { portal: AlarmPortal; onOpe
           />
         ) : null}
         <ActionButton
-          label={t('alarm.acknowledge')}
-          icon="eye"
+          label={isStart ? t('alarm.onTheWay') : t('alarm.acknowledge')}
+          icon={isStart ? 'car' : 'eye'}
           variant={!isStart && onOpenJob ? 'soft' : 'solid'}
           loading={acking}
           onPress={() => ack(false)}

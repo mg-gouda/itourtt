@@ -245,8 +245,11 @@ export default function CustomerDetailPage({
               <h3 className="text-sm font-semibold">Transfer prices (route × car type)</h3>
               <span className="text-xs text-muted-foreground">B2B jobs for this customer are priced from this grid automatically.</span>
               <div className="ml-auto flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => downloadXlsx(() => api.get("/route-prices/customers/export", { responseType: "blob" }), "customer-prices.xlsx")}>
-                  <Download className="h-4 w-4 mr-1.5" />Export all customers
+                <Button variant="outline" size="sm" onClick={() => downloadXlsx(
+                  () => api.get("/route-prices/customers/export", { params: { customerId: customer.id }, responseType: "blob" }),
+                  `price-list-${(customer.tradeName || customer.legalName).replace(/[^\w؀-ۿ-]+/g, "_")}.xlsx`,
+                )}>
+                  <Download className="h-4 w-4 mr-1.5" />Export customer price list
                 </Button>
                 {canImportPrices && (
                   <label className="inline-flex">

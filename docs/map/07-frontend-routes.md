@@ -19,7 +19,7 @@
 | `/dashboard/complaints` | `frontend/src/app/(dashboard)/dashboard/complaints/page.tsx` | 580 | 3 | 4 | Complaints list — filters by status, stage, party, category and SLA, with an inline breach warning and the log/edit/detail dialogs. |
 | `/dashboard/complaints/analytics` | `frontend/src/app/(dashboard)/dashboard/complaints/analytics/page.tsx` | 800 | 1 | 1 | Complaint Analytics screen: filters, headline KPIs, reply-window split, monthly trend, breakdowns and the money panel. |
 | `/dashboard/customers` | `frontend/src/app/(dashboard)/dashboard/customers/page.tsx` | 1183 | 9 | 12 | B2B customer management with price grids and import templates. |
-| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 270 | 5 | 2 | One customer's detail, price list and stored import templates. |
+| `/dashboard/customers/[id]` | `frontend/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | 273 | 5 | 2 | One customer's detail, price list and stored import templates. |
 | `/dashboard/dispatch` | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx` | 3242 | 11 | 5 | ★ The dispatch console. One window per day, ARR left and DEP right, Excel-like grid with inline editing, keyboard navigation and live conflict warnings. Assignment order is Vehicle → Driver → Rep. |
 | `/dashboard/driver-tariffs` | `frontend/src/app/(dashboard)/dashboard/driver-tariffs/page.tsx` | 164 | 5 | 1 | The driver trip-fee tariff table — route (zone or airport pair) × vehicle type → fee. |
 | `/dashboard/driver-tracking` | `frontend/src/app/(dashboard)/dashboard/driver-tracking/page.tsx` | 9 | — | — | Driver Tracking page — map of every active driver's last-known position with name search. |

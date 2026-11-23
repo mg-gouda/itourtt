@@ -118,7 +118,7 @@ The native arrival guest survey form. Submitting it awards the rep's 15-point su
 
 ### `header.tsx`
 
-`frontend/src/components/header.tsx` · 432 lines
+`frontend/src/components/header.tsx` · 539 lines
 
 Top bar — user menu, notifications, locale switch.
 
@@ -158,14 +158,14 @@ Evidence dialog for a driver starting a job.
 
 ### `job-alarms.tsx`
 
-`frontend/src/components/job-alarms.tsx` · 314 lines
+`frontend/src/components/job-alarms.tsx` · 323 lines
 
 Web job alarms (start reminders, drop-off arrived/left) for the rep and driver portals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `dueStartKind` | function | 69 | Which start reminder is due now (30-min supersedes 1-h). |
-| `JobAlarms` | function | 141 | Rep/driver portal alarm host: 1 h / 30 min start reminders and drop-off geofence alarms as must-acknowledge modals. |
+| `dueStartKind` | function | 70 | Which start reminder is due now (30-min supersedes 1-h). |
+| `JobAlarms` | function | 143 | Rep/driver portal alarm host: 1 h / 30 min start reminders and drop-off geofence alarms as must-acknowledge modals. |
 
 ### `job-detail-modal.tsx`
 
@@ -1329,17 +1329,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3966 lines
+`frontend/src/lib/i18n.ts` · 3970 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3943 | Translates a key in the current locale. |
-| `getTranslator` | function | 3947 | Translator for a specific locale, outside React. |
-| `useT` | function | 3955 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3962 | The active locale id. |
+| `t` | function | 3947 | Translates a key in the current locale. |
+| `getTranslator` | function | 3951 | Translator for a specific locale, outside React. |
+| `useT` | function | 3959 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 3966 | The active locale id. |
 
 ### `maps-nav.ts`
 

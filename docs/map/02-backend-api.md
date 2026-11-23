@@ -476,9 +476,9 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/public/alarms` | `list`:17 | `public` | `jobAlerts.alarmsByKey` | GET /public/alarms: the person's upcoming start reminders for the alarm key |
-| POST | `/api/public/alarms/jobs/:jobId/ack` | `ack`:24 | `public` | `jobAlerts.acknowledgeByKey` | POST /public/alarms/jobs/:jobId/ack: acknowledge a start alarm with the alarm key |
-| POST | `/api/public/alarms/off` | `off`:31 | `public` | `jobAlerts.revokeAlarmKey` | POST /public/alarms/off: revoke this phone's alarm key |
+| GET | `/api/public/alarms` | `list`:18 | `public` | `jobAlerts.alarmsByKey` | GET /public/alarms: the person's upcoming start reminders for the alarm key |
+| POST | `/api/public/alarms/jobs/:jobId/ack` | `ack`:25 | `public` | `jobAlerts.acknowledgeByKey` | POST /public/alarms/jobs/:jobId/ack: acknowledge a start alarm with the alarm key |
+| POST | `/api/public/alarms/off` | `off`:32 | `public` | `jobAlerts.revokeAlarmKey` | POST /public/alarms/off: revoke this phone's alarm key |
 
 ### JobLocksController
 
@@ -733,10 +733,10 @@ Auth column: `public` = no token · `ROLE` = @Roles · `perm:x` = @Permissions.
 
 | Method | Path | Handler | Auth | Calls | Purpose |
 |---|---|---|---|---|---|
-| GET | `/api/route-prices/customers/:id` | `customerGrid`:56 | `perm:customers.detail.priceList` | `service.customerGrid` | A customer's route × car-type price grid. |
-| PUT | `/api/route-prices/customers/:id` | `saveCustomer`:62 | `perm:customers.detail.priceList.editPrice` | `service.saveCustomerCells` | Saves edited customer price cells. |
+| GET | `/api/route-prices/customers/:id` | `customerGrid`:58 | `perm:customers.detail.priceList` | `service.customerGrid` | A customer's route × car-type price grid. |
+| PUT | `/api/route-prices/customers/:id` | `saveCustomer`:64 | `perm:customers.detail.priceList.editPrice` | `service.saveCustomerCells` | Saves edited customer price cells. |
 | GET | `/api/route-prices/customers/export` | `exportCustomers`:42 | `perm:customers.detail.priceList.downloadTemplate` `perm:customers.detail.priceList` | `service.exportCustomerPrices` | All customer prices in the Customer Price List layout. |
-| POST | `/api/route-prices/customers/import` | `importCustomers`:49 | `perm:customers.detail.priceList.import` | `service.importCustomerPrices` | Imports a Customer Price List sheet. |
+| POST | `/api/route-prices/customers/import` | `importCustomers`:51 | `perm:customers.detail.priceList.import` | `service.importCustomerPrices` | Imports a Customer Price List sheet. |
 
 ### SessionsController
 

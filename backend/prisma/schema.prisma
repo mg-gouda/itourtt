@@ -67,6 +67,12 @@ enum NotificationType {
   JOB_UPDATED
   GENERAL
   FLIGHT_DELAY
+  /// Office: a rep / driver pressed "On the way" on a job alarm (date, time, location).
+  ON_THE_WAY
+  /// Office: a job alarm went unanswered for 5 minutes — may be asleep, call.
+  ALARM_MISSED
+  /// Office: the 1:30 and 1:00 alarms were both unanswered — 45 minutes before the job.
+  ALARM_WARN_45
 }
 
 enum VehicleOwnership {
@@ -2967,7 +2973,7 @@ model JobAlertAck {
   userId         String    @map("user_id")
   /// REP or DRIVER
   role           String
-  /// START_60 | START_30 | DROPOFF_ARRIVED | DROPOFF_LEFT
+  /// START_90 | START_60 | START_30 | DROPOFF_ARRIVED | DROPOFF_LEFT
   kind           String
   /// When the alarm was put on screen (client clock), if known.
   shownAt        DateTime? @map("shown_at")
@@ -2982,6 +2988,19 @@ model JobAlertAck {
   @@unique([trafficJobId, userId, kind])
   @@index([userId])
   @@map("job_alert_acks")
+}
+
+/// Office alerts already sent for a job alarm, so each goes out once:
+/// kind = MISSED_START_90 | MISSED_START_60 | MISSED_START_30 | WARN_45 (5.10 alarms).
+model JobAlertEscalation {
+  id           String   @id @default(uuid())
+  trafficJobId String   @map("traffic_job_id")
+  userId       String   @map("user_id")
+  kind         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([trafficJobId, userId, kind])
+  @@map("job_alert_escalations")
 }
 
 /// A name as it appears in an imported sheet, remembered against the system

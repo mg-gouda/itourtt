@@ -2,6 +2,7 @@ import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
 import { Public } from '../decorators/public.decorator.js';
 import { ApiResponse } from '../dto/api-response.dto.js';
 import { JobAlertsService } from './job-alerts.service.js';
+import { AckJobAlertDto } from '../dto/job-alerts.dto.js';
 
 /**
  * Job alarms for a phone whose rep / driver has signed out (header `X-Alarm-Key`, issued at sign-in by
@@ -18,10 +19,10 @@ export class JobAlarmsPublicController {
     return new ApiResponse(await this.jobAlerts.alarmsByKey(key));
   }
 
-  /** POST /api/public/alarms/jobs/:jobId/ack — "I've seen it" from a signed-out phone. */
+  /** POST /api/public/alarms/jobs/:jobId/ack — "On the way" from a signed-out phone (+ its location). */
   @Public()
   @Post('jobs/:jobId/ack')
-  async ack(@Headers('x-alarm-key') key: string | undefined, @Param('jobId') jobId: string, @Body() body: { kind: string; shownAt?: string }) {
+  async ack(@Headers('x-alarm-key') key: string | undefined, @Param('jobId') jobId: string, @Body() body: AckJobAlertDto) {
     return new ApiResponse(await this.jobAlerts.acknowledgeByKey(key, jobId, body), 'Alert acknowledged');
   }
 

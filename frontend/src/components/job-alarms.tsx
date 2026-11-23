@@ -19,9 +19,9 @@ import { formatTimeCairo } from "@/lib/utils";
  * Job alarms for the rep / driver web portals (the native apps have the same
  * rules in mobile/packages/shared/src/native/job-alerts.ts):
  *
- * - START_60 / START_30 — 1 hour and 30 minutes before each job that has not
- *   started. A modal that must be acknowledged; the acknowledgement is saved
- *   and appears in the Activity Log against the job.
+ * - START_90 / START_60 / START_30 — 1 h 30, 1 h and 30 min before each job that has
+ *   not started; all three ring. Answered with "On the way", which sends the
+ *   phone's location; the office gets an alert for each (5.10).
  * - DROPOFF_ARRIVED / DROPOFF_LEFT — a driver on a started trip, or a rep who
  *   escorts the transfer: entering the drop-off geofence asks them to complete
  *   the job before leaving; leaving it without completing raises an alarm.
@@ -30,7 +30,8 @@ import { formatTimeCairo } from "@/lib/utils";
  * browser only times the reminders and watches the GPS.
  */
 
-type Kind = "START_60" | "START_30" | "DROPOFF_ARRIVED" | "DROPOFF_LEFT";
+type Kind = "START_90" | "START_60" | "START_30" | "DROPOFF_ARRIVED" | "DROPOFF_LEFT";
+const START_TITLE: Record<string, string> = { START_90: "alarm.startsIn90", START_60: "alarm.startsIn60", START_30: "alarm.startsIn30" };
 
 interface AlertJob {
   jobId: string;
@@ -65,13 +66,14 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/** Which start reminder is due now (the 30-min one supersedes the 1-hour one). */
+/** Which start alarm is due now: each of 1:30 / 1:00 / 0:30 rings in its own window. */
 export function dueStartKind(startsAt: string | null, now = Date.now()): Kind | null {
   if (!startsAt) return null;
   const mins = (new Date(startsAt).getTime() - now) / 60_000;
   if (mins <= 0) return null;
   if (mins <= 30) return "START_30";
   if (mins <= 60) return "START_60";
+  if (mins <= 90) return "START_90";
   return null;
 }
 
@@ -180,7 +182,7 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
       raised.current.add(key);
       setQueue((q) => [...q, { kind, job, shownAt: new Date().toISOString() }]);
       const title = kind.startsWith("START")
-        ? t(kind === "START_60" ? "alarm.startsIn60" : "alarm.startsIn30")
+        ? t(START_TITLE[kind])
         : t(kind === "DROPOFF_ARRIVED" ? "alarm.dropoffArrivedTitle" : "alarm.dropoffLeftTitle");
       systemNotify(`${title} · ${job.internalRef}`, [job.from, job.to].filter(Boolean).join(" → "), key);
     },
@@ -192,7 +194,6 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
     for (const job of reminders) {
       const kind = dueStartKind(job.startsAt);
       if (!kind) continue;
-      // Missed the 1-hour window entirely → only the 30-minute one shows.
       raise(kind, job);
     }
   });
@@ -236,12 +237,20 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
     if (!current) return;
     setAcking(true);
     try {
+      // "On the way": read where the phone is now (drop-off alarms already track it).
+      if (current.kind.startsWith("START") && typeof navigator !== "undefined" && navigator.geolocation) {
+        const fix = await new Promise<GeolocationPosition | null>((resolve) =>
+          navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), {
+            enableHighAccuracy: true, maximumAge: 60_000, timeout: 8_000,
+          }),
+        );
+        if (fix) position.current = { lat: fix.coords.latitude, lng: fix.coords.longitude };
+      }
       await api.post(`/${portal}-portal/jobs/${current.job.jobId}/alerts/ack`, {
         kind: current.kind,
         shownAt: current.shownAt,
         ...(position.current ? { latitude: position.current.lat, longitude: position.current.lng } : {}),
       });
-      // A 30-minute ack also settles a 1-hour reminder that never got shown.
       setReminders((rs) =>
         rs.map((r) => (r.jobId === current.job.jobId ? { ...r, acked: [...r.acked, current.kind] } : r)),
       );
@@ -255,11 +264,11 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
 
   if (!current) return null;
   const { kind, job } = current;
-  const isStart = kind === "START_60" || kind === "START_30";
+  const isStart = kind.startsWith("START");
   const Icon = isStart ? AlarmClock : kind === "DROPOFF_LEFT" ? AlertTriangle : MapPin;
   const tone = kind === "DROPOFF_LEFT" ? "text-red-500" : "text-amber-400";
   const title = isStart
-    ? t(kind === "START_60" ? "alarm.startsIn60" : "alarm.startsIn30")
+    ? t(START_TITLE[kind])
     : t(kind === "DROPOFF_ARRIVED" ? "alarm.dropoffArrivedTitle" : "alarm.dropoffLeftTitle");
   const desc = isStart
     ? t("alarm.startDesc").replace("{ref}", job.internalRef)
@@ -295,7 +304,7 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
         </div>
         <DialogFooter>
           <Button onClick={acknowledge} disabled={acking} className="w-full sm:w-auto">
-            {t("alarm.acknowledge")}
+            {isStart ? t("alarm.onTheWay") : t("alarm.acknowledge")}
           </Button>
         </DialogFooter>
       </DialogContent>

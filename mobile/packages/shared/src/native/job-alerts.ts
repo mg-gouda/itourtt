@@ -16,16 +16,18 @@ import { secureStorage } from '../auth/secure-storage';
 import { unwrapData } from '../utils/response';
 import { t } from '../i18n';
 import { formatTimeCairo } from '../utils/date';
+import { getCurrentPosition } from './location';
 
 /**
  * Job alarms for the rep / driver apps — same rules as the web portals
  * (frontend/src/components/job-alarms.tsx); the server decides which jobs
  * qualify (GET /{portal}-portal/alerts):
  *
- * - START_60 / START_30 — 1 hour and 30 minutes before each job not started
- *   yet. Scheduled as exact-while-idle local notifications, so they ring even
- *   with the app closed, and shown as a modal that must be acknowledged; the
- *   acknowledgement is saved and lands in the Activity Log against the job.
+ * - START_90 / START_60 / START_30 — 1 h 30, 1 h and 30 min before each job not started
+ *   yet; all three ring (5.10). Scheduled as exact-while-idle local notifications, so they
+ *   ring even with the app closed, and answered with "On the way" (in the app or on the
+ *   notification, which opens the app). The answer sends the phone's location; the office
+ *   gets an alert with it, and is alerted when an alarm goes unanswered.
  * - DROPOFF_ARRIVED / DROPOFF_LEFT — a driver on a started trip, or a rep who
  *   escorts the transfer: GPS inside the drop-off geofence asks them to
  *   complete before leaving; leaving it without completing raises an alarm.
@@ -41,7 +43,8 @@ import { formatTimeCairo } from '../utils/date';
  */
 
 export type AlarmPortal = 'rep' | 'driver';
-export type AlarmKind = 'START_60' | 'START_30' | 'DROPOFF_ARRIVED' | 'DROPOFF_LEFT';
+export type AlarmKind = 'START_90' | 'START_60' | 'START_30' | 'DROPOFF_ARRIVED' | 'DROPOFF_LEFT';
+const isStart = (k: AlarmKind) => k === 'START_90' || k === 'START_60' || k === 'START_30';
 
 export interface AlarmJob {
   jobId: string;
@@ -112,6 +115,8 @@ export function hasActiveDropoffs(): boolean {
 
 export function alarmTitle(kind: AlarmKind): string {
   switch (kind) {
+    case 'START_90':
+      return t('alarm.startsIn90');
     case 'START_60':
       return t('alarm.startsIn60');
     case 'START_30':
@@ -124,7 +129,7 @@ export function alarmTitle(kind: AlarmKind): string {
 }
 
 export function alarmBody(kind: AlarmKind, job: AlarmJob): string {
-  if (kind === 'START_60' || kind === 'START_30') {
+  if (isStart(kind)) {
     const route = [job.from, job.to].filter(Boolean).join(' → ');
     const time = job.startsAt ? formatTimeCairo(job.startsAt) : '';
     return [job.flightNo, time, route].filter(Boolean).join(' · ');
@@ -172,7 +177,12 @@ function notificationFor(kind: AlarmKind, job: AlarmJob) {
       ongoing: true,
       autoCancel: false,
       timeoutAfter: 15 * 60_000,
-      actions: [{ title: t('alarm.acknowledge'), pressAction: { id: ACK_ACTION } }],
+      // "On the way" on a start alarm also opens the app (owner, 5.10).
+      actions: [
+        isStart(kind)
+          ? { title: t('alarm.onTheWay'), pressAction: { id: ACK_ACTION, launchActivity: 'default' } }
+          : { title: t('alarm.acknowledge'), pressAction: { id: ACK_ACTION } },
+      ],
     },
     ios: { sound: 'default' },
   };
@@ -190,13 +200,14 @@ function raise(kind: AlarmKind, job: AlarmJob) {
   }
 }
 
-/** The start reminder due now; the 30-minute one supersedes the 1-hour one. */
+/** The start alarm due now: each of 1:30 / 1:00 / 0:30 rings in its own window. */
 export function dueStartKind(startsAt: string | null, now = Date.now()): AlarmKind | null {
   if (!startsAt) return null;
   const mins = (new Date(startsAt).getTime() - now) / 60_000;
   if (mins <= 0) return null;
   if (mins <= 30) return 'START_30';
   if (mins <= 60) return 'START_60';
+  if (mins <= 90) return 'START_90';
   return null;
 }
 
@@ -208,7 +219,7 @@ export function evaluateDueAlarms() {
   }
 }
 
-/** Schedule the 60/30-minute notifications ahead of time so they ring with the app closed. */
+/** Schedule the 90/60/30-minute notifications ahead of time so they ring with the app closed. */
 let adoptedExisting = false;
 async function scheduleReminders() {
   if (Platform.OS !== 'android') return;
@@ -225,6 +236,7 @@ async function scheduleReminders() {
     if (!job.startsAt) continue;
     const start = new Date(job.startsAt).getTime();
     for (const [kind, mins] of [
+      ['START_90', 90],
       ['START_60', 60],
       ['START_30', 30],
     ] as const) {
@@ -324,10 +336,6 @@ export async function acknowledgeAlarm(alarm: PendingAlarm): Promise<void> {
   emit();
   const id = keyOf(alarm.job.jobId, alarm.kind);
   notifee.cancelNotification(id).catch(() => {});
-  // A 30-minute ack settles a 1-hour reminder that never rang.
-  if (alarm.kind === 'START_30') {
-    notifee.cancelNotification(keyOf(alarm.job.jobId, 'START_60')).catch(() => {});
-  }
   alarm.job.acked = [...alarm.job.acked, alarm.kind];
   await sendAck(alarm.job.jobId, alarm.kind, alarm.shownAt);
 }
@@ -335,6 +343,12 @@ export async function acknowledgeAlarm(alarm: PendingAlarm): Promise<void> {
 /** POST the acknowledgement — with the session when signed in, else with the alarm key. */
 async function sendAck(jobId: string, kind: AlarmKind, shownAt?: string) {
   const signedIn = !!(await secureStorage.getAccessToken().catch(() => null));
+  // "On the way": where the phone is now (falls back to the last known fix).
+  if (isStart(kind)) {
+    const fix = await getCurrentPosition(15_000).catch(() => null);
+    if (fix) lastPosition = { lat: fix.lat, lng: fix.lng };
+  }
+  const loc = lastPosition ? { latitude: lastPosition.lat, longitude: lastPosition.lng } : {};
   const k = await getAlarmKeyInfo();
   const p = portal ?? k?.portal ?? null;
   try {
@@ -342,13 +356,13 @@ async function sendAck(jobId: string, kind: AlarmKind, shownAt?: string) {
       await api.post(`/${p}-portal/jobs/${jobId}/alerts/ack`, {
         kind,
         shownAt,
-        ...(lastPosition ? { latitude: lastPosition.lat, longitude: lastPosition.lng } : {}),
+        ...loc,
       });
     } else if (k) {
       await fetch(`${api.defaults.baseURL}/public/alarms/jobs/${jobId}/ack`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Alarm-Key': k.key },
-        body: JSON.stringify({ kind, shownAt }),
+        body: JSON.stringify({ kind, shownAt, ...loc }),
       });
     }
   } catch {
@@ -356,14 +370,13 @@ async function sendAck(jobId: string, kind: AlarmKind, shownAt?: string) {
   }
 }
 
-/** "I've seen it" pressed on the notification itself (app closed, locked, or open). */
+/** "On the way" / "I've seen it" pressed on the notification itself (app closed, locked, or open). */
 export async function handleAlarmNotificationAction(type: EventType, notification?: Notification, actionId?: string) {
   if (type !== EventType.ACTION_PRESS || actionId !== ACK_ACTION) return;
   const jobId = notification?.data?.jobId as string | undefined;
   const kind = notification?.data?.kind as AlarmKind | undefined;
   if (!jobId || !kind) return;
   await notifee.cancelNotification(keyOf(jobId, kind)).catch(() => {});
-  if (kind === 'START_30') await notifee.cancelNotification(keyOf(jobId, 'START_60')).catch(() => {});
   const queued = pending.find((a) => a.job.jobId === jobId && a.kind === kind);
   if (queued) {
     await acknowledgeAlarm(queued);

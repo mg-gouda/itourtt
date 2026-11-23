@@ -143,7 +143,7 @@ export function Header() {
 
       // Surface unread FLIGHT_DELAY notifications as blocking modals
       const pendingDelays = all.filter(
-        (n) => n.type === "FLIGHT_DELAY" && !n.isRead && !shownDelayIds.current.has(n.id)
+        (n) => BLOCKING_ALERTS.has(n.type) && !n.isRead && !shownDelayIds.current.has(n.id)
       );
       if (pendingDelays.length > 0) {
         pendingDelays.forEach((n) => shownDelayIds.current.add(n.id));
@@ -267,7 +267,7 @@ export function Header() {
                   onClick={() => {
                     if (!n.isRead) markAsRead(n.id);
                     setNotifOpen(false);
-                    if (n.type === "FLIGHT_DELAY") {
+                    if (BLOCKING_ALERTS.has(n.type)) {
                       setFlightDelayQueue((prev) => {
                         if (prev.some((q) => q.id === n.id)) return prev;
                         return [...prev, n];
@@ -351,7 +351,15 @@ export function Header() {
       <MobileSidebar open={mobileNavOpen} onOpenChange={setMobileNavOpen} />
 
       {/* Flight Delay Blocking Modal — one at a time, queue-based */}
-      {flightDelayQueue.length > 0 && (() => {
+      {flightDelayQueue.length > 0 && flightDelayQueue[0].type !== "FLIGHT_DELAY" && (
+        <JobAlarmOfficeModal
+          notif={flightDelayQueue[0]}
+          pending={flightDelayQueue.length - 1}
+          busy={acceptingDelay}
+          onAccept={() => acceptFlightDelay(flightDelayQueue[0])}
+        />
+      )}
+      {flightDelayQueue.length > 0 && flightDelayQueue[0].type === "FLIGHT_DELAY" && (() => {
         const notif = flightDelayQueue[0];
         const meta = notif.metadata as { repName?: string; oldArrivalTime?: string | null; newArrivalTime?: string } | null;
         const fmt = (iso: string) => new Date(iso).toLocaleString("en-GB", {
@@ -427,5 +435,104 @@ export function Header() {
         );
       })()}
     </header>
+  );
+}
+
+/** Notifications shown to office staff as a blocking popup (accept to close). */
+const BLOCKING_ALERTS = new Set(["FLIGHT_DELAY", "ON_THE_WAY", "ALARM_MISSED", "ALARM_WARN_45"]);
+
+/**
+ * Job-alarm alerts for the office (5.10): a rep / driver pressed "On the way" (time + Google Maps
+ * location), did not answer an alarm for 5 minutes (may be asleep — call), or answered neither the
+ * 1:30 nor the 1:00 alarm, 45 minutes before the job.
+ */
+function JobAlarmOfficeModal({
+  notif,
+  pending,
+  busy,
+  onAccept,
+}: {
+  notif: Notification;
+  pending: number;
+  busy: boolean;
+  onAccept: () => void;
+}) {
+  const m = (notif.metadata ?? {}) as {
+    personName?: string; personPhone?: string | null; role?: string; jobRef?: string;
+    startsAt?: string | null; acknowledgedAt?: string; mapsUrl?: string | null;
+  };
+  const fmt = (iso?: string | null) =>
+    iso
+      ? new Date(iso).toLocaleString("en-GB", {
+          timeZone: "Africa/Cairo", day: "2-digit", month: "2-digit", year: "numeric",
+          hour: "2-digit", minute: "2-digit", hour12: false,
+        })
+      : "—";
+  const onTheWay = notif.type === "ON_THE_WAY";
+  const heading = onTheWay
+    ? "On the way"
+    : notif.type === "ALARM_WARN_45"
+      ? "45 minutes to go — no answer"
+      : "No answer to job alarm";
+  const who = `${m.role === "REP" ? "Rep" : m.role === "DRIVER" ? "Driver" : ""} ${m.personName ?? ""}`.trim();
+  return (
+    <Dialog open modal>
+      <DialogContent
+        className="max-w-md [&>button:first-of-type]:hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle className={cn("flex items-center gap-2", onTheWay ? "text-emerald-600" : "text-red-600")}>
+            <AlertTriangle className="h-5 w-5" />
+            {heading}
+          </DialogTitle>
+          <DialogDescription asChild>
+            <div className="space-y-3 pt-2 text-sm text-foreground">
+              <p className="font-medium">{notif.title}</p>
+              <p className="text-muted-foreground">{notif.message}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-md border border-border bg-muted/50 px-3 py-2">
+                  <p className="mb-0.5 text-xs text-muted-foreground">{who || "Rep / driver"}</p>
+                  {m.personPhone ? (
+                    <a href={`tel:${m.personPhone}`} className="text-sm font-semibold text-primary underline">{m.personPhone}</a>
+                  ) : (
+                    <p className="text-sm font-semibold">No phone on file</p>
+                  )}
+                </div>
+                <div className="rounded-md border border-border bg-muted/50 px-3 py-2">
+                  <p className="mb-0.5 text-xs text-muted-foreground">Job {m.jobRef ?? ""} starts</p>
+                  <p className="text-sm font-semibold">{fmt(m.startsAt)}</p>
+                </div>
+                {onTheWay && (
+                  <div className="col-span-2 rounded-md border border-emerald-300/50 bg-emerald-500/10 px-3 py-2">
+                    <p className="mb-0.5 text-xs text-muted-foreground">Pressed &quot;On the way&quot; at</p>
+                    <p className="text-sm font-semibold">{fmt(m.acknowledgedAt)}</p>
+                    {m.mapsUrl ? (
+                      <a href={m.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-sm font-semibold text-primary underline">
+                        Open location in Google Maps
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">The phone did not share its location.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              {pending > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {pending} more alert{pending > 1 ? "s" : ""} pending.
+                </p>
+              )}
+            </div>
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end pt-2">
+          <Button onClick={onAccept} disabled={busy} className={onTheWay ? "" : "bg-red-600 text-white hover:bg-red-700"}>
+            {busy ? "Accepting…" : "Accept & Acknowledge"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

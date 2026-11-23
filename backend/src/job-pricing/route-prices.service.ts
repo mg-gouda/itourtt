@@ -63,12 +63,13 @@ export class RoutePricesService {
   }
 
   /** All customers that have prices, in the "Customer Price List" layout (+ the Arabic route). */
-  async exportCustomerPrices(): Promise<Buffer> {
+  /** Customer price list sheet: every customer with prices, or just `customerId` (even with none yet). */
+  async exportCustomerPrices(customerId?: string): Promise<Buffer> {
     const [columns, routes, customers] = await Promise.all([
       this.columns(),
       this.routes(),
       this.prisma.customer.findMany({
-        where: { deletedAt: null, routePrices: { some: {} } },
+        where: customerId ? { id: customerId, deletedAt: null } : { deletedAt: null, routePrices: { some: {} } },
         select: { legalName: true, tradeName: true, routePrices: { select: { jobServiceTypeId: true, vehicleTypeId: true, price: true } } },
         orderBy: { legalName: 'asc' },
       }),

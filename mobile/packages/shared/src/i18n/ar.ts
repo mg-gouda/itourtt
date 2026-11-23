@@ -233,6 +233,7 @@ export const ar: TranslationKeys = {
     downloadTitle: "تحديث iTour {version}",
   },
   alarm: {
+    startsIn90: "تبدأ المهمة بعد ساعة ونصف",
     startsIn60: "تبدأ المهمة بعد ساعة",
     startsIn30: "تبدأ المهمة بعد 30 دقيقة",
     startDesc: "المهمة {ref} على وشك البدء. أكّد أنك رأيت هذا التنبيه.",
@@ -247,6 +248,7 @@ export const ar: TranslationKeys = {
     route: "المسار",
     dropoff: "نقطة التوصيل",
     acknowledge: "تمت المشاهدة",
+    onTheWay: "في الطريق",
     serviceOn: "منبهات الرحلات مفعّلة",
     serviceOnBody: "تنبيهات رحلاتك ترن على هذا الهاتف حتى بعد تسجيل الخروج.",
     onForName: "منبهات الرحلات على هذا الهاتف: {name}",
