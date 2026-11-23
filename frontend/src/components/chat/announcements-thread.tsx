@@ -33,7 +33,7 @@ export function AnnouncementsThread({ onBack, className }: { onBack?: () => void
   const markRead = useCallback(() => {
     if (document.visibilityState !== "visible") return;
     api
-      .post("/chat/announcements/read", null, backgroundPoll)
+      .post("/chat/announcements/read", {}, backgroundPoll)
       .then(() => announceChatRead(ANNOUNCEMENTS_ID))
       .catch(() => {});
   }, []);

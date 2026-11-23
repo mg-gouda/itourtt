@@ -112,14 +112,14 @@ export const chatApi = {
         timeout: 60000,
       }),
     ),
-  markRead: (id: string) => api.post(`/chat/conversations/${id}/read`, null, background),
+  markRead: (id: string) => api.post(`/chat/conversations/${id}/read`, {}, background),
   announcementsSummary: () =>
     unwrap<ChatAnnouncementsSummary | null>(api.get('/chat/announcements/summary', background)),
   announcements: (params: { before?: string; limit?: number }, poll = false) =>
     unwrap<{ announcements: ChatAnnouncement[]; hasMore: boolean }>(
       api.get('/chat/announcements', { ...(poll ? background : {}), params }),
     ),
-  markAnnouncementsRead: () => api.post('/chat/announcements/read', null, background),
+  markAnnouncementsRead: () => api.post('/chat/announcements/read', {}, background),
   /** Path (under the API base URL) an attachment is streamed from. */
   messageAttachmentPath: (id: string) => `/chat/messages/${id}/attachment`,
   broadcastAttachmentPath: (id: string) => `/chat/broadcasts/${id}/attachment`,

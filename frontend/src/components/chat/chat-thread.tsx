@@ -65,7 +65,7 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
   const markRead = useCallback(() => {
     if (document.visibilityState !== "visible") return;
     api
-      .post(`/chat/conversations/${conversationId}/read`, null, backgroundPoll)
+      .post(`/chat/conversations/${conversationId}/read`, {}, backgroundPoll)
       .then(() => {
         announceChatRead(conversationId);
         onReadRef.current?.();

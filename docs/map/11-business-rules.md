@@ -679,6 +679,20 @@ It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web
   car/driver/rep section. New B2B jobs wait in the pool, and editing a job no longer re-sends its
   assignment.
 
+## Chat unread counts (5.6.1, 2026-11-23)
+
+The chat badge, inbox rows and the Announcements row count **unread items only**:
+- **Messages:** messages from the other person newer than your last read of that thread.
+- **Announcements:** deliveries to you with no read time.
+
+Opening a thread (or the Announcements thread) marks it read: `POST
+/chat/conversations/:id/read` / `POST /chat/announcements/read`.
+
+**Bug fixed in 5.6.1:** the web chat and the phone apps send these requests with a `null` body. The
+strict JSON parser rejected that with 400, so nothing was ever marked read and badges counted
+everything. The server now accepts any JSON and treats a non-object body as `{}`, so the apps
+already installed on phones work without an update. The clients now send `{}`.
+
 ## Route from origin / destination (5.6.0, 2026-11-23)
 
 Online and B2C jobs are entered with an origin and a destination, not a route. The system finds the

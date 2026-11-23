@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import * as express from 'express';
 import * as path from 'path';
@@ -15,10 +16,20 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
 dns.setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
   const logger = new Logger('Bootstrap');
+
+  // The web chat and the rep / driver apps send "mark read" as POST with the body `null`. The
+  // default strict JSON parser rejected that with 400, so nothing was ever marked read and the
+  // chat badge counted read messages and announcements too. Accept any JSON, then treat a
+  // non-object body (null, a bare string / number) as empty — endpoints with a DTO still validate.
+  app.useBodyParser('json', { strict: false });
+  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    if (req.body === null || (req.body !== undefined && typeof req.body !== 'object')) req.body = {};
+    next();
+  });
 
   // Behind Traefik: trust the private-network proxy hops so req.ip (activity
   // log, sessions, per-IP rate limits) is the phone's real public IP instead of
