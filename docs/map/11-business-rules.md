@@ -679,6 +679,39 @@ It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web
   car/driver/rep section. New B2B jobs wait in the pool, and editing a job no longer re-sends its
   assignment.
 
+## Route from origin / destination (5.6.0, 2026-11-23)
+
+Online and B2C jobs are entered with an origin and a destination, not a route. The system finds the
+route so the job shows one in the Traffic Cover pool, lists and reports
+(`RouteResolverService`):
+
+1. **Ends:** an airport counts as that airport, a zone as that zone, a hotel as its zone.
+2. **Candidates:** active routes whose *default service type* is the job's, whose From end is the
+   origin end and whose To end is the destination end.
+3. **One candidate:** that route.
+4. **Several** (e.g. RMF → Marsa Alam Center fits ARR-MARSA ALAM / NORTH / SOUTH): the **RMF notes
+   rule** decides. If the job notes or the hotel name name an RMF hotel, the job gets that area's
+   route for its leg. If nothing decides, there is no route, and staff pick it.
+5. Zones that no route uses get no route. For example, the duplicate "HURGHADA" / "Safaga" zones
+   next to "Hurghada Center" / "Safaga Center", or El Kawthar and Luxor as arrival ends.
+
+**When it runs:**
+- **Saving a job without a route:** create, or an edit that doesn't send one. On an edit it runs
+  again when the job has no route or its ends / type / notes changed, and an existing route is only
+  replaced when the lookup finds one.
+- **Converting a B2C booking.**
+- **The online form, live:** while the route is empty or auto-filled, it follows the origin,
+  destination, type and notes. A route picked by hand is never overwritten.
+- **Backfill:** `POST /job-service-types/resolve/backfill {fromDate}` does today's and future jobs;
+  it is repeatable and safe.
+
+**Vice versa:** picking a route in the online form sets the service type and fills each empty end
+from the route. An airport or zone that isn't the route's end is replaced; a hotel is kept, because
+it is more precise.
+
+**B2B form (5.6.0):** there is no Pricing & Customer Rep section. The price comes from the customer's
+price list, and editing a job keeps its existing price and rep values.
+
 ## Brand: iTour GO vs the company brand (5.5.0, 2026-11-22)
 
 - The product is **iTour Ground Operations (iTour GO)**. Logo kit: `frontend/public/brand/`.
@@ -691,7 +724,9 @@ It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web
 - **Styling settings win:** colours and the login logo/background saved in System Parameters ›
   Styling override the built-in defaults. With nothing saved, the login page shows the iTour GO
   lockup on a plain ink background (there is no bundled background photo any more).
-- If the company logo file can't load, the sidebar falls back to the iTour GO logo.
+- Sidebar (5.6.0): the full iTour GO logo with its mark when open, the mark only when collapsed
+  (mobile menu: full logo). The company logo is no longer shown there; it stays on guest /
+  customer documents.
 - **Styling saves (5.5.1):** removing an image (dashboard background, login background, login
   logo) saves at once (PATCH `/settings/system` with the field set to `null`); Save also sends
   the current images. The API accepts only `null` or an existing `/uploads/` path for them.

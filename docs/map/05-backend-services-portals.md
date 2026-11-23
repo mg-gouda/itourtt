@@ -204,17 +204,17 @@ Admin REST surface for the guest-bookings screen.
 
 ### GuestBookingsService
 
-`backend/src/guest-bookings/guest-bookings.service.ts:21` · service · 5 methods
+`backend/src/guest-bookings/guest-bookings.service.ts:22` · service · 5 methods
 
 Admin-side handling of B2C guest bookings and their conversion into operational traffic jobs. The conversion is the delicate part — see `convertToJob`.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 39 | `guestBooking` | Filterable list of guest bookings for the admin screen. |
-| `findOne` | pub | 86 | `guestBooking` | One guest booking with its full relation graph. |
-| `convertToJob` | pub | 102 | `guestBooking` `agent` `trafficJob` `trafficFlight` | Creates a TrafficJob (channel B2C) plus its flight row from a CONFIRMED booking. Critical rule: a job must have EXACTLY ONE origin FK and one destination FK — the code picks the most specific hotel-side node (hotel, else zone) precisely because setting both zone and hotel breaks later edit/cancel validation. Rejects any booking not in CONFIRMED status. |
-| `cancelBooking` | pub | 272 | `guestBooking` | Cancels a guest booking and its linked job. |
-| `generateInternalRef` | priv | 330 | — | Allocates the next sequential `FT-nnnn` internal reference, using the same pattern as the traffic-jobs service. |
+| `findAll` | pub | 41 | `guestBooking` | Filterable list of guest bookings for the admin screen. |
+| `findOne` | pub | 88 | `guestBooking` | One guest booking with its full relation graph. |
+| `convertToJob` | pub | 104 | `guestBooking` `agent` `trafficJob` `trafficFlight` | Creates a TrafficJob (channel B2C) plus its flight row from a CONFIRMED booking. Critical rule: a job must have EXACTLY ONE origin FK and one destination FK — the code picks the most specific hotel-side node (hotel, else zone) precisely because setting both zone and hotel breaks later edit/cancel validation. Rejects any booking not in CONFIRMED status. |
+| `cancelBooking` | pub | 282 | `guestBooking` | Cancels a guest booking and its linked job. |
+| `generateInternalRef` | priv | 340 | — | Allocates the next sequential `FT-nnnn` internal reference, using the same pattern as the traffic-jobs service. |
 
 ## `partner`
 

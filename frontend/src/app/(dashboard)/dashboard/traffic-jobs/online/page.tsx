@@ -223,7 +223,13 @@ export default function OnlineJobPage() {
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
-  const [jobServiceTypes, setJobServiceTypes] = useState<{ id: string; name: string }[]>([]);
+  const [jobServiceTypes, setJobServiceTypes] = useState<{
+    id: string; name: string; defaultServiceType?: string | null;
+    fromAirportId?: string | null; fromZoneId?: string | null; toAirportId?: string | null; toZoneId?: string | null;
+  }[]>([]);
+  // True while the route was filled from origin / destination (or is empty): it may be looked up
+  // again when those change. A route picked by hand is never overwritten.
+  const routeAutoRef = useRef(true);
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -331,11 +337,66 @@ export default function OnlineJobPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editParam]);
 
+  /* ── Origin / destination → route (5.6.0): same lookup the server does on save ── */
+  useEffect(() => {
+    if (!routeAutoRef.current) return;
+    const originOk = form.originAirportId || form.originZoneId || form.originHotelId;
+    const destOk = form.destinationAirportId || form.destinationZoneId || form.destinationHotelId;
+    if (!form.serviceType || !originOk || !destOk) return;
+    const timer = setTimeout(() => {
+      const params: Record<string, string> = { serviceType: form.serviceType };
+      ([
+        "originAirportId", "originZoneId", "originHotelId",
+        "destinationAirportId", "destinationZoneId", "destinationHotelId",
+      ] as const).forEach((k) => { if (form[k]) params[k] = form[k]; });
+      if (form.notes.trim()) params.notes = form.notes.trim();
+      api.get("/job-service-types/resolve", { params })
+        .then(({ data }) => {
+          if (!routeAutoRef.current) return; // picked by hand meanwhile
+          const routeId: string | null = (data?.data ?? data)?.routeId ?? null;
+          setForm((prev) => (prev.jobServiceTypeId === (routeId ?? "") ? prev : { ...prev, jobServiceTypeId: routeId ?? "" }));
+        })
+        .catch(() => { /* non-critical: the server looks it up again on save */ });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [
+    form.serviceType, form.notes,
+    form.originAirportId, form.originZoneId, form.originHotelId,
+    form.destinationAirportId, form.destinationZoneId, form.destinationHotelId,
+  ]);
+
+  /** Route picked by hand → its service type, and its ends where the form has none (or one that doesn't fit). */
+  const pickRoute = (id: string) => {
+    routeAutoRef.current = !id;
+    const r = jobServiceTypes.find((x) => x.id === id);
+    if (!r) { updateForm({ jobServiceTypeId: id }); return; }
+    const patch: Partial<FormState> = { jobServiceTypeId: id };
+    if (r.defaultServiceType && r.defaultServiceType !== form.serviceType) {
+      patch.serviceType = r.defaultServiceType;
+      if (r.defaultServiceType === "ARR") patch.departureTime = "";
+      if (r.defaultServiceType === "DEP") patch.arrivalTime = "";
+    }
+    // A hotel is more precise than the route's zone, so it is kept; an airport / zone that
+    // isn't the route's end (or an empty side) takes the route's end.
+    const fromEnd = r.fromAirportId ? { originAirportId: r.fromAirportId } : r.fromZoneId ? { originZoneId: r.fromZoneId } : null;
+    const originFits = form.originHotelId || (r.fromAirportId ? form.originAirportId === r.fromAirportId : form.originZoneId === r.fromZoneId);
+    if (fromEnd && !originFits) {
+      Object.assign(patch, { originAirportId: "", originZoneId: "", originHotelId: "", ...fromEnd, originSelectedId: r.fromAirportId || r.fromZoneId || "" });
+    }
+    const toEnd = r.toAirportId ? { destinationAirportId: r.toAirportId } : r.toZoneId ? { destinationZoneId: r.toZoneId } : null;
+    const destFits = form.destinationHotelId || (r.toAirportId ? form.destinationAirportId === r.toAirportId : form.destinationZoneId === r.toZoneId);
+    if (toEnd && !destFits) {
+      Object.assign(patch, { destinationAirportId: "", destinationZoneId: "", destinationHotelId: "", ...toEnd, destinationSelectedId: r.toAirportId || r.toZoneId || "" });
+    }
+    updateForm(patch);
+  };
+
   /* ── Select job for editing ── */
   const handleSelectJob = (job: TrafficJob) => {
     if (isJobLocked(job.jobDate, job.editUnlockedAt)) return;
 
     setEditingJobId(job.id);
+    routeAutoRef.current = !(job.jobServiceTypeId || (job as any).jobServiceType?.id);
 
     // A job must carry exactly one origin and one destination FK. Legacy B2C jobs
     // may have both a zone and a hotel set; collapse to the most specific node
@@ -399,7 +460,7 @@ export default function OnlineJobPage() {
 
   const handleCancelEdit = () => {
     setEditingJobId(null);
-    setForm({ ...defaultForm });
+    setForm({ ...defaultForm }); routeAutoRef.current = true;
   };
 
   /* ── Create or Update job ── */
@@ -523,7 +584,7 @@ export default function OnlineJobPage() {
       }
 
       setEditingJobId(null);
-      setForm({ ...defaultForm });
+      setForm({ ...defaultForm }); routeAutoRef.current = true;
       fetchJobs();
     } catch (err: unknown) {
       const msg =
@@ -779,7 +840,7 @@ export default function OnlineJobPage() {
               <SearchableCombobox
                 items={jobServiceTypes.map((s) => ({ value: s.id, label: s.name }))}
                 value={form.jobServiceTypeId}
-                onChange={(v) => updateForm({ jobServiceTypeId: v })}
+                onChange={pickRoute}
                 placeholder="Select route…"
                 searchPlaceholder="Search routes…"
                 emptyText="No routes found."

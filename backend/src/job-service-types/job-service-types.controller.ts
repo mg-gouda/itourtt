@@ -1,7 +1,9 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Body, Param, Res, UseGuards, UseInterceptors, UploadedFile,
+  Body, Param, Query, Res, UseGuards, UseInterceptors, UploadedFile,
 } from '@nestjs/common';
+import { RouteResolverService } from './route-resolver.service.js';
+import { ResolveRouteQueryDto, RouteBackfillDto } from './dto/resolve-route.dto.js';
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JobServiceTypesService } from './job-service-types.service.js';
@@ -14,7 +16,10 @@ import { ApiResponse } from '../common/dto/api-response.dto.js';
 @Controller('job-service-types')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class JobServiceTypesController {
-  constructor(private readonly service: JobServiceTypesService) {}
+  constructor(
+    private readonly service: JobServiceTypesService,
+    private readonly resolver: RouteResolverService,
+  ) {}
 
   @Get()
   // The B2B/Online job forms draw their Route dropdown from this list, so their
@@ -22,6 +27,20 @@ export class JobServiceTypesController {
   @Permissions('driver-tariffs', 'traffic-jobs.b2b.form.route', 'traffic-jobs.online.form.route', 'traffic-jobs.b2b.importExcel')
   async findAll() {
     return new ApiResponse(await this.service.findAll());
+  }
+
+  /** Origin / destination (+ notes) → route, for the online job form (5.6.0). */
+  @Get('resolve')
+  @Permissions('driver-tariffs', 'traffic-jobs.b2b.form.route', 'traffic-jobs.online.form.route')
+  async resolve(@Query() q: ResolveRouteQueryDto) {
+    return new ApiResponse(await this.resolver.resolve(q));
+  }
+
+  /** Give a route to online / B2C jobs from a date on that have none (admin, repeatable). */
+  @Post('resolve/backfill')
+  @Permissions('driver-tariffs.upsert')
+  async backfill(@Body() dto: RouteBackfillDto) {
+    return new ApiResponse(await this.resolver.backfill(dto.fromDate));
   }
 
   /** System Parameters › Routes: every route (inactive too) with its usage counts. */

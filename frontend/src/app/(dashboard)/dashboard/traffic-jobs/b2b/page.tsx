@@ -244,7 +244,6 @@ export default function B2BJobPage() {
   const canB2BPaxCount = usePermission("traffic-jobs.b2b.form.paxCount");
   const canB2BRoute = usePermission("traffic-jobs.b2b.form.route");
   const canB2BFlightInfo = usePermission("traffic-jobs.b2b.form.flightInfo");
-  const canB2BMeetingInfo = usePermission("traffic-jobs.b2b.form.meetingInfo");
   const canB2BNotes = usePermission("traffic-jobs.b2b.form.notes");
   const canB2BStatusFilter = usePermission("traffic-jobs.b2b.table.statusFilter");
   const canB2BImport = usePermission("traffic-jobs.b2b.importJobs");
@@ -964,63 +963,7 @@ export default function B2BJobPage() {
           </>
           )}
 
-          {/* ── Pricing & Customer Rep ── */}
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Pricing &amp; Customer Rep</span>
-            <hr className="flex-1 border-border" />
-          </div>
-
-          {/* Row 4: Price + Customer Rep name / mobile */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.price") || "Price"}</Label>
-              <div className="flex gap-1">
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.priceAmount}
-                  onChange={(e) => updateForm({ priceAmount: e.target.value })}
-                  placeholder="0.00"
-                  className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9 flex-1"
-                />
-                <Select value={form.priceCurrency} onValueChange={(v) => updateForm({ priceCurrency: v })}>
-                  <SelectTrigger className="w-[70px] border-border bg-card text-foreground h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-border bg-popover text-foreground">
-                    <SelectItem value="EGP">EGP</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="SAR">SAR</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {canB2BMeetingInfo && (
-            <>
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.custRepName")}</Label>
-              <Input
-                value={form.custRepName}
-                onChange={(e) => updateForm({ custRepName: e.target.value })}
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
-              />
-            </div>
-            <div className="min-w-0 space-y-1.5">
-              <Label className="text-muted-foreground text-xs">{t("jobs.custRepMobile")}</Label>
-              <Input
-                type="tel"
-                value={form.custRepMobile}
-                onChange={(e) => updateForm({ custRepMobile: e.target.value })}
-                placeholder="+20 xxx xxx xxxx"
-                className="border-border bg-card text-foreground placeholder:text-muted-foreground h-9"
-              />
-            </div>
-            </>
-            )}
-          </div>
+          {/* Price and the customer's rep are not entered here: the price comes from the customer's price list (5.6.0). */}
 
           {/* Car, driver and rep are set on Traffic Cover: new jobs wait in its job pool. */}
 

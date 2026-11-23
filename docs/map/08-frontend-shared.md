@@ -220,13 +220,13 @@ Mobile-optimised profile screen shared by the portals.
 
 ### `mobile-sidebar.tsx`
 
-`frontend/src/components/mobile-sidebar.tsx` · 221 lines
+`frontend/src/components/mobile-sidebar.tsx` · 211 lines
 
 Mobile-width navigation drawer.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MobileSidebar` | function | 30 | Mobile navigation drawer. |
+| `MobileSidebar` | function | 29 | Mobile navigation drawer. |
 
 ### `multi-select.tsx`
 
@@ -399,19 +399,19 @@ Generic searchable select, used for large lists such as the car source.
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 454 lines
+`frontend/src/components/sidebar.tsx` · 437 lines
 
 Main dashboard navigation, filtered by permission.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `NavLink` | type | 63 | A navigation link with active-state styling. |
-| `NavSeparator` | type | 73 | Divider between sidebar sections. |
-| `NavSectionLabel` | type | 77 | Section heading in the sidebar. |
-| `NavGroup` | type | 82 | A collapsible navigation group. |
-| `NavItem` | type | 89 | One navigation entry. |
-| `navigation` | const | 96 | The navigation definition — sections, items and the permission key gating each. |
-| `Sidebar` | function | 168 | Main dashboard navigation, permission-filtered. |
+| `NavLink` | type | 62 | A navigation link with active-state styling. |
+| `NavSeparator` | type | 72 | Divider between sidebar sections. |
+| `NavSectionLabel` | type | 76 | Section heading in the sidebar. |
+| `NavGroup` | type | 81 | A collapsible navigation group. |
+| `NavItem` | type | 88 | One navigation entry. |
+| `navigation` | const | 95 | The navigation definition — sections, items and the permission key gating each. |
+| `Sidebar` | function | 167 | Main dashboard navigation, permission-filtered. |
 
 ### `sortable-header.tsx`
 

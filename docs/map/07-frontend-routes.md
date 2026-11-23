@@ -50,8 +50,8 @@
 | `/dashboard/suppliers` | `frontend/src/app/(dashboard)/dashboard/suppliers/page.tsx` | 1396 | 15 | 10 | Supplier management with nested vehicles, drivers, car types and price grid. |
 | `/dashboard/suppliers/[id]` | `frontend/src/app/(dashboard)/dashboard/suppliers/[id]/page.tsx` | 313 | 4 | 2 | One supplier's detail. |
 | `/dashboard/traffic-jobs` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/page.tsx` | 871 | 4 | 3 | Traffic jobs landing page with the shared filters. |
-| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1186 | 15 | 15 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
-| `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1277 | 8 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
+| `/dashboard/traffic-jobs/b2b` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/b2b/page.tsx` | 1129 | 15 | 14 | B2B-channel jobs (customer bookings), including bulk import and the AI manifest parser. |
+| `/dashboard/traffic-jobs/online` | `frontend/src/app/(dashboard)/dashboard/traffic-jobs/online/page.tsx` | 1338 | 9 | 13 | ONLINE-channel jobs (agent bookings), where the agent reference is validated against the agent pattern. |
 | `/dashboard/trip-km` | `frontend/src/app/(dashboard)/dashboard/trip-km/page.tsx` | 34 | — | — | Fleet › Trip Kilometers: all cars' odometer readings and Odoo export |
 | `/dashboard/users` | `frontend/src/app/(dashboard)/dashboard/users/page.tsx` | 818 | 14 | 8 | Staff user administration and role assignment. |
 | `/dashboard/vehicles` | `frontend/src/app/(dashboard)/dashboard/vehicles/page.tsx` | 1095 | 10 | 9 | Fleet list with compliance status. |
@@ -245,11 +245,11 @@
 **`/dashboard/traffic-jobs/b2b`**
 
 - calls: `GET /customers`, `GET /dispatch/available-suppliers`, `GET /dispatch/available-vehicles`, `GET /dispatch/available-drivers`, `GET /dispatch/available-reps`, `GET /vehicles/types`, `GET /job-service-types`, `GET /traffic-jobs`, `GET /traffic-jobs/:x`, `PATCH /traffic-jobs/:x`, `PATCH /traffic-jobs/:x/status`, `POST /traffic-jobs`, `PATCH /dispatch/assignments/:x`, `POST /dispatch/assign`, `DELETE /dispatch/assignments/:x`
-- perms: `dispatch.assignment.assignVehicle`, `dispatch.assignment.assignDriver`, `dispatch.assignment.assignRep`, `traffic-jobs.b2b.createJob`, `traffic-jobs.b2b.form.customer`, `traffic-jobs.b2b.form.serviceType`, `traffic-jobs.b2b.form.dateTime`, `traffic-jobs.b2b.form.paxCount`, `traffic-jobs.b2b.form.route`, `traffic-jobs.b2b.form.flightInfo`, `traffic-jobs.b2b.form.meetingInfo`, `traffic-jobs.b2b.form.notes`, `traffic-jobs.b2b.table.statusFilter`, `traffic-jobs.b2b.importJobs`, `traffic-jobs.b2b.importExcel`
+- perms: `dispatch.assignment.assignVehicle`, `dispatch.assignment.assignDriver`, `dispatch.assignment.assignRep`, `traffic-jobs.b2b.createJob`, `traffic-jobs.b2b.form.customer`, `traffic-jobs.b2b.form.serviceType`, `traffic-jobs.b2b.form.dateTime`, `traffic-jobs.b2b.form.paxCount`, `traffic-jobs.b2b.form.route`, `traffic-jobs.b2b.form.flightInfo`, `traffic-jobs.b2b.form.notes`, `traffic-jobs.b2b.table.statusFilter`, `traffic-jobs.b2b.importJobs`, `traffic-jobs.b2b.importExcel`
 
 **`/dashboard/traffic-jobs/online`**
 
-- calls: `GET /agents`, `GET /vehicles/types`, `GET /job-service-types`, `GET /traffic-jobs`, `GET /traffic-jobs/:x`, `PATCH /traffic-jobs/:x`, `PATCH /traffic-jobs/:x/status`, `POST /traffic-jobs`
+- calls: `GET /agents`, `GET /vehicles/types`, `GET /job-service-types`, `GET /traffic-jobs`, `GET /traffic-jobs/:x`, `GET /job-service-types/resolve`, `PATCH /traffic-jobs/:x`, `PATCH /traffic-jobs/:x/status`, `POST /traffic-jobs`
 - perms: `traffic-jobs.online.form.requestedVehicleType`, `traffic-jobs.online.createJob`, `traffic-jobs.online.form.provider`, `traffic-jobs.online.form.agentRef`, `traffic-jobs.online.form.serviceType`, `traffic-jobs.online.form.dateTime`, `traffic-jobs.online.form.clientInfo`, `traffic-jobs.online.form.paxCount`, `traffic-jobs.online.form.route`, `traffic-jobs.online.form.flightInfo`, `traffic-jobs.online.form.extras`, `traffic-jobs.online.form.notes`, `traffic-jobs.online.table.statusFilter`
 
 **`/dashboard/users`**

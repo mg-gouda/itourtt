@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/sheet";
 import { useT } from "@/lib/i18n";
 import { usePermissionsStore } from "@/stores/permissions-store";
-import { useCompanyStore } from "@/stores/company-store";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   navigation,
@@ -31,7 +30,6 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
   const pathname = usePathname();
   const t = useT();
   const { has: hasPerm, isLoaded: permsLoaded } = usePermissionsStore();
-  const { logoUrl } = useCompanyStore();
   const { user } = useAuthStore();
 
   // Close drawer on navigation
@@ -92,23 +90,15 @@ export function MobileSidebar({ open, onOpenChange }: MobileSidebarProps) {
 
         {/* Brand */}
         <div className="flex h-14 items-center px-4">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/brand/itour-logo-dark.svg"; }}
-              alt={t("sidebar.brand")}
-              className="h-11 w-full object-contain"
-            />
-          ) : (
-            <Image
-              src="/brand/itour-logo-dark.svg"
-              alt={t("sidebar.brand")}
-              width={200}
-              height={44}
-              className="h-11 w-full object-contain"
-              priority
-            />
-          )}
+          {/* iTour GO brand: full logo with its mark (the menu is always open on mobile). */}
+          <Image
+            src="/brand/itour-lockup-dark.svg"
+            alt={t("sidebar.brand")}
+            width={176}
+            height={60}
+            className="h-11 w-auto max-w-full object-contain object-left"
+            priority
+          />
         </div>
         <Separator className="bg-sidebar-border" />
 

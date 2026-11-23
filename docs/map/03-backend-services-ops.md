@@ -4,7 +4,7 @@
 
 Jobs, dispatch, the location tree, fleet and counterparties. This is where the core transport workflow lives.
 
-**29 classes**, **420 methods**.
+**30 classes**, **426 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -328,19 +328,21 @@ Admin screen for the per-role unlock flags on a job (`dispatchUnlockedAt`, `driv
 
 ### JobServiceTypesController
 
-`backend/src/job-service-types/job-service-types.controller.ts:16` · controller · 7 methods
+`backend/src/job-service-types/job-service-types.controller.ts:18` · controller · 9 methods
 
 REST surface for operator-defined job service types.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 23 | — | Lists job service types. |
-| `findAllForManagement` | pub | 30 | — | GET /job-service-types/manage: every route (inactive too) with usage counts, for System Parameters › Routes |
-| `downloadTemplate` | pub | 36 | — | Blank import workbook pre-filled with zones. |
-| `importExcel` | pub | 49 | — | Multipart bulk import. |
-| `create` | pub | 60 | — | Creates one. |
-| `update` | pub | 66 | — | Edits one. |
-| `remove` | pub | 72 | — | Deletes one. |
+| `findAll` | pub | 28 | — | Lists job service types. |
+| `resolve` | pub | 35 | — | GET /job-service-types/resolve — origin / destination (+ notes) → route, for the online job form. |
+| `backfill` | pub | 42 | — | POST /job-service-types/resolve/backfill {fromDate} — fill routes on online / B2C jobs without one (driver-tariffs.upsert). |
+| `findAllForManagement` | pub | 49 | — | GET /job-service-types/manage: every route (inactive too) with usage counts, for System Parameters › Routes |
+| `downloadTemplate` | pub | 55 | — | Blank import workbook pre-filled with zones. |
+| `importExcel` | pub | 68 | — | Multipart bulk import. |
+| `create` | pub | 79 | — | Creates one. |
+| `update` | pub | 85 | — | Edits one. |
+| `remove` | pub | 91 | — | Deletes one. |
 
 ### JobServiceTypesService
 
@@ -384,6 +386,19 @@ RMF hotel list CRUD; area and match words default from the section and the name
 | `create` | pub | 21 | `rmfHotel` | Adds a hotel at the end of its section; area defaults from the section, match words from the name |
 | `update` | pub | 36 | `rmfHotel` | Edits a hotel; moving it to another section moves its route area unless one is given |
 | `remove` | pub | 59 | `rmfHotel` | Deletes a hotel from the RMF list |
+
+### RouteResolverService
+
+`backend/src/job-service-types/route-resolver.service.ts:38` · service · 4 methods
+
+Resolves a job's route from its ends + notes; used on job create/update, B2C conversion, the online form and the backfill.
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `loadRmf` | priv | 44 | `rmfHotel` | Loads active RMF hotels in section / sort order with the fields the matcher needs. |
+| `data` | priv | 53 | `jobServiceType` | Active routes + active RMF hotels, cached for 60 s. |
+| `resolve` | pub | 66 | `hotel` | Hotel → its zone; candidates = active routes with the job's default service type and matching From/To; one → it; several → RMF notes rule (notes + hotel names); else null. |
+| `backfill` | pub | 106 | `trafficJob` | Gives a route to online / B2C jobs from a date on that have none; returns checked / set / ambiguous / noMatch counts. |
 
 ## `locations`
 
@@ -629,25 +644,25 @@ REST surface for job CRUD, status changes, bulk import, evidence upload and Forc
 
 ### TrafficJobsService
 
-`backend/src/traffic-jobs/traffic-jobs.service.ts:35` · service · 13 methods
+`backend/src/traffic-jobs/traffic-jobs.service.ts:36` · service · 13 methods
 
 The core job entity: creation, editing, status transitions and admin Force Control. Channel rules differ — ONLINE jobs require an agent plus a unique agent reference matching that agent's `refPattern`; B2B jobs require a customer.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `findAll` | pub | 177 | `trafficJob` | Filterable, paginated job list backing the traffic-jobs screens. |
-| `findOne` | pub | 225 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
-| `create` | pub | 238 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
-| `update` | pub | 395 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
-| `updateStatus` | pub | 642 | `trafficJob` `trafficAssignment` `driverTripFee` `rep` `repFee` +1 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
-| `forceControl` | pub | 744 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
-| `remove` | pub | 790 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
-| `uploadEvidence` | pub | 810 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
-| `deriveAbbreviation` | priv | 839 | — | Builds the reference prefix from the company name's initials. |
-| `generateInternalRef` | pub | 845 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
-| `resolveZoneFromFKs` | priv | 865 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
-| `bulkCreate` | pub | 882 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
-| `recalculateDriverFees` | pub | 906 | `trafficJob` `driverTripFee` `driverTariffsService.resolveJobTripFee` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
+| `findAll` | pub | 179 | `trafficJob` | Filterable, paginated job list backing the traffic-jobs screens. |
+| `findOne` | pub | 227 | `trafficJob` | One job with its full relation graph (locations, flight, assignment, agent/customer). |
+| `create` | pub | 240 | `agent` `trafficJob` `trafficFlight` `whatsappService.triggerJobCreated` | Creates a job and its flight row. Validates channel requirements, tests `agentRef` against the agent's regex `refPattern`, and rejects a duplicate agent reference by naming the job already using it. Fires the WhatsApp job-created trigger. |
+| `update` | pub | 403 | `trafficJob` `trafficAssignment` `trafficFlight` | Edits a job, its flight and (where permitted) its assignment. Re-resolves the pricing zones when origin/destination change. |
+| `updateStatus` | pub | 666 | `trafficJob` `trafficAssignment` `driverTripFee` `rep` `repFee` +1 | Dispatch-side status change validated against `VALID_TRANSITIONS`. Setting a terminal status pushes it down into BOTH portal legs, and completing with a driver assigned auto-generates the `DriverTripFee` — but only when a from- and a to-location can both be resolved. |
+| `forceControl` | pub | 768 | `trafficJob` `trafficAssignment` | Admin override that writes job/rep/driver statuses directly, bypassing the transition tables. If the admin did not also pick a job status, it calls `reconcileJobStatus` so forcing both legs to COMPLETED still closes the job and creates fees; an explicit job status wins over the roll-up. |
+| `remove` | pub | 814 | `trafficJob` | Soft-deletes a job. Refuses to delete anything already COMPLETED. |
+| `uploadEvidence` | pub | 834 | `completedEvidence` | Admin-side evidence upload on behalf of a driver or rep, stamped `DRIVER-Admin` / `REP-Admin` so it is distinguishable from portal-submitted evidence. |
+| `deriveAbbreviation` | priv | 863 | — | Builds the reference prefix from the company name's initials. |
+| `generateInternalRef` | pub | 869 | `settingsService.getCompanySettings` | Allocates the next `PREFIX-nnnn` reference. Casts the sequence to integer in SQL on purpose — a text sort ranks `PREFIX-9999` above `PREFIX-10000` and would wedge generation permanently past 10k. |
+| `resolveZoneFromFKs` | priv | 889 | `hotel` | Resolves the pricing zone from whichever location FK is set: a zone is itself, a hotel yields its parent zone, an airport has no single zone. |
+| `bulkCreate` | pub | 906 | — | Imports many jobs, collecting per-row errors by index instead of failing the whole batch. |
+| `recalculateDriverFees` | pub | 930 | `trafficJob` `driverTripFee` `driverTariffsService.resolveJobTripFee` | Backfill/repair: re-derives `DriverTripFee` rows from the tariff table for jobs whose fees are missing or stale. |
 
 ## `vehicles`
 
@@ -717,7 +732,7 @@ Vehicle types, the owned fleet, and per-vehicle compliance records (licences, in
 
 ## Standalone exports
 
-6 free functions, constants and types in these modules.
+8 free functions, constants and types in these modules.
 
 ### `backend/src/agents/dto/agent-price-list.dto.ts`
 
@@ -735,6 +750,15 @@ Validation for adding or editing an RMF hotel (System Parameters › Routes › 
 |---|---|---|---|
 | `RMF_SECTIONS` | const | 3 | The three RMF hotel sections: NORTH, SOUTH, DEEP_SOUTH |
 | `RMF_ROUTE_AREAS` | const | 4 | Route areas an RMF hotel can map to: North / South Marsa Alam, Shams Alam, Wadi Lahmi |
+
+### `backend/src/job-service-types/route-resolver.service.ts`
+
+Origin / destination → route (5.6.0): online and B2C jobs get the route whose type and From/To ends match; ties go to the RMF notes rule, otherwise no route.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RouteEnds` | type | 6 | A job's service type, one origin and one destination (airport / zone / hotel) and notes — the lookup input. |
+| `RouteMatch` | type | 17 | Lookup result: the route (how = unique / notes) or none (how = none / ambiguous, with the tied route names). |
 
 ### `backend/src/locations/pin-verifier.service.ts`
 

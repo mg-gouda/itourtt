@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService } from '../email/email.service.js';
+import { RouteResolverService } from '../job-service-types/route-resolver.service.js';
 import { GuestBookingQueryDto } from './dto/guest-booking-query.dto.js';
 import { PaginatedResponse } from '../common/dto/api-response.dto.js';
 import type {
@@ -24,6 +25,7 @@ export class GuestBookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly routeResolver: RouteResolverService,
   ) {}
 
   private readonly bookingInclude = {
@@ -151,6 +153,13 @@ export class GuestBookingsService {
         else destinationZoneId = booking.toZoneId;
       }
 
+      // Route from origin / destination (5.6.0), so the job shows one in the Traffic Cover pool.
+      const route = await this.routeResolver.resolve({
+        serviceType: booking.serviceType,
+        originAirportId, originZoneId, originHotelId,
+        destinationAirportId, destinationZoneId, destinationHotelId,
+      });
+
       // Extras snapshot persisted at booking time (legacy seats + catalog selections).
       const extras = (booking.extras as Record<string, unknown>) || {};
       const snapshotItems = Array.isArray(extras.items)
@@ -176,6 +185,7 @@ export class GuestBookingsService {
           agentId: websiteAgent?.id ?? null,
           agentRef: booking.bookingRef,
           serviceType: booking.serviceType as ServiceType,
+          jobServiceTypeId: route.routeId,
           jobDate: booking.jobDate,
           adultCount: booking.paxCount,
           childCount: 0,

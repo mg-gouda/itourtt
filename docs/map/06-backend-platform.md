@@ -1295,7 +1295,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-195 free functions, constants and types in these modules.
+201 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1547,6 +1547,19 @@ Rules for whether a Google Places result is the same place as a named location (
 | `REP_SCORE_WEIGHTS` | const | 17 | Attendance 20 · Appearance 15 · Work 15 · Survey 15 · Review 35 = 100. Work was cut from 30 to 15 when the Survey dimension was introduced. |
 | `calcRepScore` | function | 32 | Sums the weights of the flags that are set. |
 | `scoreToFeeAndEval` | function | 43 | Score → fee band: ≥90 Excellent 50 · ≥75 Good 40 · ≥61 Average 30 · else Poor 20 (EGP). |
+
+### `backend/src/common/utils/rmf-hotel-match.ts`
+
+Server copy of the RMF notes rule (keep in step with frontend/src/lib/rmf-hotel-match.ts): free text naming an RMF hotel → that hotel's Marsa Alam area route for the job's leg.
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `RmfHotelLike` | type | 6 | The RMF hotel fields the matcher needs: routeArea, matchWords, excludeWords, isActive. |
+| `normText` | function | 14 | Lower-cases text and strips accents / punctuation to single spaces for matching. |
+| `findRmfHotel` | function | 32 | First active RMF hotel named in the text (every word of a match alternative starts a word of the text; exclude words block it), or null. |
+| `Leg` | type | 45 | A job's leg for area routes: ARR, DEP, GOING (one-way transfer) or RETURN. |
+| `legOfServiceType` | function | 50 | Maps a service type to its leg (ARR / DEP / GOING / RETURN), null for day tours. |
+| `areaRoute` | function | 61 | Finds the route named <leg prefix>-<area> (e.g. ARR-NORTH-MARSA ALAM) in a route list. |
 
 ### `backend/src/common/utils/route-price-sheet.util.ts`
 

@@ -19,6 +19,7 @@ import { SettingsService } from '../settings/settings.service.js';
 import { DriverTariffsService } from '../driver-tariffs/driver-tariffs.service.js';
 import { JobCompletionService } from '../common/services/job-completion.service.js';
 import { isPastServiceDate, todayCairo } from '../common/utils/service-date.util.js';
+import { RouteResolverService } from '../job-service-types/route-resolver.service.js';
 
 type JobStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
@@ -44,6 +45,7 @@ export class TrafficJobsService {
     private readonly jobCompletion: JobCompletionService,
     private readonly jobPricing: JobPricingService,
     private readonly party: PartyNotificationsService,
+    private readonly routeResolver: RouteResolverService,
   ) {}
 
   // Full include — used for findOne() detail view only
@@ -303,6 +305,12 @@ export class TrafficJobsService {
     const fromZoneId = await this.resolveZoneFromFKs(dto.originAirportId, dto.originZoneId, dto.originHotelId);
     const toZoneId = await this.resolveZoneFromFKs(dto.destinationAirportId, dto.destinationZoneId, dto.destinationHotelId);
 
+    // No route given (online / B2C entry): find it from origin / destination (+ the notes rule).
+    if (!dto.jobServiceTypeId) {
+      const match = await this.routeResolver.resolve(dto);
+      if (match.routeId) dto.jobServiceTypeId = match.routeId;
+    }
+
     const internalRef = await this.generateInternalRef();
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -528,6 +536,22 @@ export class TrafficJobsService {
       if (dto.customerId !== undefined) data.customerId = dto.customerId || null;
       if (dto.serviceType !== undefined) data.serviceType = dto.serviceType;
       if (dto.jobServiceTypeId !== undefined) data.jobServiceTypeId = dto.jobServiceTypeId || null;
+      else if (
+        !job.jobServiceTypeId ||
+        hasOriginUpdate ||
+        hasDestUpdate ||
+        (dto.serviceType !== undefined && dto.serviceType !== job.serviceType) ||
+        (dto.notes !== undefined && dto.notes !== job.notes)
+      ) {
+        // No route sent: look it up from the (updated) ends + notes; keep the old one if nothing decides.
+        const match = await this.routeResolver.resolve({
+          serviceType: dto.serviceType ?? job.serviceType,
+          originAirportId, originZoneId, originHotelId,
+          destinationAirportId: destAirportId, destinationZoneId: destZoneId, destinationHotelId: destHotelId,
+          notes: dto.notes !== undefined ? dto.notes : job.notes,
+        });
+        if (match.routeId) data.jobServiceTypeId = match.routeId;
+      }
       if (dto.jobDate !== undefined) data.jobDate = new Date(dto.jobDate);
       if (dto.clientName !== undefined) data.clientName = dto.clientName;
       if (dto.clientMobile !== undefined) data.clientMobile = dto.clientMobile;

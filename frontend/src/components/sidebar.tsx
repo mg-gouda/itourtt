@@ -57,7 +57,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useT } from "@/lib/i18n";
 import { usePermissionsStore } from "@/stores/permissions-store";
-import { useCompanyStore } from "@/stores/company-store";
 import { useAuthStore } from "@/stores/auth-store";
 
 export interface NavLink {
@@ -170,7 +169,6 @@ export function Sidebar() {
   const t = useT();
   const [collapsed, setCollapsed] = useState(false);
   const { has: hasPerm, isLoaded: permsLoaded } = usePermissionsStore();
-  const { logoUrl, faviconUrl } = useCompanyStore();
   const { user } = useAuthStore();
 
   // Feature flags — must use static keys for Next.js inlining
@@ -250,39 +248,24 @@ export function Sidebar() {
       >
         {/* Brand */}
         <div className={cn("flex h-14 items-center", collapsed ? "justify-center px-0" : "px-4")}>
+          {/* iTour GO brand (5.6.0): the full logo with its mark when open, the mark only when
+              collapsed. The company logo stays on guest / customer documents. */}
           {collapsed ? (
-            faviconUrl ? (
-              <img
-                src={faviconUrl}
-                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/favicon.svg"; }}
-                alt="iTour GO"
-                width={32}
-                height={32}
-                className="h-8 w-8 shrink-0 rounded object-contain"
-              />
-            ) : (
-              <Image
-                src="/favicon.svg"
-                alt="iTour GO"
-                width={32}
-                height={32}
-                className="shrink-0"
-              />
-            )
-          ) : logoUrl ? (
-            <img
-              src={logoUrl}
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/brand/itour-logo-dark.svg"; }}
-              alt={t("sidebar.brand")}
-              className="h-11 w-full object-contain"
+            <Image
+              src="/brand/itour-icon-light.svg"
+              alt="iTour GO"
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0"
+              priority
             />
           ) : (
             <Image
-              src="/brand/itour-logo-dark.svg"
+              src="/brand/itour-lockup-dark.svg"
               alt={t("sidebar.brand")}
-              width={200}
-              height={44}
-              className="h-11 w-full object-contain"
+              width={176}
+              height={60}
+              className="h-11 w-auto max-w-full object-contain object-left"
               priority
             />
           )}
