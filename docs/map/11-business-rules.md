@@ -771,6 +771,11 @@ price list, and editing a job keeps its existing price and rep values.
 - Sidebar (5.6.0): the full iTour GO logo with its mark when open, the mark only when collapsed
   (mobile menu: full logo). The company logo is no longer shown there; it stays on guest /
   customer documents.
+- **Rep / driver apps (1.4.0, 5.9.1):** launcher icons (square + round) and the splash use the
+  kit's mark, and the notification icon is the white mark. The splash, login and status-bar
+  backgrounds are ink, and the accents are orange (`packages/shared/src/theme/colors.ts` brand
+  keys; dark-mode primary is orange). Status colours are unchanged. The icons are rendered from
+  the kit geometry with sharp, so re-render them if the mark ever changes.
 - **Styling saves (5.5.1):** removing an image (dashboard background, login background, login
   logo) saves at once (PATCH `/settings/system` with the field set to `null`); Save also sends
   the current images. The API accepts only `null` or an existing `/uploads/` path for them.
