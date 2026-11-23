@@ -715,7 +715,11 @@ function CarDispatchContent() {
         customerId: j.customerId || "",
         customerJobId: j.customerJobId || "",
         bookingNumber: j.internalRef || "",
-        description: "",
+        // Origin → destination for the From → To column (5.9.2): airport code, else hotel, else zone.
+        description: [
+          j.originAirport?.code || j.originHotel?.name || j.originZone?.name || j.fromZone?.name || "—",
+          j.destinationAirport?.code || j.destinationHotel?.name || j.destinationZone?.name || j.toZone?.name || "—",
+        ].join(" → "),
         pickUpTime: j.pickUpTime ? new Date(j.pickUpTime).toTimeString().slice(0, 5) : "",
         flightTime: (() => {
           const at = j.serviceType === "DEP" ? j.flight?.departureTime : j.flight?.arrivalTime;
@@ -1533,7 +1537,7 @@ function CarDispatchContent() {
 // cards per row, hidden columns and column widths.
 
 type ColKey =
-  | "customer" | "booking" | "custJobId" | "route" | "time" | "driverTime" | "driver"
+  | "customer" | "booking" | "custJobId" | "route" | "fromTo" | "time" | "driverTime" | "driver"
   | "custRepName" | "custRepMobile" | "extraDriverName" | "extraDriverPhone" | "type" | "pax" | "notes" | "actions";
 
 /** Datasheet column → JobRow field. */
@@ -1661,6 +1665,7 @@ const JOB_COLUMNS: { key: ColKey; label: string; width: number; center?: boolean
   { key: "booking", label: "Booking #", width: 80 },
   { key: "custJobId", label: "Cust. Job ID", width: 90 },
   { key: "route", label: "Route", width: 200 },
+  { key: "fromTo", label: "From → To", width: 180 },
   { key: "time", label: "Time", width: 56 },
   { key: "driverTime", label: "Driver Time", width: 64 },
   { key: "driver", label: "Driver", width: 130 },
@@ -2006,6 +2011,19 @@ function VehicleCard({
         };
       case "route":
         return { ...base, type: "select", options: routeList, get: (j) => j.jobServiceTypeId, editable: open };
+      case "fromTo":
+        // Origin → destination of a saved job (new rows show it once saved). Read-only.
+        return {
+          ...base,
+          type: "readonly",
+          get: (j) => (j.saved ? j.description : ""),
+          display: (j) =>
+            j.saved && j.description ? (
+              <span className="text-muted-foreground" title={j.description}>{j.description}</span>
+            ) : (
+              ""
+            ),
+        };
       case "time":
         return { ...base, get: (j) => j.pickUpTime, editable: open, placeholder: "HH:MM" };
       case "driverTime":

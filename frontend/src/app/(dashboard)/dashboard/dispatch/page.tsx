@@ -112,6 +112,8 @@ interface Job {
   destinationHotel?: { name: string } | null;
   fromZone?: { name: string } | null;
   toZone?: { name: string } | null;
+  /** The job's route (System Parameters › Routes), "EN | AR". */
+  jobServiceType?: { id: string; name: string } | null;
   flight?: {
     flightNo: string;
     carrier: string;
@@ -1297,8 +1299,14 @@ function JobGrid({
                     ? job.agent?.legalName || "—"
                     : job.customer?.legalName || "—"}
                 </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  {job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "\u2014"} → {job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "\u2014"}
+                <TableCell className="text-xs">
+                  {/* Route name, then origin → destination (5.9.2). */}
+                  <div className="font-medium text-foreground">
+                    {job.jobServiceType?.name?.split(" | ")[0] || <span className="text-muted-foreground/60">No route</span>}
+                  </div>
+                  <div className="text-muted-foreground">
+                    {job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "\u2014"} → {job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "\u2014"}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-center">
                   <span className="flex items-center justify-center gap-0.5">

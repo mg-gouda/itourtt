@@ -679,6 +679,15 @@ It started from the owner's "RMF HOTEL NEAMS.xlsx" and 4 hotels found on the web
   car/driver/rep section. New B2B jobs wait in the pool, and editing a job no longer re-sends its
   assignment.
 
+## Route and origin / destination on every job line (5.9.2, 2026-11-23)
+
+- **Dispatch, jobs table:** the Route cell shows the route name (English part of "EN | AR"; "No
+  route" when there isn't one) and under it origin → destination.
+- **Traffic Cover car cards:** a read-only **From → To** column next to Route.
+
+For both, each side shows the airport code, else the hotel, else the zone (`/dispatch/day` already
+returns them). A new, unsaved row on Traffic Cover shows From → To once it is saved.
+
 ## Driver Time (5.8.0, 2026-11-23)
 
 **Driver Time** is when the driver must be ready for a job: always **1 hour before the job time**,

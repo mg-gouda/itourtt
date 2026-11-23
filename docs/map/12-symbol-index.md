@@ -918,7 +918,7 @@ Kinds: `class` `method` `function` `const` `type` `endpoint` `model`.
 | `DispatchDayDto` | class | `backend/src/dispatch/dto/dispatch-day.dto.ts:3` |
 | `DispatchDayView` | type | `frontend/src/types/index.ts:355` |
 | `DispatchModule` | class | `backend/src/dispatch/dispatch.module.ts:17` |
-| `DispatchPage` | function | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx:1917` |
+| `DispatchPage` | function | `frontend/src/app/(dashboard)/dashboard/dispatch/page.tsx:1925` |
 | `DispatchService` | class | `backend/src/dispatch/dispatch.service.ts:26` |
 | `DispatchService.assignJob` | method | `backend/src/dispatch/dispatch.service.ts:141` |
 | `DispatchService.checkDispatcherTimelock` | method | `backend/src/dispatch/dispatch.service.ts:1172` |
