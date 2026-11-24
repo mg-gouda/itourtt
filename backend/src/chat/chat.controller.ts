@@ -26,6 +26,7 @@ import { CHAT_BROADCAST_PERMISSION, CHAT_MAX_FILE_BYTES } from './chat.constants
 import {
   BroadcastListQueryDto,
   ContactsQueryDto,
+  ForwardMessageDto,
   SendBroadcastDto,
   MessagesQueryDto,
   OpenConversationDto,
@@ -100,6 +101,16 @@ export class ChatController {
   @HttpCode(204)
   async read(@CurrentUser() user: ChatActor, @Param('id', ParseUUIDPipe) id: string) {
     await this.chat.markRead(user, id);
+  }
+
+  /** Forward a message to other threads / people (photos and voice notes are copied). */
+  @Post('messages/:id/forward')
+  async forward(
+    @CurrentUser() user: ChatActor,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ForwardMessageDto,
+  ) {
+    return new ApiResponse(await this.chat.forward(user, id, dto), 'Message forwarded');
   }
 
   /** Streams an image / voice note to a participant of its thread. */

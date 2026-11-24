@@ -6,14 +6,10 @@ import {
   HttpCode,
   Post,
   Req,
-  UseGuards,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import type { Request } from 'express';
 import { IsString, IsUrl, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { RolesGuard } from '../common/guards/roles.guard.js';
-import { PermissionsGuard } from '../common/guards/permissions.guard.js';
-import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiResponse } from '../common/dto/api-response.dto.js';
 import { WebPushService } from './web-push.service.js';
@@ -47,19 +43,18 @@ class UnsubscribeDto {
 type Caller = { sub: string; role: string };
 
 /**
- * RolesGuard yields to the permission system for any user with a roleId, so
- * @Roles alone does not keep staff out — check the account type explicitly.
+ * Rep / driver portals (jobs + chat) and, since 6.2.0, office staff (chat messages). Suppliers and
+ * website guests never get browser push. (@Roles would keep staff out — PermissionsGuard matches a
+ * staff account's legacy role against it — so the account type is checked here instead.)
  */
 function portalOnly(user: Caller) {
-  if (user.role !== 'REP' && user.role !== 'DRIVER') {
-    throw new ForbiddenException('Browser push is only for the rep and driver portals');
+  if (user.role === 'SUPPLIER' || user.role === 'B2C_CLIENT') {
+    throw new ForbiddenException('Browser push is not available for this account');
   }
 }
 
-/** Browser push subscriptions for the rep/driver web portals. */
+/** Browser push subscriptions: rep / driver portals and office staff (chat). */
 @Controller('push/web')
-@UseGuards(RolesGuard, PermissionsGuard)
-@Roles('REP', 'DRIVER')
 export class WebPushController {
   constructor(private readonly webPush: WebPushService) {}
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { AlarmSoundGate, playOnce, startAlarm, stopAlarm } from "@/lib/alarm-sound";
 import Link from "next/link";
@@ -389,7 +391,8 @@ export function Header() {
         const oldArrivalDisplay = meta?.oldArrivalTime ? fmt(meta.oldArrivalTime) : null;
         const newArrivalDisplay = meta?.newArrivalTime ? fmt(meta.newArrivalTime) : null;
         return (
-          <Dialog open modal>
+          <Dialog open modal={false}>
+      <NotificationBackdrop />
             <DialogContent
               className="max-w-md [&>button:first-of-type]:hidden"
               onInteractOutside={(e) => e.preventDefault()}
@@ -491,7 +494,8 @@ function JobAlarmOfficeModal({
       : "No answer to job alarm";
   const who = `${m.role === "REP" ? "Rep" : m.role === "DRIVER" ? "Driver" : ""} ${m.personName ?? ""}`.trim();
   return (
-    <Dialog open modal>
+    <Dialog open modal={false}>
+      <NotificationBackdrop />
       <DialogContent
         className="max-w-md [&>button:first-of-type]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
@@ -550,4 +554,14 @@ function JobAlarmOfficeModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+/**
+ * Dim, click-blocking backdrop for the office notification popups (6.2.0). The popups are non-modal
+ * Radix dialogs so the chat (z-60, drawn above this backdrop) stays clickable and typeable while a
+ * popup waits for its answer; the popup itself still can't be dismissed without it.
+ */
+function NotificationBackdrop() {
+  if (typeof document === "undefined") return null;
+  return createPortal(<div aria-hidden className="fixed inset-0 z-50 bg-black/50" />, document.body);
 }

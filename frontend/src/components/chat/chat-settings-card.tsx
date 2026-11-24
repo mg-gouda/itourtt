@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Car, Loader2, MessageCircle, UserCheck } from "lucide-react";
+import { Building2, Car, Loader2, MessageCircle, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { usePermission } from "@/hooks/use-permission";
 interface ChatSettings {
   driverContactRoles: string[];
   repContactRoles: string[];
+  staffContactRoles: string[];
   availableRoles: { slug: string; name: string }[];
 }
 
@@ -26,6 +27,7 @@ export function ChatSettingsCard() {
   const [data, setData] = useState<ChatSettings | null>(null);
   const [driver, setDriver] = useState<string[]>([]);
   const [rep, setRep] = useState<string[]>([]);
+  const [staff, setStaff] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export function ChatSettingsCard() {
         setData(data.data);
         setDriver(data.data.driverContactRoles);
         setRep(data.data.repContactRoles);
+        setStaff(data.data.staffContactRoles ?? []);
       })
       .catch(() => toast.error(t("chat.settingsLoadFailed")));
   }, [t]);
@@ -48,7 +51,7 @@ export function ChatSettingsCard() {
   }
 
   const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
-  const dirty = !same(driver, data.driverContactRoles) || !same(rep, data.repContactRoles);
+  const dirty = !same(driver, data.driverContactRoles) || !same(rep, data.repContactRoles) || !same(staff, data.staffContactRoles ?? []);
   const toggle = (list: string[], set: (v: string[]) => void, slug: string, on: boolean) =>
     set(on ? [...list, slug] : list.filter((s) => s !== slug));
 
@@ -58,10 +61,12 @@ export function ChatSettingsCard() {
       const { data: res } = await api.patch("/chat/settings", {
         driverContactRoles: driver,
         repContactRoles: rep,
+        staffContactRoles: staff,
       });
       setData(res.data);
       setDriver(res.data.driverContactRoles);
       setRep(res.data.repContactRoles);
+      setStaff(res.data.staffContactRoles ?? []);
       toast.success(t("chat.settingsSaved"));
     } catch {
       toast.error(t("chat.settingsSaveFailed"));
@@ -97,9 +102,10 @@ export function ChatSettingsCard() {
         {t("chat.settingsTitle")}
       </h3>
       <p className="mb-4 text-sm text-muted-foreground">{t("chat.settingsDesc")}</p>
-      <div className="grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
+      <div className="grid max-w-3xl grid-cols-1 gap-6 sm:grid-cols-3">
         {column(t("chat.driversCanMessage"), Car, driver, setDriver, "chat-drv")}
         {column(t("chat.repsCanMessage"), UserCheck, rep, setRep, "chat-rep")}
+        {column(t("chat.staffCanMessage"), Building2, staff, setStaff, "chat-staff")}
       </div>
       {canEdit && (
         <Button className="mt-4" size="sm" onClick={save} disabled={!dirty || saving}>

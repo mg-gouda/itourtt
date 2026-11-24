@@ -21,7 +21,7 @@ import { StatusTicks } from "./chat-message";
 
 interface ChatInboxProps {
   /** Portal users always see "new chat"; staff only when they may start one. */
-  canStartWith: ("REP" | "DRIVER")[] | "STAFF";
+  canStartWith: ("REP" | "DRIVER" | "STAFF")[] | "STAFF";
   /** Opens a conversation, or the announcements thread (ANNOUNCEMENTS_ID). */
   onOpen: (conversationId: string) => void;
   /** Staff with chat-broadcast: shows the Broadcast button. */
@@ -276,15 +276,15 @@ function ContactPicker({
   onPick,
   className,
 }: {
-  /** null = portal user picking staff; otherwise the portal roles staff may reach. */
-  staffRoles: ("REP" | "DRIVER")[] | null;
+  /** null = portal user picking staff; otherwise who staff may reach (reps, drivers, office staff). */
+  staffRoles: ("REP" | "DRIVER" | "STAFF")[] | null;
   onBack: () => void;
   onPick: (p: ChatPerson) => Promise<void>;
   className?: string;
 }) {
   const t = useT();
   const [search, setSearch] = useState("");
-  const [role, setRole] = useState<"REP" | "DRIVER" | undefined>(staffRoles?.[0]);
+  const [role, setRole] = useState<"REP" | "DRIVER" | "STAFF" | undefined>(staffRoles?.[0]);
   const [people, setPeople] = useState<ChatPerson[] | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -334,7 +334,7 @@ function ContactPicker({
               className="h-7 flex-1 text-xs"
               onClick={() => setRole(r)}
             >
-              {t(r === "DRIVER" ? "chat.drivers" : "chat.reps")}
+              {t(r === "DRIVER" ? "chat.drivers" : r === "STAFF" ? "chat.office" : "chat.reps")}
             </Button>
           ))}
         </div>

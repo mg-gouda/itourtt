@@ -32,6 +32,7 @@ import {
   transcodeToAac,
 } from './chat.constants.js';
 import type {
+  ForwardMessageDto,
   SendBroadcastDto,
   SendMessageDto,
   UpdateChatSettingsDto,
@@ -49,7 +50,11 @@ type Side = 'PORTAL' | 'STAFF';
 const DEFAULT_CONTACT_ROLES = {
   driver: ['dispatcher', 'dispatch-operator', 'dispatch-manager'],
   rep: ['online-manager', 'online-operator'],
+  staff: ['admin', 'dispatch-manager', 'dispatch-operator', 'dispatcher', 'online-manager', 'online-operator'],
 };
+type ContactRoles = { driver: string[]; rep: string[]; staff: string[] };
+/** A thread as stored: who sits in which column decides each person's "side" in it (6.2.0). */
+type ConvRow = { kind: string; portalUserId: string; staffUserId: string };
 
 /**
  * Attachments live on the uploads volume (shared by every backend pod) in a
@@ -110,12 +115,12 @@ export class ChatService {
   // ─── Settings ──────────────────────────────────────────────────────────────
 
   /** Which staff roles (Role.slug) drivers / reps can message. */
-  async contactRoles(): Promise<{ driver: string[]; rep: string[] }> {
+  async contactRoles(): Promise<ContactRoles> {
     const s = await this.prisma.companySettings.findFirst({
-      select: { chatDriverContactRoles: true, chatRepContactRoles: true },
+      select: { chatDriverContactRoles: true, chatRepContactRoles: true, chatStaffContactRoles: true },
     });
     return s
-      ? { driver: s.chatDriverContactRoles, rep: s.chatRepContactRoles }
+      ? { driver: s.chatDriverContactRoles, rep: s.chatRepContactRoles, staff: s.chatStaffContactRoles }
       : DEFAULT_CONTACT_ROLES;
   }
 
@@ -129,7 +134,7 @@ export class ChatService {
         orderBy: { name: 'asc' },
       }),
     ]);
-    return { driverContactRoles: roles.driver, repContactRoles: roles.rep, availableRoles: all };
+    return { driverContactRoles: roles.driver, repContactRoles: roles.rep, staffContactRoles: roles.staff, availableRoles: all };
   }
 
   async updateSettings(dto: UpdateChatSettingsDto) {
@@ -146,15 +151,17 @@ export class ChatService {
     const data: Prisma.CompanySettingsUpdateInput = {};
     const driver = clean(dto.driverContactRoles);
     const rep = clean(dto.repContactRoles);
+    const staff = clean(dto.staffContactRoles);
     if (driver) data.chatDriverContactRoles = driver;
     if (rep) data.chatRepContactRoles = rep;
+    if (staff) data.chatStaffContactRoles = staff;
 
     const existing = await this.prisma.companySettings.findFirst({ select: { id: true } });
     if (existing) {
       await this.prisma.companySettings.update({ where: { id: existing.id }, data });
     } else {
       await this.prisma.companySettings.create({
-        data: { chatDriverContactRoles: driver, chatRepContactRoles: rep },
+        data: { chatDriverContactRoles: driver, chatRepContactRoles: rep, chatStaffContactRoles: staff },
       });
     }
     return this.getSettings();
@@ -175,7 +182,7 @@ export class ChatService {
   /** Which portal roles a staff user may chat with, from their role slug. */
   private staffReach(
     person: Pick<Person, 'roleRef'>,
-    roles: { driver: string[]; rep: string[] },
+    roles: ContactRoles,
   ): ChatPortalRole[] {
     const slug = person.roleRef?.slug;
     if (!slug) return [];
@@ -189,6 +196,31 @@ export class ChatService {
     return p.isActive && !p.deletedAt;
   }
 
+  /** An office user whose role may reach every other office user (Settings › chat, "office staff"). */
+  private reachesStaff(p: Person, roles: ContactRoles): boolean {
+    return this.sideOf(p.role) === 'STAFF' && this.isLive(p) && !!p.roleRef?.slug && roles.staff.includes(p.roleRef.slug);
+  }
+
+  /** Two office users may talk when both are live staff and at least one of them reaches staff. */
+  private canPairStaff(a: Person, b: Person, roles: ContactRoles): boolean {
+    if (a.id === b.id) return false;
+    if (this.sideOf(a.role) !== 'STAFF' || this.sideOf(b.role) !== 'STAFF') return false;
+    if (!this.isLive(a) || !this.isLive(b)) return false;
+    return this.reachesStaff(a, roles) || this.reachesStaff(b, roles);
+  }
+
+  /** Whether the two people in a thread may still message each other. */
+  private canTalk(conv: ConvRow & { portalUser: Person; staffUser: Person }, roles: ContactRoles): boolean {
+    return conv.kind === 'STAFF'
+      ? this.canPairStaff(conv.portalUser, conv.staffUser, roles)
+      : this.canPair(conv.portalUser, conv.staffUser, roles);
+  }
+
+  /** The caller's column in a thread: PORTAL = portalUserId, STAFF = staffUserId. */
+  private slotOf(conv: ConvRow, userId: string): Side {
+    return conv.portalUserId === userId ? 'PORTAL' : 'STAFF';
+  }
+
   /**
    * Can `portal` (a REP/DRIVER) and `staff` talk? True when the staff user's
    * role is in the contact list for the portal user's role.
@@ -196,7 +228,7 @@ export class ChatService {
   private canPair(
     portal: Person,
     staff: Person,
-    roles: { driver: string[]; rep: string[] },
+    roles: ContactRoles,
   ): boolean {
     if (!isPortalRole(portal.role) || this.sideOf(staff.role) !== 'STAFF') return false;
     if (!this.isLive(portal) || !this.isLive(staff)) return false;
@@ -216,6 +248,7 @@ export class ChatService {
     if (!person) return { enabled: false as const };
 
     const reach = side === 'STAFF' ? this.staffReach(person, roles) : [];
+    const staffChat = side === 'STAFF' && this.reachesStaff(person, roles);
     // This poll is the proof that the caller's app is up: everything waiting
     // for them now counts as delivered.
     await this.markDelivered(actor.sub, side);
@@ -233,15 +266,15 @@ export class ChatService {
       if (!latest || u.latestAt > latest.at) latest = { conversationId, at: u.latestAt };
     }
     const hasHistory =
-      side === 'STAFF' && reach.length === 0 && !canBroadcast
-        ? (await this.prisma.chatConversation.count({ where: { staffUserId: actor.sub } })) > 0 ||
+      side === 'STAFF' && reach.length === 0 && !staffChat && !canBroadcast
+        ? (await this.prisma.chatConversation.count({ where: { OR: [{ staffUserId: actor.sub }, { portalUserId: actor.sub }] } })) > 0 ||
           (await this.prisma.chatBroadcastRecipient.count({ where: { userId: actor.sub } })) > 0
         : false;
 
     return {
-      enabled: side === 'PORTAL' || reach.length > 0 || canBroadcast || hasHistory,
+      enabled: side === 'PORTAL' || reach.length > 0 || staffChat || canBroadcast || hasHistory,
       side,
-      canStartWith: side === 'STAFF' ? reach : [],
+      canStartWith: side === 'STAFF' ? [...reach, ...(staffChat ? (['STAFF'] as const) : [])] : [],
       canBroadcast,
       announcementsUnread: ann.count,
       unreadTotal,
@@ -251,29 +284,21 @@ export class ChatService {
     };
   }
 
-  /** conversationId → unread count + newest unread instant, for one user. */
+  /** conversationId → unread count + newest unread instant, for one user (either column of a thread). */
   private async unreadByConversation(
     userId: string,
-    side: Side,
+    _side?: Side,
   ): Promise<Map<string, { count: number; latestAt: Date }>> {
-    const rows =
-      side === 'STAFF'
-        ? await this.prisma.$queryRaw<{ id: string; n: bigint; latest: Date }[]>`
-            SELECT c.id, COUNT(m.id) AS n, MAX(m.created_at) AS latest
-            FROM chat_conversations c
-            JOIN chat_messages m ON m.conversation_id = c.id
-             AND m.sender_id <> ${userId}
-             AND m.created_at > COALESCE(c.staff_last_read_at, 'epoch'::timestamp)
-            WHERE c.staff_user_id = ${userId}
-            GROUP BY c.id`
-        : await this.prisma.$queryRaw<{ id: string; n: bigint; latest: Date }[]>`
-            SELECT c.id, COUNT(m.id) AS n, MAX(m.created_at) AS latest
-            FROM chat_conversations c
-            JOIN chat_messages m ON m.conversation_id = c.id
-             AND m.sender_id <> ${userId}
-             AND m.created_at > COALESCE(c.portal_last_read_at, 'epoch'::timestamp)
-            WHERE c.portal_user_id = ${userId}
-            GROUP BY c.id`;
+    const rows = await this.prisma.$queryRaw<{ id: string; n: bigint; latest: Date }[]>`
+      SELECT c.id, COUNT(m.id) AS n, MAX(m.created_at) AS latest
+      FROM chat_conversations c
+      JOIN chat_messages m ON m.conversation_id = c.id
+       AND m.sender_id <> ${userId}
+       AND m.created_at > COALESCE(
+         CASE WHEN c.staff_user_id = ${userId} THEN c.staff_last_read_at ELSE c.portal_last_read_at END,
+         'epoch'::timestamp)
+      WHERE c.staff_user_id = ${userId} OR c.portal_user_id = ${userId}
+      GROUP BY c.id`;
     return new Map(rows.map((r) => [r.id, { count: Number(r.n), latestAt: r.latest }]));
   }
 
@@ -285,9 +310,9 @@ export class ChatService {
   private async markDelivered(userId: string, side: Side) {
     const now = new Date();
     const c = this.prisma.chatConversation.fields;
+    void side; // both columns: an office user can sit on either side of an office thread
     await Promise.all([
-      side === 'STAFF'
-        ? this.prisma.chatConversation.updateMany({
+      this.prisma.chatConversation.updateMany({
             where: {
               staffUserId: userId,
               lastMessageAt: { not: null },
@@ -297,8 +322,8 @@ export class ChatService {
               ],
             },
             data: { staffLastDeliveredAt: now },
-          })
-        : this.prisma.chatConversation.updateMany({
+          }),
+      this.prisma.chatConversation.updateMany({
             where: {
               portalUserId: userId,
               lastMessageAt: { not: null },
@@ -340,7 +365,7 @@ export class ChatService {
     const side = this.requireSide(actor);
     await this.markDelivered(actor.sub, side);
     const convs = await this.prisma.chatConversation.findMany({
-      where: side === 'STAFF' ? { staffUserId: actor.sub } : { portalUserId: actor.sub },
+      where: { OR: [{ staffUserId: actor.sub }, { portalUserId: actor.sub }] },
       orderBy: [{ lastMessageAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: 200,
       include: {
@@ -350,15 +375,19 @@ export class ChatService {
       },
     });
     const unread = await this.unreadByConversation(actor.sub, side);
-    const others = convs.map((c) => (side === 'STAFF' ? c.portalUser : c.staffUser));
+    void side;
+    const slots = convs.map((c) => this.slotOf(c, actor.sub));
+    const others = convs.map((c, i) => (slots[i] === 'STAFF' ? c.portalUser : c.staffUser));
     const online = await this.onlineSet(others.map((o) => o.id));
 
     return convs.map((c, i) => {
       const other = others[i];
       const last = c.messages[0];
       const fromMe = last?.senderId === actor.sub;
+      const mine = slots[i];
       return {
         id: c.id,
+        kind: c.kind,
         portalRole: c.portalRole,
         other: this.personView(other, online),
         lastMessage: last
@@ -369,8 +398,8 @@ export class ChatService {
               status: fromMe
                 ? statusOf(
                     last.createdAt,
-                    side === 'STAFF' ? c.portalLastDeliveredAt : c.staffLastDeliveredAt,
-                    side === 'STAFF' ? c.portalLastReadAt : c.staffLastReadAt,
+                    mine === 'STAFF' ? c.portalLastDeliveredAt : c.staffLastDeliveredAt,
+                    mine === 'STAFF' ? c.portalLastReadAt : c.staffLastReadAt,
                   )
                 : null,
               createdAt: last.createdAt.toISOString(),
@@ -398,7 +427,7 @@ export class ChatService {
    * their role's contact list; staff get drivers and/or reps with a portal
    * account, depending on their own role.
    */
-  async contacts(actor: ChatActor, search?: string, role?: ChatPortalRole) {
+  async contacts(actor: ChatActor, search?: string, role?: ChatPortalRole | 'STAFF') {
     const side = this.requireSide(actor);
     const roles = await this.contactRoles();
     const q = search?.trim();
@@ -425,7 +454,25 @@ export class ChatService {
       const me = await this.loadPerson(actor.sub);
       const reach = me ? this.staffReach(me, roles) : [];
       const wanted = role ? reach.filter((r) => r === role) : reach;
-      people = wanted.length
+      // Office staff (6.2.0): roles in the "office staff" list see every other live office user.
+      const staffPeople =
+        me && this.reachesStaff(me, roles) && (!role || role === 'STAFF')
+          ? await this.prisma.user.findMany({
+              where: {
+                isActive: true,
+                deletedAt: null,
+                id: { not: actor.sub },
+                role: { notIn: CHAT_NON_STAFF_ROLES as never[] },
+                ...nameFilter,
+              },
+              select: PERSON_SELECT,
+              orderBy: { name: 'asc' },
+              take: 200,
+            })
+          : [];
+      people = staffPeople;
+      if (role === 'STAFF') wanted.length = 0;
+      people = [...people, ...(wanted.length
         ? await this.prisma.user.findMany({
             where: {
               isActive: true,
@@ -441,7 +488,7 @@ export class ChatService {
             orderBy: { name: 'asc' },
             take: 100,
           })
-        : [];
+        : [])];
     }
     const online = await this.onlineSet(people.map((p) => p.id));
     return people.map((p) => this.personView(p, online));
@@ -457,6 +504,32 @@ export class ChatService {
       this.contactRoles(),
     ]);
     if (!me || !other) throw new NotFoundException('User not found');
+
+    // Two office users (6.2.0): one thread per pair, whichever of them opened it.
+    if (side === 'STAFF' && this.sideOf(other.role) === 'STAFF') {
+      if (!this.canPairStaff(me, other, roles)) throw new ForbiddenException('You cannot start a chat with this user');
+      const existing = await this.prisma.chatConversation.findFirst({
+        where: {
+          OR: [
+            { portalUserId: me.id, staffUserId: other.id },
+            { portalUserId: other.id, staffUserId: me.id },
+          ],
+        },
+        select: { id: true },
+      });
+      if (existing) return { id: existing.id };
+      const created = await this.prisma.chatConversation.create({
+        data: {
+          kind: 'STAFF',
+          portalUserId: other.id,
+          staffUserId: me.id,
+          portalRole: other.role as never,
+          createdById: actor.sub,
+        },
+      });
+      return { id: created.id };
+    }
+
     const portal = side === 'PORTAL' ? me : other;
     const staff = side === 'PORTAL' ? other : me;
     if (!this.canPair(portal, staff, roles)) {
@@ -483,6 +556,7 @@ export class ChatService {
     const online = await this.onlineSet([other.id]);
     return {
       id: conv.id,
+      kind: conv.kind,
       portalRole: conv.portalRole,
       other: this.personView(other, online),
       ...this.otherReceipts(conv, side),
@@ -546,12 +620,13 @@ export class ChatService {
   }
 
   private messageView(
-    m: MessageContent & { id: string; senderId: string; createdAt: Date },
+    m: MessageContent & { id: string; senderId: string; createdAt: Date; forwarded?: boolean },
     me: string,
   ) {
     return {
       id: m.id,
       fromMe: m.senderId === me,
+      forwarded: !!m.forwarded,
       ...this.contentView(m),
       createdAt: m.createdAt.toISOString(),
     };
@@ -642,7 +717,7 @@ export class ChatService {
     // Both people must still be allowed to talk — a staff user moved to a role
     // outside the contact list (or deactivated) can no longer be messaged.
     const roles = await this.contactRoles();
-    if (!this.canPair(conv.portalUser, conv.staffUser, roles)) {
+    if (!this.canTalk(conv, roles)) {
       throw new ForbiddenException(
         side === 'PORTAL'
           ? 'This person is no longer available for chat. Pick someone else from the list.'
@@ -669,12 +744,76 @@ export class ChatService {
           },
         }),
       ]);
-      if (side === 'STAFF') this.pushToPortal(conv, msg.kind, content.body);
+      if (side === 'STAFF' && conv.kind !== 'STAFF') this.pushToPortal(conv, msg.kind, content.body);
+      else this.pushToStaff(conv, side, msg.kind, content.body);
       return { ...this.messageView(msg, actor.sub), status: 'SENT' as ChatMessageStatus };
     } catch (err) {
       if (content.attachmentPath) await this.removeFile(content.attachmentPath);
       throw err;
     }
+  }
+
+  /**
+   * Forward a message to other threads / people (6.2.0). Text and locations are copied as they are;
+   * photos and voice notes are copied into each target thread's folder (each thread owns its files).
+   * The caller must be in the source thread and allowed to talk in every target.
+   */
+  async forward(actor: ChatActor, messageId: string, dto: ForwardMessageDto) {
+    const src = await this.prisma.chatMessage.findUnique({ where: { id: messageId } });
+    if (!src) throw new NotFoundException('Message not found');
+    await this.participant(actor, src.conversationId);
+
+    const targets = new Set<string>(dto.conversationIds ?? []);
+    for (const userId of dto.userIds ?? []) targets.add((await this.openConversation(actor, userId)).id);
+    if (!targets.size) throw new BadRequestException('Pick at least one chat to forward to');
+    if (targets.size > 20) throw new BadRequestException('Forward to at most 20 chats at a time');
+
+    const roles = await this.contactRoles();
+    const srcFile = src.attachmentPath ? await this.resolveFile(src.attachmentPath, src.attachmentMime) : null;
+    let sent = 0;
+    for (const conversationId of targets) {
+      const { conv, side } = await this.participant(actor, conversationId);
+      if (!this.canTalk(conv, roles)) continue;
+      const id = randomUUID();
+      let attachmentPath: string | null = null;
+      if (srcFile) {
+        const rel = path.join(conversationId, `${id}${path.extname(src.attachmentPath!)}`);
+        const abs = path.join(CHAT_DIR, rel);
+        await fs.mkdir(path.dirname(abs), { recursive: true });
+        await fs.copyFile(srcFile.path, abs);
+        attachmentPath = rel;
+      }
+      const now = new Date();
+      try {
+        await this.prisma.$transaction([
+          this.prisma.chatMessage.create({
+            data: {
+              id, conversationId, senderId: actor.sub, forwarded: true, createdAt: now,
+              kind: src.kind, body: src.body, attachmentPath, attachmentMime: src.attachmentMime,
+              attachmentSize: src.attachmentSize, durationSec: src.durationSec,
+              latitude: src.latitude, longitude: src.longitude, accuracyM: src.accuracyM,
+            },
+          }),
+          this.prisma.chatConversation.update({
+            where: { id: conversationId },
+            data: {
+              lastMessageAt: now,
+              ...(side === 'STAFF'
+                ? { staffLastReadAt: now, staffLastDeliveredAt: now }
+                : { portalLastReadAt: now, portalLastDeliveredAt: now }),
+            },
+          }),
+        ]);
+      } catch (err) {
+        if (attachmentPath) await this.removeFile(attachmentPath);
+        throw err;
+      }
+      if (side === 'STAFF' && conv.kind !== 'STAFF') this.pushToPortal(conv, src.kind, src.body);
+      else this.pushToStaff(conv, side, src.kind, src.body);
+      sent++;
+    }
+    if (!sent) throw new ForbiddenException('None of these chats can receive messages');
+    return { sent };
   }
 
   /** Mark everything in the thread read for the caller. */
@@ -1017,6 +1156,28 @@ export class ChatService {
       .catch((err) => this.logger.warn(`Chat push failed: ${String(err)}`));
   }
 
+  /**
+   * Browser notification for the office user on the receiving end (6.2.0): a rep / driver wrote to
+   * them, or a colleague did. Clicking it opens the dashboard with that chat (?chat=<id>). Fire-and-forget.
+   */
+  private pushToStaff(
+    conv: { id: string; kind: string; portalUserId: string; staffUserId: string; portalUser: { name: string }; staffUser: { name: string } },
+    senderSide: Side,
+    kind: ChatMessageKind,
+    body: string | null,
+  ) {
+    const toId = senderSide === 'STAFF' ? conv.portalUserId : conv.staffUserId;
+    const from = senderSide === 'STAFF' ? conv.staffUser.name : conv.portalUser.name;
+    this.push
+      .sendToUser(toId, `💬 ${from}`, this.previewText(kind, body).slice(0, 180), {
+        type: 'CHAT',
+        conversationId: conv.id,
+        url: `/dashboard?chat=${conv.id}`,
+        tag: `chat-${conv.id}`,
+      })
+      .catch((err) => this.logger.warn(`Chat push (office) failed: ${String(err)}`));
+  }
+
   private previewText(kind: ChatMessageKind, body: string | null): string {
     if (kind === 'IMAGE') return `📷 Photo${body ? ` — ${body}` : ''}`;
     if (kind === 'VOICE') return '🎤 Voice note';
@@ -1036,10 +1197,11 @@ export class ChatService {
       where: { id: conversationId },
       include: { portalUser: { select: PERSON_SELECT }, staffUser: { select: PERSON_SELECT } },
     });
-    const mine =
-      conv && (side === 'STAFF' ? conv.staffUserId === actor.sub : conv.portalUserId === actor.sub);
+    void side;
+    const mine = conv && (conv.staffUserId === actor.sub || conv.portalUserId === actor.sub);
     if (!conv || !mine) throw new NotFoundException('Conversation not found');
-    return { conv, side };
+    // The caller's side in this thread is their column (an office user may sit in either column of an office thread).
+    return { conv, side: this.slotOf(conv, actor.sub) };
   }
 
   /** Validate + normalise an image: re-encoded JPEG, EXIF (incl. GPS) stripped. */

@@ -1850,6 +1850,8 @@ model CompanySettings {
   // contact list. Edited on the Company page. See chat/chat.service.ts.
   chatDriverContactRoles    String[]  @default(["dispatcher", "dispatch-operator", "dispatch-manager"]) @map("chat_driver_contact_roles")
   chatRepContactRoles       String[]  @default(["online-manager", "online-operator"]) @map("chat_rep_contact_roles")
+  /// Staff roles that may chat with any other office user (6.2.0).
+  chatStaffContactRoles     String[]  @default(["admin", "dispatch-manager", "dispatch-operator", "dispatcher", "online-manager", "online-operator"]) @map("chat_staff_contact_roles")
   createdAt                 DateTime  @default(now()) @map("created_at")
   updatedAt                 DateTime  @updatedAt @map("updated_at")
 
@@ -2842,6 +2844,8 @@ enum ChatBroadcastAudience {
 /// open one is decided by CompanySettings.chat{Driver,Rep}ContactRoles.
 /// Read state is a per-side "read up to" timestamp, not a row per message.
 model ChatConversation {
+  /// PORTAL = a rep / driver (portalUser) with an office user (staffUser); STAFF = two office users (6.2.0).
+  kind                  String    @default("PORTAL")
   id                    String    @id @default(uuid())
   portalUserId          String    @map("portal_user_id")
   staffUserId           String    @map("staff_user_id")
@@ -2873,6 +2877,8 @@ model ChatConversation {
 /// /uploads static route never serves; they are streamed by
 /// GET /chat/messages/:id/attachment after a participant check.
 model ChatMessage {
+  /// Copied from another chat with "Forward" (6.2.0).
+  forwarded      Boolean         @default(false)
   id             String          @id @default(uuid())
   conversationId String          @map("conversation_id")
   senderId       String          @map("sender_id")

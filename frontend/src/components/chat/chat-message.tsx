@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Check, CheckCheck, ExternalLink, Loader2, MapPin, Navigation, RotateCw } from "lucide-react";
+import { Forward, Check, CheckCheck, ExternalLink, Loader2, MapPin, Navigation, RotateCw } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
@@ -120,6 +120,7 @@ export function ChatBubble({
   footer,
   onRetry,
   onDiscard,
+  onForward,
 }: {
   m: ChatMessage;
   localeId: string;
@@ -133,13 +134,16 @@ export function ChatBubble({
   footer?: React.ReactNode;
   onRetry?: () => void;
   onDiscard?: () => void;
+  /** Shows a Forward button next to the bubble (saved messages only). */
+  onForward?: () => void;
 }) {
   const t = useT();
   const remote = useAttachmentUrl(attachmentPath, m.hasAttachment && !m.localUrl && !m.pending && !m.failed);
   const src = m.localUrl ?? remote.url;
 
   return (
-    <div className={cn("flex", m.fromMe ? "justify-end" : "justify-start")}>
+    <div className={cn("group flex items-center gap-1", m.fromMe ? "justify-end" : "justify-start")}>
+      {onForward && m.fromMe && <ForwardButton onClick={onForward} />}
       <div
         className={cn(
           "max-w-[82%] rounded-2xl px-3 py-1.5 text-sm shadow-sm",
@@ -149,6 +153,12 @@ export function ChatBubble({
         )}
       >
         {heading && <div className="mb-0.5 text-[11px] font-semibold opacity-90">{heading}</div>}
+        {m.forwarded && (
+          <div className="mb-0.5 flex items-center gap-1 text-[11px] italic opacity-75">
+            <Forward className="h-3 w-3" />
+            {t("chat.forwarded")}
+          </div>
+        )}
         {m.kind === "IMAGE" &&
           (src ? (
             <a href={src} target="_blank" rel="noopener noreferrer" className="-mx-1.5 -mt-0.5 mb-1 block">
@@ -206,6 +216,22 @@ export function ChatBubble({
           </div>
         )}
       </div>
+      {onForward && !m.fromMe && <ForwardButton onClick={onForward} />}
     </div>
+  );
+}
+
+function ForwardButton({ onClick }: { onClick: () => void }) {
+  const t = useT();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={t("chat.forward")}
+      aria-label={t("chat.forward")}
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-60 hover:bg-muted hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
+    >
+      <Forward className="h-3.5 w-3.5" />
+    </button>
   );
 }

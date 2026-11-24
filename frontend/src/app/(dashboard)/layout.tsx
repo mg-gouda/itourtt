@@ -11,6 +11,7 @@ import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { LicenseGate } from "@/components/license-gate";
 import { StaffOnlyWarning } from "@/components/staff-only-warning";
 import { ChatWidget } from "@/components/chat/chat-widget";
+import { PushPrompt } from "@/components/push-prompt";
 import { TripKmReminder } from "@/components/trip-km-reminder";
 
 function DashboardFrame({ children }: { children: React.ReactNode }) {
@@ -88,6 +89,7 @@ export default function DashboardLayout({
           <div className="flex flex-1 flex-col overflow-hidden">
             <Header />
             <ChatWidget />
+            <PushPrompt variant="office" />
             <TripKmReminder />
             <main className="flex-1 overflow-y-auto p-3 pb-10 md:p-6 md:pb-10">{children}</main>
             <footer className="flex h-14 shrink-0 flex-wrap items-center justify-end gap-3 border-t border-border bg-secondary/95 dark:bg-card/95 px-5 text-xs text-muted-foreground backdrop-blur-sm">

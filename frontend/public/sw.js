@@ -1,5 +1,5 @@
 /*
- * iTour TT service worker — browser push for the rep/driver portals ONLY.
+ * iTour TT service worker — browser push for the rep/driver portals and office chat (6.2.0).
  * No fetch handler and no caching on purpose: it must never change how the
  * site loads. Payload shape: backend/src/push-notifications/web-push.service.ts
  */

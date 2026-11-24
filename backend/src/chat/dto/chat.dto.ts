@@ -32,10 +32,10 @@ export class ContactsQueryDto {
   @MaxLength(100)
   search?: string;
 
-  /** Staff side only: which portal users to list. */
+  /** Staff side only: which people to list — reps, drivers or other office staff. */
   @IsOptional()
-  @IsIn(['REP', 'DRIVER'])
-  role?: 'REP' | 'DRIVER';
+  @IsIn(['REP', 'DRIVER', 'STAFF'])
+  role?: 'REP' | 'DRIVER' | 'STAFF';
 }
 
 export class MessagesQueryDto {
@@ -130,4 +130,28 @@ export class UpdateChatSettingsDto {
   @ArrayMaxSize(50)
   @IsString({ each: true })
   repContactRoles?: string[];
+
+  /** Office roles that may chat with any other office user. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  staffContactRoles?: string[];
+}
+
+/** POST /chat/messages/:id/forward — copy a message (text, photo, voice, location) to other chats. */
+export class ForwardMessageDto {
+  /** Existing threads of the caller. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID('4', { each: true })
+  conversationIds?: string[];
+
+  /** People to forward to (a thread is opened when there is none yet). */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID('4', { each: true })
+  userIds?: string[];
 }

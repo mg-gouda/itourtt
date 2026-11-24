@@ -24,7 +24,7 @@ function dismissedRecently(): boolean {
  * changes and chat messages. When permission was already granted it silently
  * re-subscribes on every load (keeps the browser bound to whoever is signed in).
  */
-export function PushPrompt() {
+export function PushPrompt({ variant = "portal" }: { variant?: "portal" | "office" } = {}) {
   const t = useT();
   const [mode, setMode] = useState<"hidden" | "ask" | "ios" | "blocked">("hidden");
   const [busy, setBusy] = useState(false);
@@ -80,7 +80,7 @@ export function PushPrompt() {
           {mode === "ios" ? t("push.iosTitle") : mode === "blocked" ? t("push.blockedTitle") : t("push.askTitle")}
         </p>
         <p className="text-xs text-muted-foreground">
-          {mode === "ios" ? t("push.iosBody") : mode === "blocked" ? t("push.blockedBody") : t("push.askBody")}
+          {mode === "ios" ? t("push.iosBody") : mode === "blocked" ? (variant === "office" ? t("push.officeBlockedBody") : t("push.blockedBody")) : (variant === "office" ? t("push.officeAskBody") : t("push.askBody"))}
         </p>
         {mode === "ask" && (
           <div className="flex gap-2">

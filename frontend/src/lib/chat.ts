@@ -26,6 +26,8 @@ export interface ChatPerson {
 
 export interface ChatConversationSummary {
   id: string;
+  /** PORTAL = with a rep / driver; STAFF = office to office (6.2.0). */
+  kind?: "PORTAL" | "STAFF";
   portalRole: "REP" | "DRIVER";
   other: ChatPerson;
   lastMessage: {
@@ -42,6 +44,8 @@ export interface ChatConversationSummary {
 export interface ChatMessage {
   id: string;
   fromMe: boolean;
+  /** Copied from another chat with Forward (6.2.0). */
+  forwarded?: boolean;
   kind: ChatKind;
   body: string | null;
   hasAttachment: boolean;
@@ -63,7 +67,7 @@ export interface ChatMessage {
 export interface ChatMe {
   enabled: boolean;
   side?: "PORTAL" | "STAFF";
-  canStartWith?: ("REP" | "DRIVER")[];
+  canStartWith?: ("REP" | "DRIVER" | "STAFF")[];
   /** Staff with the chat-broadcast permission. */
   canBroadcast?: boolean;
   announcementsUnread?: number;

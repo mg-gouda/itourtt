@@ -73,6 +73,18 @@ export function ChatWidget() {
   }, []);
   const { me } = useChatMe(true, onUpdate);
 
+  // A browser notification click lands on /dashboard?chat=<id>: open that chat, then tidy the URL.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("chat");
+    if (!id) return;
+    setOpen(true);
+    setThread(id);
+    url.searchParams.delete("chat");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, []);
+
   if (!me?.enabled) return null;
   const unread = me.unreadTotal ?? 0;
 

@@ -17,6 +17,7 @@ import {
 } from "@/lib/chat";
 import { ChatBubble } from "./chat-message";
 import { ChatComposer } from "./chat-composer";
+import { ForwardPanel } from "./chat-forward";
 
 interface ThreadHeader {
   id: string;
@@ -54,6 +55,8 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
+  const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const lastServerAt = useRef<string | null>(null);
@@ -245,7 +248,19 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
   const other = header?.other;
 
   return (
-    <div className={cn("flex h-full min-h-0 flex-col", className)}>
+    <div className={cn("relative flex h-full min-h-0 flex-col", className)}>
+      {forwarding && (
+        <ForwardPanel
+          message={forwarding}
+          currentConversationId={conversationId}
+          onClose={() => setForwarding(null)}
+          onDone={(n) => {
+            setForwarding(null);
+            setNotice(t("chat.forwardSent").replace("{n}", String(n)));
+            setTimeout(() => setNotice(null), 3000);
+          }}
+        />
+      )}
       {/* Header */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2">
         {onBack && (
@@ -294,12 +309,16 @@ export function ChatThread({ conversationId, onBack, onRead, className }: ChatTh
                 attachmentPath={m.id.startsWith("local-") ? null : messageAttachmentPath(m.id)}
                 onRetry={() => retry(m)}
                 onDiscard={() => discardFailed(m)}
+                onForward={m.id.startsWith("local-") || m.pending || m.failed ? undefined : () => setForwarding(m)}
               />
             ))}
           </>
         )}
       </div>
 
+      {notice && (
+        <div className="shrink-0 border-t border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-700 dark:text-emerald-300">{notice}</div>
+      )}
       {blocked && (
         <div className="flex shrink-0 items-start gap-2 border-t border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
