@@ -147,7 +147,7 @@ export default function GuestSurveysPage() {
             <>
               <Button size="sm" variant="outline" onClick={exportPdf} className="ml-auto gap-1.5">
                 <Printer className="h-3.5 w-3.5" />
-                {t("reports.exportPdf")}
+                {t("reports.pdf")}
               </Button>
               <Button size="sm" variant="outline" onClick={exportExcel} className="gap-1.5">
                 <FileSpreadsheet className="h-3.5 w-3.5" />

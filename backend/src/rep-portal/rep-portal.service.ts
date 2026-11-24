@@ -1,3 +1,4 @@
+import { signLink } from '../common/utils/signed-link.js';
 import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import {
   Injectable,
@@ -594,6 +595,17 @@ export class RepPortalService {
   // ─────────────────────────────────────────────
   // ARRIVAL GUEST SURVEY
   // ─────────────────────────────────────────────
+
+  /** Signed 5-minute link to my submitted survey on this job as PDF / Excel (6.2.1). */
+  async guestSurveyExportLink(userId: string, jobId: string, format: 'pdf' | 'xlsx') {
+    const repId = await this.resolveRepId(userId);
+    const assignment = await this.prisma.trafficAssignment.findFirst({ where: { repId, trafficJobId: jobId }, select: { id: true } });
+    if (!assignment) throw new NotFoundException('Job not found or not assigned to you');
+    const survey = await this.prisma.guestSurvey.findUnique({ where: { trafficJobId: jobId }, select: { id: true } });
+    if (!survey) throw new NotFoundException('Submit the survey first');
+    const token = signLink({ purpose: 'survey-export', surveyId: survey.id, format }, 300);
+    return { path: `/survey-files/${token}` };
+  }
 
   async getGuestSurvey(userId: string, jobId: string) {
     const repId = await this.resolveRepId(userId);

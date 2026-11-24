@@ -2255,6 +2255,108 @@ export class ExportService {
   // GUEST SURVEY EXCEL EXPORT
   // ─────────────────────────────────────────────
 
+  /** One guest survey as a file (6.2.1) — the rep app's Export PDF / Excel after submitting. */
+  async guestSurveyFile(surveyId: string, format: 'pdf' | 'xlsx') {
+    const s = await this.prisma.guestSurvey.findUnique({
+      where: { id: surveyId },
+      include: {
+        rep: { select: { name: true } },
+        trafficJob: { select: { internalRef: true, jobDate: true, serviceType: true } },
+      },
+    });
+    if (!s) throw new NotFoundException('Survey not found');
+    const ref = s.trafficJob.internalRef;
+    const rows: [string, string][] = [
+      ['Job Ref', ref],
+      ['Job Date', this.formatDate(s.trafficJob.jobDate)],
+      ['Service Type', serviceTypeLabel(s.trafficJob.serviceType)],
+      ['Rep', s.rep.name],
+      ['Submitted', this.cairoDate(s.updatedAt ?? s.createdAt)],
+      ['Flight No', s.flightNo ?? ''],
+      ['Hotel', s.hotelName ?? ''],
+      ['Nationality', s.guestNationality ?? ''],
+      ['Age Range', s.ageRange ?? ''],
+      ['Adults', String(s.noOfAdults)],
+      ['Children', String(s.noOfChildren)],
+      ['Infants', String(s.noOfInfants)],
+      ['Stay Length', s.stayLength ?? ''],
+      ['Repeat Guest', s.repeaterGuest === 'YES' ? 'Yes' : s.repeaterGuest === 'NO' ? 'No' : s.repeaterGuest ?? ''],
+      ['Local Travel Agent', s.localTravelAgent ?? ''],
+      ['Contact Number', s.contactNumber ?? ''],
+      ['Email', s.email ?? ''],
+      ['General Comment', s.generalComment ?? ''],
+    ];
+    const base = `guest_survey_${ref}`.replace(/[^A-Za-z0-9_-]+/g, '_');
+
+    if (format === 'xlsx') {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet([['Field', 'Answer'], ...rows]);
+      ws['!cols'] = [{ wch: 20 }, { wch: 60 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'Guest Survey');
+      return {
+        buffer: Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })),
+        filename: `${base}.xlsx`,
+        mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      };
+    }
+
+    const settings = await this.prisma.companySettings.findFirst();
+    const pdfDoc = await PDFDocument.create();
+    pdfDoc.registerFontkit(fontkit);
+    const fp = fontPaths();
+    const regular = await pdfDoc.embedFont(fs.readFileSync(fp.latinRegular), { subset: true });
+    const bold = await pdfDoc.embedFont(fs.readFileSync(fp.latinBold), { subset: true });
+    const arabicFont = await pdfDoc.embedFont(fs.readFileSync(fp.arabicRegular), { subset: true });
+    const pick = (text: string, isBold = false) => (hasArabic(text) ? arabicFont : isBold ? bold : regular);
+
+    const PW = 595, PH = 842, M = 40, LABEL_W = 150;
+    let page = pdfDoc.addPage([PW, PH]);
+    let y = PH - M;
+    const gray = rgb(0.45, 0.45, 0.45);
+    const line = rgb(0.85, 0.85, 0.85);
+
+    const logo = settings?.logoUrl ? await embedLogo(pdfDoc, settings.logoUrl) : null;
+    if (logo) {
+      const h = 40, w = (logo.width / logo.height) * h;
+      page.drawImage(logo, { x: M, y: y - h, width: w, height: h });
+    }
+    const title = 'Arrival Guest Survey';
+    page.drawText(title, { x: PW - M - bold.widthOfTextAtSize(title, 16), y: y - 18, size: 16, font: bold });
+    page.drawText(ref, { x: PW - M - regular.widthOfTextAtSize(ref, 10), y: y - 34, size: 10, font: regular, color: gray });
+    y -= 60;
+
+    // Words of a value wrapped to the answer column.
+    const wrap = (text: string, size: number, maxW: number): string[] => {
+      const out: string[] = [];
+      for (const para of (text || '—').split(/\r?\n/)) {
+        let cur = '';
+        for (const word of para.split(/\s+/)) {
+          const next = cur ? `${cur} ${word}` : word;
+          if (pick(next).widthOfTextAtSize(arabicize(next), size) > maxW && cur) { out.push(cur); cur = word; }
+          else cur = next;
+        }
+        out.push(cur);
+      }
+      return out;
+    };
+    const valueW = PW - 2 * M - LABEL_W;
+    for (const [label, value] of rows) {
+      const lines = wrap(value, 11, valueW);
+      const h = lines.length * 15 + 10;
+      if (y - h < M) { page = pdfDoc.addPage([PW, PH]); y = PH - M; }
+      page.drawText(label, { x: M, y: y - 14, size: 10, font: bold, color: gray });
+      lines.forEach((l, i) => {
+        const shown = arabicize(l);
+        const f = pick(l);
+        const x = hasArabic(l) ? PW - M - f.widthOfTextAtSize(shown, 11) : M + LABEL_W;
+        page.drawText(shown, { x, y: y - 14 - i * 15, size: 11, font: f });
+      });
+      y -= h;
+      page.drawLine({ start: { x: M, y: y + 3 }, end: { x: PW - M, y: y + 3 }, thickness: 0.5, color: line });
+    }
+    return { buffer: Buffer.from(await pdfDoc.save()), filename: `${base}.pdf`, mime: 'application/pdf' };
+  }
+
   async exportGuestSurveyReport(from: string, to: string, repId?: string): Promise<Buffer> {
     const fromDate = new Date(from);
     const toDate = new Date(to);

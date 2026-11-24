@@ -16,7 +16,7 @@ export interface RouteEnds {
 
 export type RouteMatch =
   | { routeId: string; routeName: string; how: 'unique' | 'notes' }
-  | { routeId: null; routeName: null; how: 'none' | 'ambiguous'; candidates?: string[] };
+  | { routeId: null; routeName: null; how: 'none' | 'ambiguous'; candidates?: string[]; candidateIds?: string[] };
 
 type RouteRow = {
   id: string; name: string; defaultServiceType: string | null;
@@ -32,8 +32,27 @@ type RouteRow = {
  *     origin end and whose To end equals the destination end.
  *  3. One candidate → that route.
  *  4. Several → the RMF notes rule (job notes + hotel names name an RMF hotel → that area's route
- *     for the leg). Nothing decides → no route (staff pick it).
+ *     for the leg).
+ *  5. Still several (e.g. day tours: city tour / shopping / sea trip share the same ends, 6.2.1) →
+ *     the candidate whose name shares the most words with the notes, when exactly one leads.
+ *     Nothing decides → no route; the form lists the candidates first for staff to pick.
  */
+/** Words that say nothing about which trip it is. */
+const NOISE = new Set(['the', 'and', 'with', 'way', 'two', 'one', 'from', 'to', 'trip', 'tour', 'hours', 'lunch', 'round', 'collecting']);
+const wordsOf = (s: string) =>
+  new Set(s.toLowerCase().split(/[^a-z0-9\u0600-\u06ff]+/).filter((w) => w.length >= 3 && !NOISE.has(w)));
+
+/** Rule 5: the one candidate whose name shares the most words with the notes (none if tied / no notes). */
+function bestByNotes<T extends { name: string }>(candidates: T[], notes?: string | null): T | null {
+  if (!notes?.trim()) return null;
+  const said = wordsOf(notes);
+  if (!said.size) return null;
+  const scored = candidates
+    .map((c) => ({ c, n: [...wordsOf(c.name)].filter((w) => said.has(w)).length }))
+    .sort((a, b) => b.n - a.n);
+  return scored[0].n > 0 && scored[0].n > (scored[1]?.n ?? 0) ? scored[0].c : null;
+}
+
 @Injectable()
 export class RouteResolverService {
   private readonly logger = new Logger(RouteResolverService.name);
@@ -104,8 +123,13 @@ export class RouteResolverService {
       const r = areaRoute(pool, leg, rmfHotel.routeArea) ?? areaRoute(routes, leg, rmfHotel.routeArea);
       if (r) return { routeId: r.id, routeName: r.name, how: 'notes' };
     }
+    const byNotes = candidates.length > 1 ? bestByNotes(candidates, e.notes) : null;
+    if (byNotes) return { routeId: byNotes.id, routeName: byNotes.name, how: 'notes' };
     return candidates.length
-      ? { routeId: null, routeName: null, how: 'ambiguous', candidates: candidates.map((c) => c.name) }
+      ? {
+          routeId: null, routeName: null, how: 'ambiguous',
+          candidates: candidates.map((c) => c.name), candidateIds: candidates.map((c) => c.id),
+        }
       : { routeId: null, routeName: null, how: 'none' };
   }
 

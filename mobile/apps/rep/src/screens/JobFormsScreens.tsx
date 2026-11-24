@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -223,6 +223,7 @@ export function SurveyScreen({ route, navigation }: SurveyProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tried, setTried] = useState(false);
+  const [exporting, setExporting] = useState<'pdf' | 'xlsx' | null>(null);
   const set = <K extends keyof SurveyForm>(k: K, v: SurveyForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -272,6 +273,18 @@ export function SurveyScreen({ route, navigation }: SurveyProps) {
     !!form.generalComment.trim() &&
     !!form.contactNumber.trim();
 
+  /** Submitted survey → PDF / Excel, downloaded by the phone's browser (6.2.1). */
+  const exportSurvey = async (format: 'pdf' | 'xlsx') => {
+    setExporting(format);
+    try {
+      await Linking.openURL(await repPortalApi.surveyExportUrl(jobId, format));
+    } catch (err) {
+      appAlert(t('repApp.surveyExportFailed'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
+    } finally {
+      setExporting(null);
+    }
+  };
+
   const submit = async () => {
     setTried(true);
     if (!valid) {
@@ -295,7 +308,17 @@ export function SurveyScreen({ route, navigation }: SurveyProps) {
         generalComment: form.generalComment.trim(),
         contactNumber: form.contactNumber.trim(),
       });
-      appAlert(t('repApp.surveySent'), jobRef, [{ text: t('common.ok'), onPress: () => navigation.goBack() }], { tone: 'success' });
+      setIsUpdate(true);
+      appAlert(
+        t('repApp.surveySent'),
+        jobRef,
+        [
+          { text: t('repApp.surveyExportPdf'), onPress: () => void exportSurvey('pdf') },
+          { text: t('repApp.surveyExportExcel'), onPress: () => void exportSurvey('xlsx') },
+          { text: t('common.ok'), onPress: () => navigation.goBack() },
+        ],
+        { tone: 'success' },
+      );
     } catch (err) {
       appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });
     } finally {
@@ -349,6 +372,32 @@ export function SurveyScreen({ route, navigation }: SurveyProps) {
         </ScrollView>
       )}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: colors.card, borderTopColor: colors.border }]}>
+        {isUpdate && !loading ? (
+          <View style={styles.exportRow}>
+            <ActionButton
+              size="sm"
+              variant="outline"
+              tone="neutral"
+              icon="document-text-outline"
+              label={t('repApp.surveyExportPdf')}
+              loading={exporting === 'pdf'}
+              disabled={!!exporting}
+              onPress={() => void exportSurvey('pdf')}
+              style={styles.flex}
+            />
+            <ActionButton
+              size="sm"
+              variant="outline"
+              tone="neutral"
+              icon="grid-outline"
+              label={t('repApp.surveyExportExcel')}
+              loading={exporting === 'xlsx'}
+              disabled={!!exporting}
+              onPress={() => void exportSurvey('xlsx')}
+              style={styles.flex}
+            />
+          </View>
+        ) : null}
         <ActionButton
           size="lg"
           label={isUpdate ? t('repApp.surveyUpdate') : t('repApp.surveySubmit')}
@@ -365,6 +414,7 @@ export function SurveyScreen({ route, navigation }: SurveyProps) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  exportRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   content: { padding: 16 },
   hint: { flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 14 },
   hintText: { flex: 1, fontSize: 14, lineHeight: 20 },

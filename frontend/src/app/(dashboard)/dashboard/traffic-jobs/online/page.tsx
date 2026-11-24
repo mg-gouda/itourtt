@@ -230,6 +230,8 @@ export default function OnlineJobPage() {
   // True while the route was filled from origin / destination (or is empty): it may be looked up
   // again when those change. A route picked by hand is never overwritten.
   const routeAutoRef = useRef(true);
+  /** Routes that fit the ends when the lookup can't pick one (6.2.1) — listed first, staff choose. */
+  const [routeCandidates, setRouteCandidates] = useState<string[]>([]);
   const [jobs, setJobs] = useState<TrafficJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -342,7 +344,7 @@ export default function OnlineJobPage() {
     if (!routeAutoRef.current) return;
     const originOk = form.originAirportId || form.originZoneId || form.originHotelId;
     const destOk = form.destinationAirportId || form.destinationZoneId || form.destinationHotelId;
-    if (!form.serviceType || !originOk || !destOk) return;
+    if (!form.serviceType || !originOk || !destOk) { setRouteCandidates([]); return; }
     const timer = setTimeout(() => {
       const params: Record<string, string> = { serviceType: form.serviceType };
       ([
@@ -353,7 +355,9 @@ export default function OnlineJobPage() {
       api.get("/job-service-types/resolve", { params })
         .then(({ data }) => {
           if (!routeAutoRef.current) return; // picked by hand meanwhile
-          const routeId: string | null = (data?.data ?? data)?.routeId ?? null;
+          const res = data?.data ?? data;
+          const routeId: string | null = res?.routeId ?? null;
+          setRouteCandidates(routeId ? [] : (res?.candidateIds ?? []));
           setForm((prev) => (prev.jobServiceTypeId === (routeId ?? "") ? prev : { ...prev, jobServiceTypeId: routeId ?? "" }));
         })
         .catch(() => { /* non-critical: the server looks it up again on save */ });
@@ -838,10 +842,16 @@ export default function OnlineJobPage() {
             <div className="min-w-0 space-y-1.5">
               <Label className="text-muted-foreground text-xs">Route / Service Type</Label>
               <SearchableCombobox
-                items={jobServiceTypes.map((s) => ({ value: s.id, label: s.name }))}
+                items={[
+                  ...routeCandidates
+                    .map((id) => jobServiceTypes.find((s) => s.id === id))
+                    .filter((s): s is NonNullable<typeof s> => !!s)
+                    .map((s) => ({ value: s.id, label: `★ ${s.name}` })),
+                  ...jobServiceTypes.filter((s) => !routeCandidates.includes(s.id)).map((s) => ({ value: s.id, label: s.name })),
+                ]}
                 value={form.jobServiceTypeId}
                 onChange={pickRoute}
-                placeholder="Select route…"
+                placeholder={routeCandidates.length && !form.jobServiceTypeId ? `${routeCandidates.length} routes fit — pick one (★)` : "Select route…"}
                 searchPlaceholder="Search routes…"
                 emptyText="No routes found."
                 triggerClassName="border-border bg-card text-foreground h-9"

@@ -79,6 +79,13 @@ export const repPortalApi = {
     return api.post(`/rep-portal/jobs/${jobId}/survey`, body);
   },
 
+  /** Full URL of a 5-minute download link for the submitted survey (6.2.1) — open it in the browser. */
+  async surveyExportUrl(jobId: string, format: 'pdf' | 'xlsx'): Promise<string> {
+    const { data } = await api.post(`/rep-portal/jobs/${jobId}/survey/export-link`, { format });
+    const path: string = (data?.data ?? data).path;
+    return `${api.defaults.baseURL}${path}`;
+  },
+
   getComplaints() {
     return api.get<{ data: PortalComplaint[] }>('/rep-portal/complaints');
   },

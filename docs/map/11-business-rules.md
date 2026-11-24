@@ -1322,3 +1322,17 @@ the next person with that number failed with "a user with this mobile number alr
 - **Forward:** any message (text, photo, voice, location) → up to 20 chats / people the caller may chat with (`POST /chat/messages/:id/forward`); photos / voice notes are copied into each target thread's folder; copies carry `forwarded = true` ("Forwarded" label).
 - **Chat over popups:** the office notification popups (flight delay, On the way, no answer, 45 minutes) are non-modal dialogs over their own backdrop — still central and answer-only, but the chat (z-60) stays clickable and typeable.
 - **Browser push for office chat:** web push is open to every account except SUPPLIER / B2C_CLIENT (was rep / driver only). An office user receiving a message (from a rep / driver or a colleague) gets a browser notification opening `/dashboard?chat=<id>`; the dashboard shows the "Turn on notifications" banner (office wording).
+
+## 6.2.1 amendments
+
+- **Route from origin / destination — rule 5.** When several routes share the same ends (typical for
+  day tours: Makadi → Hurghada Center has city tour, shopping, sea trip…), the route whose name shares
+  the most words with the job notes wins, if exactly one leads. Otherwise no route is set and the
+  online job form lists the fitting routes first (★) with "N routes fit — pick one".
+- **Admins: muted alarms.** Accounts with the ADMIN role (or the "admin" role slug) still get the
+  office notification popups, but no alarm sound and no "Turn on alarm sound" button.
+- **Rep app: survey export.** After a guest survey is saved, the rep can export it as PDF or Excel
+  (also from the survey screen later). The app asks for a 5-minute signed link
+  (`POST /rep-portal/jobs/:jobId/survey/export-link`) and opens `/api/survey-files/:token` in the
+  phone's browser; only the assigned rep can get a link.
+- Guest Surveys / Reports pages: the PDF button reads "PDF" (the old label key was missing).

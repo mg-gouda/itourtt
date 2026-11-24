@@ -2657,7 +2657,7 @@ export default function ReportsPage() {
                   <>
                     <Button size="sm" variant="outline" onClick={exportDriverScorePdf} className="gap-1.5 ml-auto">
                       <Printer className="h-3.5 w-3.5" />
-                      {t("reports.exportPdf")}
+                      {t("reports.pdf")}
                     </Button>
                     <Button size="sm" variant="outline" onClick={exportDriverScoreExcel} className="gap-1.5">
                       <FileSpreadsheet className="h-3.5 w-3.5" />
@@ -3194,7 +3194,7 @@ export default function ReportsPage() {
                   <>
                     <Button size="sm" variant="outline" onClick={exportRepScorePdf} className="gap-1.5 ml-auto">
                       <Printer className="h-3.5 w-3.5" />
-                      {t("reports.exportPdf")}
+                      {t("reports.pdf")}
                     </Button>
                     <Button size="sm" variant="outline" onClick={exportRepScoreExcel} className="gap-1.5">
                       <FileSpreadsheet className="h-3.5 w-3.5" />

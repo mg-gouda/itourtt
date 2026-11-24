@@ -162,16 +162,18 @@ export function Header() {
 
   // Job-alarm follow-up sound for the office (6.1.0): "no answer" / "45 minutes to go" loop until
   // accepted; "On the way" and a flight delay ring once.
+  // Admins see the same popups, but muted (6.2.1).
+  const muted = user?.role === "ADMIN" || user?.roleSlug === "admin";
   const urgentOpen = flightDelayQueue.some((n) => n.type === "ALARM_MISSED" || n.type === "ALARM_WARN_45");
   const headId = flightDelayQueue[0]?.id;
   useEffect(() => {
-    if (!urgentOpen) return;
+    if (!urgentOpen || muted) return;
     startAlarm("office-alarm-alert");
     return () => stopAlarm("office-alarm-alert");
-  }, [urgentOpen]);
+  }, [urgentOpen, muted]);
   useEffect(() => {
-    if (headId && !urgentOpen) playOnce();
-  }, [headId, urgentOpen]);
+    if (headId && !urgentOpen && !muted) playOnce();
+  }, [headId, urgentOpen, muted]);
 
   useEffect(() => {
     fetchNotifications();
@@ -224,7 +226,7 @@ export function Header() {
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-secondary dark:bg-sidebar px-3 md:px-6">
-      <AlarmSoundGate />
+      {!muted && <AlarmSoundGate />}
       <div className="flex items-center gap-3">
         <button
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"

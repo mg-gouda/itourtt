@@ -33,6 +33,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { stampEvidenceImage, StampMeta } from '../common/utils/stamp-image.js';
 
+class SurveyExportLinkDto {
+  @IsIn(['pdf', 'xlsx'])
+  format!: 'pdf' | 'xlsx';
+}
+
 // Fallback disk storage (used when Drive is not configured)
 const uploadsBase = path.join(process.cwd(), 'uploads');
 
@@ -279,6 +284,16 @@ export class RepPortalController {
   ) {
     const result = await this.repPortalService.submitGuestSurvey(userId, jobId, dto);
     return new ApiResponse(result, 'Guest survey submitted');
+  }
+
+  /** A 5-minute download link for the submitted survey as PDF / Excel (6.2.1). */
+  @Post('jobs/:jobId/survey/export-link')
+  async guestSurveyExportLink(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Body() body: SurveyExportLinkDto,
+  ) {
+    return new ApiResponse(await this.repPortalService.guestSurveyExportLink(userId, jobId, body.format));
   }
 
   @Post('jobs/:jobId/completed')
