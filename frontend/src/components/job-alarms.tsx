@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n";
 import { formatTimeCairo } from "@/lib/utils";
+import { startAlarm, stopAlarm } from "@/lib/alarm-sound";
 
 /**
  * Job alarms for the rep / driver web portals (the native apps have the same
@@ -92,37 +93,18 @@ function writeInside(v: Record<string, boolean>) {
   }
 }
 
-/** Short repeating chime until the alarm is acknowledged. */
+/** The job-alarm sound (two-tone) loops until the alarm is acknowledged; phones also vibrate. */
 function useChime(active: boolean) {
   useEffect(() => {
     if (!active || typeof window === "undefined") return;
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    let ctx: AudioContext | null = null;
-    const ring = () => {
-      try {
-        ctx ??= Ctx ? new Ctx() : null;
-        if (!ctx) return;
-        [0, 0.25].forEach((offset) => {
-          const osc = ctx!.createOscillator();
-          const gain = ctx!.createGain();
-          osc.frequency.value = 880;
-          gain.gain.setValueAtTime(0.0001, ctx!.currentTime + offset);
-          gain.gain.exponentialRampToValueAtTime(0.25, ctx!.currentTime + offset + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, ctx!.currentTime + offset + 0.2);
-          osc.connect(gain).connect(ctx!.destination);
-          osc.start(ctx!.currentTime + offset);
-          osc.stop(ctx!.currentTime + offset + 0.22);
-        });
-      } catch {
-        /* autoplay blocked until the user interacts */
-      }
-      navigator.vibrate?.([300, 150, 300]);
-    };
-    ring();
-    const id = setInterval(ring, 6_000);
+    startAlarm("portal-job-alarm");
+    const buzz = () => navigator.vibrate?.([300, 150, 300]);
+    buzz();
+    const id = setInterval(buzz, 3_000);
     return () => {
       clearInterval(id);
-      ctx?.close().catch(() => {});
+      navigator.vibrate?.(0);
+      stopAlarm("portal-job-alarm");
     };
   }, [active]);
 }

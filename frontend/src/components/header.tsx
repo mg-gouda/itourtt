@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { AlarmSoundGate, playOnce, startAlarm, stopAlarm } from "@/lib/alarm-sound";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, User, Settings, HelpCircle, Menu, Bell, Check, CheckCheck, ChevronRight, AlertTriangle } from "lucide-react";
@@ -157,6 +158,19 @@ export function Header() {
     }
   }, [isAuthenticated]);
 
+  // Job-alarm follow-up sound for the office (6.1.0): "no answer" / "45 minutes to go" loop until
+  // accepted; "On the way" and a flight delay ring once.
+  const urgentOpen = flightDelayQueue.some((n) => n.type === "ALARM_MISSED" || n.type === "ALARM_WARN_45");
+  const headId = flightDelayQueue[0]?.id;
+  useEffect(() => {
+    if (!urgentOpen) return;
+    startAlarm("office-alarm-alert");
+    return () => stopAlarm("office-alarm-alert");
+  }, [urgentOpen]);
+  useEffect(() => {
+    if (headId && !urgentOpen) playOnce();
+  }, [headId, urgentOpen]);
+
   useEffect(() => {
     fetchNotifications();
     intervalRef.current = setInterval(fetchNotifications, 10000);
@@ -208,6 +222,7 @@ export function Header() {
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-secondary dark:bg-sidebar px-3 md:px-6">
+      <AlarmSoundGate />
       <div className="flex items-center gap-3">
         <button
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"

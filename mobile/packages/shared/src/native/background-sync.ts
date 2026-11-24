@@ -14,6 +14,7 @@ import { secureStorage } from '../auth/secure-storage';
 import { appAlert } from '../utils/dialog';
 import { t } from '../i18n';
 import {
+  ALARM_SOUND,
   checkDropoffs,
   ensureAlarmKey,
   getAlarmKeyInfo,
@@ -41,6 +42,8 @@ import {
 export type Portal = 'driver' | 'rep';
 
 const CHANNEL_ALERTS = 'itour_alerts';
+/** Job / complaint notifications (6.1.0): the alarm sound, once. Chat stays on CHANNEL_ALERTS. */
+const CHANNEL_JOBS = 'itour_jobs_v1';
 const CHANNEL_SERVICE = 'itour_service';
 const SERVICE_NOTIFICATION_ID = 'itour-connection';
 
@@ -78,6 +81,17 @@ async function ensureChannels() {
     visibility: AndroidVisibility.PUBLIC,
     sound: 'default',
     vibration: true,
+    lights: true,
+    badge: true,
+  });
+  await notifee.createChannel({
+    id: CHANNEL_JOBS,
+    name: 'Job updates',
+    importance: AndroidImportance.HIGH,
+    visibility: AndroidVisibility.PUBLIC,
+    sound: ALARM_SOUND,
+    vibration: true,
+    vibrationPattern: [300, 400, 300, 400],
     lights: true,
     badge: true,
   });
@@ -165,17 +179,17 @@ export async function setupNotifications() {
   if (Platform.OS === 'android') await ensureChannels();
 }
 
-async function showAlert(id: string, title: string, body: string, data: Record<string, string>) {
+async function showAlert(id: string, title: string, body: string, data: Record<string, string>, channel: 'jobs' | 'chat' = 'chat') {
   await notifee.displayNotification({
     id,
     title,
     body,
     data,
     android: {
-      channelId: CHANNEL_ALERTS,
+      channelId: channel === 'jobs' ? CHANNEL_JOBS : CHANNEL_ALERTS,
       importance: AndroidImportance.HIGH,
       visibility: AndroidVisibility.PUBLIC,
-      sound: 'default',
+      sound: channel === 'jobs' ? ALARM_SOUND : 'default',
       pressAction: { id: 'default' },
       smallIcon: 'ic_notification',
       showTimestamp: true,
@@ -249,7 +263,7 @@ async function pollNotifications() {
       : {
           type: n.trafficJobId ? 'JOB' : 'NOTIFICATION',
           ...(n.trafficJobId ? { jobId: n.trafficJobId } : {}),
-        });
+        }, 'jobs');
   }
   if (newest) lastNotificationAt = newest;
 }

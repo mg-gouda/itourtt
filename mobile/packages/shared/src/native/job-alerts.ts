@@ -1,4 +1,4 @@
-import { AppState, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import notifee, {
   AlarmType,
   AndroidCategory,
@@ -66,10 +66,13 @@ export interface PendingAlarm {
   shownAt: string;
 }
 
-// v2: alarm-clock channel (bypasses Do Not Disturb). Android freezes a channel's sound / importance,
-// so the change needs a new id; the old channel is deleted.
-export const CHANNEL_ALARMS = 'itour_job_alarms_v2';
-const OLD_CHANNEL_ALARMS = 'itour_job_alarms';
+// v3 (apps 1.6.0): the owner's alarm sound "two-tone" (res/raw/job_alarm.wav), alarm-clock channel
+// (bypasses Do Not Disturb). Android freezes a channel's sound / importance, so each change needs a new
+// id; the older channels are deleted.
+export const CHANNEL_ALARMS = 'itour_job_alarms_v3';
+const OLD_CHANNEL_ALARMS = ['itour_job_alarms', 'itour_job_alarms_v2'];
+/** res/raw/job_alarm.wav in both apps — same sound as the web (frontend/public/sounds/job-alarm.wav). */
+export const ALARM_SOUND = 'job_alarm';
 const ALARM_KEY_STORE = 'jobAlarmKey';
 const ACK_ACTION = 'alarm-ack';
 
@@ -147,13 +150,13 @@ async function ensureAlarmChannel() {
     name: 'Job alarms',
     importance: AndroidImportance.HIGH,
     visibility: AndroidVisibility.PUBLIC,
-    sound: 'default',
+    sound: ALARM_SOUND,
     vibration: true,
     vibrationPattern: [300, 400, 300, 400, 300, 400],
     lights: true,
     bypassDnd: true,
   });
-  await notifee.deleteChannel(OLD_CHANNEL_ALARMS).catch(() => {});
+  for (const old of OLD_CHANNEL_ALARMS) await notifee.deleteChannel(old).catch(() => {});
 }
 
 function notificationFor(kind: AlarmKind, job: AlarmJob) {
@@ -167,7 +170,7 @@ function notificationFor(kind: AlarmKind, job: AlarmJob) {
       importance: AndroidImportance.HIGH,
       visibility: AndroidVisibility.PUBLIC,
       category: AndroidCategory.ALARM,
-      sound: 'default',
+      sound: ALARM_SOUND,
       smallIcon: 'ic_notification',
       pressAction: { id: 'default' },
       // Alarm clock: wake the screen over the lock screen and keep ringing until acknowledged.
@@ -188,16 +191,20 @@ function notificationFor(kind: AlarmKind, job: AlarmJob) {
   };
 }
 
-/** Queue the modal (and ring now if the app is not on screen). */
+/**
+ * Queue the modal and ring. The notification is shown even with the app open (6.1.0): its channel
+ * plays the alarm sound in a loop until the alarm is answered (acknowledgeAlarm cancels it).
+ */
 function raise(kind: AlarmKind, job: AlarmJob) {
   const key = keyOf(job.jobId, kind);
   if (raised.has(key) || job.acked.includes(kind)) return;
   raised.add(key);
   pending = [...pending, { kind, job, shownAt: new Date().toISOString() }];
   emit();
-  if (AppState.currentState !== 'active') {
-    notifee.displayNotification(notificationFor(kind, job)).catch(() => {});
-  }
+  ensureAlarmChannel()
+    .catch(() => {})
+    .then(() => notifee.displayNotification(notificationFor(kind, job)))
+    .catch(() => {});
 }
 
 /** The start alarm due now: each of 1:30 / 1:00 / 0:30 rings in its own window. */

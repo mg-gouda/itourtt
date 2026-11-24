@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
@@ -26,6 +26,7 @@ import { PushPrompt } from "@/components/push-prompt";
 import { useT } from "@/lib/i18n";
 import { useLocationHeartbeat } from "@/lib/use-location-heartbeat";
 import { JobAlarms } from "@/components/job-alarms";
+import { AlarmSoundGate, playOnce } from "@/lib/alarm-sound";
 
 export default function RepPortalLayout({
   children,
@@ -78,6 +79,7 @@ function RepPortalShell({
   const { logout } = useAuthStore();
   const t = useT();
   const [unreadCount, setUnreadCount] = useState(0);
+  const lastUnread = useRef<number | null>(null);
   useLocationHeartbeat();
   const { me: chat } = useChatMe();
   const chatUnread = chat?.unreadTotal ?? 0;
@@ -86,7 +88,11 @@ function RepPortalShell({
     const fetchUnread = async () => {
       try {
         const { data } = await api.get("/rep-portal/notifications", backgroundPoll);
-        setUnreadCount(data.data?.unreadCount ?? 0);
+        const n = data.data?.unreadCount ?? 0;
+        // A new notification since the last poll rings once (job assigned / changed / cancelled…).
+        if (lastUnread.current !== null && n > lastUnread.current) playOnce();
+        lastUnread.current = n;
+        setUnreadCount(n);
       } catch {
         // ignore
       }
@@ -143,6 +149,7 @@ function RepPortalShell({
         {children}
         {/* 1 h / 30 min start reminders + drop-off geofence alarms (must be acknowledged) */}
         <JobAlarms portal="rep" />
+        <AlarmSoundGate />
       </main>
 
       {/* Footer — fixed above bottom nav */}

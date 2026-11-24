@@ -1308,3 +1308,10 @@ transaction, and refuse a mobile number that another login already holds. Before
 old rep record for a new person left the old login holding the old number, so "Create account" for
 the next person with that number failed with "a user with this mobile number already exists".
 
+
+## Alarm sound (6.1.0, apps 1.6.0)
+
+- One sound everywhere, the owner's pick "two-tone" (high-low, 2.9 s, made in-house): web `frontend/public/sounds/job-alarm.wav`, apps `res/raw/job_alarm.wav`.
+- **Web** (`lib/alarm-sound.tsx`): rep / driver portal job alarm loops until answered (plus vibration on phones); a new portal notification rings once; office follow-up popups — "no answer" and "45 minutes to go" loop until accepted, "On the way" and flight delay ring once. Browsers block sound until the person has clicked the page once: the first click primes it, and a red "Turn on alarm sound" button appears whenever a sound was refused.
+- **Apps**: alarm channel `itour_job_alarms_v3` (sound job_alarm, loops, bypasses Do Not Disturb; v1 / v2 deleted) — the alarm notification is shown even with the app open so it always sounds until answered. Job / complaint notifications use the new channel `itour_jobs_v1` (sound job_alarm, once); chat stays on `itour_alerts` (default sound). Server FCM pushes pick the same channels (non-chat → `itour_jobs_v1`).
+- Limit: an Android notification sound follows the ringer — with the phone on silent / vibrate it vibrates only (Do Not Disturb is bypassed, the ringer mode is not).

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
@@ -10,6 +10,7 @@ import { LicenseGate } from "@/components/license-gate";
 import { useT } from "@/lib/i18n";
 import { useLocationHeartbeat } from "@/lib/use-location-heartbeat";
 import { JobAlarms } from "@/components/job-alarms";
+import { AlarmSoundGate, playOnce } from "@/lib/alarm-sound";
 import {
   Truck,
   Briefcase,
@@ -78,6 +79,7 @@ function DriverPortalShell({
   const { logout } = useAuthStore();
   const t = useT();
   const [unreadCount, setUnreadCount] = useState(0);
+  const lastUnread = useRef<number | null>(null);
   useLocationHeartbeat();
   const { me: chat } = useChatMe();
   const chatUnread = chat?.unreadTotal ?? 0;
@@ -86,7 +88,11 @@ function DriverPortalShell({
     const fetchUnread = async () => {
       try {
         const { data } = await api.get("/driver-portal/notifications", backgroundPoll);
-        setUnreadCount(data.data?.unreadCount ?? 0);
+        const n = data.data?.unreadCount ?? 0;
+        // A new notification since the last poll rings once (job assigned / changed / cancelled…).
+        if (lastUnread.current !== null && n > lastUnread.current) playOnce();
+        lastUnread.current = n;
+        setUnreadCount(n);
       } catch {
         // ignore
       }
@@ -143,6 +149,7 @@ function DriverPortalShell({
         {children}
         {/* 1 h / 30 min start reminders + drop-off geofence alarms (must be acknowledged) */}
         <JobAlarms portal="driver" />
+        <AlarmSoundGate />
       </main>
 
       {/* Footer — fixed above bottom nav */}
