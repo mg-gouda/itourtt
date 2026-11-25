@@ -231,8 +231,9 @@ export function Header() {
         <button
           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
           onClick={() => setMobileNavOpen(true)}
+          aria-label={t("header.openMenu")}
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
         <Breadcrumb />
       </div>
@@ -246,10 +247,13 @@ export function Header() {
         {/* Notification Bell */}
         <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
           <DropdownMenuTrigger asChild>
-            <button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-              <Bell className="h-4 w-4" />
+            <button
+              aria-label={`${t("notifications.title")}${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Bell className="h-4 w-4" aria-hidden="true" />
               {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
@@ -301,7 +305,7 @@ export function Header() {
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{n.message}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-[10px] text-muted-foreground">{formatTime(n.createdAt)}</span>
+                    <span className="text-xs text-muted-foreground">{formatTime(n.createdAt)}</span>
                     {!n.isRead && <span className="h-2 w-2 rounded-full bg-primary" />}
                   </div>
                 </div>

@@ -78,6 +78,7 @@ import {
   type JobComplaintRef,
 } from "@/components/complaints/job-deduction-dialog";
 import type { ComplaintParty } from "@/lib/complaints";
+import { TONE_STRIPE, statusTone } from "@/lib/status-colors";
 
 // ────────────────────────────────────────────
 // Types
@@ -199,12 +200,10 @@ interface ActiveCell {
 // Helpers
 // ────────────────────────────────────────────
 
+// Row stripe = the shared status colour (UI review 3a); cancelled rows stay dimmed.
 const statusRowClass: Record<string, string> = {
-  PENDING: "border-l-4 border-l-red-500",
-  ASSIGNED: "border-l-4 border-l-emerald-500",
-  IN_PROGRESS: "border-l-4 border-l-blue-500",
-  COMPLETED: "border-l-4 border-l-zinc-500",
-  CANCELLED: "border-l-4 border-l-red-900 bg-red-950/30",
+  ...Object.fromEntries(["PENDING", "ASSIGNED", "IN_PROGRESS", "IN_PLACE", "COMPLETED", "NO_SHOW"].map((s) => [s, TONE_STRIPE[statusTone(s)]])),
+  CANCELLED: `${TONE_STRIPE.red} bg-red-950/30`,
 };
 
 function fmtDate(d: Date) {

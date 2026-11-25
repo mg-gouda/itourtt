@@ -40,6 +40,7 @@ import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { localDateStr, formatDate } from "@/lib/utils";
 import { useServiceTypeLabel } from "@/lib/service-types";
+import { statusBadgeClass } from "@/lib/status-colors";
 
 interface JobSummary {
   id: string;
@@ -116,14 +117,10 @@ function StatCard({
   );
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  PENDING: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  ASSIGNED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  IN_PROGRESS: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
-  COMPLETED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-  NO_SHOW: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-};
+// One colour per status everywhere (UI review 3a).
+const STATUS_BADGE: Record<string, string> = Object.fromEntries(
+  ["PENDING", "ASSIGNED", "IN_PROGRESS", "IN_PLACE", "COMPLETED", "NO_SHOW", "CANCELLED"].map((s) => [s, statusBadgeClass(s)]),
+);
 
 export default function DashboardPage() {
   const t = useT();

@@ -287,7 +287,7 @@ export function Sidebar() {
               return (
                 <p
                   key={i}
-                  className="text-[10px] uppercase tracking-widest text-sidebar-foreground/40 px-2 pt-4 pb-1 select-none"
+                  className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/70 px-2 pt-4 pb-1 select-none"
                 >
                   {t(item.labelKey)}
                 </p>
@@ -308,6 +308,8 @@ export function Sidebar() {
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => toggleGroup(item.nameKey)}
+                        aria-label={label}
+                        aria-expanded={isOpen}
                         className={cn(
                           "flex w-full items-center rounded-lg text-sm font-medium transition-colors",
                           collapsed
@@ -315,7 +317,7 @@ export function Sidebar() {
                             : "gap-2.5 px-3 py-2",
                           hasActiveChild
                             ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
-                            : "border-l-2 border-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                            : "border-l-2 border-transparent text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                         )}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
@@ -324,7 +326,7 @@ export function Sidebar() {
                             <span className="flex-1 text-left whitespace-nowrap overflow-hidden">{label}</span>
                             <ChevronRight
                               className={cn(
-                                "h-3.5 w-3.5 text-sidebar-foreground/40 transition-transform duration-150",
+                                "h-3.5 w-3.5 text-sidebar-foreground/70 transition-transform duration-150",
                                 isOpen && "rotate-90"
                               )}
                             />
@@ -353,11 +355,12 @@ export function Sidebar() {
                           <Link
                             key={child.href}
                             href={child.href}
+                            aria-current={isActive ? "page" : undefined}
                             className={cn(
                               "flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap overflow-hidden",
                               isActive
                                 ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
-                                : "border-l-2 border-transparent text-sidebar-foreground/50 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                                : "border-l-2 border-transparent text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                             )}
                           >
                             <ChildIcon className="h-3.5 w-3.5 shrink-0" />
@@ -383,6 +386,8 @@ export function Sidebar() {
                 <TooltipTrigger asChild>
                   <Link
                     href={item.href}
+                    aria-label={collapsed ? label : undefined}
+                    aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "flex items-center rounded-lg text-sm font-medium transition-colors",
                       collapsed
@@ -390,7 +395,7 @@ export function Sidebar() {
                         : "gap-2.5 px-3 py-2",
                       isActive
                         ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-foreground"
-                        : "border-l-2 border-transparent text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                        : "border-l-2 border-transparent text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -416,6 +421,7 @@ export function Sidebar() {
             <TooltipTrigger asChild>
               <button
                 onClick={toggleCollapsed}
+                aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-sidebar-border bg-sidebar-accent text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/80 hover:text-sidebar-foreground"
               >
                 {collapsed ? (

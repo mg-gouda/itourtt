@@ -20,6 +20,7 @@ import {
   TERMINAL_STATUSES,
   categoryNames,
 } from "@/lib/complaints";
+import { statusBadgeClass } from "@/lib/status-colors";
 
 interface JobDetail {
   id: string;
@@ -76,16 +77,10 @@ interface JobDetail {
   createdAt: string;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
-  ASSIGNED: "bg-blue-500/15 text-blue-600 border-blue-500/30",
-  IN_PROGRESS: "bg-purple-500/15 text-purple-600 border-purple-500/30",
-  COMPLETED: "bg-green-500/15 text-green-600 border-green-500/30",
-  CANCELLED: "bg-red-500/15 text-red-600 border-red-500/30",
-  NO_SHOW: "bg-orange-500/15 text-orange-600 border-orange-500/30",
-  NEW: "bg-slate-500/15 text-slate-600 border-slate-500/30",
-  CONFIRMED: "bg-green-500/15 text-green-600 border-green-500/30",
-};
+// One colour per status everywhere (UI review 3a).
+const STATUS_COLORS: Record<string, string> = Object.fromEntries(
+  ["PENDING", "ASSIGNED", "IN_PROGRESS", "IN_PLACE", "COMPLETED", "CANCELLED", "NO_SHOW", "NEW", "CONFIRMED"].map((s) => [s, statusBadgeClass(s)]),
+);
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   if (!value && value !== 0) return null;
@@ -182,7 +177,7 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="w-[50vw] max-w-[50vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-3xl lg:w-[50vw] lg:max-w-[50vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-mono text-base">
             {job?.internalRef ?? t("jobs.jobDetails")}
@@ -221,7 +216,7 @@ export default function JobDetailModal({ jobId, open, onClose, apiBase = "/traff
             </div>
 
             {/* ── Two-column grid ── */}
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               {/* ── Basic info ── */}
               <Section title={t("jobs.jobDetails")}>
                 <Row label={t("reports.trsfReference")} value={job.internalRef} />

@@ -65,6 +65,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useColumnPreferences } from "@/hooks/useColumnPreferences";
 import { ColumnVisibilityControl } from "@/components/ui/column-visibility-control";
 import { type ColumnDef } from "@/components/ui/draggable-table-header";
+import { formatMoney } from "@/lib/format";
 
 const FINANCE_COL_DEFS: ColumnDef[] = [
   { key: "invoiceNo", label: "Invoice No" },
@@ -188,8 +189,12 @@ function calcTotals(lines: EditableLine[]) {
   };
 }
 
-function fmtNum(n: number, locale: string) {
-  return n.toLocaleString(locale, { minimumFractionDigits: 2 });
+/**
+ * One money format everywhere (UI review 3b): 23,160.00. Totals can arrive as text (Prisma
+ * decimals), which toLocaleString left as "23160" next to "23,160.00".
+ */
+function fmtNum(n: number | string | null | undefined, _locale?: string) {
+  return formatMoney(n);
 }
 
 function getCollectionStatus(c: CollectionJob): string {

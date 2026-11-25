@@ -34,6 +34,7 @@ import api from "@/lib/api";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate, localDateStr } from "@/lib/utils";
 import { usePermission } from "@/hooks/use-permission";
+import { formatMoney } from "@/lib/format";
 
 /* ─── Types ─────────────────────────────────── */
 
@@ -85,8 +86,12 @@ const VAT_RATE = 14;
 
 /* ─── Helpers ───────────────────────────────── */
 
-function fmtNum(n: number, locale: string) {
-  return n.toLocaleString(locale, { minimumFractionDigits: 2 });
+/**
+ * One money format everywhere (UI review 3b): 23,160.00. Totals can arrive as text (Prisma
+ * decimals), which toLocaleString left as "23160" next to "23,160.00".
+ */
+function fmtNum(n: number | string | null | undefined, _locale?: string) {
+  return formatMoney(n);
 }
 
 function routeOf(job: FetchedJob | CustomerJob, sep: string) {

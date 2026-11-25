@@ -323,7 +323,7 @@ export default function CompanyPage() {
             value={systemNotificationEmail}
             onChange={(e) => setSystemNotificationEmail(e.target.value)}
             className="border-border bg-muted/50 text-foreground placeholder:text-muted-foreground/50"
-            placeholder="info@fulvago.com"
+            placeholder="info@yourcompany.com"
             disabled={!canEditSettings}
           />
         </div>

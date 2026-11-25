@@ -205,7 +205,8 @@ export default function GoogleDrivePage() {
             t("googleDrive.step1"),
             t("googleDrive.step2"),
             t("googleDrive.step3"),
-            t("googleDrive.step4"),
+            // This installation's own address (it was hard-coded to another deployment).
+            t("googleDrive.step4").replace("{origin}", typeof window !== "undefined" ? window.location.origin : ""),
             t("googleDrive.step5"),
             t("googleDrive.step6"),
             t("googleDrive.step7"),

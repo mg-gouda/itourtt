@@ -359,5 +359,7 @@ export function chatTime(iso: string, localeId: string): string {
     ...(day === today ? {} : { day: "2-digit", month: "short" }),
     hour: "2-digit",
     minute: "2-digit",
+    // 24-hour like the jobs (UI review 3b) — "en-US" used to give "02:05 PM".
+    hour12: false,
   });
 }

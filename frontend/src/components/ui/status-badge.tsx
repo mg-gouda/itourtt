@@ -5,13 +5,14 @@ import React from "react";
 // ─── Status → color mapping ──────────────────────────────────────────────────
 // Each entry: [bgClass, textClass, dotClass]
 const STATUS_MAP: Record<string, [string, string, string]> = {
-  PENDING:     ["bg-amber-500/30",   "text-amber-600 dark:text-amber-400",   "bg-amber-500"],
-  ASSIGNED:    ["bg-blue-500/30",    "text-blue-600 dark:text-blue-400",     "bg-blue-500"],
-  IN_PROGRESS: ["bg-purple-500/30",  "text-purple-600 dark:text-purple-400", "bg-purple-500"],
-  IN_PLACE:    ["bg-teal-500/30",    "text-teal-600 dark:text-teal-400",     "bg-teal-500"],
-  COMPLETED:   ["bg-emerald-500/30", "text-emerald-600 dark:text-emerald-400","bg-emerald-500"],
-  CANCELLED:   ["bg-red-500/30",     "text-red-600 dark:text-red-400",       "bg-red-500"],
-  NO_SHOW:     ["bg-orange-500/30",  "text-orange-600 dark:text-orange-400", "bg-orange-500"],
+  // Job statuses — the shared system (lib/status-colors.ts, UI review 3a).
+  PENDING:     ["bg-slate-500/25",   "text-slate-700 dark:text-slate-200",   "bg-slate-500"],
+  ASSIGNED:    ["bg-blue-500/25",    "text-blue-800 dark:text-blue-200",     "bg-blue-500"],
+  IN_PROGRESS: ["bg-amber-500/25",   "text-amber-800 dark:text-amber-200",   "bg-amber-500"],
+  IN_PLACE:    ["bg-purple-500/25",  "text-purple-800 dark:text-purple-200", "bg-purple-500"],
+  COMPLETED:   ["bg-emerald-500/25", "text-emerald-800 dark:text-emerald-200","bg-emerald-500"],
+  CANCELLED:   ["bg-red-500/25",     "text-red-800 dark:text-red-200",       "bg-red-500"],
+  NO_SHOW:     ["bg-red-500/25",     "text-red-800 dark:text-red-200",       "bg-red-500"],
   DRAFT:       ["bg-zinc-500/30",    "text-zinc-600 dark:text-zinc-400",     "bg-zinc-500"],
   POSTED:      ["bg-sky-500/30",     "text-sky-600 dark:text-sky-400",       "bg-sky-500"],
   PAID:        ["bg-emerald-500/30", "text-emerald-600 dark:text-emerald-400","bg-emerald-500"],
