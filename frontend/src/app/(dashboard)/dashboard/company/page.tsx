@@ -14,6 +14,8 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/use-permission";
 import { ChatSettingsCard } from "@/components/chat/chat-settings-card";
+import { JobAlarmSettingsTab } from "@/components/job-alarm-settings-tab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -178,6 +180,13 @@ export default function CompanyPage() {
         title={t("company.title")}
         description={t("company.description")}
       />
+
+      <Tabs defaultValue={typeof window !== "undefined" && window.location.hash === "#alerts" ? "alerts" : "general"}>
+        <TabsList>
+          <TabsTrigger value="general">{t("company.tabGeneral")}</TabsTrigger>
+          <TabsTrigger value="alerts">{t("company.tabAlerts")}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="general" className="mt-6 space-y-6">
 
       {/* Company Identity */}
       <Card className="border-border bg-card p-6">
@@ -533,6 +542,11 @@ export default function CompanyPage() {
           </Button>
         </div>
       )}
+        </TabsContent>
+        <TabsContent value="alerts" className="mt-6">
+          <JobAlarmSettingsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

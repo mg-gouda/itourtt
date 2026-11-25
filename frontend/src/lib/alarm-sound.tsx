@@ -14,8 +14,20 @@ import { BellRing } from "lucide-react";
  * interaction "unlocks" the player; if a sound is refused before that, <AlarmSoundGate /> shows a
  * "Turn on alarm sound" button that plays it from a click.
  */
-const SRC = "/sounds/job-alarm.wav";
+const DEFAULT_SRC = "/sounds/job-alarm.wav";
+let src = DEFAULT_SRC;
 let audio: HTMLAudioElement | null = null;
+
+/**
+ * Company › Alerts (6.5.0): an uploaded alarm sound replaces the built-in one on the web
+ * (portals + office popups). null = built-in. Takes effect from the next ring.
+ */
+export function setAlarmSoundUrl(url: string | null | undefined) {
+  const next = url ? (url.startsWith("/uploads/") ? `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ?? ""}${url}` : url) : DEFAULT_SRC;
+  if (next === src) return;
+  src = next;
+  if (audio && audio.paused) audio = null; // rebuilt with the new source on the next ring
+}
 const owners = new Set<string>();
 let blocked = false;
 let unlocked = false;
@@ -25,7 +37,7 @@ const emit = () => listeners.forEach((l) => l());
 function el() {
   if (typeof window === "undefined") return null;
   if (!audio) {
-    audio = new Audio(SRC);
+    audio = new Audio(src);
     audio.preload = "auto";
     audio.volume = 1;
   }

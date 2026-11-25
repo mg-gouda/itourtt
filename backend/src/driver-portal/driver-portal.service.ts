@@ -37,6 +37,20 @@ const NAV_PLACE_SELECT = { name: true, latitude: true, longitude: true } as cons
 const NAV_AIRPORT_SELECT = { ...NAV_PLACE_SELECT, code: true } as const;
 const NAV_HOTEL_SELECT = { ...NAV_PLACE_SELECT, address: true } as const;
 
+/**
+ * Owner, 2026-11-25: drivers never get the guest's mobile, the job's prices, or
+ * who created the job and when — in the web portal or the app. Stripped from
+ * every driver job payload so no client can show them.
+ */
+function hideFromDriver<T extends Record<string, unknown>>(job: T) {
+  const {
+    clientMobile: _m, transferPrice: _tp, transferPriceCurrency: _tpc,
+    priceAmount: _pa, priceCurrency: _pc, createdById: _cb, createdAt: _ca,
+    ...visible
+  } = job;
+  return visible;
+}
+
 @Injectable()
 export class DriverPortalService {
   private readonly logger = new Logger(DriverPortalService.name);
@@ -209,7 +223,7 @@ export class DriverPortalService {
     };
 
     const jobs = assignments
-      .map((a) => ({ ...a.trafficJob, driverStatus: a.driverStatus }))
+      .map((a) => ({ ...hideFromDriver(a.trafficJob), driverStatus: a.driverStatus }))
       .sort((a, b) => resolveTime(a) - resolveTime(b));
 
     return {
@@ -252,7 +266,7 @@ export class DriverPortalService {
       dateTo,
       driverId,
       jobs: assignments.map((a) => ({
-        ...a.trafficJob,
+        ...hideFromDriver(a.trafficJob),
         driverStatus: a.driverStatus,
         feeEarned: a.trafficJob.driverFees[0]
           ? Number(a.trafficJob.driverFees[0].amount)
@@ -1007,8 +1021,8 @@ export class DriverPortalService {
           orderBy: { createdAt: 'asc' as const },
           select: { name: true, qty: true },
         },
-        agent: true,
-        customer: true,
+        agent: { select: { legalName: true, tradeName: true } },
+        customer: { select: { legalName: true } },
         originAirport: true,
         originZone: true,
         originHotel: { include: { zone: true } },
@@ -1019,7 +1033,6 @@ export class DriverPortalService {
         toZone: true,
         requestedVehicleType: true,
         flight: true,
-        createdBy: { select: { id: true, name: true } },
         assignment: {
           include: {
             vehicle: { include: { vehicleType: true, supplier: { select: { id: true, legalName: true, tradeName: true } } } },
@@ -1031,7 +1044,10 @@ export class DriverPortalService {
       },
     });
     if (!job) throw new NotFoundException('Job not found or not assigned to you');
-    return job;
+    // Owner, 2026-11-25: drivers never get the guest's mobile, the job's prices,
+    // who created it or when (web portal and app). Stripped here so no client
+    // can show them.
+    return hideFromDriver(job);
   }
 
   /**

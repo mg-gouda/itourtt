@@ -13,6 +13,8 @@ import { StaffOnlyWarning } from "@/components/staff-only-warning";
 import { ChatWidget } from "@/components/chat/chat-widget";
 import { PushPrompt } from "@/components/push-prompt";
 import { TripKmReminder } from "@/components/trip-km-reminder";
+import api from "@/lib/api";
+import { setAlarmSoundUrl } from "@/lib/alarm-sound";
 
 function DashboardFrame({ children }: { children: React.ReactNode }) {
   const { settings } = useTheme();
@@ -52,6 +54,8 @@ export default function DashboardLayout({
   useEffect(() => {
     if (mounted && isAuthenticated && isStaff) {
       loadCompanySettings();
+      // Company › Alerts: an uploaded alarm sound replaces the built-in one in the office popups.
+      api.get("/job-alarm-settings").then(({ data }) => setAlarmSoundUrl(data?.data?.soundUrl ?? null)).catch(() => {});
     }
   }, [mounted, isAuthenticated, isStaff, loadCompanySettings]);
 

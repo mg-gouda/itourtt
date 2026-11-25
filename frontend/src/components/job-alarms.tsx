@@ -1,28 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlarmClock, MapPin, AlertTriangle } from "lucide-react";
+import { AlarmClock, MapPin, AlertTriangle, Loader2 } from "lucide-react";
 import api, { backgroundPoll } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n";
 import { formatTimeCairo } from "@/lib/utils";
-import { startAlarm, stopAlarm } from "@/lib/alarm-sound";
+import { startAlarm, stopAlarm, setAlarmSoundUrl } from "@/lib/alarm-sound";
 
 /**
  * Job alarms for the rep / driver web portals (the native apps have the same
  * rules in mobile/packages/shared/src/native/job-alerts.ts):
  *
- * - START_90 / START_60 / START_30 — 1 h 30, 1 h and 30 min before each job that has
- *   not started; all three ring. Answered with "On the way", which sends the
- *   phone's location; the office gets an alert for each (5.10).
+ * - START_<minutes> — the start alarms set in Company › Alerts (built-in: 90 / 60 / 30 min
+ *   before each job not yet started). The earlier ones are answered "Seen", the last one
+ *   "On the way" with the phone's location; the office gets an alert for each (6.5.0).
  * - DROPOFF_ARRIVED / DROPOFF_LEFT — a driver on a started trip, or a rep who
  *   escorts the transfer: entering the drop-off geofence asks them to complete
  *   the job before leaving; leaving it without completing raises an alarm.
@@ -31,8 +22,11 @@ import { startAlarm, stopAlarm } from "@/lib/alarm-sound";
  * browser only times the reminders and watches the GPS.
  */
 
-type Kind = "START_90" | "START_60" | "START_30" | "DROPOFF_ARRIVED" | "DROPOFF_LEFT";
-const START_TITLE: Record<string, string> = { START_90: "alarm.startsIn90", START_60: "alarm.startsIn60", START_30: "alarm.startsIn30" };
+interface StartAlarm {
+  kind: string;
+  minutes: number;
+  last: boolean;
+}
 
 interface AlertJob {
   jobId: string;
@@ -49,7 +43,7 @@ interface AlertJob {
 }
 
 interface Alarm {
-  kind: Kind;
+  kind: string;
   job: AlertJob;
   shownAt: string;
 }
@@ -57,6 +51,8 @@ interface Alarm {
 const POLL_MS = 30_000;
 const TICK_MS = 15_000;
 const INSIDE_KEY = "itour_dropoff_inside";
+const PENDING_KEY = "itour_alarm_answers_pending";
+const RETRY_MS = 20_000;
 
 function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6_371_000;
@@ -67,14 +63,20 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/** Which start alarm is due now: each of 1:30 / 1:00 / 0:30 rings in its own window. */
-export function dueStartKind(startsAt: string | null, now = Date.now()): Kind | null {
+/** Built-in alarms, used until the server sends the Company › Alerts list. */
+const DEFAULT_ALARMS: StartAlarm[] = [
+  { kind: "START_90", minutes: 90, last: false },
+  { kind: "START_60", minutes: 60, last: false },
+  { kind: "START_30", minutes: 30, last: true },
+];
+
+/** Which start alarm is due now: each alarm rings from its time until the next one's. */
+export function dueStartKind(startsAt: string | null, alarms: StartAlarm[] = DEFAULT_ALARMS, now = Date.now()): StartAlarm | null {
   if (!startsAt) return null;
   const mins = (new Date(startsAt).getTime() - now) / 60_000;
   if (mins <= 0) return null;
-  if (mins <= 30) return "START_30";
-  if (mins <= 60) return "START_60";
-  if (mins <= 90) return "START_90";
+  const ordered = [...alarms].sort((a, b) => a.minutes - b.minutes); // nearest first
+  for (const a of ordered) if (mins <= a.minutes) return a;
   return null;
 }
 
@@ -93,7 +95,34 @@ function writeInside(v: Record<string, boolean>) {
   }
 }
 
-/** The job-alarm sound (two-tone) loops until the alarm is acknowledged; phones also vibrate. */
+// ── Answers waiting to reach the office (UI review 2b) ─────────────────────
+interface PendingAck {
+  portal: "rep" | "driver";
+  jobId: string;
+  kind: string;
+  shownAt: string;
+  answer?: "SEEN" | "ON_THE_WAY";
+  latitude?: number;
+  longitude?: number;
+  tries: number;
+}
+function readPending(): PendingAck[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+function writePending(v: PendingAck[]) {
+  try {
+    localStorage.setItem(PENDING_KEY, JSON.stringify(v));
+  } catch {
+    /* private mode: stays in memory for this page */
+  }
+}
+
+/** The alarm sound loops until the alarm is answered; phones also vibrate. */
 function useChime(active: boolean) {
   useEffect(() => {
     if (!active || typeof window === "undefined") return;
@@ -122,16 +151,26 @@ async function systemNotify(title: string, body: string, tag: string) {
   }
 }
 
+function minutesText(m: number, t: (k: string) => string) {
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (!h) return t("alarm.min").replace("{n}", String(r));
+  if (!r) return t("alarm.hours").replace("{n}", String(h));
+  return t("alarm.hoursMin").replace("{h}", String(h)).replace("{m}", String(r));
+}
+
 export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
   const t = useT();
   const [reminders, setReminders] = useState<AlertJob[]>([]);
   const [dropoffs, setDropoffs] = useState<AlertJob[]>([]);
+  const [alarms, setAlarms] = useState<StartAlarm[]>(DEFAULT_ALARMS);
   const [queue, setQueue] = useState<Alarm[]>([]);
-  const [acking, setAcking] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const [, setTick] = useState(0);
   // Alarms already raised this session (until the server confirms the ack).
   const raised = useRef(new Set<string>());
   const position = useRef<{ lat: number; lng: number } | null>(null);
+  const flushing = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -139,44 +178,80 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
       const d = data?.data ?? data;
       setReminders(d?.reminders ?? []);
       setDropoffs(d?.dropoffs ?? []);
+      if (Array.isArray(d?.alarms) && d.alarms.length) setAlarms(d.alarms);
+      setAlarmSoundUrl(d?.soundUrl ?? null);
     } catch {
       /* next poll */
     }
   }, [portal]);
 
+  /** Send every queued answer; failures stay queued for the next try. */
+  const flush = useCallback(async () => {
+    if (flushing.current) return;
+    flushing.current = true;
+    try {
+      const left: PendingAck[] = [];
+      for (const p of readPending()) {
+        if (p.portal !== portal) { left.push(p); continue; }
+        try {
+          await api.post(`/${p.portal}-portal/jobs/${p.jobId}/alerts/ack`, {
+            kind: p.kind,
+            shownAt: p.shownAt,
+            ...(p.answer ? { answer: p.answer } : {}),
+            ...(p.latitude != null && p.longitude != null ? { latitude: p.latitude, longitude: p.longitude } : {}),
+          }, backgroundPoll);
+        } catch (e) {
+          const status = (e as { response?: { status?: number } })?.response?.status;
+          // 4xx other than 401/408/429 = the job is gone / not ours: drop it. Network or 5xx: keep.
+          if (status && status >= 400 && status < 500 && ![401, 408, 429].includes(status)) continue;
+          left.push({ ...p, tries: p.tries + 1 });
+        }
+      }
+      writePending(left);
+      setPendingCount(left.filter((p) => p.portal === portal).length);
+    } finally {
+      flushing.current = false;
+    }
+  }, [portal]);
+
   useEffect(() => {
     load();
+    flush();
     const poll = setInterval(load, POLL_MS);
     const tick = setInterval(() => setTick((n) => n + 1), TICK_MS);
-    const onVisible = () => document.visibilityState === "visible" && load();
+    const retry = setInterval(flush, RETRY_MS);
+    const onVisible = () => document.visibilityState === "visible" && (load(), flush());
+    const onOnline = () => flush();
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
     return () => {
       clearInterval(poll);
       clearInterval(tick);
+      clearInterval(retry);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
     };
-  }, [load]);
+  }, [load, flush]);
 
   const raise = useCallback(
-    (kind: Kind, job: AlertJob) => {
+    (kind: string, job: AlertJob, title: string) => {
       const key = `${job.jobId}:${kind}`;
       if (raised.current.has(key) || job.acked.includes(kind)) return;
+      // Answered on this phone but not yet delivered: don't ring again.
+      if (readPending().some((p) => p.jobId === job.jobId && p.kind === kind)) return;
       raised.current.add(key);
       setQueue((q) => [...q, { kind, job, shownAt: new Date().toISOString() }]);
-      const title = kind.startsWith("START")
-        ? t(START_TITLE[kind])
-        : t(kind === "DROPOFF_ARRIVED" ? "alarm.dropoffArrivedTitle" : "alarm.dropoffLeftTitle");
       systemNotify(`${title} · ${job.internalRef}`, [job.from, job.to].filter(Boolean).join(" → "), key);
     },
-    [t],
+    [],
   );
 
   // Start reminders, re-evaluated on every tick.
   useEffect(() => {
     for (const job of reminders) {
-      const kind = dueStartKind(job.startsAt);
-      if (!kind) continue;
-      raise(kind, job);
+      const due = dueStartKind(job.startsAt, alarms);
+      if (!due) continue;
+      raise(due.kind, job, t("alarm.startsInX").replace("{time}", minutesText(due.minutes, t)));
     }
   });
 
@@ -193,10 +268,10 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
         const isInside = dist <= target.radiusMeters;
         if (isInside) {
           inside[job.jobId] = true;
-          raise("DROPOFF_ARRIVED", job);
+          raise("DROPOFF_ARRIVED", job, t("alarm.dropoffArrivedTitle"));
         } else if (inside[job.jobId]) {
           // Was at the drop-off, now outside it and the job is still open.
-          raise("DROPOFF_LEFT", job);
+          raise("DROPOFF_LEFT", job, t("alarm.dropoffLeftTitle"));
         }
       }
       // Forget jobs that are no longer running.
@@ -210,95 +285,98 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
       timeout: 60_000,
     });
     return () => navigator.geolocation.clearWatch(id);
-  }, [watched, raise]);
+  }, [watched, raise, t]);
 
   const current = queue[0];
   useChime(!!current);
 
-  const acknowledge = async () => {
+  /**
+   * UI review 2a/2b: the alarm closes at once. The answer is queued on the phone and sent in
+   * the background (with the location for "On the way" when the phone gives one within 8 s);
+   * if it cannot reach the office it is retried until it does, and the phone says so.
+   */
+  const answer = () => {
     if (!current) return;
-    setAcking(true);
-    try {
-      // "On the way": read where the phone is now (drop-off alarms already track it).
-      if (current.kind.startsWith("START") && typeof navigator !== "undefined" && navigator.geolocation) {
-        const fix = await new Promise<GeolocationPosition | null>((resolve) =>
-          navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), {
-            enableHighAccuracy: true, maximumAge: 60_000, timeout: 8_000,
-          }),
-        );
-        if (fix) position.current = { lat: fix.coords.latitude, lng: fix.coords.longitude };
-      }
-      await api.post(`/${portal}-portal/jobs/${current.job.jobId}/alerts/ack`, {
-        kind: current.kind,
-        shownAt: current.shownAt,
-        ...(position.current ? { latitude: position.current.lat, longitude: position.current.lng } : {}),
-      });
-      setReminders((rs) =>
-        rs.map((r) => (r.jobId === current.job.jobId ? { ...r, acked: [...r.acked, current.kind] } : r)),
+    const { kind, job, shownAt } = current;
+    const startAlarm = alarms.find((a) => a.kind === kind);
+    const isStart = kind.startsWith("START");
+    const ans: PendingAck["answer"] = isStart ? (startAlarm && !startAlarm.last ? "SEEN" : "ON_THE_WAY") : undefined;
+    setQueue((q) => q.slice(1));
+    setReminders((rs) => rs.map((r) => (r.jobId === job.jobId ? { ...r, acked: [...r.acked, kind] } : r)));
+
+    const enqueue = (pos: { lat: number; lng: number } | null) => {
+      const p: PendingAck = {
+        portal, jobId: job.jobId, kind, shownAt, answer: ans, tries: 0,
+        ...(pos ? { latitude: pos.lat, longitude: pos.lng } : {}),
+      };
+      writePending([...readPending().filter((x) => !(x.jobId === p.jobId && x.kind === p.kind)), p]);
+      setPendingCount((n) => n + 1);
+      void flush();
+    };
+    if (ans === "ON_THE_WAY" && typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (fix) => enqueue({ lat: fix.coords.latitude, lng: fix.coords.longitude }),
+        () => enqueue(position.current),
+        { enableHighAccuracy: true, maximumAge: 60_000, timeout: 8_000 },
       );
-    } catch {
-      /* stays acknowledged locally; the next poll re-syncs */
-    } finally {
-      setAcking(false);
-      setQueue((q) => q.slice(1));
+    } else {
+      enqueue(position.current);
     }
   };
 
-  if (!current) return null;
+  const pendingNote = pendingCount > 0 && !current ? (
+    <div role="status" className="fixed inset-x-3 bottom-24 z-[70] flex items-center gap-2 rounded-xl border border-amber-500/60 bg-amber-950 px-3 py-2.5 text-sm text-amber-100 shadow-lg">
+      <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+      <span className="flex-1">{t("alarm.pendingSend")}</span>
+    </div>
+  ) : null;
+
+  if (!current) return pendingNote;
   const { kind, job } = current;
   const isStart = kind.startsWith("START");
+  const startAlarm = alarms.find((a) => a.kind === kind);
+  const isLast = !isStart || !startAlarm || startAlarm.last;
+  // Urgency colours: earlier reminders amber, the last one and "left without completing" red.
+  const urgent = kind === "DROPOFF_LEFT" || (isStart && isLast);
   const Icon = isStart ? AlarmClock : kind === "DROPOFF_LEFT" ? AlertTriangle : MapPin;
-  const tone = kind === "DROPOFF_LEFT" ? "text-red-500" : "text-amber-400";
+  const minsLeft = job.startsAt ? Math.max(0, Math.round((new Date(job.startsAt).getTime() - Date.now()) / 60_000)) : null;
   const title = isStart
-    ? t(START_TITLE[kind])
+    ? t("alarm.pickupIn")
     : t(kind === "DROPOFF_ARRIVED" ? "alarm.dropoffArrivedTitle" : "alarm.dropoffLeftTitle");
-  const desc = isStart
-    ? t("alarm.startDesc").replace("{ref}", job.internalRef)
-    : t(kind === "DROPOFF_ARRIVED" ? "alarm.dropoffArrivedDesc" : "alarm.dropoffLeftDesc").replace("{ref}", job.internalRef);
+  const buttonLabel = isStart ? (isLast ? t("alarm.onTheWay") : t("alarm.seen")) : t("alarm.acknowledge");
 
   return (
-    <Dialog open onOpenChange={() => {}}>
-      <DialogContent
-        showCloseButton={false}
-        onInteractOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
+    <div
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="job-alarm-title"
+      className={`fixed inset-0 z-[200] flex flex-col items-center justify-center px-6 text-center text-white ${urgent ? "bg-red-800" : "bg-amber-800"}`}
+      style={{ pointerEvents: "auto" }}
+    >
+      <Icon className="h-14 w-14" aria-hidden="true" />
+      <p id="job-alarm-title" className="mt-3 text-lg font-semibold opacity-90">{title}</p>
+      {isStart && minsLeft !== null && (
+        <p className="font-mono text-6xl font-black leading-none tabular-nums">{minutesText(minsLeft, t)}</p>
+      )}
+      <div className="mt-5 space-y-1 text-lg">
+        <p className="font-mono font-bold">{job.internalRef}</p>
+        {(job.from || job.to) && <p>{[job.from, job.to].filter(Boolean).join(" → ")}</p>}
+        <p className="opacity-90">
+          {job.startsAt ? `${t("alarm.startTime")} ${formatTimeCairo(job.startsAt) ?? "—"}` : ""}
+          {job.flightNo ? ` · ${job.flightNo}` : ""}
+          {job.paxCount ? ` · ${job.paxCount} ${t("alarm.pax")}` : ""}
+        </p>
+        {!isStart && job.target && <p className="opacity-90">{job.target.label}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={answer}
+        autoFocus
+        className={`mt-8 flex h-[68px] w-full max-w-sm items-center justify-center gap-2 rounded-2xl bg-white text-xl font-black shadow-lg active:scale-[0.98] ${urgent ? "text-red-800" : "text-amber-900"}`}
       >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Icon className={`h-5 w-5 ${tone}`} />
-            {title}
-          </DialogTitle>
-          <DialogDescription>{desc}</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5">
-          <Field label={t("alarm.job")} value={job.internalRef} />
-          <Field label={t("alarm.startTime")} value={job.startsAt ? (formatTimeCairo(job.startsAt) ?? "—") : "—"} />
-          {job.flightNo ? <Field label={t("alarm.flight")} value={job.flightNo} /> : null}
-          <Field label={t("alarm.pax")} value={String(job.paxCount ?? "—")} />
-          <div className="col-span-2">
-            <Field label={t("alarm.route")} value={[job.from, job.to].filter(Boolean).join(" → ") || "—"} />
-          </div>
-          {!isStart && job.target ? (
-            <div className="col-span-2">
-              <Field label={t("alarm.dropoff")} value={job.target.label} />
-            </div>
-          ) : null}
-        </div>
-        <DialogFooter>
-          <Button onClick={acknowledge} disabled={acking} className="w-full sm:w-auto">
-            {isStart ? t("alarm.onTheWay") : t("alarm.acknowledge")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-0.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium text-foreground">{value}</p>
+        {buttonLabel}
+      </button>
+      {isStart && !isLast && <p className="mt-3 text-sm opacity-85">{t("alarm.seenHint")}</p>}
     </div>
   );
 }

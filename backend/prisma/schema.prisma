@@ -3186,3 +3186,22 @@ model RmfHotel {
   @@index([section, sortOrder])
   @@map("rmf_hotels")
 }
+
+/// Company › Alerts (6.5.0): how the job start alarms work. One row ("default").
+/// alarmMinutes = minutes before the job, one entry per alarm (1–5, e.g. 90,60,30);
+/// the smallest is the last alarm, answered "On the way" (the others "Seen").
+/// Recipients empty = the built-in list (admins + Dispatch / Traffic Jobs users).
+model JobAlarmSettings {
+  id                 String   @id @default("default")
+  alarmMinutes       Int[]    @default([90, 60, 30]) @map("alarm_minutes")
+  missedAfterMinutes Int      @default(5) @map("missed_after_minutes")
+  warnBeforeMinutes  Int      @default(45) @map("warn_before_minutes")
+  recipientRoleIds   String[] @default([]) @map("recipient_role_ids")
+  recipientUserIds   String[] @default([]) @map("recipient_user_ids")
+  soundUrl           String?  @map("sound_url")
+  soundName          String?  @map("sound_name")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  updatedById        String?  @map("updated_by_id")
+
+  @@map("job_alarm_settings")
+}

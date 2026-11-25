@@ -18,21 +18,48 @@ import {
 
 export type AlertRole = 'REP' | 'DRIVER';
 
-/** Start reminders (minutes before the job) and drop-off geofence alarms. */
-export const ALERT_KINDS = ['START_90', 'START_60', 'START_30', 'DROPOFF_ARRIVED', 'DROPOFF_LEFT'] as const;
-export type AlertKind = (typeof ALERT_KINDS)[number];
+/** Drop-off geofence alarms (start alarms are START_<minutes>, set in Company › Alerts). */
+export const DROPOFF_KINDS = ['DROPOFF_ARRIVED', 'DROPOFF_LEFT'] as const;
 
-/** The 3 start alarms (5.10): minutes before the job time. Each is answered with "On the way". */
-export const START_ALARMS: { kind: 'START_90' | 'START_60' | 'START_30'; minutes: number; label: string }[] = [
-  { kind: 'START_90', minutes: 90, label: '1 h 30 min' },
-  { kind: 'START_60', minutes: 60, label: '1 hour' },
-  { kind: 'START_30', minutes: 30, label: '30 minutes' },
-];
-const isStartKind = (k: string) => START_ALARMS.some((a) => a.kind === k);
-/** The office is told an alarm went unanswered this long after it rang. */
-const MISSED_AFTER_MS = 5 * 60_000;
-/** Office warning when the 1:30 and 1:00 alarms are both unanswered: this long before the job. */
-const WARN_BEFORE_MS = 45 * 60_000;
+/** Built-in start alarms (5.10) — used until Company › Alerts is saved. */
+export const DEFAULT_ALARM_MINUTES = [90, 60, 30];
+
+export interface StartAlarm {
+  kind: string;
+  minutes: number;
+  label: string;
+  /** The alarm closest to the job: answered "On the way"; the earlier ones "Seen" (UI review 2a). */
+  last: boolean;
+}
+
+export const startKind = (minutes: number) => `START_${minutes}`;
+const isStartKind = (k: string) => /^START_\d{1,3}$/.test(k);
+const isAlertKind = (k: string) => isStartKind(k) || (DROPOFF_KINDS as readonly string[]).includes(k);
+
+export function minutesLabel(m: number): string {
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (!h) return `${r} minutes`;
+  if (!r) return h === 1 ? '1 hour' : `${h} hours`;
+  return `${h} h ${r} min`;
+}
+
+/** Alarms in ringing order (furthest first); the smallest is the last one. */
+export function startAlarmsFrom(minutes: number[]): StartAlarm[] {
+  const list = [...new Set(minutes.filter((m) => Number.isInteger(m) && m > 0))].sort((a, b) => b - a);
+  const use = list.length ? list : DEFAULT_ALARM_MINUTES;
+  return use.map((m, i) => ({ kind: startKind(m), minutes: m, label: minutesLabel(m), last: i === use.length - 1 }));
+}
+
+export interface AlarmSettingsView {
+  alarms: StartAlarm[];
+  missedAfterMinutes: number;
+  warnBeforeMinutes: number;
+  recipientRoleIds: string[];
+  recipientUserIds: string[];
+  soundUrl: string | null;
+  soundName: string | null;
+}
 /** Escalations are only sent inside this window after they fall due (no flood after downtime). */
 const ESCALATION_WINDOW_MS = 10 * 60_000;
 const fmtCairo = (d: Date) =>
@@ -73,6 +100,66 @@ export class JobAlertsService {
   private readonly logger = new Logger(JobAlertsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  // ── Company › Alerts settings (6.5.0) ─────────────────────────────────────
+  private cached: { at: number; v: AlarmSettingsView } | null = null;
+
+  /** Current alarm settings (cached 60 s; both backend pods re-read within a minute of a save). */
+  async alarmSettings(): Promise<AlarmSettingsView> {
+    if (this.cached && Date.now() - this.cached.at < 60_000) return this.cached.v;
+    let row: {
+      alarmMinutes: number[]; missedAfterMinutes: number; warnBeforeMinutes: number;
+      recipientRoleIds: string[]; recipientUserIds: string[]; soundUrl: string | null; soundName: string | null;
+    } | null = null;
+    try {
+      row = await this.prisma.jobAlarmSettings.findUnique({ where: { id: 'default' } });
+    } catch (e) {
+      this.logger.warn(`Alarm settings unavailable, using defaults: ${String(e)}`);
+    }
+    const v: AlarmSettingsView = {
+      alarms: startAlarmsFrom(row?.alarmMinutes ?? DEFAULT_ALARM_MINUTES),
+      missedAfterMinutes: row?.missedAfterMinutes ?? 5,
+      warnBeforeMinutes: row?.warnBeforeMinutes ?? 45,
+      recipientRoleIds: row?.recipientRoleIds ?? [],
+      recipientUserIds: row?.recipientUserIds ?? [],
+      soundUrl: row?.soundUrl ?? null,
+      soundName: row?.soundName ?? null,
+    };
+    this.cached = { at: Date.now(), v };
+    return v;
+  }
+
+  forgetSettings() {
+    this.cached = null;
+  }
+
+  async saveAlarmSettings(
+    dto: { alarmMinutes: number[]; missedAfterMinutes: number; warnBeforeMinutes: number; recipientRoleIds: string[]; recipientUserIds: string[] },
+    userId: string,
+  ) {
+    const minutes = [...new Set(dto.alarmMinutes)].sort((a, b) => b - a);
+    const data = {
+      alarmMinutes: minutes,
+      missedAfterMinutes: dto.missedAfterMinutes,
+      warnBeforeMinutes: dto.warnBeforeMinutes,
+      recipientRoleIds: [...new Set(dto.recipientRoleIds)],
+      recipientUserIds: [...new Set(dto.recipientUserIds)],
+      updatedById: userId,
+    };
+    await this.prisma.jobAlarmSettings.upsert({ where: { id: 'default' }, create: { id: 'default', ...data }, update: data });
+    this.forgetSettings();
+    return this.alarmSettings();
+  }
+
+  async setAlarmSound(soundUrl: string | null, soundName: string | null, userId: string) {
+    await this.prisma.jobAlarmSettings.upsert({
+      where: { id: 'default' },
+      create: { id: 'default', soundUrl, soundName, updatedById: userId },
+      update: { soundUrl, soundName, updatedById: userId },
+    });
+    this.forgetSettings();
+    return this.alarmSettings();
+  }
 
   private async personId(userId: string, role: AlertRole): Promise<string> {
     const row =
@@ -181,7 +268,8 @@ export class JobAlertsService {
       }
     }
 
-    return { serverTime: now.toISOString(), reminders, dropoffs };
+    const cfg = await this.alarmSettings();
+    return { serverTime: now.toISOString(), alarms: cfg.alarms, soundUrl: cfg.soundUrl, reminders, dropoffs };
   }
 
   /** Record that the user saw and acknowledged an alarm (idempotent per kind). */
@@ -189,9 +277,9 @@ export class JobAlertsService {
     userId: string,
     role: AlertRole,
     jobId: string,
-    body: { kind: string; shownAt?: string; latitude?: number; longitude?: number },
+    body: { kind: string; shownAt?: string; latitude?: number; longitude?: number; answer?: string },
   ) {
-    if (!(ALERT_KINDS as readonly string[]).includes(body.kind)) {
+    if (!isAlertKind(body.kind)) {
       throw new BadRequestException(`Unknown alert kind "${body.kind}"`);
     }
     const id = await this.personId(userId, role);
@@ -215,9 +303,11 @@ export class JobAlertsService {
       // Re-acknowledging keeps the first acknowledgement time.
       update: {},
     });
-    // "On the way" on a start alarm → the office gets date, time and the phone's location (once per alarm).
+    // A start alarm answered → the office gets date, time, the answer ("Seen" / "On the way")
+    // and the phone's location (once per alarm). Apps before 1.7.0 send no answer = "On the way".
     if (!existed && isStartKind(body.kind)) {
-      await this.notifyOnTheWay(jobId, userId, role, body.kind, row.acknowledgedAt, data.latitude ?? null, data.longitude ?? null)
+      const answer = body.answer === 'SEEN' ? 'SEEN' : 'ON_THE_WAY';
+      await this.notifyOnTheWay(jobId, userId, role, body.kind, row.acknowledgedAt, data.latitude ?? null, data.longitude ?? null, answer)
         .catch((e) => this.logger.warn(`On-the-way office alert failed: ${String(e)}`));
     }
     return { jobId, kind: row.kind, acknowledgedAt: row.acknowledgedAt.toISOString() };
@@ -225,8 +315,26 @@ export class JobAlertsService {
 
   // ── Office alerts (5.10): on the way · no answer · 45-minute warning ────────────────
 
-  /** Office users who get job-alarm alerts: admins + Dispatch / Traffic Jobs (same as flight delay). */
+  /**
+   * Office users who get job-alarm alerts: the users and roles picked in Company › Alerts,
+   * or — when none are picked — admins + Dispatch / Traffic Jobs (same as flight delay).
+   */
   private async officeRecipients(): Promise<string[]> {
+    const cfg = await this.alarmSettings();
+    if (cfg.recipientRoleIds.length || cfg.recipientUserIds.length) {
+      const picked = await this.prisma.user.findMany({
+        where: {
+          isActive: true,
+          deletedAt: null,
+          OR: [
+            ...(cfg.recipientUserIds.length ? [{ id: { in: cfg.recipientUserIds } }] : []),
+            ...(cfg.recipientRoleIds.length ? [{ roleId: { in: cfg.recipientRoleIds } }] : []),
+          ],
+        },
+        select: { id: true },
+      });
+      return picked.map((r) => r.id);
+    }
     const rows = await this.prisma.user.findMany({
       where: {
         isActive: true,
@@ -266,7 +374,7 @@ export class JobAlertsService {
 
   private async notifyOnTheWay(
     jobId: string, userId: string, role: AlertRole, kind: string, at: Date,
-    lat: number | null, lng: number | null,
+    lat: number | null, lng: number | null, answer: 'SEEN' | 'ON_THE_WAY' = 'ON_THE_WAY',
   ) {
     const [p, job] = await Promise.all([
       this.person(userId, role),
@@ -276,17 +384,18 @@ export class JobAlertsService {
       }),
     ]);
     if (!job) return;
-    const alarm = START_ALARMS.find((a) => a.kind === kind);
+    const minutes = Number(kind.replace('START_', ''));
     const startsAt = jobStartsAt(job);
     const mapsUrl = lat != null && lng != null ? `https://www.google.com/maps?q=${lat},${lng}` : null;
+    const said = answer === 'SEEN' ? 'Seen' : 'On the way';
     await this.notifyOffice(
       'ON_THE_WAY',
       jobId,
-      `On the way: ${job.internalRef}`,
-      `${p.roleLabel} ${p.name} pressed "On the way" on the ${alarm?.label ?? ''} alarm at ${fmtCairo(at)}.` +
+      `${said}: ${job.internalRef}`,
+      `${p.roleLabel} ${p.name} pressed "${said}" on the ${minutesLabel(minutes)} alarm at ${fmtCairo(at)}.` +
         (mapsUrl ? ' Location attached.' : ' No location from the phone.'),
       {
-        kind, role, personName: p.name, personPhone: p.phone, jobRef: job.internalRef,
+        kind, answer, role, personName: p.name, personPhone: p.phone, jobRef: job.internalRef,
         startsAt: startsAt?.toISOString() ?? null, acknowledgedAt: at.toISOString(),
         latitude: lat, longitude: lng, mapsUrl,
       },
@@ -303,6 +412,9 @@ export class JobAlertsService {
   @Cron(CronExpression.EVERY_MINUTE)
   async escalateMissedAlarms() {
     const now = new Date();
+    const cfg = await this.alarmSettings();
+    const MISSED_AFTER_MS = cfg.missedAfterMinutes * 60_000;
+    const WARN_BEFORE_MS = cfg.warnBeforeMinutes * 60_000;
     const from = dateOnly(cairoDate(new Date(now.getTime() - 24 * 3600 * 1000)));
     const to = dateOnly(cairoDate(new Date(now.getTime() + 24 * 3600 * 1000)));
     const rows = await this.prisma.trafficAssignment.findMany({
@@ -339,7 +451,7 @@ export class JobAlertsService {
         const acked = new Set(job.alertAcks.filter((k) => k.userId === leg.userId).map((k) => k.kind));
         const rang = (m: number) => startsAt.getTime() - m * 60_000 >= a.createdAt.getTime();
 
-        for (const alarm of START_ALARMS) {
+        for (const alarm of cfg.alarms) {
           const due = startsAt.getTime() - alarm.minutes * 60_000 + MISSED_AFTER_MS;
           if (!rang(alarm.minutes) || acked.has(alarm.kind)) continue;
           if (now.getTime() < due || now.getTime() > due + ESCALATION_WINDOW_MS) continue;
@@ -356,17 +468,19 @@ export class JobAlertsService {
           });
         }
 
-        // 45 minutes before: the first two alarms both unanswered.
+        // Warning before the job (default 45 min): every alarm that rang before that point unanswered.
         const warnAt = startsAt.getTime() - WARN_BEFORE_MS;
-        const firstTwoMissed = START_ALARMS.slice(0, 2).every((al) => rang(al.minutes) && !acked.has(al.kind));
-        if (firstTwoMissed && now.getTime() >= warnAt && now.getTime() <= warnAt + ESCALATION_WINDOW_MS) {
+        const earlier = cfg.alarms.filter((al) => al.minutes > cfg.warnBeforeMinutes);
+        const allEarlierMissed = cfg.warnBeforeMinutes > 0 && earlier.length > 0
+          && earlier.every((al) => rang(al.minutes) && !acked.has(al.kind));
+        if (allEarlierMissed && now.getTime() >= warnAt && now.getTime() <= warnAt + ESCALATION_WINDOW_MS) {
           await this.escalateOnce(job.id, leg.userId, 'WARN_45', async () => {
             const p = await this.person(leg.userId!, leg.role);
             await this.notifyOffice(
               'ALARM_WARN_45',
               job.id,
-              `45 min to go, no answer: ${job.internalRef}`,
-              `${p.roleLabel} ${p.name} answered neither the 1 h 30 min nor the 1 hour alarm. ` +
+              `${minutesLabel(cfg.warnBeforeMinutes)} to go, no answer: ${job.internalRef}`,
+              `${p.roleLabel} ${p.name} answered none of the ${earlier.map((al) => al.label).join(' / ')} alarms. ` +
                 `${job.internalRef} starts at ${fmtCairo(startsAt)} — call${p.phone ? ` ${p.phone}` : ''} or arrange cover.`,
               { kind: 'WARN_45', role: leg.role, personName: p.name, personPhone: p.phone, jobRef: job.internalRef, startsAt: startsAt.toISOString() },
             );
@@ -425,18 +539,18 @@ export class JobAlertsService {
   async alarmsByKey(key: string | undefined) {
     const d = await this.alarmDevice(key);
     const all = await this.getAlerts(d.userId, d.role);
-    return { serverTime: all.serverTime, role: d.role, reminders: all.reminders };
+    return { serverTime: all.serverTime, role: d.role, alarms: all.alarms, reminders: all.reminders };
   }
 
   async acknowledgeByKey(
     key: string | undefined,
     jobId: string,
-    body: { kind: string; shownAt?: string; latitude?: number; longitude?: number },
+    body: { kind: string; shownAt?: string; latitude?: number; longitude?: number; answer?: string },
   ) {
     const d = await this.alarmDevice(key);
     if (!isStartKind(body.kind)) throw new BadRequestException('Only start reminders can be acknowledged here');
     return this.acknowledge(d.userId, d.role, jobId, {
-      kind: body.kind, shownAt: body.shownAt, latitude: body.latitude, longitude: body.longitude,
+      kind: body.kind, shownAt: body.shownAt, latitude: body.latitude, longitude: body.longitude, answer: body.answer,
     });
   }
 

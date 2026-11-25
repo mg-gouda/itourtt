@@ -282,14 +282,19 @@ export function PortalJobSheet({ jobId, open, onClose, apiBase, status, viewer, 
                   <div className="px-3 pb-2">
                     <Row label={t("reports.agentRef")}>{job.agentRef}</Row>
                     <Row label={t("agents.legalName")}>{job.agent?.tradeName ?? job.agent?.legalName}</Row>
-                    <Row label={t("common.mobile")}>{job.clientMobile}</Row>
                     <Row label={t("dispatch.supplier")}>{job.assignment?.vehicle?.supplier?.tradeName ?? job.assignment?.vehicle?.supplier?.legalName}</Row>
-                    {job.transferPrice != null && <Row label={t("jobs.transferPrice")}>{formatMoney(job.transferPrice, job.transferPriceCurrency)}</Row>}
-                    {job.priceAmount != null && <Row label={t("reports.applicationPrice")}>{formatMoney(job.priceAmount, job.priceCurrency)}</Row>}
-                    <Row label={t("reports.driverJobStatus")}>{job.assignment?.driverStatus ? statusLabel(job.assignment.driverStatus) : null}</Row>
-                    <Row label={t("reports.repJobStatus")}>{job.assignment?.repStatus ? statusLabel(job.assignment.repStatus) : null}</Row>
-                    <Row label={t("common.createdBy")}>{job.createdBy?.name}</Row>
-                    <Row label={t("common.createdAt")}>{formatDateLong(job.createdAt)}</Row>
+                    {/* Owner, 2026-11-25: none of these for drivers (the driver API no longer sends them either). */}
+                    {viewer !== "driver" && (
+                      <>
+                        <Row label={t("common.mobile")}>{job.clientMobile}</Row>
+                        {job.transferPrice != null && <Row label={t("jobs.transferPrice")}>{formatMoney(job.transferPrice, job.transferPriceCurrency)}</Row>}
+                        {job.priceAmount != null && <Row label={t("reports.applicationPrice")}>{formatMoney(job.priceAmount, job.priceCurrency)}</Row>}
+                        <Row label={t("reports.driverJobStatus")}>{job.assignment?.driverStatus ? statusLabel(job.assignment.driverStatus) : null}</Row>
+                        <Row label={t("reports.repJobStatus")}>{job.assignment?.repStatus ? statusLabel(job.assignment.repStatus) : null}</Row>
+                        <Row label={t("common.createdBy")}>{job.createdBy?.name}</Row>
+                        {job.createdAt && <Row label={t("common.createdAt")}>{formatDateLong(job.createdAt)}</Row>}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
