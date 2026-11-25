@@ -23,8 +23,9 @@ import { getCurrentPosition } from './location';
  * (frontend/src/components/job-alarms.tsx); the server decides which jobs
  * qualify (GET /{portal}-portal/alerts):
  *
- * - START_90 / START_60 / START_30 — 1 h 30, 1 h and 30 min before each job not started
- *   yet; all three ring (5.10). Scheduled as exact-while-idle local notifications, so they
+ * - START_<minutes> — the start alarms set in Company › Alerts (built-in 90 / 60 / 30 min before
+ *   each job not started yet), sent with GET /alerts (apps 1.7.0). The earlier ones are answered
+ *   "Seen", the last one "On the way" (UI review 2a). Scheduled as exact-while-idle local notifications, so they
  *   ring even with the app closed, and answered with "On the way" (in the app or on the
  *   notification, which opens the app). The answer sends the phone's location; the office
  *   gets an alert with it, and is alerted when an alarm goes unanswered.
@@ -43,8 +44,36 @@ import { getCurrentPosition } from './location';
  */
 
 export type AlarmPortal = 'rep' | 'driver';
-export type AlarmKind = 'START_90' | 'START_60' | 'START_30' | 'DROPOFF_ARRIVED' | 'DROPOFF_LEFT';
-const isStart = (k: AlarmKind) => k === 'START_90' || k === 'START_60' || k === 'START_30';
+export type AlarmKind = string; // START_<minutes> | DROPOFF_ARRIVED | DROPOFF_LEFT
+export const isStartAlarm = (k: AlarmKind) => /^START_\d+$/.test(k);
+const isStart = isStartAlarm;
+
+export interface StartAlarm {
+  kind: string;
+  minutes: number;
+  /** The alarm nearest the job: answered "On the way"; the earlier ones "Seen". */
+  last: boolean;
+}
+const DEFAULT_ALARMS: StartAlarm[] = [
+  { kind: 'START_90', minutes: 90, last: false },
+  { kind: 'START_60', minutes: 60, last: false },
+  { kind: 'START_30', minutes: 30, last: true },
+];
+let alarms: StartAlarm[] = DEFAULT_ALARMS;
+
+/** True when this start alarm is answered "Seen" (not the last one). */
+export function isSeenAlarm(kind: AlarmKind): boolean {
+  const a = alarms.find((x) => x.kind === kind);
+  return !!a && !a.last;
+}
+
+function minutesText(m: number): string {
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (!h) return t('alarm.min').replace('{n}', String(r));
+  if (!r) return t('alarm.hours').replace('{n}', String(h));
+  return t('alarm.hoursMin').replace('{h}', String(h)).replace('{m}', String(r));
+}
 
 export interface AlarmJob {
   jobId: string;
@@ -117,18 +146,14 @@ export function hasActiveDropoffs(): boolean {
 }
 
 export function alarmTitle(kind: AlarmKind): string {
-  switch (kind) {
-    case 'START_90':
-      return t('alarm.startsIn90');
-    case 'START_60':
-      return t('alarm.startsIn60');
-    case 'START_30':
-      return t('alarm.startsIn30');
-    case 'DROPOFF_ARRIVED':
-      return t('alarm.dropoffArrivedTitle');
-    default:
-      return t('alarm.dropoffLeftTitle');
-  }
+  if (isStart(kind)) return t('alarm.startsInX').replace('{time}', minutesText(Number(kind.slice(6))));
+  return kind === 'DROPOFF_ARRIVED' ? t('alarm.dropoffArrivedTitle') : t('alarm.dropoffLeftTitle');
+}
+
+/** Minutes left until the job (for the big countdown), or null. */
+export function minutesLeftText(startsAt: string | null): string | null {
+  if (!startsAt) return null;
+  return minutesText(Math.max(0, Math.round((new Date(startsAt).getTime() - Date.now()) / 60_000)));
 }
 
 export function alarmBody(kind: AlarmKind, job: AlarmJob): string {
@@ -183,7 +208,7 @@ function notificationFor(kind: AlarmKind, job: AlarmJob) {
       // "On the way" on a start alarm also opens the app (owner, 5.10).
       actions: [
         isStart(kind)
-          ? { title: t('alarm.onTheWay'), pressAction: { id: ACK_ACTION, launchActivity: 'default' } }
+          ? { title: isSeenAlarm(kind) ? t('alarm.seen') : t('alarm.onTheWay'), pressAction: { id: ACK_ACTION, launchActivity: 'default' } }
           : { title: t('alarm.acknowledge'), pressAction: { id: ACK_ACTION } },
       ],
     },
@@ -207,14 +232,12 @@ function raise(kind: AlarmKind, job: AlarmJob) {
     .catch(() => {});
 }
 
-/** The start alarm due now: each of 1:30 / 1:00 / 0:30 rings in its own window. */
+/** The start alarm due now: each alarm rings from its time until the next one's. */
 export function dueStartKind(startsAt: string | null, now = Date.now()): AlarmKind | null {
   if (!startsAt) return null;
   const mins = (new Date(startsAt).getTime() - now) / 60_000;
   if (mins <= 0) return null;
-  if (mins <= 30) return 'START_30';
-  if (mins <= 60) return 'START_60';
-  if (mins <= 90) return 'START_90';
+  for (const a of [...alarms].sort((x, y) => x.minutes - y.minutes)) if (mins <= a.minutes) return a.kind;
   return null;
 }
 
@@ -242,11 +265,7 @@ async function scheduleReminders() {
   for (const job of reminders) {
     if (!job.startsAt) continue;
     const start = new Date(job.startsAt).getTime();
-    for (const [kind, mins] of [
-      ['START_90', 90],
-      ['START_60', 60],
-      ['START_30', 30],
-    ] as const) {
+    for (const { kind, minutes: mins } of alarms) {
       const at = start - mins * 60_000;
       if (at > Date.now() + 5_000 && !job.acked.includes(kind)) {
         wanted.set(keyOf(job.jobId, kind), { at, kind, job });
@@ -282,9 +301,10 @@ export async function refreshJobAlerts(p: AlarmPortal, background = false): Prom
       portal = p;
       keyMode = false;
       const res = await api.get(`/${p}-portal/alerts`, { headers: { 'X-Background-Poll': '1' } });
-      const data = unwrapData<{ reminders?: AlarmJob[]; dropoffs?: AlarmJob[] }>(res.data);
+      const data = unwrapData<{ reminders?: AlarmJob[]; dropoffs?: AlarmJob[]; alarms?: StartAlarm[] }>(res.data);
       reminders = data?.reminders ?? [];
       dropoffs = data?.dropoffs ?? [];
+      if (Array.isArray(data?.alarms) && data.alarms.length) alarms = data.alarms;
     } else {
       // Signed out: this phone's alarm key keeps the start reminders in sync.
       const k = await getAlarmKeyInfo();
@@ -300,6 +320,7 @@ export async function refreshJobAlerts(p: AlarmPortal, background = false): Prom
       portal = k.portal;
       keyMode = true;
       reminders = (body?.data?.reminders ?? []) as AlarmJob[];
+      if (Array.isArray(body?.data?.alarms) && body.data.alarms.length) alarms = body.data.alarms as StartAlarm[];
       dropoffs = []; // drop-off alarms need GPS + a session
     }
   } catch {
@@ -310,6 +331,7 @@ export async function refreshJobAlerts(p: AlarmPortal, background = false): Prom
   Object.keys(inside).forEach((id) => !live.has(id) && delete inside[id]);
   await scheduleReminders().catch(() => {});
   evaluateDueAlarms();
+  void flushUnsent();
   if (!background && lastPosition) checkDropoffs(lastPosition);
 }
 
@@ -337,44 +359,112 @@ export function checkDropoffs(pos: { lat: number; lng: number }) {
   }
 }
 
-/** Save the acknowledgement (activity-logged server-side) and close the modal. */
-export async function acknowledgeAlarm(alarm: PendingAlarm): Promise<void> {
+/**
+ * Answer an alarm (UI review 2a/2b): the screen closes at once and the sound stops; the answer is
+ * saved on the phone and sent in the background — with the location for "On the way" — and
+ * retried on every refresh until the office has it.
+ */
+export function acknowledgeAlarm(alarm: PendingAlarm): void {
   pending = pending.filter((a) => a !== alarm);
   emit();
   const id = keyOf(alarm.job.jobId, alarm.kind);
   notifee.cancelNotification(id).catch(() => {});
   alarm.job.acked = [...alarm.job.acked, alarm.kind];
-  await sendAck(alarm.job.jobId, alarm.kind, alarm.shownAt);
+  void sendAck(alarm.job.jobId, alarm.kind, alarm.shownAt);
 }
 
-/** POST the acknowledgement — with the session when signed in, else with the alarm key. */
-async function sendAck(jobId: string, kind: AlarmKind, shownAt?: string) {
+// ── Answers not yet delivered (kept on the phone, retried) ──────────────────
+interface UnsentAck {
+  jobId: string;
+  kind: AlarmKind;
+  shownAt?: string;
+  answer?: 'SEEN' | 'ON_THE_WAY';
+  latitude?: number;
+  longitude?: number;
+}
+const UNSENT_STORE = 'jobAlarmUnsent';
+let unsent: UnsentAck[] | null = null;
+let flushing = false;
+
+async function loadUnsent(): Promise<UnsentAck[]> {
+  if (unsent) return unsent;
+  try {
+    const raw = await EncryptedStorage.getItem(UNSENT_STORE);
+    unsent = raw ? (JSON.parse(raw) as UnsentAck[]) : [];
+  } catch {
+    unsent = [];
+  }
+  return unsent;
+}
+async function saveUnsent(list: UnsentAck[]) {
+  unsent = list;
+  emit();
+  await EncryptedStorage.setItem(UNSENT_STORE, JSON.stringify(list)).catch(() => {});
+}
+
+/** How many answers are waiting for signal (the alarm host shows a note). */
+export function unsentAnswerCount(): number {
+  return unsent?.length ?? 0;
+}
+
+/** true = delivered (or refused for good); false = keep and retry. */
+async function deliver(a: UnsentAck): Promise<boolean> {
   const signedIn = !!(await secureStorage.getAccessToken().catch(() => null));
-  // "On the way": where the phone is now (falls back to the last known fix).
-  if (isStart(kind)) {
+  const k = await getAlarmKeyInfo();
+  const p = portal ?? k?.portal ?? null;
+  const body = {
+    kind: a.kind, shownAt: a.shownAt,
+    ...(a.answer ? { answer: a.answer } : {}),
+    ...(a.latitude != null && a.longitude != null ? { latitude: a.latitude, longitude: a.longitude } : {}),
+  };
+  try {
+    if (signedIn && p && !keyMode) {
+      await api.post(`/${p}-portal/jobs/${a.jobId}/alerts/ack`, body);
+      return true;
+    }
+    if (k) {
+      const res = await fetch(`${api.defaults.baseURL}/public/alarms/jobs/${a.jobId}/ack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Alarm-Key': k.key },
+        body: JSON.stringify(body),
+      });
+      return res.ok || (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429);
+    }
+    return true; // nobody to send it as: drop
+  } catch (e) {
+    const status = (e as { response?: { status?: number } })?.response?.status;
+    // A 4xx (job gone / not ours) will never succeed; network errors and 5xx retry.
+    return !!status && status >= 400 && status < 500 && ![401, 408, 429].includes(status);
+  }
+}
+
+/** Retry every saved answer. Called after each refresh and when an answer is given. */
+export async function flushUnsent(): Promise<void> {
+  if (flushing) return;
+  flushing = true;
+  try {
+    const list = await loadUnsent();
+    if (!list.length) return;
+    const left: UnsentAck[] = [];
+    for (const a of list) if (!(await deliver(a))) left.push(a);
+    await saveUnsent(left);
+  } finally {
+    flushing = false;
+  }
+}
+
+/** Queue the answer (with the location for "On the way") and try to send it now. */
+async function sendAck(jobId: string, kind: AlarmKind, shownAt?: string) {
+  const answer = isStart(kind) ? (isSeenAlarm(kind) ? 'SEEN' : 'ON_THE_WAY') : undefined;
+  if (answer === 'ON_THE_WAY') {
+    // Where the phone is now (falls back to the last known fix). Runs after the screen closed.
     const fix = await getCurrentPosition(15_000).catch(() => null);
     if (fix) lastPosition = { lat: fix.lat, lng: fix.lng };
   }
   const loc = lastPosition ? { latitude: lastPosition.lat, longitude: lastPosition.lng } : {};
-  const k = await getAlarmKeyInfo();
-  const p = portal ?? k?.portal ?? null;
-  try {
-    if (signedIn && p && !keyMode) {
-      await api.post(`/${p}-portal/jobs/${jobId}/alerts/ack`, {
-        kind,
-        shownAt,
-        ...loc,
-      });
-    } else if (k) {
-      await fetch(`${api.defaults.baseURL}/public/alarms/jobs/${jobId}/ack`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Alarm-Key': k.key },
-        body: JSON.stringify({ kind, shownAt, ...loc }),
-      });
-    }
-  } catch {
-    /* acknowledged on screen; the server keeps offering it until the next ack */
-  }
+  const list = await loadUnsent();
+  await saveUnsent([...list.filter((x) => !(x.jobId === jobId && x.kind === kind)), { jobId, kind, shownAt, answer, ...loc }]);
+  await flushUnsent();
 }
 
 /** "On the way" / "I've seen it" pressed on the notification itself (app closed, locked, or open). */
@@ -386,7 +476,7 @@ export async function handleAlarmNotificationAction(type: EventType, notificatio
   await notifee.cancelNotification(keyOf(jobId, kind)).catch(() => {});
   const queued = pending.find((a) => a.job.jobId === jobId && a.kind === kind);
   if (queued) {
-    await acknowledgeAlarm(queued);
+    acknowledgeAlarm(queued);
     return;
   }
   const job = reminders.find((r) => r.jobId === jobId);

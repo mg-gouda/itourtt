@@ -1,39 +1,52 @@
 import React, { useEffect, useState } from 'react';
-import { AppState, StyleSheet, Text, Vibration, View } from 'react-native';
+import { AppState, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, Vibration, View } from 'react-native';
 import {
   acknowledgeAlarm,
   alarmTitle,
   evaluateDueAlarms,
   formatTimeCairo,
   getPendingAlarms,
+  isSeenAlarm,
+  isStartAlarm,
+  minutesLeftText,
   onAlarmsChange,
   refreshJobAlerts,
   t,
-  useColors,
+  unsentAnswerCount,
   watchAlarmActions,
   type AlarmPortal,
   type PendingAlarm,
 } from '@itour/shared';
 import { Icon } from '../Icon';
-import { AppModal } from './AppDialog';
-import { ActionButton } from './kit';
 
 const POLL_MS = 30_000;
 const TICK_MS = 15_000;
 
+// Alarm colours are fixed (not theme): the screen must read the same in sun and at night.
+const AMBER = '#92400E';
+const RED = '#991B1B';
+const BLUE = '#1E40AF';
+
 /**
- * Mount once in App.tsx (signed in). Polls the job alarms while the app is on
- * screen and shows each due alarm — 1 h / 30 min start reminders, drop-off
- * arrived / left — as a modal that only closes with "I've seen it", which is
- * saved and activity-logged. Vibrates until acknowledged.
+ * Mount once in App.tsx (signed in). Polls the job alarms while the app is on screen and shows each
+ * due alarm full screen (UI review 2a): amber for the earlier start alarms, red for the last one and
+ * for leaving the drop-off; one 68 dp button — "Seen" on the earlier alarms, "On the way" on the last.
+ * Answering closes the screen at once; the answer is saved on the phone and sent in the background,
+ * retried until the office has it (2b). Vibrates until answered.
  */
 export function JobAlarmHost({ portal, onOpenJob }: { portal: AlarmPortal; onOpenJob?: (jobId: string) => void }) {
-  const colors = useColors();
   const [queue, setQueue] = useState<PendingAlarm[]>(getPendingAlarms());
-  const [acking, setAcking] = useState(false);
+  const [unsent, setUnsent] = useState(unsentAnswerCount());
 
-  useEffect(() => onAlarmsChange(() => setQueue(getPendingAlarms())), []);
-  // "I've seen it" pressed on the notification while the app is open.
+  useEffect(
+    () =>
+      onAlarmsChange(() => {
+        setQueue(getPendingAlarms());
+        setUnsent(unsentAnswerCount());
+      }),
+    [],
+  );
+  // The button pressed on the notification while the app is open.
   useEffect(() => watchAlarmActions(), []);
 
   useEffect(() => {
@@ -50,96 +63,114 @@ export function JobAlarmHost({ portal, onOpenJob }: { portal: AlarmPortal; onOpe
 
   const current = queue[0];
 
-  // Buzz until acknowledged.
+  // Buzz until answered.
   useEffect(() => {
     if (!current) return;
     Vibration.vibrate([0, 400, 300, 400, 2500], true);
     return () => Vibration.cancel();
   }, [current]);
 
-  if (!current) return null;
+  const unsentNote =
+    unsent > 0 && !current ? (
+      <View pointerEvents="none" style={styles.unsent}>
+        <Text style={styles.unsentText}>{t('alarm.pendingSend')}</Text>
+      </View>
+    ) : null;
+
+  if (!current) return unsentNote;
   const { kind, job } = current;
-  const isStart = kind === 'START_90' || kind === 'START_60' || kind === 'START_30';
+  const isStart = isStartAlarm(kind);
+  const seen = isStart && isSeenAlarm(kind);
   const left = kind === 'DROPOFF_LEFT';
-  const fg = left ? colors.destructive : isStart ? colors.warning : colors.info;
-  const bg = left ? colors.destructiveSoft : isStart ? colors.warningSoft : colors.infoSoft;
-  const desc = (
-    isStart ? t('alarm.startDesc') : t(kind === 'DROPOFF_ARRIVED' ? 'alarm.dropoffArrivedDesc' : 'alarm.dropoffLeftDesc')
-  ).replace('{ref}', job.internalRef);
+  const bg = left || (isStart && !seen) ? RED : isStart ? AMBER : BLUE;
+  const countdown = isStart ? minutesLeftText(job.startsAt) : null;
+  const route = [job.from, job.to].filter(Boolean).join(' → ');
+  const meta = [
+    job.startsAt ? `${t('alarm.startTime')} ${formatTimeCairo(job.startsAt)}` : null,
+    job.flightNo,
+    job.paxCount ? `${job.paxCount} ${t('alarm.pax')}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
-  const rows: [string, string][] = [
-    [t('alarm.job'), job.internalRef],
-    [t('alarm.startTime'), job.startsAt ? formatTimeCairo(job.startsAt) : '—'],
-    ...(job.flightNo ? ([[t('alarm.flight'), job.flightNo]] as [string, string][]) : []),
-    [t('alarm.pax'), String(job.paxCount ?? '—')],
-    [t('alarm.route'), [job.from, job.to].filter(Boolean).join(' → ') || '—'],
-    ...(!isStart && job.target ? ([[t('alarm.dropoff'), job.target.label]] as [string, string][]) : []),
-  ];
-
-  const ack = async (open: boolean) => {
-    setAcking(true);
-    try {
-      await acknowledgeAlarm(current);
-    } finally {
-      setAcking(false);
-    }
+  const answer = (open: boolean) => {
+    acknowledgeAlarm(current);
     if (open) onOpenJob?.(job.jobId);
   };
 
   return (
-    <AppModal visible>
-      <View style={[styles.disc, { backgroundColor: bg }]}>
-        <Icon name={isStart ? 'alarm' : left ? 'warning' : 'location'} size={30} color={fg} />
-      </View>
-      <Text style={[styles.title, { color: colors.foreground }]}>{alarmTitle(kind)}</Text>
-      <Text style={[styles.desc, { color: colors.mutedForeground }]}>{desc}</Text>
-      <View style={[styles.box, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-        {rows.map(([label, value]) => (
-          <View key={label} style={styles.row}>
-            <Text style={[styles.label, { color: colors.mutedForeground }]}>{label}</Text>
-            <Text style={[styles.value, { color: colors.foreground }]} numberOfLines={2}>
-              {value}
-            </Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.actions}>
-        {!isStart && onOpenJob ? (
-          <ActionButton
-            label={t('alarm.completeNow')}
-            icon="checkmark-done"
-            tone={left ? 'danger' : 'success'}
-            loading={acking}
-            onPress={() => ack(true)}
-          />
+    <Modal visible animationType="fade" statusBarTranslucent onRequestClose={() => {}}>
+      <StatusBar barStyle="light-content" backgroundColor={bg} />
+      <ScrollView style={{ backgroundColor: bg }} contentContainerStyle={styles.screen}>
+        <Icon name={isStart ? 'alarm' : left ? 'warning' : 'location'} size={56} color="#FFFFFF" />
+        <Text style={styles.title} accessibilityRole="header">
+          {isStart ? t('alarm.pickupIn') : alarmTitle(kind)}
+        </Text>
+        {countdown ? <Text style={styles.countdown}>{countdown}</Text> : null}
+        {!isStart ? (
+          <Text style={styles.desc}>
+            {t(kind === 'DROPOFF_ARRIVED' ? 'alarm.dropoffArrivedDesc' : 'alarm.dropoffLeftDesc').replace('{ref}', job.internalRef)}
+          </Text>
         ) : null}
-        <ActionButton
-          label={isStart ? t('alarm.onTheWay') : t('alarm.acknowledge')}
-          icon={isStart ? 'car' : 'eye'}
-          variant={!isStart && onOpenJob ? 'soft' : 'solid'}
-          loading={acking}
-          onPress={() => ack(false)}
-        />
-      </View>
-    </AppModal>
+        <Text style={styles.ref}>{job.internalRef}</Text>
+        {route ? <Text style={styles.line}>{route}</Text> : null}
+        {meta ? <Text style={styles.lineSoft}>{meta}</Text> : null}
+        {!isStart && job.target ? <Text style={styles.lineSoft}>{job.target.label}</Text> : null}
+
+        <View style={styles.actions}>
+          {!isStart && onOpenJob ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => answer(true)}
+              style={({ pressed }) => [styles.big, { opacity: pressed ? 0.85 : 1 }]}
+            >
+              <Text style={[styles.bigText, { color: bg }]}>{t('alarm.completeNow')}</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => answer(false)}
+            style={({ pressed }) => [
+              styles.big,
+              !isStart && onOpenJob ? styles.bigOutline : null,
+              { opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <Text style={[styles.bigText, { color: !isStart && onOpenJob ? '#FFFFFF' : bg }]}>
+              {isStart ? (seen ? t('alarm.seen') : t('alarm.onTheWay')) : t('alarm.acknowledge')}
+            </Text>
+          </Pressable>
+          {seen ? <Text style={styles.hint}>{t('alarm.seenHint')}</Text> : null}
+        </View>
+      </ScrollView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  disc: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 12,
+  screen: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 48 },
+  title: { color: '#FFFFFF', fontSize: 20, fontWeight: '700', marginTop: 14, textAlign: 'center', opacity: 0.95 },
+  countdown: { color: '#FFFFFF', fontSize: 56, fontWeight: '900', lineHeight: 64, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  desc: { color: '#FFFFFF', fontSize: 17, lineHeight: 24, textAlign: 'center', marginTop: 8 },
+  ref: { color: '#FFFFFF', fontSize: 20, fontWeight: '800', marginTop: 20, fontFamily: 'monospace' },
+  line: { color: '#FFFFFF', fontSize: 18, lineHeight: 26, textAlign: 'center', marginTop: 6 },
+  lineSoft: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, textAlign: 'center', marginTop: 4, opacity: 0.92 },
+  actions: { alignSelf: 'stretch', gap: 12, marginTop: 32 },
+  big: { minHeight: 68, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  bigOutline: { backgroundColor: 'transparent', borderWidth: 2, borderColor: '#FFFFFF' },
+  bigText: { fontSize: 21, fontWeight: '900' },
+  hint: { color: '#FFFFFF', fontSize: 14, lineHeight: 20, textAlign: 'center', opacity: 0.9 },
+  unsent: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 96,
+    backgroundColor: '#451A03',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  title: { fontSize: 19, fontWeight: '800', textAlign: 'center' },
-  desc: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 6 },
-  box: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, padding: 12, marginTop: 16, gap: 8 },
-  row: { flexDirection: 'row', gap: 10 },
-  label: { width: 84, fontSize: 12, fontWeight: '600' },
-  value: { flex: 1, fontSize: 14, fontWeight: '700' },
-  actions: { gap: 10, marginTop: 18 },
+  unsentText: { color: '#FEF3C7', fontSize: 14, lineHeight: 20 },
 });

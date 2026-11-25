@@ -75,7 +75,8 @@ export class PushNotificationsService {
       tokens.map(async ({ id, token }) => {
         try {
           // Job / complaint events ring the alarm sound on the phone (6.1.0 — channel and res/raw/job_alarm.wav
-          // made by the apps from 1.6.0); chat keeps the normal channel.
+          // made by the apps from 1.6.0); chat uses its own "pop" sound (channel itour_chat_v1 and
+          // res/raw/chat_message.wav from apps 1.7.0 — older apps show it on their default channel).
           const chat = data?.type === 'CHAT';
           await messaging.send({
             token,
@@ -84,7 +85,7 @@ export class PushNotificationsService {
             android: {
               priority: 'high',
               notification: chat
-                ? { channelId: 'itour_alerts' }
+                ? { channelId: 'itour_chat_v1', sound: 'chat_message' }
                 : { channelId: 'itour_jobs_v1', sound: 'job_alarm' },
             },
           });

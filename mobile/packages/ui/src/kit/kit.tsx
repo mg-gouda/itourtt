@@ -173,19 +173,27 @@ export function Pill({
   );
 }
 
+/**
+ * One colour per job status — the same system as the office and web portals (UI review 3a,
+ * frontend/src/lib/status-colors.ts): Pending slate · Assigned blue · In progress amber ·
+ * In place purple · Completed green · Cancelled / No show red. Colour means status only.
+ */
 export function statusTone(status: string, colors: ThemeColors): { fg: string; bg: string; icon: string } {
   switch (status) {
-    case 'IN_PLACE':
+    case 'ASSIGNED':
+      return { fg: colors.info, bg: colors.infoSoft, icon: 'person-add' };
     case 'IN_PROGRESS':
-      return { fg: colors.info, bg: colors.infoSoft, icon: 'location' };
+      return { fg: colors.warning, bg: colors.warningSoft, icon: 'navigate' };
+    case 'IN_PLACE':
+      return { fg: colors.violet, bg: colors.violetSoft, icon: 'location' };
     case 'COMPLETED':
       return { fg: colors.success, bg: colors.successSoft, icon: 'checkmark-circle' };
     case 'NO_SHOW':
       return { fg: colors.destructive, bg: colors.destructiveSoft, icon: 'person-remove' };
     case 'CANCELLED':
-      return { fg: colors.mutedForeground, bg: colors.muted, icon: 'close-circle' };
+      return { fg: colors.destructive, bg: colors.destructiveSoft, icon: 'close-circle' };
     default:
-      return { fg: colors.warning, bg: colors.warningSoft, icon: 'time' };
+      return { fg: colors.mutedForeground, bg: colors.muted, icon: 'time' };
   }
 }
 
@@ -205,20 +213,9 @@ const SERVICE_ICON: Record<string, string> = {
   CITY_TO_CITY: 'mc:city-variant-outline',
 };
 
+/** Service type: told apart by its icon and name, not colour (colour is for status — UI review 3a). */
 export function serviceTone(serviceType: string, colors: ThemeColors): { fg: string; bg: string; icon: string } {
-  const icon = SERVICE_ICON[serviceType] ?? 'mc:car';
-  switch (serviceType) {
-    case 'ARR':
-      return { fg: colors.info, bg: colors.infoSoft, icon };
-    case 'DEP':
-      return { fg: colors.warning, bg: colors.warningSoft, icon };
-    case 'DAY_TOUR':
-      return { fg: colors.success, bg: colors.successSoft, icon };
-    case 'TWO_WAY_TRANSFER':
-      return { fg: colors.violet, bg: colors.violetSoft, icon };
-    default:
-      return { fg: colors.primary, bg: colors.primarySoft, icon };
-  }
+  return { fg: colors.foreground, bg: colors.muted, icon: SERVICE_ICON[serviceType] ?? 'mc:car' };
 }
 
 export function ServicePill({ serviceType }: { serviceType: string }) {
@@ -234,12 +231,9 @@ export function ServicePill({ serviceType }: { serviceType: string }) {
 export function ChannelPill({ channel }: { channel?: string | null }) {
   const colors = useColors();
   if (channel !== 'ONLINE' && channel !== 'B2B' && channel !== 'B2C') return null;
-  const tone =
-    channel === 'ONLINE'
-      ? { fg: colors.primary, bg: colors.primarySoft, icon: 'globe-outline' }
-      : channel === 'B2B'
-        ? { fg: colors.warning, bg: colors.warningSoft, icon: 'business-outline' }
-        : { fg: colors.success, bg: colors.successSoft, icon: 'person-outline' };
+  // Neutral fill: the icon + name tell the channels apart; colour is kept for status (UI review 3a).
+  const icon = channel === 'ONLINE' ? 'globe-outline' : channel === 'B2B' ? 'business-outline' : 'person-outline';
+  const tone = { fg: colors.mutedForeground, bg: colors.muted, icon };
   return <Pill label={t(`bookingChannel.${channel}`)} color={tone.fg} bg={tone.bg} icon={tone.icon} />;
 }
 
@@ -291,7 +285,17 @@ export function ActionButton({
   const colors = useColors();
   const c = toneColors(tone, colors);
   const solid = variant === 'solid';
-  const fg = solid ? (tone === 'primary' ? colors.primaryForeground : '#FFFFFF') : c.solid;
+  // UI review 4a: white on the green / amber fills was 1.9–3.3:1 (unreadable in sun or at night).
+  // Those two fills now carry near-black text (≥ 4.7:1 in light and dark mode).
+  const fg = solid
+    ? tone === 'primary'
+      ? colors.primaryForeground
+      : tone === 'success'
+        ? '#052E16'
+        : tone === 'warning'
+          ? '#1C1003'
+          : '#FFFFFF'
+    : c.solid;
   const height = size === 'lg' ? 56 : size === 'sm' ? 40 : 48;
   return (
     <Pressable

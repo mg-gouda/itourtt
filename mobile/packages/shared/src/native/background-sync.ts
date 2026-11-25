@@ -44,6 +44,9 @@ export type Portal = 'driver' | 'rep';
 const CHANNEL_ALERTS = 'itour_alerts';
 /** Job / complaint notifications (6.1.0): the alarm sound, once. Chat stays on CHANNEL_ALERTS. */
 const CHANNEL_JOBS = 'itour_jobs_v1';
+/** Chat messages (apps 1.7.0): the in-house two-note "pop" (res/raw/chat_message.wav, same as the web). */
+const CHANNEL_CHAT = 'itour_chat_v1';
+const CHAT_SOUND = 'chat_message';
 const CHANNEL_SERVICE = 'itour_service';
 const SERVICE_NOTIFICATION_ID = 'itour-connection';
 
@@ -92,6 +95,17 @@ async function ensureChannels() {
     sound: ALARM_SOUND,
     vibration: true,
     vibrationPattern: [300, 400, 300, 400],
+    lights: true,
+    badge: true,
+  });
+  await notifee.createChannel({
+    id: CHANNEL_CHAT,
+    name: 'Chat messages',
+    importance: AndroidImportance.HIGH,
+    visibility: AndroidVisibility.PUBLIC,
+    sound: CHAT_SOUND,
+    vibration: true,
+    vibrationPattern: [0, 120, 80, 120],
     lights: true,
     badge: true,
   });
@@ -186,10 +200,10 @@ async function showAlert(id: string, title: string, body: string, data: Record<s
     body,
     data,
     android: {
-      channelId: channel === 'jobs' ? CHANNEL_JOBS : CHANNEL_ALERTS,
+      channelId: channel === 'jobs' ? CHANNEL_JOBS : CHANNEL_CHAT,
       importance: AndroidImportance.HIGH,
       visibility: AndroidVisibility.PUBLIC,
-      sound: channel === 'jobs' ? ALARM_SOUND : 'default',
+      sound: channel === 'jobs' ? ALARM_SOUND : CHAT_SOUND,
       pressAction: { id: 'default' },
       smallIcon: 'ic_notification',
       showTimestamp: true,

@@ -110,5 +110,10 @@ export {
   dueStartKind,
   watchAlarmActions,
   getAlarmKeyInfo,
+  isStartAlarm,
+  isSeenAlarm,
+  minutesLeftText,
+  unsentAnswerCount,
+  flushUnsent,
 } from './native/job-alerts';
-export type { AlarmKind, AlarmJob, AlarmPortal, PendingAlarm, AlarmKeyInfo } from './native/job-alerts';
+export type { AlarmKind, AlarmJob, AlarmPortal, PendingAlarm, AlarmKeyInfo, StartAlarm } from './native/job-alerts';
