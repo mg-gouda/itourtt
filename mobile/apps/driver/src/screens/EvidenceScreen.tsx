@@ -13,6 +13,7 @@ import {
   type CapturedPhoto,
   type GPSPosition,
   appAlert,
+  isQueued,
 } from '@itour/shared';
 import { ActivityIndicator } from 'react-native';
 import { Icon } from '@itour/ui';
@@ -74,8 +75,10 @@ export function EvidenceScreen({ route, navigation }: Props) {
     try {
       const form = new FormData();
       form.append('image', { uri: p.uri, name: p.fileName || 'odometer.jpg', type: p.type || 'image/jpeg' } as unknown as Blob);
-      const { data } = await driverPortalApi.captureOdometer(jobId, form);
-      setOdo(data.data);
+      const res = await driverPortalApi.captureOdometer(jobId, form);
+      // Offline: the photo is read when it reaches the server; type the km now.
+      if (isQueued(res)) setOdo((o) => (o ? { ...o, hasPhoto: true, canType: true } : o));
+      else setOdo(res.data.data);
     } catch (err) {
       appAlert(t('common.error'), apiErrorMessage(err, t('driverApp.odometerUnreadable')), undefined, { tone: 'danger' });
     } finally {
@@ -121,9 +124,16 @@ export function EvidenceScreen({ route, navigation }: Props) {
       form.append('latitude', String(gps.lat));
       form.append('longitude', String(gps.lng));
       if (odo?.required && odo.readingKm == null && typedKm) form.append('odometerKm', typedKm);
-      if (kind === 'IN_PROGRESS') await driverPortalApi.submitInProgress(jobId, form);
-      else if (kind === 'COMPLETED') await driverPortalApi.submitCompleted(jobId, form);
-      else await driverPortalApi.submitNoShow(jobId, form);
+      const res =
+        kind === 'IN_PROGRESS'
+          ? await driverPortalApi.submitInProgress(jobId, form)
+          : kind === 'COMPLETED'
+            ? await driverPortalApi.submitCompleted(jobId, form)
+            : await driverPortalApi.submitNoShow(jobId, form);
+      if (isQueued(res)) {
+        navigation.goBack(); // saved on the phone — sent when the signal is back (1.9.0)
+        return;
+      }
       appAlert(t('repApp.submitted'), `${jobRef} · ${t(`status.${kind}`)}`, [{ text: t('common.ok'), onPress: () => navigation.goBack() }], { tone: 'success' });
     } catch (err) {
       appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });

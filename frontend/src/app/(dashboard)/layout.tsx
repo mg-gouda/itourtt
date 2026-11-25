@@ -13,6 +13,7 @@ import { StaffOnlyWarning } from "@/components/staff-only-warning";
 import { ChatWidget } from "@/components/chat/chat-widget";
 import { PushPrompt } from "@/components/push-prompt";
 import { TripKmReminder } from "@/components/trip-km-reminder";
+import { OfflineActionsStrip } from "@/components/offline-actions-strip";
 import api from "@/lib/api";
 import { setAlarmSoundUrl, setAlarmSounds } from "@/lib/alarm-sound";
 
@@ -100,6 +101,7 @@ export default function DashboardLayout({
           </div>
           <div className="flex flex-1 flex-col overflow-hidden">
             <Header />
+            <OfflineActionsStrip />
             <ChatWidget />
             <PushPrompt variant="office" />
             <TripKmReminder />

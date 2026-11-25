@@ -1,4 +1,6 @@
 import api from '../client';
+import type { AxiosResponse } from 'axios';
+import { cachedGet, overlayJobs, queueForm, queueJson } from '../../native/outbox';
 import type {
   RepPortalJob,
   RepProfile,
@@ -14,8 +16,11 @@ import type {
  * deeper again (`data.jobs`, `data.notifications`).
  */
 export const repPortalApi = {
+  /** Saved on the phone; with no signal the saved list comes back (`fromCache`) — offline jobs, 1.9.0. */
   getJobs(date: string) {
-    return api.get<{ data: { date: string; jobs: RepPortalJob[] } }>('/rep-portal/jobs', { params: { date } });
+    return cachedGet(`rep:jobs:${date}`, () => api.get('/rep-portal/jobs', { params: { date } }), overlayJobs<RepPortalJob>('repStatus')) as Promise<
+      AxiosResponse<{ data: { date: string; jobs: RepPortalJob[] } }>
+    >;
   },
 
   getJobHistory(dateFrom: string, dateTo: string) {
@@ -26,41 +31,32 @@ export const repPortalApi = {
 
   /** One job's full record (no repStatus / noShowAvailableFrom — those come from the day list). */
   getJobDetail(jobId: string) {
-    return api.get(`/rep-portal/jobs/${jobId}`);
+    return cachedGet(`rep:job:${jobId}`, () => api.get(`/rep-portal/jobs/${jobId}`));
   },
 
   /** GPS-stamped transition without evidence. The server only accepts COMPLETED / CANCELLED here. */
   updateJobStatus(jobId: string, status: string, latitude?: number, longitude?: number) {
-    return api.patch(`/rep-portal/jobs/${jobId}/status`, { status, latitude, longitude });
+    return queueJson('rep', jobId, 'STATUS', 'patch', `/rep-portal/jobs/${jobId}/status`, { status, latitude, longitude }, status);
   },
 
   /** After IN PLACE: will the rep escort the transfer (complete at the drop-off) or stay at the airport? */
   setEscort(jobId: string, escort: boolean) {
-    return api.post(`/rep-portal/jobs/${jobId}/escort`, { escort });
+    return queueJson('rep', jobId, 'ESCORT', 'post', `/rep-portal/jobs/${jobId}/escort`, { escort });
   },
 
   /** PENDING → IN_PLACE: exactly 2 photos + GPS; ARR jobs only inside arrival −10 / +80 min. */
   submitInPlace(jobId: string, formData: FormData) {
-    return api.post(`/rep-portal/jobs/${jobId}/in-place`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
-    });
+    return queueForm('rep', jobId, 'IN_PLACE', `/rep-portal/jobs/${jobId}/in-place`, formData, 'IN_PLACE');
   },
 
   /** IN_PLACE → COMPLETED: 1–10 photos + GPS. */
   submitCompleted(jobId: string, formData: FormData) {
-    return api.post(`/rep-portal/jobs/${jobId}/completed`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
-    });
+    return queueForm('rep', jobId, 'COMPLETED', `/rep-portal/jobs/${jobId}/completed`, formData, 'COMPLETED');
   },
 
   /** NO SHOW: 1–10 photos + GPS, after the server's noShowAvailableFrom. */
   submitNoShow(jobId: string, formData: FormData) {
-    return api.post(`/rep-portal/jobs/${jobId}/no-show`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
-    });
+    return queueForm('rep', jobId, 'NO_SHOW', `/rep-portal/jobs/${jobId}/no-show`, formData, 'NO_SHOW');
   },
 
   submitFlightDelay(jobId: string, arrivalTime: string) {

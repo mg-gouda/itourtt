@@ -15,6 +15,7 @@ import {
   appAlert,
   unwrapData,
   type RepPortalJob,
+  isQueued,
 } from '@itour/shared';
 import { ActivityIndicator } from 'react-native';
 import { Icon } from '@itour/ui';
@@ -85,6 +86,10 @@ export function EvidenceScreen({ route, navigation }: Props) {
       form.append('longitude', String(gps.lng));
       if (kind === 'IN_PLACE') {
         const res = await repPortalApi.submitInPlace(jobId, form);
+        if (isQueued(res)) {
+          navigation.goBack(); // saved on the phone — sent when the signal is back (1.9.0)
+          return;
+        }
         const job = unwrapData<RepPortalJob>(res.data);
         // Right after IN PLACE: ask whether the rep escorts the transfer.
         if (job && needsEscortAnswer(job)) {
@@ -95,8 +100,13 @@ export function EvidenceScreen({ route, navigation }: Props) {
           );
           return;
         }
-      } else if (kind === 'COMPLETED') await repPortalApi.submitCompleted(jobId, form);
-      else await repPortalApi.submitNoShow(jobId, form);
+      } else {
+        const res = kind === 'COMPLETED' ? await repPortalApi.submitCompleted(jobId, form) : await repPortalApi.submitNoShow(jobId, form);
+        if (isQueued(res)) {
+          navigation.goBack();
+          return;
+        }
+      }
       appAlert(t('repApp.submitted'), `${jobRef} · ${t(`status.${kind}`)}`, [{ text: t('common.ok'), onPress: () => navigation.goBack() }], { tone: 'success' });
     } catch (err) {
       appAlert(t('common.error'), apiErrorMessage(err, t('common.error')), undefined, { tone: 'danger' });

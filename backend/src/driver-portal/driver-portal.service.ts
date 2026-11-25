@@ -16,6 +16,7 @@ import {
 } from '../common/utils/no-show-window.util.js';
 import { NoShowDisputeService } from './no-show-dispute.service.js';
 import { JobCompletionService } from '../common/services/job-completion.service.js';
+import { clockNow } from '../common/utils/request-clock.js';
 
 type DriverJobStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
@@ -194,7 +195,7 @@ export class DriverPortalService {
 
   async getMyJobs(userId: string, date?: string) {
     const driverId = await this.resolveDriverId(userId);
-    const jobDate = date ? new Date(date) : new Date();
+    const jobDate = date ? new Date(date) : clockNow();
     if (!date) {
       jobDate.setHours(0, 0, 0, 0);
     }
@@ -336,7 +337,7 @@ export class DriverPortalService {
           ? (flight?.arrivalTime ?? null)
           : (assignment.trafficJob.pickUpTime ?? null);
       if (jobTime) {
-        const now = new Date();
+        const now = clockNow();
         if (now < new Date(jobTime)) {
           const timeStr = new Date(jobTime).toLocaleTimeString('en-GB', {
             timeZone: 'Africa/Cairo',
@@ -369,6 +370,7 @@ export class DriverPortalService {
 
       await tx.statusChangeLog.create({
         data: {
+          createdAt: clockNow(),
           assignmentId: assignment.id,
           changedBy: 'DRIVER',
           changedById: driverId,
@@ -450,7 +452,7 @@ export class DriverPortalService {
       assignment.trafficJob.serviceType === 'ARR'
         ? (flight?.arrivalTime ?? null)
         : (assignment.trafficJob.pickUpTime ?? null);
-    if (currentStatus === 'PENDING' && jobTime && new Date() < new Date(jobTime)) {
+    if (currentStatus === 'PENDING' && jobTime && clockNow() < new Date(jobTime)) {
       const timeStr = new Date(jobTime).toLocaleTimeString('en-GB', {
         timeZone: 'Africa/Cairo',
         hour: '2-digit',
@@ -477,6 +479,7 @@ export class DriverPortalService {
 
       await tx.inProgressEvidence.create({
         data: {
+          createdAt: clockNow(),
           trafficJobId: jobId,
           imageUrls,
           gpsLatitude: latitude,
@@ -490,6 +493,7 @@ export class DriverPortalService {
       if (!alreadyStarted) {
         await tx.statusChangeLog.create({
           data: {
+          createdAt: clockNow(),
             assignmentId: assignment.id,
             changedBy: 'DRIVER',
             changedById: driverId,
@@ -564,7 +568,7 @@ export class DriverPortalService {
         ? (flight?.arrivalTime ?? null)
         : (assignment.trafficJob.pickUpTime ?? null);
     if (jobTime) {
-      const now = new Date();
+      const now = clockNow();
       const minCompleteAt = new Date(new Date(jobTime).getTime() + 15 * 60 * 1000);
       if (now < minCompleteAt) {
         const timeStr = minCompleteAt.toLocaleTimeString('en-GB', {
@@ -598,6 +602,7 @@ export class DriverPortalService {
 
       await tx.completedEvidence.create({
         data: {
+          createdAt: clockNow(),
           trafficJobId: jobId,
           imageUrls,
           gpsLatitude: latitude,
@@ -610,6 +615,7 @@ export class DriverPortalService {
 
       await tx.statusChangeLog.create({
         data: {
+          createdAt: clockNow(),
           assignmentId: assignment.id,
           changedBy: 'DRIVER',
           changedById: driverId,
@@ -657,7 +663,7 @@ export class DriverPortalService {
       where: { id: jobId },
       data: {
         collectionCollected: collected,
-        collectionCollectedAt: collected ? new Date() : null,
+        collectionCollectedAt: collected ? clockNow() : null,
       },
       include: this.jobInclude,
     });
@@ -756,6 +762,7 @@ export class DriverPortalService {
 
       await tx.noShowEvidence.create({
         data: {
+          createdAt: clockNow(),
           trafficJobId: jobId,
           imageUrls,
           gpsLatitude: latitude,
@@ -768,6 +775,7 @@ export class DriverPortalService {
 
       await tx.statusChangeLog.create({
         data: {
+          createdAt: clockNow(),
           assignmentId: assignment.id,
           changedBy: 'DRIVER',
           changedById: driverId,
@@ -1004,7 +1012,7 @@ export class DriverPortalService {
   private checkDriverTimelock(job: { jobDate: Date; driverUnlockedAt?: Date | null }) {
     if (job.driverUnlockedAt) return;
     const cutoff = new Date(job.jobDate.getTime() + FORTY_EIGHT_HOURS_MS);
-    if (new Date() > cutoff) {
+    if (clockNow() > cutoff) {
       throw new ForbiddenException(
         'Drivers cannot update job status more than 48 hours after the service date.',
       );

@@ -16,3 +16,4 @@ export { PermissionsSection, usePermissionHealth, usePermissionWarning } from '.
 /** The iTour badge (logo mark on a white disc) used by splash and login screens. */
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 export const logoBadge = require('../../assets/logo-badge.png');
+export { OfflineJobsBanner } from './OfflineJobsBanner';

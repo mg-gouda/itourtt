@@ -21,7 +21,7 @@ import { ActionButton, GradientHeader, HeaderIconButton, HeaderStat } from '@ito
 import { WeekStrip } from '@itour/ui';
 import { useNotificationsStore } from '../lib/notifications-store';
 import { jobDay } from '../lib/job-rules';
-import { usePermissionHealth, usePermissionWarning } from '@itour/ui';
+import { OfflineJobsBanner, usePermissionHealth, usePermissionWarning } from '@itour/ui';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 /** Which header counter is filtering the list ('all' = Total, no filter). */
@@ -56,6 +56,8 @@ export function JobsListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Set while the list is the phone's saved copy (no signal) — 1.9.0. */
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
 
   // Swiping through days fires overlapping requests; only the latest day's answer may land.
@@ -65,6 +67,7 @@ export function JobsListScreen() {
     try {
       const { data } = await driverPortalApi.getJobs(date);
       if (latestDate.current !== date) return;
+      setSavedAt((data as { fromCache?: boolean; savedAt?: number }).fromCache ? ((data as { savedAt?: number }).savedAt ?? null) : null);
       setJobs(unwrapList<DriverPortalJob>(data, 'jobs'));
       setError(null);
     } catch (err) {
@@ -185,6 +188,7 @@ export function JobsListScreen() {
                 />
               </View>
             </GradientHeader>
+            <OfflineJobsBanner savedAt={savedAt} />
             {error ? (
               <View style={[styles.error, { backgroundColor: colors.destructiveSoft }]}>
                 <Icon name="cloud-offline-outline" size={18} color={colors.destructive} />
@@ -218,12 +222,17 @@ export function JobsListScreen() {
           </>
         }
         renderItem={({ item }) => (
+          <View>
+            {(item as { pendingSync?: boolean }).pendingSync ? (
+              <Text style={{ color: colors.mutedForeground, fontSize: 13, fontWeight: '700', marginBottom: 4 }}>⏳ {t('offline.waitingJob')}</Text>
+            ) : null}
           <DriverJobCard
             job={item}
             onOpen={() => open(item)}
             onStart={() => navigation.navigate('Evidence', { jobId: item.id, jobRef: item.internalRef, kind: 'IN_PROGRESS' })}
             onComplete={() => navigation.navigate('Evidence', { jobId: item.id, jobRef: item.internalRef, kind: 'COMPLETED' })}
           />
+          </View>
         )}
         ListEmptyComponent={
           loading || error || jobs.length > 0 ? null : (

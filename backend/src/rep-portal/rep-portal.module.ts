@@ -7,10 +7,12 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 import { JobCompletionModule } from '../common/services/job-completion.module.js';
 import { JobAlertsModule } from '../common/services/job-alerts.module.js';
+import { OfflineActionsModule } from '../offline-actions/offline-actions.module.js';
 
 @Module({
-  imports: [ComplaintsModule, TrackingModule, NotificationsModule, GoogleDriveModule, JobCompletionModule, JobAlertsModule],
+  imports: [ComplaintsModule, TrackingModule, NotificationsModule, GoogleDriveModule, JobCompletionModule, JobAlertsModule, OfflineActionsModule],
   controllers: [RepPortalController],
   providers: [RepPortalService],
+  exports: [RepPortalService],
 })
 export class RepPortalModule {}

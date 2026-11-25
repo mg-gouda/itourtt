@@ -754,6 +754,45 @@ export class ChatService {
   }
 
   /**
+   * Automatic message from a rep / driver to every active office user in `staffRoleSlugs`
+   * (6.9.0 — actions done offline). Written in the person's own thread with each recipient, so it
+   * reads like a normal chat message and rings / pushes like one. Contact-list rules are skipped:
+   * the system decides who must know.
+   */
+  async postFromPortalUser(portalUserId: string, staffRoleSlugs: string[], body: string): Promise<number> {
+    const portal = await this.loadPerson(portalUserId);
+    if (!portal || !isPortalRole(portal.role)) return 0;
+    const staff = await this.prisma.user.findMany({
+      where: { isActive: true, deletedAt: null, roleRef: { slug: { in: staffRoleSlugs } } },
+      select: { id: true },
+    });
+    let sent = 0;
+    for (const s of staff) {
+      try {
+        const conv = await this.prisma.chatConversation.upsert({
+          where: { portalUserId_staffUserId: { portalUserId: portal.id, staffUserId: s.id } },
+          update: {},
+          create: { portalUserId: portal.id, staffUserId: s.id, portalRole: portal.role as ChatPortalRole, createdById: portal.id },
+          include: { portalUser: { select: { name: true } }, staffUser: { select: { name: true } } },
+        });
+        const now = new Date();
+        await this.prisma.$transaction([
+          this.prisma.chatMessage.create({ data: { conversationId: conv.id, senderId: portal.id, kind: 'TEXT', body, createdAt: now } }),
+          this.prisma.chatConversation.update({
+            where: { id: conv.id },
+            data: { lastMessageAt: now, portalLastReadAt: now, portalLastDeliveredAt: now },
+          }),
+        ]);
+        this.pushToStaff(conv, 'PORTAL', 'TEXT' as ChatMessageKind, body);
+        sent++;
+      } catch (e) {
+        this.logger?.warn?.(`Automatic chat message to ${s.id} failed: ${String(e)}`);
+      }
+    }
+    return sent;
+  }
+
+  /**
    * Forward a message to other threads / people (6.2.0). Text and locations are copied as they are;
    * photos and voice notes are copied into each target thread's folder (each thread owns its files).
    * The caller must be in the source thread and allowed to talk in every target.

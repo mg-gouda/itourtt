@@ -32,6 +32,8 @@ import { IsString, IsIn, IsOptional, IsNumber, IsInt, Min } from 'class-validato
 import * as path from 'path';
 import * as fs from 'fs';
 import { stampEvidenceImage, StampMeta } from '../common/utils/stamp-image.js';
+import { parseOccurredAt, runAt } from '../common/utils/request-clock.js';
+import { OfflineActionsService } from '../offline-actions/offline-actions.service.js';
 
 class SurveyExportLinkDto {
   @IsIn(['pdf', 'xlsx'])
@@ -51,6 +53,11 @@ ensureDir(path.join(uploadsBase, 'completed'));
 const memStore = memoryStorage();
 
 class UpdateJobStatusDto {
+  /** Offline (6.9.0): when it was really done (ISO). */
+  @IsOptional()
+  @IsString()
+  occurredAt?: string;
+
   @IsString()
   @IsIn(['COMPLETED', 'CANCELLED'])
   status!: string;
@@ -125,6 +132,7 @@ class GuestSurveyDto {
 @UseInterceptors(RecordLocationInterceptor)
 export class RepPortalController {
   constructor(
+    private readonly offline: OfflineActionsService,
     private readonly repPortalService: RepPortalService,
     private readonly googleDriveService: GoogleDriveService,
     private readonly jobAlerts: JobAlertsService,
@@ -201,13 +209,17 @@ export class RepPortalController {
     @Param('jobId') jobId: string,
     @Body() dto: UpdateJobStatusDto,
   ) {
-    const result = await this.repPortalService.updateJobStatus(
+    const off = parseOccurredAt(dto.occurredAt);
+    const report = { userId, role: 'REP' as const, jobId, kind: 'STATUS' as const, status: dto.status, occurredAt: off?.at ?? new Date(), latitude: dto.latitude, longitude: dto.longitude, photos: 0, photosLater: false };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls: [] }), 'Saved for office approval');
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.repPortalService.updateJobStatus(
       userId,
       jobId,
       dto.status as any,
       dto.latitude,
       dto.longitude,
-    );
+    ));
+    if (off) void this.offline.announce(report);
     return new ApiResponse(result, 'Job status updated');
   }
 
@@ -217,9 +229,9 @@ export class RepPortalController {
     @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { latitude: string; longitude: string },
+    @Body() body: { latitude: string; longitude: string; occurredAt?: string; photosLater?: string },
   ) {
-    if (!files || files.length < 1) {
+    if (!(Number(body.photosLater) > 0) && (!files || files.length < 1)) {
       throw new BadRequestException('At least one image is required for no-show evidence');
     }
 
@@ -231,11 +243,17 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.repPortalService.getJobStampMeta(jobId, 'NO_SHOW').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
-    await this.repPortalService.precheckGeofence(userId, jobId, 'NO_SHOW', latitude, longitude);
-    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
+    // Offline (6.9.0): `occurredAt` = when it was really done; photos may follow (photosLater).
+    const off = parseOccurredAt(body.occurredAt);
+    const list = files ?? [];
+    const stampMeta = list.length ? await this.repPortalService.getJobStampMeta(jobId, 'NO_SHOW').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; }) : undefined;
+    if (!off?.late) await this.repPortalService.precheckGeofence(userId, jobId, 'NO_SHOW', latitude, longitude);
+    const imageUrls = list.length ? await this.uploadFiles(list, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta) : [];
+    const report = { userId, role: 'REP' as const, jobId, kind: 'NO_SHOW' as const, occurredAt: off?.at ?? new Date(), latitude, longitude, photos: imageUrls.length, photosLater: Number(body.photosLater) > 0 };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls }), 'Saved for office approval');
 
-    const result = await this.repPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.repPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude));
+    if (off) void this.offline.announce(report);
     return new ApiResponse(result, 'No-show evidence submitted');
   }
 
@@ -245,9 +263,9 @@ export class RepPortalController {
     @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { latitude: string; longitude: string },
+    @Body() body: { latitude: string; longitude: string; occurredAt?: string; photosLater?: string },
   ) {
-    if (!files || files.length < 2) {
+    if (!(Number(body.photosLater) > 0) && (!files || files.length < 2)) {
       throw new BadRequestException('Exactly 2 images are required for in-place evidence');
     }
 
@@ -259,11 +277,17 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.repPortalService.getJobStampMeta(jobId, 'IN_PLACE').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
-    await this.repPortalService.precheckGeofence(userId, jobId, 'IN_PLACE', latitude, longitude);
-    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'in-place', latitude, longitude, stampMeta);
+    // Offline (6.9.0): `occurredAt` = when it was really done; photos may follow (photosLater).
+    const off = parseOccurredAt(body.occurredAt);
+    const list = files ?? [];
+    const stampMeta = list.length ? await this.repPortalService.getJobStampMeta(jobId, 'IN_PLACE').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; }) : undefined;
+    if (!off?.late) await this.repPortalService.precheckGeofence(userId, jobId, 'IN_PLACE', latitude, longitude);
+    const imageUrls = list.length ? await this.uploadFiles(list, jobId, 'rep', 'in-place', latitude, longitude, stampMeta) : [];
+    const report = { userId, role: 'REP' as const, jobId, kind: 'IN_PLACE' as const, occurredAt: off?.at ?? new Date(), latitude, longitude, photos: imageUrls.length, photosLater: Number(body.photosLater) > 0 };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls }), 'Saved for office approval');
 
-    const result = await this.repPortalService.submitInPlace(userId, jobId, imageUrls, latitude, longitude);
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.repPortalService.submitInPlace(userId, jobId, imageUrls, latitude, longitude));
+    if (off) void this.offline.announce(report);
     return new ApiResponse(result, 'In-place evidence submitted');
   }
 
@@ -302,9 +326,9 @@ export class RepPortalController {
     @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { latitude: string; longitude: string },
+    @Body() body: { latitude: string; longitude: string; occurredAt?: string; photosLater?: string },
   ) {
-    if (!files || files.length < 1) {
+    if (!(Number(body.photosLater) > 0) && (!files || files.length < 1)) {
       throw new BadRequestException('At least one image is required for completed evidence');
     }
 
@@ -316,11 +340,17 @@ export class RepPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.repPortalService.getJobStampMeta(jobId, 'COMPLETED').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
-    await this.repPortalService.precheckGeofence(userId, jobId, 'COMPLETED', latitude, longitude);
-    const imageUrls = await this.uploadFiles(files, jobId, 'rep', 'completed', latitude, longitude, stampMeta);
+    // Offline (6.9.0): `occurredAt` = when it was really done; photos may follow (photosLater).
+    const off = parseOccurredAt(body.occurredAt);
+    const list = files ?? [];
+    const stampMeta = list.length ? await this.repPortalService.getJobStampMeta(jobId, 'COMPLETED').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; }) : undefined;
+    if (!off?.late) await this.repPortalService.precheckGeofence(userId, jobId, 'COMPLETED', latitude, longitude);
+    const imageUrls = list.length ? await this.uploadFiles(list, jobId, 'rep', 'completed', latitude, longitude, stampMeta) : [];
+    const report = { userId, role: 'REP' as const, jobId, kind: 'COMPLETED' as const, occurredAt: off?.at ?? new Date(), latitude, longitude, photos: imageUrls.length, photosLater: Number(body.photosLater) > 0 };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls }), 'Saved for office approval');
 
-    const result = await this.repPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.repPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude));
+    if (off) void this.offline.announce(report);
     return new ApiResponse(result, 'Completed evidence submitted');
   }
 
@@ -429,6 +459,35 @@ export class RepPortalController {
   // ──────────────────────────────────────────────────────────────────────────
   // Upload helper — tries Drive first, falls back to local disk
   // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Photos that followed a status sent without them (6.9.0 — weak signal: the status goes first).
+   * Added to that action's evidence (or to its held offline request).
+   */
+  @Post('jobs/:jobId/evidence-photos')
+  @UseInterceptors(FilesInterceptor('images', 10, { storage: memStore }))
+  async addEvidencePhotos(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { kind: string; latitude?: string; longitude?: string },
+  ) {
+    const where: Record<string, ['rep' | 'driver' | 'no-show', string]> = {
+      IN_PLACE: ['rep', 'in-place'],
+      COMPLETED: ['rep', 'completed'],
+      NO_SHOW: ['no-show', 'no-show'],
+    };
+    const target = where[body.kind];
+    if (!target) throw new BadRequestException('Unknown evidence kind');
+    if (!files?.length) throw new BadRequestException('No photos');
+    const lat = body.latitude != null ? parseFloat(body.latitude) : NaN;
+    const lng = body.longitude != null ? parseFloat(body.longitude) : NaN;
+    const stampMeta = await this.repPortalService.getJobStampMeta(jobId, body.kind as never).catch(() => undefined);
+    const urls = await this.uploadFiles(files, jobId, target[0], target[1] as never, Number.isNaN(lat) ? null as never : lat, Number.isNaN(lng) ? null as never : lng, stampMeta);
+    const held = await this.offline.addHeldPhotos(userId, jobId, body.kind, urls);
+    if (!held) await this.offline.appendEvidence(jobId, body.kind, urls);
+    return new ApiResponse({ added: urls.length }, 'Photos added');
+  }
 
   private async uploadFiles(
     files: Express.Multer.File[],

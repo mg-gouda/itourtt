@@ -3209,3 +3209,31 @@ model JobAlarmSettings {
 
   @@map("job_alarm_settings")
 }
+
+/// A rep / driver action done offline that reached the server more than 2 hours later (6.9.0).
+/// Not applied by itself: the office approves (applied at its original time) or rejects it.
+model OfflineActionRequest {
+  id           String    @id @default(uuid())
+  trafficJobId String    @map("traffic_job_id")
+  userId       String    @map("user_id")
+  /// REP | DRIVER
+  role         String
+  /// IN_PLACE | IN_PROGRESS | COMPLETED | NO_SHOW | STATUS | COLLECTED
+  kind         String
+  occurredAt   DateTime  @map("occurred_at")
+  receivedAt   DateTime  @default(now()) @map("received_at")
+  latitude     Float?
+  longitude    Float?
+  imageUrls    String[]  @default([]) @map("image_urls")
+  /// Extra fields (status, odometerKm, collected …).
+  payload      Json?
+  /// PENDING | APPROVED | REJECTED | FAILED
+  status       String    @default("PENDING")
+  decidedById  String?   @map("decided_by_id")
+  decidedAt    DateTime? @map("decided_at")
+  note         String?
+
+  @@index([status, receivedAt])
+  @@index([trafficJobId])
+  @@map("offline_action_requests")
+}

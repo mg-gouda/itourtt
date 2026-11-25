@@ -35,6 +35,8 @@ import { JobAlertsService } from '../common/services/job-alerts.service.js';
 import { AckJobAlertDto } from '../common/dto/job-alerts.dto.js';
 import { IsString, IsIn, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 import { stampEvidenceImage, StampMeta } from '../common/utils/stamp-image.js';
+import { parseOccurredAt, runAt } from '../common/utils/request-clock.js';
+import { OfflineActionsService } from '../offline-actions/offline-actions.service.js';
 
 const uploadsDir = path.join(process.cwd(), 'uploads', 'no-show');
 if (!fs.existsSync(uploadsDir)) {
@@ -52,6 +54,11 @@ if (!fs.existsSync(inProgressUploadsDir)) {
 const memStore = memoryStorage();
 
 class UpdateJobStatusDto {
+  /** Offline (6.9.0): when it was really done (ISO). */
+  @IsOptional()
+  @IsString()
+  occurredAt?: string;
+
   @IsString()
   @IsIn(['IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
   status!: string;
@@ -65,6 +72,10 @@ class UpdateJobStatusDto {
 }
 
 class MarkCollectedDto {
+  @IsOptional()
+  @IsString()
+  occurredAt?: string;
+
   @IsBoolean()
   collected!: boolean;
 }
@@ -84,6 +95,7 @@ class DateQueryDto {
 @UseInterceptors(RecordLocationInterceptor)
 export class DriverPortalController {
   constructor(
+    private readonly offline: OfflineActionsService,
     private readonly driverPortalService: DriverPortalService,
     private readonly googleDriveService: GoogleDriveService,
     private readonly jobAlerts: JobAlertsService,
@@ -155,13 +167,17 @@ export class DriverPortalController {
     @Param('jobId') jobId: string,
     @Body() dto: UpdateJobStatusDto,
   ) {
-    const result = await this.driverPortalService.updateJobStatus(
+    const off = parseOccurredAt(dto.occurredAt);
+    const report = { userId, role: 'DRIVER' as const, jobId, kind: 'STATUS' as const, status: dto.status, occurredAt: off?.at ?? new Date(), latitude: dto.latitude, longitude: dto.longitude, photos: 0, photosLater: false };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls: [] }), 'Saved for office approval');
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.driverPortalService.updateJobStatus(
       userId,
       jobId,
       dto.status as any,
       dto.latitude,
       dto.longitude,
-    );
+    ));
+    if (off) void this.offline.announce(report);
     return new ApiResponse(result, 'Job status updated');
   }
 
@@ -171,7 +187,11 @@ export class DriverPortalController {
     @Param('jobId') jobId: string,
     @Body() dto: MarkCollectedDto,
   ) {
-    const result = await this.driverPortalService.markCollected(userId, jobId, dto.collected);
+    const off = parseOccurredAt(dto.occurredAt);
+    const report = { userId, role: 'DRIVER' as const, jobId, kind: 'COLLECTED' as const, occurredAt: off?.at ?? new Date(), photos: 0, photosLater: false };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls: [], payload: { collected: dto.collected } }), 'Saved for office approval');
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.driverPortalService.markCollected(userId, jobId, dto.collected));
+    if (off) void this.offline.announce(report);
     return new ApiResponse(result, 'Collection status updated');
   }
 
@@ -181,9 +201,9 @@ export class DriverPortalController {
     @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { latitude: string; longitude: string },
+    @Body() body: { latitude: string; longitude: string; occurredAt?: string; photosLater?: string },
   ) {
-    if (!files || files.length < 1) {
+    if (!(Number(body.photosLater) > 0) && (!files || files.length < 1)) {
       throw new BadRequestException('At least one image is required for no-show evidence');
     }
 
@@ -195,11 +215,17 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId, 'NO_SHOW').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
-    await this.driverPortalService.precheckGeofence(userId, jobId, 'NO_SHOW', latitude, longitude);
-    const imageUrls = await this.uploadFiles(files, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta);
+    // Offline (6.9.0): `occurredAt` = when it was really done; photos may follow (photosLater).
+    const off = parseOccurredAt(body.occurredAt);
+    const list = files ?? [];
+    const stampMeta = list.length ? await this.driverPortalService.getJobStampMeta(jobId, 'NO_SHOW').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; }) : undefined;
+    if (!off?.late) await this.driverPortalService.precheckGeofence(userId, jobId, 'NO_SHOW', latitude, longitude);
+    const imageUrls = list.length ? await this.uploadFiles(list, jobId, 'no-show', 'no-show', latitude, longitude, stampMeta) : [];
+    const report = { userId, role: 'DRIVER' as const, jobId, kind: 'NO_SHOW' as const, occurredAt: off?.at ?? new Date(), latitude, longitude, photos: imageUrls.length, photosLater: Number(body.photosLater) > 0 };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls }), 'Saved for office approval');
 
-    const result = await this.driverPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude);
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.driverPortalService.submitNoShow(userId, jobId, imageUrls, latitude, longitude));
+    if (off) void this.offline.announce(report);
     return new ApiResponse(result, 'No-show evidence submitted');
   }
 
@@ -209,9 +235,9 @@ export class DriverPortalController {
     @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { latitude: string; longitude: string },
+    @Body() body: { latitude: string; longitude: string; occurredAt?: string; photosLater?: string },
   ) {
-    if (!files || files.length < 1) {
+    if (!(Number(body.photosLater) > 0) && (!files || files.length < 1)) {
       throw new BadRequestException('At least one image is required for in-progress evidence');
     }
 
@@ -223,11 +249,17 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId, 'IN_PROGRESS').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
-    await this.driverPortalService.precheckGeofence(userId, jobId, 'IN_PROGRESS', latitude, longitude);
-    const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'in-progress', latitude, longitude, stampMeta);
+    // Offline (6.9.0): `occurredAt` = when it was really done; photos may follow (photosLater).
+    const off = parseOccurredAt(body.occurredAt);
+    const list = files ?? [];
+    const stampMeta = list.length ? await this.driverPortalService.getJobStampMeta(jobId, 'IN_PROGRESS').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; }) : undefined;
+    if (!off?.late) await this.driverPortalService.precheckGeofence(userId, jobId, 'IN_PROGRESS', latitude, longitude);
+    const imageUrls = list.length ? await this.uploadFiles(list, jobId, 'driver', 'in-progress', latitude, longitude, stampMeta) : [];
+    const report = { userId, role: 'DRIVER' as const, jobId, kind: 'IN_PROGRESS' as const, occurredAt: off?.at ?? new Date(), latitude, longitude, photos: imageUrls.length, photosLater: Number(body.photosLater) > 0 };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls }), 'Saved for office approval');
 
-    const result = await this.driverPortalService.submitInProgress(userId, jobId, imageUrls, latitude, longitude);
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.driverPortalService.submitInProgress(userId, jobId, imageUrls, latitude, longitude));
+    if (off) void this.offline.announce(report);
     return new ApiResponse(result, 'In-progress evidence submitted');
   }
 
@@ -237,17 +269,20 @@ export class DriverPortalController {
     @CurrentUser('id') userId: string,
     @Param('jobId') jobId: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { latitude: string; longitude: string; odometerKm?: string },
+    @Body() body: { latitude: string; longitude: string; odometerKm?: string; occurredAt?: string; photosLater?: string },
   ) {
-    if (!files || files.length < 1) {
+    if (!(Number(body.photosLater) > 0) && (!files || files.length < 1)) {
       throw new BadRequestException('At least one image is required for completed evidence');
     }
     // Owned car: the odometer photo (read by AI, or typed after two failed reads) is required.
-    const odometer = await this.tripKm.assertForCompletion(
+    // Offline completions (6.9.0) go through even when the odometer photo could not be read yet —
+    // the reading is then checked in Trip km.
+    const odometerCheck = this.tripKm.assertForCompletion(
       await this.driverPortalService.resolveDriverId(userId),
       jobId,
       body.odometerKm,
     );
+    const odometer = body.occurredAt ? await odometerCheck.catch(() => null) : await odometerCheck;
 
     // GPS is mandatory: reject the evidence upload when a fix is missing so
     // location is never absent from the audit trail.
@@ -257,11 +292,17 @@ export class DriverPortalController {
       throw new BadRequestException('Valid GPS coordinates are required');
     }
 
-    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId, 'COMPLETED').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; });
-    await this.driverPortalService.precheckGeofence(userId, jobId, 'COMPLETED', latitude, longitude);
-    const imageUrls = await this.uploadFiles(files, jobId, 'driver', 'completed', latitude, longitude, stampMeta);
+    // Offline (6.9.0): `occurredAt` = when it was really done; photos may follow (photosLater).
+    const off = parseOccurredAt(body.occurredAt);
+    const list = files ?? [];
+    const stampMeta = list.length ? await this.driverPortalService.getJobStampMeta(jobId, 'COMPLETED').catch((e) => { console.error('[stamp] getJobStampMeta failed:', e); return undefined; }) : undefined;
+    if (!off?.late) await this.driverPortalService.precheckGeofence(userId, jobId, 'COMPLETED', latitude, longitude);
+    const imageUrls = list.length ? await this.uploadFiles(list, jobId, 'driver', 'completed', latitude, longitude, stampMeta) : [];
+    const report = { userId, role: 'DRIVER' as const, jobId, kind: 'COMPLETED' as const, occurredAt: off?.at ?? new Date(), latitude, longitude, photos: imageUrls.length, photosLater: Number(body.photosLater) > 0 };
+    if (off?.late) return new ApiResponse(await this.offline.hold({ ...report, imageUrls }), 'Saved for office approval');
 
-    const result = await this.driverPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude);
+    const result = await runAt(off?.at ?? new Date(), !!off, () => this.driverPortalService.submitCompleted(userId, jobId, imageUrls, latitude, longitude));
+    if (off) void this.offline.announce(report);
     if (odometer) await this.tripKm.confirm(odometer.id);
     return new ApiResponse(result, 'Completed evidence submitted');
   }
@@ -364,6 +405,35 @@ export class DriverPortalController {
   // ──────────────────────────────────────────────────────────────────────────
   // Upload helper — tries Drive first, falls back to local disk
   // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Photos that followed a status sent without them (6.9.0 — weak signal: the status goes first).
+   * Added to that action's evidence (or to its held offline request).
+   */
+  @Post('jobs/:jobId/evidence-photos')
+  @UseInterceptors(FilesInterceptor('images', 10, { storage: memStore }))
+  async addEvidencePhotos(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { kind: string; latitude?: string; longitude?: string },
+  ) {
+    const where: Record<string, ['rep' | 'driver' | 'no-show', string]> = {
+      IN_PROGRESS: ['driver', 'in-progress'],
+      COMPLETED: ['driver', 'completed'],
+      NO_SHOW: ['no-show', 'no-show'],
+    };
+    const target = where[body.kind];
+    if (!target) throw new BadRequestException('Unknown evidence kind');
+    if (!files?.length) throw new BadRequestException('No photos');
+    const lat = body.latitude != null ? parseFloat(body.latitude) : NaN;
+    const lng = body.longitude != null ? parseFloat(body.longitude) : NaN;
+    const stampMeta = await this.driverPortalService.getJobStampMeta(jobId, body.kind as never).catch(() => undefined);
+    const urls = await this.uploadFiles(files, jobId, target[0], target[1] as never, Number.isNaN(lat) ? null as never : lat, Number.isNaN(lng) ? null as never : lng, stampMeta);
+    const held = await this.offline.addHeldPhotos(userId, jobId, body.kind, urls);
+    if (!held) await this.offline.appendEvidence(jobId, body.kind, urls);
+    return new ApiResponse({ added: urls.length }, 'Photos added');
+  }
 
   private async uploadFiles(
     files: Express.Multer.File[],

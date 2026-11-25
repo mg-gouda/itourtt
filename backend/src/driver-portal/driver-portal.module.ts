@@ -10,10 +10,12 @@ import { EmailModule } from '../email/email.module.js';
 import { GoogleDriveModule } from '../google-drive/google-drive.module.js';
 import { JobCompletionModule } from '../common/services/job-completion.module.js';
 import { JobAlertsModule } from '../common/services/job-alerts.module.js';
+import { OfflineActionsModule } from '../offline-actions/offline-actions.module.js';
 
 @Module({
-  imports: [TripKmModule, ComplaintsModule, TrackingModule, EmailModule, GoogleDriveModule, JobCompletionModule, JobAlertsModule],
+  imports: [TripKmModule, ComplaintsModule, TrackingModule, EmailModule, GoogleDriveModule, JobCompletionModule, JobAlertsModule, OfflineActionsModule],
   controllers: [DriverPortalController],
   providers: [DriverPortalService, NoShowDisputeService, SupplierAutoCompleteService],
+  exports: [DriverPortalService],
 })
 export class DriverPortalModule {}

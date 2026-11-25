@@ -122,3 +122,6 @@ export type { AlarmKind, AlarmJob, AlarmPortal, PendingAlarm, AlarmKeyInfo, Star
 
 export { refreshPermissionHealth, getPermissionHealth, onPermissionHealthChange, fixPermission } from './native/permission-health';
 export type { PermissionItem, PermissionKey } from './native/permission-health';
+
+export { startOutbox, flushOutbox, loadOutbox, outboxItems, onOutboxChange, dismissOutboxItem, isQueued, isNetworkError } from './native/outbox';
+export type { OutboxItem } from './native/outbox';

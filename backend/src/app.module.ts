@@ -53,6 +53,7 @@ import { SupplierPriceListsModule } from './supplier-price-lists/supplier-price-
 import { UserPreferencesModule } from './user-preferences/user-preferences.module.js';
 import { ContactMessagesModule } from './contact-messages/contact-messages.module.js';
 import { PartnerModule } from './partner/partner.module.js';
+import { OfflineApprovalModule } from './offline-actions/offline-approval.module.js';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { PartnerModule } from './partner/partner.module.js';
     RepPortalModule,
     TrackingModule,
     ChatModule,
+    OfflineApprovalModule,
     MobileAppsModule,
     DriverPortalModule,
     WhatsappNotificationsModule,

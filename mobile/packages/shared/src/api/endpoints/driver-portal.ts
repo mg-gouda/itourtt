@@ -1,4 +1,6 @@
 import api from '../client';
+import type { AxiosResponse } from 'axios';
+import { cachedGet, overlayJobs, queueForm, queueJson } from '../../native/outbox';
 import type { DriverPortalJob, DriverProfile, PortalNotification, PortalComplaint, PortalDeduction } from '../../types';
 
 /**
@@ -13,8 +15,11 @@ import type { DriverPortalJob, DriverProfile, PortalNotification, PortalComplain
  *   CANCELLED              PATCH /status      (GPS)
  */
 export const driverPortalApi = {
+  /** Saved on the phone; with no signal the saved list comes back (`fromCache`) — offline jobs, 1.9.0. */
   getJobs(date: string) {
-    return api.get<{ data: { date: string; jobs: DriverPortalJob[] } }>('/driver-portal/jobs', { params: { date } });
+    return cachedGet(`driver:jobs:${date}`, () => api.get('/driver-portal/jobs', { params: { date } }), overlayJobs<DriverPortalJob>('driverStatus')) as Promise<
+      AxiosResponse<{ data: { date: string; jobs: DriverPortalJob[] } }>
+    >;
   },
 
   getJobHistory(dateFrom: string, dateTo: string) {
@@ -25,49 +30,38 @@ export const driverPortalApi = {
 
   /** One job's full record (driverStatus lives on assignment; no noShowAvailableFrom). */
   getJobDetail(jobId: string) {
-    return api.get(`/driver-portal/jobs/${jobId}`);
+    return cachedGet(`driver:job:${jobId}`, () => api.get(`/driver-portal/jobs/${jobId}`));
   },
 
   updateJobStatus(jobId: string, status: string, latitude?: number, longitude?: number) {
-    return api.patch(`/driver-portal/jobs/${jobId}/status`, { status, latitude, longitude });
+    return queueJson('driver', jobId, 'STATUS', 'patch', `/driver-portal/jobs/${jobId}/status`, { status, latitude, longitude }, status);
   },
 
   markCollection(jobId: string) {
-    return api.patch(`/driver-portal/jobs/${jobId}/collection`, { collected: true });
+    return queueJson('driver', jobId, 'COLLECTED', 'patch', `/driver-portal/jobs/${jobId}/collection`, { collected: true });
   },
 
   submitInProgress(jobId: string, formData: FormData) {
-    return api.post(`/driver-portal/jobs/${jobId}/in-progress`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
-    });
+    return queueForm('driver', jobId, 'IN_PROGRESS', `/driver-portal/jobs/${jobId}/in-progress`, formData, 'IN_PROGRESS');
   },
 
   submitCompleted(jobId: string, formData: FormData) {
-    return api.post(`/driver-portal/jobs/${jobId}/completed`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
-    });
+    return queueForm('driver', jobId, 'COMPLETED', `/driver-portal/jobs/${jobId}/completed`, formData, 'COMPLETED');
   },
 
   /** Owned car → completing needs an odometer photo; what was read so far. */
   getOdometer(jobId: string) {
-    return api.get(`/driver-portal/jobs/${jobId}/odometer`);
+    return cachedGet(`driver:odo:${jobId}`, () => api.get(`/driver-portal/jobs/${jobId}/odometer`));
   },
 
   /** Odometer photo (field `image`): the server reads the km with AI and returns the status. */
   captureOdometer(jobId: string, formData: FormData) {
-    return api.post(`/driver-portal/jobs/${jobId}/odometer`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 90000,
-    });
+    // Offline: the photo is sent (and read) later; the driver types the km meanwhile.
+    return queueForm('driver', jobId, 'ODOMETER', `/driver-portal/jobs/${jobId}/odometer`, formData, undefined, 90000);
   },
 
   submitNoShow(jobId: string, formData: FormData) {
-    return api.post(`/driver-portal/jobs/${jobId}/no-show`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 120000,
-    });
+    return queueForm('driver', jobId, 'NO_SHOW', `/driver-portal/jobs/${jobId}/no-show`, formData, 'NO_SHOW');
   },
 
   getComplaints() {

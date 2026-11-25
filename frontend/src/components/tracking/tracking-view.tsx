@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Car, Loader2, MapPin, Phone, RefreshCw, Search, UserCheck, Wifi, X } from "lucide-react";
+import { Car, Loader2, MapPin, Phone, RefreshCw, Search, UserCheck, Wifi, WifiOff, X } from "lucide-react";
+import { formatTime24 } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -352,6 +353,13 @@ export function TrackingView({ kind }: TrackingViewProps) {
                                 <MapPin className="mr-1 inline h-3 w-3" />
                                 {relativeAge(p.location.recordedAt, loadedAt, t)} ·{" "}
                                 {t(`tracking.source${p.location.source}`)}
+                                {/* 6.9.0: a phone without signal keeps working offline — say since when. */}
+                                {!p.online && freshnessOf(p, loadedAt) === "stale" && (
+                                  <span className="ms-1 inline-flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-300">
+                                    <WifiOff className="h-3 w-3" aria-hidden="true" />
+                                    {t("tracking.offlineSince").replace("{time}", formatTime24(p.location.recordedAt) ?? "")}
+                                  </span>
+                                )}
                               </>
                             ) : p.hasAccount ? (
                               t("tracking.neverReported")

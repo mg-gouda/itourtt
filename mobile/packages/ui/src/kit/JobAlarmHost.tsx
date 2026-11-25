@@ -11,6 +11,7 @@ import {
   minutesLeftText,
   onAlarmsChange,
   refreshJobAlerts,
+  startOutbox,
   reloadForNewSounds,
   soundUpdateAvailable,
   t,
@@ -50,6 +51,8 @@ export function JobAlarmHost({ portal, onOpenJob }: { portal: AlarmPortal; onOpe
       }),
     [],
   );
+  // Offline jobs (1.9.0): send what waited whenever the signal returns.
+  useEffect(() => startOutbox(), []);
   // The button pressed on the notification while the app is open.
   useEffect(() => watchAlarmActions(), []);
 

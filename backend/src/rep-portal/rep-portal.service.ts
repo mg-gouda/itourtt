@@ -19,6 +19,7 @@ import {
   type NoShowWaitSource,
 } from '../common/utils/no-show-window.util.js';
 import { JobCompletionService } from '../common/services/job-completion.service.js';
+import { clockNow } from '../common/utils/request-clock.js';
 
 type RepJobStatus = 'COMPLETED' | 'CANCELLED';
 
@@ -150,7 +151,7 @@ export class RepPortalService {
 
   async getMyJobs(userId: string, date?: string) {
     const repId = await this.resolveRepId(userId);
-    const jobDate = date ? new Date(date) : new Date();
+    const jobDate = date ? new Date(date) : clockNow();
     if (!date) {
       jobDate.setHours(0, 0, 0, 0);
     }
@@ -310,6 +311,7 @@ export class RepPortalService {
 
       await tx.statusChangeLog.create({
         data: {
+          createdAt: clockNow(),
           assignmentId: assignment.id,
           changedBy: 'REP',
           changedById: repId,
@@ -430,6 +432,7 @@ export class RepPortalService {
 
       await tx.noShowEvidence.create({
         data: {
+          createdAt: clockNow(),
           trafficJobId: jobId,
           imageUrls,
           gpsLatitude: latitude,
@@ -442,6 +445,7 @@ export class RepPortalService {
 
       await tx.statusChangeLog.create({
         data: {
+          createdAt: clockNow(),
           assignmentId: assignment.id,
           changedBy: 'REP',
           changedById: repId,
@@ -515,7 +519,7 @@ export class RepPortalService {
       jobForWindow.serviceType === 'ARR' &&
       !jobForWindow.repUnlockedAt
     ) {
-      const now = new Date();
+      const now = clockNow();
       const arrivalTime = new Date(flight.arrivalTime);
       const windowStart = new Date(arrivalTime.getTime() - 10 * 60 * 1000);
       const windowEnd = new Date(arrivalTime.getTime() + 80 * 60 * 1000);
@@ -563,6 +567,7 @@ export class RepPortalService {
 
       await tx.inPlaceEvidence.create({
         data: {
+          createdAt: clockNow(),
           trafficJobId: jobId,
           imageUrls,
           gpsLatitude: latitude,
@@ -575,6 +580,7 @@ export class RepPortalService {
 
       await tx.statusChangeLog.create({
         data: {
+          createdAt: clockNow(),
           assignmentId: assignment.id,
           changedBy: 'REP',
           changedById: repId,
@@ -815,6 +821,7 @@ export class RepPortalService {
 
       await tx.completedEvidence.create({
         data: {
+          createdAt: clockNow(),
           trafficJobId: jobId,
           imageUrls,
           gpsLatitude: latitude,
@@ -827,6 +834,7 @@ export class RepPortalService {
 
       await tx.statusChangeLog.create({
         data: {
+          createdAt: clockNow(),
           assignmentId: assignment.id,
           changedBy: 'REP',
           changedById: repId,
@@ -1239,7 +1247,7 @@ export class RepPortalService {
   private checkRepTimelock(job: { jobDate: Date; repUnlockedAt?: Date | null }) {
     if (job.repUnlockedAt) return;
     const cutoff = new Date(job.jobDate.getTime() + FORTY_EIGHT_HOURS_MS);
-    if (new Date() > cutoff) {
+    if (clockNow() > cutoff) {
       throw new ForbiddenException(
         'Reps cannot update job status more than 48 hours after the service date.',
       );
