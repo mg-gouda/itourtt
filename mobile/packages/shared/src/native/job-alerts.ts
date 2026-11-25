@@ -51,6 +51,8 @@ const isStart = isStartAlarm;
 export interface StartAlarm {
   kind: string;
   minutes: number;
+  /** This alarm's own sound in Company › Alerts (apps 1.8.0), or null = built-in. */
+  soundUrl?: string | null;
   /** The alarm nearest the job: answered "On the way"; the earlier ones "Seen". */
   last: boolean;
 }
@@ -103,6 +105,102 @@ const OLD_CHANNEL_ALARMS = ['itour_job_alarms', 'itour_job_alarms_v2'];
 /** res/raw/job_alarm.wav in both apps — same sound as the web (frontend/public/sounds/job-alarm.wav). */
 export const ALARM_SOUND = 'job_alarm';
 const ALARM_KEY_STORE = 'jobAlarmKey';
+
+/** Every alarm channel in use (the built-in one + one per uploaded alarm sound). */
+export function alarmChannelIds(): string[] {
+  return [CHANNEL_ALARMS, ...new Set(Object.values(soundMap))];
+}
+
+// ── Alarm sounds from Company › Alerts (apps 1.8.0) ─────────────────────────
+// Each uploaded sound is downloaded once into the app's files and played by its own alarm channel
+// (native AlarmSounds module). A sound changed while the app runs shows "Reload app"; the download
+// happens on the next start, in the background.
+const SOUND_STORE = 'jobAlarmSounds';
+const CUSTOM_PREFIX = 'itour_alarm_s_';
+let soundMap: Record<string, string> = {}; // alarm kind → channel id
+let soundVersion: string | null = null;
+let soundsLoaded = false;
+let firstRefresh = true;
+let soundUpdatePending = false;
+let syncingSounds = false;
+
+async function loadSoundState() {
+  if (soundsLoaded) return;
+  soundsLoaded = true;
+  try {
+    const raw = await EncryptedStorage.getItem(SOUND_STORE);
+    const v = raw ? JSON.parse(raw) : null;
+    if (v && typeof v === 'object') {
+      soundMap = v.map ?? {};
+      soundVersion = v.version ?? null;
+    }
+  } catch {
+    /* start with built-in */
+  }
+}
+
+/** A sound changed on the server since this app started — offer "Reload app". */
+export function soundUpdateAvailable(): boolean {
+  return soundUpdatePending;
+}
+
+/** Restart the app; the new sounds download in the background as it starts. */
+export function reloadForNewSounds() {
+  NativeModules.AppRestart?.restart?.();
+}
+
+async function applySounds(version: string, list: StartAlarm[]) {
+  const native = NativeModules.AlarmSounds;
+  if (Platform.OS !== 'android' || !native || syncingSounds) return;
+  syncingSounds = true;
+  try {
+    const token = await secureStorage.getAccessToken().catch(() => null);
+    const origin = String(api.defaults.baseURL ?? '').replace(/\/api\/?$/, '');
+    const next: Record<string, string> = {};
+    const files: string[] = [];
+    let failed = false;
+    for (const a of list) {
+      if (!a.soundUrl) continue;
+      const fileName = a.soundUrl.split('/').pop()!.replace(/[^A-Za-z0-9._-]/g, '_');
+      const channelId = CUSTOM_PREFIX + fileName.replace(/[^A-Za-z0-9]/g, '').slice(0, 40);
+      try {
+        await native.download(a.soundUrl.startsWith('http') ? a.soundUrl : origin + a.soundUrl, token, fileName);
+        await native.ensureChannel(channelId, `Job alarm (${a.minutes} min)`, fileName);
+        next[a.kind] = channelId;
+        files.push(fileName);
+      } catch {
+        failed = true; // this alarm keeps the built-in sound; retried at the next start
+      }
+    }
+    await native.cleanup(CUSTOM_PREFIX, Object.values(next), files).catch(() => {});
+    soundMap = next;
+    soundVersion = failed ? null : version;
+    soundUpdatePending = false;
+    await EncryptedStorage.setItem(SOUND_STORE, JSON.stringify({ version: soundVersion, map: soundMap })).catch(() => {});
+    // Re-create the scheduled alarms on their new channels.
+    for (const [id] of scheduled) await notifee.cancelTriggerNotification(id).catch(() => {});
+    scheduled.clear();
+    await scheduleReminders().catch(() => {});
+    emit();
+  } finally {
+    syncingSounds = false;
+  }
+}
+
+/** Called after each alarm refresh with the server's sounds. */
+async function syncSounds(version: string | undefined) {
+  if (!version) return;
+  await loadSoundState();
+  const launch = firstRefresh;
+  firstRefresh = false;
+  if (version === soundVersion) return;
+  if (launch) {
+    void applySounds(version, alarms); // app just started: fetch quietly
+  } else if (!soundUpdatePending) {
+    soundUpdatePending = true; // changed while running: offer "Reload app"
+    emit();
+  }
+}
 const ACK_ACTION = 'alarm-ack';
 
 /** This phone's alarm key (issued at sign-in; survives sign-out). */
@@ -185,17 +283,19 @@ async function ensureAlarmChannel() {
 }
 
 function notificationFor(kind: AlarmKind, job: AlarmJob) {
+  const custom = soundMap[kind];
   return {
     id: keyOf(job.jobId, kind),
     title: `⏰ ${alarmTitle(kind)} · ${job.internalRef}`,
     body: alarmBody(kind, job),
     data: { type: 'ALARM', jobId: job.jobId, kind },
     android: {
-      channelId: CHANNEL_ALARMS,
+      // This alarm's own sound (Company › Alerts) plays through its channel; else the built-in one.
+      channelId: custom ?? CHANNEL_ALARMS,
       importance: AndroidImportance.HIGH,
       visibility: AndroidVisibility.PUBLIC,
       category: AndroidCategory.ALARM,
-      sound: ALARM_SOUND,
+      ...(custom ? {} : { sound: ALARM_SOUND }),
       smallIcon: 'ic_notification',
       pressAction: { id: 'default' },
       // Alarm clock: wake the screen over the lock screen and keep ringing until acknowledged.
@@ -301,10 +401,12 @@ export async function refreshJobAlerts(p: AlarmPortal, background = false): Prom
       portal = p;
       keyMode = false;
       const res = await api.get(`/${p}-portal/alerts`, { headers: { 'X-Background-Poll': '1' } });
-      const data = unwrapData<{ reminders?: AlarmJob[]; dropoffs?: AlarmJob[]; alarms?: StartAlarm[] }>(res.data);
+      const data = unwrapData<{ reminders?: AlarmJob[]; dropoffs?: AlarmJob[]; alarms?: StartAlarm[]; soundsVersion?: string }>(res.data);
       reminders = data?.reminders ?? [];
       dropoffs = data?.dropoffs ?? [];
       if (Array.isArray(data?.alarms) && data.alarms.length) alarms = data.alarms;
+      await loadSoundState();
+      void syncSounds(data?.soundsVersion);
     } else {
       // Signed out: this phone's alarm key keeps the start reminders in sync.
       const k = await getAlarmKeyInfo();

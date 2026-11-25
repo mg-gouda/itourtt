@@ -64,5 +64,15 @@
         android:exported="false"
         android:foregroundServiceType="location|dataSync"
         tools:replace="android:foregroundServiceType" />
+      <!-- Alarm sounds from Company › Alerts (apps 1.8.0) -->
+      <provider
+        android:name="androidx.core.content.FileProvider"
+        android:authorities="${applicationId}.alarmsounds"
+        android:exported="false"
+        android:grantUriPermissions="true">
+        <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/alarm_sound_paths" />
+      </provider>
     </application>
 </manifest>

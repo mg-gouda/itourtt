@@ -20,7 +20,7 @@ import {
 } from '@itour/shared';
 import { Icon } from '@itour/ui';
 import type { RootStackParamList } from '../navigation/RootNavigator';
-import { Segmented, SectionTitle, Surface, brandGradient } from '@itour/ui';
+import { Segmented, SectionTitle, Surface, brandGradient, PermissionsSection } from '@itour/ui';
 import { useNotificationsStore } from '../lib/notifications-store';
 import { APP_VERSION } from '../lib/version';
 
@@ -67,6 +67,16 @@ export function ProfileScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.hero, { paddingTop: insets.top + 24 }]}
       >
+        {navigation.canGoBack() ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            onPress={() => navigation.goBack()}
+            style={[styles.back, { top: insets.top + 8 }]}
+          >
+            <Icon name="arrow-back" size={24} color="#fff" />
+          </Pressable>
+        ) : null}
         <View style={styles.avatarRing}>
           <View style={[styles.avatar, { backgroundColor: colors.brandAccent }]}>
             <Text style={styles.avatarText}>{initials || '?'}</Text>
@@ -100,6 +110,8 @@ export function ProfileScreen() {
             <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{t('repApp.feePerFlight')}</Text>
           </Surface>
         </View>
+
+        <PermissionsSection />
 
         <Surface>
           <SectionTitle title={t('repApp.appearance')} icon="color-palette" />
@@ -188,6 +200,7 @@ function MenuRow({
 }
 
 const styles = StyleSheet.create({
+  back: { position: 'absolute', left: 8, width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   hero: {
     alignItems: 'center',
     paddingBottom: 30,

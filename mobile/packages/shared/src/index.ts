@@ -115,5 +115,10 @@ export {
   minutesLeftText,
   unsentAnswerCount,
   flushUnsent,
+  soundUpdateAvailable,
+  reloadForNewSounds,
 } from './native/job-alerts';
 export type { AlarmKind, AlarmJob, AlarmPortal, PendingAlarm, AlarmKeyInfo, StartAlarm } from './native/job-alerts';
+
+export { refreshPermissionHealth, getPermissionHealth, onPermissionHealthChange, fixPermission } from './native/permission-health';
+export type { PermissionItem, PermissionKey } from './native/permission-health';

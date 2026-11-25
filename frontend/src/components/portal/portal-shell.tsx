@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { homeForRole } from "@/lib/role-home";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LicenseGate } from "@/components/license-gate";
-import { Plane, Truck, Bell, History, MessageCircle, MessageSquareWarning, User, Route } from "lucide-react";
+import { Plane, Truck, Bell, History, MessageCircle, MessageSquareWarning, Settings, Star, Route } from "lucide-react";
 import api, { backgroundPoll } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useChatMe } from "@/lib/chat";
@@ -23,8 +23,9 @@ type PortalKind = "rep" | "driver";
 /**
  * Shared frame of the rep and driver web portals (they were two 200-line copies).
  * UI review 1d: five tabs with 12px labels — History · Chat · [Jobs] · Complaints ·
- * Profile — with Jobs as the larger raised button in the centre (route icon).
- * Log out moved into Profile, behind a confirmation.
+ * Review (coming soon, 6.8.0) — with Jobs as the larger raised button in the centre
+ * (route icon). Profile / settings is the gear next to the bell; Log out is inside it,
+ * behind a confirmation.
  */
 export function PortalLayout({ kind, children }: { kind: PortalKind; children: React.ReactNode }) {
   const router = useRouter();
@@ -128,6 +129,14 @@ function PortalShell({ kind, user, children }: { kind: PortalKind; user: { name:
           </Link>
           <div className="flex items-center gap-1">
             <Link
+              href={`${base}/profile`}
+              aria-label={t("portal.settings")}
+              aria-current={pathname.startsWith(`${base}/profile`) ? "page" : undefined}
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-foreground hover:bg-muted"
+            >
+              <Settings className="h-5 w-5" aria-hidden="true" />
+            </Link>
+            <Link
               href={`${base}#notifications`}
               aria-label={t("portal.notifications")}
               className="relative flex h-11 w-11 items-center justify-center rounded-lg text-foreground hover:bg-muted"
@@ -177,7 +186,7 @@ function PortalShell({ kind, user, children }: { kind: PortalKind; user: { name:
             {t("portal.jobs")}
           </Link>
           {side(`${base}/complaints`, t("portal.complaints"), MessageSquareWarning)}
-          {side(`${base}/profile`, t("portal.profile"), User)}
+          {side(`${base}/review`, t("portal.review"), Star)}
         </div>
       </nav>
     </div>

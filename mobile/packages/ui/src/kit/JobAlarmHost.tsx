@@ -11,6 +11,8 @@ import {
   minutesLeftText,
   onAlarmsChange,
   refreshJobAlerts,
+  reloadForNewSounds,
+  soundUpdateAvailable,
   t,
   unsentAnswerCount,
   watchAlarmActions,
@@ -37,12 +39,14 @@ const BLUE = '#1E40AF';
 export function JobAlarmHost({ portal, onOpenJob }: { portal: AlarmPortal; onOpenJob?: (jobId: string) => void }) {
   const [queue, setQueue] = useState<PendingAlarm[]>(getPendingAlarms());
   const [unsent, setUnsent] = useState(unsentAnswerCount());
+  const [newSound, setNewSound] = useState(soundUpdateAvailable());
 
   useEffect(
     () =>
       onAlarmsChange(() => {
         setQueue(getPendingAlarms());
         setUnsent(unsentAnswerCount());
+        setNewSound(soundUpdateAvailable());
       }),
     [],
   );
@@ -77,7 +81,20 @@ export function JobAlarmHost({ portal, onOpenJob }: { portal: AlarmPortal; onOpe
       </View>
     ) : null;
 
-  if (!current) return unsentNote;
+  // Alarm sounds changed in Company › Alerts: one tap restarts the app and fetches them.
+  const soundNote = newSound && !current ? (
+    <View style={[styles.unsent, styles.soundNote]}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.soundTitle}>{t('repApp.soundUpdateTitle')}</Text>
+        <Text style={styles.unsentText}>{t('repApp.soundUpdateBody')}</Text>
+      </View>
+      <Pressable accessibilityRole="button" onPress={reloadForNewSounds} style={({ pressed }) => [styles.reloadBtn, { opacity: pressed ? 0.85 : 1 }]}>
+        <Text style={styles.reloadText}>{t('repApp.soundUpdateReload')}</Text>
+      </Pressable>
+    </View>
+  ) : null;
+
+  if (!current) return soundNote ?? unsentNote;
   const { kind, job } = current;
   const isStart = isStartAlarm(kind);
   const seen = isStart && isSeenAlarm(kind);
@@ -173,4 +190,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   unsentText: { color: '#FEF3C7', fontSize: 14, lineHeight: 20 },
+  soundNote: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  soundTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', marginBottom: 2 },
+  reloadBtn: { minHeight: 44, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center' },
+  reloadText: { color: '#1C1003', fontSize: 14, fontWeight: '900' },
 });

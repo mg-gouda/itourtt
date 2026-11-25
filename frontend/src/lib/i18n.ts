@@ -5,6 +5,16 @@ export type Locale = "en" | "ar";
 
 const translations: Record<Locale, Record<string, string>> = {
   en: {
+    "alerts.soundDescPerAlarm": "Each alarm can have its own sound, used by the office popups, the rep / driver web portals and the apps. An alarm without its own sound uses the shared sound (or the built-in two-tone). MP3 recommended, up to 2 MB, a few seconds long — it loops until answered.",
+    "alerts.soundForAlarm": "Alarm {n} ({m} min)",
+    "alerts.soundShared": "Shared sound",
+    "alerts.soundUsesShared": "Uses the shared sound",
+    "alerts.soundClear": "Remove",
+    "alerts.soundAppsNoteLive": "Apps 1.8.0 and later download a changed sound when the person taps \"Reload app\" on the notice they get; older apps keep the built-in sound.",
+    "portal.review": "Review",
+    "portal.reviewTitle": "Reviews",
+    "portal.comingSoon": "COMING SOON",
+    "portal.reviewSoonBody": "Your guest reviews and ratings will appear here.",
     "chat.emoji": "Emoji",
     "chat.emojiGroup.recent": "Recent",
     "chat.emojiGroup.smileys": "Smileys",
@@ -2117,6 +2127,16 @@ const translations: Record<Locale, Record<string, string>> = {
   },
 
   ar: {
+    "alerts.soundDescPerAlarm": "يمكن أن يكون لكل تنبيه صوته الخاص، ويُستخدم في نوافذ المكتب وبوابات المندوب والسائق والتطبيقات. التنبيه بدون صوت خاص يستخدم الصوت المشترك (أو النغمة المدمجة). يُفضّل MP3 حتى 2 ميجابايت ولمدة ثوانٍ قليلة — يتكرر حتى الرد.",
+    "alerts.soundForAlarm": "التنبيه {n} ({m} دقيقة)",
+    "alerts.soundShared": "الصوت المشترك",
+    "alerts.soundUsesShared": "يستخدم الصوت المشترك",
+    "alerts.soundClear": "إزالة",
+    "alerts.soundAppsNoteLive": "تقوم التطبيقات من الإصدار 1.8.0 بتنزيل الصوت الجديد عند الضغط على \"إعادة تشغيل التطبيق\" في التنبيه الذي يظهر لهم؛ الإصدارات الأقدم تحتفظ بالصوت المدمج.",
+    "portal.review": "التقييم",
+    "portal.reviewTitle": "التقييمات",
+    "portal.comingSoon": "قريبًا",
+    "portal.reviewSoonBody": "ستظهر هنا تقييمات الضيوف وآراؤهم.",
     "chat.emoji": "رموز تعبيرية",
     "chat.emojiGroup.recent": "الأخيرة",
     "chat.emojiGroup.smileys": "الوجوه",

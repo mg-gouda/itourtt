@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Alarm sounds downloaded from Company › Alerts (apps 1.8.0), shared with the system UI as channel sounds. -->
+<paths>
+    <files-path name="alarm_sounds" path="alarm-sounds/" />
+</paths>

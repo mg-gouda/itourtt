@@ -14,7 +14,7 @@ import { ChatWidget } from "@/components/chat/chat-widget";
 import { PushPrompt } from "@/components/push-prompt";
 import { TripKmReminder } from "@/components/trip-km-reminder";
 import api from "@/lib/api";
-import { setAlarmSoundUrl } from "@/lib/alarm-sound";
+import { setAlarmSoundUrl, setAlarmSounds } from "@/lib/alarm-sound";
 
 function DashboardFrame({ children }: { children: React.ReactNode }) {
   const { settings } = useTheme();
@@ -55,7 +55,15 @@ export default function DashboardLayout({
     if (mounted && isAuthenticated && isStaff) {
       loadCompanySettings();
       // Company › Alerts: an uploaded alarm sound replaces the built-in one in the office popups.
-      api.get("/job-alarm-settings").then(({ data }) => setAlarmSoundUrl(data?.data?.soundUrl ?? null)).catch(() => {});
+      const loadSounds = () =>
+        api.get("/job-alarm-settings").then(({ data }) => {
+          setAlarmSoundUrl(data?.data?.soundUrl ?? null);
+          setAlarmSounds(data?.data?.alarms ?? null);
+        }).catch(() => {});
+      loadSounds();
+      // A sound changed in Company › Alerts reaches open office tabs within a minute.
+      const id = setInterval(loadSounds, 60_000);
+      return () => clearInterval(id);
     }
   }, [mounted, isAuthenticated, isStaff, loadCompanySettings]);
 

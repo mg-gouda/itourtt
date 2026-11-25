@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, Controller, Delete, Get, Post, Put, UploadedFile, UseGuards, UseInterceptors,
+  BadRequestException, Body, Controller, Delete, Get, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -62,13 +62,19 @@ export class JobAlarmSettingsController {
         AUDIO.test(file.mimetype) ? cb(null, true) : cb(new BadRequestException('Upload an audio file (MP3, WAV, OGG, M4A)'), false),
     }),
   )
-  async uploadSound(@UploadedFile() file: Express.Multer.File | undefined, @CurrentUser('id') userId: string) {
+  async uploadSound(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser('id') userId: string,
+    @Query('slot') slot?: string,
+  ) {
     if (!file) throw new BadRequestException('No file uploaded');
     const name = file.originalname.slice(0, 120);
-    return new ApiResponse(
-      await this.jobAlerts.setAlarmSound(`/uploads/alarm-sounds/${file.filename}`, name, userId),
-      'Alarm sound uploaded',
-    );
+    const url = `/uploads/alarm-sounds/${file.filename}`;
+    // ?slot=N — that alarm's own sound (6.8.0); no slot — the shared sound for every alarm.
+    const view = slot != null && slot !== ''
+      ? await this.jobAlerts.setAlarmSlotSound(Number(slot), url, name, userId)
+      : await this.jobAlerts.setAlarmSound(url, name, userId);
+    return new ApiResponse(view, 'Alarm sound uploaded');
   }
 
   /** Back to the built-in two-tone sound. */
@@ -76,7 +82,10 @@ export class JobAlarmSettingsController {
   @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions('company.editSettings')
-  async resetSound(@CurrentUser('id') userId: string) {
-    return new ApiResponse(await this.jobAlerts.setAlarmSound(null, null, userId), 'Built-in alarm sound restored');
+  async resetSound(@CurrentUser('id') userId: string, @Query('slot') slot?: string) {
+    const view = slot != null && slot !== ''
+      ? await this.jobAlerts.setAlarmSlotSound(Number(slot), null, null, userId)
+      : await this.jobAlerts.setAlarmSound(null, null, userId);
+    return new ApiResponse(view, 'Alarm sound reset');
   }
 }

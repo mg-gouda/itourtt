@@ -164,16 +164,22 @@ export function Header() {
   // accepted; "On the way" and a flight delay ring once.
   // Admins see the same popups, but muted (6.2.1).
   const muted = user?.role === "ADMIN" || user?.roleSlug === "admin";
-  const urgentOpen = flightDelayQueue.some((n) => n.type === "ALARM_MISSED" || n.type === "ALARM_WARN_45");
-  const headId = flightDelayQueue[0]?.id;
+  const urgent = flightDelayQueue.find((n) => n.type === "ALARM_MISSED" || n.type === "ALARM_WARN_45");
+  const urgentOpen = !!urgent;
+  // Each popup rings the sound of the alarm it is about (Company › Alerts, 6.8.0).
+  const kindOf = (n?: { metadata?: Record<string, unknown> | null }) => (n?.metadata?.kind as string | undefined) ?? null;
+  const urgentKind = kindOf(urgent);
+  const head = flightDelayQueue[0];
+  const headId = head?.id;
+  const headKind = kindOf(head);
   useEffect(() => {
     if (!urgentOpen || muted) return;
-    startAlarm("office-alarm-alert");
+    startAlarm("office-alarm-alert", urgentKind);
     return () => stopAlarm("office-alarm-alert");
-  }, [urgentOpen, muted]);
+  }, [urgentOpen, urgentKind, muted]);
   useEffect(() => {
-    if (headId && !urgentOpen && !muted) playOnce();
-  }, [headId, urgentOpen, muted]);
+    if (headId && !urgentOpen && !muted) playOnce(headKind);
+  }, [headId, headKind, urgentOpen, muted]);
 
   useEffect(() => {
     fetchNotifications();

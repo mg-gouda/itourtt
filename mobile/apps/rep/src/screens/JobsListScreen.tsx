@@ -22,6 +22,7 @@ import { WeekStrip } from '@itour/ui';
 import { useNotificationsStore } from '../lib/notifications-store';
 import { jobDay } from '../lib/job-rules';
 import { askEscort, needsEscortAnswer } from '../lib/escort';
+import { usePermissionHealth, usePermissionWarning } from '@itour/ui';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 /** Which header counter is filtering the list ('all' = Total, no filter). */
@@ -48,6 +49,9 @@ export function JobsListScreen() {
   const colors = useColors();
   const user = useAuthStore((s) => s.user);
   const unread = useNotificationsStore((s) => s.unread);
+  // Settings the app needs that are off (apps 1.8.0) — a badge on the gear.
+  const permMissing = usePermissionHealth().missing;
+  usePermissionWarning(() => navigation.navigate('Profile'));
   const [date, setDate] = useState(todayCairo());
   const [jobs, setJobs] = useState<RepPortalJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,12 +145,20 @@ export function JobsListScreen() {
               title={firstName || t('jobs.myJobs')}
               subtitle={formatDayLabel(date)}
               right={
-                <HeaderIconButton
-                  icon="notifications-outline"
-                  badge={unread}
-                  label={t('repApp.notificationsTitle')}
-                  onPress={() => navigation.navigate('Notifications')}
-                />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <HeaderIconButton
+                    icon="notifications-outline"
+                    badge={unread}
+                    label={t('repApp.notificationsTitle')}
+                    onPress={() => navigation.navigate('Notifications')}
+                  />
+                  <HeaderIconButton
+                    icon="settings-outline"
+                    badge={permMissing}
+                    label={t('repApp.settings')}
+                    onPress={() => navigation.navigate('Profile')}
+                  />
+                </View>
               }
             >
               <WeekStrip date={date} onChange={setDate} />

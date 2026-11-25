@@ -31,6 +31,9 @@ export interface StartAlarm {
   label: string;
   /** The alarm closest to the job: answered "On the way"; the earlier ones "Seen" (UI review 2a). */
   last: boolean;
+  /** This alarm's own sound (6.8.0), else the shared one, else null = built-in. */
+  soundUrl?: string | null;
+  soundName?: string | null;
 }
 
 export const startKind = (minutes: number) => `START_${minutes}`;
@@ -54,6 +57,8 @@ export function startAlarmsFrom(minutes: number[]): StartAlarm[] {
 
 export interface AlarmSettingsView {
   alarms: StartAlarm[];
+  /** Changes whenever any alarm sound changes — the apps compare it to offer "reload". */
+  soundsVersion: string;
   missedAfterMinutes: number;
   warnBeforeMinutes: number;
   recipientRoleIds: string[];
@@ -114,14 +119,22 @@ export class JobAlertsService {
     let row: {
       alarmMinutes: number[]; missedAfterMinutes: number; warnBeforeMinutes: number;
       recipientRoleIds: string[]; recipientUserIds: string[]; soundUrl: string | null; soundName: string | null;
+      alarmSoundUrls: string[]; alarmSoundNames: string[];
     } | null = null;
     try {
       row = await this.prisma.jobAlarmSettings.findUnique({ where: { id: 'default' } });
     } catch (e) {
       this.logger.warn(`Alarm settings unavailable, using defaults: ${String(e)}`);
     }
+    const alarms = startAlarmsFrom(row?.alarmMinutes ?? DEFAULT_ALARM_MINUTES).map((a, i) => ({
+      ...a,
+      soundUrl: row?.alarmSoundUrls?.[i] || row?.soundUrl || null,
+      soundName: row?.alarmSoundUrls?.[i] ? row?.alarmSoundNames?.[i] || null : row?.soundName ?? null,
+    }));
+    const soundsVersion = createHash('sha1').update(alarms.map((a) => `${a.kind}=${a.soundUrl ?? ''}`).join('|')).digest('hex').slice(0, 12);
     const v: AlarmSettingsView = {
-      alarms: startAlarmsFrom(row?.alarmMinutes ?? DEFAULT_ALARM_MINUTES),
+      alarms,
+      soundsVersion,
       missedAfterMinutes: row?.missedAfterMinutes ?? 5,
       warnBeforeMinutes: row?.warnBeforeMinutes ?? 45,
       recipientRoleIds: row?.recipientRoleIds ?? [],
@@ -151,6 +164,24 @@ export class JobAlertsService {
       updatedById: userId,
     };
     await this.prisma.jobAlarmSettings.upsert({ where: { id: 'default' }, create: { id: 'default', ...data }, update: data });
+    this.forgetSettings();
+    return this.alarmSettings();
+  }
+
+  /** One alarm's own sound (slot = position in the alarm list, furthest first); null url = clear it. */
+  async setAlarmSlotSound(slot: number, url: string | null, name: string | null, userId: string) {
+    const row = await this.prisma.jobAlarmSettings.findUnique({ where: { id: 'default' } });
+    const count = (row?.alarmMinutes ?? DEFAULT_ALARM_MINUTES).length;
+    if (!Number.isInteger(slot) || slot < 0 || slot >= count) throw new BadRequestException('No such alarm');
+    const urls = Array.from({ length: count }, (_, i) => row?.alarmSoundUrls?.[i] ?? '');
+    const names = Array.from({ length: count }, (_, i) => row?.alarmSoundNames?.[i] ?? '');
+    urls[slot] = url ?? '';
+    names[slot] = name ?? '';
+    await this.prisma.jobAlarmSettings.upsert({
+      where: { id: 'default' },
+      create: { id: 'default', alarmSoundUrls: urls, alarmSoundNames: names, updatedById: userId },
+      update: { alarmSoundUrls: urls, alarmSoundNames: names, updatedById: userId },
+    });
     this.forgetSettings();
     return this.alarmSettings();
   }
@@ -273,7 +304,7 @@ export class JobAlertsService {
     }
 
     const cfg = await this.alarmSettings();
-    return { serverTime: now.toISOString(), alarms: cfg.alarms, soundUrl: cfg.soundUrl, reminders, dropoffs };
+    return { serverTime: now.toISOString(), alarms: cfg.alarms, soundUrl: cfg.soundUrl, soundsVersion: cfg.soundsVersion, reminders, dropoffs };
   }
 
   /** Record that the user saw and acknowledged an alarm (idempotent per kind). */
@@ -547,7 +578,7 @@ export class JobAlertsService {
   async alarmsByKey(key: string | undefined) {
     const d = await this.alarmDevice(key);
     const all = await this.getAlerts(d.userId, d.role);
-    return { serverTime: all.serverTime, role: d.role, alarms: all.alarms, reminders: all.reminders };
+    return { serverTime: all.serverTime, role: d.role, alarms: all.alarms, soundsVersion: all.soundsVersion, reminders: all.reminders };
   }
 
   async acknowledgeByKey(

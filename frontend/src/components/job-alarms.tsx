@@ -5,7 +5,7 @@ import { AlarmClock, MapPin, AlertTriangle, Loader2 } from "lucide-react";
 import api, { backgroundPoll } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { formatTimeCairo } from "@/lib/utils";
-import { startAlarm, stopAlarm, setAlarmSoundUrl } from "@/lib/alarm-sound";
+import { startAlarm, stopAlarm, setAlarmSoundUrl, setAlarmSounds } from "@/lib/alarm-sound";
 
 /**
  * Job alarms for the rep / driver web portals (the native apps have the same
@@ -122,11 +122,11 @@ function writePending(v: PendingAck[]) {
   }
 }
 
-/** The alarm sound loops until the alarm is answered; phones also vibrate. */
-function useChime(active: boolean) {
+/** The alarm's own sound loops until the alarm is answered; phones also vibrate. */
+function useChime(active: boolean, kind?: string | null) {
   useEffect(() => {
     if (!active || typeof window === "undefined") return;
-    startAlarm("portal-job-alarm");
+    startAlarm("portal-job-alarm", kind);
     const buzz = () => navigator.vibrate?.([300, 150, 300]);
     buzz();
     const id = setInterval(buzz, 3_000);
@@ -135,7 +135,7 @@ function useChime(active: boolean) {
       navigator.vibrate?.(0);
       stopAlarm("portal-job-alarm");
     };
-  }, [active]);
+  }, [active, kind]);
 }
 
 /** Show a system notification too when the tab is in the background. */
@@ -180,6 +180,7 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
       setDropoffs(d?.dropoffs ?? []);
       if (Array.isArray(d?.alarms) && d.alarms.length) setAlarms(d.alarms);
       setAlarmSoundUrl(d?.soundUrl ?? null);
+      setAlarmSounds(d?.alarms ?? null);
     } catch {
       /* next poll */
     }
@@ -288,7 +289,7 @@ export function JobAlarms({ portal }: { portal: "rep" | "driver" }) {
   }, [watched, raise, t]);
 
   const current = queue[0];
-  useChime(!!current);
+  useChime(!!current, current?.kind);
 
   /**
    * UI review 2a/2b: the alarm closes at once. The answer is queued on the phone and sent in

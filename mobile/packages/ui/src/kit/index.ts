@@ -9,6 +9,9 @@ export { DatePickerModal } from './DatePickerModal';
 export { JobAlarmHost } from './JobAlarmHost';
 export { AppUpdateHost } from './AppUpdateHost';
 export { AlarmsOnPhone } from './AlarmsOnPhone';
+export { FieldTabBar, FIELD_TABS } from './FieldTabBar';
+export { ReviewComingSoonScreen } from './ReviewComingSoon';
+export { PermissionsSection, usePermissionHealth, usePermissionWarning } from './PermissionsSection';
 
 /** The iTour badge (logo mark on a white disc) used by splash and login screens. */
 // eslint-disable-next-line @typescript-eslint/no-var-requires

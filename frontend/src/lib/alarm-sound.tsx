@@ -22,11 +22,46 @@ let audio: HTMLAudioElement | null = null;
  * Company › Alerts (6.5.0): an uploaded alarm sound replaces the built-in one on the web
  * (portals + office popups). null = built-in. Takes effect from the next ring.
  */
+const absolute = (url: string | null | undefined) =>
+  url ? (url.startsWith("/uploads/") ? `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ?? ""}${url}` : url) : DEFAULT_SRC;
+
 export function setAlarmSoundUrl(url: string | null | undefined) {
-  const next = url ? (url.startsWith("/uploads/") ? `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ?? ""}${url}` : url) : DEFAULT_SRC;
+  const next = absolute(url);
   if (next === src) return;
   src = next;
   if (audio && audio.paused) audio = null; // rebuilt with the new source on the next ring
+}
+
+/**
+ * One sound per alarm (6.8.0): kind (START_90 …) → that alarm's sound. Alarms without their own
+ * sound use the shared one (setAlarmSoundUrl) or the built-in two-tone.
+ */
+const kindSrc = new Map<string, string>();
+let lastKind: string | null = null;
+export function setAlarmSounds(alarms: { kind: string; soundUrl?: string | null; last?: boolean }[] | null | undefined) {
+  kindSrc.clear();
+  for (const a of alarms ?? []) {
+    if (a.soundUrl) kindSrc.set(a.kind, absolute(a.soundUrl));
+    if (a.last) lastKind = a.kind;
+  }
+}
+/** The sound for an alarm kind; WARN_* (the final office warning) uses the last alarm's sound. */
+function srcFor(kind?: string | null) {
+  if (!kind) return src;
+  const k = kind.startsWith("WARN") && lastKind ? lastKind : kind;
+  return kindSrc.get(k) ?? src;
+}
+/** Switch the player to another file (only while it is not ringing for someone else). */
+function switchSrc(next: string) {
+  if (audio && audio.src && new URL(next, window.location.href).href !== audio.src) {
+    audio.pause();
+    audio = null;
+  }
+  if (!audio) {
+    audio = new Audio(next);
+    audio.preload = "auto";
+    audio.volume = 1;
+  }
 }
 const owners = new Set<string>();
 let blocked = false;
@@ -62,8 +97,9 @@ async function play(loop: boolean) {
   }
 }
 
-/** Ring in a loop until stopAlarm(owner) — several alarms can share the one loop. */
-export function startAlarm(owner: string) {
+/** Ring in a loop until stopAlarm(owner) — several alarms can share the one loop. `kind` picks that alarm's sound. */
+export function startAlarm(owner: string, kind?: string | null) {
+  if (owners.size === 0 && typeof window !== "undefined") switchSrc(srcFor(kind));
   owners.add(owner);
   void play(true);
 }
@@ -78,9 +114,10 @@ export function stopAlarm(owner: string) {
   }
 }
 
-/** One ring for a new notification (skipped while an alarm loop is ringing). */
-export function playOnce() {
+/** One ring for a new notification (skipped while an alarm loop is ringing). `kind` picks that alarm's sound. */
+export function playOnce(kind?: string | null) {
   if (owners.size > 0) return;
+  if (typeof window !== "undefined") switchSrc(srcFor(kind));
   void play(false);
 }
 

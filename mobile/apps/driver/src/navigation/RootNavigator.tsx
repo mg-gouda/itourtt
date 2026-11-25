@@ -8,8 +8,11 @@ import { JobDetailScreen } from '../screens/JobDetailScreen';
 import { EvidenceScreen, type EvidenceKind } from '../screens/EvidenceScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { AnnouncementsRoute, ChatThreadRoute } from '../screens/ChatScreens';
+import { ProfileScreen } from '../screens/ProfileScreen';
 
 export type RootStackParamList = {
+  /** Profile + settings (gear on the Jobs header, apps 1.8.0). */
+  Profile: undefined;
   Login: undefined;
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   /** `date` (YYYY-MM-DD) lets the screen read the job from that day's list. */
@@ -36,6 +39,7 @@ export function RootNavigator() {
           <Stack.Screen name="JobDetail" component={JobDetailScreen} />
           <Stack.Screen name="Evidence" component={EvidenceScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="ChatThread" component={ChatThreadRoute} />
           <Stack.Screen name="Announcements" component={AnnouncementsRoute} />
         </>

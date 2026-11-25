@@ -11,10 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { usePermission } from "@/hooks/use-permission";
-import { setAlarmSoundUrl } from "@/lib/alarm-sound";
+import { setAlarmSoundUrl, setAlarmSounds } from "@/lib/alarm-sound";
 
 interface Settings {
-  alarms: { kind: string; minutes: number; last: boolean }[];
+  alarms: { kind: string; minutes: number; last: boolean; soundUrl?: string | null; soundName?: string | null }[];
   missedAfterMinutes: number;
   warnBeforeMinutes: number;
   recipientRoleIds: string[];
@@ -48,7 +48,9 @@ export function JobAlarmSettingsTab() {
   const [users, setUsers] = useState<User[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  /** Which sound is uploading: alarm slot number, or "shared". */
+  const [uploading, setUploading] = useState<number | "shared" | null>(null);
+  const [slot, setSlot] = useState<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = useRef<HTMLAudioElement | null>(null);
 
@@ -117,37 +119,43 @@ export function JobAlarmSettingsTab() {
       toast.error(t("alerts.soundTooBig"));
       return;
     }
-    setUploading(true);
+    setUploading(slot ?? "shared");
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const { data: res } = await api.post("/job-alarm-settings/sound", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const { data: res } = await api.post("/job-alarm-settings/sound", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+        params: slot != null ? { slot } : undefined,
+      });
       apply(res.data);
       setAlarmSoundUrl(res.data.soundUrl);
+      setAlarmSounds(res.data.alarms);
       toast.success(t("alerts.soundUploaded"));
     } catch (e) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || t("alerts.soundFailed"));
     } finally {
-      setUploading(false);
+      setUploading(null);
       if (fileInput.current) fileInput.current.value = "";
     }
   };
 
-  const resetSound = async () => {
+  const resetSound = async (which: number | null) => {
     try {
-      const { data: res } = await api.delete("/job-alarm-settings/sound");
+      const { data: res } = await api.delete("/job-alarm-settings/sound", { params: which != null ? { slot: which } : undefined });
       apply(res.data);
-      setAlarmSoundUrl(null);
+      setAlarmSoundUrl(res.data.soundUrl);
+      setAlarmSounds(res.data.alarms);
       toast.success(t("alerts.soundReset"));
     } catch {
       toast.error(t("alerts.soundFailed"));
     }
   };
 
-  const playPreview = () => {
+  const playPreview = (url?: string | null) => {
     preview.current?.pause();
-    const src = data.soundUrl ? `${API_ORIGIN}${data.soundUrl}` : "/sounds/job-alarm.wav";
+    const u = url === undefined ? data.soundUrl : url;
+    const src = u ? `${API_ORIGIN}${u}` : "/sounds/job-alarm.wav";
     const a = new Audio(src);
     preview.current = a;
     a.play().catch(() => toast.error(t("alerts.previewFailed")));
@@ -277,37 +285,49 @@ export function JobAlarmSettingsTab() {
         </div>
       </Card>
 
-      {/* Sound */}
+      {/* Sounds — one per alarm (6.8.0) */}
       <Card className="border-border bg-card p-6">
         <h3 className="mb-1 flex items-center gap-2 text-base font-medium text-foreground">
           <Music className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           {t("alerts.soundTitle")}
         </h3>
-        <p className="mb-4 text-sm text-muted-foreground">{t("alerts.soundDesc")}</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-            <Bell className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            {data.soundName ?? t("alerts.soundBuiltIn")}
-          </span>
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={playPreview}>
-            <Play className="h-4 w-4" /> {t("alerts.play")}
-          </Button>
-          {canEdit && (
-            <>
-              <input ref={fileInput} type="file" accept="audio/*" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); }} />
-              <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={uploading} onClick={() => fileInput.current?.click()}>
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {t("alerts.uploadSound")}
+        <p className="mb-4 text-sm text-muted-foreground">{t("alerts.soundDescPerAlarm")}</p>
+        {canEdit && (
+          <input ref={fileInput} type="file" accept="audio/*" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); }} />
+        )}
+        <div className="divide-y divide-border rounded-md border border-border">
+          {[...data.alarms.map((a, i) => ({ key: a.kind, i, label: t("alerts.soundForAlarm").replace("{n}", String(i + 1)).replace("{m}", String(a.minutes)), own: !!a.soundUrl && a.soundUrl !== data.soundUrl, url: a.soundUrl ?? null, name: a.soundName ?? null })),
+            { key: "shared", i: null as number | null, label: t("alerts.soundShared"), own: !!data.soundUrl, url: data.soundUrl, name: data.soundName }]
+            .map((row) => (
+            <div key={row.key} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
+              <span className="w-44 shrink-0 text-sm font-medium text-foreground">{row.label}</span>
+              <span className="flex min-w-0 flex-1 items-center gap-2 text-sm text-muted-foreground">
+                <Bell className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="truncate">{row.name ?? (row.i != null && data.soundUrl ? t("alerts.soundUsesShared") : t("alerts.soundBuiltIn"))}</span>
+              </span>
+              <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => playPreview(row.url)}
+                aria-label={`${t("alerts.play")} — ${row.label}`}>
+                <Play className="h-4 w-4" /> {t("alerts.play")}
               </Button>
-              {data.soundUrl && (
-                <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={resetSound}>
-                  <RotateCcw className="h-4 w-4" /> {t("alerts.useBuiltIn")}
-                </Button>
+              {canEdit && (
+                <>
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={uploading !== null}
+                    onClick={() => { setSlot(row.i); fileInput.current?.click(); }} aria-label={`${t("alerts.uploadSound")} — ${row.label}`}>
+                    {uploading === (row.i ?? "shared") ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {t("alerts.uploadSound")}
+                  </Button>
+                  {row.own && (
+                    <Button type="button" variant="ghost" size="sm" className="gap-1.5" onClick={() => void resetSound(row.i)}
+                      aria-label={`${t("alerts.useBuiltIn")} — ${row.label}`}>
+                      <RotateCcw className="h-4 w-4" /> {row.i != null ? t("alerts.soundClear") : t("alerts.useBuiltIn")}
+                    </Button>
+                  )}
+                </>
               )}
-            </>
-          )}
+            </div>
+          ))}
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">{t("alerts.soundAppsNote")}</p>
+        <p className="mt-3 text-xs text-muted-foreground">{t("alerts.soundAppsNoteLive")}</p>
       </Card>
 
       {canEdit && (
