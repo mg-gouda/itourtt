@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ShieldX, AlertTriangle, X } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth-store';
 import { useLicense } from '@/hooks/use-license';
 
 const ALLOWED_PATHS = ['/dashboard/company'];
@@ -30,226 +30,70 @@ function getWarningLevel(days: number): 90 | 60 | 30 | null {
   return null;
 }
 
-const LEVEL_STYLE = {
-  30: {
-    border: 'border-red-500/40',
-    bg: 'bg-red-950',
-    icon: 'text-red-400',
-    badge: 'bg-red-500/20 text-red-300',
-    title: 'text-red-300',
-    btn: 'bg-red-600 hover:bg-red-700 text-white',
-  },
-  60: {
-    border: 'border-orange-500/40',
-    bg: 'bg-orange-950',
-    icon: 'text-orange-400',
-    badge: 'bg-orange-500/20 text-orange-300',
-    title: 'text-orange-300',
-    btn: 'bg-orange-600 hover:bg-orange-700 text-white',
-  },
-  90: {
-    border: 'border-yellow-500/40',
-    bg: 'bg-yellow-950',
-    icon: 'text-yellow-400',
-    badge: 'bg-yellow-500/20 text-yellow-300',
-    title: 'text-yellow-300',
-    btn: 'bg-yellow-600 hover:bg-yellow-700 text-white',
-  },
-} as const;
-
-export function LicenseGate({ children }: { children: React.ReactNode }) {
-  const { status, loading } = useLicense();
+/**
+ * Licence notices (UI review 3d). They used to be a toast over every page and a
+ * modal, covering Save buttons, dialog fields and the portals' tab bar, and they
+ * told field staff to contact the developer. Now:
+ * - only office admins see anything (field portals pass audience="field");
+ * - it is one slim strip at the top of the page, dismissible (expiry warning:
+ *   24 h snooze per level; not-active: for this browser session).
+ */
+export function LicenseGate({ children, audience = 'office' }: { children: React.ReactNode; audience?: 'office' | 'field' }) {
+  const { status } = useLicense();
   const pathname = usePathname();
-  // Keys dismissed in this page's lifetime — keeps the dialog closed even when storage is unavailable.
+  const user = useAuthStore((s) => s.user);
   const [dismissedKeys, setDismissedKeys] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  const warningLevel = status?.valid && status.daysRemaining !== null
-    ? getWarningLevel(status.daysRemaining)
-    : null;
-
-  // Per-level dismissal, snoozed for WARN_SNOOZE_MS
+  const isAdmin = user?.role === 'ADMIN';
+  const warningLevel = status?.valid && status.daysRemaining !== null ? getWarningLevel(status.daysRemaining) : null;
   const warnKey = warningLevel ? `license_warn_dismissed_${warningLevel}` : null;
-  const warningDismissed = !!warnKey && (
-    dismissedKeys.includes(warnKey) || Number(readStore(warnKey)) > Date.now()
-  );
+  const INVALID_KEY = 'license_invalid_dismissed';
+  const invalid = !!(status && !status.valid);
 
-  // iOS Safari can drop the synthetic click on a tap, so buttons close on pointerup as well.
-  // The guard stops the following click from running it twice.
-  const handled = useRef(0);
-  function tapHandlers(fn: () => void) {
-    const run = () => {
-      if (Date.now() - handled.current < 400) return;
-      handled.current = Date.now();
-      fn();
-    };
-    return {
-      onPointerUp: (e: React.PointerEvent) => { e.stopPropagation(); run(); },
-      onClick: (e: React.MouseEvent) => { e.stopPropagation(); run(); },
-    };
-  }
+  let invalidDismissed = dismissedKeys.includes(INVALID_KEY);
+  if (mounted) { try { invalidDismissed ||= sessionStorage.getItem(INVALID_KEY) === '1'; } catch { /* not dismissed */ } }
+  const warningDismissed = !!warnKey && (dismissedKeys.includes(warnKey) || (mounted && Number(readStore(warnKey)) > Date.now()));
 
   function dismiss() {
-    if (!warnKey) return;
-    setDismissedKeys((k) => [...k, warnKey]);
-    writeStore(warnKey, String(Date.now() + WARN_SNOOZE_MS));
+    if (invalid) {
+      setDismissedKeys((k) => [...k, INVALID_KEY]);
+      try { sessionStorage.setItem(INVALID_KEY, '1'); } catch { /* in-memory only */ }
+    } else if (warnKey) {
+      setDismissedKeys((k) => [...k, warnKey]);
+      writeStore(warnKey, String(Date.now() + WARN_SNOOZE_MS));
+    }
   }
 
-  // Dismiss via Escape key
-  useEffect(() => {
-    if (!warningLevel || warningDismissed) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') dismiss();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  });
+  const show = mounted && audience === 'office' && isAdmin && !ALLOWED_PATHS.includes(pathname)
+    && ((invalid && !invalidDismissed) || (!invalid && warningLevel !== null && !warningDismissed));
 
-  // Fail-soft: an invalid / unconfigured license WARNS but never hard-blocks the app,
-  // so a config gap or transient check failure can't take production down. Dismissible per session.
-  const invalid = !!(status && !status.valid);
-  const INVALID_KEY = 'license_invalid_dismissed';
-  let invalidDismissed = dismissedKeys.includes(INVALID_KEY);
-  try { invalidDismissed ||= sessionStorage.getItem(INVALID_KEY) === '1'; } catch { /* not dismissed */ }
-  function dismissInvalid() {
-    setDismissedKeys((k) => [...k, INVALID_KEY]);
-    try { sessionStorage.setItem(INVALID_KEY, '1'); } catch { /* in-memory dismissal only */ }
-  }
-
-  // Always allow the Company settings page so admin can enter the license key
-  if (ALLOWED_PATHS.includes(pathname)) {
-    return <>{children}</>;
-  }
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
-      </div>
-    );
-  }
-
-  // Overlays render straight into <body>: no ancestor transform/filter/stacking context can
-  // swallow their taps, and pointer-events is forced on in case a Radix dialog disabled it.
-  const portal = (node: React.ReactNode) =>
-    typeof document === 'undefined' ? null : createPortal(node, document.body);
-
-  const showWarning = warningLevel !== null && !warningDismissed && !ALLOWED_PATHS.includes(pathname);
-  const showInvalid = invalid && !invalidDismissed && !ALLOWED_PATHS.includes(pathname);
+  const days = status?.daysRemaining ?? 0;
+  const tone = invalid || warningLevel === 30
+    ? 'bg-red-950 text-red-100 border-red-500/40'
+    : 'bg-amber-950 text-amber-100 border-amber-500/40';
 
   return (
     <>
-      {children}
-      {showInvalid && portal(
-        <div style={{ pointerEvents: 'auto' }} className="fixed inset-x-4 bottom-4 z-[9998] rounded-xl sm:inset-x-auto sm:right-4 sm:w-full sm:max-w-sm border border-destructive/40 bg-card p-4 shadow-2xl">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-              <ShieldX className="h-5 w-5 text-destructive" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-sm font-bold text-foreground">License not active</h2>
-                <button
-                  type="button"
-                  {...tapHandlers(dismissInvalid)}
-                  className="-m-1.5 touch-manipulation rounded-lg p-2.5 text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors"
-                  aria-label="Dismiss"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {status?.message || 'Your software license is not configured or could not be verified.'} The
-                app stays usable — please reactivate to clear this notice.
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <a
-                  href="/dashboard/company"
-                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  Activate License
-                </a>
-                <a
-                  href="https://wa.me/+201002805139"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
-                >
-                  Contact Mohamed Gouda
-                </a>
-              </div>
-            </div>
-          </div>
+      {show && (
+        <div role="status" className={`sticky top-0 z-[60] flex items-center gap-2 border-b px-4 py-1.5 text-sm ${tone}`}>
+          {invalid ? <ShieldX className="h-4 w-4 shrink-0" aria-hidden="true" /> : <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />}
+          <span className="min-w-0 flex-1 truncate">
+            {invalid
+              ? 'Licence not active — the system keeps working.'
+              : `Licence expires in ${days} day${days !== 1 ? 's' : ''}.`}
+          </span>
+          <a href="/dashboard/company" className="shrink-0 font-semibold underline underline-offset-2">
+            {invalid ? 'Activate' : 'Renew'}
+          </a>
+          <button type="button" onClick={dismiss} aria-label="Dismiss licence notice"
+            className="-my-1 shrink-0 rounded-md p-1.5 hover:bg-white/10">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
-      {showWarning && portal((() => {
-        const level = warningLevel!;
-        const days = status!.daysRemaining!;
-        const s = LEVEL_STYLE[level];
-        const months = level === 90 ? '3 months' : level === 60 ? '2 months' : '1 month';
-        return (
-          // Tapping the backdrop dismisses too. Bottom sheet on phones, centred dialog from sm up.
-          // No backdrop-filter anywhere: nested blur layers break tap hit-testing in iOS Safari.
-          // cursor-pointer is what makes iOS deliver taps on a plain div.
-          <div
-            style={{ pointerEvents: 'auto' }}
-            className="fixed inset-0 z-[9999] flex cursor-pointer items-end justify-center bg-black/70 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
-            onClick={dismiss}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              className={`relative w-full max-w-md max-h-[calc(100dvh-1.5rem)] cursor-auto overflow-y-auto rounded-2xl border ${s.border} ${s.bg} p-5 sm:p-6 shadow-2xl`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                {...tapHandlers(dismiss)}
-                className="absolute right-2 top-2 z-10 flex h-10 w-10 touch-manipulation items-center justify-center rounded-lg text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10`}>
-                <AlertTriangle className={`h-6 w-6 ${s.icon}`} />
-              </div>
-
-              <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.badge} mb-3`}>
-                License Expiry Warning
-              </span>
-
-              <h2 className={`text-lg font-bold ${s.title} mb-1`}>
-                License expires in {days} day{days !== 1 ? 's' : ''}
-              </h2>
-              <p className="text-sm text-muted-foreground mb-5">
-                Your iTour GO license will expire within {months}. Please renew before it expires to avoid service interruption.
-              </p>
-
-              <div className="flex items-center gap-3">
-                <a
-                  href="https://wa.me/+201002805139"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-medium transition-colors ${s.btn}`}
-                >
-                  Contact to Renew
-                </a>
-                <button
-                  type="button"
-                  {...tapHandlers(dismiss)}
-                  className="flex-1 touch-manipulation rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground transition-colors"
-                >
-                  Dismiss
-                </button>
-              </div>
-
-              <p className="mt-3 hidden text-center text-[11px] text-muted-foreground sm:block">
-                Press <kbd className="rounded border border-border bg-white/10 px-1 py-0.5 font-mono text-[10px]">Esc</kbd> to dismiss · Reappears in 24 hours
-              </p>
-            </div>
-          </div>
-        );
-      })())}
+      {children}
     </>
   );
 }

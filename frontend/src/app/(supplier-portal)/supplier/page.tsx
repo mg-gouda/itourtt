@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { localDateStr } from "@/lib/utils";
-import JobDetailModal from "@/components/job-detail-modal";
+import { PortalJobSheet } from "@/components/portal/portal-job-sheet";
 
 interface SupplierJob {
   id: string;
@@ -251,7 +251,8 @@ export default function SupplierJobsPage() {
         </div>
       )}
 
-      <JobDetailModal
+      <PortalJobSheet
+        viewer="supplier"
         jobId={jobDetailId}
         open={jobDetailId !== null}
         onClose={() => setJobDetailId(null)}

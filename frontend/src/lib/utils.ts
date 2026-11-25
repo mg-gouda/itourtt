@@ -100,12 +100,12 @@ export function localDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Format a date as dd-MMM-yy (e.g. 07-Feb-26) */
-export function formatDate(value: string | Date): string {
+/** Format a date as dd MMM yyyy (e.g. 07 Feb 2026) \u2014 the one table date format (UI review 3b). */
+export function formatDate(value: string | Date | null | undefined): string {
+  if (value == null || value === "") return "\u2014";
   const d = typeof value === "string" ? new Date(value) : value;
   if (isNaN(d.getTime())) return "\u2014";
   const dd = String(d.getDate()).padStart(2, "0");
   const mmm = MONTHS[d.getMonth()];
-  const yy = String(d.getFullYear()).slice(2);
-  return `${dd}-${mmm}-${yy}`;
+  return `${dd} ${mmm} ${d.getFullYear()}`;
 }

@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Moon, Sun, Monitor, Globe, User, ChevronRight } from "lucide-react";
+import { Moon, Sun, Monitor, Globe, User, ChevronRight, LogOut } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -41,7 +45,7 @@ function saveUserPrefs(userId: string, prefs: { theme: string; language: string 
 }
 
 export default function MobileProfilePage() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { applyLocal } = useTheme();
   const t = useT();
   const [themeMode, setThemeMode] = useState("system");
@@ -185,6 +189,31 @@ export default function MobileProfilePage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Log out — moved here from the bottom tab bar (UI review 1d), behind a confirmation */}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <button
+            type="button"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-destructive/40 text-sm font-semibold text-destructive active:bg-destructive/10"
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            {t("portal.logout")}
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("portal.logoutConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("portal.logoutConfirmMsg")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void logout()} className="bg-destructive text-white hover:bg-destructive/90">
+              {t("portal.logout")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

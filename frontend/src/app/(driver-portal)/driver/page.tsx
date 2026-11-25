@@ -33,12 +33,16 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
+  Info,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
 import { CompletedEvidenceDialog } from "@/components/completed-evidence-dialog";
 import { InProgressEvidenceDialog } from "@/components/in-progress-evidence-dialog";
-import JobDetailModal from "@/components/job-detail-modal";
+import { PortalJobSheet } from "@/components/portal/portal-job-sheet";
+import { MainActionButton, DoneBadge, MoreMenu, LoadErrorBanner, saveJobsCache, readJobsCache, type MainActionSpec, type MoreItem } from "@/components/portal/job-actions";
+import { statusBadgeClass, useStatusLabel } from "@/lib/status-colors";
 import { RouteNavLink } from "@/components/route-nav-link";
 import { useT, useLocaleId } from "@/lib/i18n";
 import { formatDate , localDateStr } from "@/lib/utils";
@@ -118,14 +122,6 @@ interface Notification {
 }
 
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  ASSIGNED: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  IN_PROGRESS: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  COMPLETED: "bg-green-500/10 text-green-400 border-green-500/20",
-  CANCELLED: "bg-red-500/10 text-red-400 border-red-500/20",
-  NO_SHOW: "bg-gray-500/10 text-gray-400 border-gray-500/20",
-};
 
 const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "NO_SHOW"];
 
@@ -161,6 +157,9 @@ export default function DriverDashboardPage() {
   const [updating, setUpdating] = useState(false);
   const [collectingJobId, setCollectingJobId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
+  /** UI review 1b: the last load failed — show the saved list (if any) under a retry banner. */
+  const [loadError, setLoadError] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const shiftDate = (days: number) => {
     const d = new Date(selectedDate);
@@ -173,9 +172,16 @@ export default function DriverDashboardPage() {
       const { data } = await api.get("/driver-portal/jobs", {
         params: { date: selectedDate },
       });
-      setJobs(data.data?.jobs ?? []);
+      const list: DriverJob[] = data.data?.jobs ?? [];
+      setJobs(list);
+      setLoadError(false);
+      setSavedAt(null);
+      saveJobsCache("driver", selectedDate, list);
     } catch {
-      toast.error(t("portal.failedLoadJobs"));
+      const cached = readJobsCache<DriverJob>("driver", selectedDate);
+      setJobs(cached?.jobs ?? []);
+      setSavedAt(cached?.at ?? null);
+      setLoadError(true);
     }
   }, [selectedDate]);
 
@@ -335,9 +341,11 @@ export default function DriverDashboardPage() {
         </Button>
       </div>
 
+      {loadError && <LoadErrorBanner savedAt={savedAt} onRetry={fetchAll} retrying={loading} />}
+
       {/* Active Jobs */}
       {activeJobs.length === 0 && completedJobs.length === 0 ? (
-        <Card>
+        loadError ? null : <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Briefcase className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
@@ -529,15 +537,67 @@ export default function DriverDashboardPage() {
         onSuccess={fetchJobs}
       />
 
-      <JobDetailModal
-        jobId={jobDetailId}
-        open={jobDetailId !== null}
-        onClose={() => setJobDetailId(null)}
-        apiBase="/driver-portal/jobs"
-        navigable
-      />
+      {(() => {
+        const sheetJob = jobs.find((j) => j.id === jobDetailId) ?? null;
+        const spec = sheetJob ? driverMainAction(sheetJob, (id, ref, st) => { setJobDetailId(null); handleStatusChange(id, ref, st); }, t) : null;
+        return (
+          <PortalJobSheet
+            jobId={jobDetailId}
+            open={jobDetailId !== null}
+            onClose={() => setJobDetailId(null)}
+            apiBase="/driver-portal/jobs"
+            viewer="driver"
+            status={sheetJob?.driverStatus}
+            action={sheetJob ? (spec ? <MainActionButton spec={spec} /> : <DoneBadge label={t("portal.done")} />) : undefined}
+          />
+        );
+      })()}
     </div>
   );
+}
+
+const cairoHM = (d: Date) => d.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false });
+
+function jobTimeOf(job: DriverJob): Date | null {
+  const raw = job.serviceType === "ARR" ? job.flight?.arrivalTime : job.pickUpTime;
+  return raw ? new Date(raw) : null;
+}
+
+/**
+ * The one main button for a driver job (UI review 1c) — the next step for its status:
+ * PENDING → Start trip (from the job time), IN PROGRESS → Mark Complete (15 min after
+ * the job time, and only once any cash is collected), finished → null ("✓ Done").
+ */
+function driverMainAction(
+  job: DriverJob,
+  onStatusChange: (jobId: string, jobRef: string, status: string) => void,
+  t: (k: string) => string,
+): MainActionSpec | null {
+  if (TERMINAL_STATUSES.includes(job.driverStatus)) return null;
+  const jobTime = jobTimeOf(job);
+  const now = new Date();
+  if (job.driverStatus === "PENDING") {
+    const can = !jobTime || now >= jobTime;
+    return {
+      label: t("portal.startTrip"), icon: PlayCircle, tone: "next", disabled: !can,
+      reason: !can && jobTime ? `${t("portal.availableFrom")} ${cairoHM(jobTime)}` : "",
+      onClick: () => onStatusChange(job.id, job.internalRef, "IN_PROGRESS"),
+    };
+  }
+  const completeAt = jobTime ? new Date(jobTime.getTime() + 15 * 60 * 1000) : null;
+  const notStarted = job.driverStatus !== "IN_PROGRESS";
+  const cashPending = job.collectionRequired && !job.collectionCollected;
+  const tooEarly = !!completeAt && now < completeAt;
+  return {
+    label: t("portal.markComplete"), icon: CheckCircle2, tone: "complete",
+    disabled: notStarted || cashPending || tooEarly,
+    reason: notStarted
+      ? t("portal.startInProgressFirst")
+      : cashPending
+        ? t("portal.collectionRequiredBeforeComplete")
+        : tooEarly && completeAt ? `${t("portal.availableFrom")} ${cairoHM(completeAt)}` : "",
+    onClick: () => onStatusChange(job.id, job.internalRef, "COMPLETED"),
+  };
 }
 
 function DriverJobCard({
@@ -557,101 +617,75 @@ function DriverJobCard({
 }) {
   const t = useT();
   const serviceTypeLabel = useServiceTypeLabel();
+  const statusLabel = useStatusLabel();
   const driverStatus = job.driverStatus;
   const isTerminal = TERMINAL_STATUSES.includes(driverStatus);
-  const flightTime =
-    job.serviceType === "ARR"
-      ? formatTime(job.flight?.arrivalTime ?? null)
-      : formatTime(job.flight?.departureTime ?? null);
 
-  // Compute job reference time for time guards
-  const jobTime = (() => {
-    const rawTime = job.serviceType === "ARR"
-      ? job.flight?.arrivalTime
-      : job.pickUpTime;
-    return rawTime ? new Date(rawTime) : null;
-  })();
-  const now = new Date();
-  const canStartProgress = !jobTime || now >= jobTime;
-  const canComplete = !jobTime || now >= new Date(jobTime.getTime() + 15 * 60 * 1000);
-  const progressBlockMsg = jobTime && !canStartProgress
-    ? `${t("portal.availableFrom")} ${jobTime.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
-    : "";
-  const completeBlockMsg = jobTime && !canComplete
-    ? `${t("portal.availableFrom")} ${new Date(jobTime.getTime() + 15 * 60 * 1000).toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
-    : "";
   // The NO SHOW unlock comes from the server: the wait differs by agent and is
   // shorter for departures, so it can no longer be derived from a constant here.
   const noShowAt = job.noShowAvailableFrom ? new Date(job.noShowAvailableFrom) : null;
-  const canNoShow = !noShowAt || now >= noShowAt;
-  const noShowBlockMsg = noShowAt && !canNoShow
-    ? `${t("portal.availableFrom")} ${noShowAt.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
-    : "";
+  const canNoShow = !noShowAt || new Date() >= noShowAt;
+  const noShowBlockMsg = noShowAt && !canNoShow ? `${t("portal.availableFrom")} ${cairoHM(noShowAt)}` : "";
+
+  const main = driverMainAction(job, onStatusChange, t);
+  const more: MoreItem[] = [{ label: t("portal.details"), icon: Info, onClick: () => onViewDetail(job.id) }];
+  if (!isTerminal) {
+    more.push({ label: t("portal.noShow"), icon: UserX, onClick: () => onStatusChange(job.id, job.internalRef, "NO_SHOW"), disabled: !canNoShow, reason: noShowBlockMsg });
+    more.push({ label: t("portal.cancelJobLong"), icon: XCircle, destructive: true, separated: true, onClick: () => onStatusChange(job.id, job.internalRef, "CANCELLED") });
+  }
+
+  // Driver Time: ready 1 hour before the job time (same rule as the apps).
+  const jobIso = job.serviceType === "ARR"
+    ? (job.flight?.arrivalTime ?? job.pickUpTime)
+    : (job.pickUpTime ?? job.flight?.departureTime ?? null);
+  const driverAt = driverTimeFromDate(jobIso ? new Date(jobIso) : null);
 
   return (
-    <Card className={isTerminal ? "opacity-60" : ""}>
+    <Card className={isTerminal ? "opacity-70" : ""}>
       <CardContent className="p-4">
         {/* Top row: ref + badges */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => onViewDetail(job.id)}
-            className="font-mono text-sm font-semibold text-primary hover:underline"
+            className="font-mono text-base font-semibold text-primary underline-offset-2 hover:underline"
           >
             {job.internalRef}
           </button>
-          <Badge
-            variant="outline"
-            className={SERVICE_TYPE_COLORS[job.serviceType] || ""}
-          >
+          <Badge variant="outline" className={SERVICE_TYPE_COLORS[job.serviceType] || ""}>
             {serviceTypeLabel(job.serviceType)}
           </Badge>
           <BookingChannelBadge channel={job.bookingChannel} />
-          <Badge
-            variant="outline"
-            className={STATUS_COLORS[driverStatus] || ""}
-          >
-            {driverStatus.replace("_", " ")}
-          </Badge>
-          {job.agentRef && (
-            <span className="ml-auto text-xs text-muted-foreground">
-              {job.agentRef}
-            </span>
-          )}
+          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClass(driverStatus)}`}>
+            {statusLabel(driverStatus)}
+          </span>
+          {job.agentRef && <span className="ms-auto text-xs text-muted-foreground">{job.agentRef}</span>}
         </div>
 
-        {/* Time info: arrival time for ARR, pickup time for DEP/other */}
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+        {/* Times */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[15px]">
+          {driverAt && (
+            <span className="flex items-center gap-1 font-bold text-foreground">
+              <Clock className="h-4 w-4" aria-hidden="true" />
+              {t("portal.driverTime")} {formatTime(driverAt.toISOString())}
+            </span>
+          )}
           {job.serviceType === "ARR" && job.flight?.arrivalTime && (
-            <span className="flex items-center gap-1 font-medium text-blue-400">
-              <Plane className="h-3.5 w-3.5" />
-              {t("portal.arrivalTime") || "Arrival"}: {formatTime(job.flight.arrivalTime)}
+            <span className="flex items-center gap-1 text-foreground">
+              <Plane className="h-4 w-4" aria-hidden="true" />
+              {t("portal.flightLands")} {formatTime(job.flight.arrivalTime)}
             </span>
           )}
           {job.serviceType !== "ARR" && job.pickUpTime && (
-            <span className="flex items-center gap-1 font-medium text-orange-400">
-              <Clock className="h-3.5 w-3.5" />
-              {t("portal.pickUpTime") || "Pickup"}: {formatTime(job.pickUpTime)}
+            <span className="flex items-center gap-1 text-foreground">
+              <Clock className="h-4 w-4" aria-hidden="true" />
+              {t("portal.pickup")} {formatTime(job.pickUpTime)}
             </span>
           )}
-          {(() => {
-            // Driver Time: ready 1 hour before the job time (same rule as the apps).
-            const iso = job.serviceType === "ARR"
-              ? (job.flight?.arrivalTime ?? job.pickUpTime)
-              : (job.pickUpTime ?? job.flight?.departureTime ?? null);
-            const at = driverTimeFromDate(iso ? new Date(iso) : null);
-            return at ? (
-              <span className="flex items-center gap-1 font-semibold text-amber-500">
-                <Clock className="h-3.5 w-3.5" />
-                Driver Time: {formatTime(at.toISOString())}
-              </span>
-            ) : null;
-          })()}
           {job.flight && (
             <span className="flex items-center gap-1 text-muted-foreground">
-              <Plane className="h-3.5 w-3.5" />
               {job.flight.carrier} {job.flight.flightNo}
-              {job.flight.terminal && <span className="ml-1">T{job.flight.terminal}</span>}
+              {job.flight.terminal && <span className="ms-1">T{job.flight.terminal}</span>}
             </span>
           )}
         </div>
@@ -659,165 +693,99 @@ function DriverJobCard({
         {/* Route */}
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5" />
+            <MapPin className="h-4 w-4" aria-hidden="true" />
             <RouteNavLink job={job} end="origin">{job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—"}</RouteNavLink> &rarr; <RouteNavLink job={job} end="destination">{job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—"}</RouteNavLink>
           </span>
         </div>
 
         {/* Pax + vehicle + rep */}
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
+            <Users className="h-4 w-4" aria-hidden="true" />
             {job.paxCount} {t("portal.pax")}
           </span>
           {job.assignment?.vehicle && (
             <span className="flex items-center gap-1">
-              <Car className="h-3.5 w-3.5" />
+              <Car className="h-4 w-4" aria-hidden="true" />
               {job.assignment.vehicle.plateNumber}
-              {job.assignment.vehicle.vehicleType && (
-                <span className="text-xs">
-                  ({job.assignment.vehicle.vehicleType.name})
-                </span>
-              )}
+              {job.assignment.vehicle.vehicleType && <span>({job.assignment.vehicle.vehicleType.name})</span>}
             </span>
           )}
           {job.assignment?.rep && (
-            <span className="flex items-center gap-1 text-xs">
-              <User className="h-3.5 w-3.5" />
-              {t("portal.repLabel")} {job.assignment.rep.name} ({job.assignment.rep.mobileNumber})
+            <span className="flex items-center gap-1">
+              <User className="h-4 w-4" aria-hidden="true" />
+              {t("portal.repLabel")} {job.assignment.rep.name}{" "}
+              <a href={`tel:${job.assignment.rep.mobileNumber}`} className="font-medium text-blue-700 underline dark:text-blue-300">{job.assignment.rep.mobileNumber}</a>
             </span>
           )}
           {job.assignment?.externalDriverName && (
-            <span className="flex items-center gap-1 text-xs">
-              <User className="h-3.5 w-3.5" />
+            <span className="flex items-center gap-1">
+              <User className="h-4 w-4" aria-hidden="true" />
               {t("portal.driverLabel")} {job.assignment.externalDriverName}
-              {job.assignment.externalDriverPhone && ` (${job.assignment.externalDriverPhone})`}
-              {job.assignment.supplier && (
-                <span className="text-muted-foreground"> — {job.assignment.supplier.tradeName ?? job.assignment.supplier.legalName}</span>
+              {job.assignment.externalDriverPhone && (
+                <> <a href={`tel:${job.assignment.externalDriverPhone}`} className="font-medium text-blue-700 underline dark:text-blue-300">{job.assignment.externalDriverPhone}</a></>
               )}
+              {job.assignment.supplier && <span> — {job.assignment.supplier.tradeName ?? job.assignment.supplier.legalName}</span>}
             </span>
           )}
         </div>
 
-        {/* Online client info */}
+        {/* Online client info (name only — drivers do not get the guest's mobile on the card) */}
         {job.bookingChannel === "ONLINE" && job.clientName && (
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-md border border-blue-500/20 bg-blue-500/5 px-2.5 py-1.5 text-xs">
-            <span className="text-blue-400 font-medium">{t("portal.onlineClient")}:</span>
-            <span className="text-foreground font-semibold">{job.clientName}</span>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-md border border-blue-500/30 bg-blue-500/5 px-2.5 py-1.5 text-sm">
+            <span className="font-medium text-blue-700 dark:text-blue-300">{t("portal.onlineClient")}:</span>
+            <span className="font-semibold text-foreground">{job.clientName}</span>
           </div>
         )}
 
         {/* Customer Rep Meeting Info */}
         {(job.custRepName || job.custRepMobile || job.custRepMeetingPoint || job.custRepMeetingTime) && (
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {job.custRepName && <span>{t("jobs.custRepName")}: <b className="text-foreground">{job.custRepName}</b></span>}
-            {job.custRepMobile && (
-              <a href={`tel:${job.custRepMobile}`} className="text-blue-400 underline">
-                {job.custRepMobile}
-              </a>
-            )}
+            {job.custRepMobile && <a href={`tel:${job.custRepMobile}`} className="text-blue-700 underline dark:text-blue-300">{job.custRepMobile}</a>}
             {job.custRepMeetingPoint && <span>{t("jobs.custRepMeetingPoint")}: <b className="text-foreground">{job.custRepMeetingPoint}</b></span>}
-            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>}
+            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{cairoHM(new Date(job.custRepMeetingTime))}</b></span>}
           </div>
         )}
 
-        {/* Notes */}
+        {/* Notes: highlighted, not muted (a child seat note must be seen) */}
         {job.notes && (
-          <p className="mt-2 text-xs text-muted-foreground/70 italic">
-            {job.notes}
-          </p>
+          <div className="mt-2 flex gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-2 text-sm text-foreground">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <p className="whitespace-pre-wrap">{job.notes}</p>
+          </div>
         )}
 
         {/* Collection banner */}
         {job.collectionRequired && (
-          <div className={`mt-2 flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${job.collectionCollected ? "border-emerald-500/30 bg-emerald-500/10" : "border-amber-500/30 bg-amber-500/10"}`}>
-            <DollarSign className={`h-4 w-4 ${job.collectionCollected ? "text-emerald-500" : "text-amber-500"}`} />
-            <span className="font-medium text-foreground">
-              {job.collectionAmount} {job.collectionCurrency}
-            </span>
+          <div className={`mt-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${job.collectionCollected ? "border-emerald-500/40 bg-emerald-500/10" : "border-amber-500/50 bg-amber-500/10"}`}>
+            <DollarSign className={`h-4 w-4 ${job.collectionCollected ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`} aria-hidden="true" />
+            <span className="text-muted-foreground">{t("portal.collectCash")}</span>
+            <span className="font-bold text-foreground">{job.collectionAmount} {job.collectionCurrency}</span>
             {job.collectionCollected ? (
-              <Badge variant="outline" className="ml-auto border-emerald-500/50 text-emerald-500 text-xs">
-                {t("portal.collected") || "Collected"}
+              <Badge variant="outline" className="ms-auto border-emerald-500/50 text-xs text-emerald-700 dark:text-emerald-300">
+                {t("portal.collected")}
               </Badge>
             ) : (
               <Button
                 size="sm"
                 variant="outline"
-                className="ml-auto gap-1.5 border-amber-500/50 text-amber-500 hover:bg-amber-500/20 hover:text-amber-400"
+                className="ms-auto h-10 gap-1.5 border-amber-500/60 text-amber-800 hover:bg-amber-500/20 dark:text-amber-200"
                 onClick={() => onMarkCollected(job.id)}
-                disabled={collectingJobId === job.id}
+                disabled={collectingJobId === job.id || isTerminal}
               >
-                {collectingJobId === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DollarSign className="h-3.5 w-3.5" />}
-                {t("portal.markCollected") || "Mark Collected"}
+                {collectingJobId === job.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
+                {t("portal.markCollected")}
               </Button>
             )}
           </div>
         )}
 
-        {/* Action buttons */}
-        {!isTerminal && (
-          <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-            {driverStatus === "PENDING" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
-                onClick={() => onStatusChange(job.id, job.internalRef, "IN_PROGRESS")}
-                disabled={!canStartProgress}
-                title={progressBlockMsg || undefined}
-              >
-                <PlayCircle className="h-3.5 w-3.5" />
-                {t("portal.inProgress")}
-                {!canStartProgress && progressBlockMsg && (
-                  <span className="ml-1 text-[10px] opacity-70">({progressBlockMsg})</span>
-                )}
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant="default"
-              className="gap-1.5"
-              onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
-              disabled={driverStatus !== "IN_PROGRESS" || (job.collectionRequired && !job.collectionCollected) || !canComplete}
-              title={
-                driverStatus !== "IN_PROGRESS"
-                  ? t("portal.startInProgressFirst")
-                  : job.collectionRequired && !job.collectionCollected
-                  ? (t("portal.collectionRequiredBeforeComplete") || "Collect payment before completing")
-                  : completeBlockMsg || undefined
-              }
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {t("portal.complete")}
-              {!canComplete && driverStatus === "IN_PROGRESS" && completeBlockMsg && (
-                <span className="ml-1 text-[10px] opacity-70">({completeBlockMsg})</span>
-              )}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-orange-400 hover:text-orange-300"
-              onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
-              disabled={!canNoShow}
-              title={noShowBlockMsg || undefined}
-            >
-              <UserX className="h-3.5 w-3.5" />
-              {t("portal.noShow")}
-              {!canNoShow && noShowBlockMsg && (
-                <span className="ml-1 text-[10px] opacity-70">({noShowBlockMsg})</span>
-              )}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-destructive hover:text-destructive"
-              onClick={() => onStatusChange(job.id, job.internalRef, "CANCELLED")}
-            >
-              <XCircle className="h-3.5 w-3.5" />
-              {t("portal.cancelJob")}
-            </Button>
-          </div>
-        )}
+        {/* One main button + More */}
+        <div className="mt-3 flex items-start gap-2 border-t border-border pt-3">
+          {main ? <MainActionButton spec={main} /> : <DoneBadge label={t("portal.done")} />}
+          <MoreMenu items={more} />
+        </div>
       </CardContent>
     </Card>
   );

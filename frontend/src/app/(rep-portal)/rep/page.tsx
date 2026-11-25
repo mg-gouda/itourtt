@@ -32,8 +32,11 @@ import {
   MapPinCheck,
   AlertTriangle,
   ClipboardList,
+  Info,
 } from "lucide-react";
-import JobDetailModal from "@/components/job-detail-modal";
+import { PortalJobSheet } from "@/components/portal/portal-job-sheet";
+import { MainActionButton, DoneBadge, MoreMenu, LoadErrorBanner, saveJobsCache, readJobsCache, type MainActionSpec, type MoreItem } from "@/components/portal/job-actions";
+import { statusBadgeClass, useStatusLabel } from "@/lib/status-colors";
 import { RouteNavLink } from "@/components/route-nav-link";
 import { toast } from "sonner";
 import { NoShowEvidenceDialog } from "@/components/no-show-evidence-dialog";
@@ -119,15 +122,6 @@ interface Notification {
 }
 
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  ASSIGNED: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  IN_PROGRESS: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-  IN_PLACE: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  COMPLETED: "bg-green-500/10 text-green-400 border-green-500/20",
-  CANCELLED: "bg-red-500/10 text-red-400 border-red-500/20",
-  NO_SHOW: "bg-gray-500/10 text-gray-400 border-gray-500/20",
-};
 
 const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "NO_SHOW"];
 
@@ -177,6 +171,9 @@ export default function RepDashboardPage() {
   const [flightDelayTime, setFlightDelayTime] = useState("");
   const [sendingDelay, setSendingDelay] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
+  /** UI review 1b: the last load failed — show the saved list (if any) under a retry banner. */
+  const [loadError, setLoadError] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const shiftDate = (days: number) => {
     const d = new Date(selectedDate);
@@ -189,9 +186,16 @@ export default function RepDashboardPage() {
       const { data } = await api.get("/rep-portal/jobs", {
         params: { date: selectedDate },
       });
-      setJobs(data.data?.jobs ?? []);
+      const list: RepJob[] = data.data?.jobs ?? [];
+      setJobs(list);
+      setLoadError(false);
+      setSavedAt(null);
+      saveJobsCache("rep", selectedDate, list);
     } catch {
-      toast.error(t("portal.failedLoadJobs"));
+      const cached = readJobsCache<RepJob>("rep", selectedDate);
+      setJobs(cached?.jobs ?? []);
+      setSavedAt(cached?.at ?? null);
+      setLoadError(true);
     }
   }, [selectedDate]);
 
@@ -376,9 +380,11 @@ export default function RepDashboardPage() {
         </Button>
       </div>
 
+      {loadError && <LoadErrorBanner savedAt={savedAt} onRetry={fetchAll} retrying={loading} />}
+
       {/* Active Jobs */}
       {activeJobs.length === 0 && completedJobs.length === 0 ? (
-        <Card>
+        loadError ? null : <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Briefcase className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">
@@ -407,6 +413,7 @@ export default function RepDashboardPage() {
                     onSurvey={(jobId, jobRef) => setSurveyDialog({ open: true, jobId, jobRef })}
                     onViewDetail={setJobDetailId}
                     formatTime={formatTime}
+                    escortPending={escortJob?.id === job.id}
                   />
                 ))}
               </div>
@@ -432,6 +439,7 @@ export default function RepDashboardPage() {
                     onSurvey={(jobId, jobRef) => setSurveyDialog({ open: true, jobId, jobRef })}
                     onViewDetail={setJobDetailId}
                     formatTime={formatTime}
+                    escortPending={escortJob?.id === job.id}
                   />
                 ))}
               </div>
@@ -681,15 +689,62 @@ export default function RepDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      <JobDetailModal
-        jobId={jobDetailId}
-        open={jobDetailId !== null}
-        onClose={() => setJobDetailId(null)}
-        apiBase="/rep-portal/jobs"
-        navigable
-      />
+      {(() => {
+        const sheetJob = jobs.find((j) => j.id === jobDetailId) ?? null;
+        const spec = sheetJob ? repMainAction(sheetJob, (id, ref, st) => { setJobDetailId(null); handleStatusChange(id, ref, st); }, t, escortJob?.id === sheetJob.id) : null;
+        return (
+          <PortalJobSheet
+            jobId={jobDetailId}
+            open={jobDetailId !== null}
+            onClose={() => setJobDetailId(null)}
+            apiBase="/rep-portal/jobs"
+            viewer="rep"
+            status={sheetJob?.repStatus}
+            action={sheetJob ? (spec ? <MainActionButton spec={spec} /> : <DoneBadge label={t("portal.done")} />) : undefined}
+          />
+        );
+      })()}
     </div>
   );
+}
+
+const cairoHM = (d: Date) => d.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false });
+
+/**
+ * The one main button for a rep job (UI review 1c) — the next step for its status:
+ * PENDING → Mark In Place (arrivals: only 10 min before → 80 min after landing),
+ * IN PLACE → Mark Complete, finished → null (the card shows "✓ Done").
+ * Departures have no In Place step for the rep, as before.
+ */
+function repMainAction(
+  job: RepJob,
+  onStatusChange: (jobId: string, jobRef: string, status: string) => void,
+  t: (k: string) => string,
+  escortPending: boolean,
+): MainActionSpec | null {
+  if (TERMINAL_STATUSES.includes(job.repStatus)) return null;
+  if (job.repStatus === "PENDING" && job.serviceType !== "DEP") {
+    let open = true;
+    let reason = "";
+    if (job.serviceType === "ARR" && job.flight?.arrivalTime && !job.repUnlockedAt) {
+      const arr = new Date(job.flight.arrivalTime);
+      const start = new Date(arr.getTime() - 10 * 60 * 1000);
+      const end = new Date(arr.getTime() + 80 * 60 * 1000);
+      const now = new Date();
+      open = now >= start && now <= end;
+      if (!open) reason = t("portal.availableWindow").replace("{start}", cairoHM(start)).replace("{end}", cairoHM(end));
+    }
+    return { label: t("portal.markInPlace"), icon: MapPinCheck, tone: "next", disabled: !open, reason, onClick: () => onStatusChange(job.id, job.internalRef, "IN_PLACE") };
+  }
+  const notInPlace = job.repStatus !== "IN_PLACE";
+  return {
+    label: t("portal.markComplete"),
+    icon: CheckCircle2,
+    tone: "complete",
+    disabled: notInPlace || escortPending,
+    reason: notInPlace ? t("portal.markInPlaceFirst") : escortPending ? t("escort.pending") : "",
+    onClick: () => onStatusChange(job.id, job.internalRef, "COMPLETED"),
+  };
 }
 
 function JobCard({
@@ -699,6 +754,7 @@ function JobCard({
   onSurvey,
   onViewDetail,
   formatTime,
+  escortPending,
 }: {
   job: RepJob;
   onStatusChange: (jobId: string, jobRef: string, status: string) => void;
@@ -706,107 +762,80 @@ function JobCard({
   onSurvey: (jobId: string, jobRef: string) => void;
   onViewDetail: (jobId: string) => void;
   formatTime: (iso: string | null) => string | null;
+  escortPending: boolean;
 }) {
   const t = useT();
   const serviceTypeLabel = useServiceTypeLabel();
+  const statusLabel = useStatusLabel();
   const repStatus = job.repStatus;
   const isTerminal = TERMINAL_STATUSES.includes(repStatus);
-  const flightTime =
-    job.serviceType === "ARR"
-      ? formatTime(job.flight?.arrivalTime ?? null)
-      : formatTime(job.flight?.departureTime ?? null);
-
-  // IN PLACE is only active within 10 min before to 80 min after flight arrival
-  const inPlaceWindowOpen = (() => {
-    if (job.serviceType !== "ARR" || !job.flight?.arrivalTime || job.repUnlockedAt) return true;
-    const now = new Date();
-    const arr = new Date(job.flight.arrivalTime);
-    return now >= new Date(arr.getTime() - 10 * 60 * 1000) &&
-           now <= new Date(arr.getTime() + 80 * 60 * 1000);
-  })();
-
-  const inPlaceWindowMsg = (() => {
-    if (!job.flight?.arrivalTime || inPlaceWindowOpen) return "";
-    const arr = new Date(job.flight.arrivalTime);
-    const start = new Date(arr.getTime() - 10 * 60 * 1000);
-    const end = new Date(arr.getTime() + 80 * 60 * 1000);
-    const fmt = (d: Date) => d.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false });
-    return t("portal.availableWindow").replace("{start}", fmt(start)).replace("{end}", fmt(end));
-  })();
 
   // The NO SHOW unlock comes from the server: the wait differs by agent and is
   // shorter for departures, so it can no longer be derived from a constant here.
-  // (The IN PLACE window above is a separate policy and keeps its own 80.)
   const noShowAt = job.noShowAvailableFrom ? new Date(job.noShowAvailableFrom) : null;
   const canNoShow = !noShowAt || new Date() >= noShowAt;
-  const noShowBlockMsg = noShowAt && !canNoShow
-    ? `${t("portal.availableFrom")} ${noShowAt.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}`
-    : "";
+  const noShowBlockMsg = noShowAt && !canNoShow ? `${t("portal.availableFrom")} ${cairoHM(noShowAt)}` : "";
+
+  const main = repMainAction(job, onStatusChange, t, escortPending);
+  const more: MoreItem[] = [{ label: t("portal.details"), icon: Info, onClick: () => onViewDetail(job.id) }];
+  if (!isTerminal) more.push({ label: t("portal.noShow"), icon: UserX, onClick: () => onStatusChange(job.id, job.internalRef, "NO_SHOW"), disabled: !canNoShow, reason: noShowBlockMsg });
+  if (job.serviceType === "ARR" && !isTerminal) more.push({ label: t("portal.flightDelay"), icon: AlertTriangle, onClick: () => onFlightDelay(job.id, job.internalRef, job.jobDate, job.flight?.arrivalTime ?? null) });
+  if (job.serviceType === "ARR") more.push({ label: job.guestSurvey ? t("portal.surveyDone") : t("portal.survey"), icon: ClipboardList, onClick: () => onSurvey(job.id, job.internalRef) });
+  if (!isTerminal) more.push({ label: t("portal.cancelJobLong"), icon: XCircle, destructive: true, separated: true, onClick: () => onStatusChange(job.id, job.internalRef, "CANCELLED") });
+
+  // Driver Time: the driver is ready 1 hour before the job time (same rule as the apps).
+  const jobIso = job.serviceType === "ARR"
+    ? (job.flight?.arrivalTime ?? job.pickUpTime)
+    : (job.pickUpTime ?? job.flight?.departureTime ?? null);
+  const driverAt = driverTimeFromDate(jobIso ? new Date(jobIso) : null);
+  const supplierName = job.assignment?.supplier ? (job.assignment.supplier.tradeName ?? job.assignment.supplier.legalName) : null;
 
   return (
-    <Card className={isTerminal ? "opacity-60" : ""}>
+    <Card className={isTerminal ? "opacity-70" : ""}>
       <CardContent className="p-4">
         {/* Top row: ref + badges */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => onViewDetail(job.id)}
-            className="font-mono text-sm font-semibold text-primary hover:underline"
+            className="font-mono text-base font-semibold text-primary underline-offset-2 hover:underline"
           >
             {job.internalRef}
           </button>
-          <Badge
-            variant="outline"
-            className={SERVICE_TYPE_COLORS[job.serviceType] || ""}
-          >
+          <Badge variant="outline" className={SERVICE_TYPE_COLORS[job.serviceType] || ""}>
             {serviceTypeLabel(job.serviceType)}
           </Badge>
           <BookingChannelBadge channel={job.bookingChannel} />
-          <Badge
-            variant="outline"
-            className={STATUS_COLORS[repStatus] || ""}
-          >
-            {repStatus.replace("_", " ")}
-          </Badge>
-          {job.agentRef && (
-            <span className="ml-auto text-xs text-muted-foreground">
-              {job.agentRef}
-            </span>
-          )}
+          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClass(repStatus)}`}>
+            {statusLabel(repStatus)}
+          </span>
+          {job.agentRef && <span className="ms-auto text-xs text-muted-foreground">{job.agentRef}</span>}
         </div>
 
-        {/* Time info: driver arrival/pickup time + flight info */}
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+        {/* Times: the flight's own time is labelled as the flight's (it used to read "Driver arrives") */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[15px]">
           {job.serviceType === "ARR" && job.flight?.arrivalTime && (
-            <span className="flex items-center gap-1 font-medium text-blue-400">
-              <Clock className="h-3.5 w-3.5" />
-              {t("portal.driverArrival") || "Driver arrives"}: {formatTime(job.flight.arrivalTime)}
+            <span className="flex items-center gap-1 font-semibold text-foreground">
+              <Plane className="h-4 w-4" aria-hidden="true" />
+              {t("portal.flightLands")} {formatTime(job.flight.arrivalTime)}
             </span>
           )}
           {job.serviceType !== "ARR" && job.pickUpTime && (
-            <span className="flex items-center gap-1 font-medium text-orange-400">
-              <Clock className="h-3.5 w-3.5" />
-              {t("portal.driverPickup") || "Driver pickup"}: {formatTime(job.pickUpTime)}
+            <span className="flex items-center gap-1 font-semibold text-foreground">
+              <Clock className="h-4 w-4" aria-hidden="true" />
+              {t("portal.pickup")} {formatTime(job.pickUpTime)}
             </span>
           )}
-          {(() => {
-            // Driver Time: the driver is ready 1 hour before the job time (same rule as the apps).
-            const iso = job.serviceType === "ARR"
-              ? (job.flight?.arrivalTime ?? job.pickUpTime)
-              : (job.pickUpTime ?? job.flight?.departureTime ?? null);
-            const at = driverTimeFromDate(iso ? new Date(iso) : null);
-            return at ? (
-              <span className="flex items-center gap-1 font-semibold text-amber-500">
-                <Clock className="h-3.5 w-3.5" />
-                Driver Time: {formatTime(at.toISOString())}
-              </span>
-            ) : null;
-          })()}
+          {driverAt && (
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Car className="h-4 w-4" aria-hidden="true" />
+              {t("portal.driverTime")} {formatTime(driverAt.toISOString())}
+            </span>
+          )}
           {job.flight && (
             <span className="flex items-center gap-1 text-muted-foreground">
-              <Plane className="h-3.5 w-3.5" />
               {job.flight.carrier} {job.flight.flightNo}
-              {job.flight.terminal && <span className="ml-1">T{job.flight.terminal}</span>}
+              {job.flight.terminal && <span className="ms-1">T{job.flight.terminal}</span>}
             </span>
           )}
         </div>
@@ -814,164 +843,73 @@ function JobCard({
         {/* Route */}
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5" />
+            <MapPin className="h-4 w-4" aria-hidden="true" />
             <RouteNavLink job={job} end="origin">{job.originAirport?.code || job.originHotel?.name || job.originZone?.name || job.fromZone?.name || "—"}</RouteNavLink> &rarr; <RouteNavLink job={job} end="destination">{job.destinationAirport?.code || job.destinationHotel?.name || job.destinationZone?.name || job.toZone?.name || "—"}</RouteNavLink>
           </span>
         </div>
 
         {/* Pax + vehicle + driver */}
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
+            <Users className="h-4 w-4" aria-hidden="true" />
             {job.paxCount} {t("portal.pax")}
           </span>
           {job.assignment?.vehicle && (
             <span className="flex items-center gap-1">
-              <Car className="h-3.5 w-3.5" />
+              <Car className="h-4 w-4" aria-hidden="true" />
               {job.assignment.vehicle.plateNumber}
-              {job.assignment.vehicle.vehicleType && (
-                <span className="text-xs">
-                  ({job.assignment.vehicle.vehicleType.name})
-                </span>
-              )}
+              {job.assignment.vehicle.vehicleType && <span>({job.assignment.vehicle.vehicleType.name})</span>}
             </span>
           )}
           {job.assignment?.driver ? (
-            <span className="text-xs">
-              {t("portal.driverLabel")} {job.assignment.driver.name} ({job.assignment.driver.mobileNumber})
+            <span>
+              {t("portal.driverLabel")} {job.assignment.driver.name}{" "}
+              <a href={`tel:${job.assignment.driver.mobileNumber}`} className="font-medium text-blue-700 underline dark:text-blue-300">{job.assignment.driver.mobileNumber}</a>
             </span>
           ) : job.assignment?.externalDriverName ? (
-            <span className="text-xs">
-              {t("portal.driverLabel")} <span className="font-medium text-amber-500">Supp.</span> {job.assignment.externalDriverName}
-              {job.assignment.externalDriverPhone && ` (${job.assignment.externalDriverPhone})`}
-              {job.assignment.supplier && (
-                <span className="text-muted-foreground"> — {job.assignment.supplier.tradeName ?? job.assignment.supplier.legalName}</span>
+            <span>
+              {t("portal.driverLabel")} {job.assignment.externalDriverName}
+              {job.assignment.externalDriverPhone && (
+                <> <a href={`tel:${job.assignment.externalDriverPhone}`} className="font-medium text-blue-700 underline dark:text-blue-300">{job.assignment.externalDriverPhone}</a></>
               )}
+              {supplierName && <span> — {supplierName}</span>}
             </span>
           ) : null}
         </div>
 
         {/* Online client info */}
         {job.bookingChannel === "ONLINE" && (job.clientName || job.clientMobile) && (
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-md border border-blue-500/20 bg-blue-500/5 px-2.5 py-1.5 text-xs">
-            <span className="text-blue-400 font-medium">{t("portal.onlineClient")}:</span>
-            {job.clientName && <span className="text-foreground font-semibold">{job.clientName}</span>}
-            {job.clientMobile && (
-              <a href={`tel:${job.clientMobile}`} className="text-blue-400 underline">
-                {job.clientMobile}
-              </a>
-            )}
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 rounded-md border border-blue-500/30 bg-blue-500/5 px-2.5 py-1.5 text-sm">
+            <span className="font-medium text-blue-700 dark:text-blue-300">{t("portal.onlineClient")}:</span>
+            {job.clientName && <span className="font-semibold text-foreground">{job.clientName}</span>}
+            {job.clientMobile && <a href={`tel:${job.clientMobile}`} className="text-blue-700 underline dark:text-blue-300">{job.clientMobile}</a>}
           </div>
         )}
 
         {/* Customer Rep Meeting Info */}
         {(job.custRepName || job.custRepMobile || job.custRepMeetingPoint || job.custRepMeetingTime) && (
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {job.custRepName && <span>{t("jobs.custRepName")}: <b className="text-foreground">{job.custRepName}</b></span>}
-            {job.custRepMobile && (
-              <a href={`tel:${job.custRepMobile}`} className="text-blue-400 underline">
-                {job.custRepMobile}
-              </a>
-            )}
+            {job.custRepMobile && <a href={`tel:${job.custRepMobile}`} className="text-blue-700 underline dark:text-blue-300">{job.custRepMobile}</a>}
             {job.custRepMeetingPoint && <span>{t("jobs.custRepMeetingPoint")}: <b className="text-foreground">{job.custRepMeetingPoint}</b></span>}
-            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{new Date(job.custRepMeetingTime).toLocaleTimeString([], { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hour12: false })}</b></span>}
+            {job.custRepMeetingTime && <span>{t("jobs.custRepMeetingTime")}: <b className="text-foreground">{cairoHM(new Date(job.custRepMeetingTime))}</b></span>}
           </div>
         )}
 
-        {/* Notes */}
+        {/* Notes: highlighted, not muted (a child seat note must be seen) */}
         {job.notes && (
-          <p className="mt-2 text-xs text-muted-foreground/70 italic">
-            {job.notes}
-          </p>
+          <div className="mt-2 flex gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-2 text-sm text-foreground">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <p className="whitespace-pre-wrap">{job.notes}</p>
+          </div>
         )}
 
-        {/* Action buttons */}
-        <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-          {!isTerminal && (
-            <>
-              {repStatus === "PENDING" && job.serviceType !== "DEP" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
-                  onClick={() => onStatusChange(job.id, job.internalRef, "IN_PLACE")}
-                  disabled={!inPlaceWindowOpen}
-                  title={inPlaceWindowMsg || undefined}
-                >
-                  <MapPinCheck className="h-3.5 w-3.5" />
-                  {t("portal.inPlace")}
-                  {!inPlaceWindowOpen && inPlaceWindowMsg && (
-                    <span className="ml-1 text-[10px] opacity-70">({inPlaceWindowMsg})</span>
-                  )}
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="default"
-                className="gap-1.5"
-                onClick={() => onStatusChange(job.id, job.internalRef, "COMPLETED")}
-                disabled={repStatus !== "IN_PLACE"}
-                title={repStatus !== "IN_PLACE" ? t("portal.markInPlaceFirst") : undefined}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {t("portal.complete")}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 text-orange-400 hover:text-orange-300"
-                onClick={() => onStatusChange(job.id, job.internalRef, "NO_SHOW")}
-                disabled={!canNoShow}
-                title={noShowBlockMsg || undefined}
-              >
-                <UserX className="h-3.5 w-3.5" />
-                {t("portal.noShow")}
-                {!canNoShow && noShowBlockMsg && (
-                  <span className="ml-1 text-[10px] opacity-70">({noShowBlockMsg})</span>
-                )}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 text-destructive hover:text-destructive"
-                onClick={() => onStatusChange(job.id, job.internalRef, "CANCELLED")}
-              >
-                <XCircle className="h-3.5 w-3.5" />
-                {t("portal.cancelJob")}
-              </Button>
-            </>
-          )}
-          {job.serviceType === "ARR" && !isTerminal && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-amber-400 hover:text-amber-300"
-              onClick={() => onFlightDelay(job.id, job.internalRef, job.jobDate, job.flight?.arrivalTime ?? null)}
-            >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {t("portal.flightDelay")}
-            </Button>
-          )}
-          {job.serviceType === "ARR" && (
-            <Button
-              size="sm"
-              variant="outline"
-              className={
-                job.guestSurvey
-                  ? "gap-1.5 text-emerald-400 hover:text-emerald-300"
-                  : "gap-1.5 text-sky-400 hover:text-sky-300"
-              }
-              onClick={() => onSurvey(job.id, job.internalRef)}
-              title={job.guestSurvey ? t("survey.alreadySubmitted") : undefined}
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              {t("portal.survey")}
-              {job.guestSurvey && <CheckCircle2 className="h-3.5 w-3.5" />}
-            </Button>
-          )}
+        {/* One main button + More */}
+        <div className="mt-3 flex items-start gap-2 border-t border-border pt-3">
+          {main ? <MainActionButton spec={main} /> : <DoneBadge label={t("portal.done")} />}
+          <MoreMenu items={more} />
         </div>
       </CardContent>
     </Card>
   );
 }
-

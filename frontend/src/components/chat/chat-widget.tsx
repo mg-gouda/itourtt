@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { playChatSound } from "@/lib/chat-sound";
 import { MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
@@ -14,29 +15,6 @@ import { BroadcastPanel } from "./broadcast-panel";
 /** Widget-only view id for the broadcast console (never a conversation id). */
 const BROADCAST_VIEW = "__broadcast";
 
-/** Short two-note chime via WebAudio (no asset). Silently skipped if the browser blocks audio. */
-function chime() {
-  try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
-    [880, 1320].forEach((freq, i) => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.frequency.value = freq;
-      o.connect(g);
-      g.connect(ctx.destination);
-      const t0 = ctx.currentTime + i * 0.14;
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
-      o.start(t0);
-      o.stop(t0 + 0.24);
-    });
-    setTimeout(() => ctx.close(), 800);
-  } catch {
-    /* no audio */
-  }
-}
 
 /**
  * Staff chat: a floating button bottom-right on every dashboard page. Shown to
@@ -62,7 +40,7 @@ export function ChatWidget() {
     lastSeenUnreadAt.current = latest?.at ?? prev ?? null;
     if (prev === undefined || !latest) return; // first poll: badge only
     if (prev && latest.at <= prev) return;
-    chime();
+    playChatSound();
     const { open: isOpen, thread: current } = stateRef.current;
     if (!isOpen || !current) {
       setOpen(true);

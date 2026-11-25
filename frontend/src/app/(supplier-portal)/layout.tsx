@@ -44,7 +44,7 @@ export default function SupplierPortalLayout({
 
   return (
     <ThemeProvider>
-      <LicenseGate>
+      <LicenseGate audience="field">
         <SupplierPortalShell user={user}>{children}</SupplierPortalShell>
       </LicenseGate>
     </ThemeProvider>
