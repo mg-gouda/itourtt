@@ -150,10 +150,11 @@ function PortalShell({ kind, user, children }: { kind: PortalKind; user: { name:
         {/* Start reminders + drop-off geofence alarms (must be acknowledged) */}
         <JobAlarms portal={kind} />
         <AlarmSoundGate />
-        {/* Credit line sits at the end of the page now — fixed, it ran under the raised Jobs button. */}
-        <p className="mt-8 text-center text-[11px] text-muted-foreground">
+        {/* Credit line sits at the end of the page now — fixed, it ran under the raised Jobs button.
+            Not on Chat, whose thread fills the screen. */}
+        {!pathname.startsWith(`${base}/chat`) && <p className="mt-8 text-center text-[11px] text-muted-foreground">
           Developed by: <a href="https://wa.me/+201002805139" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Mohamed Gouda</a> &middot; v{process.env.NEXT_PUBLIC_APP_VERSION}
-        </p>
+        </p>}
       </main>
 
       <nav aria-label="Main" className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">

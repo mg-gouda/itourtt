@@ -22,7 +22,10 @@ self.addEventListener("push", (event) => {
       tag: data.tag || undefined,
       renotify: !!data.tag,
       data: { url: data.url || "/" },
-      vibrate: [120, 60, 120],
+      vibrate: data.urgent ? [400, 200, 400, 200, 400] : [120, 60, 120],
+      // Missed-alarm escalations (6.7.0) stay on screen until someone clicks them.
+      requireInteraction: !!data.urgent,
+      silent: false,
     }),
   );
 });

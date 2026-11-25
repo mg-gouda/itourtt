@@ -8,6 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ComplaintThreadService } from '../complaints/complaint-thread.service.js';
+import { WebPushService } from '../push-notifications/web-push.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { assertWithinGeofence } from '../common/geofence.util.js';
 import { calcRepScore, scoreToFeeAndEval } from '../common/utils/rep-score.util.js';
@@ -43,6 +44,7 @@ export class RepPortalService {
     private readonly complaintThreads: ComplaintThreadService,
     private readonly party: PartyNotificationsService,
     private readonly jobCompletion: JobCompletionService,
+    private readonly webPush: WebPushService,
   ) {}
 
   private readonly jobInclude = {
@@ -930,6 +932,9 @@ export class RepPortalService {
           metadata: { repName, oldArrivalTime, newArrivalTime: newTime.toISOString() },
         })),
       });
+      await this.webPush
+        .sendToOffice(recipients.map((r) => r.id), { title, body: message, url: '/dashboard/dispatch', tag: `delay-${jobId}` })
+        .catch(() => {});
     }
 
     // The driver on the same job needs the new arrival time too.
@@ -1006,6 +1011,9 @@ export class RepPortalService {
           metadata: { repName, repUpdate: message },
         })),
       });
+      await this.webPush
+        .sendToOffice(recipients.map((r) => r.id), { title, body: notifMessage, url: '/dashboard/dispatch', tag: `update-${jobId}` })
+        .catch(() => {});
 
       this.logger.log(
         `Rep update notification sent to ${recipients.length} users for job ${job.internalRef}`,

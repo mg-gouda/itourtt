@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertCircle, ImagePlus, Loader2, MapPin, Mic, Send, Square, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmojiPicker } from "./emoji-picker";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
@@ -150,6 +151,21 @@ export function ChatComposer({ disabled, onSend, placeholder, className }: ChatC
     }
   };
 
+  /** Emoji at the cursor (or replacing the selection), then back to typing. */
+  const insertEmoji = (emoji: string) => {
+    const el = textRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const next = (text.slice(0, start) + emoji + text.slice(end)).slice(0, 4000);
+    setText(next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = Math.min(start + emoji.length, next.length);
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
   const recorder = useVoiceRecorder((blob, secs) => {
     const form = new FormData();
     const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
@@ -265,6 +281,7 @@ export function ChatComposer({ disabled, onSend, placeholder, className }: ChatC
             >
               {locating ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5" />}
             </Button>
+            <EmojiPicker onPick={insertEmoji} disabled={disabled} />
             <textarea
               ref={textRef}
               value={text}

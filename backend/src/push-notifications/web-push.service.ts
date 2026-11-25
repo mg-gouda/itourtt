@@ -10,6 +10,8 @@ export interface WebPushPayload {
   url?: string;
   /** Notifications with the same tag replace each other (e.g. one per chat). */
   tag?: string;
+  /** Stays on screen until clicked (missed-alarm escalations). */
+  urgent?: boolean;
 }
 
 /**
@@ -76,6 +78,20 @@ export class WebPushService {
   }
 
   /** Push to every browser `userId` subscribed. Never throws. */
+  /**
+   * Office alerts as browser push (6.7.0), so they arrive with the office window minimised,
+   * in a background tab or closed — they used to exist only as in-app rows read by an open tab.
+   * Admins are skipped, like their muted popups (6.2.1).
+   */
+  async sendToOffice(userIds: string[], payload: WebPushPayload): Promise<void> {
+    if (!this.enabled || !userIds.length) return;
+    const staff = await this.prisma.user.findMany({
+      where: { id: { in: userIds }, role: { not: 'ADMIN' }, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    await Promise.allSettled(staff.map((u) => this.sendToUser(u.id, payload)));
+  }
+
   async sendToUser(userId: string, payload: WebPushPayload): Promise<void> {
     if (!this.enabled) return;
     try {

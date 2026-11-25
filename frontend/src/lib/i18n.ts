@@ -5,6 +5,12 @@ export type Locale = "en" | "ar";
 
 const translations: Record<Locale, Record<string, string>> = {
   en: {
+    "chat.emoji": "Emoji",
+    "chat.emojiGroup.recent": "Recent",
+    "chat.emojiGroup.smileys": "Smileys",
+    "chat.emojiGroup.gestures": "Hands",
+    "chat.emojiGroup.travel": "Travel",
+    "chat.emojiGroup.symbols": "Symbols",
     "header.openMenu": "Open menu",
     "common.dateFrom": "Date From",
     "common.dateTo": "Date To",
@@ -2111,6 +2117,12 @@ const translations: Record<Locale, Record<string, string>> = {
   },
 
   ar: {
+    "chat.emoji": "رموز تعبيرية",
+    "chat.emojiGroup.recent": "الأخيرة",
+    "chat.emojiGroup.smileys": "الوجوه",
+    "chat.emojiGroup.gestures": "الأيدي",
+    "chat.emojiGroup.travel": "السفر",
+    "chat.emojiGroup.symbols": "الرموز",
     "header.openMenu": "فتح القائمة",
     "common.dateFrom": "من تاريخ",
     "common.dateTo": "إلى تاريخ",

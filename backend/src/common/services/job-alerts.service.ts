@@ -8,6 +8,7 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { WebPushService } from '../../push-notifications/web-push.service.js';
 import {
   LOC,
   getGeofenceRadii,
@@ -99,7 +100,10 @@ export function jobStartsAt(job: {
 export class JobAlertsService {
   private readonly logger = new Logger(JobAlertsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly webPush: WebPushService,
+  ) {}
 
   // ── Company › Alerts settings (6.5.0) ─────────────────────────────────────
   private cached: { at: number; v: AlarmSettingsView } | null = null;
@@ -361,6 +365,10 @@ export class JobAlertsService {
     await this.prisma.userNotification.createMany({
       data: ids.map((userId) => ({ userId, title, message, type, trafficJobId: jobId, metadata: metadata as object })),
     });
+    // Also as browser push: reaches the office with the window minimised or closed.
+    await this.webPush
+      .sendToOffice(ids, { title, body: message, url: '/dashboard/dispatch', tag: `alarm-${jobId}-${type}`, urgent: type !== 'ON_THE_WAY' })
+      .catch((e) => this.logger.warn(`Office alarm push failed: ${String(e)}`));
   }
 
   /** Name, phone and role label of the rep / driver behind a user account. */
