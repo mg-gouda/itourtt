@@ -4,7 +4,7 @@
 
 Fees, invoices, payments, tariffs, Odoo-ready exports and every report.
 
-**19 classes**, **262 methods**.
+**20 classes**, **264 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -87,7 +87,7 @@ Download surface for every Excel/PDF/zip export. Each endpoint streams a file ra
 
 ### ExportService
 
-`backend/src/export/export.service.ts:117` · service · 48 methods
+`backend/src/export/export.service.ts:117` · service · 49 methods
 
 The Excel export layer — the largest file in the backend. One export function per report or entity, all producing xlsx. Odoo-specific accounting exports live in `OdooExportService` instead.
 
@@ -128,19 +128,28 @@ The Excel export layer — the largest file in the backend. One export function 
 | `exportEvidenceReport` | pub | 2042 | `trafficJob` | Evidence coverage report — which jobs have photos and which do not. |
 | `exportDriverScoreReport` | pub | 2138 | `driverJobScore` | Driver scores as xlsx. |
 | `exportRepScoreReport` | pub | 2195 | `repJobScore` | Rep scores and resulting fees as xlsx. |
-| `exportGuestSurveyReport` | pub | 2258 | `guestSurvey` | Arrival guest surveys as xlsx. |
-| `complaintResponsibleNames` | priv | 2311 | — | The people a complaint blames — driver/rep/supplier off the complaint, agent/guest/office roles off the job. |
-| `complaintCategoryNames` | priv | 2358 | — | A complaint's categories, primary first, joined for a single spreadsheet cell. |
-| `exportComplaintsReport` | pub | 2369 | `complaint` | Builds the complaints xlsx, dates rendered in Cairo time. |
-| `exportJobStatusReport` | pub | 2475 | `trafficJob` | Job status breakdown as xlsx. |
-| `exportDepartureReport` | pub | 2549 | `trafficJob` | Departures report as xlsx. |
-| `exportFlightDelayReport` | pub | 2581 | `userNotification` | Flight delays reported by reps, sourced from the notifications they generated. |
-| `exportSupplierJobsExcel` | pub | 2650 | — | Supplier jobs report as xlsx. |
-| `exportCarJobsExcel` | pub | 2674 | — | Car jobs report as xlsx. |
-| `exportReviewReport` | pub | 2701 | `trafficJob` | Guest review report as xlsx. |
-| `buildDateFilter` | priv | 2766 | — | Shared date-range predicate used by every report query. |
-| `exportZonesAnalyticsReport` | pub | 2786 | `trafficJob` | Zones analytics as xlsx: a Routes sheet ranking zone pairs and a Jobs sheet listing every job behind them. |
-| `exportProductionReport` | pub | 2868 | `trafficJob` | Production report as xlsx: a By Agent sheet plus the job-level detail. |
+| `guestSurveyFile` | pub | 2259 | `guestSurvey` `companySettings` | _—_ |
+| `exportGuestSurveyReport` | pub | 2360 | `guestSurvey` | Arrival guest surveys as xlsx. |
+| `complaintResponsibleNames` | priv | 2413 | — | The people a complaint blames — driver/rep/supplier off the complaint, agent/guest/office roles off the job. |
+| `complaintCategoryNames` | priv | 2460 | — | A complaint's categories, primary first, joined for a single spreadsheet cell. |
+| `exportComplaintsReport` | pub | 2471 | `complaint` | Builds the complaints xlsx, dates rendered in Cairo time. |
+| `exportJobStatusReport` | pub | 2577 | `trafficJob` | Job status breakdown as xlsx. |
+| `exportDepartureReport` | pub | 2651 | `trafficJob` | Departures report as xlsx. |
+| `exportFlightDelayReport` | pub | 2683 | `userNotification` | Flight delays reported by reps, sourced from the notifications they generated. |
+| `exportSupplierJobsExcel` | pub | 2752 | — | Supplier jobs report as xlsx. |
+| `exportCarJobsExcel` | pub | 2776 | — | Car jobs report as xlsx. |
+| `exportReviewReport` | pub | 2803 | `trafficJob` | Guest review report as xlsx. |
+| `buildDateFilter` | priv | 2868 | — | Shared date-range predicate used by every report query. |
+| `exportZonesAnalyticsReport` | pub | 2888 | `trafficJob` | Zones analytics as xlsx: a Routes sheet ranking zone pairs and a Jobs sheet listing every job behind them. |
+| `exportProductionReport` | pub | 2970 | `trafficJob` | Production report as xlsx: a By Agent sheet plus the job-level detail. |
+
+### SurveyFilesController
+
+`backend/src/export/survey-files.controller.ts:13` · controller · 1 methods
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `download` | pub | 17 | `exportService.guestSurveyFile` | _—_ |
 
 ## `finance`
 

@@ -4,7 +4,7 @@
 
 Everything the dashboard and portal pages reuse: shared components, API client, i18n, permission registry, hooks and stores.
 
-**126 files**, **443 exported symbols**.
+**137 files**, **476 exported symbols**.
 
 ## `frontend/src/components/`
 
@@ -118,13 +118,13 @@ The native arrival guest survey form. Submitting it awards the rep's 15-point su
 
 ### `header.tsx`
 
-`frontend/src/components/header.tsx` · 539 lines
+`frontend/src/components/header.tsx` · 607 lines
 
 Top bar — user menu, notifications, locale switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Header` | function | 124 | Top bar — user menu, notifications and locale switch. |
+| `Header` | function | 127 | Top bar — user menu, notifications and locale switch. |
 
 ### `import-template-manager.tsx`
 
@@ -156,26 +156,34 @@ Evidence dialog for a driver starting a job.
 |---|---|---|---|
 | `InProgressEvidenceDialog` | function | 34 | Job-start evidence capture for drivers. |
 
+### `job-alarm-settings-tab.tsx`
+
+`frontend/src/components/job-alarm-settings-tab.tsx` · 344 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `JobAlarmSettingsTab` | function | 38 | _—_ |
+
 ### `job-alarms.tsx`
 
-`frontend/src/components/job-alarms.tsx` · 323 lines
+`frontend/src/components/job-alarms.tsx` · 384 lines
 
 Web job alarms (start reminders, drop-off arrived/left) for the rep and driver portals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `dueStartKind` | function | 70 | Which start reminder is due now (30-min supersedes 1-h). |
-| `JobAlarms` | function | 143 | Rep/driver portal alarm host: 1 h / 30 min start reminders and drop-off geofence alarms as must-acknowledge modals. |
+| `dueStartKind` | function | 74 | Which start reminder is due now (30-min supersedes 1-h). |
+| `JobAlarms` | function | 162 | Rep/driver portal alarm host: 1 h / 30 min start reminders and drop-off geofence alarms as must-acknowledge modals. |
 
 ### `job-detail-modal.tsx`
 
-`frontend/src/components/job-detail-modal.tsx` · 366 lines
+`frontend/src/components/job-detail-modal.tsx` · 361 lines
 
 Full job detail modal used across dispatch and the job lists.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobDetailModal` | function | 131 | Full job detail modal — route, flight, assignment, evidence and financials. |
+| `JobDetailModal` | function | 126 | Full job detail modal — route, flight, assignment, evidence and financials. |
 
 ### `job-extras-editor.tsx`
 
@@ -190,13 +198,13 @@ Editor for a job's booked extras, sourced from the managed extras catalogue.
 
 ### `license-gate.tsx`
 
-`frontend/src/components/license-gate.tsx` · 256 lines
+`frontend/src/components/license-gate.tsx` · 100 lines
 
 Blocks the entire app when the licence is invalid or unreachable.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `LicenseGate` | function | 60 | Blocks the whole app when the licence is invalid — this is what a licence misconfiguration looks like to users. |
+| `LicenseGate` | function | 41 | Blocks the whole app when the licence is invalid — this is what a licence misconfiguration looks like to users. |
 
 ### `location-combobox.tsx`
 
@@ -210,13 +218,13 @@ Cascading location picker over the Country→Airport→City→Zone→Hotel tree.
 
 ### `mobile-profile-page.tsx`
 
-`frontend/src/components/mobile-profile-page.tsx` · 191 lines
+`frontend/src/components/mobile-profile-page.tsx` · 220 lines
 
 Mobile-optimised profile screen shared by the portals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MobileProfilePage` | function | 43 | Mobile-optimised profile screen shared by the portals. |
+| `MobileProfilePage` | function | 47 | Mobile-optimised profile screen shared by the portals. |
 
 ### `mobile-sidebar.tsx`
 
@@ -248,6 +256,14 @@ Evidence dialog backing a no-show claim; its photos feed the dispute PDF.
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `NoShowEvidenceDialog` | function | 37 | No-show evidence capture. Gated to 80 minutes after job time. |
+
+### `offline-actions-strip.tsx`
+
+`frontend/src/components/offline-actions-strip.tsx` · 37 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `OfflineActionsStrip` | function | 14 | _—_ |
 
 ### `page-header.tsx`
 
@@ -399,7 +415,7 @@ Generic searchable select, used for large lists such as the car source.
 
 ### `sidebar.tsx`
 
-`frontend/src/components/sidebar.tsx` · 437 lines
+`frontend/src/components/sidebar.tsx` · 443 lines
 
 Main dashboard navigation, filtered by permission.
 
@@ -519,14 +535,22 @@ Staff broadcast console (perm chat-broadcast).
 
 ### `chat-composer.tsx`
 
-`frontend/src/components/chat/chat-composer.tsx` · 319 lines
+`frontend/src/components/chat/chat-composer.tsx` · 336 lines
 
 Shared chat composer.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatComposerProps` | type | 19 | onSend(kind, form, preview) plus disabled/placeholder. |
-| `ChatComposer` | function | 47 | Text / photo (pick, paste screenshot, drop) / voice / location composer; pasted images are staged for a caption. |
+| `ChatComposerProps` | type | 20 | onSend(kind, form, preview) plus disabled/placeholder. |
+| `ChatComposer` | function | 48 | Text / photo (pick, paste screenshot, drop) / voice / location composer; pasted images are staged for a caption. |
+
+### `chat-forward.tsx`
+
+`frontend/src/components/chat/chat-forward.tsx` · 169 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ForwardPanel` | function | 22 | _—_ |
 
 ### `chat-inbox.tsx`
 
@@ -550,7 +574,7 @@ Location message map preview (dynamic import).
 
 ### `chat-message.tsx`
 
-`frontend/src/components/chat/chat-message.tsx` · 212 lines
+`frontend/src/components/chat/chat-message.tsx` · 238 lines
 
 Chat bubble, location card and status ticks.
 
@@ -562,33 +586,41 @@ Chat bubble, location card and status ticks.
 
 ### `chat-settings-card.tsx`
 
-`frontend/src/components/chat/chat-settings-card.tsx` · 112 lines
+`frontend/src/components/chat/chat-settings-card.tsx` · 118 lines
 
 Company page card for the chat contact role lists.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatSettingsCard` | function | 23 | Checkboxes for which staff roles drivers and reps can message; read-only without company.editSettings. |
+| `ChatSettingsCard` | function | 24 | Checkboxes for which staff roles drivers and reps can message; read-only without company.editSettings. |
 
 ### `chat-thread.tsx`
 
-`frontend/src/components/chat/chat-thread.tsx` · 314 lines
+`frontend/src/components/chat/chat-thread.tsx` · 333 lines
 
 One chat conversation: history, polling, receipts and composer.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatThread` | function | 48 | Message list (paging, 4 s polling, seen ticks) + composer for text, photos and voice notes with optimistic send/retry. |
+| `ChatThread` | function | 49 | Message list (paging, 4 s polling, seen ticks) + composer for text, photos and voice notes with optimistic send/retry. |
 
 ### `chat-widget.tsx`
 
-`frontend/src/components/chat/chat-widget.tsx` · 152 lines
+`frontend/src/components/chat/chat-widget.tsx` · 142 lines
 
 Floating staff chat button + panel on every dashboard page.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatWidget` | function | 47 | Bottom-right chat for eligible staff; opens itself (with a chime) on a newly arrived message unless another thread is open. |
+| `ChatWidget` | function | 25 | Bottom-right chat for eligible staff; opens itself (with a chime) on a newly arrived message unless another thread is open. |
+
+### `emoji-picker.tsx`
+
+`frontend/src/components/chat/emoji-picker.tsx` · 128 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `EmojiPicker` | function | 47 | _—_ |
 
 ### `portal-chat.tsx`
 
@@ -663,6 +695,39 @@ The deduction modal behind the discount mark on the Fleet and Rep Overview trip 
 | `JobComplaintRef` | type | 38 | What the dispatch grid knows about a complaint on a job — id, number and who it blames. |
 | `JobDeductionDialog` | function | 76 | Deducts from the driver or rep from the dispatch grid, against the job's own complaint. |
 
+## `frontend/src/components/portal/`
+
+### `job-actions.tsx`
+
+`frontend/src/components/portal/job-actions.tsx` · 163 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `MainActionSpec` | type | 22 | _—_ |
+| `MainActionButton` | function | 34 | _—_ |
+| `DoneBadge` | function | 60 | _—_ |
+| `MoreItem` | type | 69 | _—_ |
+| `MoreMenu` | function | 81 | _—_ |
+| `LoadErrorBanner` | function | 121 | _—_ |
+| `saveJobsCache` | function | 149 | _—_ |
+| `readJobsCache` | function | 153 | _—_ |
+
+### `portal-job-sheet.tsx`
+
+`frontend/src/components/portal/portal-job-sheet.tsx` · 315 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PortalJobSheet` | function | 123 | _—_ |
+
+### `portal-shell.tsx`
+
+`frontend/src/components/portal/portal-shell.tsx` · 195 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PortalLayout` | function | 30 | _—_ |
+
 ## `frontend/src/components/public/`
 
 ### `footer.tsx`
@@ -709,13 +774,13 @@ Leaflet map used by the Rep/Driver Tracking pages (client-only, loaded via next/
 
 ### `tracking-view.tsx`
 
-`frontend/src/components/tracking/tracking-view.tsx` · 392 lines
+`frontend/src/components/tracking/tracking-view.tsx` · 400 lines
 
 Rep/Driver Tracking page body.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TrackingView` | function | 89 | Shared body of Rep/Driver Tracking: name search, freshness counts, refresh/auto-refresh, searchable list beside the map. |
+| `TrackingView` | function | 90 | Shared body of Rep/Driver Tracking: name search, freshness counts, refresh/auto-refresh, searchable list beside the map. |
 
 ### `types.ts`
 
@@ -941,13 +1006,13 @@ shadcn/ui Text input primitive — unmodified except for project theming.
 
 ### `label.tsx`
 
-`frontend/src/components/ui/label.tsx` · 25 lines
+`frontend/src/components/ui/label.tsx` · 68 lines
 
 shadcn/ui Form label primitive — unmodified except for project theming.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Label` | function | 8 | shadcn/ui `Label` part (from `label`). |
+| `Label` | function | 46 | shadcn/ui `Label` part (from `label`). |
 
 ### `popover.tsx`
 
@@ -1056,13 +1121,13 @@ shadcn/ui Toast host (sonner) primitive — unmodified except for project themin
 
 ### `status-badge.tsx`
 
-`frontend/src/components/ui/status-badge.tsx` · 56 lines
+`frontend/src/components/ui/status-badge.tsx` · 57 lines
 
 Coloured status badge shared by job, portal and invoice statuses.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `StatusBadge` | function | 43 | Coloured badge for job, portal and invoice statuses. |
+| `StatusBadge` | function | 44 | Coloured badge for job, portal and invoice statuses. |
 
 ### `switch.tsx`
 
@@ -1184,6 +1249,19 @@ Per-user column visibility, persisted alongside column order.
 
 ## `frontend/src/lib/`
 
+### `alarm-sound.tsx`
+
+`frontend/src/lib/alarm-sound.tsx` · 163 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `setAlarmSoundUrl` | function | 28 | _—_ |
+| `setAlarmSounds` | function | 41 | _—_ |
+| `startAlarm` | function | 101 | _—_ |
+| `stopAlarm` | function | 107 | _—_ |
+| `playOnce` | function | 118 | _—_ |
+| `AlarmSoundGate` | function | 148 | _—_ |
+
 ### `api.ts`
 
 `frontend/src/lib/api.ts` · 133 lines
@@ -1207,9 +1285,18 @@ Traffic Cover car-card colours: the palette, the automatic colour per car and th
 | `autoCardColor` | function | 10 | Stable automatic colour for a car with no saved colour (hash of its id into CARD_COLORS). |
 | `cardColorOf` | function | 16 | A car's card colour: its saved cardColor, else autoCardColor. |
 
+### `chat-sound.tsx`
+
+`frontend/src/lib/chat-sound.tsx` · 52 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `playChatSound` | function | 17 | _—_ |
+| `ChatSoundWatcher` | function | 32 | _—_ |
+
 ### `chat.ts`
 
-`frontend/src/lib/chat.ts` · 360 lines
+`frontend/src/lib/chat.ts` · 366 lines
 
 Chat client: types, polling hook, attachment blob fetch, image shrink, voice recorder, time formatting.
 
@@ -1221,33 +1308,33 @@ Chat client: types, polling hook, attachment blob fetch, image shrink, voice rec
 | `ANNOUNCEMENTS_ID` | const | 16 | Inbox id of the announcements thread ('announcements'). |
 | `ChatPerson` | type | 18 | A chat participant or contact. |
 | `ChatConversationSummary` | type | 27 | Inbox row: other person, last message, unread count. |
-| `ChatMessage` | type | 42 | A message plus client-only pending/failed/localUrl flags for optimistic sends. |
-| `ChatMe` | type | 63 | GET /chat/me result. |
-| `CHAT_READ_EVENT` | const | 76 | Window event fired after a thread is marked read; useChatMe and ChatInbox reload on it so badges drop at once. |
-| `announceChatRead` | function | 82 | After a thread is read: fires CHAT_READ_EVENT and closes that thread's chat-<id> notifications in the phone tray. |
-| `CHAT_ME_POLL_MS` | const | 92 | Badge / widget / inbox poll interval (10 s). |
-| `CHAT_THREAD_POLL_MS` | const | 94 | Open-thread poll interval (4 s). |
-| `CHAT_MAX_VOICE_SEC` | const | 95 | Voice notes stop recording at 300 s. |
-| `CHAT_MAX_FILE_BYTES` | const | 96 | Client-side 10 MB attachment limit (matches the server). |
-| `ChatAnnouncement` | type | 99 | A received broadcast. |
-| `ChatAnnouncementsSummary` | type | 107 | Pinned announcements inbox row. |
-| `ChatSentBroadcast` | type | 113 | A sent broadcast with recipient / delivered / seen counts. |
-| `AUDIENCE_LABEL_KEY` | const | 121 | i18n key per broadcast audience. |
-| `useChatMe` | function | 134 | Polls /chat/me as a background request every 10 s (paused while hidden); optional onUpdate callback. |
-| `messageAttachmentPath` | const | 176 | API path of a 1:1 message's attachment. |
-| `broadcastAttachmentPath` | const | 178 | API path of a broadcast's attachment. |
-| `attachmentUrl` | function | 181 | Fetches an auth-gated attachment as a blob → cached object URL. |
-| `useAttachmentUrl` | function | 193 | Hook wrapping attachmentUrl with loading/error state. |
-| `LocationError` | type | 211 | denied \| unavailable \| unsupported. |
-| `getCurrentPosition` | function | 214 | One high-accuracy browser GPS fix (15 s timeout) → lat/lng/accuracy. |
-| `mapsUrl` | const | 231 | Google Maps link to a point. |
-| `directionsUrl` | const | 233 | Google Maps navigation link to a point. |
-| `shrinkImage` | function | 239 | Downscales a photo to ≤1600 px JPEG in the browser before upload. |
-| `pickRecorderMime` | function | 258 | First audio type MediaRecorder supports (webm on Chrome/Android, mp4 on iOS). |
-| `RecorderState` | type | 266 | Voice recorder state: idle, recording, denied, unsupported. |
-| `useVoiceRecorder` | function | 272 | Tap-to-start/stop MediaRecorder with timer, cancel, and auto-stop at the limit. |
-| `fmtDuration` | function | 343 | Seconds → m:ss. |
-| `chatTime` | function | 349 | Cairo time for a message (date added when not today). |
+| `ChatMessage` | type | 44 | A message plus client-only pending/failed/localUrl flags for optimistic sends. |
+| `ChatMe` | type | 67 | GET /chat/me result. |
+| `CHAT_READ_EVENT` | const | 80 | Window event fired after a thread is marked read; useChatMe and ChatInbox reload on it so badges drop at once. |
+| `announceChatRead` | function | 86 | After a thread is read: fires CHAT_READ_EVENT and closes that thread's chat-<id> notifications in the phone tray. |
+| `CHAT_ME_POLL_MS` | const | 96 | Badge / widget / inbox poll interval (10 s). |
+| `CHAT_THREAD_POLL_MS` | const | 98 | Open-thread poll interval (4 s). |
+| `CHAT_MAX_VOICE_SEC` | const | 99 | Voice notes stop recording at 300 s. |
+| `CHAT_MAX_FILE_BYTES` | const | 100 | Client-side 10 MB attachment limit (matches the server). |
+| `ChatAnnouncement` | type | 103 | A received broadcast. |
+| `ChatAnnouncementsSummary` | type | 111 | Pinned announcements inbox row. |
+| `ChatSentBroadcast` | type | 117 | A sent broadcast with recipient / delivered / seen counts. |
+| `AUDIENCE_LABEL_KEY` | const | 125 | i18n key per broadcast audience. |
+| `useChatMe` | function | 138 | Polls /chat/me as a background request every 10 s (paused while hidden); optional onUpdate callback. |
+| `messageAttachmentPath` | const | 180 | API path of a 1:1 message's attachment. |
+| `broadcastAttachmentPath` | const | 182 | API path of a broadcast's attachment. |
+| `attachmentUrl` | function | 185 | Fetches an auth-gated attachment as a blob → cached object URL. |
+| `useAttachmentUrl` | function | 197 | Hook wrapping attachmentUrl with loading/error state. |
+| `LocationError` | type | 215 | denied \| unavailable \| unsupported. |
+| `getCurrentPosition` | function | 218 | One high-accuracy browser GPS fix (15 s timeout) → lat/lng/accuracy. |
+| `mapsUrl` | const | 235 | Google Maps link to a point. |
+| `directionsUrl` | const | 237 | Google Maps navigation link to a point. |
+| `shrinkImage` | function | 243 | Downscales a photo to ≤1600 px JPEG in the browser before upload. |
+| `pickRecorderMime` | function | 262 | First audio type MediaRecorder supports (webm on Chrome/Android, mp4 on iOS). |
+| `RecorderState` | type | 270 | Voice recorder state: idle, recording, denied, unsupported. |
+| `useVoiceRecorder` | function | 276 | Tap-to-start/stop MediaRecorder with timer, cancel, and auto-stop at the limit. |
+| `fmtDuration` | function | 347 | Seconds → m:ss. |
+| `chatTime` | function | 353 | Cairo time for a message (date added when not today). |
 
 ### `complaints.ts`
 
@@ -1316,6 +1403,16 @@ Driver Time (5.8.0): when the driver must be ready — the job time minus 1 hour
 | `driverTimeFromHHMM` | function | 8 | "HH:MM" job time → "HH:MM" driver time (minus the lead, wrapping past midnight); "" for no / bad input. |
 | `driverTimeFromDate` | function | 16 | Job instant → driver ready instant (minus the lead); null in, null out. |
 
+### `format.ts`
+
+`frontend/src/lib/format.ts` · 42 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `formatDateLong` | function | 20 | _—_ |
+| `formatTime24` | function | 30 | _—_ |
+| `formatMoney` | function | 37 | _—_ |
+
 ### `gps.ts`
 
 `frontend/src/lib/gps.ts` · 67 lines
@@ -1329,17 +1426,17 @@ GPS capture for portal evidence. Two-stage: high-accuracy fix with a long window
 
 ### `i18n.ts`
 
-`frontend/src/lib/i18n.ts` · 3970 lines
+`frontend/src/lib/i18n.ts` · 4292 lines
 
 Dashboard translations (EN/AR) — the largest lib file. Also carries the in-app help text per module.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `Locale` | type | 4 | Supported dashboard locales. |
-| `t` | function | 3947 | Translates a key in the current locale. |
-| `getTranslator` | function | 3951 | Translator for a specific locale, outside React. |
-| `useT` | function | 3959 | Hook returning the translator bound to the active locale. |
-| `useLocaleId` | function | 3966 | The active locale id. |
+| `t` | function | 4269 | Translates a key in the current locale. |
+| `getTranslator` | function | 4273 | Translator for a specific locale, outside React. |
+| `useT` | function | 4281 | Hook returning the translator bound to the active locale. |
+| `useLocaleId` | function | 4288 | The active locale id. |
 
 ### `maps-nav.ts`
 
@@ -1444,6 +1541,21 @@ Fetches and caches public website settings (branding, nav, feature toggles) for 
 | `SiteSettings` | type | 30 | Shape of the public website settings. |
 | `DEFAULT_SITE_SETTINGS` | const | 89 | Fallbacks so the public pages still render if settings are unavailable. |
 | `fetchSiteSettings` | function | 128 | Loads website settings from the public API. |
+
+### `status-colors.ts`
+
+`frontend/src/lib/status-colors.ts` · 84 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `JobStatusTone` | type | 19 | _—_ |
+| `JOB_STATUS_TONE` | const | 21 | _—_ |
+| `TONE_BADGE` | const | 34 | _—_ |
+| `TONE_DOT` | const | 44 | _—_ |
+| `TONE_STRIPE` | const | 54 | _—_ |
+| `statusTone` | function | 63 | _—_ |
+| `statusBadgeClass` | function | 67 | _—_ |
+| `useStatusLabel` | function | 72 | _—_ |
 
 ### `use-geo-capture.ts`
 

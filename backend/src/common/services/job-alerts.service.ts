@@ -1,3 +1,4 @@
+import { teamUserFilter } from '../utils/office-teams.js';
 import {
   BadRequestException,
   ForbiddenException,
@@ -351,34 +352,22 @@ export class JobAlertsService {
   // ── Office alerts (5.10): on the way · no answer · 45-minute warning ────────────────
 
   /**
-   * Office users who get job-alarm alerts: the users and roles picked in Company › Alerts,
-   * or — when none are picked — admins + Dispatch / Traffic Jobs (same as flight delay).
+   * Office users who get a job-alarm alert about a rep / driver (6.9.2): the Dispatch team for
+   * drivers, the Online team for reps, plus admins. When Company › Alerts picks users or roles,
+   * only those picked who are in that team (or admins) get it.
    */
-  private async officeRecipients(): Promise<string[]> {
+  private async officeRecipients(role: AlertRole): Promise<string[]> {
     const cfg = await this.alarmSettings();
-    if (cfg.recipientRoleIds.length || cfg.recipientUserIds.length) {
-      const picked = await this.prisma.user.findMany({
-        where: {
-          isActive: true,
-          deletedAt: null,
+    const picked = cfg.recipientRoleIds.length || cfg.recipientUserIds.length
+      ? [{
           OR: [
             ...(cfg.recipientUserIds.length ? [{ id: { in: cfg.recipientUserIds } }] : []),
             ...(cfg.recipientRoleIds.length ? [{ roleId: { in: cfg.recipientRoleIds } }] : []),
           ],
-        },
-        select: { id: true },
-      });
-      return picked.map((r) => r.id);
-    }
+        }]
+      : [];
     const rows = await this.prisma.user.findMany({
-      where: {
-        isActive: true,
-        deletedAt: null,
-        OR: [
-          { roleRef: { permissions: { some: { permissionKey: { in: ['traffic-jobs', 'dispatch'] } } } } },
-          { role: 'ADMIN' },
-        ],
-      },
+      where: { isActive: true, deletedAt: null, AND: [teamUserFilter(role), ...picked] },
       select: { id: true },
     });
     return rows.map((r) => r.id);
@@ -386,12 +375,13 @@ export class JobAlertsService {
 
   private async notifyOffice(
     type: 'ON_THE_WAY' | 'ALARM_MISSED' | 'ALARM_WARN_45',
+    role: AlertRole,
     jobId: string,
     title: string,
     message: string,
     metadata: Record<string, unknown>,
   ) {
-    const ids = await this.officeRecipients();
+    const ids = await this.officeRecipients(role);
     if (!ids.length) return;
     await this.prisma.userNotification.createMany({
       data: ids.map((userId) => ({ userId, title, message, type, trafficJobId: jobId, metadata: metadata as object })),
@@ -429,6 +419,7 @@ export class JobAlertsService {
     const said = answer === 'SEEN' ? 'Seen' : 'On the way';
     await this.notifyOffice(
       'ON_THE_WAY',
+      role,
       jobId,
       `${said}: ${job.internalRef}`,
       `${p.roleLabel} ${p.name} pressed "${said}" on the ${minutesLabel(minutes)} alarm at ${fmtCairo(at)}.` +
@@ -498,6 +489,7 @@ export class JobAlertsService {
             const p = await this.person(leg.userId!, leg.role);
             await this.notifyOffice(
               'ALARM_MISSED',
+              leg.role,
               job.id,
               `No answer: ${job.internalRef}`,
               `${p.roleLabel} ${p.name} did not answer the ${alarm.label} alarm for ${job.internalRef} ` +
@@ -517,6 +509,7 @@ export class JobAlertsService {
             const p = await this.person(leg.userId!, leg.role);
             await this.notifyOffice(
               'ALARM_WARN_45',
+              leg.role,
               job.id,
               `${minutesLabel(cfg.warnBeforeMinutes)} to go, no answer: ${job.internalRef}`,
               `${p.roleLabel} ${p.name} answered none of the ${earlier.map((al) => al.label).join(' / ')} alarms. ` +

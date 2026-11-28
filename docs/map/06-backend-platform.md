@@ -4,7 +4,7 @@
 
 Cross-cutting machinery: auth, RBAC, sessions, settings, messaging, storage, cron and shared utilities. This group is the CATCH-ALL: any backend module not claimed by 03/04/05 lands here, so a newly added module can never silently vanish from the map.
 
-**74 classes**, **580 methods**.
+**77 classes**, **612 methods**.
 
 `Touches` lists the Prisma models a method reads or writes and the sibling services it calls — enough to trace a data path without opening the file.
 
@@ -118,27 +118,27 @@ Public auth surface: login, 2FA, refresh, password reset, logout and mobile devi
 
 ### AuthService
 
-`backend/src/auth/auth.service.ts:40` · service · 15 methods
+`backend/src/auth/auth.service.ts:39` · service · 15 methods
 
 JWT + refresh-token auth, 2FA step-up, password reset, and the single-device lock for REP/DRIVER. Access tokens carry `sessionId`; `JwtStrategy` re-checks it for REP/DRIVER so a force-logout invalidates a live token.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `login` | pub | 60 | `jwtService.signAsync` | Validates credentials, then applies the single-device lock: a REP or DRIVER with an ACTIVE session elsewhere is rejected with 409 and managers are notified (the user is not told who). Active means not ended and seen within `SESSION_IDLE_MINUTES` (default 30), so a dead device frees itself. If 2FA is on, returns a 5-minute challenge instead of a session. |
-| `issueSession` | priv | 106 | `user` `rep` `driver` `supplier` | Mints the token pair, stores the hashed refresh token plus a fresh `sessionId`, records the device session, and resolves the caller's repId/driverId/supplierId into the response. Shared by login and 2FA verify. |
-| `signUploadsToken` | pub | 198 | `jwtService.signAsync` | Short-lived token delivered as an httpOnly cookie so `<img>` tags — which cannot send an Authorization header — can load private `/uploads` files. Carries `typ:'uploads'`. |
-| `setupTwoFactor` | pub | 208 | `user` | Generates a TOTP secret and otpauth URI for enrolment; does not enable 2FA yet. |
-| `enableTwoFactor` | pub | 220 | `user` | Confirms enrolment with a valid code and switches 2FA on, returning recovery codes. |
-| `disableTwoFactor` | pub | 238 | `user` | Turns 2FA off after re-verification. |
-| `verifyTwoFactor` | pub | 262 | `user` `jwtService.verifyAsync` | Exchanges the login challenge token plus a TOTP or recovery code for a real session. |
-| `refresh` | pub | 305 | `user` `jwtService.verify` | Rotates the token pair. Compares the presented refresh token against the stored hash, KEEPS the existing `sessionId` and extends its expiry — so refreshing never trips the single-device lock. |
-| `logout` | pub | 385 | `userSession` `user` | Ends the device session and clears the stored refresh token. |
-| `validateUser` | pub | 408 | `user` | Looks up by email or username and verifies the password; rejects inactive or soft-deleted users. |
-| `hashPassword` | pub | 443 | — | bcrypt hash — used for passwords AND for refresh tokens at rest. |
-| `comparePassword` | pub | 451 | — | bcrypt comparison. |
-| `forgotPassword` | pub | 459 | `user` | Issues a reset token and emails it. Always succeeds outwardly, so it cannot be used to probe which emails exist. |
-| `resetPassword` | pub | 498 | `user` | Consumes a valid reset token and sets the new password. |
-| `generateTokens` | pub | 536 | `jwtService.signAsync` | Signs the access/refresh pair with their separate secrets. |
+| `login` | pub | 59 | `jwtService.signAsync` | Validates credentials, then applies the single-device lock: a REP or DRIVER with an ACTIVE session elsewhere is rejected with 409 and managers are notified (the user is not told who). Active means not ended and seen within `SESSION_IDLE_MINUTES` (default 30), so a dead device frees itself. If 2FA is on, returns a 5-minute challenge instead of a session. |
+| `issueSession` | priv | 105 | `user` `rep` `driver` `supplier` | Mints the token pair, stores the hashed refresh token plus a fresh `sessionId`, records the device session, and resolves the caller's repId/driverId/supplierId into the response. Shared by login and 2FA verify. |
+| `signUploadsToken` | pub | 197 | `jwtService.signAsync` | Short-lived token delivered as an httpOnly cookie so `<img>` tags — which cannot send an Authorization header — can load private `/uploads` files. Carries `typ:'uploads'`. |
+| `setupTwoFactor` | pub | 207 | `user` | Generates a TOTP secret and otpauth URI for enrolment; does not enable 2FA yet. |
+| `enableTwoFactor` | pub | 219 | `user` | Confirms enrolment with a valid code and switches 2FA on, returning recovery codes. |
+| `disableTwoFactor` | pub | 237 | `user` | Turns 2FA off after re-verification. |
+| `verifyTwoFactor` | pub | 261 | `user` `jwtService.verifyAsync` | Exchanges the login challenge token plus a TOTP or recovery code for a real session. |
+| `refresh` | pub | 304 | `user` `jwtService.verify` | Rotates the token pair. Compares the presented refresh token against the stored hash, KEEPS the existing `sessionId` and extends its expiry — so refreshing never trips the single-device lock. |
+| `logout` | pub | 386 | `userSession` `user` | Ends the device session and clears the stored refresh token. |
+| `validateUser` | pub | 409 | `user` | Looks up by email or username and verifies the password; rejects inactive or soft-deleted users. |
+| `hashPassword` | pub | 444 | — | bcrypt hash — used for passwords AND for refresh tokens at rest. |
+| `comparePassword` | pub | 452 | — | bcrypt comparison. |
+| `forgotPassword` | pub | 460 | `user` | Issues a reset token and emails it. Always succeeds outwardly, so it cannot be used to probe which emails exist. |
+| `resetPassword` | pub | 499 | `user` | Consumes a valid reset token and sets the new password. |
+| `generateTokens` | pub | 537 | `jwtService.signAsync` | Signs the access/refresh pair with their separate secrets. |
 
 ### JwtStrategy
 
@@ -194,88 +194,96 @@ Parses the traffic sheet, resolves each row to route/customer/car/carrier, diffs
 
 ### ChatController
 
-`backend/src/chat/chat.controller.ts:44` · controller · 20 methods
+`backend/src/chat/chat.controller.ts:45` · controller · 21 methods
 
 /chat routes. Open to any signed-in user; ChatService decides who may talk to whom and checks thread membership.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `me` | pub | 49 | — | GET /chat/me — chat availability, unread total and newest unread thread (background poll). |
-| `conversations` | pub | 54 | — | GET /chat/conversations — the caller's threads with last message and unread count. |
-| `contacts` | pub | 59 | — | GET /chat/contacts — people the caller may start a chat with (?search, ?role for staff). |
-| `open` | pub | 64 | — | POST /chat/conversations — get or create the thread with a user (eligibility checked). |
-| `conversation` | pub | 69 | — | GET /chat/conversations/:id — thread header: the other person and their read position. |
-| `messages` | pub | 74 | — | GET /chat/conversations/:id/messages — latest page, ?before for history, ?after for live polling. |
-| `send` | pub | 90 | — | POST /chat/conversations/:id/messages — multipart: kind, body, file, durationSec. |
-| `read` | pub | 101 | — | POST /chat/conversations/:id/read — mark the thread read for the caller (not audited). |
-| `attachment` | pub | 107 | — | GET /chat/messages/:id/attachment — streams an image/voice note to a participant (sendFile with dotfiles allowed). |
-| `stream` | priv | 115 | — | Sends a chat attachment file with private caching and dotfiles allowed. |
-| `announcementsSummary` | pub | 129 | — | GET /chat/announcements/summary — pinned inbox row: unread count + newest announcement, or null. |
-| `announcements` | pub | 134 | — | GET /chat/announcements — broadcasts the caller received (?before paging); marks them delivered. |
-| `announcementsRead` | pub | 140 | — | POST /chat/announcements/read — mark every received broadcast seen (not audited). |
-| `broadcastAudiences` | pub | 148 | — | GET /chat/broadcasts/audiences — recipient count per audience (perm chat-broadcast). |
-| `broadcasts` | pub | 154 | — | GET /chat/broadcasts — every broadcast sent, with delivered/seen counts (perm chat-broadcast). |
-| `sendBroadcast` | pub | 167 | — | POST /chat/broadcasts — multipart: audience + kind/body/file/durationSec/latitude/longitude (perm chat-broadcast). |
-| `broadcastRecipients` | pub | 177 | — | GET /chat/broadcasts/:id/recipients — per-person delivered/seen receipts (perm chat-broadcast). |
-| `broadcastAttachment` | pub | 183 | — | GET /chat/broadcasts/:id/attachment — streams a broadcast's photo/voice to recipients, sender and broadcast managers. |
-| `settings` | pub | 195 | — | GET /chat/settings — driver/rep contact role lists + selectable roles (perm company). |
-| `updateSettings` | pub | 201 | — | PATCH /chat/settings — set the contact role lists (perm company.editSettings). |
+| `me` | pub | 50 | — | GET /chat/me — chat availability, unread total and newest unread thread (background poll). |
+| `conversations` | pub | 55 | — | GET /chat/conversations — the caller's threads with last message and unread count. |
+| `contacts` | pub | 60 | — | GET /chat/contacts — people the caller may start a chat with (?search, ?role for staff). |
+| `open` | pub | 65 | — | POST /chat/conversations — get or create the thread with a user (eligibility checked). |
+| `conversation` | pub | 70 | — | GET /chat/conversations/:id — thread header: the other person and their read position. |
+| `messages` | pub | 75 | — | GET /chat/conversations/:id/messages — latest page, ?before for history, ?after for live polling. |
+| `send` | pub | 91 | — | POST /chat/conversations/:id/messages — multipart: kind, body, file, durationSec. |
+| `read` | pub | 102 | — | POST /chat/conversations/:id/read — mark the thread read for the caller (not audited). |
+| `forward` | pub | 108 | — | _—_ |
+| `attachment` | pub | 118 | — | GET /chat/messages/:id/attachment — streams an image/voice note to a participant (sendFile with dotfiles allowed). |
+| `stream` | priv | 126 | — | Sends a chat attachment file with private caching and dotfiles allowed. |
+| `announcementsSummary` | pub | 140 | — | GET /chat/announcements/summary — pinned inbox row: unread count + newest announcement, or null. |
+| `announcements` | pub | 145 | — | GET /chat/announcements — broadcasts the caller received (?before paging); marks them delivered. |
+| `announcementsRead` | pub | 151 | — | POST /chat/announcements/read — mark every received broadcast seen (not audited). |
+| `broadcastAudiences` | pub | 159 | — | GET /chat/broadcasts/audiences — recipient count per audience (perm chat-broadcast). |
+| `broadcasts` | pub | 165 | — | GET /chat/broadcasts — every broadcast sent, with delivered/seen counts (perm chat-broadcast). |
+| `sendBroadcast` | pub | 178 | — | POST /chat/broadcasts — multipart: audience + kind/body/file/durationSec/latitude/longitude (perm chat-broadcast). |
+| `broadcastRecipients` | pub | 188 | — | GET /chat/broadcasts/:id/recipients — per-person delivered/seen receipts (perm chat-broadcast). |
+| `broadcastAttachment` | pub | 194 | — | GET /chat/broadcasts/:id/attachment — streams a broadcast's photo/voice to recipients, sender and broadcast managers. |
+| `settings` | pub | 206 | — | GET /chat/settings — driver/rep contact role lists + selectable roles (perm company). |
+| `updateSettings` | pub | 212 | — | PATCH /chat/settings — set the contact role lists (perm company.editSettings). |
 
 ### ChatService
 
-`backend/src/chat/chat.service.ts:101` · service · 47 methods
+`backend/src/chat/chat.service.ts:106` · service · 54 methods
 
 In-app chat between rep/driver portal users and staff.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `contactRoles` | pub | 113 | `companySettings` | Reads the driver/rep contact role slug lists from CompanySettings (defaults if no row). |
-| `getSettings` | pub | 123 | `role` | Contact role lists plus every active staff role to choose from. |
-| `updateSettings` | pub | 135 | `role` `companySettings` | Validates role slugs exist and saves the contact lists on the company_settings singleton. |
-| `loadPerson` | priv | 165 | `user` | User with role enum, role slug/name and active flags. |
-| `sideOf` | priv | 169 | — | Maps a legacy role enum to PORTAL, STAFF or null (no chat). |
-| `staffReach` | priv | 176 | — | Which portal roles a staff user may chat with, from their role slug and the contact lists. |
-| `isLive` | priv | 188 | — | Active and not soft-deleted. |
-| `canPair` | priv | 196 | — | True when the portal user and staff user are both active and the staff role slug is in that portal role's contact list. |
-| `me` | pub | 212 | `chatConversation` `chatBroadcastRecipient` | Is chat available to the caller, which portal roles they may start chats with, unread total and newest unread thread. |
-| `unreadByConversation` | priv | 255 | — | Raw SQL: per-thread unread count and newest unread time for the caller's side. |
-| `markDelivered` | priv | 285 | `chatConversation` `chatBroadcastRecipient` | Bumps the caller's side *LastDeliveredAt on threads with newer messages + broadcast deliveredAt; run on every chat poll. |
-| `canBroadcast` | priv | 319 | — | True when the user holds the chat-broadcast permission (PermissionsGuard cache). |
-| `onlineSet` | priv | 323 | `userSession` | User ids with an open session seen in the last 5 minutes. |
-| `listConversations` | pub | 339 | `chatConversation` | Caller's threads, newest first, with the other person, last message preview and unread count. |
-| `personView` | priv | 385 | — | Client shape of a chat participant (name, role name, online, active). |
-| `contacts` | pub | 401 | `user` | Portal: eligible staff. Staff: active drivers/reps with a portal account, limited to the roles they may reach. |
-| `openConversation` | pub | 451 | `chatConversation` | Get-or-create the thread between caller and another user; 403 unless canPair. |
-| `getConversation` | pub | 480 | — | Thread header for a participant: other person (online/active) and their read-up-to time. |
-| `otherReceipts` | priv | 493 | — | Other side's read and delivered positions for a thread (read implies delivered). |
-| `listMessages` | pub | 515 | `chatMessage` | Messages of a thread: latest page / before cursor (history) / after cursor (live), plus the other side's read position. |
-| `messageView` | priv | 548 | — | Client shape of a message (fromMe, kind, attachment meta — never the file path). |
-| `contentView` | priv | 560 | — | API shape of message/broadcast content incl. location numbers. |
-| `prepareContent` | priv | 579 | — | Validates TEXT/IMAGE/VOICE/LOCATION content and stores the attachment; shared by messages and broadcasts. |
-| `sendMessage` | pub | 634 | `chatMessage` `chatConversation` | Validates and stores a TEXT/IMAGE/VOICE message, re-checks the pair is still allowed, bumps lastMessageAt, pushes staff→portal. |
-| `markRead` | pub | 681 | `chatConversation` | Sets the caller's side lastReadAt to now. |
-| `attachment` | pub | 694 | `chatMessage` | Absolute path + mime of a message's file after a participant check; 404 if missing. |
-| `resolveFile` | priv | 704 | — | Absolute path of a stored chat file, confined to uploads/.chat. |
-| `audienceWhere` | priv | 718 | — | User filter for a broadcast audience: live users, reps/drivers need an active profile, sender excluded. |
-| `broadcastAudiences` | pub | 738 | `user` | Recipient count for each of the four audiences (composer chips). |
-| `sendBroadcast` | pub | 747 | `user` `chatBroadcast` `chatBroadcastRecipient` | Snapshots the audience, stores the broadcast + recipient rows in one transaction, pushes. |
-| `listSentBroadcasts` | pub | 794 | `chatBroadcast` `chatBroadcastRecipient` | All broadcasts newest-first with groupBy delivered / seen counts. |
-| `sentBroadcastView` | priv | 827 | — | API shape of a sent broadcast with receipt counts. |
-| `broadcastRecipients` | pub | 851 | `chatBroadcast` `chatBroadcastRecipient` | Per-recipient status rows for one broadcast, seen first. |
-| `announcementUnread` | priv | 872 | `chatBroadcastRecipient` | Unread announcement count + newest unread instant for one user. |
-| `announcementsSummary` | pub | 882 | `chatBroadcastRecipient` | Pinned announcements inbox row for the caller (null when they never received one). |
-| `listAnnouncements` | pub | 905 | `chatBroadcastRecipient` | Received broadcasts page for the caller; marks pending ones delivered first. |
-| `markAnnouncementsRead` | pub | 934 | `chatBroadcastRecipient` | Sets readAt (and deliveredAt) on all the caller's unread broadcast rows. |
-| `broadcastAttachment` | pub | 948 | `chatBroadcast` `chatBroadcastRecipient` | Resolves a broadcast attachment after a recipient / sender / chat-broadcast check. |
-| `pushBroadcast` | priv | 966 | — | Fire-and-forget push to every broadcast recipient, 20 at a time, tag chat-announcements. |
-| `pushToPortal` | priv | 1003 | — | Staff→rep/driver: native + browser push with a preview, tagged per thread, landing on the portal chat. |
-| `previewText` | priv | 1020 | — | Push / preview text for a message kind (📷 / 🎤 / 📍). |
-| `requireSide` | priv | 1027 | — | PORTAL or STAFF for the caller; 403 for suppliers/B2C clients. |
-| `participant` | priv | 1033 | `chatConversation` | Loads a thread and 404s unless the caller is one of its two participants. |
-| `storeImage` | priv | 1046 | — | Re-encodes an upload with sharp (≤1600 px JPEG, EXIF stripped); 400 if not an image. |
-| `storeVoice` | priv | 1065 | — | Stores a voice note after magic-byte sniffing; 400 if not a known audio container. |
-| `writeFile` | priv | 1080 | — | Writes an attachment to uploads/.chat/<conversationId>/. |
-| `removeFile` | priv | 1088 | — | Deletes an orphaned attachment after a failed send. |
+| `contactRoles` | pub | 118 | `companySettings` | Reads the driver/rep contact role slug lists from CompanySettings (defaults if no row). |
+| `getSettings` | pub | 128 | `role` | Contact role lists plus every active staff role to choose from. |
+| `updateSettings` | pub | 140 | `role` `companySettings` | Validates role slugs exist and saves the contact lists on the company_settings singleton. |
+| `loadPerson` | priv | 172 | `user` | User with role enum, role slug/name and active flags. |
+| `sideOf` | priv | 176 | — | Maps a legacy role enum to PORTAL, STAFF or null (no chat). |
+| `staffReach` | priv | 183 | — | Which portal roles a staff user may chat with, from their role slug and the contact lists. |
+| `isLive` | priv | 195 | — | Active and not soft-deleted. |
+| `reachesStaff` | priv | 200 | — | _—_ |
+| `canPairStaff` | priv | 205 | — | _—_ |
+| `canTalk` | priv | 213 | — | _—_ |
+| `slotOf` | priv | 220 | — | _—_ |
+| `canPair` | priv | 228 | — | True when the portal user and staff user are both active and the staff role slug is in that portal role's contact list. |
+| `me` | pub | 244 | `chatConversation` `chatBroadcastRecipient` | Is chat available to the caller, which portal roles they may start chats with, unread total and newest unread thread. |
+| `unreadByConversation` | priv | 288 | — | Raw SQL: per-thread unread count and newest unread time for the caller's side. |
+| `markDelivered` | priv | 310 | `chatConversation` `chatBroadcastRecipient` | Bumps the caller's side *LastDeliveredAt on threads with newer messages + broadcast deliveredAt; run on every chat poll. |
+| `canBroadcast` | priv | 344 | — | True when the user holds the chat-broadcast permission (PermissionsGuard cache). |
+| `onlineSet` | priv | 348 | `userSession` | User ids with an open session seen in the last 5 minutes. |
+| `listConversations` | pub | 364 | `chatConversation` | Caller's threads, newest first, with the other person, last message preview and unread count. |
+| `personView` | priv | 414 | — | Client shape of a chat participant (name, role name, online, active). |
+| `contacts` | pub | 430 | `user` | Portal: eligible staff. Staff: active drivers/reps with a portal account, limited to the roles they may reach. |
+| `openConversation` | pub | 498 | `chatConversation` | Get-or-create the thread between caller and another user; 403 unless canPair. |
+| `getConversation` | pub | 553 | — | Thread header for a participant: other person (online/active) and their read-up-to time. |
+| `otherReceipts` | priv | 567 | — | Other side's read and delivered positions for a thread (read implies delivered). |
+| `listMessages` | pub | 589 | `chatMessage` | Messages of a thread: latest page / before cursor (history) / after cursor (live), plus the other side's read position. |
+| `messageView` | priv | 622 | — | Client shape of a message (fromMe, kind, attachment meta — never the file path). |
+| `contentView` | priv | 635 | — | API shape of message/broadcast content incl. location numbers. |
+| `prepareContent` | priv | 654 | — | Validates TEXT/IMAGE/VOICE/LOCATION content and stores the attachment; shared by messages and broadcasts. |
+| `sendMessage` | pub | 709 | `chatMessage` `chatConversation` | Validates and stores a TEXT/IMAGE/VOICE message, re-checks the pair is still allowed, bumps lastMessageAt, pushes staff→portal. |
+| `postFromPortalUser` | pub | 762 | `user` `chatConversation` `chatMessage` | _—_ |
+| `forward` | pub | 800 | `chatMessage` `chatConversation` | _—_ |
+| `markRead` | pub | 859 | `chatConversation` | Sets the caller's side lastReadAt to now. |
+| `attachment` | pub | 872 | `chatMessage` | Absolute path + mime of a message's file after a participant check; 404 if missing. |
+| `resolveFile` | priv | 882 | — | Absolute path of a stored chat file, confined to uploads/.chat. |
+| `audienceWhere` | priv | 896 | — | User filter for a broadcast audience: live users, reps/drivers need an active profile, sender excluded. |
+| `broadcastAudiences` | pub | 916 | `user` | Recipient count for each of the four audiences (composer chips). |
+| `sendBroadcast` | pub | 925 | `user` `chatBroadcast` `chatBroadcastRecipient` | Snapshots the audience, stores the broadcast + recipient rows in one transaction, pushes. |
+| `listSentBroadcasts` | pub | 972 | `chatBroadcast` `chatBroadcastRecipient` | All broadcasts newest-first with groupBy delivered / seen counts. |
+| `sentBroadcastView` | priv | 1005 | — | API shape of a sent broadcast with receipt counts. |
+| `broadcastRecipients` | pub | 1029 | `chatBroadcast` `chatBroadcastRecipient` | Per-recipient status rows for one broadcast, seen first. |
+| `announcementUnread` | priv | 1050 | `chatBroadcastRecipient` | Unread announcement count + newest unread instant for one user. |
+| `announcementsSummary` | pub | 1060 | `chatBroadcastRecipient` | Pinned announcements inbox row for the caller (null when they never received one). |
+| `listAnnouncements` | pub | 1083 | `chatBroadcastRecipient` | Received broadcasts page for the caller; marks pending ones delivered first. |
+| `markAnnouncementsRead` | pub | 1112 | `chatBroadcastRecipient` | Sets readAt (and deliveredAt) on all the caller's unread broadcast rows. |
+| `broadcastAttachment` | pub | 1126 | `chatBroadcast` `chatBroadcastRecipient` | Resolves a broadcast attachment after a recipient / sender / chat-broadcast check. |
+| `pushBroadcast` | priv | 1144 | — | Fire-and-forget push to every broadcast recipient, 20 at a time, tag chat-announcements. |
+| `pushToPortal` | priv | 1181 | — | Staff→rep/driver: native + browser push with a preview, tagged per thread, landing on the portal chat. |
+| `pushToStaff` | priv | 1202 | — | _—_ |
+| `previewText` | priv | 1220 | — | Push / preview text for a message kind (📷 / 🎤 / 📍). |
+| `requireSide` | priv | 1227 | — | PORTAL or STAFF for the caller; 403 for suppliers/B2C clients. |
+| `participant` | priv | 1233 | `chatConversation` | Loads a thread and 404s unless the caller is one of its two participants. |
+| `storeImage` | priv | 1247 | — | Re-encodes an upload with sharp (≤1600 px JPEG, EXIF stripped); 400 if not an image. |
+| `storeVoice` | priv | 1266 | — | Stores a voice note after magic-byte sniffing; 400 if not a known audio container. |
+| `writeFile` | priv | 1281 | — | Writes an attachment to uploads/.chat/<conversationId>/. |
+| `removeFile` | priv | 1289 | — | Deletes an orphaned attachment after a failed send. |
 
 ## `common`
 
@@ -336,6 +344,17 @@ Google Places/Geocoding lookups behind the backend, used for pickup/dropoff coor
 | `searchPlaces` | pub | 34 | — | Place autocomplete search. Note the B2C booking widget uses the NEW Places API directly in the browser; legacy `google.maps.places.Autocomplete` is blocked for this Cloud project. |
 | `geocodeAddress` | pub | 86 | — | Resolves an address string to coordinates. |
 
+### JobAlarmSettingsController
+
+`backend/src/common/services/job-alarm-settings.controller.ts:27` · controller · 4 methods
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `get` | pub | 32 | — | _—_ |
+| `save` | pub | 40 | — | _—_ |
+| `uploadSound` | pub | 65 | — | _—_ |
+| `resetSound` | pub | 85 | — | _—_ |
+
 ### JobAlarmsPublicController
 
 `backend/src/common/services/job-alarms-public.controller.ts:12` · controller · 3 methods
@@ -350,28 +369,33 @@ Job alarms for signed-out phones via X-Alarm-Key: list, ack, turn off
 
 ### JobAlertsService
 
-`backend/src/common/services/job-alerts.service.ts:72` · service · 16 methods
+`backend/src/common/services/job-alerts.service.ts:106` · service · 21 methods
 
 Job alarms for rep/driver portals and apps: start reminders, drop-off geofence targets, acknowledgements, rep escort answer.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `personId` | priv | 77 | `rep` `driver` | Resolve the rep or driver profile id for a user. |
-| `getAlerts` | pub | 86 | `trafficAssignment` | Jobs starting in the next 26 h with a PENDING leg (reminders) and running legs with a drop-off geofence (driver IN_PROGRESS / escorting rep). |
-| `acknowledge` | pub | 188 | `trafficAssignment` `jobAlertAck` | Upsert a JobAlertAck for the user's assigned job (first ack wins); the POST is activity-logged. |
-| `officeRecipients` | priv | 229 | `user` | Office users for job-alarm alerts: admins + users with the traffic-jobs or dispatch permission (same as flight delay). |
-| `notifyOffice` | priv | 244 | `userNotification` | Creates an office UserNotification (ON_THE_WAY / ALARM_MISSED / ALARM_WARN_45) for every recipient. |
-| `person` | priv | 259 | `rep` `driver` | Name, phone and Rep/Driver label of the person behind a user account. |
-| `notifyOnTheWay` | priv | 267 | `trafficJob` | Office alert for an "On the way" press: who, phone, job start, press time and a Google Maps link to the phone's location. |
-| `escalateMissedAlarms` | pub | 304 | `trafficAssignment` | Every minute: office alert for an alarm unanswered 5 min after it rang, and a 45-min warning when the 1:30 and 1:00 alarms were both unanswered (PENDING legs, once each, 10-min window). |
-| `escalateOnce` | priv | 380 | `jobAlertEscalation` | Claims a job_alert_escalations row (unique) and only then sends — so an alert goes out once even with two backend pods. |
-| `hashKey` | priv | 391 | — | SHA-256 of an alarm key |
-| `registerAlarmDevice` | pub | 396 | `alarmDevice` | Issues a phone's alarm key at sign-in (keeps 3 per user) |
-| `alarmDevice` | priv | 411 | `alarmDevice` | Resolves an alarm key to its active rep / driver account |
-| `alarmsByKey` | pub | 425 | — | Start reminders for a signed-out phone (no drop-off alarms) |
-| `acknowledgeByKey` | pub | 431 | — | Acknowledge a start alarm from a signed-out phone |
-| `revokeAlarmKey` | pub | 444 | `alarmDevice` | Turns job alarms off for a phone |
-| `setRepEscort` | pub | 454 | `trafficAssignment` | Save the rep's escort answer (IN_PLACE only, not DEP); decides the COMPLETED geofence target. |
+| `alarmSettings` | pub | 118 | `jobAlarmSettings` | _—_ |
+| `forgetSettings` | pub | 150 | — | _—_ |
+| `saveAlarmSettings` | pub | 154 | `jobAlarmSettings` | _—_ |
+| `setAlarmSlotSound` | pub | 173 | `jobAlarmSettings` | _—_ |
+| `setAlarmSound` | pub | 190 | `jobAlarmSettings` | _—_ |
+| `personId` | priv | 200 | `rep` `driver` | Resolve the rep or driver profile id for a user. |
+| `getAlerts` | pub | 209 | `trafficAssignment` | Jobs starting in the next 26 h with a PENDING leg (reminders) and running legs with a drop-off geofence (driver IN_PROGRESS / escorting rep). |
+| `acknowledge` | pub | 312 | `trafficAssignment` `jobAlertAck` | Upsert a JobAlertAck for the user's assigned job (first ack wins); the POST is activity-logged. |
+| `officeRecipients` | priv | 359 | `user` | Office users for job-alarm alerts: admins + users with the traffic-jobs or dispatch permission (same as flight delay). |
+| `notifyOffice` | priv | 376 | `userNotification` | Creates an office UserNotification (ON_THE_WAY / ALARM_MISSED / ALARM_WARN_45) for every recipient. |
+| `person` | priv | 396 | `rep` `driver` | Name, phone and Rep/Driver label of the person behind a user account. |
+| `notifyOnTheWay` | priv | 404 | `trafficJob` | Office alert for an "On the way" press: who, phone, job start, press time and a Google Maps link to the phone's location. |
+| `escalateMissedAlarms` | pub | 443 | `trafficAssignment` | Every minute: office alert for an alarm unanswered 5 min after it rang, and a 45-min warning when the 1:30 and 1:00 alarms were both unanswered (PENDING legs, once each, 10-min window). |
+| `escalateOnce` | priv | 526 | `jobAlertEscalation` | Claims a job_alert_escalations row (unique) and only then sends — so an alert goes out once even with two backend pods. |
+| `hashKey` | priv | 537 | — | SHA-256 of an alarm key |
+| `registerAlarmDevice` | pub | 542 | `alarmDevice` | Issues a phone's alarm key at sign-in (keeps 3 per user) |
+| `alarmDevice` | priv | 557 | `alarmDevice` | Resolves an alarm key to its active rep / driver account |
+| `alarmsByKey` | pub | 571 | — | Start reminders for a signed-out phone (no drop-off alarms) |
+| `acknowledgeByKey` | pub | 577 | — | Acknowledge a start alarm from a signed-out phone |
+| `revokeAlarmKey` | pub | 590 | `alarmDevice` | Turns job alarms off for a phone |
+| `setRepEscort` | pub | 600 | `trafficAssignment` | Save the rep's escort answer (IN_PLACE only, not DEP); decides the COMPLETED geofence target. |
 
 ### JobCompletionService
 
@@ -813,6 +837,36 @@ In-app `UserNotification` fan-out to staff, with email escalation for job update
 | `markAsRead` | pub | 382 | `userNotification` | Marks one notification read. |
 | `markAllAsRead` | pub | 392 | `userNotification` | Marks all of a user's notifications read. |
 
+## `offline-actions`
+
+### OfflineActionsService
+
+`backend/src/offline-actions/offline-actions.service.ts:52` · service · 10 methods
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `jobRef` | priv | 61 | `trafficJob` | _—_ |
+| `message` | priv | 66 | — | _—_ |
+| `announce` | pub | 85 | — | _—_ |
+| `hold` | pub | 95 | `offlineActionRequest` `user` `userNotification` | _—_ |
+| `addHeldPhotos` | pub | 136 | `offlineActionRequest` | _—_ |
+| `appendEvidence` | pub | 147 | — | _—_ |
+| `list` | pub | 159 | `offlineActionRequest` `trafficJob` `user` | _—_ |
+| `get` | pub | 185 | `offlineActionRequest` | _—_ |
+| `earlierPending` | pub | 193 | `offlineActionRequest` | _—_ |
+| `decide` | pub | 200 | `offlineActionRequest` `chatConversation` `chatMessage` | _—_ |
+
+### OfflineApprovalController
+
+`backend/src/offline-actions/offline-approval.controller.ts:20` · controller · 4 methods
+
+| Method | Vis | Line | Touches | Purpose |
+|---|---|---|---|---|
+| `list` | pub | 28 | — | _—_ |
+| `approve` | pub | 39 | — | _—_ |
+| `apply` | priv | 59 | — | _—_ |
+| `reject` | pub | 81 | — | _—_ |
+
 ## `permissions`
 
 ### PermissionsController
@@ -891,34 +945,35 @@ Firebase Cloud Messaging push to the mobile apps, addressed via `DeviceToken` ro
 |---|---|---|---|---|
 | `initializeFirebase` | priv | 18 | — | Lazily initialises the Firebase Admin SDK; a missing credential degrades to no-op rather than throwing. |
 | `sendToUser` | pub | 50 | `deviceToken` | Pushes to every registered device token for a user. |
-| `portalHome` | priv | 110 | `user` | Landing path for a web push when the caller gave none: /rep, /driver or /. |
-| `sendToDriver` | pub | 118 | `driver` | Resolves a driver to their user and pushes. |
-| `sendToRep` | pub | 137 | `rep` | Resolves a rep to their user and pushes. |
+| `portalHome` | priv | 120 | `user` | Landing path for a web push when the caller gave none: /rep, /driver or /. |
+| `sendToDriver` | pub | 128 | `driver` | Resolves a driver to their user and pushes. |
+| `sendToRep` | pub | 147 | `rep` | Resolves a rep to their user and pushes. |
 
 ### WebPushController
 
-`backend/src/push-notifications/web-push.controller.ts:63` · controller · 3 methods
+`backend/src/push-notifications/web-push.controller.ts:58` · controller · 3 methods
 
 /push/web routes for the rep/driver portals; staff are rejected explicitly (RolesGuard yields for roleId users).
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `publicKey` | pub | 68 | — | GET /push/web/public-key — VAPID public key, null when push is not configured. |
-| `subscribe` | pub | 75 | — | POST /push/web/subscribe — save this browser's https push subscription for the caller. |
-| `unsubscribe` | pub | 86 | — | POST /push/web/unsubscribe — remove this browser's subscription (called on logout). |
+| `publicKey` | pub | 63 | — | GET /push/web/public-key — VAPID public key, null when push is not configured. |
+| `subscribe` | pub | 70 | — | POST /push/web/subscribe — save this browser's https push subscription for the caller. |
+| `unsubscribe` | pub | 81 | — | POST /push/web/unsubscribe — remove this browser's subscription (called on logout). |
 
 ### WebPushService
 
-`backend/src/push-notifications/web-push.service.ts:21` · service · 4 methods
+`backend/src/push-notifications/web-push.service.ts:23` · service · 5 methods
 
 Browser push for the web portals; every PushNotificationsService.sendToUser fans out here too.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `getPublicKey` | pub | 47 | — | VAPID public key when push is enabled, else null. |
-| `subscribe` | pub | 56 | `webPushSubscription` | Upserts by endpoint — moves a shared browser to the user now signed in. |
-| `unsubscribe` | pub | 74 | `webPushSubscription` | Deletes the caller's subscription for one endpoint. |
-| `sendToUser` | pub | 79 | `webPushSubscription` | Pushes to every browser the user subscribed; drops 404/410 endpoints; never throws. |
+| `getPublicKey` | pub | 49 | — | VAPID public key when push is enabled, else null. |
+| `subscribe` | pub | 58 | `webPushSubscription` | Upserts by endpoint — moves a shared browser to the user now signed in. |
+| `unsubscribe` | pub | 76 | `webPushSubscription` | Deletes the caller's subscription for one endpoint. |
+| `sendToOffice` | pub | 86 | `user` | _—_ |
+| `sendToUser` | pub | 95 | `webPushSubscription` | Pushes to every browser the user subscribed; drops 404/410 endpoints; never throws. |
 
 ## `sessions`
 
@@ -1301,7 +1356,7 @@ Templated WhatsApp messaging to guests and staff, with per-template toggles, a d
 
 ## Standalone exports
 
-202 free functions, constants and types in these modules.
+221 free functions, constants and types in these modules.
 
 ### `backend/src/activity-logs/activity-log-format.ts`
 
@@ -1332,7 +1387,7 @@ JWT/refresh auth, 2FA, password reset and the REP/DRIVER single-device lock.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `TwoFactorChallenge` | type | 30 | `{twoFactorRequired, challengeToken}` — returned by login instead of a session when 2FA is enabled. |
+| `TwoFactorChallenge` | type | 29 | `{twoFactorRequired, challengeToken}` — returned by login instead of a session when 2FA is enabled. |
 
 ### `backend/src/auth/strategies/jwt.strategy.ts`
 
@@ -1382,8 +1437,8 @@ In-app chat rules: contact eligibility by role slug, threads, messages, attachme
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `ChatActor` | type | 41 | The caller as the JWT strategy provides it (sub + legacy role enum). |
-| `ChatMessageStatus` | type | 76 | SENT \| DELIVERED \| SEEN — the ticks on a message the caller sent. |
+| `ChatActor` | type | 42 | The caller as the JWT strategy provides it (sub + legacy role enum). |
+| `ChatMessageStatus` | type | 81 | SENT \| DELIVERED \| SEEN — the ticks on a message the caller sent. |
 
 ### `backend/src/common/decorators/current-user.decorator.ts`
 
@@ -1479,11 +1534,15 @@ Job alarms + rep escort answer shared by the rep and driver portals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AlertRole` | type | 19 | REP or DRIVER — whose leg the alarms are for. |
-| `ALERT_KINDS` | const | 22 | The job alarm kinds: START_60, START_30, DROPOFF_ARRIVED, DROPOFF_LEFT. |
-| `AlertKind` | type | 23 | One of ALERT_KINDS. |
-| `START_ALARMS` | const | 26 | The 3 start alarms (6.0.0): START_90 / START_60 / START_30 with minutes before the job and a label; each answered with "On the way". |
-| `jobStartsAt` | function | 51 | When a job starts: flight arrival for ARR, pickup time otherwise. |
+| `AlertRole` | type | 21 | REP or DRIVER — whose leg the alarms are for. |
+| `DROPOFF_KINDS` | const | 24 | _—_ |
+| `DEFAULT_ALARM_MINUTES` | const | 27 | _—_ |
+| `StartAlarm` | type | 29 | _—_ |
+| `startKind` | const | 40 | _—_ |
+| `minutesLabel` | function | 44 | _—_ |
+| `startAlarmsFrom` | function | 53 | _—_ |
+| `AlarmSettingsView` | type | 59 | _—_ |
+| `jobStartsAt` | function | 85 | When a job starts: flight arrival for ARR, pickup time otherwise. |
 
 ### `backend/src/common/services/job-completion.service.ts`
 
@@ -1528,6 +1587,16 @@ The 80-minute no-show delay, shared by both portals so drivers and reps cannot m
 | `getNoShowAvailableFrom` | function | 77 | The instant NO SHOW becomes reportable, or null when the job has no resolvable time and therefore no guard. |
 | `checkNoShowWindow` | function | 87 | Throws unless at least 80 minutes past the job time. No job time configured means no guard at all. |
 
+### `backend/src/common/utils/office-teams.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `DISPATCH_TEAM_SLUGS` | const | 5 | _—_ |
+| `ONLINE_TEAM_SLUGS` | const | 6 | _—_ |
+| `FieldRole` | type | 8 | _—_ |
+| `teamSlugsFor` | function | 10 | _—_ |
+| `teamUserFilter` | function | 15 | _—_ |
+
 ### `backend/src/common/utils/place-match.util.ts`
 
 Rules for whether a Google Places result is the same place as a named location (hotel pin checks)
@@ -1554,6 +1623,16 @@ Rules for whether a Google Places result is the same place as a named location (
 | `REP_SCORE_WEIGHTS` | const | 17 | Attendance 20 · Appearance 15 · Work 15 · Survey 15 · Review 35 = 100. Work was cut from 30 to 15 when the Survey dimension was introduced. |
 | `calcRepScore` | function | 32 | Sums the weights of the flags that are set. |
 | `scoreToFeeAndEval` | function | 43 | Score → fee band: ≥90 Excellent 50 · ≥75 Good 40 · ≥61 Average 30 · else Poor 20 (EGP). |
+
+### `backend/src/common/utils/request-clock.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `clockNow` | function | 17 | _—_ |
+| `clockIsOffline` | function | 22 | _—_ |
+| `runAt` | function | 26 | _—_ |
+| `OFFLINE_AUTO_ACCEPT_MS` | const | 31 | _—_ |
+| `parseOccurredAt` | function | 37 | _—_ |
 
 ### `backend/src/common/utils/rmf-hotel-match.ts`
 
@@ -1608,6 +1687,13 @@ Cairo-calendar helpers behind the rule that a job's service date can never be in
 | `serviceTypeLabel` | function | 58 | Business-facing display name (Arrival, Departure, Day Tour, Going, Return). |
 | `SERVICE_TYPE_LABEL_PAIRS` | const | 68 | English + Arabic label pairs — every service-type dropdown shows both languages. |
 | `NON_FLIGHT_SERVICE_TYPES` | const | 72 | Types with no flight leg, so the flight fields are hidden and not required. |
+
+### `backend/src/common/utils/signed-link.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `signLink` | function | 12 | _—_ |
+| `verifyLink` | function | 18 | _—_ |
 
 ### `backend/src/common/utils/stamp-image.ts`
 
@@ -1764,6 +1850,14 @@ Staff job-update notifications/emails, dispatch-action notices, and driver/rep j
 |---|---|---|---|
 | `AssigneeJobSnapshot` | type | 11 | Job fields a driver/rep cares about, compared before vs after an edit. |
 | `assigneeRelevantChanges` | function | 36 | Before/after job diff → short labels of trip-relevant changes (ignores the coarse changedFields list). |
+
+### `backend/src/offline-actions/offline-actions.service.ts`
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `OfflineRole` | type | 7 | _—_ |
+| `OfflineKind` | type | 8 | _—_ |
+| `OfflineReport` | type | 30 | _—_ |
 
 ### `backend/src/permissions/permission-registry.ts`
 

@@ -1,4 +1,5 @@
 import { signLink } from '../common/utils/signed-link.js';
+import { teamUserFilter } from '../common/utils/office-teams.js';
 import { PartyNotificationsService } from '../push-notifications/party-notifications.service.js';
 import {
   Injectable,
@@ -989,22 +990,9 @@ export class RepPortalService {
     const title = `Rep Update: ${job.internalRef}`;
     const notifMessage = `${repName} — ${message}`;
 
-    // Find all users with traffic-jobs or dispatch permission (Traffic & Dispatch operators/managers)
+    // Rep updates go to the Online team (+ admins) only (6.9.2).
     const recipients = await this.prisma.user.findMany({
-      where: {
-        isActive: true,
-        deletedAt: null,
-        OR: [
-          {
-            roleRef: {
-              permissions: {
-                some: { permissionKey: { in: ['traffic-jobs', 'dispatch'] } },
-              },
-            },
-          },
-          { role: 'ADMIN' },
-        ],
-      },
+      where: { isActive: true, deletedAt: null, ...teamUserFilter('REP') },
       select: { id: true },
     });
 

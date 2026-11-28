@@ -4,7 +4,7 @@
 
 Four React Native apps (driver, rep, supplier, guest) over shared `packages/shared` (API, i18n, types) and `packages/ui`.
 
-**131 files**, **392 exported symbols**.
+**137 files**, **432 exported symbols**.
 
 ## `mobile/apps/driver/src/`
 
@@ -90,25 +90,25 @@ Driver app version shown on Login/Profile.
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 142 lines
+`mobile/apps/driver/src/navigation/MainTabNavigator.tsx` · 53 lines
 
 Driver app bottom tabs (Jobs, History, Notifications, Profile).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 19 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 88 | Driver app bottom tabs (Jobs, History, Chat, Complaints, Profile) with the custom icon tab bar; polls the notification badge. |
+| `MainTabParamList` | type | 16 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 27 | Driver app bottom tabs (Jobs, History, Chat, Complaints, Profile) with the custom icon tab bar; polls the notification badge. |
 
 ### `RootNavigator.tsx`
 
-`mobile/apps/driver/src/navigation/RootNavigator.tsx` · 46 lines
+`mobile/apps/driver/src/navigation/RootNavigator.tsx` · 50 lines
 
 Driver app auth vs main navigation switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 12 | Route params for the `RootNavigator` navigator — the typed screen list. |
-| `RootNavigator` | function | 26 | Driver app auth vs main switch plus stack routes (job detail, evidence, notifications, chat). |
+| `RootStackParamList` | type | 13 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 29 | Driver app auth vs main switch plus stack routes (job detail, evidence, notifications, chat). |
 
 ## `mobile/apps/driver/src/screens/`
 
@@ -136,14 +136,14 @@ Driver app Complaints tab.
 
 ### `EvidenceScreen.tsx`
 
-`mobile/apps/driver/src/screens/EvidenceScreen.tsx` · 343 lines
+`mobile/apps/driver/src/screens/EvidenceScreen.tsx` · 353 lines
 
 Driver evidence capture for Start (IN_PROGRESS) / COMPLETED / NO SHOW: 1–10 photos + GPS, one multipart upload.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `EvidenceKind` | type | 34 | Which driver submission the evidence screen is making. |
-| `EvidenceScreen` | function | 48 | Photo grid + GPS card; posts to /in-progress, /completed or /no-show. |
+| `EvidenceKind` | type | 35 | Which driver submission the evidence screen is making. |
+| `EvidenceScreen` | function | 49 | Photo grid + GPS card; posts to /in-progress, /completed or /no-show. |
 
 ### `HistoryScreen.tsx`
 
@@ -167,13 +167,13 @@ Driver job detail with the status actions. Complete is disabled until collection
 
 ### `JobsListScreen.tsx`
 
-`mobile/apps/driver/src/screens/JobsListScreen.tsx` · 261 lines
+`mobile/apps/driver/src/screens/JobsListScreen.tsx` · 282 lines
 
 Driver's jobs for a day, sorted by effective start time.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobsListScreen` | function | 45 | Home tab: greeting, week strip, day counters and DriverJobCards; bell opens Notifications. |
+| `JobsListScreen` | function | 46 | Home tab: greeting, week strip, day counters and DriverJobCards; bell opens Notifications. |
 
 ### `LoginScreen.tsx`
 
@@ -197,7 +197,7 @@ Driver's notification feed.
 
 ### `ProfileScreen.tsx`
 
-`mobile/apps/driver/src/screens/ProfileScreen.tsx` · 265 lines
+`mobile/apps/driver/src/screens/ProfileScreen.tsx` · 278 lines
 
 Driver's own profile.
 
@@ -461,25 +461,25 @@ Rep app version shown on Login/Profile.
 
 ### `MainTabNavigator.tsx`
 
-`mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 142 lines
+`mobile/apps/rep/src/navigation/MainTabNavigator.tsx` · 53 lines
 
 Rep app bottom tabs with the custom icon tab bar.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `MainTabParamList` | type | 19 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
-| `MainTabNavigator` | function | 88 | Rep app bottom tabs (Jobs, History, Chat, Complaints, Profile) with a custom icon tab bar; polls the notification badge. |
+| `MainTabParamList` | type | 16 | Route params for the `MainTabNavigator` navigator — the typed screen list. |
+| `MainTabNavigator` | function | 27 | Rep app bottom tabs (Jobs, History, Chat, Complaints, Profile) with a custom icon tab bar; polls the notification badge. |
 
 ### `RootNavigator.tsx`
 
-`mobile/apps/rep/src/navigation/RootNavigator.tsx` · 53 lines
+`mobile/apps/rep/src/navigation/RootNavigator.tsx` · 57 lines
 
 Rep app auth vs main navigation switch.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `RootStackParamList` | type | 13 | Route params for the `RootNavigator` navigator — the typed screen list. |
-| `RootNavigator` | function | 30 | Rep app auth vs main switch plus stack routes (job detail, evidence, flight delay, update, survey, notifications, chat). |
+| `RootStackParamList` | type | 14 | Route params for the `RootNavigator` navigator — the typed screen list. |
+| `RootNavigator` | function | 33 | Rep app auth vs main switch plus stack routes (job detail, evidence, flight delay, update, survey, notifications, chat). |
 
 ## `mobile/apps/rep/src/screens/`
 
@@ -507,14 +507,14 @@ Rep app Complaints tab.
 
 ### `EvidenceScreen.tsx`
 
-`mobile/apps/rep/src/screens/EvidenceScreen.tsx` · 268 lines
+`mobile/apps/rep/src/screens/EvidenceScreen.tsx` · 278 lines
 
 Rep evidence capture for IN PLACE / COMPLETED / NO SHOW: photos + up-front GPS fix, one multipart upload.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `EvidenceKind` | type | 26 | Which rep submission the evidence screen is making. |
-| `EvidenceScreen` | function | 40 | Photo grid (camera/gallery) + GPS card; IN PLACE needs exactly 2 photos, COMPLETED/NO SHOW 1–10, as the server enforces. |
+| `EvidenceKind` | type | 27 | Which rep submission the evidence screen is making. |
+| `EvidenceScreen` | function | 41 | Photo grid (camera/gallery) + GPS card; IN PLACE needs exactly 2 photos, COMPLETED/NO SHOW 1–10, as the server enforces. |
 
 ### `HistoryScreen.tsx`
 
@@ -538,7 +538,7 @@ Rep job detail: IN PLACE (window-gated on ARR), completion, guest survey and fli
 
 ### `JobFormsScreens.tsx`
 
-`mobile/apps/rep/src/screens/JobFormsScreens.tsx` · 379 lines
+`mobile/apps/rep/src/screens/JobFormsScreens.tsx` · 429 lines
 
 Rep job side-forms: flight delay, free-text update to ops, and the arrival guest survey.
 
@@ -551,13 +551,13 @@ Rep job side-forms: flight delay, free-text update to ops, and the arrival guest
 
 ### `JobsListScreen.tsx`
 
-`mobile/apps/rep/src/screens/JobsListScreen.tsx` · 279 lines
+`mobile/apps/rep/src/screens/JobsListScreen.tsx` · 300 lines
 
 Rep Jobs tab (day list).
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobsListScreen` | function | 46 | Home tab: greeting, week strip, day counters and RepJobCards; bell opens Notifications. Refreshes on focus and every 60 s. |
+| `JobsListScreen` | function | 47 | Home tab: greeting, week strip, day counters and RepJobCards; bell opens Notifications. Refreshes on focus and every 60 s. |
 
 ### `LoginScreen.tsx`
 
@@ -581,7 +581,7 @@ Rep's notification feed.
 
 ### `ProfileScreen.tsx`
 
-`mobile/apps/rep/src/screens/ProfileScreen.tsx` · 228 lines
+`mobile/apps/rep/src/screens/ProfileScreen.tsx` · 241 lines
 
 Rep's own profile.
 
@@ -742,13 +742,13 @@ Chat API client + types for the native apps (mirrors backend chat.service).
 
 ### `driver-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 102 lines
+`mobile/packages/shared/src/api/endpoints/driver-portal.ts` · 96 lines
 
 Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController`.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `driverPortalApi` | const | 15 | Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController` (`driverPortalApi`). |
+| `driverPortalApi` | const | 17 | Typed wrappers over `/api/driver-portal`; mirrors `DriverPortalController` (`driverPortalApi`). |
 
 ### `public-api.ts`
 
@@ -762,13 +762,13 @@ Public B2C endpoints used by the guest app (search, pricing, booking).
 
 ### `rep-portal.ts`
 
-`mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 111 lines
+`mobile/packages/shared/src/api/endpoints/rep-portal.ts` · 114 lines
 
 Typed wrappers over `/api/rep-portal`; mirrors `RepPortalController`.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `repPortalApi` | const | 16 | Typed wrappers over `/api/rep-portal`; mirrors `RepPortalController` (`repPortalApi`). |
+| `repPortalApi` | const | 18 | Typed wrappers over `/api/rep-portal`; mirrors `RepPortalController` (`repPortalApi`). |
 
 ### `supplier-portal.ts`
 
@@ -855,7 +855,7 @@ Pull-to-refresh state helper shared by the list screens.
 
 ### `ar.ts`
 
-`mobile/packages/shared/src/i18n/ar.ts` · 527 lines
+`mobile/packages/shared/src/i18n/ar.ts` · 579 lines
 
 Arabic strings for all four apps.
 
@@ -865,14 +865,14 @@ Arabic strings for all four apps.
 
 ### `en.ts`
 
-`mobile/packages/shared/src/i18n/en.ts` · 527 lines
+`mobile/packages/shared/src/i18n/en.ts` · 579 lines
 
 English strings for all four apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
 | `en` | const | 1 | English strings for all four apps. |
-| `TranslationKeys` | type | 526 | English strings for all four apps (`TranslationKeys`). |
+| `TranslationKeys` | type | 578 | English strings for all four apps (`TranslationKeys`). |
 
 ### `index.ts`
 
@@ -913,22 +913,22 @@ In-app updates for the sideloaded APKs: version check against the server, native
 
 ### `background-sync.ts`
 
-`mobile/packages/shared/src/native/background-sync.ts` · 506 lines
+`mobile/packages/shared/src/native/background-sync.ts` · 534 lines
 
 Firebase-free sync: Android foreground service polling jobs/chat + tracking heartbeat, local notifications.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `Portal` | type | 41 | driver \| rep. |
-| `NotificationTarget` | type | 53 | What a tapped local notification opens: job, chat thread or notifications. |
-| `requestStartupPermissions` | function | 105 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
-| `setupNotifications` | function | 163 | Requests notification permission and creates the Android channels. |
-| `clearChatNotifications` | function | 262 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
-| `registerBackgroundSync` | function | 361 | Registers notifee's foreground-service task; call once from index.js. |
-| `startBackgroundSync` | function | 377 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
-| `stopBackgroundSync` | function | 423 | Stops polling and the foreground service (sign-out). |
-| `turnOffJobAlarms` | function | 471 | Login screen Turn off: revoke the alarm key and stop alarms |
-| `onNotificationOpen` | function | 492 | Routes taps on local notifications (incl. cold start). |
+| `Portal` | type | 42 | driver \| rep. |
+| `NotificationTarget` | type | 59 | What a tapped local notification opens: job, chat thread or notifications. |
+| `requestStartupPermissions` | function | 133 | Ask camera, location, mic and notification permissions together at launch (memoised per launch); once offers the battery-optimisation exemption. |
+| `setupNotifications` | function | 191 | Requests notification permission and creates the Android channels. |
+| `clearChatNotifications` | function | 290 | Cancel the chat-<id> notification (or all chat ones) once read, so tray and launcher badge stop showing unread. |
+| `registerBackgroundSync` | function | 389 | Registers notifee's foreground-service task; call once from index.js. |
+| `startBackgroundSync` | function | 405 | Starts the 30 s poller (notifications, chat, 60 s tracking ping) as a location or dataSync foreground service. |
+| `stopBackgroundSync` | function | 451 | Stops polling and the foreground service (sign-out). |
+| `turnOffJobAlarms` | function | 499 | Login screen Turn off: revoke the alarm key and stop alarms |
+| `onNotificationOpen` | function | 520 | Routes taps on local notifications (incl. cold start). |
 
 ### `camera.ts`
 
@@ -947,37 +947,47 @@ Camera and gallery access for evidence photos.
 
 ### `job-alerts.ts`
 
-`mobile/packages/shared/src/native/job-alerts.ts` · 494 lines
+`mobile/packages/shared/src/native/job-alerts.ts` · 693 lines
 
 Mobile job alarm engine: schedules start reminders, watches drop-off geofence, queues must-acknowledge modals.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `AlarmPortal` | type | 45 | rep or driver. |
-| `AlarmKind` | type | 46 | START_60 \| START_30 \| DROPOFF_ARRIVED \| DROPOFF_LEFT. |
-| `AlarmJob` | type | 49 | A job as GET /alerts returns it (start time, route, acked kinds, optional drop-off target). |
-| `PendingAlarm` | type | 63 | An alarm waiting for acknowledgement in the modal queue. |
-| `CHANNEL_ALARMS` | const | 71 | Android notification channel for job alarms (high importance, sound, vibration). |
-| `AlarmKeyInfo` | type | 77 | Stored alarm key with its portal and person |
-| `onAlarmsChange` | function | 100 | Subscribe to modal-queue changes; returns unsubscribe. |
-| `getPendingAlarms` | function | 107 | The current modal queue. |
-| `hasActiveDropoffs` | function | 112 | Whether a precise drop-off geofence is armed (the sync service reads GPS only then). |
-| `alarmTitle` | function | 116 | Localised title for an alarm kind. |
-| `alarmBody` | function | 131 | Notification body for an alarm (flight, time, route or drop-off text). |
-| `dueStartKind` | function | 204 | Which start reminder is due now (30-min supersedes 1-h). |
-| `evaluateDueAlarms` | function | 215 | Raise any start reminder due now (called every tick). |
-| `refreshJobAlerts` | function | 271 | Fetch GET /{portal}-portal/alerts, (re)schedule trigger notifications, raise due alarms. |
-| `checkDropoffs` | function | 318 | Compare a GPS fix with armed drop-off geofences; raise arrived / left alarms. |
-| `acknowledgeAlarm` | function | 334 | Close an alarm, cancel its notification and POST the acknowledgement. |
-| `handleAlarmNotificationAction` | function | 374 | I've seen it pressed on the alarm notification: acknowledge without opening the app |
-| `watchAlarmActions` | function | 392 | In-app listener for the alarm notification's I've seen it button |
-| `getAlarmKeyInfo` | function | 401 | Reads this phone's alarm key from encrypted storage |
-| `ensureAlarmKey` | function | 414 | After sign-in: get / replace this phone's alarm key |
-| `turnOffAlarmsOnPhone` | function | 438 | Forget the alarm key and cancel all scheduled alarms |
-| `missingAlarmPermission` | function | 450 | Which alarm permission is off: exact alarms or full-screen notifications |
-| `openAlarmPermissionSettings` | function | 467 | Opens the Android setting for the missing alarm permission |
-| `releaseSessionAlarms` | function | 476 | Sign-out with an alarm key: keep start reminders, drop the drop-off watch |
-| `resetJobAlerts` | function | 483 | Sign-out: clear state and cancel scheduled alarms. |
+| `AlarmPortal` | type | 46 | rep or driver. |
+| `AlarmKind` | type | 47 | START_60 \| START_30 \| DROPOFF_ARRIVED \| DROPOFF_LEFT. |
+| `isStartAlarm` | const | 48 | _—_ |
+| `StartAlarm` | type | 51 | _—_ |
+| `isSeenAlarm` | function | 67 | _—_ |
+| `AlarmJob` | type | 80 | A job as GET /alerts returns it (start time, route, acked kinds, optional drop-off target). |
+| `PendingAlarm` | type | 94 | An alarm waiting for acknowledgement in the modal queue. |
+| `CHANNEL_ALARMS` | const | 103 | Android notification channel for job alarms (high importance, sound, vibration). |
+| `ALARM_SOUND` | const | 106 | _—_ |
+| `alarmChannelIds` | function | 110 | _—_ |
+| `soundUpdateAvailable` | function | 143 | _—_ |
+| `reloadForNewSounds` | function | 148 | _—_ |
+| `AlarmKeyInfo` | type | 207 | Stored alarm key with its portal and person |
+| `onAlarmsChange` | function | 230 | Subscribe to modal-queue changes; returns unsubscribe. |
+| `getPendingAlarms` | function | 237 | The current modal queue. |
+| `hasActiveDropoffs` | function | 242 | Whether a precise drop-off geofence is armed (the sync service reads GPS only then). |
+| `alarmTitle` | function | 246 | Localised title for an alarm kind. |
+| `minutesLeftText` | function | 252 | _—_ |
+| `alarmBody` | function | 257 | Notification body for an alarm (flight, time, route or drop-off text). |
+| `dueStartKind` | function | 336 | Which start reminder is due now (30-min supersedes 1-h). |
+| `evaluateDueAlarms` | function | 345 | Raise any start reminder due now (called every tick). |
+| `refreshJobAlerts` | function | 397 | Fetch GET /{portal}-portal/alerts, (re)schedule trigger notifications, raise due alarms. |
+| `checkDropoffs` | function | 449 | Compare a GPS fix with armed drop-off geofences; raise arrived / left alarms. |
+| `acknowledgeAlarm` | function | 469 | Close an alarm, cancel its notification and POST the acknowledgement. |
+| `unsentAnswerCount` | function | 508 | _—_ |
+| `flushUnsent` | function | 544 | _—_ |
+| `handleAlarmNotificationAction` | function | 573 | I've seen it pressed on the alarm notification: acknowledge without opening the app |
+| `watchAlarmActions` | function | 591 | In-app listener for the alarm notification's I've seen it button |
+| `getAlarmKeyInfo` | function | 600 | Reads this phone's alarm key from encrypted storage |
+| `ensureAlarmKey` | function | 613 | After sign-in: get / replace this phone's alarm key |
+| `turnOffAlarmsOnPhone` | function | 637 | Forget the alarm key and cancel all scheduled alarms |
+| `missingAlarmPermission` | function | 649 | Which alarm permission is off: exact alarms or full-screen notifications |
+| `openAlarmPermissionSettings` | function | 666 | Opens the Android setting for the missing alarm permission |
+| `releaseSessionAlarms` | function | 675 | Sign-out with an alarm key: keep start reminders, drop the drop-off watch |
+| `resetJobAlerts` | function | 682 | Sign-out: clear state and cancel scheduled alarms. |
 
 ### `location.ts`
 
@@ -1007,6 +1017,43 @@ Opens Google Maps turn-by-turn navigation to a job's origin/destination from the
 | `googleMapsNavUrl` | function | 75 | Universal Google Maps directions link with navigation started. |
 | `openJobNavigation` | function | 90 | Android google.navigation: intent first, then the universal Google Maps link; alerts if neither opens. |
 | `canNavigate` | function | 113 | True when the job end resolves to a navigable target. |
+
+### `outbox.ts`
+
+`mobile/packages/shared/src/native/outbox.ts` · 314 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `OutboxItem` | type | 28 | _—_ |
+| `onOutboxChange` | function | 57 | _—_ |
+| `outboxItems` | function | 81 | _—_ |
+| `loadOutbox` | function | 85 | _—_ |
+| `retryOutboxItem` | function | 90 | _—_ |
+| `dismissOutboxItem` | function | 96 | _—_ |
+| `cacheSet` | function | 102 | _—_ |
+| `cacheGet` | function | 110 | _—_ |
+| `isNetworkError` | function | 120 | _—_ |
+| `cachedGet` | function | 141 | _—_ |
+| `isQueued` | function | 156 | _—_ |
+| `sendOrQueue` | function | 179 | _—_ |
+| `queueForm` | function | 197 | _—_ |
+| `queueJson` | function | 204 | _—_ |
+| `overlayJobs` | function | 209 | _—_ |
+| `flushOutbox` | function | 258 | _—_ |
+| `startOutbox` | function | 303 | _—_ |
+
+### `permission-health.ts`
+
+`mobile/packages/shared/src/native/permission-health.ts` · 136 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `PermissionKey` | type | 10 | _—_ |
+| `PermissionItem` | type | 21 | _—_ |
+| `onPermissionHealthChange` | function | 36 | _—_ |
+| `getPermissionHealth` | function | 43 | _—_ |
+| `refreshPermissionHealth` | function | 83 | _—_ |
+| `fixPermission` | function | 102 | _—_ |
 
 ### `phone.ts`
 
@@ -1562,15 +1609,50 @@ Calendar date picker modal for the rep/driver jobs header.
 |---|---|---|---|
 | `DatePickerModal` | function | 24 | Month calendar in the app popup card; tap a day to pick it (opened from the jobs header month label). |
 
+### `FieldTabBar.tsx`
+
+`mobile/packages/ui/src/kit/FieldTabBar.tsx` · 136 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `FIELD_TABS` | const | 14 | _—_ |
+| `FieldTabBar` | function | 22 | _—_ |
+
 ### `JobAlarmHost.tsx`
 
-`mobile/packages/ui/src/kit/JobAlarmHost.tsx` · 146 lines
+`mobile/packages/ui/src/kit/JobAlarmHost.tsx` · 201 lines
 
 App-styled job alarm modal host for the rep/driver apps.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `JobAlarmHost` | function | 30 | Mounted in App.tsx when signed in: polls alarms and shows each as a must-acknowledge modal with vibration. |
+| `JobAlarmHost` | function | 40 | Mounted in App.tsx when signed in: polls alarms and shows each as a must-acknowledge modal with vibration. |
+
+### `OfflineJobsBanner.tsx`
+
+`mobile/packages/ui/src/kit/OfflineJobsBanner.tsx` · 81 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `OfflineJobsBanner` | function | 23 | _—_ |
+
+### `PermissionsSection.tsx`
+
+`mobile/packages/ui/src/kit/PermissionsSection.tsx` · 105 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `usePermissionHealth` | function | 17 | _—_ |
+| `usePermissionWarning` | function | 35 | _—_ |
+| `PermissionsSection` | function | 55 | _—_ |
+
+### `ReviewComingSoon.tsx`
+
+`mobile/packages/ui/src/kit/ReviewComingSoon.tsx` · 33 lines
+
+| Export | Kind | Line | Purpose |
+|---|---|---|---|
+| `ReviewComingSoonScreen` | function | 8 | _—_ |
 
 ### `Splash.tsx`
 
@@ -1607,17 +1689,17 @@ Shared app form controls (field, choice chips, counter).
 
 ### `index.ts`
 
-`mobile/packages/ui/src/kit/index.ts` · 16 lines
+`mobile/packages/ui/src/kit/index.ts` · 20 lines
 
 Barrel for the shared rep/driver app design kit.
 
 | Export | Kind | Line | Purpose |
 |---|---|---|---|
-| `logoBadge` | const | 15 | The iTour badge PNG (packages/ui/assets) for splash and login. |
+| `logoBadge` | const | 18 | The iTour badge PNG (packages/ui/assets) for splash and login. |
 
 ### `kit.tsx`
 
-`mobile/packages/ui/src/kit/kit.tsx` · 697 lines
+`mobile/packages/ui/src/kit/kit.tsx` · 701 lines
 
 Shared app design kit (rep + driver): gradient headers, surfaces, pills, buttons, tiles, segmented control.
 
@@ -1630,15 +1712,15 @@ Shared app design kit (rep + driver): gradient headers, surfaces, pills, buttons
 | `Surface` | function | 113 | Card surface with soft shadow; pressable when given onPress. |
 | `SectionTitle` | function | 139 | Uppercase section heading with icon for cards. |
 | `Pill` | function | 153 | Small rounded label with optional icon. |
-| `statusTone` | function | 176 | Icon + colours per rep status. |
-| `StatusPill` | function | 192 | Rep-status pill (Pending / In Place / Completed / No Show / Cancelled). |
-| `serviceTone` | function | 208 | Icon + colours per service type. |
-| `ServicePill` | function | 224 | Service-type pill with its icon and tint. |
-| `ChannelPill` | function | 234 | Job type pill (Online / B2B / B2C) for the driver and rep apps |
-| `Tone` | type | 248 | Semantic button/tile tone. |
-| `ActionButton` | function | 267 | Primary button with icon, tone (primary/success/warning/danger/info/neutral), solid/soft/outline and a hint line. |
-| `TileAction` | function | 338 | Square secondary action tile (icon over label) with done tick and hint. |
-| `InfoLine` | function | 389 | Icon + label + value row, optionally tappable (call, navigate). |
-| `Segmented` | function | 426 | Segmented control; `onDark` styles it for the gradient header. |
-| `HeaderStat` | function | 478 | Translucent counter tile on the gradient header. |
-| `OfflinePill` | function | 670 | Floating offline indicator under the translucent status bar. |
+| `statusTone` | function | 181 | Icon + colours per rep status. |
+| `StatusPill` | function | 200 | Rep-status pill (Pending / In Place / Completed / No Show / Cancelled). |
+| `serviceTone` | function | 217 | Icon + colours per service type. |
+| `ServicePill` | function | 221 | Service-type pill with its icon and tint. |
+| `ChannelPill` | function | 231 | Job type pill (Online / B2B / B2C) for the driver and rep apps |
+| `Tone` | type | 242 | Semantic button/tile tone. |
+| `ActionButton` | function | 261 | Primary button with icon, tone (primary/success/warning/danger/info/neutral), solid/soft/outline and a hint line. |
+| `TileAction` | function | 342 | Square secondary action tile (icon over label) with done tick and hint. |
+| `InfoLine` | function | 393 | Icon + label + value row, optionally tappable (call, navigate). |
+| `Segmented` | function | 430 | Segmented control; `onDark` styles it for the gradient header. |
+| `HeaderStat` | function | 482 | Translucent counter tile on the gradient header. |
+| `OfflinePill` | function | 674 | Floating offline indicator under the translucent status bar. |

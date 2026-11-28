@@ -415,6 +415,7 @@ const translations: Record<Locale, Record<string, string>> = {
     // ── Notifications ──
     "notifications.title": "Notifications",
     "notifications.markAllRead": "Mark all read",
+    "notifications.readAckAll": "Read & acknowledge all",
     "notifications.noNotifications": "No notifications",
     "notifications.justNow": "Just now",
     "notifications.jobUpdated": "Job Updated",
@@ -2561,6 +2562,7 @@ const translations: Record<Locale, Record<string, string>> = {
     // ── Notifications ──
     "notifications.title": "الإشعارات",
     "notifications.markAllRead": "تعليم الكل كمقروء",
+    "notifications.readAckAll": "قراءة وتأكيد الكل",
     "notifications.noNotifications": "لا توجد إشعارات",
     "notifications.justNow": "الآن",
     "notifications.jobUpdated": "تم تحديث الحجز",

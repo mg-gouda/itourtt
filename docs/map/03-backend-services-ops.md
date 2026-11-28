@@ -389,16 +389,16 @@ RMF hotel list CRUD; area and match words default from the section and the name
 
 ### RouteResolverService
 
-`backend/src/job-service-types/route-resolver.service.ts:38` · service · 4 methods
+`backend/src/job-service-types/route-resolver.service.ts:57` · service · 4 methods
 
 Resolves a job's route from its ends + notes; used on job create/update, B2C conversion, the online form and the backfill.
 
 | Method | Vis | Line | Touches | Purpose |
 |---|---|---|---|---|
-| `loadRmf` | priv | 50 | `rmfHotel` | Loads active RMF hotels in section / sort order with the fields the matcher needs. |
-| `data` | priv | 59 | `jobServiceType` `zone` | Active routes + active RMF hotels, cached for 60 s. |
-| `resolve` | pub | 74 | `hotel` | Hotel → its zone; candidates = active routes with the job's default service type and matching From/To; one → it; several → RMF notes rule (notes + hotel names); else null. |
-| `backfill` | pub | 116 | `trafficJob` | Gives a route to online / B2C jobs from a date on that have none; returns checked / set / ambiguous / noMatch counts. |
+| `loadRmf` | priv | 69 | `rmfHotel` | Loads active RMF hotels in section / sort order with the fields the matcher needs. |
+| `data` | priv | 78 | `jobServiceType` `zone` | Active routes + active RMF hotels, cached for 60 s. |
+| `resolve` | pub | 93 | `hotel` | Hotel → its zone; candidates = active routes with the job's default service type and matching From/To; one → it; several → RMF notes rule (notes + hotel names); else null. |
+| `backfill` | pub | 140 | `trafficJob` | Gives a route to online / B2C jobs from a date on that have none; returns checked / set / ambiguous / noMatch counts. |
 
 ## `locations`
 

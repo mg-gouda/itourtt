@@ -197,12 +197,18 @@ export function Header() {
     } catch { /* ignore */ }
   };
 
+  // Read & acknowledge all (6.9.2): marks every notification read and closes every waiting popup.
+  const [ackAllBusy, setAckAllBusy] = useState(false);
   const markAllAsRead = async () => {
+    setAckAllBusy(true);
     try {
       await api.patch("/notifications/read-all");
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
-    } catch { /* ignore */ }
+      setFlightDelayQueue([]);
+    } catch { /* ignore */ } finally {
+      setAckAllBusy(false);
+    }
   };
 
   const acceptFlightDelay = async (notif: Notification) => {
@@ -277,7 +283,7 @@ export function Header() {
                   className="flex items-center gap-1 text-xs text-primary hover:underline"
                 >
                   <CheckCheck className="h-3 w-3" />
-                  {t("notifications.markAllRead") || "Mark all read"}
+                  {t("notifications.readAckAll") || "Read & acknowledge all"}
                 </button>
               )}
             </div>
@@ -386,6 +392,9 @@ export function Header() {
           pending={flightDelayQueue.length - 1}
           busy={acceptingDelay}
           onAccept={() => acceptFlightDelay(flightDelayQueue[0])}
+          ackAllLabel={t("notifications.readAckAll") || "Read & acknowledge all"}
+          ackAllBusy={ackAllBusy}
+          onAckAll={markAllAsRead}
         />
       )}
       {flightDelayQueue.length > 0 && flightDelayQueue[0].type === "FLIGHT_DELAY" && (() => {
@@ -451,10 +460,16 @@ export function Header() {
                   </div>
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex justify-end pt-2">
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
+                {flightDelayQueue.length > 1 && (
+                  <Button variant="outline" onClick={markAllAsRead} disabled={acceptingDelay || ackAllBusy}>
+                    <CheckCheck className="mr-1.5 h-4 w-4" />
+                    {ackAllBusy ? "…" : t("notifications.readAckAll") || "Read & acknowledge all"}
+                  </Button>
+                )}
                 <Button
                   onClick={() => acceptFlightDelay(notif)}
-                  disabled={acceptingDelay}
+                  disabled={acceptingDelay || ackAllBusy}
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   {acceptingDelay ? "Accepting…" : "Accept & Acknowledge"}
@@ -481,11 +496,17 @@ function JobAlarmOfficeModal({
   pending,
   busy,
   onAccept,
+  ackAllLabel,
+  ackAllBusy,
+  onAckAll,
 }: {
   notif: Notification;
   pending: number;
   busy: boolean;
   onAccept: () => void;
+  ackAllLabel: string;
+  ackAllBusy: boolean;
+  onAckAll: () => void;
 }) {
   const m = (notif.metadata ?? {}) as {
     personName?: string; personPhone?: string | null; role?: string; jobRef?: string;
@@ -558,8 +579,14 @@ function JobAlarmOfficeModal({
             </div>
           </DialogDescription>
         </DialogHeader>
-        <div className="flex justify-end pt-2">
-          <Button onClick={onAccept} disabled={busy} className={onTheWay ? "" : "bg-red-600 text-white hover:bg-red-700"}>
+        <div className="flex flex-wrap justify-end gap-2 pt-2">
+          {pending > 0 && (
+            <Button variant="outline" onClick={onAckAll} disabled={busy || ackAllBusy}>
+              <CheckCheck className="mr-1.5 h-4 w-4" />
+              {ackAllBusy ? "…" : ackAllLabel}
+            </Button>
+          )}
+          <Button onClick={onAccept} disabled={busy || ackAllBusy} className={onTheWay ? "" : "bg-red-600 text-white hover:bg-red-700"}>
             {busy ? "Accepting…" : "Accept & Acknowledge"}
           </Button>
         </div>

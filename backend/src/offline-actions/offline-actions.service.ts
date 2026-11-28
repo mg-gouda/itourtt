@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { DISPATCH_TEAM_SLUGS, ONLINE_TEAM_SLUGS } from '../common/utils/office-teams.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ChatService } from '../chat/chat.service.js';
 import { WebPushService } from '../push-notifications/web-push.service.js';
@@ -7,9 +8,10 @@ export type OfflineRole = 'REP' | 'DRIVER';
 export type OfflineKind = 'IN_PLACE' | 'IN_PROGRESS' | 'COMPLETED' | 'NO_SHOW' | 'STATUS' | 'COLLECTED';
 
 /** Who is told about actions done offline (owner, 2026-11-25). */
+// Driver actions → Dispatch team, rep actions → Online team (6.9.2: dispatch-operator was missing).
 const ROLES_FOR: Record<OfflineRole, string[]> = {
-  DRIVER: ['dispatcher', 'dispatch-manager'],
-  REP: ['online-operator', 'online-manager'],
+  DRIVER: DISPATCH_TEAM_SLUGS,
+  REP: ONLINE_TEAM_SLUGS,
 };
 
 const KIND_LABEL: Record<string, string> = {
