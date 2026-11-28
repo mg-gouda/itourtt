@@ -29,14 +29,38 @@ export class OfflineApprovalController {
     return new ApiResponse(await this.offline.list(status || 'PENDING'));
   }
 
+  /**
+   * Approve = apply it at the time it was done. Earlier waiting actions by the same person on the
+   * same job are applied first, oldest first, so "Completed" never runs before "Started"
+   * (FT-5531, 2026-11-27). One of those that cannot be applied (e.g. a duplicate) is marked
+   * "could not be applied" and the rest carry on. A "could not be applied" action can be tried again.
+   */
   @Post(':id/approve')
   async approve(@Param('id') id: string, @CurrentUser('id') officeUserId: string) {
-    const r = await this.offline.get(id);
+    const r = await this.offline.get(id, true);
+    for (const before of await this.offline.earlierPending(r)) {
+      try {
+        await this.apply(before);
+        await this.offline.decide(before.id, 'APPROVED', officeUserId);
+      } catch (e) {
+        await this.offline.decide(before.id, 'FAILED', officeUserId, (e as { message?: string })?.message ?? 'Could not apply');
+      }
+    }
+    try {
+      await this.apply(r);
+    } catch (e) {
+      const msg = (e as { message?: string })?.message ?? 'Could not apply';
+      await this.offline.decide(id, 'FAILED', officeUserId, msg);
+      throw new BadRequestException(`Could not apply: ${msg}`);
+    }
+    return new ApiResponse(await this.offline.decide(id, 'APPROVED', officeUserId), 'Applied at the time it was done');
+  }
+
+  private async apply(r: Awaited<ReturnType<OfflineActionsService['get']>>) {
     const p = (r.payload ?? {}) as { status?: string; collected?: boolean };
     const lat = r.latitude ?? null;
     const lng = r.longitude ?? null;
-    try {
-      await runAt(r.occurredAt, true, async () => {
+    await runAt(r.occurredAt, true, async () => {
         if (r.role === 'REP') {
           if (r.kind === 'IN_PLACE') return this.reps.submitInPlace(r.userId, r.trafficJobId, r.imageUrls, lat, lng);
           if (r.kind === 'COMPLETED') return this.reps.submitCompleted(r.userId, r.trafficJobId, r.imageUrls, lat, lng);
@@ -51,12 +75,6 @@ export class OfflineApprovalController {
         }
         throw new BadRequestException(`Cannot apply ${r.kind}`);
       });
-    } catch (e) {
-      const msg = (e as { message?: string })?.message ?? 'Could not apply';
-      await this.offline.decide(id, 'FAILED', officeUserId, msg);
-      throw new BadRequestException(`Could not apply: ${msg}`);
-    }
-    return new ApiResponse(await this.offline.decide(id, 'APPROVED', officeUserId), 'Applied at the time it was done');
   }
 
   @Post(':id/reject')

@@ -5,6 +5,7 @@ export type Locale = "en" | "ar";
 
 const translations: Record<Locale, Record<string, string>> = {
   en: {
+    "offlineActions.retry": "Try again",
     "tracking.offlineSince": "offline since {time}",
     "offlineActions.title": "Offline actions",
     "offlineActions.description": "Rep and driver actions done without signal that arrived more than 2 hours later. Approve applies them at the time they were done; the rep / driver is told in chat either way.",
@@ -2150,6 +2151,7 @@ const translations: Record<Locale, Record<string, string>> = {
   },
 
   ar: {
+    "offlineActions.retry": "حاول مرة أخرى",
     "tracking.offlineSince": "دون اتصال منذ {time}",
     "offlineActions.title": "إجراءات دون اتصال",
     "offlineActions.description": "إجراءات المندوب والسائق التي تمت دون إشارة ووصلت بعد أكثر من ساعتين. الموافقة تطبقها بوقت حدوثها؛ ويُبلَّغ المندوب / السائق في الدردشة في الحالتين.",

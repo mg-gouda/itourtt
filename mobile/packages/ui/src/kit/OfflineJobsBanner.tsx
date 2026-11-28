@@ -7,6 +7,7 @@ import {
   loadOutbox,
   onOutboxChange,
   outboxItems,
+  retryOutboxItem,
   t,
   useColors,
   type OutboxItem,
@@ -57,6 +58,9 @@ export function OfflineJobsBanner({ savedAt }: { savedAt: number | null }) {
           <Text style={[styles.text, { color: colors.foreground }]}>
             {t('offline.notSent')} · {i.kind.replace(/_/g, ' ')} — {i.failed}
           </Text>
+          <Pressable accessibilityRole="button" onPress={() => void retryOutboxItem(i.id)} style={[styles.btn, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.btnText, { color: colors.primaryForeground }]}>{t('offline.retry')}</Text>
+          </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={t('offline.dismiss')} onPress={() => void dismissOutboxItem(i.id)} style={styles.close}>
             <Icon name="close" size={18} color={colors.foreground} />
           </Pressable>

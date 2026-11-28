@@ -232,6 +232,7 @@ export const en = {
     downloadTitle: "iTour update {version}",
   },
   offline: {
+    retry: "Try again",
     savedTitle: "Saved on this phone",
     savedBody: "No signal right now. This is saved with the time and place you did it, and is sent automatically when the signal is back.",
     showingSaved: "Offline — jobs as of {time}",

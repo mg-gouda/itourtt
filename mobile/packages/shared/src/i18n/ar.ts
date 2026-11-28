@@ -234,6 +234,7 @@ export const ar: TranslationKeys = {
     downloadTitle: "تحديث iTour {version}",
   },
   offline: {
+    retry: "حاول مرة أخرى",
     savedTitle: "تم الحفظ على الهاتف",
     savedBody: "لا توجد إشارة الآن. تم حفظ الإجراء بالوقت والمكان الذي قمت به، وسيُرسل تلقائيًا عند عودة الإشارة.",
     showingSaved: "دون اتصال — المهام كما كانت في {time}",

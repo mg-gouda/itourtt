@@ -1,7 +1,6 @@
 import {
   Injectable,
   UnauthorizedException,
-  ForbiddenException,
   BadRequestException,
   HttpException,
   HttpStatus,
@@ -321,8 +320,10 @@ export class AuthService {
       throw new UnauthorizedException('User not found or inactive');
     }
 
+    // 401 (not 403): a revoked token means "signed out — sign in again". Apps 1.9.0 keep their
+    // offline outbox on 401 but treat other refusals as final (FT-5537 / FT-5541, 2026-11-27).
     if (!user.refreshToken) {
-      throw new ForbiddenException('Refresh token has been revoked');
+      throw new UnauthorizedException('Refresh token has been revoked');
     }
 
     // Compare the provided refresh token against the stored hash
@@ -332,7 +333,7 @@ export class AuthService {
     );
 
     if (!isRefreshTokenValid) {
-      throw new ForbiddenException('Refresh token does not match');
+      throw new UnauthorizedException('Refresh token does not match');
     }
 
     // Load role reference for JWT

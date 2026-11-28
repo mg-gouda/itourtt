@@ -133,6 +133,11 @@ export default function OfflineActionsPage() {
                       {r.note && <span className="text-muted-foreground">— {r.note}</span>}
                     </div>
                   </div>
+                  {r.status === "FAILED" && (
+                    <Button size="sm" variant="outline" className="shrink-0 gap-1.5" disabled={busy === r.id} onClick={() => void decide(r.id, "approve")}>
+                      {busy === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} {t("offlineActions.retry")}
+                    </Button>
+                  )}
                   {r.status === "PENDING" && (
                     <div className="flex shrink-0 gap-2">
                       <Button size="sm" className="gap-1.5" disabled={busy === r.id} onClick={() => void decide(r.id, "approve")}>

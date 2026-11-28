@@ -91,6 +91,17 @@ export class OfflineActionsService {
 
   /** More than 2 h late: keep it for approval, tell the office (chat + notification + push). */
   async hold(r: OfflineReport & { imageUrls: string[]; payload?: Record<string, unknown> }) {
+    // The same action sent twice (double tap without signal, FT-5531) is kept once.
+    const twin = await this.prisma.offlineActionRequest.findFirst({
+      where: { userId: r.userId, trafficJobId: r.jobId, kind: r.kind, status: 'PENDING' },
+      orderBy: { occurredAt: 'asc' },
+    });
+    if (twin && (r.kind !== 'STATUS' || (twin.payload as { status?: string } | null)?.status === r.status)) {
+      if (r.imageUrls.length) {
+        await this.prisma.offlineActionRequest.update({ where: { id: twin.id }, data: { imageUrls: [...twin.imageUrls, ...r.imageUrls] } });
+      }
+      return { held: true, id: twin.id, message: 'Saved — more than 2 hours late, so the office will approve it.' };
+    }
     const row = await this.prisma.offlineActionRequest.create({
       data: {
         trafficJobId: r.jobId, userId: r.userId, role: r.role, kind: r.kind, occurredAt: r.occurredAt,
@@ -146,7 +157,8 @@ export class OfflineActionsService {
   async list(status = 'PENDING') {
     const rows = await this.prisma.offlineActionRequest.findMany({
       where: status === 'ALL' ? {} : { status },
-      orderBy: { receivedAt: 'desc' },
+      // Waiting: oldest action first, the order they must be applied in.
+      orderBy: status === 'PENDING' ? { occurredAt: 'asc' } : { receivedAt: 'desc' },
       take: 200,
     });
     const jobs = await this.prisma.trafficJob.findMany({
@@ -167,11 +179,20 @@ export class OfflineActionsService {
     }));
   }
 
-  async get(id: string) {
+  /** A waiting action; with `retry`, one that could not be applied may be tried again. */
+  async get(id: string, retry = false) {
     const row = await this.prisma.offlineActionRequest.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('Offline action not found');
-    if (row.status !== 'PENDING') throw new BadRequestException(`Already ${row.status.toLowerCase()}`);
+    if (row.status !== 'PENDING' && !(retry && row.status === 'FAILED')) throw new BadRequestException(`Already ${row.status.toLowerCase()}`);
     return row;
+  }
+
+  /** Waiting actions by the same person on the same job done before this one, oldest first. */
+  async earlierPending(row: { id: string; userId: string; trafficJobId: string; occurredAt: Date }) {
+    return this.prisma.offlineActionRequest.findMany({
+      where: { userId: row.userId, trafficJobId: row.trafficJobId, status: 'PENDING', occurredAt: { lte: row.occurredAt }, id: { not: row.id } },
+      orderBy: { occurredAt: 'asc' },
+    });
   }
 
   async decide(id: string, status: 'APPROVED' | 'REJECTED' | 'FAILED', officeUserId: string, note?: string) {

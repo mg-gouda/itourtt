@@ -86,6 +86,12 @@ export async function loadOutbox(): Promise<OutboxItem[]> {
   return load();
 }
 
+/** Send a refused item again (the office may have fixed the job meanwhile). */
+export async function retryOutboxItem(id: string) {
+  await save((await load()).map((i) => (i.id === id ? { ...i, failed: undefined, attempts: 0 } : i)));
+  await flushOutbox();
+}
+
 /** Drop a refused item after the person has read why. */
 export async function dismissOutboxItem(id: string) {
   await save((await load()).filter((i) => i.id !== id));
@@ -273,8 +279,10 @@ export async function flushOutbox(): Promise<void> {
           await save(list);
           break; // keep the order; try again later
         }
-        const e = err as { response?: { status?: number; data?: { message?: unknown } } };
-        if (e.response?.status === 401) break; // signed out — try after sign-in
+        const e = err as { response?: { status?: number; data?: { message?: unknown } }; config?: { url?: string } };
+        // Signed out (or the sign-in could not be renewed): keep everything, try after sign-in.
+        // Servers before 6.9.1 answered a revoked sign-in with 403 (FT-5537 / FT-5541, 2026-11-27).
+        if (e.response?.status === 401 || e.config?.url?.includes('/auth/refresh')) break;
         const m = e.response?.data?.message;
         const reason = Array.isArray(m) ? m.join(' ') : typeof m === 'string' ? m : t('offline.refused');
         list = list.map((x) => (x.id === item.id ? { ...x, failed: reason } : x));
